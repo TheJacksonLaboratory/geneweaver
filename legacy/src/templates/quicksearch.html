@@ -1,0 +1,36 @@
+{# TODO we don't yet have anything like the quick_search function below:
+
+function quick_search() {
+   global $smarty;
+   $sp_id = Array(0=>"All Species");
+   $sp_id += $GLOBALS['db']->getODESpecies();
+
+   $smarty->assign('sp_id', $sp_id);
+   $smarty->display("quicksearch.tpl");
+}
+
+#}
+
+<form method="get" action="{{ ode_link() }}">
+<input type="hidden" name="action" value="search"/>
+<input type="hidden" name="cmd" value="newPage"/>
+<fieldset><legend>Search</legend>
+<p style="text-align: left; font-size: 0.75em;">
+Search Gene Weaver for any gene symbols, microarray probesets, gene set description, publication information, ontology annotation, etc. <br />
+<!--
+</p>
+<p style="color: red; font-size: 0.75em;">
+We've updated our search tools. Please be sure to clear your browser (shift-Reload) to enable these features.
+<br />
+</p>
+-->
+<div style="width: 10%"></div>
+
+<div class="searchForm" style="white-space: nowrap;">
+<ul id="searchInputs"></ul>
+<input type="submit" value="Search"/>
+</div>
+
+</fieldset>
+</form>
+<script>ODE.search.add_search_term();</script>

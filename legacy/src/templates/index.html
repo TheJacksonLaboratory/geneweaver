@@ -1,0 +1,78 @@
+{% include 'header.html' %}
+
+<div class="welcomesplash">
+
+    <img id="splash" src="images/ode_splash.png" width="500" height="250" usemap="#splashmap"/>
+    <map name="splashmap">
+        <area shape="rect" coords="26,42,100,118" href="{{ ode_link('search')|safe }}">
+        <area shape="rect" coords="93,88,162,166" href="{{ ode_link('manage', 'uploadgeneset')|safe }}">
+        <area shape="rect" coords="203,50,303,161" href="{{ ode_link('analyze')|safe }}">
+        <area shape="rect" coords="347,22,467,189" href="{{ ode_link('analyze')|safe }}">
+    </map>
+    <br/>
+    <br/>
+
+    <h4>Gene Weaver Website and Tools</h4>
+    Gene Weaver allows users to integrate gene sets across species, tissue and experimental platform. Sets can
+    be stored, shared and compared privately, among user defined groups of
+    investigators, and across all users.<br/>
+    <br/>
+    <b>Helpful Links: </b>
+    <ul>
+        <li>
+            <a href="http://geneweaver.org/wiki/index.php?title=Tutorial#Introduction_to_web-based_analysis_with_Gene_Weaver">Tutorial</a>
+            - A crash-course in the main features of Gene Weaver.
+        </li>
+        <li><a href="docs/screencast/gaggle.html">GAGGLE usage screencast</a> - How to export Gene Weaver results using
+            <a href="http://gaggle.systemsbiology.net/docs/geese/firegoose/">Firegoose</a>.
+        </li>
+        <li><a href="http://geneweaver.org/wiki/index.php?title=Quick_Start_Guide">Quick Reference</a> - A five-step
+            reference guide.
+        </li>
+        <li><a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Movie">Demo Video</a> - A comprehensive video
+            on Gene Weaver
+        </li>
+    </ul>
+
+</div>
+<div class="searchandnews">
+
+    <div class="error">GeneWeaver will be undergoing routine database maintenance from 5:00 PM EST January 16th - 5:00 PM
+        EST January 18th. During this time, the user upload site and search tools may not work properly.
+    </div>
+
+    {% include 'quicksearch.html' %}
+<!--
+    <fieldset>
+        <legend><div style="font-weight: bold; color: darkred;">GeneWeaver Needs Your Help</div></legend>
+        <div style="text-align: left; font-weight: bold; color: darkred;">
+            GeneWeaver is up for renewal and we need your support! We will soon be able to submit our
+            renewal application. If you have found our software and data resources to be valuable in your research,
+            we would very much appreciate your letter of support. If you would like to see deeper curation, specific
+            enhancements or have other needs which can best be served with collaborative development. Please send your
+            letters <a href="mailto:elissa.chesler@jax.org/">Dr. Elissa Chesler</a> by November 5.
+            <br/><br/>
+        </div>
+    </fieldset>
+-->
+
+    <fieldset>
+        <legend>Submit for Curation</legend>
+        <div style="text-align: center; font-weight: bold;">
+            Know of a study you'd like to see in GeneWeaver? Want to fast-track your own data?<br/><br/>
+            <a href="{{ ode_link('home', 'suggest')|safe }}">Submit experimental results for curation here.</a>
+        </div>
+    </fieldset>
+
+    <fieldset id="newestSets">
+        <legend>News and Notes</legend>
+        <ul>
+            {% for key, value in newsArray %}
+                <li><b style="font-weight:bold;border-bottom:1px solid #999;letter-spacing:1px;">{{ key|safe }}</b><br/>{{ value|safe }}
+                </li>
+            {% endfor %}
+        </ul>
+    </fieldset>
+
+
+{% include 'footer.html' %}
