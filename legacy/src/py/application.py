@@ -50,7 +50,7 @@ newsArray = [
     # ("Aug 2006: First Version of <i>Ontological Discovery Environment</i> released", "This is the initial release of the website for the ODE project. <i>Festina lente</i>."),
 ]
 
-def page_selector(page=1, pages):
+def page_selector(page, pages):
     pagelist = '<span name="page_selector" style="float: right">'
     pagelist += 'Page: '
     page_dict = {1 : '1', pages : str(pages)}
