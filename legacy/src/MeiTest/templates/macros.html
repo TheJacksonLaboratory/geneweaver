@@ -1,0 +1,50 @@
+{#
+  public static function showProjectOptions() {
+
+     $res = $GLOBALS['db']->getAllProjects();
+
+     $i=1;
+     $counts = array();
+     if( count($res)>10 ) print '<option value="-2"> - Create New Project...</option>';
+     foreach( $res as $row ) {
+       print "<option value=\"$row[pj_name]\">$row[pj_name] ($row[count])</option>";
+     }
+     print '<option value="-2"> - Create New Project...</option>';
+  }
+#}
+{% macro show_project_options() %}
+    {% set all_projs = get_all_projects(usr_id) %}
+    {% if len(all_projs) > 10 %}
+        <option value="-2"> - Create New Project...</option>
+    {% endif %}
+    {% for row in all_projs %}
+        <option value="{{ row['pj_name'] }}">{{ row['pj_name'] }} ({{ row['count'] }})</option>;
+    {% endfor %}
+{% endmacro %}
+
+{#
+function project_selector($params) {
+$title = isset($params['title'])?$params['title']:'Add Selected to Project...';
+$cont = isset($params['container'])?", '".$params['container']."'":'';
+?>
+<div id="projectAJAXDiv"><select name="addToProject" onchange="return ODE.add_to_project(this<?php print $cont; ?>);">
+<option value="-1"><?php print $title; ?></option>
+<?php ACTION_Analyze::showProjectOptions(); ?>
+</select></div>
+<?php
+}
+#}
+{% macro project_selector(title='Add Selected to Project...', container=None) %}
+    <div id="projectAJAXDiv">
+    <select name="addToProject" onchange="return ODE.add_to_project(this{% if container %}, '{{ container }}'{% endif %});">
+    <option value="-1">{{ title }}</option>
+    {# <?php ACTION_Analyze::showProjectOptions(); ?> #}
+    {{ show_project_options() }}
+    </select></div>
+{% endmacro %}
+
+{% macro page_selector(page=1, pages) %}
+    <span name="page_selector" style="float: right">
+    Page:
+    </span>
+{% endmacro %}

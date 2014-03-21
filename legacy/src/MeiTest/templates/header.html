@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<title>{% if title %}{{ title|e }} :: {% endif %}Gene Weaver</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/yui-combo.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ode.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tipsy.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui-1.8.7.custom.css') }}">
+<script type="text/javascript" src="{{url_for('static', filename='js/jquery-1.4.4.min.js')}}"></script>
+<script type="text/javascript" src="{{url_for('static', filename='js/ode.js')}}"></script>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-238758-4']);
+  _gaq.push(['_setDomainName', 'geneweaver.org']);
+  _gaq.push(['_setAllowLinker', true]);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+</head>
+<body id="doc3" style="background:url({{url_for('static', filename='img/ode-newback.png')}}) repeat-x;
+{% if using_ode %}
+ margin-top:40px;">
+        <div style="position:absolute; left:0; top:0; padding: 0px; border-bottom:1px solid #997; width:100%; background-color: #ffff99;">
+                <div style="padding: 5px; padding-left: 50px;">
+                The Ontological Discovery Environment is now <strong>GeneWeaver.org</strong>. 
+                <a href="http://ontologicaldiscovery.org/index.php?action=help&amp;cmd=view&amp;docid=faq">Read more about the change</a>,
+                and don't forget to update your bookmarks to <a href="http://geneweaver.org">GeneWeaver.org</a>!</div></div>
+{% else %}
+">
+{% endif %}
+
+{% if maintenance_mode %}
+  <div class="error">We are currently performing site maintenance.  Parts of the site may be slow or not work properly.  Please try again later if you experience any problems.</div>
+{% endif %}
+
+<div class="banner" style="height: 50px; position:relative;">
+  <div class="logo" style="height: 80px; width: 650px; background:url({{url_for('static', filename='img/gw-oldlogo.png')}}) no-repeat; position: absolute; top:0; left:0px; z-index: 1; border: 0;padding-left:104px; padding-top:3px;">
+        <span style="font-size: 24px; font-weight:bold;">GeneWeaver.org</span><br/>
+        <span style="font-size: 12px; color: #777;">A system for the integration of functional genomics experiments.</span>
+  </div>
+
+        <div style="position: absolute; bottom: 3px; z-index: 99; right: 0px;text-align:right;padding-bottom:5px;">
+        {% if is_anonymous %}
+    <span>Welcome Guest!  To ensure future access<br /> to your data, please </span>
+
+              <a href="http://www.google.com">Register</a> &mdash; or
+                <a href="http://www.google.com">Login</a>
+        {% else %}
+                Logged in as <a href = "http://www.google.com"">{{ persName }}</a> <br />
+                Edit <a href="http://www.google.com">Groups</a> | <a href="http://www.google.com">Logout</a>
+                {% if isAdmin %} | <a href="http://geneweaver.org/wiki/index.php?title=Issue_Tracker&amp;bt_action=list">Issue Tracker</a>{% endif %}
+        {% endif %} 
+        </div>
+</div>
+
+<br clear="both" />
+
+<div class="menu" style="height: 27px;">
+<ul>
+<li><a class="current" href="http://www.google.com"> {{topmenu['index.html']}} </a></li>
+<li><a  href="http://www.google.com"> {{topmenu['search.html']}} </a></li>
+<li><a  href="http://www.google.com"> {{topmenu['manage.html']}} </a></li>
+<li><a href="http://www.google.com"> {{topmenu['analyze.html']}} </a></li>
+<li><a href="http://www.google.com"> {{topmenu['help.html&cmd=view&docid=acknowledgements']}}</a></li>
+<li><a href="http://www.google.com"> Help  </a></li>
+</ul>
+</div>
+
+
+
+
+

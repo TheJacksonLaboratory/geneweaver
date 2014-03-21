@@ -67,13 +67,13 @@
 	{% if is_anonymous %}
     <span>Welcome Guest!  To ensure future access<br /> to your data, please </span>
 
-		<a href="{{ ode_link(action='account', cmd='reg')|safe }}">Register</a> &mdash; or
+	{#	<a href="{{ ode_link(action='account', cmd='reg')|safe }}">Register</a> &mdash; or
 		<a href="{{ ode_link(action='account', cmd='login')|safe }}">Login</a>
 	{% else %}
 		Logged in as <a href="{{ ode_link(action='account')|safe }}">{{ persName }}</a> <br />
 		Edit <a href="{{ ode_link(action='account')|safe }}">Groups</a> | <a href="{{ ode_link(action='account', cmd='logout')|safe }}">Logout</a>
 		{% if isAdmin %} | <a href="http://geneweaver.org/wiki/index.php?title=Issue_Tracker&amp;bt_action=list">Issue Tracker</a>{% endif %}
-	{% endif %}
+	{% endif %} #}
 	</div>
 </div>
 <br clear="both" />
