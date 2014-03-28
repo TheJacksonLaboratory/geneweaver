@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for, request, session, g, redirect
 import collections
 import geneweaverdb
 
@@ -57,13 +57,28 @@ def inject_globals():
     }
 
 @app.route("/index")
-def render_home_template():
-    return render_template('index.html', title='meixiao', maintenance_mode=False, is_anonymous=True)
+def render_home():
+	if 'username' in session:
+		return render_template('index.html', title='home', action='home', maintenance_mode=False, persName=session['username'], is_anonymous=False, message='Welcome back ' + session['username'])
+	return render_template('index.html', title='home', action='home', maintenance_mode=False, is_anonymous=True, message=False)
 
 @app.route('/manage')
 def render_manage():
     return render_template('my_genesets.html')
 
+@app.route("/account/login")
+def render_account_login():
+	return render_template('login.html', title='Login', maintenance_mode=False, is_anonymous=True)
+
+@app.route("/account/logout")
+def render_account_logout():
+	session.pop('username', None)
+        return render_template('index.html', title='home', action='home', maintenance_mode=False, is_anonymous=True, message="You are now logged out of Geneweaver")
+
+
+@app.route("/account/reg")
+def render_account_reg():
+	return render_template('register.html', title='Register', maintenance_mode=False, is_anonymous=True)
 
 @app.route("/test")
 def test():
@@ -73,5 +88,25 @@ def test():
 	result ="%d rows updated" % cursor.rowcount
 	return result
 
+@app.route("/test1")
+def test1():
+        conn = geneweaverdb.pool._connect()
+        cursor = conn.cursor()
+	result = "Start" 
+        cursor.execute("select * from information_schema.tables")
+        for record in cursor:
+		result = result + record + "\n"
+        return result
+
+@app.route("/account/logincmd", methods=['POST'])
+def login():
+	error=None
+	if request.method == 'POST':
+		session['username'] = request.form['username']
+		return redirect(url_for('render_home'))
+
+
+app.secret_key = "A0ZR98ji/?2Yhz  RX~HKI!JNM8@lajI if'itis tover2102-==lakjdlaskd"
+	
 if __name__ == '__main__':
     app.run()

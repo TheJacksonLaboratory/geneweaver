@@ -3,6 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <title>{% if title %}{{ title|e }} :: {% endif %}Gene Weaver</title>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico')}}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/yui-combo.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/ode.css') }}">
@@ -53,11 +54,11 @@
         {% if is_anonymous %}
     <span>Welcome Guest!  To ensure future access<br /> to your data, please </span>
 
-              <a href="http://www.google.com">Register</a> &mdash; or
-                <a href="http://www.google.com">Login</a>
+              <a href="{{url_for('render_account_reg')}}">Register</a> &mdash; or
+                <a href="{{url_for('render_account_login')}}">Login</a>
         {% else %}
                 Logged in as <a href = "http://www.google.com"">{{ persName }}</a> <br />
-                Edit <a href="http://www.google.com">Groups</a> | <a href="http://www.google.com">Logout</a>
+                Edit <a href="http://www.google.com">Groups</a> | <a href="{{url_for('render_account_logout')}}">Logout</a>
                 {% if isAdmin %} | <a href="http://geneweaver.org/wiki/index.php?title=Issue_Tracker&amp;bt_action=list">Issue Tracker</a>{% endif %}
         {% endif %} 
         </div>
@@ -67,16 +68,32 @@
 
 <div class="menu" style="height: 27px;">
 <ul>
-<li><a class="current" href="http://www.google.com"> {{topmenu['index.html']}} </a></li>
-<li><a  href="http://www.google.com"> {{topmenu['search.html']}} </a></li>
-<li><a  href="http://www.google.com"> {{topmenu['manage.html']}} </a></li>
-<li><a href="http://www.google.com"> {{topmenu['analyze.html']}} </a></li>
-<li><a href="http://www.google.com"> {{topmenu['help.html&cmd=view&docid=acknowledgements']}}</a></li>
-<li><a href="http://www.google.com"> Help  </a></li>
+<li><a class="current" href="{{url_for('render_home')}}"> {{topmenu['index.html']}} </a></li>
+<li><a  href="{{url_for('render_home')}}"> {{topmenu['search.html']}} </a></li>
+<li><a  href="{{url_for('render_home')}}"> {{topmenu['manage.html']}} </a></li>
+<li><a href="{{url_for('render_home')}}"> {{topmenu['analyze.html']}} </a></li>
+<li><a href="{{url_for('render_account_login')}}"> {{topmenu['help.html&cmd=view&docid=acknowledgements']}}</a></li>
+<li><a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Documentation"> Help  </a></li>
 </ul>
 </div>
 
+{% if message %}
+<div class="message">
+{{message}}
+</div>
+{% endif %}
 
 
+<div class="main">
+{% if title!='home' %}
+<h1>{{title}}</h1>
+{% endif %}
+
+{% if action!='home' %}
+<div class="content-meta">
+	<span id="content-meta-help"><a href="#" onclick=""> Help </a> | </span>
+	<span href="www.google.com"> Feedback </a>
+</div>
+{%  endif %}
 
 

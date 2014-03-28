@@ -21,11 +21,11 @@ var ODE = {};
         });
 
         if (e) { // show the minus symbol if now expanded
-            if (e.src.substr(-17) === "images/expand.png") {
-                e.src = "images/contract.png";
+            if (e.src.substr(-17) === "static/img/expand.png") {
+                e.src = "static/img/contract.png";
             }
             else {
-                e.src = "images/expand.png";
+                e.src = "static/img/expand.png";
             }
         }
         return false;
@@ -130,9 +130,9 @@ var ODE = {};
 
     this.toggle_tool = function (tool, e) {
         imgicon = $(e).children('img');
-        if (imgicon.attr('src').substr(-17) === "images/expand.png")
-            imgicon.attr('src', "images/contract.png");
-        else imgicon.attr('src', "images/expand.png");
+        if (imgicon.attr('src').substr(-17) === "static/img/expand.png")
+            imgicon.attr('src', "static/img/contract.png");
+        else imgicon.attr('src', "static/img/expand.png");
         $('#tool_params-' + tool).toggle();
         return false;
     };
@@ -408,24 +408,24 @@ var ODE = {};
         },
         toggle_project: function (project_id) {
             if ($('#' + project_id + "TABLE").length) {
-                if ($('#' + project_id + "ICON")[0].src.substr(-17) === "images/expand.png") {
+                if ($('#' + project_id + "ICON")[0].src.substr(-17) === "static/img/expand.png") {
                     $('#' + project_id + "TABLE").show();
-                    $('#' + project_id + "ICON")[0].src = "images/contract.png";
+                    $('#' + project_id + "ICON")[0].src = "static/img/contract.png";
                 } else {
                     $('#' + project_id + "TABLE").hide();
                     $('#' + project_id + "TABLE :input[name=\"gs_id[]\"]").disabled = true;
-                    $('#' + project_id + "ICON")[0].src = "images/expand.png";
+                    $('#' + project_id + "ICON")[0].src = "static/img/expand.png";
                 }
             } else {
                 // list needs loaded
                 var url = "index.php";
                 var params = "ajax_req=analyze&cmd=getgenesets&prjid=" + project_id;
                 if (_ODE.readOnly) params += "&readonly=true";
-                $('#' + project_id + "ahref").after('<div id="' + project_id + 'TABLE"><img src="images/spinner.gif" /> Loading ...</div>');
+                $('#' + project_id + "ahref").after('<div id="' + project_id + 'TABLE"><img src="static/img/spinner.gif" /> Loading ...</div>');
                 curSel = project_id;
 
                 $('#' + project_id + 'TABLE').load(url, params);
-                $('#' + project_id + "ICON")[0].src = "images/contract.png";
+                $('#' + project_id + "ICON")[0].src = "static/img/contract.png";
             }
             return false;
         },
@@ -536,8 +536,8 @@ var ODE = {};
             // disable remove link if this is the first input being added
             v = (count == 0) ? ' class="disabled"' : '';
             div.append(
-                '<img src="images/search_add.png" title="Add Search Term" alt="Add Search Term" onclick="ODE.search.add_search_term()" />' +
-                    '<img src="images/search_remove.png" title="Remove" alt="Remove"' +
+                '<img src="static/img/search_add.png" title="Add Search Term" alt="Add Search Term" onclick="ODE.search.add_search_term()" />' +
+                    '<img src="static/img/search_remove.png" title="Remove" alt="Remove"' +
                     v + 'onclick="ODE.search.remove_search_term(this)" />');
 
             // now, add the stuff aligned left
