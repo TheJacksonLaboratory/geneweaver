@@ -18,13 +18,14 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <title>{% if title %}{{ title|e }} :: {% endif %}Gene Weaver</title>
-<link rel="stylesheet" type="text/css" href="css/yui-combo.css" />
-<link rel="stylesheet" type="text/css" href="css/search.css" />
-<link rel="stylesheet" type="text/css" href="css/ode.css" />
-<link rel="stylesheet" type="text/css" href="css/tipsy.css" />
-<link rel="stylesheet" type="text/css" href="css/jquery-ui-1.8.7.custom.css" />
-<script type="text/javascript" src="js/jquery-1.4.4.min.js"></script>
-<script type="text/javascript" src="js/ode.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/yui-combo.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ode.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tipsy.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui-1.8.7.custom.css') }}">
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.4.4.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/ode.js') }}"></script>
+
 <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -41,7 +42,7 @@
 
 </script>
 </head>
-<body id="doc3" style="background: url(images/ode-newback.png) repeat-x;
+<body id="doc3" style="background:url({{ url_for('static', filename='images/ode-newback.png') }}) repeat-x;
 {% if using_ode %}
  margin-top:40px;">
 	<div style="position:absolute; left:0; top:0; padding: 0px; border-bottom:1px solid #997; width:100%; background-color: #ffff99;">
@@ -58,7 +59,7 @@
 {% endif %}
 
 <div class="banner" style="height: 50px; position:relative;">
-  <div class="logo" style="height: 80px; width: 650px; background: url(images/gw-oldlogo.png) no-repeat; position: absolute; top:0; left:0px; z-index: 1; border: 0;padding-left:104px; padding-top:3px;">
+  <div class="logo" style="height: 80px; width: 650px; background:url({{ url_for('static', filename='images/gw-oldlogo.png') }}) no-repeat; position: absolute; top:0; left:0px; z-index: 1; border: 0;padding-left:104px; padding-top:3px;">
 	<span style="font-size: 24px; font-weight:bold;">GeneWeaver.org</span><br/>
 	<span style="font-size: 12px; color: #777;">A system for the integration of functional genomics experiments.</span>
   </div>
