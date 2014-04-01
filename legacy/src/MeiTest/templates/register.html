@@ -1,0 +1,59 @@
+{% include "header.html" %}
+
+{% if message %}
+  <div class="message">{{message}}</div>
+{% elif error %}
+  <div class="error">{{error}}</div>
+{% endif %}
+
+<form action="{{url_for('render_account_regcmd')}}" method="post">
+<center>
+
+<table><tr><td width="40%" align="center">
+
+<table>
+<tr><td align="center" colspan="2" style="font-size: small;">
+If you currently have any GeneSets or Projects, they<br />
+will be automatically transferred to your new account.<br />
+<br />
+</td></tr>
+<tr><td><label for="persName">Name:</label></td>
+<td><input type="text" name="persName" value="{{persName}}" /></td></tr>
+<tr><td><label for="usr_email">Email Address:</label></td>
+<td><input type="text" name="usr_email" id="usr_email" value="{{usr_email}}" /></td></tr>
+<tr><td><label for="usr_password">Password:</label></td>
+<td><input type="password" name="usr_password" id="usr_password" /></td></tr>
+<tr><td align="center" colspan="2" style="font-size: small;">Don't worry, we won't spam you or sell your address.<br />
+Read our <a href="{{url_for('render_home')}}">Privacy Policies</a> for more info.</td></tr>
+</table>
+
+<br /><input tabindex="4" type="submit" value="Register" />
+
+</td><td valign="top">
+
+<table style="border: 1px solid #ccc;">
+<tr class="header"><th colspan="2">GeneWeaver Registration Benefits</th></tr>
+<tr><td style="background-color: #cfc; border-right: 1px solid #ccc;" width="30%">Registered users can:</td><td style="background-color: #fcc;" width="30%">Guest users cannot:</td></tr>
+<tr><td style="border-right: 1px solid #ccc;" valign="top">
+   <img src="{{url_for('static', filename='img/feature_check.png')}}" width="15" height="15" alt="yes!"/> Permanantly store GeneSets.
+</td><td valign="top">
+   <img src="{{url_for('static', filename='img/feature_redx.png')}}" width="15" height="15" alt="no!"/> Store data for longer than their current session. (At best, 30 days)
+</td></tr>
+<tr><td style="border-right: 1px solid #ccc;" valign="top">
+   <img src="{{url_for('static', filename='img/feature_check.png')}}" width="15" height="15" alt="yes!"/> Share GeneSets and Projects with groups such as their own lab or collaborators.
+</td><td valign="top">
+   <img src="{{url_for('static', filename='img/feature_redx.png')}}" width="15" height="15" alt="no!"/> Create or join groups, and therefore miss out on many of GeneWeavers's collaborative features.
+</td></tr>
+<tr><td style="border-right: 1px solid #ccc;" valign="top">
+   <img src="{{url_for('static', filename='img/feature_check.png')}}" width="15" height="15" alt="yes!"/> Share GeneSets publicly, in search results, allowing others to build upon and cite data quickly and easily.
+</td><td valign="top">
+   <img src="{{url_for('static', filename='img/feature_redx.png')}}" width="15" height="15" alt="no!"/> Provide direct access to their data, impeding further research efforts.
+</td></tr>
+</table>
+
+</td></tr>
+</table>
+
+</center></form>
+{% include "footer.html" %}
+
