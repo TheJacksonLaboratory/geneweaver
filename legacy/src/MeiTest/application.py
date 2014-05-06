@@ -80,6 +80,11 @@ def render_account_logout():
 def render_account_reg():
 	return render_template('register.html', title='Register', maintenance_mode=False, is_anonymous=True)
 
+@app.route("/account/regcmd", methods=['POST'])
+def render_account_regcmd():
+	return request.form['persName'];
+
+
 @app.route("/test")
 def test():
 	conn = geneweaverdb.pool._connect()
@@ -93,17 +98,23 @@ def test1():
         conn = geneweaverdb.pool._connect()
         cursor = conn.cursor()
 	result = "Start" 
-        cursor.execute("select * from information_schema.tables")
-        for record in cursor:
-		result = result + record + "\n"
-        return result
+        cursor.execute("select * from usr")
+        return "%d rows updated" % cursor.rowcount
 
 @app.route("/account/logincmd", methods=['POST'])
 def login():
 	error=None
 	if request.method == 'POST':
-		session['username'] = request.form['username']
-		return redirect(url_for('render_home'))
+		usr_email = request.form['useremail']
+		usr_email = 'mei.xiao@jax.org'
+		conn = geneweaverdb.pool._connect()
+		cursor = conn.cursor()
+		cursor.execute("select * from usr where usr_email = usr_email")
+		if cursor.rowcount == 1:
+			session['username'] = request.form['username']
+			return redirect(url_for('render_home'))
+		else:
+			 return "%d row updated" % cursor.rowcount
 
 
 app.secret_key = "A0ZR98ji/?2Yhz  RX~HKI!JNM8@lajI if'itis tover2102-==lakjdlaskd"

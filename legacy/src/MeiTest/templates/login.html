@@ -1,0 +1,22 @@
+{% include "header.html" %}
+
+{%if message%}
+   <div class="message">{{message}}</div>
+{% elif message=="fail" %}
+   <div class="error">Login failed.  Please try again.</div>
+   <br /><br />If you have forgotten your password you can <a href="www.google.com">reset it</a>.
+{% endif %}
+
+<br><form action="{{url_for('login')}}" method="post" name="Login" >
+<center>
+Please enter your email address and password.<br />
+<br />
+<label>Email: <input type="text" name="useremail" size="15" /></label><br /><br />
+<label>Password: <input type="password" name="password" size="15" /></label><br /><br />
+<input type="hidden" name="redirect" value="{{redirect|escape}}">
+<input type="submit" name="Login" value="Login">
+<br /><br />If you do not have an account, you may <a href="www.google.com">register here</a>.<br />
+<a href="www.google.com">Forgot your password?</a>
+</center></form>
+
+{%include "footer.html" %}
