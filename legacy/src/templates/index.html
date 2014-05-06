@@ -4,10 +4,10 @@
 
     <img id="splash" src="images/ode_splash.png" width="500" height="250" usemap="#splashmap"/>
     <map name="splashmap">
-        <area shape="rect" coords="26,42,100,118" href="{{ ode_link('search')|safe }}">
-        <area shape="rect" coords="93,88,162,166" href="{{ ode_link('manage', 'uploadgeneset')|safe }}">
-        <area shape="rect" coords="203,50,303,161" href="{{ ode_link('analyze')|safe }}">
-        <area shape="rect" coords="347,22,467,189" href="{{ ode_link('analyze')|safe }}">
+        <area shape="rect" coords="26,42,100,118" href="{{ url_for('.render_search')|safe }}">
+        <area shape="rect" coords="93,88,162,166" href="{{ url_for('.render_uploadgeneset')|safe }}">
+        <area shape="rect" coords="203,50,303,161" href="{{ url_for('.render_analyze')|safe }}">
+        <area shape="rect" coords="347,22,467,189" href="{{ url_for('.render_analyze')|safe }}">
     </map>
     <br/>
     <br/>

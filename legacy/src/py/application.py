@@ -1,6 +1,8 @@
 import collections
 import flask
 import os
+import geneweaverdb
+import re
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 app = flask.Flask(
@@ -18,36 +20,6 @@ newsArray = [
     ("2013: GeneWeaver user publication (Includes Deposited Data)", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/23329330\">Mechanistic basis of infertility of mouse intersubspecific hybrids</a> Bhattacharyya T, Gregorova S, Mihola O, Anger M, Sebestova J, Denny P, Simecek P, Forejt J. PNAS 2013 110 (6) E468-E477."),
     ("2012: GeneWeaver Publication", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/23195309\">Cross species integration of functional genomics experiments.</a>Jay, JJ. Int Rev Neurobiol 104:1-24."),
     ("Oct 2012: GeneWeaver user publication", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/22961259\">The Mammalian Phenotype Ontology as a unifying standard for experimental and high-throughput phenotyping data.</a> Smith CL, Eppig JT. Mamm Genome. 23(9-10):653-68"),
-    # ("June 2012: GeneWeaver user publication", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/22371272\">Quantitative trait loci for sensitivity to ethanol intoxication in a C57BL/6Jx129S1/SvImJ inbred mouse cross.</a> Chesler EJ, Plitt A, Fisher D, Hurd B, Lederle L, Bubier JA, Kiselycznyk C, Holmes A. Mamm Genome 23(5-6):305-21"),
-    # ("Apr 2012: GeneWeaver user publication", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/23123364\">Accelerating discovery for complex neurological and behavioral disorders through systems genetics and integrative genomics in the laboratory mouse.</a> Bubier JA, Chesler EJ. Neurotherapetuics. 9(2):338-48"),
-    # ("Jul 2012: ISMB Presentation", "GeneWeaver was presented at ISMB 2012 in Long Beach, California (<a href=\"https://www.iscb.org/cms_addon/conferences/ismb2012/technologytrack.php\">TT32</a>). Thanks to everyone who attended! If you didn't get to talk to Jeremy, feel free to email any of us with questions. (addresses at the bottom of the page)"),
-    # ("Jan 2012: GeneWeaver user publication", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/22239914\">Chloride intracellular channels modulate acute ethanol behaviors in Drosophila, Caenorhabditis elegans and mice.</a> Bhandari P, Hill JS, Farris SP, Costin B, Martin I, Chan CL, Alaimo JT, Bettinger JC, Davies AG, Miles MF, Grotewiel M. Genes Brain Behav. 2012 Jan 13."),
-    # ("Oct 2011: Gene Weaver publication", "<a href=\"http://nar.oxfordjournals.org/content/40/D1/D1067.full\">GeneWeaver: A web-based system for integrative functional genomics.</a> Article in Nucleic Acids Research."),
-    # ("Sep 2011: ODE renamed to Gene Weaver", "The Ontological Discovery Environment has been renamed to Gene Weaver, to better articulate our features and tools. <a href=\"http://ontologicaldiscovery.org/index.php?action=help&cmd=view&docid=faq\">Read more about the change.</a>"),
-    # ("Jul 2011: ISMB Presentation", "A short talk and poster was presented at <a href=\"http://www.iscb.org/ismbeccb2011\">ISMB 2011</a> in Vienna, Austria."),
-    # ("Apr 2011: Autism article using ODE", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/21397722\">Autism candidate genes via mouse phenomics. Journal of Biomedical Informatics.</a> This paper illustrates the use of the Ontological Discovery Environment to augment a set of known disease related genes with predictions of disease associated genes."),
-    # ("Mar 2011: Database Update", "ODE now contains <i>C. elegans</i> and <i>Saccharomyces cerevisiae S288c</i> gene identifiers and Affymetrix arrays."),
-    # ("Jan 2011: Full Database Update", "ODE has had a full update to the newest gene identifiers and ontologies. Please note that some sets or analysis results may change due to new genes and/or new homology information."),
-    # ("Dec 2010: GO/MP Ontologies updated", "Gene Ontology and Mammalian Phenotype GeneSets have been updated, and now also include indirect associations. If you have the old sets in your projects, use the provided icon to transition to the new data."),
-    # ("Nov 2010: Presentations", "ODE presented at the 2010 Society for Neuroscience Annual Meeting, and the NIDA 2010 Frontiers in Addiction Research."),
-    # ("Sep 2010: New Microarrays Added", "New Microarrays have been added. Our process has also been streamlined to pull <a href=\"http://www.ncbi.nlm.nih.gov/geo/query/browse.cgi?mode=findplatform\">GEO Platform definitions</a>. If you would like to see a specific GPL, please <a href=\"index.php?action=help&cmd=report\">request it</a>."),
-    # ("Aug 2010: New Tutorial", "A new <a href=\"docs/tutorial.pdf\">ODE Tutorial</a> was made for the Short Course on Genetics of Addiction at the Jackson Laboratory."),
-    # ("Jul 2010: Upcoming presentation", "ODE at the Workshop on Informatics for Data and Resource Discovery in Addiction Research"),
-    # ("Jun 2010: Upcoming presentation", "ODE at the NIAAA Systems Biology satellite to the Research Society on Alcoholism Annual Meeting"),
-    # ("Mar 2010: Large Data Set Available", "Gene expression to behavior correlates from 7 brain regions and 250 behavioral phenotypes in both sexes added to ODE (<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/19958391\">Philip et al, 2010</a>)."),
-    # ("Sep 2009: ODE paper published", '<a href="http://www.ncbi.nlm.nih.gov/pubmed/19733230">"ODE: A system for integrating gene-phenotype associations"</a> paper published in Genomics.'),
-    # ("Sep 2009: Rhesus Macaque added", 'Genes and the Affymetrix microarray for Rhesus Macaque (Macaca mulatta) have been added to ODE.'),
-    # ("Aug 2009: Gene Database Updated", "Our database has been updated to include the most recent NCBI data, and we now include many genes directly from species' respective genome databases. Updates will continue regularly."),
-    # ("Jul 2009: New ODE Demo Video", "There is a new <a href='/docs/video/'>Demo Video</a> available to walk you through the ODE website and tools."),
-    # ("Jun 2009: New GeneSet Upload page available", "This beta Upload page will hopefully make it easier to get data sets into ODE."),
-    # ("Mar 2009: ODE presented at the UT-ORNL-KBRIN Bioinformatics Summit", "Improvements and new features of the ODE tools were presented at the 2009 Bioinformatics Summit"),
-    # ("Nov 2008: ODE presented at the IMGC", "ODE tools were presented at the 22nd annual International Mammalian Genome Conference in Prague, Czech Republic"),
-    # ("Oct 2008: Stastical Analysis of HiSim Graphs", "We now calculate p-values for all HiSim Graphs generated on the ODE"),
-    # ("Jul 2008: Many New GeneSets uploaded, More Species", "TMGC gene expression correlates to behavior and MP terms are now available in the database, and we now support 5 different species: Mouse, Rat, Human, Zebrafish, and Fly"),
-    # ("Mar 2008: Ontology Annotation tool", "You can now annotate your GeneSets with ontologies available from the OBO."),
-    # ("Feb 2008: New Design and Layout", "New design featuring re-organized site structure, drop-down menus, wider layout, and prettier pages."),
-    # ("Jul 2007: First public release of the ODE.", "Welcome."),
-    # ("Aug 2006: First Version of <i>Ontological Discovery Environment</i> released", "This is the initial release of the website for the ODE project. <i>Festina lente</i>."),
 ]
 
 def page_selector(page, pages):
@@ -121,10 +93,146 @@ def inject_globals():
         'persName': 'TODO ADD NAME',
     }
 
+
+@app.route('/analyze.html')
+def render_analyze():
+    return flask.render_template('analyze.html')
+
+
+@app.route('/uploadgeneset.html')
+def render_uploadgeneset():
+    return flask.render_template(
+        'uploadgeneset.html',
+        gs=dict(),
+        all_species=geneweaverdb.get_all_species())
+
+
+def tokenize_lines(candidate_sep_regexes, lines):
+    """
+    This function will tokenize all of the following lines and in doing so will attempt to infer which
+    among the given candidate_sep_regexes is used as a token separator.
+    """
+
+    detected_sep_regex = None
+    for line_num, curr_line in enumerate(lines):
+        curr_line = curr_line.strip()
+
+        # if the line is empty or just whitespace we're not going to skip it
+        if curr_line:
+            tokenized_line = None
+
+            # if we haven't yet detected a separator try now
+            if not detected_sep_regex:
+                for candidate_regex in candidate_sep_regexes:
+                    tokenized_line = re.split(candidate_regex, curr_line)
+                    if len(tokenized_line) >= 2:
+                        detected_sep_regex = candidate_regex
+                        break
+            else:
+                tokenized_line = re.split(detected_sep_regex, curr_line)
+
+            tokenized_line = [tok.strip() for tok in tokenized_line]
+            yield tokenized_line
+
+
+@app.route('/creategeneset.html', methods=['POST'])
+def create_geneset():
+    # TODO START IMPLEMENTATION NOTES (remove these once impl is complete)
+    #
+    # in php code this corresponds to the Manage.php::editgeneset(...) function with $cmd set to "uploadgeneset"
+    # uploadTemplate followed by uploadTemplate_step2 seems to do the main work (NOTE: 'file_text' request
+    # variable contains all IDs)
+    #
+    # END IMPLEMENTATION NOTES
+
+    #print 'REQUEST FORM:', flask.request.form
+    form = flask.request.form
+    sp_id = int(form['sp_id'])
+
+    file_text = form['file_text']
+    file_lines = file_text.splitlines()
+    candidate_sep_regexes = ['\t', ',', ' +']
+
+    for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
+        # TODO php code allows multiple IDs per line. Do we need to continue to allow this? for now expecting 1 ID per line
+        curr_id = ''
+        curr_val = None
+        counts_by_source = dict()
+        all_results = []
+        if len(curr_toks) >= 1:
+            curr_id = curr_toks[0]
+            if len(curr_toks) >= 2:
+                try:
+                    curr_val = float(curr_toks[1])
+
+                    # We'll get results from both the gene table and platform table. We'll decide later which to use
+                    # based on the number of results returned.
+                    gene_results = None
+                    with geneweaverdb.PooledCursor() as cursor:
+                        cursor.execute(
+                            '''
+                            SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
+                            FROM gene
+                            WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
+                            ''',
+                            (sp_id, curr_id)
+                        )
+                        gene_results = list(geneweaverdb.dictify_cursor(cursor))
+                        all_results += gene_results
+                        if gene_results:
+                            result_sources = set()
+
+                            for curr_result in gene_results:
+                                key_tuple = (True, curr_result['source'])
+                                curr_counts = None
+                                try:
+                                    curr_counts = counts_by_source[key_tuple]
+                                except KeyError:
+                                    curr_counts = [0, 0]
+                                    counts_by_source[key_tuple] = curr_counts
+
+                                # we need to make sure not to double count a source here
+                                if curr_result['source'] not in result_sources:
+                                    curr_counts[0] += 1
+                                curr_counts[1] += 1
+
+                    platform_results = None
+                    with geneweaverdb.PooledCursor() as cursor:
+                        cursor.execute(
+                            '''
+                            SELECT ode_gene_id, m.pf_id AS source, prb_ref_id AS ref_id, pf_set
+                            FROM platform m,probe p,probe2gene p2g
+                            WHERE p.pf_id=m.pf_id AND p2g.prb_id=p.prb_id AND m.sp_id=%s AND LOWER(prb_ref_id)=%s
+                            GROUP BY ode_gene_id, m.pf_id, prb_ref_id, m.pf_set;
+                            ''',
+                            (sp_id, curr_id)
+                        )
+                        platform_results = list(cursor)
+                        if platform_results:
+                            first_result = platform_results
+
+                    if not (gene_results or platform_results):
+                        # TODO tell user we didn't find a match for curr_id
+                        pass
+
+                except ValueError:
+                    # TODO error reporting here
+                    pass
+
+
+    return flask.render_template(
+        'uploadgeneset.html',
+        gs=dict(),
+        all_species=geneweaverdb.get_all_species())
+
+
+@app.route('/search.html')
+def render_search():
+    return flask.render_template('search.html')
+
+
 @app.route('/index.html')
-def render_home_template():
-    print 'cmd=', get_cmd()
-    print flask.render_template('index.html')
+def render_home():
     return flask.render_template('index.html')
 
 # //Functions located at the bottom of this page

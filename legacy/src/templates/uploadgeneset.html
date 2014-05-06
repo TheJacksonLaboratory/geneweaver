@@ -1,0 +1,272 @@
+{% set title="Upload Geneset" %}
+{% include 'header.html' %}
+{#
+{if $import_client}
+    {include file="header.tpl" title="Import GeneSet from $import_client"}
+{elseif $cmd=='updategeneset'}
+    {include file="header.tpl" title="Edit GeneSet"}
+{else}
+    {include file="header.tpl" title="Upload GeneSet"}
+{/if}
+
+{if !empty($errors) }
+    <div class="error">{$errors}</div>
+{/if}
+{if !empty($messages) }
+    <div class="message">{$messages}</div>
+{/if}
+#}
+
+<p class="usage">A <b>*</b> indicates required fields.<br/></p>
+
+<form name="upload_genes_form" id="upload_genes_form" enctype="multipart/form-data" onsubmit="return ODE.upload.validate();"
+      action="{{ url_for('.create_geneset')|safe }}" method="post">
+
+<p class="content-help">ODE GeneSets are annotated with structured and unstructured data. Enter a
+    descriptive title for your gene set, a short abbreviation to be displayed in
+    figures, tables or graphs. The Gene Set description is most helpful if it
+    contains information about the criteria for GeneSet membership, including a
+    summary of the experiment or query performed to generate the gene set. Specify
+    whether this data should be made available to all users, specific groups to
+    which you belong, or kept private. Information about your input file is entered
+    next. Choose a species, gene id type, statistical metric, and a threshold
+    criteria for discrete data analyses. You can then paste in or upload a gene
+    list file (see example). If your gene set is published, please enter the PubMed
+    ID to auto-populate the reference form, or enter the information manually. Use
+    the Ontology Browser at the bottom of the page to select biological process, disease, anatomy or
+    other terms that can be used to annotate your gene set. </p>
+
+<table style="width: 700px;">
+    <tr>
+        <td colspan="2">
+            <h2>GeneSet Metadata</h2>
+
+            <p>Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our
+                curation team or, in the case of private data, maximum integration into the existing GeneWeaver
+                dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our
+                <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a></p>
+
+        </td>
+    </tr>
+    <tr>
+        <td valign="top"><label for="gs_name">GeneSet Name*:</label></td>
+        <td valign="top"><textarea name="gs_name" id="gs_name" cols="64" rows="2"
+                                   title="This name is displayed on most pages and listings, such as search results. Use a brief description that would fit into this statement:&lt;br /&gt; &lt;i&gt; &#34;This data represents &amp;lt;GeneSet Name&amp;gt;&#34;&lt;i&gt;"
+                    >{{ gs.gs_name }}</textarea>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top"><label for="gs_abbreviation">GeneSet Figure Label*:</label></td>
+        <td valign="top"><input type="text" name="gs_abbreviation" id="gs_abbreviation" size="24" maxlength="32"
+                                title="This label is displayed on most images and figures produced by tools, when space is at a premium. Use standard acronyms and abbreviations as necessary, but keep it short and unique to distinguish sets."
+                                value="{{ gs.gs_abbreviation }}"/>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top"><label for="gs_description">GeneSet Description*:</label></td>
+        <td valign="top"><textarea name="gs_description" id="gs_description" cols="64" rows="6"
+                                   title="A description of the data, including (but not limited to) population, tissue, protocol, assay type, etc."
+                    >{{ gs.gs_description }}</textarea>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top"><label for="gs_groups_sel">Access Restrictions*:</label></td>
+        <td valign="top"><select multiple="multiple" size="5" class="gs_groups" id="gs_groups_sel" name="gs_groups_sel"
+                                 onchange="ODE.update_multigroup(this);"
+                                 title="Designate this data as Open Access (Public), restrict access to yourself (Private), or share with any of your Groups (ctrl-click to select multiple)">
+                <option value="-1" {% if gs.gs_groups=='' or gs.gs_groups=='-1' %}selected="selected"{% endif %}>Private
+                </option>
+                <option value="0" {% if gs.gs_groups=='0' %}selected="selected"{% endif %}>Public</option>
+                {#
+                {if $groupList}
+                    <optgroup label="Groups">
+                        {foreach from=$groupList key=grp_id item=grp_name}
+                            <option value="{$grp_id}"
+                                    {if in_array($grp_id, explode(',', $gs.gs_groups))}selected="selected"{/if}>{$grp_name}</option>
+                        {/foreach}
+                    </optgroup>
+                {/if}
+                #}
+            </select>
+            <input type="hidden" name="gs_groups" id="gs_groups" value="{{ gs.gs_groups }}"/>
+        </td>
+    </tr>
+    {# if !$import_client #}
+        <tr>
+            <td colspan="2">
+                <h2>Reference Info</h2>
+
+                <p>If this experiment has been published and listed in PubMed, just enter the Pubmed ID below
+                    to automatically fill in the publication info, otherwise you may manually enter
+                    publication information. Providing this will allow others to discover and use your data more
+                    quickly,
+                    provide a means to link here directly from PubMed, and streamline our curation efforts.</p>
+
+            </td>
+        </tr>
+        <tr>
+            <td valign="top"><label for="pub_pubmed">PubMed ID:</label>
+                <br/><br/><a id="manual_pub_link" href="#" onclick="return ODE.upload.manual_pub();">Manual Entry</a>
+            </td>
+            <td valign="top"><input type="text" name="pub_pubmed" id="pub_pubmed" size="10" value="{{ gs.pub_pubmed }}"/>
+
+                <div id="pub_pubmed_AJAX"></div>
+            </td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_title">Title:</label></td>
+            <td valign="top"><input type="text" name="pub_title" id="pub_title" value="{{ gs.pub_title }}" size="40"/></td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_authors">Authors:</label></td>
+            <td valign="top"><input type="text" name="pub_authors" id="pub_authors" value="{{ gs.pub_authors }}"
+                                    size="40"/></td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_abstract">Abstract:</label></td>
+            <td valign="top"><textarea name="pub_abstract" id="pub_abstract" cols="40"
+                                       rows="10">{{ gs.pub_abstract }}</textarea></td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_journal">Journal:</label></td>
+            <td valign="top"><input type="text" name="pub_journal" id="pub_journal" value="{{ gs.pub_journal }}"
+                                    size="40"/></td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_volume">Volume:</label></td>
+            <td valign="top"><input type="text" name="pub_volume" id="pub_volume" value="{{ gs.pub_volume }}" size="10"
+                                    maxlength="10"/></td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_pages">Pages:</label></td>
+            <td valign="top"><input type="text" name="pub_pages" id="pub_pages" value="{{ gs.pub_pages }}" size="15"
+                                    maxlength="15"/></td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_month">Month:</label></td>
+            <td valign="top"><input type="text" name="pub_month" id="pub_month" value="{{ gs.pub_month }}" size="3"
+                                    maxlength="3"/></td>
+        </tr>
+        <tr class="pub_field">
+            <td valign="top"><label for="pub_year">Year:</label></td>
+            <td valign="top"><input type="text" name="pub_year" id="pub_year" value="{{ gs.pub_year }}" size="4"
+                                    maxlength="4"/></td>
+        </tr>
+    {#/if#}
+    <tr>
+        <td colspan="2">
+            <h2>Gene List</h2>
+
+            <p>Provide a list of genes to associate with the descriptive info from above.</p>
+
+        </td>
+    </tr>
+    <tr>
+        <td valign="top"><label for="sp_id">Species:</label></td>
+        <td valign="top">
+            <select id="sp_id" name="sp_id" title="The species that the gene identifiers are coming from.">
+                {#html_options options=$sp_id selected=$gs.sp_id#}
+                {% for sp_key, sp_value in all_species.iteritems() %}
+                    <option value="{{ sp_key }}">{% if sp_value %}{{ sp_value }}{% else %}-- please select --{% endif %}</option>
+                {% endfor %}
+            </select>
+        </td>
+    </tr>
+    {% if gidts %}
+        <tr>
+            <td valign="top"><label for="gs_gene_id_type">Gene Identifiers:</label></td>
+            <td valign="top"><select id="gs_gene_id_type" name="gs_gene_id_type"
+                                     title="The gene identifier source database.">
+                    <option value="0">-- Auto-detect --</option>
+                    {html_options options=$gidts selected=$gs.gs_gene_id_type}
+                </select>
+            </td>
+        </tr>
+    {% else %}
+        <input type="hidden" name="gs_gene_id_type" id="gs_gene_id_type" value="{{ gs.gs_gene_id_type }}"/>
+    {% endif %}
+    <tr>
+        <td valign="top"><label for="file">Input Gene List*:</label></td>
+        <td valign="top">
+            <div id="file_uploader">
+                Select a Tab-separated Plain Text file:<br/>
+                <input type="file" name="file" id="file"/><br/>
+                <br/>
+                <a href="#" onclick="return toggle_pasting();">switch back to text box</a>
+                {#$file_link#}
+            </div>
+            <div id="paste_uploader">
+                <b>Have a text file already handy?</b> <a href="#" onclick="return toggle_pasting();">Switch to file
+                    upload</a><br/>
+                <textarea name="file_text" id="file_text" cols="64" rows="20"
+                          title="List your genes of interest, one per line. If you have per-gene scores, follow the gene identifier by a tab and the score value.
+Example:&lt;pre&gt;
+
+gene1 &amp;lt;tab&amp;gt; 0.92
+gene2 &amp;lt;tab&amp;gt; 0.81
+gene3 &amp;lt;tab&amp;gt; 0.87
+&lt;/pre&gt;"
+                        >{{ gs.file_contents }}</textarea>
+            </div>
+
+        </td>
+    </tr>
+</table>
+
+{#
+{if $cmd=="updategeneset"}
+    <input type="hidden" name="gs_threshold_type" id="gs_threshold_type" value="{$gs.gs_threshold_type}"/>
+    <input type="hidden" name="gs_threshold" id="gs_threshold" value="{$gs.gs_threshold}"/>
+    <input type="hidden" name="GSRVPT_gsrvptID" value="1">
+    <input type="hidden" name="gs_id" value="{$gs.gs_id}">
+    <input class="button" type="submit" value="Save Changes">
+{else}
+#}
+    <input class="button" type="submit" value="Upload GeneSet">
+{# {/if} #}
+
+    <script type="text/javascript" src="js/jquery.tipsy.js"></script>
+<script type="text/javascript">
+
+    function toggle_pasting() {
+        $('#file_uploader').toggle();
+        $('#paste_uploader').toggle();
+        $('#file, #file_text').each(function () {
+            this.disabled = !$(this).is(":visible");
+        });
+        return false;
+    }
+    $(document).ready(function () {
+        $('#file_uploader').hide();
+        $('#file_text').live('keydown', function (e) {
+            var keyCode = e.keyCode || e.which;
+            if (keyCode == 9) {
+                e.preventDefault();
+
+                if (document.selection) {
+                    this.focus();
+                    sel = document.selection.createRange();
+                    sel.text = '\t';
+                } else if (this.selectionStart || this.selectionStart == '0') {
+                    var s = this.selectionStart;
+                    var e = this.selectionEnd;
+                    scr = this.scrollTop;
+
+                    this.value = this.value.substring(0, s) + '\t' + this.value.substring(e);
+
+                    this.selectionStart = s + 1;
+                    this.selectionEnd = s + 1;
+
+                    if (scr) this.scrollTop = scr;
+                } else this.value += '\t';
+            }
+        });
+        $(':input[title]').tipsy({gravity: 'w', trigger: 'focus', html: true});
+
+        ODE.toggle('.pub_field');
+    });
+</script>
+<br/>
+<br/>
+
+{% include 'footer.html' %}
