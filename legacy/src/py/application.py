@@ -4,6 +4,8 @@ import os
 import geneweaverdb
 import re
 
+import pubmedsvc
+
 source_dir = os.path.dirname(os.path.realpath(__file__))
 app = flask.Flask(
     __name__,
@@ -101,10 +103,24 @@ def render_analyze():
 
 @app.route('/uploadgeneset.html')
 def render_uploadgeneset():
+    gidts = []
+    for gene_id_type_record in geneweaverdb.get_gene_id_types():
+        gidts.append((
+            'gene_{0}'.format(gene_id_type_record['gdb_id']),
+            gene_id_type_record['gdb_name']))
+
+    microarray_id_sources = []
+    for microarray_id_type_record in geneweaverdb.get_microarray_types():
+        microarray_id_sources.append((
+            'ma_{0}'.format(microarray_id_type_record['pf_id']),
+            microarray_id_type_record['pf_name']))
+    gidts.append(('MicroArrays', microarray_id_sources))
+
     return flask.render_template(
         'uploadgeneset.html',
         gs=dict(),
-        all_species=geneweaverdb.get_all_species())
+        all_species=geneweaverdb.get_all_species(),
+        gidts=gidts)
 
 
 def tokenize_lines(candidate_sep_regexes, lines):
@@ -134,6 +150,77 @@ def tokenize_lines(candidate_sep_regexes, lines):
             tokenized_line = [tok.strip() for tok in tokenized_line]
             yield tokenized_line
 
+
+@app.route('/pubmed_info/<pubmed_id>.json')
+def pubmed_info_json(pubmed_id):
+    pubmed_info = pubmedsvc.get_pubmed_info(pubmed_id)
+    return flask.jsonify(pubmed_info)
+
+
+@app.route('/inferidkind.json', methods=['POST'])
+def infer_id_kind():
+    gene_table_sql = \
+        '''
+        SELECT gdb_id AS source, sp_id
+        FROM gene
+        WHERE LOWER(ode_ref_id)=%s
+        GROUP BY source, sp_id;
+        '''
+    probe_table_sql = \
+        '''
+        SELECT m.pf_id AS source, m.sp_id
+        FROM platform m, probe p
+        WHERE p.pf_id=m.pf_id AND LOWER(prb_ref_id)=%s
+        GROUP BY source, m.sp_id;
+        '''
+
+    form = flask.request.form
+    file_text = form['file_text']
+    file_lines = file_text.splitlines()
+    candidate_sep_regexes = ['\t', ',', ' +']
+    id_kind_mapping_dict = dict()
+    input_id_list = []
+
+    with geneweaverdb.PooledCursor() as cursor:
+        def add_counts(curr_id, use_gene_table):
+            cursor.execute(gene_table_sql if use_gene_table else probe_table_sql, (curr_id.lower(),))
+            for source_id, sp_id in cursor:
+                key_tuple = (use_gene_table, source_id, sp_id)
+                if key_tuple in id_kind_mapping_dict:
+                    id_kind_mapping_dict[key_tuple].add(curr_id)
+                else:
+                    id_kind_mapping_dict[key_tuple] = set([curr_id])
+
+        for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
+            if curr_toks:
+                input_id_list.append(curr_toks[0])
+                add_counts(curr_toks[0], True)
+                add_counts(curr_toks[0], False)
+
+    # find which ID kinds worked best and return those
+    max_success_count = 1
+    most_successfull_id_kinds = []
+    for id_kind_tuple, success_id_set in id_kind_mapping_dict.iteritems():
+        (is_gene_result, source_id, sp_id) = id_kind_tuple
+
+        def item_as_dict():
+            return {
+                'is_gene_result': is_gene_result,
+                'source_id': 'gene_{0}'.format(source_id) if is_gene_result else 'ma_{0}'.format(source_id),
+                'species_id': sp_id,
+                'id_failures': [x for x in input_id_list if x not in success_id_set]
+            }
+
+        curr_success_count = len(success_id_set)
+        if curr_success_count == max_success_count:
+            most_successfull_id_kinds.append(item_as_dict())
+        elif curr_success_count > max_success_count:
+            max_success_count = len(success_id_set)
+            most_successfull_id_kinds = [item_as_dict()]
+
+    return flask.jsonify(
+        most_successfull_id_kinds=most_successfull_id_kinds,
+        total_id_count=len(set(input_id_list)))
 
 @app.route('/creategeneset.html', methods=['POST'])
 def create_geneset():
@@ -168,6 +255,9 @@ def create_geneset():
                     # We'll get results from both the gene table and platform table. We'll decide later which to use
                     # based on the number of results returned.
                     gene_results = None
+                    print '-----------------'
+                    print 'sp_id:', sp_id
+                    print 'curr_id.lower():', curr_id.lower()
                     with geneweaverdb.PooledCursor() as cursor:
                         cursor.execute(
                             '''
@@ -175,9 +265,10 @@ def create_geneset():
                             FROM gene
                             WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
                             ''',
-                            (sp_id, curr_id)
+                            (sp_id, curr_id.lower())
                         )
                         gene_results = list(geneweaverdb.dictify_cursor(cursor))
+                        print 'gene_results:', gene_results
                         all_results += gene_results
                         if gene_results:
                             result_sources = set()
@@ -205,9 +296,10 @@ def create_geneset():
                             WHERE p.pf_id=m.pf_id AND p2g.prb_id=p.prb_id AND m.sp_id=%s AND LOWER(prb_ref_id)=%s
                             GROUP BY ode_gene_id, m.pf_id, prb_ref_id, m.pf_set;
                             ''',
-                            (sp_id, curr_id)
+                            (sp_id, curr_id.lower())
                         )
                         platform_results = list(cursor)
+                        print 'platform_results:', platform_results
                         if platform_results:
                             first_result = platform_results
 
@@ -231,65 +323,14 @@ def render_search():
     return flask.render_template('search.html')
 
 
-@app.route('/index.html')
-def render_home():
-    return flask.render_template('index.html')
-
-# //Functions located at the bottom of this page
-# switch ($cmd){
-#  case "updategenesetthreshold": ACTION_Account::verifyLoggedIn("You must be logged in to edit GeneSets!");
-#                        $this->editgenesetthreshold();
-#                        break;
-#  case "updategenesetontologies": ACTION_Account::verifyLoggedIn("You must be logged in to edit GeneSets!");
-#                        $this->editgenesetontologies();
-#                        break;
-#  case "updategeneset": ACTION_Account::verifyLoggedIn("You must be logged in to edit GeneSets!");
-#                        $this->editgeneset();
-#                        break;
-#
-#  case "batchgeneset": ACTION_Account::verifyLoggedIn("You must be registered and logged in to upload GeneSets!");
-#                       $this->batchgeneset();
-#                       break;
-#
-#  case "batcheditgeneset": ACTION_Account::verifyLoggedIn("You must be registered and logged in to edit GeneSets!");
-#                       $this->batcheditgeneset();
-#                       break;
-#
-#  case "importgeneset": ACTION_Account::verifyLoggedIn("You must be registered and logged in to import a GeneSet!  Once logged in, you will have to resubmit the dataset again.  Sorry for the inconvience.");
-#                        $this->importgeneset();
-#
-#                        break;
-#  case "uploadgenesetNew":// ACTION_Account::verifyLoggedIn("You must be registered and logged in to upload a GeneSet!");
-#                        $this->editgeneset_new();
-#                        break;
-#  case "uploadgeneset": ACTION_Account::verifyLoggedIn("You must be registered and logged in to upload a GeneSet!");
-#                        $this->editgeneset();
-#                        break;
-#  case "similargenesets": // no check_login required
-#                        $this->similargenesets();
-#                        break;
-#  case "viewgeneset": // no check_login required
-#                        $this->viewgeneset();
-#                        break;
-#  case "addtoemphasis": // no check_login required
-#                        $this->addtoemphasis();
-#                        break;
-#  case "viewpub": // no check_login required
-#                        $this->viewpub();
-#                        break;
-#  case "viewgene": // no check_login required
-#                        $this->viewgene();
-#                        break;
-#  case "downloadgeneset": $this->downloadgeneset_File();
-#                        break;
-#  default:
-#  case "listgenesets": ACTION_Account::verifyLoggedIn("This feature is only available to registered and logged in users.");
-#                       $this->listgenesets();
-#                       break;
-# }
 @app.route('/manage.html')
 def render_manage():
     return flask.render_template('my_genesets.html')
+
+@app.route('/index.html')
+@app.route('/')
+def render_home():
+    return flask.render_template('index.html')
 
 if __name__ == '__main__':
     app.debug = True

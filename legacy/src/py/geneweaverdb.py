@@ -142,44 +142,19 @@ def resolve_feature_id(sp_id, feature_id):
         return list(cursor)
 
 
-'''
-   /******************************************************
-    * simple database retrieval functions (no modifications)
-    *****************************************************/
-   function getGeneIDTypes($spc_id=0, &$species=null)
-   {
-      $SQL = 'SELECT * FROM genedb WHERE (sp_id=$1 OR $1=0) OR sp_id=0 ORDER BY gdb_id;';
-      $results = $this->query_params( $SQL, Array($spc_id) );
-      while($row = pg_fetch_array($results)){
-         $gs_gene_id_types[ -$row['gdb_id'] ] = $row['gdb_name'];
-         if( is_array($species) ) $species[ -$row['gdb_id'] ] = $row['sp_id'];
-      }
-
-      $gs_gene_id_types[ "MicroArrays" ] = $this->getMicroArrayTypes($spc_id, $species);
-
-      return $gs_gene_id_types;
-   }
-'''
-
-def get_gene_id_types(spc_id=0):
+def get_gene_id_types(sp_id=0):
     # based on getGeneIDTypes function found in ODE_DB.php
     with PooledCursor() as cursor:
-        if spc_id == 0:
-            cursor.execute(
-                '''SELECT * FROM genedb WHERE (sp_id=$1 OR $1=0) OR sp_id=0 ORDER BY gdb_id;'''
-                )
+        cursor.execute(
+            '''SELECT * FROM genedb WHERE %(sp_id)s=0 OR sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
+            {'sp_id': sp_id})
+
+        return list(dictify_cursor(cursor))
 
 
-'''
-   function getMicroArrayTypes($spc_id=0, &$species=null)
-   {
-      $ret_array = array();
-      $SQL = 'SELECT * FROM platform WHERE (sp_id=$1 OR 0=$1) ORDER BY pf_name;';
-      $results = $this->query_params($SQL, Array($spc_id));
-      while($row = pg_fetch_array($results)){
-         $ret_array[$row["pf_id"]] =$row["pf_name"] ;
-         if( is_array($species) ) $species[ $row['pf_id'] ] = $row['sp_id'];
-      }
-      return $ret_array;
-   }
-'''
+def get_microarray_types(sp_id=0):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT * FROM platform WHERE (sp_id=%(sp_id)s OR 0=%(sp_id)s) ORDER BY pf_name;''',
+            {'sp_id': sp_id})
+        return list(dictify_cursor(cursor))

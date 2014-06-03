@@ -384,6 +384,8 @@ var ODE = {};
             if ($('#gs_abbreviation').val() == '') req += "GeneSet Abbreviation is required.\n";
             if ($('#gs_description').val() == '') req += "GeneSet Description is required.\n";
             if ($("#file").val() == "" && $("#file_text").val() == "") req += "Input File is required.\n";
+            if ($('#sp_id').val() == '0') req += "Species is required.\n";
+            if ($('#gs_gene_id_type').val() == '0') req += "Gene Identifiers is required.\n";
             if (req == "") return true;
 
             window.alert(req);
