@@ -1,19 +1,13 @@
 import collections
 import flask
-import os
 import geneweaverdb
 import re
 
 import pubmedsvc
 
-source_dir = os.path.dirname(os.path.realpath(__file__))
-app = flask.Flask(
-    __name__,
-    static_folder=os.path.join(source_dir, '..', 'static'),
-    static_url_path='',
-    template_folder=os.path.join(source_dir, '..', 'templates'))
+app = flask.Flask(__name__)
 
-# TODO this is a hack do something better with the news array
+# TODO the newsArray should probably be moved to a configuration file
 newsArray = [
     #("Weekend Maintenance", "ODE will be down for database updates and maintenance this weekend."),
     #("Maintenance", "GeneWeaver will undergo minor system maintenance from 8:00-8:15am EST on February 23rd."),
@@ -24,6 +18,11 @@ newsArray = [
     ("Oct 2012: GeneWeaver user publication", "<a href=\"http://www.ncbi.nlm.nih.gov/pubmed/22961259\">The Mammalian Phenotype Ontology as a unifying standard for experimental and high-throughput phenotyping data.</a> Smith CL, Eppig JT. Mamm Genome. 23(9-10):653-68"),
 ]
 
+
+# the page selector is a component that allows you to render the given page number
+# from a long list of results
+# TODO this is a carryover from the php code and should probably be replaced
+#      by some 3rd party paging component (search for "bootstrap pagination")
 def page_selector(page, pages):
     pagelist = '<span name="page_selector" style="float: right">'
     pagelist += 'Page: '
@@ -46,6 +45,7 @@ def page_selector(page, pages):
 
     return pagelist
 
+
 def ode_link(action='', cmd='', other=''):
 
     url = 'index.html' if action == 'home' or not action else action + '.html'
@@ -57,9 +57,13 @@ def ode_link(action='', cmd='', other=''):
 
     return url
 
+
+# fetch the command from the flask args
 def get_cmd():
     return flask.request.args.get('cmd')
 
+
+# the context processor will inject global variables for us so that we can refer to them from our flask templates
 @app.context_processor
 def inject_globals():
     # TODO you need to care about escaping
@@ -222,6 +226,7 @@ def infer_id_kind():
         most_successfull_id_kinds=most_successfull_id_kinds,
         total_id_count=len(set(input_id_list)))
 
+
 @app.route('/creategeneset.html', methods=['POST'])
 def create_geneset():
     # TODO START IMPLEMENTATION NOTES (remove these once impl is complete)
@@ -232,7 +237,6 @@ def create_geneset():
     #
     # END IMPLEMENTATION NOTES
 
-    #print 'REQUEST FORM:', flask.request.form
     form = flask.request.form
     sp_id = int(form['sp_id'])
 
@@ -255,9 +259,6 @@ def create_geneset():
                     # We'll get results from both the gene table and platform table. We'll decide later which to use
                     # based on the number of results returned.
                     gene_results = None
-                    print '-----------------'
-                    print 'sp_id:', sp_id
-                    print 'curr_id.lower():', curr_id.lower()
                     with geneweaverdb.PooledCursor() as cursor:
                         cursor.execute(
                             '''
@@ -268,7 +269,6 @@ def create_geneset():
                             (sp_id, curr_id.lower())
                         )
                         gene_results = list(geneweaverdb.dictify_cursor(cursor))
-                        print 'gene_results:', gene_results
                         all_results += gene_results
                         if gene_results:
                             result_sources = set()
@@ -299,7 +299,6 @@ def create_geneset():
                             (sp_id, curr_id.lower())
                         )
                         platform_results = list(cursor)
-                        print 'platform_results:', platform_results
                         if platform_results:
                             first_result = platform_results
 

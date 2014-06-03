@@ -1,7 +1,6 @@
 from psycopg2.pool import ThreadedConnectionPool
 from collections import OrderedDict
 
-
 class MyThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
     def __init__(self, minconn, maxconn, *args, **kwargs):
@@ -82,10 +81,14 @@ def dictify_row(cursor, row):
 
 
 def dictify_cursor(cursor):
+    """converts all cursor rows into dictionaries where the keys are the column names"""
     return (dictify_row(cursor, row) for row in cursor)
 
 
 def get_all_projects(usr_id):
+    """
+    returns all projects associated with the given project ID
+    """
     with PooledCursor() as cursor:
         cursor.execute(
             '''
@@ -125,11 +128,15 @@ def get_all_species():
 
 
 def resolve_feature_id(sp_id, feature_id):
-    # TODO remove this impl note:
-    # If I do the following:
-    # select count(*), ode_gene_id, sp_id from extsrc.gene where ode_pref group by ode_gene_id, sp_id order by count(*) desc;
-    # it looks like I get all counts of 1, so even though the total count may have many values, the preferred id is unique
-    # for a sp_id + feature_id combination
+    """
+    For the given species and feature IDs get the corresponding ODE gene ID (which
+    is our canonical ID type)
+    :param sp_id:       species ID
+    :param feature_id:  feature ID (this can be a gene ID from any of the many source databases)
+    :return:            the list of DB rows containing 3 columns:
+                        ODE IDs, gene datbase IDs and reference IDs (should be a case
+                        insensitive match of the given feature ID
+    """
     with PooledCursor() as cursor:
         cursor.execute(
             '''
@@ -143,7 +150,6 @@ def resolve_feature_id(sp_id, feature_id):
 
 
 def get_gene_id_types(sp_id=0):
-    # based on getGeneIDTypes function found in ODE_DB.php
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT * FROM genedb WHERE %(sp_id)s=0 OR sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
@@ -153,6 +159,11 @@ def get_gene_id_types(sp_id=0):
 
 
 def get_microarray_types(sp_id=0):
+    """
+    get all rows from the platform table with the given species identifier
+    :param sp_id:   the species identifier
+    :return:        the list of rows from the platform table
+    """
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT * FROM platform WHERE (sp_id=%(sp_id)s OR 0=%(sp_id)s) ORDER BY pf_name;''',

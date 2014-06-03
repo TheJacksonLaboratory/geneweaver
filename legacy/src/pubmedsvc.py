@@ -1,11 +1,12 @@
 import requests
 import xml.etree.ElementTree as ET
 
+# this is a template for a URL that looks like:
+# http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=24818216&retmode=xml
 PUB_MED_XML_SVC_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={0}&retmode=xml'
 
 
 def get_pubmed_info(pub_med_id):
-    #http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=24818216&retmode=xml
     resp = requests.get(PUB_MED_XML_SVC_URL.format(pub_med_id))
     if resp.status_code == 200:
         root = ET.fromstring(resp.text.encode('utf-8'))
