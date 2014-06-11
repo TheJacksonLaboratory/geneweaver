@@ -2,7 +2,7 @@
 
 <div class="welcomesplash">
 
-    <img id="splash" src="images/ode_splash.png" width="500" height="250" usemap="#splashmap"/>
+    <img id="splash" src="{{ url_for('static', filename='images/ode_splash.png') }}" width="500" height="250" usemap="#splashmap"/>
     <map name="splashmap">
         <area shape="rect" coords="26,42,100,118" href="{{ url_for('.render_search')|safe }}">
         <area shape="rect" coords="93,88,162,166" href="{{ url_for('.render_uploadgeneset')|safe }}">
