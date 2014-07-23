@@ -13,136 +13,112 @@
     errors = array of error messages
     messages = array of messages
 #}
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg">
+<!DOCTYPE html>
 <head>
-<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-<title>{% if title %}{{ title|e }} :: {% endif %}Gene Weaver</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/yui-combo.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/ode.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tipsy.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui-1.8.7.custom.css') }}">
-<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.4.4.min.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/ode.js') }}"></script>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <title>{% if title %}{{ title|e }} :: {% endif %}Gene Weaver</title>
 
-<script type="text/javascript">
+{#    <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">#}
+{#    <link rel="stylesheet" href="{{ url_for('static', filename='css/ode.css') }}">#}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/ode.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/geneweaver.js') }}"></script>
 
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-238758-4']);
-  _gaq.push(['_setDomainName', 'geneweaver.org']);
-  _gaq.push(['_setAllowLinker', true]);
-  _gaq.push(['_trackPageview']);
+    <!-- bootstrap stuff -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.1.1-dist/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.1.1-dist/css/bootstrap-theme.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='font-awesome-4.1.0/css/font-awesome.min.css') }}">
+    <script src="{{ url_for('static', filename='bootstrap-3.1.1-dist/js/bootstrap.min.js') }}"></script>
 
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
+    <script type="text/javascript">
 
-</script>
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-238758-4']);
+      _gaq.push(['_setDomainName', 'geneweaver.org']);
+      _gaq.push(['_setAllowLinker', true]);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- TODO this should be in a CSS file -->
+    <style>
+        body {
+          padding-top: 50px;
+        }
+        .starter-template {
+          padding: 40px 15px;
+          text-align: center;
+        }
+        .jumbotron {
+            text-align: center;
+            background-color: transparent;
+        }
+        h1 {
+            font-size: 2em;
+        }
+        h2 {
+            font-size: 1.5em;
+        }
+        .jumbotron h1 {
+            font-size: 3.5em;
+        }
+        a.link-panel {
+            color: inherit !important;
+            text-decoration: inherit !important;
+        }
+        .link-panel:hover {
+            background-color: rgba(153,184,190, 0.2) !important;
+        }
+    </style>
+
 </head>
-<body id="doc3" style="background:url({{ url_for('static', filename='images/ode-newback.png') }}) repeat-x;
-{% if using_ode %}
- margin-top:40px;">
-	<div style="position:absolute; left:0; top:0; padding: 0px; border-bottom:1px solid #997; width:100%; background-color: #ffff99;">
-		<div style="padding: 5px; padding-left: 50px;">
-		The Ontological Discovery Environment is now <strong>GeneWeaver.org</strong>. 
-		<a href="http://ontologicaldiscovery.org/index.php?action=help&amp;cmd=view&amp;docid=faq">Read more about the change</a>,
-		and don't forget to update your bookmarks to <a href="http://geneweaver.org">GeneWeaver.org</a>!</div></div>
-{% else %}
-">
-{% endif %}
 
-{% if maintenance_mode %}
-  <div class="error">We are currently performing site maintenance.  Parts of the site may be slow or not work properly.  Please try again later if you experience any problems.</div>
-{% endif %}
+<body>
+<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
 
-<div class="banner" style="height: 50px; position:relative;">
-  <div class="logo" style="height: 80px; width: 650px; background:url({{ url_for('static', filename='images/gw-oldlogo.png') }}) no-repeat; position: absolute; top:0; left:0px; z-index: 1; border: 0;padding-left:104px; padding-top:3px;">
-	<span style="font-size: 24px; font-weight:bold;">GeneWeaver.org</span><br/>
-	<span style="font-size: 12px; color: #777;">A system for the integration of functional genomics experiments.</span>
-  </div>
+                <!-- NOTE: these icon-bar spans are used for responsive layout. They cause
+                the menu to collapse into three horizontal lines in the case of a small
+                display (eg. a smartphone) -->
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="index.html">GeneWeaver</a>
+        </div>
+        <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="my_genesets.html">Manage GeneSets</a></li>
+                <li><a href="#">Analyze GeneSets</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Help</a></li>
+            </ul>
 
-	<div style="position: absolute; bottom: 3px; z-index: 99; right: 0px;text-align:right;padding-bottom:5px;">
-	{% if is_anonymous %}
-    <span>Welcome Guest!  To ensure future access<br /> to your data, please </span>
-
-		<a href="{{ ode_link(action='account', cmd='reg')|safe }}">Register</a> &mdash; or
-		<a href="{{ ode_link(action='account', cmd='login')|safe }}">Login</a>
-	{% else %}
-		Logged in as <a href="{{ ode_link(action='account')|safe }}">{{ persName }}</a> <br />
-		Edit <a href="{{ ode_link(action='account')|safe }}">Groups</a> | <a href="{{ ode_link(action='account', cmd='logout')|safe }}">Logout</a>
-		{% if isAdmin %} | <a href="http://geneweaver.org/wiki/index.php?title=Issue_Tracker&amp;bt_action=list">Issue Tracker</a>{% endif %}
-	{% endif %}
-	</div>
+            <form class="navbar-form navbar-right" role="search">
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Search">
+                </div>
+                <button type="submit" class="btn btn-default">Submit</button>
+            </form>
+        </div>
+        <!--/.nav-collapse -->
+    </div>
 </div>
-<br clear="both" />
 
-<div class="menu" style="height: 27px;"><ul>
-{% set curpage_matched = [] %}
-{% for key, value in topmenu.iteritems() %}
-  <li><a
-  {% if (key in url or 'action' not in url) and not curpage_matched %}
-  class="current"
-   {#
-   This is an ugly hack since we can't assign to variables outside the loop. For more information see:
-   http://stackoverflow.com/questions/4870346/can-a-jinja-variables-scope-extend-beyond-in-an-inner-block
-   #}
-   {% if curpage_matched.append(True) %}{% endif %}
-  {% endif %}
-  href="{{ key|safe }}">{{ value }}{% if topsubmenu[value] %}&nbsp;<small>▼ </small></a>
-  <dl class="submenu">
-  {% for subkey, subitem in topsubmenu[value].iteritems() %}
-    <dd><a href="{{ subkey|safe }}">{{ subitem }}</a></dd>
-  {% endfor %}
-  </dl>
-  {% else %}
-  </a>
-  {% endif %}
-  </li>
-{% endfor %}
-<li><a href="http://geneweaver.org/wiki">Help</a></li>
-</ul></div>
-<div class="main">
-
-{% if title %}
-<h1>{{ title }}</h1>
-<div class="content">
-{% endif %}
-
-{# TODO implement these
-{show_errors}
-{show_messages}
-{if !empty($site_messages)}
-	<div class="message">{$site_messages}</div>
-{/if}
-#}
-
-{#
-{if !empty($smarty.session.errors) }
-   <div class="error">
-   {foreach from=$smarty.session.errors item=err}
-      {$err}<br />
-   {/foreach}
-   </div>
-   {clear_errors}
-{/if}
-
-{if !empty($smarty.session.messages) }
-   <div class="message">
-   {foreach from=$smarty.session.messages item=msg}
-      {$msg}<br />
-   {/foreach}
-   </div>
-   {clear_messages}
-{/if}
-
-#}
-
-{% if action != 'home' %}
-<div class="content-meta">
-  <span id="content-meta-help"><a href="#" onclick="return ODE.toggle('.content-help');">Help</a> | </span>
-  <a href="{{ ode_link('help', 'report')|safe }}">Feedback</a>
-</div>
-{% endif %}
+<div class="container">
