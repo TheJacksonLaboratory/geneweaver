@@ -1,5 +1,7 @@
-from psycopg2.pool import ThreadedConnectionPool
 from collections import OrderedDict
+from hashlib import md5
+from psycopg2.pool import ThreadedConnectionPool
+
 
 class MyThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
@@ -15,13 +17,13 @@ class MyThreadedConnectionPool(ThreadedConnectionPool):
 
         return conn
 
-# the global thread pool that we're using for this app
+# the global threaded connection pool that should be used for all DB connections in this application
 pool = MyThreadedConnectionPool(
     5, 20,
-    database='ODE',
+    database='geneweaver',
     user='odeadmin',
     password='odeadmin',
-    host='ode-db1.jax.org',
+    host='crick.ecs.baylor.edu',
     port=5432,
 )
 
@@ -169,3 +171,38 @@ def get_microarray_types(sp_id=0):
             '''SELECT * FROM platform WHERE (sp_id=%(sp_id)s OR 0=%(sp_id)s) ORDER BY pf_name;''',
             {'sp_id': sp_id})
         return list(dictify_cursor(cursor))
+
+
+def get_user(email, password):
+    """
+    Looks up user in the database
+    :param email:       the user's email address
+    :param password:    the user's password
+    :return:            a dict representing all values from the usr table for the matching
+                        user except the password OR None if no matching user if found
+    """
+    email = email.strip()
+    if not email or not password:
+        # this check is probably not needed but it makes me feel better
+        return None
+    else:
+        with PooledCursor() as cursor:
+            password_md5 = md5()
+            password_md5.update(password)
+            cursor.execute(
+                '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s''',
+                {
+                    'email': email,
+                    'password_md5': password_md5.hexdigest()
+                }
+            )
+            user_dicts = dictify_cursor(cursor)
+
+            if len(user_dicts) == 1:
+                # we found the user. remove password before returning in order to prevent
+                # the password from leaking out
+                user_dict = user_dicts[0]
+                del user_dict['usr_password']
+                return user_dict
+            else:
+                return None
