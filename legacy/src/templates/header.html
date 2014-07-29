@@ -82,6 +82,27 @@
         }
     </style>
 
+    <script>
+        $(function() {
+            $('#loginform').submit(function(event) {
+                // stop the form from submitting normally
+                event.preventDefault();
+
+                // get the email and password values from the form
+                var authData = {
+                    usr_email: $('#usr_email').val(),
+                    usr_password: $('#usr_password').val()
+                };
+
+                // send the data using a post
+                var posting = $.post("{{ url_for('.json_login')|safe }}", authData);
+                posting.done(function(data) {
+                    $('#loginpanel').text(data.user_first_name);
+                });
+            });
+        })
+    </script>
+
 </head>
 
 <body>
@@ -108,14 +129,20 @@
                 <li><a href="#">Help</a></li>
             </ul>
 
-            <form name="loginform" class="navbar-form navbar-right" role="search" method="post">
-                <div class="form-group">
-                    <input name="usr_email" type="text" class="form-control" placeholder="E-mail">
-                    <input name="usr_password" type="password" class="form-control" placeholder="password">
-                </div>
-                <button type="submit" class="btn btn-default">Login</button>
-                or <a href="#">register</a>
-            </form>
+            <div id="loginpanel" class="nospace">
+                {% if user %}
+                    hello {{ user.first_name }} <a href="#">logout</a>
+                {% else %}
+                    <form id="loginform" name="loginform" class="navbar-form navbar-right" role="search" method="post">
+                        <div class="form-group">
+                            <input id="usr_email" name="usr_email" type="text" class="form-control" placeholder="E-mail">
+                            <input id="usr_password" name="usr_password" type="password" class="form-control" placeholder="password">
+                        </div>
+                        <button type="submit" class="btn btn-default">Login</button>
+                        or <a href="#">register</a>
+                    </form>
+                {% endif %}
+            </div>
         </div>
         <!--/.nav-collapse -->
     </div>

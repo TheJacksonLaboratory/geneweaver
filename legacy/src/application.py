@@ -5,6 +5,15 @@ import geneweaverdb
 app = flask.Flask(__name__)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 
+# TODO this key must be changed to something secret. Comment out the print message when this is done
+print '==================================================='
+print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST'
+print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE'
+print '"How to generate good secret keys" AT'
+print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
+print '==================================================='
+app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
+
 # TODO the newsArray should probably be moved to a configuration file
 newsArray = [
     (
@@ -44,27 +53,95 @@ newsArray = [
 ]
 
 
+def _logout(session):
+    try:
+        del session['user_id']
+    except KeyError:
+        pass
+
+    try:
+        del session['remote_addr']
+    except KeyError:
+        pass
+
+'''
 @app.before_request
 def check_for_user_login():
-    form = flask.request.form
-    if 'usr_email' in form:
-        # TODO deal with login failure
-        user = geneweaverdb.get_user(form['usr_email'], form['usr_password'])
-        if user is not None:
-            flask.session['user'] = user
-        elif 'user' in flask.session:
-            del flask.session['user']
+    # lookup the current user and insert it into the global context
+    session = flask.session
+    user_id = session.get('user_id')
+    print 'user ID in session:', user_id
+    if user_id:
+        if flask.request.remote_addr == session.get('remote_addr'):
+            print 'remote address matches'
+            flask.g.user = geneweaverdb.get_user(user_id)
+            print 'set user to:', flask.g.user
+        else:
+            # if IP addresses don't match we're going to reset the session for
+            # a bit of extra safety
+            _logout(session)
+'''
 
-    # TODO do I need to update flask.g.user or is session good enough?
-
-
-# the context processor will inject global variables for us so that we can refer to them from our flask templates
+# the context processor will inject global variables for us so
+# that we can refer to them from our flask templates
 @app.context_processor
 def inject_globals():
     # TODO you need to care about escaping
-    return {
+    global_map = {
         'newsArray': newsArray
     }
+
+    # lookup the current user
+    session = flask.session
+    user_id = session.get('user_id')
+    print 'user ID in session:', user_id
+    if user_id:
+        if flask.request.remote_addr == session.get('remote_addr'):
+            print 'remote address matches'
+            global_map['user'] = geneweaverdb.get_user(user_id)
+            print 'set user to:', global_map['user']
+        else:
+            # if IP addresses don't match we're going to reset the session for
+            # a bit of extra safety
+            _logout(session)
+
+    return global_map
+
+
+
+def _form_login():
+    user = None
+    _logout(flask.session)
+
+    form = flask.request.form
+    if 'usr_email' in form:
+        # TODO deal with login failure
+        user = geneweaverdb.authenticate_user(form['usr_email'], form['usr_password'])
+        if user is not None:
+            flask.session['user_id'] = user['usr_id']
+            remote_addr = flask.request.remote_addr
+            if remote_addr:
+                flask.session['remote_addr'] = remote_addr
+
+    flask.g.user = user
+    return user
+
+
+@app.route('/login.json', methods=['POST'])
+def json_login():
+    print flask.request.json
+    print flask.request.form
+    json_result = dict()
+    user = _form_login()
+    if user is None:
+        json_result['success'] = False
+    else:
+        json_result['success'] = True
+        json_result['user_first_name'] = user['usr_first_name']
+        json_result['user_last_name'] = user['usr_last_name']
+        json_result['user_email'] = user['usr_email']
+
+    return flask.jsonify(json_result)
 
 
 @app.route('/analyze.html')

@@ -173,7 +173,20 @@ def get_microarray_types(sp_id=0):
         return list(dictify_cursor(cursor))
 
 
-def get_user(email, password):
+def _cursor_to_user(cursor):
+    user_dicts = list(dictify_cursor(cursor))
+
+    if len(user_dicts) == 1:
+        # we found the user. remove password before returning in order to prevent
+        # the password from leaking out
+        user_dict = user_dicts[0]
+        del user_dict['usr_password']
+        return user_dict
+    else:
+        return None
+
+
+def authenticate_user(email, password):
     """
     Looks up user in the database
     :param email:       the user's email address
@@ -196,13 +209,16 @@ def get_user(email, password):
                     'password_md5': password_md5.hexdigest()
                 }
             )
-            user_dicts = dictify_cursor(cursor)
+            return _cursor_to_user(cursor)
 
-            if len(user_dicts) == 1:
-                # we found the user. remove password before returning in order to prevent
-                # the password from leaking out
-                user_dict = user_dicts[0]
-                del user_dict['usr_password']
-                return user_dict
-            else:
-                return None
+
+def get_user(user_id):
+    """
+    Looks up a user in the database
+    :param user_id:     the user's ID
+    :return:            a dict representing all values from the usr table for the matching
+                        user except the password OR None if no matching user if found
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM usr WHERE usr_id=%s''', (user_id,))
+        return _cursor_to_user(cursor)
