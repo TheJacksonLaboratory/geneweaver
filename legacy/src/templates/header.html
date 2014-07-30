@@ -84,20 +84,38 @@
 
     <script>
         $(function() {
+            var anonUserSpan = $('#anon-user-span');
+            var validUserSpan = $('#valid-user-span');
+            var userEmail = $('#usr_email');
+            var userPassword = $('#usr_password');
+            var userName = $('#user-name');
+
             $('#loginform').submit(function(event) {
+                console.log('submitting!!!!!!!!!');
                 // stop the form from submitting normally
                 event.preventDefault();
 
                 // get the email and password values from the form
                 var authData = {
-                    usr_email: $('#usr_email').val(),
-                    usr_password: $('#usr_password').val()
+                    usr_email: userEmail.val(),
+                    usr_password: userPassword.val()
                 };
 
                 // send the data using a post
-                var posting = $.post("{{ url_for('.json_login')|safe }}", authData);
+                var posting = $.post("{{ url_for('json_login')|safe }}", authData);
                 posting.done(function(data) {
-                    $('#loginpanel').text(data.user_first_name);
+                    userName.text(data.usr_first_name);
+                    anonUserSpan.css('display', 'none');
+                    validUserSpan.css('display', '');
+                });
+            });
+
+            $('#logout-button').click(function(event) {
+                $.get("{{ url_for('json_logout')|safe }}", function() {
+                    userEmail.val('');
+                    userPassword.val('');
+                    anonUserSpan.css('display', '');
+                    validUserSpan.css('display', 'none');
                 });
             });
         })
@@ -130,18 +148,23 @@
             </ul>
 
             <div id="loginpanel" class="nospace">
-                {% if user %}
-                    hello {{ user.first_name }} <a href="#">logout</a>
-                {% else %}
-                    <form id="loginform" name="loginform" class="navbar-form navbar-right" role="search" method="post">
+                <form id="loginform" name="loginform" class="navbar-form navbar-right" role="search" method="post">
+                    <!-- this is the span that will be displayed when there is no user logged in -->
+                    <span id="anon-user-span"{% if user %} style="display: none"{% endif %}>
                         <div class="form-group">
                             <input id="usr_email" name="usr_email" type="text" class="form-control" placeholder="E-mail">
                             <input id="usr_password" name="usr_password" type="password" class="form-control" placeholder="password">
                         </div>
                         <button type="submit" class="btn btn-default">Login</button>
                         or <a href="#">register</a>
-                    </form>
-                {% endif %}
+                    </span>
+
+                    <!-- we show this span when there is a user logged in -->
+                    <span id="valid-user-span"{% if not user %} style="display: none"{% endif %}>
+                        Welcome <span id="user-name">{% if user %}{{ user.usr_first_name|e }}{% endif %}</span>
+                        <button type='button' id="logout-button" class="btn btn-default">Logout</button>
+                    </span>
+                </form>
             </div>
         </div>
         <!--/.nav-collapse -->

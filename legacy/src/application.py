@@ -53,17 +53,6 @@ newsArray = [
 ]
 
 
-def _logout(session):
-    try:
-        del session['user_id']
-    except KeyError:
-        pass
-
-    try:
-        del session['remote_addr']
-    except KeyError:
-        pass
-
 '''
 @app.before_request
 def check_for_user_login():
@@ -108,6 +97,17 @@ def inject_globals():
     return global_map
 
 
+def _logout(session):
+    try:
+        del session['user_id']
+    except KeyError:
+        pass
+
+    try:
+        del session['remote_addr']
+    except KeyError:
+        pass
+
 
 def _form_login():
     user = None
@@ -127,6 +127,12 @@ def _form_login():
     return user
 
 
+@app.route('/logout.json', methods=['GET', 'POST'])
+def json_logout():
+    _form_login()
+    return flask.jsonify({'success': True})
+
+
 @app.route('/login.json', methods=['POST'])
 def json_login():
     print flask.request.json
@@ -137,9 +143,9 @@ def json_login():
         json_result['success'] = False
     else:
         json_result['success'] = True
-        json_result['user_first_name'] = user['usr_first_name']
-        json_result['user_last_name'] = user['usr_last_name']
-        json_result['user_email'] = user['usr_email']
+        json_result['usr_first_name'] = user['usr_first_name']
+        json_result['usr_last_name'] = user['usr_last_name']
+        json_result['usr_email'] = user['usr_email']
 
     return flask.jsonify(json_result)
 
