@@ -53,24 +53,6 @@ newsArray = [
 ]
 
 
-'''
-@app.before_request
-def check_for_user_login():
-    # lookup the current user and insert it into the global context
-    session = flask.session
-    user_id = session.get('user_id')
-    print 'user ID in session:', user_id
-    if user_id:
-        if flask.request.remote_addr == session.get('remote_addr'):
-            print 'remote address matches'
-            flask.g.user = geneweaverdb.get_user(user_id)
-            print 'set user to:', flask.g.user
-        else:
-            # if IP addresses don't match we're going to reset the session for
-            # a bit of extra safety
-            _logout(session)
-'''
-
 # the context processor will inject global variables for us so
 # that we can refer to them from our flask templates
 @app.context_processor
