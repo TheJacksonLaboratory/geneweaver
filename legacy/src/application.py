@@ -68,9 +68,7 @@ def inject_globals():
     print 'user ID in session:', user_id
     if user_id:
         if flask.request.remote_addr == session.get('remote_addr'):
-            print 'remote address matches'
             global_map['user'] = geneweaverdb.get_user(user_id)
-            print 'set user to:', global_map['user']
         else:
             # if IP addresses don't match we're going to reset the session for
             # a bit of extra safety

@@ -227,94 +227,11 @@
     </div>
 </form>
 
-<!--
-    <tr>
-        <td colspan="2">
-            <button type="button" onclick="inferIDKind()">Infer from Gene List</button>
-            <span id="id_inference_msg"></span><br/>
-        </td>
-    </tr>
-    <tr>
-        <td valign="top"><label for="sp_id">Species*:</label></td>
-        <td valign="top">
-            <select id="sp_id" name="sp_id" title="The species that the gene identifiers are coming from.">
-                {#html_options options=$sp_id selected=$gs.sp_id#}
-                {% for sp_key, sp_value in all_species.iteritems() %}
-                    <option value="{{ sp_key }}">{% if sp_value %}{{ sp_value }}{% else %}-- please select --{% endif %}</option>
-                {% endfor %}
-            </select>
-        </td>
-    </tr>
-    {% if gidts %}
-        <tr>
-            <td valign="top"><label for="gs_gene_id_type">Gene Identifiers*:</label></td>
-            <td valign="top"><select id="gs_gene_id_type" name="gs_gene_id_type"
-                                     title="The gene identifier source database.">
-                    <option value="0">-- please select --</option>
-                    {# html_options options=$gidts selected=$gs.gs_gene_id_type #}
-                    {{ macros.html_options(gidts) }}
-                </select>
-            </td>
-        </tr>
-    {% else %}
-        <input type="hidden" name="gs_gene_id_type" id="gs_gene_id_type" value="{{ gs.gs_gene_id_type }}"/>
-    {% endif %}
-</table>
-
-{#
-{if $cmd=="updategeneset"}
-    <input type="hidden" name="gs_threshold_type" id="gs_threshold_type" value="{$gs.gs_threshold_type}"/>
-    <input type="hidden" name="gs_threshold" id="gs_threshold" value="{$gs.gs_threshold}"/>
-    <input type="hidden" name="GSRVPT_gsrvptID" value="1">
-    <input type="hidden" name="gs_id" value="{$gs.gs_id}">
-    <input class="button" type="submit" value="Save Changes">
-{else}
-#}
-    <input class="button" type="submit" value="Upload GeneSet"/>
-{# {/if} #}
-
-{#    <script type="text/javascript" src="js/jquery.tipsy.js"></script>#}
--->
 <script type="text/javascript">
 
-    function toggle_pasting() {
-        $('#file_uploader').toggle();
-        $('#paste_uploader').toggle();
-        $('#file, #file_text').each(function () {
-            this.disabled = !$(this).is(":visible");
-        });
-        return false;
-    }
     $(document).ready(function () {
 
         var gs_upload_submitBtn = $('#gs_upload_submit');
-        var fileTextBox = $('#file_text');
-
-        $('#file_uploader').hide();
-        fileTextBox.on('keydown', function (e) {
-            var keyCode = e.keyCode || e.which;
-            if (keyCode == 9) {
-                e.preventDefault();
-
-                if (document.selection) {
-                    this.focus();
-                    sel = document.selection.createRange();
-                    sel.text = '\t';
-                } else if (this.selectionStart || this.selectionStart == '0') {
-                    var s = this.selectionStart;
-                    var e = this.selectionEnd;
-                    scr = this.scrollTop;
-
-                    this.value = this.value.substring(0, s) + '\t' + this.value.substring(e);
-
-                    this.selectionStart = s + 1;
-                    this.selectionEnd = s + 1;
-
-                    if (scr) this.scrollTop = scr;
-                } else this.value += '\t';
-            }
-        });
-        //$(':input[title]').tipsy({gravity: 'w', trigger: 'focus', html: true});
 
         ODE.toggle('.pub_field');
 
@@ -411,53 +328,117 @@
                 '</div>');
         }
 
-        function setIDInferenceMsg(msg) {
-            $('#id_inference_msg').text(msg);
-        }
+        /////////////////////////////////
+        // Gene list ID kind inference //
+        /////////////////////////////////
 
-        function inferIDKind() {
+        var fileTextBox = $('#file_text');
+        fileTextBox.on('keydown', function (e) {
+            var keyCode = e.keyCode || e.which;
+            if (keyCode == 9) {
+                e.preventDefault();
+
+                if (document.selection) {
+                    this.focus();
+                    document.selection.createRange().text = '\t';
+                } else if (this.selectionStart || this.selectionStart == '0') {
+                    var s = this.selectionStart;
+                    var e = this.selectionEnd;
+                    var scr = this.scrollTop;
+
+                    this.value = this.value.substring(0, s) + '\t' + this.value.substring(e);
+
+                    this.selectionStart = s + 1;
+                    this.selectionEnd = s + 1;
+
+                    if (scr) this.scrollTop = scr;
+                } else {
+                    this.value += '\t';
+                }
+            }
+
+            maybeInferIDKind();
+        });
+
+        var idKindAlreadyChanged = false;
+        fileTextBox.change(maybeInferIDKind);
+
+        var spIDDropDown = $('#sp_id');
+        spIDDropDown.change(function() {
+            idKindAlreadyChanged = true;
+        });
+        var gsGeneIDDropDown = $('#gs_gene_id_type');
+        gsGeneIDDropDown.change(function() {
+            idKindAlreadyChanged = true;
+        });
+
+        // at intervals check if we're ready to infer ID kind
+        var infIntervalID = setInterval(maybeInferIDKind, 200);
+
+        // We hard code an arbitrary minimum number of lines before we'll try to
+        // infer ID kind and we have a maximum for performance reasons
+        var minInferenceLineCount = 5;
+        var maxInferenceLineCount = 20;
+
+        var prevFileText = null;
+
+        /**
+         * This function will send an AJAX request to guess (infer) what kind
+         * of IDs the user is entering as long as the ID kind has not been
+         * selected and there are enough lines of data to make a reasonable
+         * guess.
+         */
+        function maybeInferIDKind() {
+            if(idKindAlreadyChanged) {
+                // If either the user has already set the ID kind or if the
+                // inference has already been done we don't want to override
+                // that so instead we do nothing.
+                return;
+            }
+
+            // we break the input text into lines so that we can pop off the
+            // last line (prevents us from sending an unfinished last line)
+            // as well as limiting what we send using the min/max inference
+            // count hard-coded values
+            var fileText = fileTextBox.val();
+            if(fileText.length == 0 || fileText == prevFileText) {
+                return;
+            }
+            prevFileText = fileText;
+            var fileLines = fileText.split(/\r\n|\n|\r/);
+            fileLines.pop();
+            if(fileLines.length < minInferenceLineCount) {
+                return;
+            }
+            if(fileLines.length > maxInferenceLineCount) {
+                fileLines.length = maxInferenceLineCount;
+            }
+
+            fileText = fileLines.join('\n');
+            console.log('sending file text:');
+            console.log(fileText);
             $.ajax({
                 type: 'POST',
                 url: 'inferidkind.json',
                 data: {
-                    file_text: fileTextBox.val()
+                    file_text: fileText
                 },
                 success: function(data) {
                     console.log(data);
                     if(data.most_successfull_id_kinds.length >= 1) {
-                        first_id_kind = data.most_successfull_id_kinds[0];
-                        $('#sp_id').val(first_id_kind.species_id);
-
-                        // TODO what the heck is the point of this if/else???
-                        if(first_id_kind.is_gene_result) {
-                            $('#gs_gene_id_type').val(first_id_kind.source_id);
-                        } else {
-                            $('#gs_gene_id_type').val(first_id_kind.source_id);
-                        }
-
-                        var msg = 'IDs inferred to be ' + $('#gs_gene_id_type option:selected').text();
-                        if(first_id_kind.id_failures.length) {
-                            msg += '. The following IDs failed to map: ';
-                            for(var i = 0; i < first_id_kind.id_failures.length; i++) {
-                                if(i >= 1) {
-                                    msg += ', ';
-                                }
-                                msg += first_id_kind.id_failures[i];
-                            }
-                        } else {
-                            msg += '. All IDs were successfully mapped.'
-                        }
-
-                        setIDInferenceMsg(msg);
-                    } else {
-                        setIDInferenceMsg('inference failed: no IDs were recognized')
+                        var firstIDKind = data.most_successfull_id_kinds[0];
+                        spIDDropDown.val(firstIDKind.species_id);
+                        gsGeneIDDropDown.val(firstIDKind.source_id);
                     }
                 },
                 error: function() {
-                    console.log('failure occured');
-                    setIDInferenceMsg('an error occurred while inferring ID kind');
+                    console.log('inference failure occured. Ignoring for now');
                 }
             });
+
+            idKindAlreadyChanged = true;
+            clearInterval(infIntervalID);
+            prevFileText = null;
         }
 
         $('#geneuploadform').submit(function(evt) {
