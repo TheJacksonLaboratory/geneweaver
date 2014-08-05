@@ -109,7 +109,7 @@ def _form_login():
 
 @app.route('/logout.json', methods=['GET', 'POST'])
 def json_logout():
-    _form_login()
+    _logout(flask.session)
     return flask.jsonify({'success': True})
 
 
