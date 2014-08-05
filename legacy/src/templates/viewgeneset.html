@@ -1,0 +1,23 @@
+{% set title="Geneset Details" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header" xmlns="http://www.w3.org/1999/html">
+    <h1>Geneset Details</h1>
+</div>
+
+<p>
+    Description: {{ geneset.description }}
+    <br>
+    Uploaded: {{ geneset.creation_date }}
+    <br>
+    Species: {{ geneset.sp_id }}
+
+    {% if geneset.uri %}
+    <br>
+    URI: <a href="{{ geneset.uri }}">{{ geneset.uri }}</a>
+    {% endif %}
+</p>
+
+
+{% include 'footer.html' %}

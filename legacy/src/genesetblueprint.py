@@ -216,3 +216,10 @@ def create_geneset():
         'uploadgeneset.html',
         gs=dict(),
         all_species=geneweaverdb.get_all_species())
+
+@geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
+def view_geneset(geneset_id):
+    user_id = flask.g.user.user_id if 'user' in flask.g else None
+    geneset = geneweaverdb.get_geneset(geneset_id, user_id)
+
+    return flask.render_template('viewgeneset.html', geneset=geneset)

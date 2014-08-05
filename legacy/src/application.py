@@ -98,7 +98,7 @@ def _form_login():
         # TODO deal with login failure
         user = geneweaverdb.authenticate_user(form['usr_email'], form['usr_password'])
         if user is not None:
-            flask.session['user_id'] = user['usr_id']
+            flask.session['user_id'] = user.user_id
             remote_addr = flask.request.remote_addr
             if remote_addr:
                 flask.session['remote_addr'] = remote_addr
@@ -123,9 +123,9 @@ def json_login():
         json_result['success'] = False
     else:
         json_result['success'] = True
-        json_result['usr_first_name'] = user['usr_first_name']
-        json_result['usr_last_name'] = user['usr_last_name']
-        json_result['usr_email'] = user['usr_email']
+        json_result['usr_first_name'] = user.first_name
+        json_result['usr_last_name'] = user.last_name
+        json_result['usr_email'] = user.email
 
     return flask.jsonify(json_result)
 

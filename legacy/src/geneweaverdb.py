@@ -3,14 +3,14 @@ from hashlib import md5
 from psycopg2.pool import ThreadedConnectionPool
 
 
-class MyThreadedConnectionPool(ThreadedConnectionPool):
+class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
     def __init__(self, minconn, maxconn, *args, **kwargs):
         ThreadedConnectionPool.__init__(self, minconn, maxconn, *args, **kwargs)
 
     def _connect(self, key=None):
         """Create a new connection and set its search_path"""
-        conn = super(MyThreadedConnectionPool, self)._connect(key)
+        conn = super(GeneWeaverThreadedConnectionPool, self)._connect(key)
         cursor = conn.cursor()
         cursor.execute('SET search_path TO production, extsrc, odestatic;')
         conn.commit()
@@ -18,7 +18,7 @@ class MyThreadedConnectionPool(ThreadedConnectionPool):
         return conn
 
 # the global threaded connection pool that should be used for all DB connections in this application
-pool = MyThreadedConnectionPool(
+pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database='geneweaver',
     user='odeadmin',
@@ -173,17 +173,82 @@ def get_microarray_types(sp_id=0):
         return list(dictify_cursor(cursor))
 
 
-def _cursor_to_user(cursor):
-    user_dicts = list(dictify_cursor(cursor))
+class User:
+    def __init__(self, usr_dict):
+        self.user_id = usr_dict['usr_id']
+        self.first_name = usr_dict['usr_first_name']
+        self.last_name = usr_dict['usr_last_name']
+        self.email = usr_dict['usr_email']
+        self.prefs = usr_dict['usr_prefs']
 
-    if len(user_dicts) == 1:
-        # we found the user. remove password before returning in order to prevent
-        # the password from leaking out
-        user_dict = user_dicts[0]
-        del user_dict['usr_password']
-        return user_dict
-    else:
-        return None
+        usr_admin = usr_dict['usr_admin']
+        self.is_curator = usr_admin == 1
+        self.is_admin = usr_admin == 2 or usr_admin == 3
+        self.last_seen = usr_dict['usr_last_seen']
+        self.creation_date = usr_dict['usr_created']
+        self.ip_addr = usr_dict['ip_addr']
+
+
+def _cursor_to_users(cursor):
+    return (User(dictify_row(cursor, row)) for row in cursor)
+
+
+class Publication:
+    def __init__(self, pub_dict):
+        self.pub_id = pub_dict['pub_id']
+        self.authors = pub_dict['pub_authors']
+        self.title = pub_dict['pub_title']
+        self.abstract = pub_dict['pub_abstract']
+        self.journal = pub_dict['pub_journal']
+        self.volume = pub_dict['pub_volume']
+        self.pages = pub_dict['pub_pages']
+        self.month = pub_dict['pub_month']
+        self.year = pub_dict['pub_year']
+        self.pubmed_id = pub_dict['pub_pubmed']
+
+
+class Geneset:
+    def __init__(self, gs_dict):
+        self.geneset_id = gs_dict['gs_id']
+        self.user_id = gs_dict['usr_id']
+        try:
+            self.user = User(gs_dict)
+        except KeyError:
+            self.user = None
+        self.file_id = gs_dict['file_id']
+        self.name = gs_dict['gs_name']
+        self.abbreviation = gs_dict['gs_abbreviation']
+        self.pub_id = gs_dict['pub_id']
+        try:
+            self.publication = Publication(gs_dict)
+        except KeyError:
+            self.publication = None
+        self.res_id = gs_dict['res_id']
+        self.cur_id = gs_dict['cur_id']
+        self.description = gs_dict['gs_description']
+        self.sp_id = gs_dict['sp_id']
+        self.count = gs_dict['gs_count']
+        # TODO document what different threshold values mean
+        self.threshold_type = gs_dict['gs_threshold_type']
+        self.threshold = gs_dict['gs_threshold']
+        # a comma seperated list of group IDs (0=development, -1=private)
+        self.group_ids = gs_dict['gs_groups']
+        self.attribution_old = gs_dict['gs_attribution_old']
+        self.uri = gs_dict['gs_uri']
+        self.gene_id_type = gs_dict['gs_gene_id_type']
+        self.creation_date = gs_dict['gs_created']
+        # TODO document how admin flag works. Is it similar to usr_admin in the user table?
+        self.admin_flag = gs_dict['admin_flag']
+        self.updated_date = gs_dict['gs_updated']
+        # TODO document how status works
+        self.status = gs_dict['gs_status']
+        # TODO figure out what this field is for
+        self.gsv_qual = gs_dict['gsv_qual']
+        self.attribution = gs_dict['gs_attribution']
+
+
+def _cursor_to_genesets(cursor):
+    return (Geneset(dictify_row(cursor, row)) for row in cursor)
 
 
 def authenticate_user(email, password):
@@ -191,8 +256,8 @@ def authenticate_user(email, password):
     Looks up user in the database
     :param email:       the user's email address
     :param password:    the user's password
-    :return:            a dict representing all values from the usr table for the matching
-                        user except the password OR None if no matching user if found
+    :return:            the User with the corresponding email address and password
+                        OR None if no such User is found
     """
     email = email.strip()
     if not email or not password:
@@ -206,19 +271,46 @@ def authenticate_user(email, password):
                 '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s''',
                 {
                     'email': email,
-                    'password_md5': password_md5.hexdigest()
+                    'password_md5': password_md5.hexdigest(),
                 }
             )
-            return _cursor_to_user(cursor)
+            users = list(_cursor_to_users(cursor))
+            return users[0] if len(users) == 1 else None
 
 
 def get_user(user_id):
     """
-    Looks up a user in the database
+    Looks up a User in the database
     :param user_id:     the user's ID
-    :return:            a dict representing all values from the usr table for the matching
-                        user except the password OR None if no matching user if found
+    :return:            the User matching the given ID or None if no such user is found
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM usr WHERE usr_id=%s''', (user_id,))
-        return _cursor_to_user(cursor)
+        users = list(_cursor_to_users(cursor))
+        return users[0] if len(users) == 1 else None
+
+
+def get_geneset(geneset_id, user_id=None):
+    """
+    Gets the Geneset if either the geneset is publicly visible or the user
+    has permission to view it.
+    :param geneset_id:  the geneset ID
+    :param user_id:     the user ID that needs permission
+    :return:            the Geneset corresponding to the given ID if the
+                        user has read permission, None otherwise
+    """
+
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    if user_id is None:
+        user_id = -1
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT * FROM geneset WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)''',
+            {
+                'geneset_id': geneset_id,
+                'user_id': user_id,
+            }
+        )
+        genesets = list(_cursor_to_genesets(cursor))
+        return genesets[0] if len(genesets) == 1 else None
