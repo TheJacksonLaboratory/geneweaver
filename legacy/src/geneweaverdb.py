@@ -74,7 +74,7 @@ class PooledCursor(object):
             self.conn_pool.putconn(self.connection)
 
 
-def dictify_row(cursor, row):
+def _dictify_row(cursor, row):
     """Turns the given row into a dictionary where the keys are the column names"""
     d = OrderedDict()
     for i, col in enumerate(cursor.description):
@@ -84,7 +84,7 @@ def dictify_row(cursor, row):
 
 def dictify_cursor(cursor):
     """converts all cursor rows into dictionaries where the keys are the column names"""
-    return (dictify_row(cursor, row) for row in cursor)
+    return (_dictify_row(cursor, row) for row in cursor)
 
 
 def get_all_projects(usr_id):
@@ -189,10 +189,6 @@ class User:
         self.ip_addr = usr_dict['ip_addr']
 
 
-def _cursor_to_users(cursor):
-    return (User(dictify_row(cursor, row)) for row in cursor)
-
-
 class Publication:
     def __init__(self, pub_dict):
         self.pub_id = pub_dict['pub_id']
@@ -211,17 +207,23 @@ class Geneset:
     def __init__(self, gs_dict):
         self.geneset_id = gs_dict['gs_id']
         self.user_id = gs_dict['usr_id']
-        try:
-            self.user = User(gs_dict)
-        except KeyError:
+        if self.user_id is not None:
+            try:
+                self.user = User(gs_dict)
+            except KeyError:
+                self.user = None
+        else:
             self.user = None
         self.file_id = gs_dict['file_id']
         self.name = gs_dict['gs_name']
         self.abbreviation = gs_dict['gs_abbreviation']
         self.pub_id = gs_dict['pub_id']
-        try:
-            self.publication = Publication(gs_dict)
-        except KeyError:
+        if self.pub_id is not None:
+            try:
+                self.publication = Publication(gs_dict)
+            except KeyError:
+                self.publication = None
+        else:
             self.publication = None
         self.res_id = gs_dict['res_id']
         self.cur_id = gs_dict['cur_id']
@@ -246,9 +248,32 @@ class Geneset:
         self.gsv_qual = gs_dict['gsv_qual']
         self.attribution = gs_dict['gs_attribution']
 
+        # declare value caches for instance properties
+        self.__ontological_associations = None
+        self.__geneset_values = None
 
-def _cursor_to_genesets(cursor):
-    return (Geneset(dictify_row(cursor, row)) for row in cursor)
+    @property
+    def ontological_associations(self):
+        if self.__ontological_associations is None:
+            self.__ontological_associations = get_ontologies_for_geneset(self.geneset)
+        return self.__ontological_associations
+
+    @property
+    def geneset_values(self):
+        if self.__geneset_values is None:
+            self.__geneset_values = get_geneset_values(self.geneset_id)
+        return self.__geneset_values
+
+
+class Ontology:
+    def __init__(self, ont_dict):
+        self.ontology_id = ont_dict['ont_id']
+        self.reference_id = ont_dict['ont_ref_id']
+        self.name = ont_dict['ont_name']
+        self.description = ont_dict['ont_description']
+        self.children = ont_dict['ont_children']
+        self.parents = ont_dict['ont_parents']
+        self.ontdb_id = ont_dict['ontdb_id']
 
 
 def authenticate_user(email, password):
@@ -268,13 +293,13 @@ def authenticate_user(email, password):
             password_md5 = md5()
             password_md5.update(password)
             cursor.execute(
-                '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s''',
+                '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',
                 {
                     'email': email,
                     'password_md5': password_md5.hexdigest(),
                 }
             )
-            users = list(_cursor_to_users(cursor))
+            users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
             return users[0] if len(users) == 1 else None
 
 
@@ -286,7 +311,7 @@ def get_user(user_id):
     """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM usr WHERE usr_id=%s''', (user_id,))
-        users = list(_cursor_to_users(cursor))
+        users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
         return users[0] if len(users) == 1 else None
 
 
@@ -306,11 +331,41 @@ def get_geneset(geneset_id, user_id=None):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM geneset WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)''',
+            '''
+            SELECT *
+            FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
+            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            ''',
             {
                 'geneset_id': geneset_id,
                 'user_id': user_id,
             }
         )
-        genesets = list(_cursor_to_genesets(cursor))
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
+
+
+def get_ontologies_for_geneset(geneset_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT * FROM ontology NATURAL JOIN geneset_ontology WHERE gs_id=%s AND gso_ref_type<>'Blacklist';''',
+            (geneset_id,))
+        return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+
+
+class GenesetValue:
+    def __init__(self, gsv_dict):
+        self.gs_id = gsv_dict['gs_id']
+        self.ode_gene_id = gsv_dict['ode_gene_id']
+        self.value = gsv_dict['gsv_value']
+        self.hits = gsv_dict['gsv_hits']
+        self.source_list = gsv_dict['gsv_source_list']
+        self.value_list = gsv_dict['gsv_value_list']
+        self.is_in_threshold = gsv_dict['gsv_in_threshold']
+        self.date = gsv_dict['gsv_date']
+
+
+def get_geneset_values(geneset_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
+        return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]

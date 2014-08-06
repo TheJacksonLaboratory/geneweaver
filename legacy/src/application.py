@@ -5,7 +5,8 @@ import geneweaverdb
 app = flask.Flask(__name__)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 
-# TODO this key must be changed to something secret. Comment out the print message when this is done
+# TODO this key must be changed to something secret (ie. not committed to the repo).
+# Comment out the print message when this is done
 print '==================================================='
 print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST'
 print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE'
