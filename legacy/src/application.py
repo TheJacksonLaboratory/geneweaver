@@ -6,7 +6,7 @@ app = flask.Flask(__name__)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 
 # TODO this key must be changed to something secret (ie. not committed to the repo).
-# Comment out the print message when this is done
+#      Comment out the print message when this is done
 print '==================================================='
 print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST'
 print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE'
@@ -66,7 +66,6 @@ def inject_globals():
     # lookup the current user
     session = flask.session
     user_id = session.get('user_id')
-    print 'user ID in session:', user_id
     if user_id:
         if flask.request.remote_addr == session.get('remote_addr'):
             global_map['user'] = geneweaverdb.get_user(user_id)
@@ -116,8 +115,6 @@ def json_logout():
 
 @app.route('/login.json', methods=['POST'])
 def json_login():
-    print flask.request.json
-    print flask.request.form
     json_result = dict()
     user = _form_login()
     if user is None:
