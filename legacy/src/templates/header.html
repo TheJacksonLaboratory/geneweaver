@@ -104,9 +104,13 @@
                 // send the data using a post
                 var posting = $.post("{{ url_for('json_login')|safe }}", authData);
                 posting.done(function(data) {
-                    userName.text(data.usr_first_name);
-                    anonUserSpan.css('display', 'none');
-                    validUserSpan.css('display', '');
+                    if(data.success) {
+                        userName.text(data.usr_first_name);
+                        anonUserSpan.css('display', 'none');
+                        validUserSpan.css('display', '');
+                    } else {
+                        alert("login attempt failed");
+                    }
                 });
             });
 
