@@ -1,0 +1,45 @@
+{% include 'header.html' %}
+
+<div class="jumbotron">
+    <h1>GeneWeaver</h1>
+    <p class="lead">
+        A system for the integration of functional genomics experiments.
+        <br/>
+        You can <a href="signin.html">sign in</a>, <a href="signin.html">create an account</a> if you don't yet have
+        one, or continue to use GeneWeaver anonymously.
+        <br/>
+        If you would like <a href="help.html">help</a> getting started with GeneWeaver you can consult our
+        <a href="http://geneweaver.org/wiki/index.php?title=Tutorial#Introduction_to_web-based_analysis_with_Gene_Weaver">crash course tutorial</a>,
+        <a href="http://geneweaver.org/wiki/index.php?title=Quick_Start_Guide">quick reference</a>, or comprehensive
+        <a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Movie">demo video</a>.
+    </p>
+
+
+            <div>
+                <span>{% if register_not_successful %}<h1> <font color="red">The email has been used. Please register again.</font></h1> {% endif %}</span>
+            </div>
+            <div id="registerpanel" class="nospace">
+                <form id="registerform" name="registerform" class="navbar-form navbar-center" role="search" method="post" action="{{url_for('json_register_successful')}}" >
+                    <!-- this is the span that will be displayed when there is no user logged in -->
+                    <span id="anon-user-span"{% if user %} style="display: none"{% endif %}>
+                        <div class="form-group">
+			    <input id="usr_name" name="usr_name" type="text" class="form-control" placeholder="Name">
+			    <br/><br/>
+                            <input id="usr_email" name="usr_email" type="text" class="form-control" placeholder="E-mail">
+			    <br/><br/>
+                            <input id="usr_password" name="usr_password" type="password" class="form-control" placeholder="password">
+                        </div>
+			<br/><br/>
+                        <button type="submit" class="btn btn-default">Register</button>
+                    </span>
+
+                    <!-- we show this span when there is a user logged in -->
+                    <span id="valid-user-span"{% if not user %} style="display: none"{% endif %}>
+                        Welcome <span id="user-name">{% if user %}{{ user.usr_first_name|e }}{% endif %}</span>
+                        <button type='button' id="logout-button" class="btn btn-default">Logout</button>
+                    </span>
+                </form>
+            </div>
+</div>
+
+{% include 'footer.html' %}
