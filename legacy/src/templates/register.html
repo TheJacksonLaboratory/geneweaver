@@ -21,7 +21,7 @@
             <div id="registerpanel" class="nospace">
                 <form id="registerform" name="registerform" class="navbar-form navbar-center" role="search" method="post" action="{{url_for('json_register_successful')}}" >
                     <!-- this is the span that will be displayed when there is no user logged in -->
-                    <span id="anon-user-span"{% if user %} style="display: none"{% endif %}>
+                    <span id="anon-user-span" {% if user %} style="display: none"{% endif %}>
                         <div class="form-group">
 			    <input id="usr_name" name="usr_name" type="text" class="form-control" placeholder="Name">
 			    <br/><br/>

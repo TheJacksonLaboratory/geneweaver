@@ -1,0 +1,130 @@
+{#
+  lists the genesets in $results
+
+  optional:
+    $check_extra (extra attributes for per-geneset checkbox)
+    $icons is a template code for icons areas of geneset row
+
+  needs:
+    $sp_id array
+#}
+{*{foreach from=$results key=gs_id item=gsData} {foreach from=$gsData key=k item=v}{$k}--{$v} {/foreach}||||{/foreach}*}
+
+
+
+{assign var=show_icons value=true}
+
+{foreach from=$results key=row_id item=gsData}
+
+    {if isset($gsData.SEPARATOR) }
+        <tr class="odd">
+            <td colspan="3" style="border-bottom: thick solid #333;"><b>{$gsData.SEPARATOR}</b></td>
+        </tr>
+    {else}
+        <tr class="{cycle values="even,odd"}" id="GS{$gsData.gs_id}">
+
+            <td class="gsCheck" valign="top"><input type="checkbox" value="{$gsData.gs_id}" {$check_extra}
+                                                    name="gs_id[]"/></td>
+
+            <td class="gsListName">
+                <img src="images/expand.png" title="Expand" alt="Expand" class="expandButton"
+                     onclick="ODE.toggle('#GS{$gsData.gs_id} .genesetMeta', this);">
+                {if $gsData.cur_id == 1}
+                    <span class="tier1">Tier I</span>
+                {elseif $gsData.cur_id == 2}
+                    <span class="tier2">Tier II</span>
+                {elseif $gsData.cur_id == 3}
+                    <span class="tier3">Tier III</span>
+                {elseif $gsData.cur_id == 4}
+                    <span class="tier4">Tier IV</span>
+                {elseif $gsData.cur_id == 5}
+                    <span class="tier5">Tier V</span>
+                {/if}
+                {if $gsData.sp_id == 1}
+                    <span class="mouse">Mouse</span>
+                {elseif $gsData.sp_id == 2}
+                    <span class="human">Human</span>
+                {elseif $gsData.sp_id == 3}
+                    <span class="rat">Rat</span>
+                {elseif $gsData.sp_id == 4}
+                    <span class="zebrafish">Zebrafish</span>
+                {elseif $gsData.sp_id == 5}
+                    <span class="fly">Fly</span>
+                {elseif $gsData.sp_id == 6}
+                    <span class="monkey">Monkey</span>
+                {/if}
+                {if $gsData.gs_attribution == 2}
+                    <span class="ctd">CTD</span>
+                {elseif $gsData.gs_attribution == 7}
+                    <span class="drg">DRG</span>
+                {elseif $gsData.gs_attribution == 8}
+                    <span class="go">GO</span>
+                {elseif $gsData.gs_attribution == 9}
+                    <span class="mp">MP</span>
+                {/if}
+                <span class="gs_size">{$gsData.gs_count} Genes</span>
+                {if $gsData.gs_status!='normal'}
+                    {if substr($gsData.gs_status,0,10)=='deprecated'}
+                        <a href="{ode_link action=manage cmd=viewgeneset other="gs_id="}{$gsData.gs_status|substr:11}"
+                           title="deprecated, please use GS{$gsData.gs_status|substr:11}"
+                           class="gs_deprecated">deprecated</a>
+                        {if $prjid}<a href="#" onclick="return ODE.update_deprecated({$prjid}, {$gsData.gs_id});"><img
+                                    src="images/refresh.png" width="16" height="16" alt="update" title="update"/>
+                            </a>{/if}
+                    {else}
+                        <span class="gs_{$gsData.gs_status}"
+                              title="This GeneSet has been marked as {$gsData.gs_status}">{$gsData.gs_status}</span>
+                    {/if}
+                {/if}
+                {foreach from=','|explode:$gsData.gs_groups key=i item=grp}
+                {* note: exclude public (0) and private (-1) *}
+                    {if $grp > 0 && array_key_exists($grp, $gs_groups)}
+                        <span class="group_name">{$gs_groups[$grp]}</span>
+                    {/if}
+                {/foreach}
+                <a href="{ode_link action=manage cmd=viewgeneset other="gs_id=`$gsData.gs_id`"}"
+                   name="viewGeneset">GS{$gsData.gs_id}: {$gsData.gs_name}</a>
+                <table class="genesetMeta" style="display: none;" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                        <th>Figure Label:</th>
+                        <td style="width: 30em;">{$gsData.gs_abbreviation}</td>
+                        <th>Species:</th>
+                        <td>
+                            {assign var=temp value=$gsData.sp_id}
+                            {if empty($sp_id.$temp)} Any/All&nbsp;{else}
+                                {$sp_id.$temp}&nbsp;{/if}
+                        </td>
+                        <th>Data Points:</th>
+                        <td>{$gsData.gs_count}&nbsp;</td>
+                    </tr>
+
+                    {if !empty($gsData.pub_authors)}
+                        <tr>
+                            <th>Authors:</th>
+                            <td colspan="5"><i>{$gsData.pub_authors}</i></td>
+                        </tr>
+                    {/if}
+                    <tr>
+                        <th>Description:</th>
+                        <td colspan="5">{$gsData.gs_description}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Available to:</th>
+                        <td colspan=\
+                        "5\">{pretty_availability tier=$gsData.cur_id avail=$gsData.gs_groups owner=$gsData.usr_id}</td>
+                    </tr>
+                </table>
+            </td>
+
+            {if $show_icons && !empty($icons) }
+                {foreach from=$icons item=icn}
+                    <td class="gsIconBox" valign="top">
+                        {eval var=$icn}
+                    </td>
+                {/foreach}
+            {/if}
+        </tr>
+    {/if}
+
+{/foreach}
