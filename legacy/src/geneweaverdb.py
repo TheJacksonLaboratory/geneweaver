@@ -369,3 +369,26 @@ def get_geneset_values(geneset_id):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+
+class ToolConfig:
+    def __init__(self, tool_dict):
+        self.__params = None
+
+    @property
+    def params(self):
+        pass
+
+
+def get_tool(tool_classname):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM tool WHERE tool_classname=%s;''', (tool_classname,))
+        tools = [ToolConfig(tool_dict) for tool_dict in dictify_cursor(cursor)]
+
+        return tools[0] if len(tools) == 1 else None
+
+
+def get_active_tools():
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM tool WHERE tool_active='1' ORDER BY tool_sort;''')
+        return [ToolConfig(tool_dict) for tool_dict in dictify_cursor(cursor)]

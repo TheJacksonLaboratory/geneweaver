@@ -211,11 +211,11 @@ def create_geneset():
                     # TODO error reporting here
                     pass
 
-
     return flask.render_template(
         'uploadgeneset.html',
         gs=dict(),
         all_species=geneweaverdb.get_all_species())
+
 
 @geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
 def view_geneset(geneset_id):
