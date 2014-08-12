@@ -18,14 +18,25 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
         return conn
 
 # the global threaded connection pool that should be used for all DB connections in this application
+
+# pool = GeneWeaverThreadedConnectionPool(
+#      5, 20,
+#      database='geneweaver',
+#      user='odeadmin',
+#      password='odeadmin',
+#      host='crick.ecs.baylor.edu',
+#      port=5432,
+#  )
+#meixiao: use the old server for testing.
 pool = GeneWeaverThreadedConnectionPool(
-    5, 20,
-    database='geneweaver',
-    user='odeadmin',
-    password='odeadmin',
-    host='crick.ecs.baylor.edu',
-    port=5432,
-)
+     5, 20,
+     database='ODE',
+     user='odeadmin',
+     password='odeadmin',
+     host='ode-db1.jax.org',
+     port=5432,
+ )
+
 
 
 class PooledConnection(object):
@@ -314,6 +325,18 @@ def get_user(user_id):
         users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
         return users[0] if len(users) == 1 else None
 
+#meixiao: get user by email. If it is already registered, we need to tell the user that this email is already used.
+def get_user_byemail(user_email):
+    """
+    Looks up a User in the database
+    :param user_email: the email a user entered
+    :return: the User matching the given email or None if no such user is found
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email,))
+        users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
+       # return users[0] if len(users) == 1 else None
+        return len(users)
 
 def get_geneset(geneset_id, user_id=None):
     """
@@ -369,3 +392,27 @@ def get_geneset_values(geneset_id):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+#meixiao: register a user here
+def register_user(user_first_name, user_last_name, user_email, user_password):
+        """
+        Insert a user to the db
+        :param user_first_name: the user's first name, if not provided use "Guest" as default
+        :param user_last_name:  the user's last name, if not provided use "User" as default
+        :param user_email:      the user's email address, if not provided use "" as default
+        :param user_password:   the user's password, if not provided use "" as default
+        """
+        with PooledCursor() as cursor:
+                password_md5 = md5(user_password).hexdigest()
+                cursor.execute(
+                        '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
+                        VALUES (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s)''',
+                        {
+                                'user_first_name': user_first_name,
+                                'user_last_name': user_last_name,
+                                'user_email': user_email,
+                                'user_password': password_md5
+                        }
+                )
+                cursor.connection.commit()
+                return
