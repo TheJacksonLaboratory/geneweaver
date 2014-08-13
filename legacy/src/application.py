@@ -182,18 +182,13 @@ def render_help():
     return flask.render_template('help.html')
 
 
-#meixiao: render the register page
 @app.route('/register.html', methods=['GET', 'POST'])
 def render_register():
-    print flask.request.json
-    print flask.request.form
     return flask.render_template('register.html')
 
 #meixiao: render home if register is successful
 @app.route('/register_result.html', methods=['GET', 'POST'])
 def json_register_successful():
-    print flask.request.json
-    print flask.request.form
     json_result=dict()
     user =_form_register()
     if user is None:

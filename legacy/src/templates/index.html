@@ -6,7 +6,6 @@
         A system for the integration of functional genomics experiments.
         <br/>
         You can <a href="signin.html">sign in</a>,
-        <!-- a href="signin.html" -->
         <a href="{{url_for('render_home')}}">create an account</a> if you don't yet have
         one, or continue to use GeneWeaver anonymously.
         <br/>
@@ -36,7 +35,7 @@
         </div>
     </a>
 
-    <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
+    <a class="link-panel" href="{{ url_for('render_analyze')|safe }}">
         <div class="col-md-3 link-panel" style="text-align: center;">
             <img src="{{ url_for('static', filename='images/analyze-and-discover.png')|safe }}"/>
             <br/>

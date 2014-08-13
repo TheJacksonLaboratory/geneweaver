@@ -18,23 +18,23 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
         return conn
 
 # the global threaded connection pool that should be used for all DB connections in this application
-# pool = GeneWeaverThreadedConnectionPool(
-#     5, 20,
-#     database='geneweaver',
-#     user='odeadmin',
-#     password='odeadmin',
-#     host='crick.ecs.baylor.edu',
-#     port=5432,
-# )
-
 pool = GeneWeaverThreadedConnectionPool(
-      5, 20,
-      database='ODE',
-      user='odeadmin',
-      password='odeadmin',
-      host='ode-db1.jax.org',
-      port=5432,
-  )
+    5, 20,
+    database='geneweaver',
+    user='odeadmin',
+    password='odeadmin',
+    host='crick.ecs.baylor.edu',
+    port=5432,
+)
+
+# pool = GeneWeaverThreadedConnectionPool(
+#      5, 20,
+#      database='ODE',
+#      user='odeadmin',
+#      password='odeadmin',
+#      host='ode-db1.jax.org',
+#      port=5432,
+#  )
 
 
 class PooledConnection(object):
