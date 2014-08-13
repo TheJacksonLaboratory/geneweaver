@@ -133,13 +133,12 @@ def _form_register():
 
     form = flask.request.form
     if 'usr_email' in form:
-        if geneweaverdb.get_user_byemail(form['usr_email']) == 1:
-            return 1
+        user = geneweaverdb.get_user_byemail(form['usr_email'])
+        if user is not None:
+            return None
         else:
-            user = geneweaverdb.register_user(form['usr_name'], 'User', form['usr_email'], form['usr_password'] )
-            return 0
-
-
+            user = geneweaverdb.register_user(form['usr_name'], 'User', form['usr_email'], form['usr_password'])
+            return user
 
 
 @app.route('/logout.json', methods=['GET', 'POST'])
@@ -191,16 +190,16 @@ def render_register():
     return flask.render_template('register.html')
 
 #meixiao: render home if register is successful
-@app.route('/register_successful.json', methods=['GET', 'POST'])
+@app.route('/register_result.html', methods=['GET', 'POST'])
 def json_register_successful():
     print flask.request.json
     print flask.request.form
     json_result=dict()
     user =_form_register()
-    if user is 1:
+    if user is None:
         return flask.render_template('register.html', register_not_successful = True)
     else:
-        return flask.render_template('index.html')
+        return flask.render_template('index.html', user = user)
 
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])

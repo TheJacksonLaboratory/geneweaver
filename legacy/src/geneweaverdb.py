@@ -334,8 +334,7 @@ def get_user_byemail(user_email):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email,))
         users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
-       # return users[0] if len(users) == 1 else None
-        return len(users)
+        return users[0] if len(users) == 1 else None
 
 
 #meixiao: register a user here
@@ -360,7 +359,7 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
                         }
                 )
                 cursor.connection.commit()
-                return
+                return get_user_byemail(user_email)
 
 
 def get_geneset(geneset_id, user_id=None):
