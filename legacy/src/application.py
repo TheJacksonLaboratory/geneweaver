@@ -194,7 +194,13 @@ def json_register_successful():
     if user is None:
         return flask.render_template('register.html', register_not_successful = True)
     else:
-        return flask.render_template('index.html', user = user)
+        flask.session['user_id'] = user.user_id
+        remote_addr = flask.request.remote_addr
+        if remote_addr:
+            flask.session['remote_addr'] = remote_addr
+
+    flask.g.user = user
+    return flask.render_template('index.html')
 
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
