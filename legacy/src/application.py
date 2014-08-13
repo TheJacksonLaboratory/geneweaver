@@ -187,7 +187,7 @@ def render_register():
     return flask.render_template('register.html')
 
 #meixiao: render home if register is successful
-@app.route('/register_result.html', methods=['GET', 'POST'])
+@app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
     json_result=dict()
     user =_form_register()
