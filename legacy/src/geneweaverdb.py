@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from hashlib import md5
+import json
 from psycopg2.pool import ThreadedConnectionPool
-
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
@@ -324,7 +324,6 @@ def get_user(user_id):
         return users[0] if len(users) == 1 else None
 
 
-#meixiao: get user by email. If it is already registered, we need to tell the user that this email is already used.
 def get_user_byemail(user_email):
     """
     Looks up a User in the database
@@ -337,7 +336,6 @@ def get_user_byemail(user_email):
         return users[0] if len(users) == 1 else None
 
 
-#meixiao: register a user here
 def register_user(user_first_name, user_last_name, user_email, user_password):
         """
         Insert a user to the db
@@ -418,13 +416,35 @@ def get_geneset_values(geneset_id):
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
+class ToolParam:
+    def __init__(self, tool_param_dict):
+        self.tool_classname = tool_param_dict['tool_classname']
+        self.name = tool_param_dict['tp_name']
+        self.description = tool_param_dict['tp_description']
+        self.default = tool_param_dict['tp_default']
+        self.options = json.loads(tool_param_dict['tp_options'])
+        self.select_type = tool_param_dict['tp_seltype']
+        self.is_visible = tool_param_dict['tp_visible']
+
+
 class ToolConfig:
     def __init__(self, tool_dict):
+        self.classname = tool_dict['tool_classname']
+        self.name = tool_dict['tool_name']
+        self.description = tool_dict['tool_description']
+        self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        self.is_active = tool_dict['tool_active'] == '1'
+        self.sort_priority = tool_dict['tool_sort']
         self.__params = None
 
     @property
     def params(self):
-        pass
+        if self.__params is None:
+            with PooledCursor() as cursor:
+                cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s;''', (self.classname,))
+            self.__params = [ToolParam(d) for d in dictify_cursor(cursor)]
+
+        return self.__params
 
 
 def get_tool(tool_classname):

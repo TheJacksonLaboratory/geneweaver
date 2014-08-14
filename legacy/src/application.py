@@ -5,19 +5,6 @@ import geneweaverdb
 app = flask.Flask(__name__)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 
-#meixiao: app.config['DEBUG']=true
-#meixiao: app.debug = true
-#meixiao: app.config['SECRET_KEY']='lkajfkdsjfiadfakfjdas'
-#meixiao: config is a dictionary object in flask. It has a lot of build-in values, such as
-#meixiao:   DEBUG, TESTING, SECRET_KEY, SESSION_COOKIE_NAME, SESSION_COOKIE_DOMAIN etc. Those values can be changes.
-#meixiao: We can have multiple configuration files. If we have an external config file called "config.py"
-#meixiao: We can use app.config.from_object('config') to read from that file
-
-#meixiao: Python tuple: tup=('physics', 'chemistry', 1997, 2000), tuple values cannot be changes
-#meixiao: Python list: list=['a', 'b', 'c', 'd']
-#meixiao: Python dictionary: dict={'Alice':'2341', 'Beth':'9012', 'Cecil':'3258'}
-#meixiao: Python dictionary is also associate arrays or hash tables.
-
 # TODO this key must be changed to something secret (ie. not committed to the repo).
 #      Comment out the print message when this is done
 print '==================================================='
@@ -29,9 +16,6 @@ print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
 
 # TODO the newsArray should probably be moved to a configuration file
-#meixiao: newsArray is an array, with tuples as its elements.
-#meixiao: If we want to move this news array into an external file, should we use a json file to hold all the news
-#meixiao: so the reading and parsing will be easier?
 newsArray = [
     (
         "2013: GeneWeaver user publication",
@@ -68,13 +52,9 @@ newsArray = [
         '''
     ),
 ]
+
 # the context processor will inject global variables for us so
 # that we can refer to them from our flask templates
-#meixiao: jinja2 and flask obvious share some global variables such as: config, request, session, g, url_for(), get_flashed_messages()
-#meixiao: To inject new variables automatically into the context of a template, context processors exist in Flask.
-#meixiao:  Context processors run before the template is rendered and have the ability to inject new values into the template context.
-#meixiao:  A context processor is a function that returns a dictionary.
-#meixiao:  The keys and values of this dictionary are then merged with the template context, for all templates in the app:
 @app.context_processor
 def inject_globals():
     # TODO you need to care about escaping
@@ -126,7 +106,6 @@ def _form_login():
     return user
 
 
-#meixiao: register the user
 def _form_register():
     user = None
     _logout(flask.session)
@@ -186,10 +165,9 @@ def render_help():
 def render_register():
     return flask.render_template('register.html')
 
-#meixiao: render home if register is successful
+# render home if register is successful
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
-    json_result=dict()
     user =_form_register()
     if user is None:
         return flask.render_template('register.html', register_not_successful = True)
