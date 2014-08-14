@@ -27,16 +27,6 @@ pool = GeneWeaverThreadedConnectionPool(
     port=5432,
     )
 
-# pool = GeneWeaverThreadedConnectionPool(
-#        5, 20,
-#        database='ODE',
-#        user='odeadmin',
-#        password='odeadmin',
-#        host='ode-db1.jax.org',
-#        port=5432,
-#    )
-
-
 class PooledConnection(object):
     """
     A pooled connection suitable for using in a with ... as ...: construct (the connection is automatically
