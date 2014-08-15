@@ -57,40 +57,47 @@ newsArray = [
 # that we can refer to them from our flask templates
 @app.context_processor
 def inject_globals():
-    # TODO you need to care about escaping
     global_map = {
         'newsArray': newsArray
     }
 
-    # lookup the current user
-    session = flask.session
-    user_id = session.get('user_id')
-    if user_id:
-        if flask.request.remote_addr == session.get('remote_addr'):
-            global_map['user'] = geneweaverdb.get_user(user_id)
-        else:
-            # if IP addresses don't match we're going to reset the session for
-            # a bit of extra safety
-            _logout(session)
-
     return global_map
 
 
-def _logout(session):
+@app.before_request
+def lookup_user_from_session():
+    # lookup the current user if the user_id is found in the session
+    user_id = flask.session.get('user_id')
+    if user_id:
+        if flask.request.remote_addr == flask.session.get('remote_addr'):
+            flask.g.user = geneweaverdb.get_user(user_id)
+        else:
+            # If IP addresses don't match we're going to reset the session for
+            # a bit of extra safety. Unfortunately this also means that we're
+            # forcing valid users to log in again when they change networks
+            _logout()
+
+
+def _logout():
     try:
-        del session['user_id']
+        del flask.session['user_id']
     except KeyError:
         pass
 
     try:
-        del session['remote_addr']
+        del flask.session['remote_addr']
     except KeyError:
+        pass
+
+    try:
+        del flask.g.user
+    except AttributeError:
         pass
 
 
 def _form_login():
     user = None
-    _logout(flask.session)
+    _logout()
 
     form = flask.request.form
     if 'usr_email' in form:
@@ -108,7 +115,7 @@ def _form_login():
 
 def _form_register():
     user = None
-    _logout(flask.session)
+    _logout()
 
     form = flask.request.form
     if 'usr_email' in form:
@@ -122,7 +129,7 @@ def _form_register():
 
 @app.route('/logout.json', methods=['GET', 'POST'])
 def json_logout():
-    _logout(flask.session)
+    _logout()
     return flask.jsonify({'success': True})
 
 
@@ -168,9 +175,9 @@ def render_register():
 # render home if register is successful
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
-    user =_form_register()
+    user = _form_register()
     if user is None:
-        return flask.render_template('register.html', register_not_successful = True)
+        return flask.render_template('register.html', register_not_successful=True)
     else:
         flask.session['user_id'] = user.user_id
         remote_addr = flask.request.remote_addr

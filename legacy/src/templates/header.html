@@ -154,7 +154,7 @@
             <div id="loginpanel" class="nospace">
                 <form id="loginform" name="loginform" class="navbar-form navbar-right" role="search" method="post">
                     <!-- this is the span that will be displayed when there is no user logged in -->
-                    <span id="anon-user-span"{% if user %} style="display: none"{% endif %}>
+                    <span id="anon-user-span"{% if "user" in g %} style="display: none"{% endif %}>
                         <div class="form-group">
                             <input id="usr_email" name="usr_email" type="text" class="form-control" placeholder="E-mail">
                             <input id="usr_password" name="usr_password" type="password" class="form-control" placeholder="password">
@@ -164,8 +164,8 @@
                     </span>
 
                     <!-- we show this span when there is a user logged in -->
-                    <span id="valid-user-span"{% if not user %} style="display: none"{% endif %}>
-                        Welcome <span id="user-name">{% if user %}{{ user.first_name|e }}{% endif %}</span>
+                    <span id="valid-user-span"{% if "user" not in g %} style="display: none"{% endif %}>
+                        Welcome <span id="user-name">{% if "user" in g %}{{ g.user.first_name|e }}{% endif %}</span>
                         <button type='button' id="logout-button" class="btn btn-default">Logout</button>
                     </span>
                 </form>
