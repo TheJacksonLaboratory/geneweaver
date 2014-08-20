@@ -33,11 +33,6 @@
                         <button type="submit" class="btn btn-default">Register</button>
                     </span>
 
-                    <!-- we show this span when there is a user logged in -->
-                    <span id="valid-user-span"{% if not user %} style="display: none"{% endif %}>
-                        Welcome <span id="user-name">{% if user %}{{ user.usr_first_name|e }}{% endif %}</span>
-                        <button type='button' id="logout-button" class="btn btn-default">Logout</button>
-                    </span>
                 </form>
             </div>
 </div>
