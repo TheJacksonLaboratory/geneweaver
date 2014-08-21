@@ -12,11 +12,16 @@
     <div class="col-md-4">
         <div class="page-header"><h2>Analysis Tools</h2></div>
         {% for curr_tool in active_tools %}
+
+            {% if curr_tool.name == "GeneSet Graph" %}
+                {% include 'tool/' + curr_tool.classname + '_options.html' %}
+            {% else %}
             Tool Name: {{ curr_tool.name|e }}<br/>
 
-            {% for curr_param in curr_tool.params %}
+            {% for curr_param_key, curr_param in curr_tool.params.iteritems() %}
                 Param Name: {{ curr_param.label_name }}<br/>
             {% endfor %}
+            {% endif %}
         {% endfor %}
     </div>
 

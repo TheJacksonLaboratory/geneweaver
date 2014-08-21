@@ -529,7 +529,7 @@ class ToolConfig:
             with PooledCursor() as cursor:
                 cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
                                (self.classname, ))
-            self.__params = [ToolParam(d) for d in dictify_cursor(cursor)]
+            self.__params = OrderedDict(((tp.name, tp) for tp in (ToolParam(d) for d in dictify_cursor(cursor))))
 
         return self.__params
 
@@ -543,6 +543,38 @@ def get_tool(tool_classname):
 
 
 def get_active_tools():
+    """
+    Get all tools that are marked active in the DB
+    :return: a list of active tools
+    """
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM tool WHERE tool_active='1' ORDER BY tool_sort;''')
         return [ToolConfig(tool_dict) for tool_dict in dictify_cursor(cursor)]
+
+
+def get_run_status(run_hash):
+    """
+    Finds the total number of runs queued up and the number queued up ahead of the give hash
+    :param run_hash: we're finding out the queue position of this run
+    :return: a tuple where the 1st element is the total number of runs queued and the
+             2nd is the number of runs queued ahead of run_hash
+    """
+
+    with PooledCursor() as cursor:
+        # finds the total number of runs waiting to run
+        cursor.execute('''SELECT count(*) FROM result WHERE res_started IS NULL;''')
+        total_queued = list(cursor)[0][0]
+
+        # finds the number of runs ahead of us that are waiting to run
+        cursor.execute(
+            '''
+            SELECT count(*)
+            FROM
+                result AS r1
+                CROSS JOIN
+                (SELECT * FROM result WHERE res_runhash=%(run_hash)s) as r2
+                WHERE r1.res_started IS NULL AND r1.res_created<r2.res_created;
+            ''')
+        before_queued = list(cursor)[0][0]
+
+        return total_queued, before_queued
