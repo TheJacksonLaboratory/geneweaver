@@ -223,3 +223,8 @@ def view_geneset(geneset_id):
     geneset = geneweaverdb.get_geneset(geneset_id, user_id)
 
     return flask.render_template('viewgeneset.html', geneset=geneset)
+
+
+@geneset_blueprint.route('/qproject-<int:project_id>-genesets.json')
+def project_genesets(project_id):
+    pass

@@ -3,6 +3,7 @@ from hashlib import md5
 import json
 from psycopg2.pool import ThreadedConnectionPool
 
+
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
     def __init__(self, minconn, maxconn, *args, **kwargs):
@@ -11,11 +12,13 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
     def _connect(self, key=None):
         """Create a new connection and set its search_path"""
         conn = super(GeneWeaverThreadedConnectionPool, self)._connect(key)
+        conn.set_client_encoding('UTF-8')
         cursor = conn.cursor()
         cursor.execute('SET search_path TO production, extsrc, odestatic;')
         conn.commit()
 
         return conn
+
 
 # the global threaded connection pool that should be used for all DB connections in this application
 pool = GeneWeaverThreadedConnectionPool(
@@ -25,7 +28,8 @@ pool = GeneWeaverThreadedConnectionPool(
     password='odeadmin',
     host='crick.ecs.baylor.edu',
     port=5432,
-    )
+)
+
 
 class PooledConnection(object):
     """
@@ -77,7 +81,10 @@ def _dictify_row(cursor, row):
     """Turns the given row into a dictionary where the keys are the column names"""
     d = OrderedDict()
     for i, col in enumerate(cursor.description):
-        d[col[0]] = row[i]
+        # TODO find out what the right way to do unicode for postgres is? Is UTF-8 the right encoding here?
+        # This prevents exceptions when non-ascii chars show up in a jinja2 template variable
+        # but I'm not sure if it's the correct solution
+        d[col[0]] = row[i].decode('utf-8') if type(row[i]) == str else row[i]
     return d
 
 
@@ -86,9 +93,75 @@ def dictify_cursor(cursor):
     return (_dictify_row(cursor, row) for row in cursor)
 
 
+class Project:
+    def __init__(self, proj_dict):
+        self.project_id = proj_dict['pj_id']
+        self.user_id = proj_dict['usr_id']
+        self.name = proj_dict['pj_name']
+
+        # TODO in the database this is column 'pj_groups'. The name suggests
+        #      that this field can contain multiple groups but it looks like
+        #      in practice (in the DB) it is always a single integer value. This is why
+        #      I name it singular "group_id" here, but this should be confirmed
+        #      by Erich
+        self.group_id = proj_dict['pj_groups']
+
+        # NOTE: for now I'm ignoring pj_sessionid since it can be dangerous
+        #       to let session IDs leak out and I assume it's not really useful
+        #       as a readable property (I'm thinking it's more useful as a
+        #       query param)
+        self.created = proj_dict['pj_created']
+        self.notes = proj_dict['pj_notes']
+
+        # depending on if/how the project table is joined the following may be available
+        self.count = proj_dict.get('count')
+        self.deprecated = proj_dict.get('deprecated')
+        self.group_name = proj_dict.get('group')
+
+    def get_genesets(self, auth_user_id):
+        return get_genesets_for_project(self.project_id, auth_user_id)
+
+
+def get_genesets_for_project(project_id, auth_user_id):
+    """
+    Get all genesets in the given project that the given user is authorized to read
+    :param project_id:      the project that we're looking up genesets for
+    :param auth_user_id:    the user that is authenticated (we need to ensure that the
+                            genesets are readable by the user)
+    :return:                A list of genesets in the project
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT *
+            FROM
+                (
+                    -- selects all genesets for the given project ID
+                    SELECT geneset.*
+                    FROM geneset INNER JOIN project2geneset
+                    ON geneset.gs_id=project2geneset.gs_id
+                    WHERE project2geneset.pj_id=%(project_id)s
+                ) AS gs
+                -- join with publications (there should be 1 or 0 per geneset so
+                -- this will not generate extra rows)
+                LEFT OUTER JOIN
+                publication ON gs.pub_id = publication.pub_id
+            WHERE
+                -- security check: make sure the authenticated user has the
+                -- right to view the geneset
+                geneset_is_readable(%(auth_user_id)s, gs.gs_id);
+            ''',
+            {
+                'project_id': project_id,
+                'auth_user_id': auth_user_id,
+            }
+        )
+        return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+
+
 def get_all_projects(usr_id):
     """
-    returns all projects associated with the given project ID
+    returns all projects associated with the given user ID
     """
     with PooledCursor() as cursor:
         cursor.execute(
@@ -116,7 +189,7 @@ def get_all_projects(usr_id):
             {'usr_id': usr_id}
         )
 
-        return list(cursor)
+        return [Project(d) for d in dictify_cursor(cursor)]
 
 
 def get_all_species():
@@ -187,6 +260,15 @@ class User:
         self.creation_date = usr_dict['usr_created']
         self.ip_addr = usr_dict['ip_addr']
 
+        self.__projects = None
+
+    @property
+    def projects(self):
+        if self.__projects is None:
+            self.__projects = get_all_projects(self.user_id)
+
+        return self.__projects
+
 
 class Publication:
     def __init__(self, pub_dict):
@@ -214,6 +296,7 @@ class Geneset:
         else:
             self.user = None
         self.file_id = gs_dict['file_id']
+        #self.name = gs_dict['gs_name'].decode('utf-8')
         self.name = gs_dict['gs_name']
         self.abbreviation = gs_dict['gs_abbreviation']
         self.pub_id = gs_dict['pub_id']
@@ -416,6 +499,19 @@ class ToolParam:
         self.select_type = tool_param_dict['tp_seltype']
         self.is_visible = tool_param_dict['tp_visible']
 
+    @property
+    def label_name(self):
+        """
+        The name from the DB is prefixed by the owning tool's classname. This property
+        strips that string off
+        :return: the label friendly name
+        """
+        prefix = self.tool_classname + '_'
+        if self.name.startswith(prefix):
+            return self.name[len(prefix):]
+        else:
+            return self.name
+
 
 class ToolConfig:
     def __init__(self, tool_dict):
@@ -431,7 +527,8 @@ class ToolConfig:
     def params(self):
         if self.__params is None:
             with PooledCursor() as cursor:
-                cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s;''', (self.classname,))
+                cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
+                               (self.classname, ))
             self.__params = [ToolParam(d) for d in dictify_cursor(cursor)]
 
         return self.__params

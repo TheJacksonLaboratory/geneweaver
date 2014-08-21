@@ -150,7 +150,8 @@ def json_login():
 
 @app.route('/analyze.html')
 def render_analyze():
-    return flask.render_template('analyze.html')
+    active_tools = geneweaverdb.get_active_tools()
+    return flask.render_template('analyze.html', active_tools=active_tools)
 
 
 @app.route('/search.html')
