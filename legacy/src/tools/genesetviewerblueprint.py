@@ -1,5 +1,7 @@
 import flask
-import toolcommon
+
+from tools import toolcommon
+
 
 geneset_viewer_blueprint = flask.Blueprint('GeneSetViewer', __name__)
 

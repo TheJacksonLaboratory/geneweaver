@@ -1,6 +1,7 @@
 
 geneset_html_id_prefix = "geneset_"
 
+
 def selected_geneset_ids(form):
     """
     this function takes a submitted form and extracts IDs for

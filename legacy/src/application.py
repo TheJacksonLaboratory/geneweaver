@@ -1,17 +1,16 @@
 import flask
+
 import genesetblueprint
 import geneweaverdb
-import genesetviewer
-import jaccardclustering
-import jaccardsimilarity
-import phenomemap
+from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint
+
 
 app = flask.Flask(__name__)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
-app.register_blueprint(genesetviewer.geneset_viewer_blueprint)
-app.register_blueprint(phenomemap.phenomemap_blueprint)
-app.register_blueprint(jaccardclustering.jaccardclustering_blueprint)
-app.register_blueprint(jaccardsimilarity.jaccardsimilarity_blueprint)
+app.register_blueprint(genesetviewerblueprint.geneset_viewer_blueprint)
+app.register_blueprint(phenomemapblueprint.phenomemap_blueprint)
+app.register_blueprint(jaccardclusteringblueprint.jaccardclustering_blueprint)
+app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 
 # TODO this key must be changed to something secret (ie. not committed to the repo).
 #      Comment out the print message when this is done
