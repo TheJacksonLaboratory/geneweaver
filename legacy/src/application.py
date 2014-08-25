@@ -1,16 +1,24 @@
 import flask
 import genesetblueprint
 import geneweaverdb
+import genesetviewer
+import jaccardclustering
+import jaccardsimilarity
+import phenomemap
 
 app = flask.Flask(__name__)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
+app.register_blueprint(genesetviewer.geneset_viewer_blueprint)
+app.register_blueprint(phenomemap.phenomemap_blueprint)
+app.register_blueprint(jaccardclustering.jaccardclustering_blueprint)
+app.register_blueprint(jaccardsimilarity.jaccardsimilarity_blueprint)
 
 # TODO this key must be changed to something secret (ie. not committed to the repo).
 #      Comment out the print message when this is done
 print '==================================================='
-print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST'
-print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE'
-print '"How to generate good secret keys" AT'
+print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
+print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
+print '"How to generate good secret keys" AT              '
 print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
 print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
@@ -52,6 +60,7 @@ newsArray = [
         '''
     ),
 ]
+
 
 # the context processor will inject global variables for us so
 # that we can refer to them from our flask templates

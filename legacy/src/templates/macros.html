@@ -1,35 +1,15 @@
-{% macro show_project_options() %}
-    {% set all_projs = get_all_projects(usr_id) %}
-    {% if len(all_projs) > 10 %}
-        <option value="-2"> - Create New Project...</option>
-    {% endif %}
-    {% for row in all_projs %}
-        <option value="{{ row['pj_name'] }}">{{ row['pj_name'] }} ({{ row['count'] }})</option>;
-    {% endfor %}
-{% endmacro %}
-
-{% macro project_selector(title='Add Selected to Project...', container=None) %}
-    <div id="projectAJAXDiv">
-    <select name="addToProject" onchange="return ODE.add_to_project(this{% if container %}, '{{ container }}'{% endif %});">
-    <option value="-1">{{ title }}</option>
-    {{ show_project_options() }}
-    </select></div>
-{% endmacro %}
-
-{% macro page_selector(page=1, pages) %}
-    <span name="page_selector" style="float: right">
-    Page:
-    </span>
-{% endmacro %}
 
 {#
-    html_options will take an options argument that takes a recursive list of pairs. For the non-recursive elements
-    of the list an HTML option value will be created where the first value in the pair is the option value and the
-    second value is the option text. For recursive elements an HTML optgroup will be created where the first value
-    of the pair is the optgroup's label and the second is the recursive list structure which will be rendered
-    as nested options/optgroups
+    nested_html_options renders a nested options list based on the given options argument
+
+    The options argument must be a recursive list of pairs.
+    For the non-recursive elements of the list an HTML option value will be created where
+    the first value in the pair is the option value and the second value is the option
+    text. For recursive elements an HTML optgroup will be created where the first value
+    of the pair is the optgroup's label and the second is the recursive list structure
+    which will be renderedas nested options/optgroups
 #}
-{% macro html_options(options) %}
+{% macro nested_html_options(options) %}
     {% for curr_key, curr_val in options recursive %}
         {% if curr_val is iterable and curr_val is not string %}
             <optgroup label="{{ curr_key }}">
@@ -39,4 +19,49 @@
             <option value="{{ curr_key }}">{{ curr_val }}</option>
         {% endif %}
     {% endfor %}
+{% endmacro %}
+
+{% macro tool_param_select(tool_param) %}
+    <div class="form-group">
+        <label for="{{ tool_param.name|e }}" class="col-md-6 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-6">
+            <select
+                    class="form-control tooltip-enabled"
+                    id="{{ tool_param.name|e }}"
+                    name="{{ tool_param.name|e }}"
+                    title="{{ tool_param.description|e }}">
+            {% for opt in tool_param.options %}
+                <option label="{{ opt|e }}" value="{{ opt|e }}"{% if opt == tool_param.default %} selected="selected"{% endif %}>{{ opt|e }}</option>
+            {% endfor %}
+            </select>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro tool_param_radio(tool_param) %}
+    <div class="form-group">
+        <label for="{{ tool_param.name|e }}" class="col-md-6 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-6">
+            {% for opt in tool_param.options %}
+                <div class="radio">
+                    <label>
+                        <input
+                                type="radio"
+                                name="{{ tool_param.name|e }}"
+                                id="{{ tool_param.name|e }}_{{ loop.index }}"
+                                value="{{ opt|e }}"
+                                {% if opt == tool_param.default %}  checked{% endif %}>
+                        {{ opt|e }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro tool_run_button(tool) %}
+    <input
+        type='submit'
+        value='Run'
+        onclick='this.form.action="{{ url_for(tool.classname + '.run_tool') }}";'/>
 {% endmacro %}
