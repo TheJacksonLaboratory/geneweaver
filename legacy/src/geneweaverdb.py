@@ -513,6 +513,25 @@ class ToolParam:
             return self.name
 
 
+def get_tool_params(tool_classname, only_visible=False):
+    """
+    Get tool parameters for the tool with the given classname
+    :param tool_classname: identifies the tool that we're getting params for
+    :param only_visible: if True only return parameters marked visible
+    :return: the list of ToolParams
+    """
+    with PooledCursor() as cursor:
+        if only_visible:
+            cursor.execute(
+                '''SELECT * FROM tool_param WHERE tool_classname=%s AND tp_visible ORDER BY tp_name;''',
+                (tool_classname,))
+        else:
+            cursor.execute(
+                '''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
+                (tool_classname,))
+        return [ToolParam(d) for d in dictify_cursor(cursor)]
+
+
 class ToolConfig:
     def __init__(self, tool_dict):
         self.classname = tool_dict['tool_classname']
@@ -526,10 +545,7 @@ class ToolConfig:
     @property
     def params(self):
         if self.__params is None:
-            with PooledCursor() as cursor:
-                cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
-                               (self.classname, ))
-            self.__params = OrderedDict(((tp.name, tp) for tp in (ToolParam(d) for d in dictify_cursor(cursor))))
+            self.__params = OrderedDict(((tp.name, tp) for tp in get_tool_params(self.classname)))
 
         return self.__params
 
@@ -578,3 +594,19 @@ def get_run_status(run_hash):
         before_queued = list(cursor)[0][0]
 
         return total_queued, before_queued
+
+
+def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, now())
+            RETURNING res_id;
+            ''',
+            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
+        )
+        cursor.connection.commit()
+
+        # return the primary ID for the insert that we just performed
+        return cursor.fetchone()[0]
