@@ -1,4 +1,5 @@
 from celery import Celery
+import flask
 
 BROKER_URL = 'amqp://guest@localhost//'
 CELERY_RESULT_BACKEND = 'db+sqlite:////Users/kss/projects/GeneWeaver/results.db'
@@ -43,3 +44,10 @@ def fully_qualified_name(tool_class_name):
     :return: the fully qualified name
     """
     return 'tools.' + tool_class_name + '.' + tool_class_name
+
+
+def render_tool_pending(async_result, tool):
+    return flask.render_template(
+        'tool/toolstatus.html',
+        async_result=async_result,
+        tool=tool)

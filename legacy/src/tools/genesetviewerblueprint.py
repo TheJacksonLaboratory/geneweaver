@@ -1,3 +1,4 @@
+import celery.states as states
 import flask
 import json
 import uuid
@@ -11,6 +12,8 @@ geneset_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
 @geneset_viewer_blueprint.route('/run-geneset-viewer.html', methods=['POST'])
 def run_tool():
+    # TODO need to check for read permissions on genesets
+
     form = flask.request.form
 
     # pull out the selected geneset IDs
@@ -40,18 +43,18 @@ def run_tool():
         raise Exception('internal error: user ID missing')
 
     task_id = str(uuid.uuid4())
-    tool_name = gwdb.get_tool(TOOL_CLASSNAME).name
-    desc = '{} on {} GeneSets'.format(tool_name, len(selected_geneset_ids))
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
     gwdb.insert_result(
         user_id,
         task_id,
         selected_geneset_ids,
         json.dumps(params),
-        tool_name,
+        tool.name,
         desc,
         desc)
 
-    tc.celery_app.send_task(
+    async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
             'gsids': selected_geneset_ids,
@@ -60,5 +63,42 @@ def run_tool():
         },
         task_id=task_id)
 
-    #TODO redirect using task_id
-    return "hi world"
+    # render the status page and perform a 303 redirect to the
+    # URL that uniquely identifies this run
+    new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
+    response = flask.make_response(tc.render_tool_pending(async_result, tool))
+    response.status_code = 303
+    response.headers['location'] = new_location
+
+    return response
+
+
+@geneset_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
+def view_result(task_id):
+    # TODO need to check for read permissions on task
+    async_result = tc.celery_app.AsyncResult(task_id)
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+
+    if async_result.state in states.PROPAGATE_STATES:
+        # TODO render a real descriptive error page not just an exception
+        raise Exception('error while processing: ' + tool.name)
+    elif async_result.state in states.READY_STATES:
+        # results are ready. render the page for the user
+        return flask.render_template(
+            'tool/GeneSetViewer_result.html',
+            async_result=async_result,
+            tool=tool)
+    else:
+        # render a page telling their results are pending
+        return tc.render_tool_pending(async_result, tool)
+
+
+@geneset_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+def status_json(task_id):
+    # TODO need to check for read permissions on task
+    async_result = tc.celery_app.AsyncResult(task_id)
+
+    return flask.jsonify({
+        'isReady': async_result.state in states.READY_STATES,
+        'state': async_result.state,
+    })
