@@ -60,6 +60,17 @@ session cookie for a user ID which will then be used to extract a user object
 from the database. This user object is then added to `flask.g` which is visible
 to jinja2 templates.
 
+NOTE: because `lookup_user_from_session` is annotated with `@app.before_request`
+the user lookup will happen for all requests, even static resources, when
+GeneWeaver is deployed as a simple wsgi application. In a production version
+this needs to be resolved. Possible solutions:
+
+* have apache handle any static requests before they hit the wsgi application
+* have `lookup_user_from_session` check whether a request's URL is for a static
+  resource before looking up the user
+* find out if flask has some other built in mechanism for doing something
+  similar to `@app.before_request` but allows us to filter out static requests.
+
 ## Blueprints
 
 Flask provides blueprints as a mechanism for creating modules within a flask
