@@ -93,7 +93,7 @@ def view_result(task_id):
         return tc.render_tool_pending(async_result, tool)
 
 
-@geneset_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+@jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
