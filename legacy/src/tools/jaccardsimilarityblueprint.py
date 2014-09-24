@@ -6,7 +6,8 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 
-jaccardsimilarity_blueprint = flask.Blueprint('JaccardSimilarity', __name__)
+TOOL_CLASSNAME = 'JaccardSimilarity'
+jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
 @jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html')
 def run_tool():
