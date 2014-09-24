@@ -1,1 +1,7 @@
 {# TODO fill in tool template for JaccardSimilarity. See GeneSetViewer_options for an example tool template #}
+{% import 'macros.html' as macros %}
+
+<div class="form-group">{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
+<div class="form-group">{{ macros.tool_param_select(tool.params['GeneSetViewer_MinDegree']) }}</div>
+<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_SupressDisconnected']) }}</div>
+<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
