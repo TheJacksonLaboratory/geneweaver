@@ -85,7 +85,7 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/GeneSetViewer_result.html',
+            'tool/JaccardSimilarity_result.html',
             async_result=async_result,
             tool=tool)
     else:
