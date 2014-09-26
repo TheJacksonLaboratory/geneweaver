@@ -23,7 +23,8 @@ print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
 
 
-RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
+#RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
+RESULTS_PATH = '/var/www/html/geneweaver/results'
 
 
 @app.route('/results/<path:filename>')

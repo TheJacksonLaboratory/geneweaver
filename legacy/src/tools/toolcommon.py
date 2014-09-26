@@ -2,7 +2,8 @@ from celery import Celery
 import flask
 
 BROKER_URL = 'amqp://guest@localhost//'
-CELERY_RESULT_BACKEND = 'db+sqlite:////Users/kss/projects/GeneWeaver/results.db'
+CELERY_RESULT_BACKEND = 'amqp'
+#CELERY_RESULT_BACKEND = 'db+postgres://odeadmin:odeadmin@crick.ecs.baylor.edu/celery'
 
 celery_app = Celery(
     'geneweaver.tools',
