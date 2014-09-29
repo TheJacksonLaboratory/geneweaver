@@ -1,5 +1,5 @@
 import flask
-
+from flask.ext import restful
 import genesetblueprint
 import geneweaverdb
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint
@@ -24,7 +24,7 @@ app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5
 
 
 #RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
-RESULTS_PATH = '/var/www/html/geneweaver/results'
+RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
 
 @app.route('/results/<path:filename>')
@@ -210,6 +210,23 @@ def json_register_successful():
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
     return flask.render_template('index.html')
+
+#********************************************
+#START API BLOCK
+#********************************************
+
+api = restful.Api(app)
+
+class GetGenesetsByGeneId(restful.Resource):
+    def get(self, geneid):
+        return geneweaverdb.get_genesets_by_gene_id(geneid, False)
+class GetGenesetsByGeneIdHomology(restful.Resource):
+    def get(self, geneid):
+        return geneweaverdb.get_genesets_by_gene_id(geneid, True)
+
+api.add_resource(GetGenesetsByGeneId, '/api/getgenesetbygeneid/<geneid>/')
+api.add_resource(GetGenesetsByGeneIdHomology, '/api/getgenesetbygeneid/<geneid>/homology')
+
 
 if __name__ == '__main__':
     app.debug = True

@@ -5,9 +5,12 @@ from psycopg2.pool import ThreadedConnectionPool
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
+
     """Extend ThreadedConnectionPool to initialize the search_path"""
+
     def __init__(self, minconn, maxconn, *args, **kwargs):
-        ThreadedConnectionPool.__init__(self, minconn, maxconn, *args, **kwargs)
+        ThreadedConnectionPool.__init__(
+            self, minconn, maxconn, *args, **kwargs)
 
     def _connect(self, key=None):
         """Create a new connection and set its search_path"""
@@ -20,7 +23,8 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
         return conn
 
 
-# the global threaded connection pool that should be used for all DB connections in this application
+# the global threaded connection pool that should be used for all DB
+# connections in this application
 pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database='geneweaver',
@@ -32,6 +36,7 @@ pool = GeneWeaverThreadedConnectionPool(
 
 
 class PooledConnection(object):
+
     """
     A pooled connection suitable for using in a with ... as ...: construct (the connection is automatically
     returned to the pool at the end of the with block)
@@ -55,6 +60,7 @@ class PooledConnection(object):
 
 
 class PooledCursor(object):
+
     """
     A cursor obtained from a connection pool. This is suitable for using in a with ... as ...: construct (the
     underlying connection will be automatically returned to the connection pool
@@ -94,6 +100,7 @@ def dictify_cursor(cursor):
 
 
 class Project:
+
     def __init__(self, proj_dict):
         self.project_id = proj_dict['pj_id']
         self.user_id = proj_dict['usr_id']
@@ -113,7 +120,8 @@ class Project:
         self.created = proj_dict['pj_created']
         self.notes = proj_dict['pj_notes']
 
-        # depending on if/how the project table is joined the following may be available
+        # depending on if/how the project table is joined the following may be
+        # available
         self.count = proj_dict.get('count')
         self.deprecated = proj_dict.get('deprecated')
         self.group_name = proj_dict.get('group')
@@ -197,7 +205,8 @@ def get_all_species():
     returns an ordered mapping from species ID to species name for all available species
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT sp_id, sp_name FROM species ORDER BY sp_id;''')
+        cursor.execute(
+            '''SELECT sp_id, sp_name FROM species ORDER BY sp_id;''')
         return OrderedDict(cursor)
 
 
@@ -246,6 +255,7 @@ def get_microarray_types(sp_id=0):
 
 
 class User:
+
     def __init__(self, usr_dict):
         self.user_id = usr_dict['usr_id']
         self.first_name = usr_dict['usr_first_name']
@@ -271,6 +281,7 @@ class User:
 
 
 class Publication:
+
     def __init__(self, pub_dict):
         self.pub_id = pub_dict['pub_id']
         self.authors = pub_dict['pub_authors']
@@ -285,6 +296,7 @@ class Publication:
 
 
 class Geneset:
+
     def __init__(self, gs_dict):
         self.geneset_id = gs_dict['gs_id']
         self.user_id = gs_dict['usr_id']
@@ -321,7 +333,8 @@ class Geneset:
         self.uri = gs_dict['gs_uri']
         self.gene_id_type = gs_dict['gs_gene_id_type']
         self.creation_date = gs_dict['gs_created']
-        # TODO document how admin flag works. Is it similar to usr_admin in the user table?
+        # TODO document how admin flag works. Is it similar to usr_admin in the
+        # user table?
         self.admin_flag = gs_dict['admin_flag']
         self.updated_date = gs_dict['gs_updated']
         # TODO document how status works
@@ -337,7 +350,8 @@ class Geneset:
     @property
     def ontological_associations(self):
         if self.__ontological_associations is None:
-            self.__ontological_associations = get_ontologies_for_geneset(self.geneset)
+            self.__ontological_associations = get_ontologies_for_geneset(
+                self.geneset)
         return self.__ontological_associations
 
     @property
@@ -348,6 +362,7 @@ class Geneset:
 
 
 class Ontology:
+
     def __init__(self, ont_dict):
         self.ontology_id = ont_dict['ont_id']
         self.reference_id = ont_dict['ont_ref_id']
@@ -404,7 +419,8 @@ def get_user_byemail(user_email):
     :return: the User matching the given email or None if no such user is found
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email,))
+        cursor.execute(
+            '''SELECT * FROM usr WHERE usr_email=%s''', (user_email,))
         users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
         return users[0] if len(users) == 1 else None
 
@@ -420,14 +436,14 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
         with PooledCursor() as cursor:
                 password_md5 = md5(user_password).hexdigest()
                 cursor.execute(
-                        '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
+                    '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
                         VALUES (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s)''',
-                        {
-                                'user_first_name': user_first_name,
-                                'user_last_name': user_last_name,
-                                'user_email': user_email,
-                                'user_password': password_md5
-                        }
+                    {
+                    'user_first_name': user_first_name,
+                    'user_last_name': user_last_name,
+                    'user_email': user_email,
+                    'user_password': password_md5
+                    }
                 )
                 cursor.connection.commit()
                 return get_user_byemail(user_email)
@@ -443,7 +459,8 @@ def get_geneset(geneset_id, user_id=None):
                         user has read permission, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The
+    # geneset_is_readable function may be able to handle None
     if user_id is None:
         user_id = -1
 
@@ -472,6 +489,7 @@ def get_ontologies_for_geneset(geneset_id):
 
 
 class GenesetValue:
+
     def __init__(self, gsv_dict):
         self.gs_id = gsv_dict['gs_id']
         self.ode_gene_id = gsv_dict['ode_gene_id']
@@ -485,11 +503,13 @@ class GenesetValue:
 
 def get_geneset_values(geneset_id):
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
+        cursor.execute(
+            '''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
 class ToolParam:
+
     def __init__(self, tool_param_dict):
         self.tool_classname = tool_param_dict['tool_classname']
         self.name = tool_param_dict['tp_name']
@@ -533,11 +553,13 @@ def get_tool_params(tool_classname, only_visible=False):
 
 
 class ToolConfig:
+
     def __init__(self, tool_dict):
         self.classname = tool_dict['tool_classname']
         self.name = tool_dict['tool_name']
         self.description = tool_dict['tool_description']
-        self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        self.requirements = [x.strip()
+                             for x in tool_dict['tool_requirements'].split(',')]
         self.is_active = tool_dict['tool_active'] == '1'
         self.sort_priority = tool_dict['tool_sort']
         self.__params = None
@@ -545,14 +567,16 @@ class ToolConfig:
     @property
     def params(self):
         if self.__params is None:
-            self.__params = OrderedDict(((tp.name, tp) for tp in get_tool_params(self.classname)))
+            self.__params = OrderedDict(((tp.name, tp)
+                                        for tp in get_tool_params(self.classname)))
 
         return self.__params
 
 
 def get_tool(tool_classname):
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM tool WHERE tool_classname=%s;''', (tool_classname,))
+        cursor.execute(
+            '''SELECT * FROM tool WHERE tool_classname=%s;''', (tool_classname,))
         tools = [ToolConfig(tool_dict) for tool_dict in dictify_cursor(cursor)]
 
         return tools[0] if len(tools) == 1 else None
@@ -564,7 +588,8 @@ def get_active_tools():
     :return: a list of active tools
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM tool WHERE tool_active='1' ORDER BY tool_sort;''')
+        cursor.execute(
+            '''SELECT * FROM tool WHERE tool_active='1' ORDER BY tool_sort;''')
         return [ToolConfig(tool_dict) for tool_dict in dictify_cursor(cursor)]
 
 
@@ -578,7 +603,8 @@ def get_run_status(run_hash):
 
     with PooledCursor() as cursor:
         # finds the total number of runs waiting to run
-        cursor.execute('''SELECT count(*) FROM result WHERE res_started IS NULL;''')
+        cursor.execute(
+            '''SELECT count(*) FROM result WHERE res_started IS NULL;''')
         total_queued = list(cursor)[0][0]
 
         # finds the number of runs ahead of us that are waiting to run
@@ -604,9 +630,38 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
             VALUES (%s, %s, %s, %s, %s, %s, %s, now())
             RETURNING res_id;
             ''',
-            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
+            (usr_id, res_runhash, ','.join(gs_ids),
+             res_data, res_tool, res_description, res_status)
         )
         cursor.connection.commit()
 
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
+
+# sample api call. returns all users
+
+
+def get_genesets_by_gene_id(gene_id, homology):
+    """
+    Get all genesets for a specific gene_id
+    :return: the User matching the given ID or None if no such user is found
+    """
+    if not homology:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT row_to_json(row, true) 
+                    FROM (  SELECT geneset.*, geneset_value.*
+                            FROM production.geneset, extsrc.geneset_value 
+                            where geneset_value.ode_gene_id = %s 
+                            and geneset_value.gs_id = geneset.gs_id) row; ''', (gene_id,))
+    else:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT row_to_json(row, true) 
+                    FROM (  SELECT geneset.*, homology.*, geneset_value.* 
+                            FROM production.geneset, extsrc.geneset_value, extsrc.homology 
+                            where homology.ode_gene_id = %s
+                            and homology.ode_gene_id = geneset_value.ode_gene_id 
+                            and geneset_value.gs_id = geneset.gs_id) row; ''', (gene_id,))
+
+    return cursor.fetchall()
