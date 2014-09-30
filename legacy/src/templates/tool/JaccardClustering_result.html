@@ -1,0 +1,19 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.htmml' as macros %}
+
+<div class="page-header">
+	<h1>{{ title }}</h1>
+</div>
+
+<div class="row">
+	<div class="col-md-12 link panel" style="test-align: center;">
+		<iframe style="width:90%; height:95%; min-height:550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.svg') }}"></iframe>
+		<br />
+		<a href="{{ url_for('static_results', filename=async_result.task_id + '.pdf') }}">Export Jaccard Clustering Graph as PDF</a>
+		-
+		<a target="_blank" href="{{ url_for('static_results', filename=async_result.task_id + '.svg') }}">Open in new window</a>
+	</div>
+</div>
+
+{% include 'footer.html' %}
