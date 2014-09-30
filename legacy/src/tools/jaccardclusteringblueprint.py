@@ -9,7 +9,7 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'JaccardClustering'
 jaccardclustering_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@jaccardclustering_blueprint.route('/run-jaccard-clustering.html', methods=['POST'])
+@jaccardclustering_blueprint.route('/JaccardClustering.html', methods=['POST'])
 def run_tool():
 
      # TODO need to check for read permissions on genesets
@@ -84,7 +84,7 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/run-jaccard-clustering_result.html',
+            'tool/JaccardClustering_result.html',
             async_result=async_result,
             tool=tool)
     else:
