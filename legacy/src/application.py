@@ -24,11 +24,7 @@ app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5
 
 
 #RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
-<<<<<<< HEAD
-RESULTS_PATH = '/var/www/html/geneweaver/results'
-=======
 RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
->>>>>>> 5347d99eccb0bfd7affa91be3f2a8c1fead4cda3
 
 
 @app.route('/results/<path:filename>')
