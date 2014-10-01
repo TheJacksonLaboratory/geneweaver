@@ -223,11 +223,17 @@ class GetGenesetsByGeneId(restful.Resource):
 class GetGenesetsByGeneIdHomology(restful.Resource):
     def get(self, geneid):
         return geneweaverdb.get_genesets_by_gene_id(geneid, True)
+class GetGeneByGeneId(restful.Resource):
+    def get(self, geneid):
+        return geneweaverdb.get_gene_by_id(geneid)
+class GetGenesetById(restful.Resource):
+    def get(self, genesetid):
+        return geneweaverdb.get_geneset_by_id(genesetid)
 
 api.add_resource(GetGenesetsByGeneId, '/api/getgenesetbygeneid/<geneid>/')
 api.add_resource(GetGenesetsByGeneIdHomology, '/api/getgenesetbygeneid/<geneid>/homology')
-
-
+api.add_resource(GetGeneByGeneId, '/api/getgenebygeneid/<geneid>/')
+api.add_resource(GetGenesetById, '/api/getgenesetbyid/<genesetid>/')
 if __name__ == '__main__':
     app.debug = True
     app.run()

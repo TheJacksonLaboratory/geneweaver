@@ -644,7 +644,7 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
 def get_genesets_by_gene_id(gene_id, homology):
     """
     Get all genesets for a specific gene_id
-    :return: the User matching the given ID or None if no such user is found
+    :return: the geneset into matching the given ID or None if no such gene is found
     """
     if not homology:
         with PooledCursor() as cursor:
@@ -663,5 +663,37 @@ def get_genesets_by_gene_id(gene_id, homology):
                             where homology.ode_gene_id = %s
                             and homology.ode_gene_id = geneset_value.ode_gene_id 
                             and geneset_value.gs_id = geneset.gs_id) row; ''', (gene_id,))
+
+    return cursor.fetchall()
+
+
+def get_gene_by_id(gene_id):
+    """
+    Get all gene info for a specific gene_id
+    :return: the gene matching the given ID or None if no such gene is found
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT row_to_json(row, true) 
+                FROM (  SELECT * 
+                        FROM extsrc.gene_info 
+                        where ode_gene_id = %s) row; ''', (gene_id,))
+
+    return cursor.fetchall()
+
+
+def get_geneset_by_id(geneset_id):
+    """
+    Get all gene info for a specifics gene_id
+    :return: the gene matching the given ID or None if no such gene is found
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT row_to_json(row, true) 
+                FROM (  SELECT * 
+                        FROM extsrc.geneset_value 
+                        where gs_id = %s) row; ''', (geneset_id,))
 
     return cursor.fetchall()
