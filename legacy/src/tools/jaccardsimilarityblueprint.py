@@ -52,7 +52,6 @@ def run_tool():
         tool.name,
         desc,
         desc)
-    print "about to send task"
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
@@ -83,7 +82,6 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
-	print "About to render"
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
             async_result=async_result,
