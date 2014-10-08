@@ -231,18 +231,21 @@ def json_register_successful():
 def render_home():
     return flask.render_template('index.html')
 
-#********************************************
-#START API BLOCK
-#********************************************
+# ********************************************
+# START API BLOCK
+# ********************************************
 
 api = restful.Api(app)
 
-class GetGenesetsByGeneId(restful.Resource):
-    def get(self, geneid):
-        return geneweaverdb.get_genesets_by_gene_id(geneid, False)
-class GetGenesetsByGeneIdHomology(restful.Resource):
-    def get(self, geneid):
-        return geneweaverdb.get_genesets_by_gene_id(geneid, True)
+class GetGenesetsByGeneRefId(restful.Resource):
+    def get(self, gene_ref_id, gdb_name):
+        return geneweaverdb.get_genesets_by_gene_id(gene_ref_id, gdb_name, False)
+class GetGenesetsByGeneRefIdHomology(restful.Resource):
+    def get(self, gene_ref_id, gdb_name):
+        return geneweaverdb.get_genesets_by_gene_id(gene_ref_id, gdb_name, True)
+class GetGenesByGenesetId(restful.Resource):
+    def get(self, genesetid):
+        return geneweaverdb.get_geneset_by_id(genesetid)
 class GetGeneByGeneId(restful.Resource):
     def get(self, geneid):
         return geneweaverdb.get_gene_by_id(geneid)
@@ -250,8 +253,9 @@ class GetGenesetById(restful.Resource):
     def get(self, genesetid):
         return geneweaverdb.get_geneset_by_id(genesetid)
 
-api.add_resource(GetGenesetsByGeneId, '/api/getgenesetbygeneid/<geneid>/')
-api.add_resource(GetGenesetsByGeneIdHomology, '/api/getgenesetbygeneid/<geneid>/homology')
+api.add_resource(GetGenesetsByGeneRefId, '/api/getgenesetbygenerefid/<gene_ref_id>/<gdb_name>/')
+api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/getgenesetbygenerefid/<gene_ref_id>/<gdb_name>/homology')
+api.add_resource(GetGenesByGenesetId, '/api/getgenesbygenesetid/<genesetid>/')
 api.add_resource(GetGeneByGeneId, '/api/getgenebygeneid/<geneid>/')
 api.add_resource(GetGenesetById, '/api/getgenesetbyid/<genesetid>/')
 if __name__ == '__main__':
