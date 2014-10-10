@@ -1,0 +1,40 @@
+
+
+<script type="text/javascript" src="code.jquery.com/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="cdn.datatables.net/1.10.2/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="cdn.datatables.net/plug-ins/a5734b29083/integration/bootstrap/3/dataTables.bootstrap.js"></script>
+
+
+<link rel="stylesheet" href="maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="cdn.datatables.net/plug-ins/a5734b29083/integration/bootstrap/3/dataTables.bootstrap.css">
+
+
+ <script>
+    $(document).ready(function() {
+         $('#adminUserViewer').dataTable();
+    });
+</script>
+
+
+<div class="table-responsive">
+  <h5 align=left>Sample Users</h5>
+  <table id="adminUserViewer" style="2" class="table table-striped table-bordered" table border="3">  
+    <thead>
+      <tr>
+        <th style="text-align:left">User Id</th>
+        <th style="text-align: left">User Email</th>
+        <th style="text-align: left">Username</th>
+      </tr>	
+    </thead>
+    <tbody>
+       {% for usr in Users %}
+        <tr class="active"> 	
+	    <td>{{usr.usr_id}}</td>  
+	    <td>{{usr.usr_email}}</td> 
+	    <td>{{usr.usr_first_name}}</td>  
+<!-- style="width:100px"-->     
+        </tr >
+      {% endfor %}
+  </tbody>
+  </table>
+</div>
