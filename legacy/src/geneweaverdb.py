@@ -638,6 +638,12 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
 
+def get_all_userids():
+    with PooledCursor() as cursor:
+        cursor.execute(
+             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
+    return list(dictify_cursor(cursor))
+    
 # sample api call. returns all users
 
 
