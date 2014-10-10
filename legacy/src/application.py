@@ -185,6 +185,10 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/editgenesets.html')
+def render_editgenesets():
+    return flask.render_template('editgenesets.html')
+
 
 @app.route('/search.html')
 def render_search():
