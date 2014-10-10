@@ -40,6 +40,9 @@ class Viewers(Authentication, BaseView):
 	elif self.endpoint == 'viewProjects':
 	    genesets = geneweaverdb.get_all_genesets()
             return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	elif self.endpoint == 'viewGenes':
+	    genesets = geneweaverdb.get_all_genesets()
+            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
  	else:
 	    return self.render('admin/adminindex.html')
 

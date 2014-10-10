@@ -1,6 +1,5 @@
 from flask import Flask
 from flask.ext.admin import Admin, BaseView, expose, AdminIndexView
-from flask.ext.admin.contrib.sqla import ModelView
 import geneweaverdb
 import flask
 

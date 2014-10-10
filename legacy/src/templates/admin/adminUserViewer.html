@@ -1,20 +1,29 @@
-{% extends 'admin/model/list.html' %}
+{% extends 'admin/master.html' %}
 
 {% block body %}
 
-<script type="text/javascript" src="cdn.datatables.net/plug-ins/a5734b29083/integration/bootstrap/3/dataTables.bootstrap.js"></script>
-<link rel="stylesheet" href="cdn.datatables.net/plug-ins/a5734b29083/integration/bootstrap/3/dataTables.bootstrap.css" />
-<link rel="stylesheet" href="http://cdn.datatables.net/1.10.2/css/jquery.dataTables.min.css" />
-<script type="text/javascript" src="http://cdn.datatables.net/1.10.2/js/jquery.dataTables.min.js"></script>
 
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
- <script>
+<!--
+<link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.1.1-dist/css/bootstrap.min.css') }}">
+<script src="{{ url_for('static', filename='bootstrap-3.1.1-dist/js/bootstrap.min.js') }}"></script> -->
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery.dataTables.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}">
+
+	
+<script>
     $(document).ready(function() {
          $('#adminUserViewer').dataTable();
     });
 </script>
 
 <h3 align=left>Users</h3>
+
 
 <div class="btn-group">
   <button type="button" class="btn btn-default">Add New User</button>
@@ -31,7 +40,7 @@
       </tr>	
     </thead>
     <tbody>
-       {% for usr in the_users %}
+        {% for usr in the_users %}
         <tr> 	
 	    <td><a href="#">{{usr.usr_email}}</a></td>  
 	    <td>{{usr.usr_first_name}}</td> 
