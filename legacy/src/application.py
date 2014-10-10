@@ -39,7 +39,7 @@ admin.add_view(adminviews.Users(name='View Genesets', endpoint='viewGenesets', c
 admin.add_link(MenuLink(name='Geneweaver Home', url='/'))
 
 #RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
-RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
+RESULTS_PATH = '/Users/GROUP7ADMIN/Desktop/results'
 
 
 @app.route('/results/<path:filename>')
