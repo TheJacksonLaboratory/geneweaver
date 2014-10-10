@@ -244,7 +244,6 @@ def get_microarray_types(sp_id=0):
             {'sp_id': sp_id})
         return list(dictify_cursor(cursor))
 #******Admin*******************************
-
 def get_all_users():
     with PooledCursor() as cursor:
 	cursor.execute(
