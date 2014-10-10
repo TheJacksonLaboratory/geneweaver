@@ -83,7 +83,7 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/combine_result.html',
+            'tool/Combine_result.html',
             async_result=async_result,
             tool=tool)
     else:
