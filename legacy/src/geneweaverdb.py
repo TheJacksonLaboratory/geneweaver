@@ -644,10 +644,13 @@ def get_all_userids():
              '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
     
-# sample api call. returns all users
+    
+# sample api calls begin
 
-
-def get_genesets_by_gene_id(gene_id, homology):
+# get all genesets associated to a gene by gene_ref_id and gdb_id
+# 	if homology is included at the end of the URL also return all
+#	genesets associated with homologous genes 
+def get_genesets_by_gene_id(gene_ref_id, gdb_name, homology):
     """
     Get all genesets for a specific gene_id
     :return: the geneset into matching the given ID or None if no such gene is found
@@ -656,22 +659,57 @@ def get_genesets_by_gene_id(gene_id, homology):
         with PooledCursor() as cursor:
             cursor.execute(
                 ''' SELECT row_to_json(row, true) 
-                    FROM (  SELECT geneset.*, geneset_value.*
-                            FROM production.geneset, extsrc.geneset_value 
-                            where geneset_value.ode_gene_id = %s 
-                            and geneset_value.gs_id = geneset.gs_id) row; ''', (gene_id,))
+                    FROM (  SELECT geneset.*
+							FROM production.geneset 
+                            WHERE geneset.gs_id in 
+                            (
+								SELECT gs_id
+								FROM (extsrc.gene join odestatic.genedb using(gdb_id))
+									join extsrc.geneset_value using(ode_gene_id)
+								WHERE ode_ref_id = %s and gdb_name = %s
+							)
+						) row; ''', (gene_ref_id, gdb_name,))
     else:
         with PooledCursor() as cursor:
             cursor.execute(
                 ''' SELECT row_to_json(row, true) 
-                    FROM (  SELECT geneset.*, homology.*, geneset_value.* 
-                            FROM production.geneset, extsrc.geneset_value, extsrc.homology 
-                            where homology.ode_gene_id = %s
-                            and homology.ode_gene_id = geneset_value.ode_gene_id 
-                            and geneset_value.gs_id = geneset.gs_id) row; ''', (gene_id,))
+                    FROM (  SELECT geneset.* 
+							FROM production.geneset 
+                            WHERE geneset.gs_id in 
+                            (
+								SELECT gs_id
+								FROM extsrc.geneset_value
+								WHERE geneset_value.ode_gene_id in 
+								(	
+									SELECT ode_gene_id
+									FROM extsrc.homology
+									WHERE hom_id in
+									( 
+										SELECT hom_id
+										FROM extsrc.homology join extsrc.gene using(ode_gene_id)
+											join odestatic.genedb using(gdb_id)
+										WHERE ode_ref_id = %s and gdb_name = %s
+									)
+								)
+							)
+						) row; ''', (gene_ref_id, gdb_name,))
 
     return cursor.fetchall()
+    
+def get_genes_by_geneset_id(geneset_id):
+    """
+    Get all gene info for a specifics gene_id
+    :return: the gene matching the given ID or None if no such gene is found
+    """
 
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT row_to_json(row, true) 
+                FROM (  SELECT gene.* 
+                        FROM extsrc.gene join extsrc.geneset_value using(ode_gene_id) 
+                        where gs_id = %s) row; ''', (geneset_id,))
+
+    return cursor.fetchall()
 
 def get_gene_by_id(gene_id):
     """
