@@ -6,10 +6,11 @@ from flask.ext import restful
 import adminviews
 import genesetblueprint
 import geneweaverdb
-from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint
+from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint
 
 
 app = flask.Flask(__name__)
+app.register_blueprint(combineblueprint.combine_blueprint)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 app.register_blueprint(genesetviewerblueprint.geneset_viewer_blueprint)
 app.register_blueprint(phenomemapblueprint.phenomemap_blueprint)
