@@ -1,5 +1,9 @@
 import flask
+from flask.ext.admin import Admin, BaseView, expose
+from flask.ext.admin.base import MenuLink
+from flask.ext.admin.contrib.sqla import ModelView
 from flask.ext import restful
+import adminviews
 import genesetblueprint
 import geneweaverdb
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint
@@ -21,7 +25,17 @@ print '"How to generate good secret keys" AT              '
 print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
 print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
+#*************************************
+admin=Admin(app,name='Admin', index_view=adminviews.AdminHome(url='/admin', name='Admin Home'));
 
+
+admin.add_view(adminviews.Users(name='View Users', endpoint='viewUsers', category='User Tools'))
+admin.add_view(adminviews.Users(name='View Permissions', endpoint='editUsers', category='User Tools'))
+admin.add_view(adminviews.Users(name='View Groups', endpoint='editGroups', category='User Tools'))
+
+admin.add_view(adminviews.Users(name='View Genes', endpoint='viewGenese', category='Gene Tools'))
+admin.add_view(adminviews.Users(name='View Genesets', endpoint='viewGenesets', category='Gene Tools'))
+admin.add_link(MenuLink(name='Geneweaver Home', url='/'))
 
 #RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
 RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
@@ -176,6 +190,12 @@ def render_analyze():
 def render_search():
     return flask.render_template('search.html')
 
+#************************************************************************
+@app.route('/adminViewer.html')
+def get_usr_id():
+    Users = geneweaverdb.get_all_userids()
+    return flask.render_template('adminViewer.html', Users=Users)
+#************************************************************************
 
 @app.route('/manage.html')
 def render_manage():
