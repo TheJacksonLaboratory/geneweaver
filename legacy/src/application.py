@@ -41,7 +41,6 @@ admin.add_view(adminviews.Viewers(name='Gene Info', endpoint='viewGeneInfo', cat
 
 
 admin.add_link(MenuLink(name='My Account', url='/accountmanage.html'))
-admin.add_link(MenuLink(name='Geneweaver Home', url='/'))
 
 
 #*************************************

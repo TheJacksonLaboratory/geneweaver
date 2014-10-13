@@ -20,6 +20,10 @@
         <td style="width:150px"><a href="/admin/viewGroups">Groups</a></td>
         <td style="width:10px; text-align: left"><a href="#">Add</a></td>
     </tr>
+   <tr class="active">
+        <td style="width:150px"><a href="#">Projects</a></td>
+        <td style="width:10px; text-align: left"><a href="#">Add</a></td>
+    </tr>
   </tbody>
   </table>
 

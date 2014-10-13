@@ -1,7 +1,6 @@
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
-from flask.ext.admin.contrib.sqla import ModelView
 import adminviews
 import genesetblueprint
 import geneweaverdb

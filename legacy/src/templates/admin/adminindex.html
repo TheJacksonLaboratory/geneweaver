@@ -1,5 +1,8 @@
 {% extends 'admin/master.html' %}
 
+{% block brand %}
+          <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
+{% endblock %}
 
 {% block body %}
 
