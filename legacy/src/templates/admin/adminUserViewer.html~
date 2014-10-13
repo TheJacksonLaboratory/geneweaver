@@ -11,8 +11,8 @@
 {% extends 'admin/AdminTemplateOverride.html' %}
 
 {% block body %}
-<!--<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">        
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+<!--<link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">        
 <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}">
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.dataTables.js') }}"></script>  
 <script type="text/javascript" src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>-->

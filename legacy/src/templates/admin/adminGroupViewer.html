@@ -1,6 +1,14 @@
-{% extends 'AdminTemplateOverride.html' %}
+{% extends 'admin/AdminTemplateOverride.html' %}
 
 {% block body %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+
+<script>
+    $(document).ready(function() {
+         $('#adminGroupViewer').dataTable();
+    });
+</script>
+
 
 <h3 align=left>Groups</h3>
 
@@ -8,7 +16,6 @@
   <button type="button" class="btn btn-default">Add New Group</button>
 </div>
 <p>
-<!--<div class="panel panel-default">-->
 <div class="table-responsive">
   <table id="adminGroupViewer" style="2" class="table table-striped" table border="1">  
     <thead>
@@ -23,14 +30,3 @@
 </div>
 
 {% endblock %} 
-
-<script type="text/javascript" src="cdn.datatables.net/plug-ins/a5734b29083/integration/bootstrap/3/dataTables.bootstrap.js"></script>
-<link rel="stylesheet" href="cdn.datatables.net/plug-ins/a5734b29083/integration/bootstrap/3/dataTables.bootstrap.css" />
-<link rel="stylesheet" href="http://cdn.datatables.net/1.10.2/css/jquery.dataTables.min.css" />
-<script type="text/javascript" src="http://cdn.datatables.net/1.10.2/js/jquery.dataTables.min.js"></script>
-
- <script>
-    $(document).ready(function() {
-         $('#adminGroupViewer').dataTable();
-    });
-</script>
