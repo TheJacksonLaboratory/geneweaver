@@ -23,19 +23,13 @@
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/plugins.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/style.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='pixit/admin/assets/css/colors/color-light.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='pixit/admin/assets/css/colors/color-blue.css') }}" rel="stylesheet">
     <!-- END  MANDATORY STYLE -->
 
 
     <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/ode.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/geneweaver.js') }}"></script>
-
-    <!-- bootstrap stuff -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.1.1-dist/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.1.1-dist/css/bootstrap-theme.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='font-awesome-4.1.0/css/font-awesome.min.css') }}">
-    <script src="{{ url_for('static', filename='bootstrap-3.1.1-dist/js/bootstrap.min.js') }}"></script>
 
     <script type="text/javascript">
 
@@ -162,7 +156,7 @@
         </div>
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
-                <li><a href="{{ url_for('render_editgenesets')|safe }}">Manage GeneSets</a></li>
+                <li><a href="{{ url_for('render_editgenesets')|safe }}">Edit GeneSets</a></li>
                 <li><a href="{{ url_for('render_analyze')|safe }}">Analyze GeneSets</a></li>
                 <li><a href="#">About</a></li>
                 <li><a href="#">Help</a></li>
@@ -213,3 +207,4 @@
     <!-- END MANDATORY SCRIPTS -->
     <script src="{{ url_for('static', filename='pixit/admin/assets/js/application.js') }}"></script>
 
+<div class="container">
