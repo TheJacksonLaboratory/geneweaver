@@ -6,7 +6,22 @@
 	<h1>Edit Genesets</h1>
 </div>
 <p>
-	Use this page to edit the genesets that you have uploaded.
+	Use this page to edit the genesets that you have uploaded.<br>A * indicates required fields.
 </p>
+
+<h2>Geneset Metadata</h2>
+<p>
+	Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our Curation Standards
+</p>
+
+<form>
+	GeneSet Name*: <input type="text" name="gs_name"><br>
+	GeneSet Figure Label*: <input type="text" name="gs_abbreviation"><br>
+	GeneSet Description*: <input type="text" name="gs_description"><br>
+	Access Restrictions*: <select>
+		<option value="private">Private</option>
+		<option value="public">Public</option>		
+	</select>
+</form>
 
 {% include 'footer.html' %}
