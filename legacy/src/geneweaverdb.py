@@ -650,6 +650,20 @@ def get_all_userids():
 # get all genesets associated to a gene by gene_ref_id and gdb_id
 # 	if homology is included at the end of the URL also return all
 #	genesets associated with homologous genes 
+
+#private function that is not called by api
+def get_user_id_by_apikey(apikey):
+    """
+    Looks up a User in the database
+    :param user_id:     the user's apikey
+    :return:            the User matching the apikey or None if no such user is found
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM production.usr WHERE usr_id=%s''', (apikey,))
+        users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
+        return users[0] if len(users) == 1 else None
+
+
 def get_genesets_by_gene_id(gene_ref_id, gdb_name, homology):
     """
     Get all genesets for a specific gene_id
@@ -667,7 +681,7 @@ def get_genesets_by_gene_id(gene_ref_id, gdb_name, homology):
 								FROM (extsrc.gene join odestatic.genedb using(gdb_id))
 									join extsrc.geneset_value using(ode_gene_id)
 								WHERE ode_ref_id = %s and gdb_name = %s
-							)
+							) and cur_id < 5
 						) row; ''', (gene_ref_id, gdb_name,))
     else:
         with PooledCursor() as cursor:
@@ -691,7 +705,7 @@ def get_genesets_by_gene_id(gene_ref_id, gdb_name, homology):
 										WHERE ode_ref_id = %s and gdb_name = %s
 									)
 								)
-							)
+							) and cur_id < 5
 						) row; ''', (gene_ref_id, gdb_name,))
 
     return cursor.fetchall()
