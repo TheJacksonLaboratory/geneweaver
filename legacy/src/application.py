@@ -4,6 +4,7 @@ from flask.ext.admin.base import MenuLink
 import adminviews
 import genesetblueprint
 import geneweaverdb
+import json
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint
 
 
@@ -213,6 +214,16 @@ def render_account_manage():
         return flask.render_template('accountmanage.html', current_user=current_user)
     else:
 	return flask.render_template('index.html')
+
+@app.route('/admin/dbfetch')
+def get_db_data(): 
+    columns = [ 'usr_email', 'usr_first_name', 'usr_last_seen']
+    index_column = "_id"
+    collection = "production.usr"
+ 
+    results = geneweaverdb.get_all_users()    
+    return results
+
 #************************************************************************
 
 @app.route('/manage.html')

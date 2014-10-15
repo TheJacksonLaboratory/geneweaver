@@ -1,25 +1,21 @@
 
-<!--
-<link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.1.1-dist/css/bootstrap.min.css') }}">
-<script src="{{ url_for('static', filename='bootstrap-3.1.1-dist/js/bootstrap.min.js') }}"></script> -->
-
-
-
-
-
-
 {% extends 'admin/AdminTemplateOverride.html' %}
 
 {% block body %}
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
-<!--<link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">        
-<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}">
-<script type="text/javascript" src="{{ url_for('static', filename='js/jquery.dataTables.js') }}"></script>  
-<script type="text/javascript" src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>-->
 
 <script>
-    $(document).ready(function() {
-         $('#adminUserViewer').dataTable();
+    $(document).ready(function()  {
+        $('#adminUserViewer').dataTable( {
+            "processing": true,
+            "serverSide": true,
+            "ajax": "../../admin/dbfetch",
+            "columns": [
+                { "data": "usr_first_name" },
+                { "data": "usr_email" },
+                { "data": "usr_last_seen" }
+            ]
+        });
     });
 </script>
 
@@ -41,7 +37,7 @@
         <th style="text-align: left">Last Online</th>
       </tr>	
     </thead>
-    <tbody>
+   <!-- <tbody>
         {% for usr in the_users %}
         <tr> 	
 	    <td><a href="#">{{usr.usr_email}}</a></td>  
@@ -49,7 +45,7 @@
 	    <td>{{usr.usr_last_seen}}</td>   
         </tr >
       {% endfor %}
-  </tbody>
+  </tbody>-->
   </table>
 </div>
 

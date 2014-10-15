@@ -1,6 +1,5 @@
 from flask import Flask
 from flask.ext.admin import Admin, BaseView, expose, AdminIndexView
-from flask.ext.admin.contrib.sqla import ModelView
 import geneweaverdb
 import flask
 
@@ -32,17 +31,17 @@ class Viewers(Authentication, BaseView):
 	    genesets = geneweaverdb.get_all_genesets()
             return self.render('admin/adminGenesetViewer.html', genesets=genesets)
 	elif self.endpoint == 'viewGenesetInfo':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    genesets = geneweaverdb.get_all_geneset_info()
+            return self.render('admin/adminGenesetInfoViewer.html', genesets=genesets)
 	elif self.endpoint == 'viewGeneInfo':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    genesets = geneweaverdb.get_all_gene_info()
+            return self.render('admin/adminGeneInfoViewer.html', genesets=genesets)
 	elif self.endpoint == 'viewProjects':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    genesets = geneweaverdb.get_all_projects()
+            return self.render('admin/adminProjectViewer.html', genesets=genesets)
 	elif self.endpoint == 'viewGenes':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    genes = geneweaverdb.get_all_genes()
+            return self.render('admin/adminGeneViewer.html', genes=genes)
  	else:
 	    return self.render('admin/adminindex.html')
 

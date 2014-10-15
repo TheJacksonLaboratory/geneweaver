@@ -1,0 +1,43 @@
+
+{% extends 'admin/AdminTemplateOverride.html' %}
+
+{% block body %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+
+<script>
+    $(document).ready(function() {
+         $('#adminUserViewer').dataTable();
+    });
+</script>
+
+
+<h3 align=left>Geneset Info </h3>
+
+
+<!--<div class="btn-group">
+  <button type="button" class="btn btn-default">Add New Geneset Info</button>
+</div>-->
+<p>
+<!--<div class="panel panel-default">-->
+<div class="table-responsive">
+  <table id="adminUserViewer" style="2" class="table table-striped" table border="1">  
+    <thead>
+      <tr>
+        <th style="text-align: left">Gene</th>
+        <th style="text-align: left">Page Views</th>
+        <th style="text-align: left">Referers</th>
+      </tr>	
+    </thead>	
+    <tbody>
+        {% for gsi in genesetsinfo %}
+        <tr> 	
+	    <td><a href="#">{{gsi.gs_id}}</a></td>  
+	    <td>{{gsi.gsi_pageviews}}</td> 
+	    <td>{{gsi.referers}}</td>   
+        </tr >
+      {% endfor %}
+  </tbody>
+  </table>
+</div>
+
+{% endblock %} 

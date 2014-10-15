@@ -269,6 +269,30 @@ def get_all_genesets():
 	     '''SELECT * FROM production.geneset limit 200;''')
 	return list(dictify_cursor(cursor))
 
+def get_all_genes():
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM extsrc.gene limit 200;''')
+	return list(dictify_cursor(cursor))
+
+def get_all_projects():
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM production.project limit 200;''')
+	return list(dictify_cursor(cursor))
+
+def get_all_gene_info():
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM extsrc.gene_info limit 200;''')
+	return list(dictify_cursor(cursor))
+
+def get_all_geneset_info():
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM production.geneset_info limit 200;''')
+	return list(dictify_cursor(cursor))
+
 
 #*************************************************************
 class User:

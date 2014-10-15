@@ -5,17 +5,8 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
 <script>
-    $(document).ready(function()  {
-        $('#adminUserViewer').dataTable( {
-            "processing": true,
-            "serverSide": true,
-            "ajax": "../../admin/dbfetch",
-            "columns": [
-                { "data": "usr_first_name" },
-                { "data": "usr_email" },
-                { "data": "usr_last_seen" }
-            ]
-        });
+    $(document).ready(function() {
+         $('#adminUserViewer').dataTable();
     });
 </script>
 
@@ -37,15 +28,15 @@
         <th style="text-align: left">Last Online</th>
       </tr>	
     </thead>
-   <!-- <tbody>
-        {% for usr in the_users %}
+    <tbody>
+        {% for geneinfo in genesinfo %}
         <tr> 	
 	    <td><a href="#">{{usr.usr_email}}</a></td>  
 	    <td>{{usr.usr_first_name}}</td> 
 	    <td>{{usr.usr_last_seen}}</td>   
         </tr >
       {% endfor %}
-  </tbody>-->
+  </tbody>
   </table>
 </div>
 

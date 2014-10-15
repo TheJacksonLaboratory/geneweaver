@@ -31,17 +31,17 @@ class Viewers(Authentication, BaseView):
 	    genesets = geneweaverdb.get_all_genesets()
             return self.render('admin/adminGenesetViewer.html', genesets=genesets)
 	elif self.endpoint == 'viewGenesetInfo':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    genesetsinfo = geneweaverdb.get_all_geneset_info()
+            return self.render('admin/adminGenesetInfoViewer.html', genesetsinfo=genesetsinfo)
 	elif self.endpoint == 'viewGeneInfo':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    genesinfo = geneweaverdb.get_all_gene_info()
+            return self.render('admin/adminGeneInfoViewer.html', genesinfo=genesinfo)
 	elif self.endpoint == 'viewProjects':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    projects = geneweaverdb.get_all_projects()
+            return self.render('admin/adminProjectViewer.html', projects=projects)
 	elif self.endpoint == 'viewGenes':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+	    genes = geneweaverdb.get_all_genes()
+            return self.render('admin/adminGeneViewer.html', genes=genes)
  	else:
 	    return self.render('admin/adminindex.html')
 
