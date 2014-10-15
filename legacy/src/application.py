@@ -189,6 +189,9 @@ def render_analyze():
 def render_editgenesets():
     return flask.render_template('editgenesets.html')
 
+@app.route('/accountsettings.html')
+def render_accountsettings():
+    return flask.render_template('accountsettings.html')
 
 @app.route('/search.html')
 def render_search():
