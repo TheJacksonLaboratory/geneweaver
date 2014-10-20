@@ -6,6 +6,7 @@ from flask.ext import restful
 import adminviews
 import genesetblueprint
 import geneweaverdb
+import os
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint
 
 
@@ -145,6 +146,17 @@ def _form_login():
     flask.g.user = user
     return user
 
+def send_mail(to, subject, body):
+    sendmail_location = "/usr/sbin/sendmail" # sendmail location
+    p = os.popen("%s -t" % sendmail_location, "w")
+    p.write("From: NoReply@geneweaver.org")
+    p.write("To: %s\n" % to)
+    p.write("Subject: %s\n" % subject)
+    p.write("\n") # blank line separating headers from body
+    p.write(body)
+    status = p.close()
+    if status != 0:
+        print "Sendmail exit status", status
 
 def _form_register():
     user = None
@@ -219,6 +231,10 @@ def render_help():
 def render_register():
     return flask.render_template('register.html')
 
+@app.route('/reset.html', methods=['GET', 'POST'])
+def render_reset():
+    return flask.render_template('reset.html')
+
 # render home if register is successful
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
@@ -233,6 +249,17 @@ def json_register_successful():
 
     flask.g.user = user
     return flask.render_template('index.html')
+
+@app.route('/reset_submit.html', methods=['GET', 'POST'])
+def reset_password():
+    form = flask.request.form
+    user = geneweaverdb.get_user_byemail(form['usr_email'])
+    if user is None:
+        return flask.render_template('reset.html', reset_failed=True)
+    else:
+        new_password = geneweaverdb.reset_password(user.email)
+        send_mail(user.email, "Password Reset Request", "Your new temporary password is: " + new_password)
+        return flask.render_template('index.html')
 
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])

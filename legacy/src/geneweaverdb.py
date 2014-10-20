@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from hashlib import md5
 import json
+import string
+import random
 from psycopg2.pool import ThreadedConnectionPool
 
 
@@ -426,27 +428,50 @@ def get_user_byemail(user_email):
 
 
 def register_user(user_first_name, user_last_name, user_email, user_password):
-        """
-        Insert a user to the db
-        :param user_first_name: the user's first name, if not provided use "Guest" as default
-        :param user_last_name:  the user's last name, if not provided use "User" as default
-        :param user_email:      the user's email address, if not provided use "" as default
-        :param user_password:   the user's password, if not provided use "" as default
-        """
-        with PooledCursor() as cursor:
-                password_md5 = md5(user_password).hexdigest()
-                cursor.execute(
-                    '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
+    """
+    Insert a user to the db
+    :param user_first_name: the user's first name, if not provided use "Guest" as default
+    :param user_last_name:  the user's last name, if not provided use "User" as default
+    :param user_email:      the user's email address, if not provided use "" as default
+    :param user_password:   the user's password, if not provided use "" as default
+    """
+    with PooledCursor() as cursor:
+        password_md5 = md5(user_password).hexdigest()
+        cursor.execute(
+            '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
                         VALUES (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s)''',
-                    {
-                    'user_first_name': user_first_name,
-                    'user_last_name': user_last_name,
-                    'user_email': user_email,
-                    'user_password': password_md5
-                    }
-                )
-                cursor.connection.commit()
-                return get_user_byemail(user_email)
+            {
+                'user_first_name': user_first_name,
+                'user_last_name': user_last_name,
+                'user_email': user_email,
+                'user_password': password_md5
+            }
+        )
+        cursor.connection.commit()
+        return get_user_byemail(user_email)
+
+
+def reset_password(user_email):
+    """
+    Update a user password
+    :param user_email:      the user's email address, if not provided use "" as default
+    :param user_password:   the user's password, if not provided use "" as default
+    """
+
+    char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits
+    new_password = ''.join(random.sample(char_set, 8))
+    print new_password
+    print get_user_byemail(user_email)
+    with PooledCursor() as cursor:
+        password_md5 = md5(new_password).hexdigest()
+        cursor.execute(
+            '''UPDATE usr
+               SET usr_password = %s
+               WHERE usr_email = %s''', (password_md5, user_email)
+        )
+        cursor.connection.commit()
+    print get_user_byemail(user_email)
+    return new_password
 
 
 def get_geneset(geneset_id, user_id=None):
@@ -568,7 +593,7 @@ class ToolConfig:
     def params(self):
         if self.__params is None:
             self.__params = OrderedDict(((tp.name, tp)
-                                        for tp in get_tool_params(self.classname)))
+                                         for tp in get_tool_params(self.classname)))
 
         return self.__params
 
@@ -638,18 +663,19 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
 
+
 def get_all_userids():
     with PooledCursor() as cursor:
         cursor.execute(
-             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
+            '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
-    
-    
+
+
 # sample api calls begin
 
 # get all genesets associated to a gene by gene_ref_id and gdb_id
 # 	if homology is included at the end of the URL also return all
-#	genesets associated with homologous genes 
+#	genesets associated with homologous genes
 def get_genesets_by_gene_id(gene_ref_id, gdb_name, homology):
     """
     Get all genesets for a specific gene_id
@@ -695,7 +721,8 @@ def get_genesets_by_gene_id(gene_ref_id, gdb_name, homology):
 						) row; ''', (gene_ref_id, gdb_name,))
 
     return cursor.fetchall()
-    
+
+
 def get_genes_by_geneset_id(geneset_id):
     """
     Get all gene info for a specifics gene_id
@@ -710,6 +737,7 @@ def get_genes_by_geneset_id(geneset_id):
                         where gs_id = %s) row; ''', (geneset_id,))
 
     return cursor.fetchall()
+
 
 def get_gene_by_id(gene_id):
     """
