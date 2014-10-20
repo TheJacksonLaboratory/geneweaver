@@ -6,6 +6,8 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 
+from jinja2 import Environment, meta, PackageLoader
+
 TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
@@ -81,10 +83,16 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
+
+        # env = Environment()
+        # parsed_content = env.parse(async_result)
+        # temp = meta.find_undeclared_variables(parsed_content)
+        # return temp
+
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
-            async_result=async_result,
+            async_result=json.loads(async_result.result),
             tool=tool)
     else:
         # render a page telling their results are pending
