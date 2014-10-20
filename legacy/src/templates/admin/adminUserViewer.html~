@@ -9,12 +9,18 @@
         $('#adminUserViewer').dataTable( {
             "processing": true,
             "serverSide": true,
-            "ajax": "../../admin/dbfetch",
-            "columns": [
-                { "data": "usr_first_name" },
-                { "data": "usr_email" },
-                { "data": "usr_last_seen" }
-            ]
+            "table": "production.usr",
+	    "data": JSON.stringify( request )
+            "ajax": {
+                    'url': "../../admin/dbfetch",
+                    'type': 'GET'
+                },
+	    "sPaginationType": "full_numbers",
+	    "columns": [
+            		{ "name": "usr_email" },
+            		{ "name": "usr_first_name" },
+            		{ "name": "usr_last_seen" }
+        		]
         });
     });
 </script>

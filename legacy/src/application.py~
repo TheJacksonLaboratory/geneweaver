@@ -1,6 +1,7 @@
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
+from flask import request
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -216,13 +217,18 @@ def render_account_manage():
 	return flask.render_template('index.html')
 
 @app.route('/admin/dbfetch')
-def get_db_data(): 
+def get_db_data():  
     columns = [ 'usr_email', 'usr_first_name', 'usr_last_seen']
-    index_column = "_id"
-    collection = "production.usr"
- 
-    results = geneweaverdb.get_all_users()    
-    return results
+    index_column = "0"
+    collection = "production.usr"    
+    #print request.args
+    results = geneweaverdb.get_server_side(request.args)
+
+    # return the results as a string for the datatable
+    return json.dumps(results,default=date_handler)
+
+def date_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
 #************************************************************************
 

@@ -2,6 +2,9 @@ from collections import OrderedDict
 from hashlib import md5
 import json
 from psycopg2.pool import ThreadedConnectionPool
+import distutils.sysconfig
+from distutils.util import strtobool
+import simplejson
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -244,6 +247,123 @@ def get_microarray_types(sp_id=0):
             {'sp_id': sp_id})
         return list(dictify_cursor(cursor))
 #******Admin*******************************
+
+def get_server_side(rargs):
+    
+    source_table = 'production.usr'
+    source_columns = []
+
+    i=0
+    col_name = rargs.get('columns[%d][name]' % i)
+    while col_name is not None:
+	source_columns.append(col_name)
+        i=i+1
+        col_name = rargs.get('columns[%d][name]' % i)    
+    
+
+    #select and from clause creation
+    select_clause = 'SELECT %s' % ','.join(source_columns)
+    from_clause = 'FROM %s' % source_table
+  
+
+    # Paging
+    iDisplayStart = rargs.get('start', type=int)
+    iDisplayLength = rargs.get('length', type=int)
+    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
+    		    if (iDisplayStart is not None and iDisplayLength != -1) \
+    		    else ''    
+
+    #searching
+    search_value = rargs.get('search[value]')     
+    search_clauses = []
+    if search_value:
+        for i in range(len(source_columns)-1):
+	    search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i],search_value))
+	search_clause = 'OR '.join(search_clauses)
+    else:
+ 	search_clause=''
+    
+ 
+    # Sorting
+    iSortingCols = rargs.get('iSortingCols', type=int)
+    if iSortingCols is None:
+	iSortingCols=0
+    orders = []
+    for i in range(iSortingCols):
+        col_index = rargs.get('iSortCol_%d' % i, type=int)
+        if rargs.get('bSortable_%d' % col_index, type=strtobool):
+    	    col_name = source_columns[col_index]
+    	    sort_dir = 'ASC' \
+    	 		if rargs.get('sSortDir_%d' % i) == 'asc' \
+    			else 'DESC NULLS LAST'
+        orders.append('%s %s' % (col_name, sort_dir))
+    order_clause = 'ORDER BY %s' % ','.join(orders) if orders else ''
+ 
+    # Filtering ("ac" is "all columns", "pc" is "per column")
+    ac_search = rargs.get('sSearch')
+    print ac_search
+    ac_like_exprs, ac_patterns, pc_like_exprs, pc_patterns = [], [], [], []
+    for i, col in enumerate(source_columns):
+        if rargs.get('bSearchable_%d' % i, type=strtobool):
+            like_expr = Template("$col LIKE %s").safe_substitute(dict(col=col))
+            if ac_search:
+    		ac_like_exprs.append(like_expr)
+    		ac_patterns.append('%' + ac_search + '%')
+ 
+    	    pc_search = rargs.get('sSearch_%d' % i)
+    	    if pc_search:
+    		pc_like_exprs.append(like_expr)
+   		pc_patterns.append('%' + pc_search + '%')
+ 
+    ac_subclause = '(%s)' % ' OR '.join(ac_like_exprs) if ac_search else ''
+    pc_subclause = ' AND '.join(pc_like_exprs)
+    print ac_subclause
+    print pc_subclause
+    subclause = ' AND '.join([ac_subclause, pc_subclause]) \
+    		if ac_subclause and pc_subclause \
+    		else ac_subclause or pc_subclause
+    print subclause
+    where_clause = 'WHERE%s' % search_clause if search_clause else ''
+
+    #where_clause = where_clause + ' %s' % subclause if subclause and search_clause
+    print where_clause
+    sql = ' '.join([select_clause,
+    		    from_clause,
+    		    where_clause,
+	 	    search_clause,
+    		    order_clause,
+   		    limit_clause]) + ';'
+    print sql
+ 
+    ###################
+    # Execute query
+    ###################
+    with PooledCursor() as cursor:
+        cursor.execute(sql, ac_patterns + pc_patterns)
+	#cursor.execute(sql)
+        things = cursor.fetchall()
+
+
+        sEcho = rargs.get('sEcho', type=int)
+ 
+    # Count of all values in table
+        cursor.execute(' '.join(['SELECT COUNT(*)', from_clause]) + ';')
+        iTotalRecords = cursor.fetchone()[0]
+ 
+    # Count of all values that satisfy WHERE clause
+        iTotalDisplayRecords = iTotalRecords
+        if where_clause:
+            sql = ' '.join([select_clause, from_clause, where_clause]) + ';'
+            cursor.execute(sql, ac_patterns + pc_patterns)
+            iTotalDisplayRecords = cursor.rowcount
+ 
+        response = {'sEcho': sEcho,
+    	    	    'iTotalRecords': iTotalRecords,
+    		    'iTotalDisplayRecords': iTotalDisplayRecords,
+   		    'aaData': things
+   		    }
+ 
+        return response
 
 def get_all_users():
     with PooledCursor() as cursor:
