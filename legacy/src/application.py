@@ -243,11 +243,11 @@ def render_home():
 api = restful.Api(app)
 
 class GetGenesetsByGeneRefId(restful.Resource):
-    def get(self, gene_ref_id, gdb_name):
-        return geneweaverdb.get_genesets_by_gene_id(gene_ref_id, gdb_name, False)
+    def get(self, apikey, gene_ref_id, gdb_name):
+        return geneweaverdb.get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, False)
 class GetGenesetsByGeneRefIdHomology(restful.Resource):
-    def get(self, gene_ref_id, gdb_name):
-        return geneweaverdb.get_genesets_by_gene_id(gene_ref_id, gdb_name, True)
+    def get(self, apikey, gene_ref_id, gdb_name):
+        return geneweaverdb.get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, True)
 class GetGenesByGenesetId(restful.Resource):
     def get(self, genesetid):
         return geneweaverdb.get_geneset_by_id(genesetid)
@@ -257,12 +257,19 @@ class GetGeneByGeneId(restful.Resource):
 class GetGenesetById(restful.Resource):
     def get(self, genesetid):
         return geneweaverdb.get_geneset_by_id(genesetid)
+class GetGenesetByUser(restful.Resource):
+    def get(self, apikey):
+        return geneweaverdb.get_geneset_by_user(apikey)
 
-api.add_resource(GetGenesetsByGeneRefId, '/api/getgenesetbygenerefid/<gene_ref_id>/<gdb_name>/')
-api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/getgenesetbygenerefid/<gene_ref_id>/<gdb_name>/homology')
-api.add_resource(GetGenesByGenesetId, '/api/getgenesbygenesetid/<genesetid>/')
-api.add_resource(GetGeneByGeneId, '/api/getgenebygeneid/<geneid>/')
-api.add_resource(GetGenesetById, '/api/getgenesetbyid/<genesetid>/')
+api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
+api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
+api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
+api.add_resource(GetGenesetById, '/api/get/geneset/byid/<genesetid>/')
+api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
+api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
+
+# api.add_resource(GetGenesetByUser, '/api/tool/genesetveiwer/<apikey>/<params>/')
+
 if __name__ == '__main__':
     app.debug = True
     app.run()
