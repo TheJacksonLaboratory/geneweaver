@@ -194,6 +194,10 @@ def render_editgenesets():
 def render_accountsettings():
     return flask.render_template('accountsettings.html')
 
+@app.route('/login.html')
+def render_loginforgot():
+    return flask.render_template('login.html')
+
 @app.route('/search.html')
 def render_search():
     return flask.render_template('search.html')
