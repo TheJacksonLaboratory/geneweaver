@@ -13,11 +13,11 @@
         <tbody>
     <tr class="active">
         <td style="width:150px"> <a href="/admin/viewUsers">Users</a></td>
-        <td style="width:10px; text-align: left"><a href="#">Add</a></td>
+        <td style="width:10px; text-align: left"><a href="/admin/newUser">Add</a></td>
     </tr > 
     <tr class="active">
         <td style="width:150px"><a href="/admin/viewPublications">Publications</a></td>
-        <td style="width:10px; text-align: left"><a href="#">Add</a></td>
+        <td style="width:10px; text-align: left"><a href="/admin/newPub">Add</a></td>
     </tr>   
     <tr class="active">
         <td style="width:150px"><a href="/admin/viewGroups">Groups</a></td>
@@ -25,7 +25,7 @@
     </tr>
    <tr class="active">
         <td style="width:150px"><a href="/admin/viewProjects">Projects</a></td>
-        <td style="width:10px; text-align: left"><a href="#">Add</a></td>
+        <td style="width:10px; text-align: left"><a href="/admin/newProject">Add</a></td>
     </tr>
   </tbody>
   </table>

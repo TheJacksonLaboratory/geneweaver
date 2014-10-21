@@ -746,8 +746,7 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
 
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
-<<<<<<< HEAD
-=======
+
 
 def get_all_userids():
     with PooledCursor() as cursor:
@@ -852,4 +851,3 @@ def get_geneset_by_id(geneset_id):
                         where gs_id = %s) row; ''', (geneset_id,))
 
     return cursor.fetchall()
->>>>>>> origin/development

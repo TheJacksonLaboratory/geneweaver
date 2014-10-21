@@ -1,7 +1,8 @@
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
-from flask import request, restful
+from flask.ext import restful
+from flask import request
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -44,6 +45,14 @@ admin.add_view(adminviews.Viewers(name='Genes', endpoint='viewGenes', category='
 admin.add_view(adminviews.Viewers(name='Geneset Info', endpoint='viewGenesetInfo', category='Gene Tools'))
 admin.add_view(adminviews.Viewers(name='Gene Info', endpoint='viewGeneInfo', category='Gene Tools'))
 
+admin.add_view(adminviews.Add(name='User', endpoint='newUser', category='Add'))
+admin.add_view(adminviews.Add(name='Publication', endpoint='newPub', category='Add'))
+admin.add_view(adminviews.Add(name='Group', endpoint='newGroup', category='Add'))
+admin.add_view(adminviews.Add(name='Project', endpoint='newProject', category='Add'))
+admin.add_view(adminviews.Add(name='Geneset', endpoint='newGeneset', category='Add'))
+admin.add_view(adminviews.Add(name='Gene', endpoint='newGene', category='Add'))
+admin.add_view(adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
+admin.add_view(adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
 
 admin.add_link(MenuLink(name='My Account', url='/accountmanage.html'))
 
@@ -216,6 +225,16 @@ def render_account_manage():
     if user_id:	
         current_user = geneweaverdb.get_user(user_id)
         return flask.render_template('accountmanage.html', current_user=current_user)
+    else:
+	return flask.render_template('index.html')
+
+#admin route to add new item to the database
+#@app.route('/admin/add')
+def render_admin_add():
+    if "user" in flask.g and flask.g.user.is_admin:
+	columns = geneweaverdb.get_table_columns(table)
+	print columns
+        return flask.render_template('admin/add.html', columns=columns)
     else:
 	return flask.render_template('index.html')
 

@@ -1,0 +1,13 @@
+{% extends 'admin/master.html' %}
+
+{% block brand %}
+          <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
+{% endblock %}
+
+{% block body %}
+
+ {% for c in columns %}
+  <p>{{c.column_name}}</p>
+ {% endfor %}
+
+{% endblock %}

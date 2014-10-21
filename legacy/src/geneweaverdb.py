@@ -355,6 +355,12 @@ def get_server_side(rargs):
  
         return response
 
+def get_table_columns(table):
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
+	return list(dictify_cursor(cursor))
+
 def get_all_groups():
     with PooledCursor() as cursor:
 	cursor.execute(
