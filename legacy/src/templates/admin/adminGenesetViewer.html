@@ -4,8 +4,26 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
 <script>
-    $(document).ready(function() {
-         $('#adminGenesetViewer').dataTable();
+    $(document).ready(function()  {
+        $('#adminGenesetViewer').dataTable( {
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                    'url': "../../admin/serversidedb",
+                    'type': 'GET',
+		    "data": {"table": 'production.geneset'}
+                },
+	    "sPaginationType": "full_numbers",
+	    "columns": [
+            		{ "name": "gs_abbreviation" },
+            		{ "name": "gs_name" },
+            		{ "name": "gs_description" }
+        		],
+	    "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                $('td:eq(0)', nRow).html('<a href="#">' +  aData[0] + '</a>');
+                return nRow;
+        },    	    
+        });
     });
 </script>
 
@@ -25,15 +43,13 @@
 	<th style="text-align:left">Description</th>
       </tr>	
     </thead>
-    <tbody>
-       {% for geneset in genesets %}
-        <tr> 	
-	    <td><a href="#">{{geneset.gs_abbreviation}}</a></td> 
-	    <td>{{geneset.gs_name}}</td>  
-	    <td>{{geneset.gs_description}}</td>   
-        </tr >
-      {% endfor %}
-  </tbody>
+    <tfoot>
+      <tr>
+	<th style="text-align:left">Abbreviation</th>
+        <th style="text-align:left">Name</th>
+	<th style="text-align:left">Description</th>
+      </tr>	
+    </tfoot>
   </table>
 </div>
 

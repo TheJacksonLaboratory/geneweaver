@@ -246,23 +246,26 @@ def get_microarray_types(sp_id=0):
             '''SELECT * FROM platform WHERE (sp_id=%(sp_id)s OR 0=%(sp_id)s) ORDER BY pf_name;''',
             {'sp_id': sp_id})
         return list(dictify_cursor(cursor))
-#******Admin*******************************
+#*************************************
 
 def get_server_side(rargs):
     
-    source_table = 'production.usr'
+    source_table = rargs.get('table', type=str)
     source_columns = []
+    select_columns = []
 
     i=0
-    col_name = rargs.get('columns[%d][name]' % i)
-    while col_name is not None:
+    temp = rargs.get('columns[%d][name]' % i)    
+    while temp is not None:
+	col_name ='cast(' + temp + ' as text)'
 	source_columns.append(col_name)
+	select_columns.append(temp)
         i=i+1
-        col_name = rargs.get('columns[%d][name]' % i)    
+        temp = rargs.get('columns[%d][name]' % i)  
     
 
     #select and from clause creation
-    select_clause = 'SELECT %s' % ','.join(source_columns)
+    select_clause = 'SELECT %s ' % ','.join(select_columns)
     from_clause = 'FROM %s' % source_table
   
 
@@ -277,7 +280,7 @@ def get_server_side(rargs):
     search_value = rargs.get('search[value]')     
     search_clauses = []
     if search_value:
-        for i in range(len(source_columns)-1):
+        for i in range(len(source_columns)):
 	    search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i],search_value))
 	search_clause = 'OR '.join(search_clauses)
     else:
@@ -285,23 +288,16 @@ def get_server_side(rargs):
     
  
     # Sorting
-    iSortingCols = rargs.get('iSortingCols', type=int)
-    if iSortingCols is None:
-	iSortingCols=0
-    orders = []
-    for i in range(iSortingCols):
-        col_index = rargs.get('iSortCol_%d' % i, type=int)
-        if rargs.get('bSortable_%d' % col_index, type=strtobool):
-    	    col_name = source_columns[col_index]
-    	    sort_dir = 'ASC' \
-    	 		if rargs.get('sSortDir_%d' % i) == 'asc' \
-    			else 'DESC NULLS LAST'
-        orders.append('%s %s' % (col_name, sort_dir))
-    order_clause = 'ORDER BY %s' % ','.join(orders) if orders else ''
+    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+    sorting_direction = rargs.get('order[0][dir]', type=str)
+    sort_dir = 'ASC NULLS LAST' \
+    	   	if sorting_direction == 'asc' \
+    		else 'DESC NULLS LAST'
+    order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
+  
  
-    # Filtering ("ac" is "all columns", "pc" is "per column")
+    # Filtering ("ac" is "all columns", "pc" is "per column")  <--- not used atm
     ac_search = rargs.get('sSearch')
-    print ac_search
     ac_like_exprs, ac_patterns, pc_like_exprs, pc_patterns = [], [], [], []
     for i, col in enumerate(source_columns):
         if rargs.get('bSearchable_%d' % i, type=strtobool):
@@ -317,30 +313,23 @@ def get_server_side(rargs):
  
     ac_subclause = '(%s)' % ' OR '.join(ac_like_exprs) if ac_search else ''
     pc_subclause = ' AND '.join(pc_like_exprs)
-    print ac_subclause
-    print pc_subclause
     subclause = ' AND '.join([ac_subclause, pc_subclause]) \
     		if ac_subclause and pc_subclause \
     		else ac_subclause or pc_subclause
-    print subclause
-    where_clause = 'WHERE%s' % search_clause if search_clause else ''
-
-    #where_clause = where_clause + ' %s' % subclause if subclause and search_clause
-    print where_clause
+        	
+    #joins all clauses together as a query
+    where_clause = 'WHERE %s' % search_clause if search_clause else ''
+    #print where_clause
     sql = ' '.join([select_clause,
     		    from_clause,
     		    where_clause,
-	 	    search_clause,
     		    order_clause,
    		    limit_clause]) + ';'
-    print sql
+    #print sql
  
-    ###################
-    # Execute query
-    ###################
     with PooledCursor() as cursor:
-        cursor.execute(sql, ac_patterns + pc_patterns)
-	#cursor.execute(sql)
+        #cursor.execute(sql, ac_patterns + pc_patterns)
+	cursor.execute(sql)
         things = cursor.fetchall()
 
 
@@ -354,7 +343,8 @@ def get_server_side(rargs):
         iTotalDisplayRecords = iTotalRecords
         if where_clause:
             sql = ' '.join([select_clause, from_clause, where_clause]) + ';'
-            cursor.execute(sql, ac_patterns + pc_patterns)
+            #cursor.execute(sql, ac_patterns + pc_patterns)
+	    cursor.execute(sql)
             iTotalDisplayRecords = cursor.rowcount
  
         response = {'sEcho': sEcho,
@@ -365,40 +355,16 @@ def get_server_side(rargs):
  
         return response
 
-def get_all_users():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.usr limit 200;''')
-	return list(dictify_cursor(cursor))
-
 def get_all_groups():
     with PooledCursor() as cursor:
 	cursor.execute(
 	     '''SELECT * FROM production.grp limit 200;''')
 	return list(dictify_cursor(cursor))
 
-def get_all_publications():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.publication limit 200;''')
-	return list(dictify_cursor(cursor))
-
-def get_all_genesets():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.geneset limit 200;''')
-	return list(dictify_cursor(cursor))
-
 def get_all_genes():
     with PooledCursor() as cursor:
 	cursor.execute(
 	     '''SELECT * FROM extsrc.gene limit 200;''')
-	return list(dictify_cursor(cursor))
-
-def get_all_projects():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.project limit 200;''')
 	return list(dictify_cursor(cursor))
 
 def get_all_gene_info():

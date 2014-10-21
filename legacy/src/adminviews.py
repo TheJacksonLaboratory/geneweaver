@@ -19,17 +19,14 @@ class Viewers(Authentication, BaseView):
     @expose('/')
     def index(self):
         if self.endpoint == 'viewUsers':
-	    the_users = geneweaverdb.get_all_users()
-            return self.render('admin/adminUserViewer.html', the_users=the_users)
+            return self.render('admin/adminUserViewer.html')
         elif self.endpoint == 'viewPublications':
-	    the_pubs = geneweaverdb.get_all_publications()
-            return self.render('admin/adminPublicationsViewer.html', the_pubs=the_pubs)
+            return self.render('admin/adminPublicationsViewer.html')
         elif self.endpoint == 'viewGroups':
 	    the_groups = geneweaverdb.get_all_groups()
             return self.render('admin/adminGroupViewer.html', the_groups=the_groups)
 	elif self.endpoint == 'viewGenesets':
-	    genesets = geneweaverdb.get_all_genesets()
-            return self.render('admin/adminGenesetViewer.html', genesets=genesets)
+            return self.render('admin/adminGenesetViewer.html')
 	elif self.endpoint == 'viewGenesetInfo':
 	    genesetsinfo = geneweaverdb.get_all_geneset_info()
             return self.render('admin/adminGenesetInfoViewer.html', genesetsinfo=genesetsinfo)
@@ -37,8 +34,7 @@ class Viewers(Authentication, BaseView):
 	    genesinfo = geneweaverdb.get_all_gene_info()
             return self.render('admin/adminGeneInfoViewer.html', genesinfo=genesinfo)
 	elif self.endpoint == 'viewProjects':
-	    projects = geneweaverdb.get_all_projects()
-            return self.render('admin/adminProjectViewer.html', projects=projects)
+            return self.render('admin/adminProjectViewer.html')
 	elif self.endpoint == 'viewGenes':
 	    genes = geneweaverdb.get_all_genes()
             return self.render('admin/adminGeneViewer.html', genes=genes)

@@ -216,13 +216,15 @@ def render_account_manage():
     else:
 	return flask.render_template('index.html')
 
-@app.route('/admin/dbfetch')
-def get_db_data():     
-    #print request.args
-    results = geneweaverdb.get_server_side(request.args)
-
-    # return the results as a string for the datatable
-    return json.dumps(results,default=date_handler)
+#this routes from datatables to get database information
+#only admins are allowed to get results back from this route
+@app.route('/admin/serversidedb')
+def get_db_data():
+    if "user" in flask.g and flask.g.user.is_admin:
+        results = geneweaverdb.get_server_side(request.args)
+        return json.dumps(results,default=date_handler)
+    else:
+	return flask.render_template('index.html')
 
 def date_handler(obj):
     return obj.isoformat() if hasattr(obj, 'isoformat') else obj

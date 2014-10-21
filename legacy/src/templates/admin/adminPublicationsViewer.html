@@ -4,8 +4,27 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
 <script>
-    $(document).ready(function() {
-         $('#adminPubViewer').dataTable();
+    $(document).ready(function()  {
+        $('#adminPubViewer').dataTable( {
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                    'url': "../../admin/serversidedb",
+                    'type': 'GET',
+		    "data": {"table": 'production.publication'}
+                },
+	    "sPaginationType": "full_numbers",
+	    "columns": [
+            		{ "name": "pub_title" },
+            		{ "name": "pub_authors" },
+            		{ "name": "pub_month" },
+			{ "name": "pub_year" }
+        		],
+	    "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                $('td:eq(0)', nRow).html('<a href="#">' +  aData[0] + '</a>');
+                return nRow;
+        },    	    
+        });
     });
 </script>
 
@@ -16,25 +35,25 @@
   <button type="button" class="btn btn-default">Add New Publication</button>
 </div>
 <p>
-<!--<div class="panel panel-default">-->
+
 <div class="table-responsive">
   <table id="adminPubViewer" style="2" class="table table-striped" table border="1">  
     <thead>
       <tr>
-        <th style="text-align:left">Title</th>
+        <th style="text-align: left">Title</th>
         <th style="text-align: left">Authors</th>
-        <th style="text-align: left">Date</th>
+        <th style="text-align: left">Month</th>
+	<th style="text-align: left">Year</th>
       </tr>	
     </thead>
-    <tbody>
-       {% for pub in the_pubs %}
-        <tr> 	
-	    <td>{{pub.pub_title}}</td>  
-	    <td>{{pub.pub_authors}}</td> 
-	    <td>{{pub.pub_month}}, {{pub.pub_year}}</td>   
-        </tr >
-      {% endfor %}
-  </tbody>
+    <tfoot>
+      <tr>
+        <th style="text-align: left">Title</th>
+        <th style="text-align: left">Authors</th>
+        <th style="text-align: left">Month</th>
+	<th style="text-align: left">Year</th>
+      </tr>	
+    </tfoot>
   </table>
 </div>
 

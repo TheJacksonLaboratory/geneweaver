@@ -5,22 +5,40 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
 <script>
-    $(document).ready(function() {
-         $('#adminUserViewer').dataTable();
+    $(document).ready(function()  {
+        $('#adminProjectViewer').dataTable( {
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                    'url': "../../admin/serversidedb",
+                    'type': 'GET',
+		    "data": {"table": 'production.project'}
+                },
+	    "sPaginationType": "full_numbers",
+	    "columns": [
+            		{ "name": "pj_name" },
+            		{ "name": "pj_groups" },
+            		{ "name": "pj_created" }
+        		],
+	    "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                $('td:eq(0)', nRow).html('<a href="#">' +  aData[0] + '</a>');
+                return nRow;
+        },    	    
+        });
     });
 </script>
 
 
-<h3 align=left>Users</h3>
+<h3 align=left>Projects</h3>
 
 
 <div class="btn-group">
-  <button type="button" class="btn btn-default">Add New User</button>
+  <button type="button" class="btn btn-default">Add New Project</button>
 </div>
 <p>
-<!--<div class="panel panel-default">-->
+
 <div class="table-responsive">
-  <table id="adminUserViewer" style="2" class="table table-striped" table border="1">  
+  <table id="adminProjectViewer" style="2" class="table table-striped" table border="1">  
     <thead>
       <tr>
         <th style="text-align: left">Name</th>
@@ -28,15 +46,13 @@
         <th style="text-align: left">Created</th>
       </tr>	
     </thead>
-    <tbody>
-        {% for project in projects %}
-        <tr> 	
-	    <td><a href="#">{{project.pj_name}}</a></td>  
-	    <td>{{project.pj_groups}}</td> 
-	    <td>{{project.pj_created}}</td>   
-        </tr >
-      {% endfor %}
-  </tbody>
+    <tfoot>
+      <tr>
+        <th style="text-align: left">Name</th>
+        <th style="text-align: left">Groups</th>
+        <th style="text-align: left">Created</th>
+      </tr>	
+    </tfoot>
   </table>
 </div>
 
