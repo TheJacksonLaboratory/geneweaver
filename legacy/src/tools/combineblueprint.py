@@ -1,26 +1,25 @@
-import flask
 import celery.states as states
+import flask
 import json
 import uuid
 
 import geneweaverdb as gwdb
 import toolcommon as tc
 
-TOOL_CLASSNAME = 'JaccardClustering'
-jaccardclustering_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+TOOL_CLASSNAME = 'Combine'
+combine_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@jaccardclustering_blueprint.route('/JaccardClustering.html', methods=['POST'])
+@combine_blueprint.route('/run-combine.html', methods=['POST'])
 def run_tool():
-
-     # TODO need to check for read permissions on genesets
+    # TODO need to check for read permissions on genesets
 
     form = flask.request.form
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
-    if len(selected_geneset_ids) < 3:
+    if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        raise Exception('There must be at least three genesets selected to run this tool')
+        raise Exception('there must be at least two genesets selected to run this tool')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -53,7 +52,6 @@ def run_tool():
         tool.name,
         desc,
         desc)
-
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
@@ -72,7 +70,8 @@ def run_tool():
 
     return response
 
-@jaccardclustering_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
+
+@combine_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
@@ -84,14 +83,15 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/JaccardClustering_result.html',
+            'tool/Combine_result.html',
             async_result=async_result,
             tool=tool)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
 
-@jaccardclustering_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+
+@combine_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
