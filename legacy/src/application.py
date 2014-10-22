@@ -147,7 +147,8 @@ def _form_login():
     return user
 
 def send_mail(to, subject, body):
-    sendmail_location = "/usr/sbin/sendmail" # sendmail location
+    print to, subject, body
+    sendmail_location = "/usr/bin/mail" # sendmail location
     p = os.popen("%s -t" % sendmail_location, "w")
     p.write("From: NoReply@geneweaver.org")
     p.write("To: %s\n" % to)
