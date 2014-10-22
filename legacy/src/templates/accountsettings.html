@@ -87,7 +87,7 @@
 							New Password:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="new_pass">
+							<input type="text" name="new_pass" id="password_1">
 						</div>
 					</div><br>
 					<div class="row">
@@ -95,9 +95,11 @@
 							Confirm New Password:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="conf_new">
+							<input type="text" name="conf_new" id="password_2">
 						</div>
-					</div><br>
+                    </div>
+                    <p id="valid"></p>
+                    <br>
 					<button class="btn bg-blue">Change Password</button>
 				</form>
 			</div>
@@ -105,4 +107,21 @@
 	</div>
 </div>
 
+<script>
+$(document).ready(function() {
+    $("#password_2").keyup(validate);
+});
+
+function validate() {
+    var password_1 = $("#password_1").val();
+    var password_2 = $("#password_2").val();
+
+    if(password_1 == password_2) {
+        $("#validate-status").text("valid");        
+    }
+    else {
+        $("#validate-status").text("invalid");  
+    }
+}
+</script>
 {% include 'footer.html' %}

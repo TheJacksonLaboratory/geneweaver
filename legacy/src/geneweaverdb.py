@@ -473,7 +473,7 @@ def reset_password(user_email):
     print get_user_byemail(user_email)
     return new_password
 
-def change_password(user_email, new_password_1, new_password_2):
+def change_password(user_email, new_password):
     """
     Update a user password
     :param user_email:      the user's email address, if not provided use "" as default
@@ -482,16 +482,13 @@ def change_password(user_email, new_password_1, new_password_2):
     """
     with PooledCursor() as cursor:
 
-        password_md5_1 = md5(new_password_1).hexdigest()
-        password_md5_2 = md5(new_password_2).hexdigest()
-
-        if password_md5_1 == password_md5_2:
-            cursor.execute(
-                '''UPDATE usr
-                   SET usr_password = %s
-                   WHERE usr_email = %s''', (password_md5_1, user_email)
-            )
-            cursor.connection.commit()
+        password_md5 = md5(new_password).hexdigest()
+        cursor.execute(
+            '''UPDATE usr
+               SET usr_password = %s
+               WHERE usr_email = %s''', (password_md5, user_email)
+        )
+        cursor.connection.commit()
     return
 
 def get_geneset(geneset_id, user_id=None):
