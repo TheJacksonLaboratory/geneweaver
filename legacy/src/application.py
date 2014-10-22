@@ -270,6 +270,17 @@ def reset_password():
         send_mail(user.email, "Password Reset Request", "Your new temporary password is: " + new_password)
         return flask.render_template('index.html')
 
+# what to place here?
+#@app.route('/adminViewer.html, methonds=['GET', 'POST'])
+def change_password():
+    form = flask.request.form
+#    user = how to get the user from the form?
+    if user is None:
+        # return to index for now
+        return flask.render_template('index.html')
+    else:
+        return flask.render_template('index.html')
+         
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
