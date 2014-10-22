@@ -276,9 +276,14 @@ def change_password():
     if form is None:
         return flask.render_template('accountsettings.html')
     else:
-        success = geneweaverdb.change_password(flask.session.get('user_id'), form['new_pass'])
-    	return flask.render_template('accountsettings.html')
-         
+        user = geneweaverdb.get_user(flask.session.get('user_id')
+
+        if authenticate_user(user.user_email, form['curr_pass']) is None:
+    	    return flask.render_template('accountsettings.html')
+        else:
+            success = geneweaverdb.change_password(user.user_id, form['new_pass'])
+    	    return flask.render_template('accountsettings.html')
+
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
