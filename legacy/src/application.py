@@ -150,7 +150,7 @@ def send_mail(to, subject, body):
     print to, subject, body
     sendmail_location = "/usr/bin/mail" # sendmail location
     p = os.popen("%s -t" % sendmail_location, "w")
-    p.write("From: NoReply@geneweaver.org")
+    p.write("From: NoReply@geneweaver.org\n")
     p.write("To: %s\n" % to)
     p.write("Subject: %s\n" % subject)
     p.write("\n") # blank line separating headers from body
