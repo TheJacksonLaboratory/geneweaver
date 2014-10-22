@@ -33,7 +33,7 @@
 
 
 <div class="btn-group">
-  <button type="button" class="btn btn-default">Add New Project</button>
+  <button type="button" onclick="window.open('../../admin/newProject')" class="btn btn-default">Add New Project</button>
 </div>
 <p>
 

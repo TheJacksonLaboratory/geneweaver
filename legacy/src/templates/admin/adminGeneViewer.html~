@@ -11,11 +11,11 @@
 </script>
 
 
-<h3 align=left>Users</h3>
+<h3 align=left>Genes</h3>
 
 
 <div class="btn-group">
-  <button type="button" class="btn btn-default">Add New User</button>
+  <button type="button" onclick="window.open('../../admin/newGene')" class="btn btn-default">Add New Gene</button>
 </div>
 <p>
 <!--<div class="panel panel-default">-->

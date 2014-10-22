@@ -30,7 +30,7 @@
 <h3 align=left>Genesets</h3>
 
 <div class="btn-group">
-  <button type="button" class="btn btn-default">Add New Geneset</button>
+  <button type="button" onclick="window.open('../../admin/newGeneset')" class="btn btn-default">Add New Geneset</button>
 </div>
 
 <p>

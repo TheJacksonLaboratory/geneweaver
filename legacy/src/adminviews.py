@@ -2,6 +2,7 @@ from flask import Flask
 from flask.ext.admin import Admin, BaseView, expose, AdminIndexView
 import geneweaverdb
 import flask
+import json
 
 
 class Authentication(object):
@@ -19,25 +20,45 @@ class Viewers(Authentication, BaseView):
     @expose('/')
     def index(self):
         if self.endpoint == 'viewUsers':
-            return self.render('admin/adminUserViewer.html')
+            columns=[{'name': 'usr_email'}, {'name': 'usr_first_name'}, {'name': 'usr_last_seen'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newUser", table="production.usr")
+
         elif self.endpoint == 'viewPublications':
-            return self.render('admin/adminPublicationsViewer.html')
-        elif self.endpoint == 'viewGroups':
-	    the_groups = geneweaverdb.get_all_groups()
-            return self.render('admin/adminGroupViewer.html', the_groups=the_groups)
+            columns=[{'name': 'pub_title'}, {'name': 'pub_authors'}, {'name': 'pub_month'}, {'name': 'pub_year'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newPub", table="production.publication")
+
+        elif self.endpoint == 'viewGroups':	          
+	    columns=[{'name': 'grp_name'}, {'name': 'grp_private'}, {'name': 'grp_created'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGroup", table="production.grp")
+
 	elif self.endpoint == 'viewGenesets':
-            return self.render('admin/adminGenesetViewer.html')
+            columns=[{'name': 'gs_abbreviation'}, {'name': 'gs_name'}, {'name': 'gs_description'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneset", table="production.geneset")
+
 	elif self.endpoint == 'viewGenesetInfo':
-	    genesetsinfo = geneweaverdb.get_all_geneset_info()
-            return self.render('admin/adminGenesetInfoViewer.html', genesetsinfo=genesetsinfo)
+	    columns=[{'name': 'gs_id'}, {'name': 'gsi_analyses'}, {'name': 'gsi_pageviews'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGenesetInfo", table="production.geneset_info")
+
 	elif self.endpoint == 'viewGeneInfo':
-	    genesinfo = geneweaverdb.get_all_gene_info()
-            return self.render('admin/adminGeneInfoViewer.html', genesinfo=genesinfo)
+	    columns=[{'name': 'gi_name'}, {'name': 'gi_description'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneInfo", table="extsrc.gene_info")
+
 	elif self.endpoint == 'viewProjects':
-            return self.render('admin/adminProjectViewer.html')
+            columns=[{'name': 'pj_name'}, {'name': 'pj_groups'}, {'name': 'pj_created'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newProject", table="production.project")
+
 	elif self.endpoint == 'viewGenes':
-	    genes = geneweaverdb.get_all_genes()
-            return self.render('admin/adminGeneViewer.html', genes=genes)
+	    columns=[{'name': 'gdb_id'}, {'name': 'ode_date'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table="extsrc.gene")
+
  	else:
 	    return self.render('admin/adminindex.html')
 

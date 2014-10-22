@@ -30,7 +30,7 @@
       <div class="table-responsive">
 	<h3 align=left>Users</h3>
 	<div class="btn-group">
-  	   <button type="button" class="btn btn-default">Add New User</button>
+  	   <button type="button" onclick="window.open('../../admin/newUser')" class="btn btn-default">Add New User</button>
 	</div>
 	<p>
   	<table id="adminUserViewer" style="2" class="table table-striped" table border="1">  

@@ -32,7 +32,7 @@
 <h3 align=left>Publications</h3>
 
 <div class="btn-group">
-  <button type="button" class="btn btn-default">Add New Publication</button>
+  <button type="button" onclick="window.open('../../admin/newPub')" class="btn btn-default">Add New Publication</button>
 </div>
 <p>
 
@@ -46,14 +46,14 @@
 	<th style="text-align: left">Year</th>
       </tr>	
     </thead>
-    <thead>
+    <tfoot>
       <tr>
         <th style="text-align: left">Title</th>
         <th style="text-align: left">Authors</th>
         <th style="text-align: left">Month</th>
 	<th style="text-align: left">Year</th>
       </tr>	
-    </thead>
+    </tfoot>
   </table>
 </div>
 
