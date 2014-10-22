@@ -12,10 +12,12 @@
         <!-- the Analysis tools column -->
         <div class="col-md-4">
             <div class="page-header"><h2>Analysis Tools</h2></div>
+            <div class="panel-group" id="accordion">
 
             {% for tool in active_tools %}
                 {% include 'tool/' + tool.classname + '_options.html' %}
             {% endfor %}
+            </div>
         </div>
 
         <!-- the projects column -->
