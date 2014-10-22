@@ -473,7 +473,7 @@ def reset_password(user_email):
     print get_user_byemail(user_email)
     return new_password
 
-def change_password(user_email, new_password):
+def change_password(user_id, new_password):
     """
     Update a user password
     :param user_email:      the user's email address, if not provided use "" as default
@@ -486,7 +486,7 @@ def change_password(user_email, new_password):
         cursor.execute(
             '''UPDATE usr
                SET usr_password = %s
-               WHERE usr_email = %s''', (password_md5, user_email)
+               WHERE usr_id = %s''', (password_md5, user_id)
         )
         cursor.connection.commit()
     return

@@ -273,13 +273,11 @@ def reset_password():
 @app.route('/accountsettings.html', methods=['GET', 'POST'])
 def change_password():
     form = flask.request.form
-    print user.user_email
-    print flask.session.get('user_id')
-    if user is None:
-        return flask.render_template('index.html')
+    if form is None:
+        return flask.render_template('accountsettings.html')
     else:
-        success = geneweaverdb.change_password(user.user_email)
-        return flask.render_template('index.html')
+        success = geneweaverdb.change_password(flask.session.get('user_id'), form['new_pass'])
+    	return flask.render_template('accountsettings.html')
          
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
