@@ -270,6 +270,20 @@ def reset_password():
         send_mail(user.email, "Password Reset Request", "Your new temporary password is: " + new_password)
         return flask.render_template('index.html')
 
+@app.route('/accountsettings.html', methods=['GET', 'POST'])
+def change_password():
+    form = flask.request.form
+    if form is None:
+        return flask.render_template('accountsettings.html')
+    else:
+        user = geneweaverdb.get_user(flask.session.get('user_id'))
+
+        if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
+    	    return flask.render_template('accountsettings.html')
+        else:
+            success = geneweaverdb.change_password(user.user_id, form['new_pass'])
+    	    return flask.render_template('accountsettings.html')
+
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
