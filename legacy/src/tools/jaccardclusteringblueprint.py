@@ -72,6 +72,49 @@ def run_tool():
 
     return response
 
+@jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['POST'])
+def run_tool_api(apikey, homology, method, genesets):
+
+     # TODO need to check for read permissions on genesets
+	
+	user_id = gwdb.get_user_id_by_apikey(apikey)
+    # todo params
+
+    # pull out the selected geneset IDs
+    selected_geneset_ids = gensets.split(:)
+    if len(selected_geneset_ids) < 3:
+        # TODO add nice error message about missing genesets
+        raise Exception('There must be at least three genesets selected to run this tool')
+        
+
+    # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
+
+    # insert result for this run
+    
+    task_id = str(uuid.uuid4())
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
+    gwdb.insert_result(
+        user_id,
+        task_id,
+        selected_geneset_ids,
+        json.dumps(params),
+        tool.name,
+        desc,
+        desc)
+
+    async_result = tc.celery_app.send_task(
+        tc.fully_qualified_name(TOOL_CLASSNAME),
+        kwargs={
+            'gsids': selected_geneset_ids,
+            'output_prefix': task_id,
+            'params': params,
+        },
+        task_id=task_id)
+	#todo return file
+    return task_id
+
+
 @jaccardclustering_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
