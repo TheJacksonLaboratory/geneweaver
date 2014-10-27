@@ -355,28 +355,16 @@ def get_server_side(rargs):
  
         return response
 
-def get_all_groups():
+def get_table_columns(table):
     with PooledCursor() as cursor:
 	cursor.execute(
-	     '''SELECT * FROM production.grp limit 200;''')
+	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
 	return list(dictify_cursor(cursor))
 
-def get_all_genes():
+def admin_insert(columns, table):
     with PooledCursor() as cursor:
 	cursor.execute(
-	     '''SELECT * FROM extsrc.gene limit 200;''')
-	return list(dictify_cursor(cursor))
-
-def get_all_gene_info():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM extsrc.gene_info limit 200;''')
-	return list(dictify_cursor(cursor))
-
-def get_all_geneset_info():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.geneset_info limit 200;''')
+	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
 	return list(dictify_cursor(cursor))
 
 

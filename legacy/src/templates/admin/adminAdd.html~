@@ -1,0 +1,28 @@
+{% extends 'admin/master.html' %}
+
+{% block brand %}
+          <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
+{% endblock %}
+
+<script>
+    $(document).ready(function()  {   
+	String.prototype.capitalize = function() {
+    	    return this.charAt(0).toUpperCase() + this.slice(1);
+	}
+
+    });
+</script>
+
+{% block body %}
+<h3 align=left>Add {{toadd}}</h3>
+<p>
+<div>
+ {% for col in columns %}
+  <p>{{col.column_name.replace("_"," ").capitalize()}}</p>
+  <input id={{col.column_name.replace("_","")}} type="text" style="width:60%"></input>
+ {% endfor %}
+  <p><p>
+  <button id="add" type="button">--Add--</button>
+</div>
+
+{% endblock %}

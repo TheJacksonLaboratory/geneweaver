@@ -67,28 +67,28 @@ class Add(Authentication, BaseView):
     def index(self):
         if self.endpoint == 'newUser':
 	    columns = geneweaverdb.get_table_columns('usr')
-            return self.render('admin/add.html', columns=columns)
+            return self.render('admin/adminAdd.html', columns=columns, toadd="User")
         elif self.endpoint == 'newPub':
  	    columns = geneweaverdb.get_table_columns('publication')
-            return self.render('admin/add.html', columns=columns)
+            return self.render('admin/adminAdd.html', columns=columns, toadd="Publication")
         elif self.endpoint == 'newGeneset':
 	    columns = geneweaverdb.get_table_columns('geneset')
-	    return self.render('admin/add.html', columns=columns)
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset")
         elif self.endpoint == 'newProject':
 	    columns = geneweaverdb.get_table_columns('project')
-	    return self.render('admin/add.html', columns=columns)
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Project")
 	elif self.endpoint == 'newGene':
 	    columns = geneweaverdb.get_table_columns('gene')
-	    return self.render('admin/add.html', columns=columns)
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene")
 	elif self.endpoint == 'newGenesetInfo':
 	    columns = geneweaverdb.get_table_columns('geneset_info')
-	    return self.render('admin/add.html', columns=columns)
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset Info")
 	elif self.endpoint == 'newGeneInfo':
 	    columns = geneweaverdb.get_table_columns('gene_info')
-	    return self.render('admin/add.html', columns=columns)
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene Info")
 	elif self.endpoint == 'newGroup':
 	    columns = geneweaverdb.get_table_columns('grp')
-	    return self.render('admin/add.html', columns=columns)
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Group")
         else:
 	    return self.render('admin/adminindex.html')
 

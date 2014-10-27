@@ -295,28 +295,6 @@ def get_server_side(rargs):
     		else 'DESC NULLS LAST'
     order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
   
- 
-    # Filtering ("ac" is "all columns", "pc" is "per column")  <--- not used atm
-    ac_search = rargs.get('sSearch')
-    ac_like_exprs, ac_patterns, pc_like_exprs, pc_patterns = [], [], [], []
-    for i, col in enumerate(source_columns):
-        if rargs.get('bSearchable_%d' % i, type=strtobool):
-            like_expr = Template("$col LIKE %s").safe_substitute(dict(col=col))
-            if ac_search:
-    		ac_like_exprs.append(like_expr)
-    		ac_patterns.append('%' + ac_search + '%')
- 
-    	    pc_search = rargs.get('sSearch_%d' % i)
-    	    if pc_search:
-    		pc_like_exprs.append(like_expr)
-   		pc_patterns.append('%' + pc_search + '%')
- 
-    ac_subclause = '(%s)' % ' OR '.join(ac_like_exprs) if ac_search else ''
-    pc_subclause = ' AND '.join(pc_like_exprs)
-    subclause = ' AND '.join([ac_subclause, pc_subclause]) \
-    		if ac_subclause and pc_subclause \
-    		else ac_subclause or pc_subclause
-        	
     #joins all clauses together as a query
     where_clause = 'WHERE %s' % search_clause if search_clause else ''
     #print where_clause
@@ -361,28 +339,10 @@ def get_table_columns(table):
 	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
 	return list(dictify_cursor(cursor))
 
-def get_all_groups():
+def admin_insert(columns, table):
     with PooledCursor() as cursor:
 	cursor.execute(
-	     '''SELECT * FROM production.grp limit 200;''')
-	return list(dictify_cursor(cursor))
-
-def get_all_genes():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM extsrc.gene limit 200;''')
-	return list(dictify_cursor(cursor))
-
-def get_all_gene_info():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM extsrc.gene_info limit 200;''')
-	return list(dictify_cursor(cursor))
-
-def get_all_geneset_info():
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.geneset_info limit 200;''')
+	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
 	return list(dictify_cursor(cursor))
 
 

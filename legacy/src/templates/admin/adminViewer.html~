@@ -8,14 +8,12 @@
 	 var table = '{{table}}';
 	 var columns = {{jcolumns | safe}};
 
-	$('#example tbody').on( 'click', 'tr', function () {
-            if ( $(this).hasClass('selected') ) {
-               $(this).removeClass('selected');
-            }
-            else {
-                table.$('tr.selected').removeClass('selected');
-                $(this).addClass('selected');
-            }
+	String.prototype.capitalize = function() {
+    	    return this.charAt(0).toUpperCase() + this.slice(1);
+	}
+
+	$('#adminGroupViewer tbody').on( 'click', 'tr', function () {
+            
         });
           
         $('#adminGroupViewer').dataTable( {
@@ -36,7 +34,7 @@
 </script>
 
 
-<h3 align=left>Groups</h3>
+<h3 align=left>{{table.split(".")[1].replace("_"," ").capitalize()}}</h3>
 
 <div class="btn-group">
   <button type="button" onclick="window.location.href = '../../admin/{{route}}'" route class="btn btn-default">Add New Group</button>
@@ -47,14 +45,14 @@
     <thead>
       <tr>
 	{% for col in columns %}
-	    <th style="text-align: left">{{col.name}}</th>
+	    <th style="text-align: left">{{col.name.replace("_"," ").capitalize()}}</th>
 	{% endfor %}
       </tr>	
     </thead>
     <tbody>       
       <tr>
 	{% for col in columns %}
-	    <th style="text-align: left">{{col.name}}</th>
+	    <th style="text-align: left">{{col.name.replace("_"," ").capitalize()}}</th>
 	{% endfor %}
       </tr>
   </tbody>
