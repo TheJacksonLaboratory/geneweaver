@@ -4,11 +4,13 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
 <script id=viewer>
-    $(document).ready(function()  {
-	 var script_tag = document.getElementById('viewer');
-        
+    $(document).ready(function()  {        
 	 var table = '{{table}}';
 	 var columns = {{jcolumns | safe}};
+
+	$('#adminGroupViewer tbody').on( 'click', 'tr', function () {
+            
+        });
           
         $('#adminGroupViewer').dataTable( {
             "processing": true,
