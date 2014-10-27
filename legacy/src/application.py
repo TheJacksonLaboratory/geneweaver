@@ -235,6 +235,9 @@ def render_manage():
 def render_help():
     return flask.render_template('help.html')
 
+@app.route('/about.html')
+def render_about():
+    return flask.render_template('about.html')
 
 @app.route('/register.html', methods=['GET', 'POST'])
 def render_register():
