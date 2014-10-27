@@ -18,9 +18,9 @@ def run_tool():
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
-    if len(selected_geneset_ids) < 2:
+    if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
-        raise Exception('There must be at least two genesets selected to run this tool')
+        raise Exception('There must be at least three genesets selected to run this tool')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
