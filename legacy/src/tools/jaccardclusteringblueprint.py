@@ -72,16 +72,26 @@ def run_tool():
 
     return response
 
+
 @jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['POST'])
 def run_tool_api(apikey, homology, method, genesets):
-
-     # TODO need to check for read permissions on genesets
 	
-	user_id = gwdb.get_user_id_by_apikey(apikey)
-    # todo params
-
+    user_id = gwdb.get_user_id_by_apikey(apikey)
+    # TODO need to check for read permissions on genesets
+	
+    # gather the params into a dictionary
+    homology_str = 'Homology'
+    method_str = 'Method'
+    params = {homology_str: homology, method_str: method}
+    
+    # if they entered incorect options, assign them to defaults
+    if params[homology_str] != 'Excluded':
+    	params[homology_str] = 'Included'
+    if params[method_str] not in ['Ward', 'Single', 'Centroid', 'McQuitty', 'Average', 'Complete', 'Median']:
+    	params[method_str] = 'Ward'
+    	
     # pull out the selected geneset IDs
-    selected_geneset_ids = gensets.split(:)
+    selected_geneset_ids = gensets.split(":")
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
         raise Exception('There must be at least three genesets selected to run this tool')
@@ -111,7 +121,8 @@ def run_tool_api(apikey, homology, method, genesets):
             'params': params,
         },
         task_id=task_id)
-	#todo return file
+        
+	# TODO SOON return file istead of just name of file
     return task_id
 
 

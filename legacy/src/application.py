@@ -321,7 +321,7 @@ class GetGenesetByUser(restful.Resource):
 api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
 api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
 api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
-api.add_resource(GetGenesetById, '/api/get/geneset/byid/<genesetid>/')
+api.add_resource(GetGenesetById, '/api/get/geneset/bygenesetid/<genesetid>/')
 api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 
