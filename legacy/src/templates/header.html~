@@ -184,11 +184,8 @@
 
                     <!-- we show this span when there is a user logged in -->
                     <span id="valid-user-span"{% if "user" not in g %} style="display: none"{% endif %}>
-<<<<<<< HEAD
-                        Welcome <span id="user-name">{% if "user" in g %}{{ g.user.first_name|e }}{% endif %} </span>
-=======
+
                         Welcome <span id="user-name">{% if "user" in g %}{{ g.user.first_name|e }}{% endif %}</span>: <a href="{{ url_for('render_accountsettings')|safe }}">Account settings</a>
->>>>>>> origin/development
                         <button type='button' id="logout-button" class="btn btn-default">Logout</button>
 			<button type='button' id="account-button" class="btn btn-default">My Account</button>	
 			<!-- Admin page button, hides the button if the logged in user if not an admin -->
