@@ -32,6 +32,7 @@ def run_tool():
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
+
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     # insert result for this run
@@ -73,8 +74,8 @@ def run_tool():
     return response
 
 
-@jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['POST'])
-def run_tool_api(apikey, homology, method, genesets):
+@jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['GET'])
+def run_tool_api(apikey, homology, method, genesetsPassed):
 	
     user_id = gwdb.get_user_id_by_apikey(apikey)
     # TODO need to check for read permissions on genesets
@@ -82,16 +83,29 @@ def run_tool_api(apikey, homology, method, genesets):
     # gather the params into a dictionary
     homology_str = 'Homology'
     method_str = 'Method'
-    params = {homology_str: homology, method_str: method}
+    paramsAPI = {homology_str: None}
     
     # if they entered incorect options, assign them to defaults
-    if params[homology_str] != 'Excluded':
-    	params[homology_str] = 'Included'
-    if params[method_str] not in ['Ward', 'Single', 'Centroid', 'McQuitty', 'Average', 'Complete', 'Median']:
-    	params[method_str] = 'Ward'
+    #if paramsAPI[homology_str] != 'Excluded':
+    #	paramsAPI[homology_str] = 'Included'
+    #if paramsAPI[method_str] not in ['Ward', 'Single', 'Centroid', 'McQuitty', 'Average', 'Complete', 'Median']:
+	#paramsAPI[method_str] = "Ward"
+	
+
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        if tool_param.name.endswith('_' + method_str):
+		    paramsAPI[tool_param.name] = method
+        if tool_param.name.endswith('_' + homology_str):
+            paramsAPI[homology_str] = 'Excluded'
+            paramsAPI[tool_param.name] = 'Excluded'
+            if homology != 'Excluded':
+                paramsAPI[homology_str] = 'Included'
+                paramsAPI[tool_param.name] = 'Included'
+                
+    print(paramsAPI)
     	
     # pull out the selected geneset IDs
-    selected_geneset_ids = gensets.split(":")
+    selected_geneset_ids = genesetsPassed.split(":")
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
         raise Exception('There must be at least three genesets selected to run this tool')
@@ -108,7 +122,7 @@ def run_tool_api(apikey, homology, method, genesets):
         user_id,
         task_id,
         selected_geneset_ids,
-        json.dumps(params),
+        json.dumps(paramsAPI),
         tool.name,
         desc,
         desc)
@@ -118,7 +132,7 @@ def run_tool_api(apikey, homology, method, genesets):
         kwargs={
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
-            'params': params,
+            'params': paramsAPI,
         },
         task_id=task_id)
         
