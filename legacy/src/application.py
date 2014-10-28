@@ -7,12 +7,11 @@ import adminviews
 import genesetblueprint
 import geneweaverdb
 import json
-from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint
-from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint
-
-
+import os
+from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint
 
 app = flask.Flask(__name__)
+app.register_blueprint(abbablueprint.abba_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 app.register_blueprint(genesetviewerblueprint.geneset_viewer_blueprint)
@@ -166,6 +165,18 @@ def _form_login():
     flask.g.user = user
     return user
 
+def send_mail(to, subject, body):
+    print to, subject, body
+    sendmail_location = "/usr/bin/mail" # sendmail location
+    p = os.popen("%s -t" % sendmail_location, "w")
+    p.write("From: NoReply@geneweaver.org\n")
+    p.write("To: %s\n" % to)
+    p.write("Subject: %s\n" % subject)
+    p.write("\n") # blank line separating headers from body
+    p.write(body)
+    status = p.close()
+    if status != 0:
+        print "Sendmail exit status", status
 
 def _form_register():
     user = None
@@ -211,6 +222,17 @@ def render_analyze():
 def render_editgenesets():
     return flask.render_template('editgenesets.html')
 
+@app.route('/accountsettings.html')
+def render_accountsettings():
+    return flask.render_template('accountsettings.html')
+
+@app.route('/login.html')
+def render_login():
+    return flask.render_template('login.html')
+
+@app.route('/resetpassword.html')
+def render_forgotpass():
+    return flask.render_template('resetpassword.html')
 
 @app.route('/search.html')
 def render_search():
@@ -267,6 +289,10 @@ def render_help():
 def render_register():
     return flask.render_template('register.html')
 
+@app.route('/reset.html', methods=['GET', 'POST'])
+def render_reset():
+    return flask.render_template('reset.html')
+
 # render home if register is successful
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
@@ -282,6 +308,31 @@ def json_register_successful():
     flask.g.user = user
     return flask.render_template('index.html')
 
+@app.route('/reset_submit.html', methods=['GET', 'POST'])
+def reset_password():
+    form = flask.request.form
+    user = geneweaverdb.get_user_byemail(form['usr_email'])
+    if user is None:
+        return flask.render_template('reset.html', reset_failed=True)
+    else:
+        new_password = geneweaverdb.reset_password(user.email)
+        send_mail(user.email, "Password Reset Request", "Your new temporary password is: " + new_password)
+        return flask.render_template('index.html')
+
+@app.route('/accountsettings.html', methods=['GET', 'POST'])
+def change_password():
+    form = flask.request.form
+    if form is None:
+        return flask.render_template('accountsettings.html')
+    else:
+        user = geneweaverdb.get_user(flask.session.get('user_id'))
+
+        if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
+    	    return flask.render_template('accountsettings.html')
+        else:
+            success = geneweaverdb.change_password(user.user_id, form['new_pass'])
+    	    return flask.render_template('accountsettings.html')
+
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
@@ -295,11 +346,11 @@ def render_home():
 api = restful.Api(app)
 
 class GetGenesetsByGeneRefId(restful.Resource):
-    def get(self, gene_ref_id, gdb_name):
-        return geneweaverdb.get_genesets_by_gene_id(gene_ref_id, gdb_name, False)
+    def get(self, apikey, gene_ref_id, gdb_name):
+        return geneweaverdb.get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, False)
 class GetGenesetsByGeneRefIdHomology(restful.Resource):
-    def get(self, gene_ref_id, gdb_name):
-        return geneweaverdb.get_genesets_by_gene_id(gene_ref_id, gdb_name, True)
+    def get(self, apikey, gene_ref_id, gdb_name):
+        return geneweaverdb.get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, True)
 class GetGenesByGenesetId(restful.Resource):
     def get(self, genesetid):
         return geneweaverdb.get_geneset_by_id(genesetid)
@@ -309,12 +360,19 @@ class GetGeneByGeneId(restful.Resource):
 class GetGenesetById(restful.Resource):
     def get(self, genesetid):
         return geneweaverdb.get_geneset_by_id(genesetid)
+class GetGenesetByUser(restful.Resource):
+    def get(self, apikey):
+        return geneweaverdb.get_geneset_by_user(apikey)
 
-api.add_resource(GetGenesetsByGeneRefId, '/api/getgenesetbygenerefid/<gene_ref_id>/<gdb_name>/')
-api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/getgenesetbygenerefid/<gene_ref_id>/<gdb_name>/homology')
-api.add_resource(GetGenesByGenesetId, '/api/getgenesbygenesetid/<genesetid>/')
-api.add_resource(GetGeneByGeneId, '/api/getgenebygeneid/<geneid>/')
-api.add_resource(GetGenesetById, '/api/getgenesetbyid/<genesetid>/')
+api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
+api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
+api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
+api.add_resource(GetGenesetById, '/api/get/geneset/byid/<genesetid>/')
+api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
+api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
+
+# api.add_resource(GetGenesetByUser, '/api/tool/genesetveiwer/<apikey>/<params>/')
+
 if __name__ == '__main__':
     app.debug = True
     app.run()
