@@ -6,13 +6,13 @@
 
 
     <!-- JSON support for IE (needed to use JS API) -->
-    <script type="text/javascript" src="/js/cytoscape/json2.min.js"></script>
+    <script type="text/javascript" src="../../static/js/cytoscape/json2.min.js"></script>
     <!-- Flash embedding utility (needed to embed Cytoscape Web) -->
-    <script type="text/javascript" src="/js/cytoscape/AC_OETags.min.js"></script>
+    <script type="text/javascript" src="../../static/js/cytoscape/AC_OETags.min.js"></script>
     <!-- Cytoscape Web JS API (needed to reference org.cytoscapeweb.Visualization) -->
-    <script type="text/javascript" src="/js/cytoscape/cytoscapeweb.min.js"></script>
+    <script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
     <!-- Cytoscape settings and graph rendering for tool output -->
-    <script type="text/javascript" src="/js/cytoscape/PhenomeMap.js"></script>
+    <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
     <div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 400px; width: 95%; border-style: solid;">
         <br/>
         <br/>
@@ -24,7 +24,7 @@
     <!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
     <a id="viewSize" href="">Enlarge View</a> |
     <a href="/index.php?action=analyze&cmd=view&run={{async_result.res_runhash}}&viewType=svg">Static View</a> |
-    <a href="/index.php?action=analyze&cmd=convert&file={$result.res_runhash}.svg">Export Graph as a PDF</a>
+    <a href="/index.php?action=analyze&cmd=convert&file={async_result.res_runhash}.svg">Export Graph as a PDF</a>
     {% include 'tool/PhenomeMap_options.html' %}
 
 
@@ -41,10 +41,11 @@
     </div>
 
 
-<script>
-    {literal}
+
+<script type="text/javascript">
     function loadStats() {
-        var stats_url = '/results/' + $(async_result).parameters.output_prefix + '.el.profile';
+        var result = {{ async_result|tojson }};
+        var stats_url = '/results/' + result.parameters.output_prefix + '.el.profile';
         $.get(stats_url, function(data) {
             var lines = data.split('\n');
             lines = lines.slice(Math.max(lines.length - 8, 1), lines.length - 2);
@@ -67,7 +68,6 @@
             $('#stats').append(stats_table);
         });
     }
-    {/literal}
     // load statistics from file
     $(window).load(loadStats);
 </script>
