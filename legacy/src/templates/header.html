@@ -159,8 +159,8 @@
             <ul class="nav navbar-nav">
                 <li><a href="{{ url_for('render_editgenesets')|safe }}">Edit GeneSets</a></li>
                 <li><a href="{{ url_for('render_analyze')|safe }}">Analyze GeneSets</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Help</a></li>
+                <li><a href="{{ url_for('render_about')|safe }}">About</a></li>
+                <li><a href="{{ url_for('render_help')|safe }}">Help</a></li>
             </ul>
 
             <div id="loginpanel" class="nospace">
