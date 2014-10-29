@@ -314,9 +314,13 @@ class GetGenesetByUser(restful.Resource):
     def get(self, apikey):
         return geneweaverdb.get_geneset_by_user(apikey)
 # TODO format syntax       
+# error tooljaccardclustering not actually running
 class ToolJaccardClustering(restful.Resource):
     def get(self, apikey, homology, method, genesets):
         return jaccardclusteringblueprint.run_tool_api(apikey, homology, method, genesets)
+class ToolGenesetViewer(restful.Resource):
+    def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
+        return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
 
 api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
 api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
@@ -326,6 +330,7 @@ api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 
 api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
+api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
 
 if __name__ == '__main__':
     app.debug = True

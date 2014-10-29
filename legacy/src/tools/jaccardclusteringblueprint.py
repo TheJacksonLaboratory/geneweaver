@@ -82,19 +82,13 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
 	
     # gather the params into a dictionary
     homology_str = 'Homology'
-    method_str = 'Method'
     paramsAPI = {homology_str: None}
-    
-    # if they entered incorect options, assign them to defaults
-    #if paramsAPI[homology_str] != 'Excluded':
-    #	paramsAPI[homology_str] = 'Included'
-    #if paramsAPI[method_str] not in ['Ward', 'Single', 'Centroid', 'McQuitty', 'Average', 'Complete', 'Median']:
-	#paramsAPI[method_str] = "Ward"
-	
 
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        if tool_param.name.endswith('_' + method_str):
+        if tool_param.name.endswith('_' + 'Method'):
 		    paramsAPI[tool_param.name] = method
+		    if method not in ['Ward', 'Single', 'Centroid', 'McQuitty', 'Average', 'Complete', 'Median']:
+				paramsAPI[tool_param.name] = 'Ward'
         if tool_param.name.endswith('_' + homology_str):
             paramsAPI[homology_str] = 'Excluded'
             paramsAPI[tool_param.name] = 'Excluded'
