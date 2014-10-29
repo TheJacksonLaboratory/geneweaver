@@ -1,0 +1,8 @@
+
+{% block body %}
+
+ {% for c in columns %}
+  <p>{{c.column_name}}</p>
+ {% endfor %}
+
+{% endblock %}
