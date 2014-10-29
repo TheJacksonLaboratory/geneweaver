@@ -16,6 +16,12 @@ class AdminHome(Authentication, AdminIndexView):
     def index(self):
         return self.render('admin/adminindex.html')
 
+
+class Edit(Authentication, BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('admin/adminEdit.html')
+
 class Viewers(Authentication, BaseView):
     @expose('/')
     def index(self):

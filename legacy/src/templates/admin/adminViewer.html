@@ -1,3 +1,4 @@
+
 {% extends 'admin/AdminTemplateOverride.html' %}
 
 {% block body %}
@@ -12,11 +13,9 @@
     	    return this.charAt(0).toUpperCase() + this.slice(1);
 	}
 
-	$('#adminGroupViewer tbody').on( 'click', 'tr', function () {
-            
-        });
+	var lastIdx = null;
           
-        $('#adminGroupViewer').dataTable( {
+        var table = $('#adminViewer').dataTable( {
             "processing": true,
             "serverSide": true,
             "ajax": {
@@ -30,6 +29,10 @@
                 return nRow;
         },    	    
         });
+
+	$('#adminViewer tbody').on( 'click', 'tr', function () {
+            
+        });
     });
 </script>
 
@@ -40,8 +43,9 @@
   <button type="button" onclick="window.location.href = '../../admin/{{route}}'" route class="btn btn-default">Add New Group</button>
 </div>
 <p>
+
 <div class="table-responsive">
-  <table id="adminGroupViewer" style="2" class="table table-striped" table border="1">  
+  <table id="adminViewer" style="2" class="table table-striped" table border="1">  
     <thead>
       <tr>
 	{% for col in columns %}
@@ -49,13 +53,13 @@
 	{% endfor %}
       </tr>	
     </thead>
-    <tbody>       
+    <tfoot>       
       <tr>
 	{% for col in columns %}
 	    <th style="text-align: left">{{col.name.replace("_"," ").capitalize()}}</th>
 	{% endfor %}
       </tr>
-  </tbody>
+  </tfoot>
   </table>
 </div>
 

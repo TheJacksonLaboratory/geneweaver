@@ -53,7 +53,12 @@ admin.add_view(adminviews.Add(name='Gene', endpoint='newGene', category='Add'))
 admin.add_view(adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
 admin.add_view(adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
 
+
+admin.add_view(adminviews.Edit(endpoint='adminEdit'))
+
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
+
+
 
 
 #*************************************
