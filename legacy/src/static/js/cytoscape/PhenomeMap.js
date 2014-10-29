@@ -1,11 +1,8 @@
 // specify file to load with AJAX
-var params = { };
-var param_strings = location.search.substr(1).split('&');
-for(var p in param_strings) {
-    p = param_strings[p].split('=');
-    params[p[0]] = p[1]
-}
-var graph_url = '/results/' + params['run'] + '.graphml';
+var param_strings1 = location.pathname.substr(19);
+var param_strings = param_strings1.replace(".html", "")
+
+var graph_url = '/results/' + param_strings + '.graphml';
 var xml = '';
 $.get(graph_url, function(data) { xml=data; load_cytoscape(); });
 
@@ -49,83 +46,7 @@ $(document).ready(function() {
       });
 
 
-        //Display node labels on check
-        document.getElementById("showLabels").onchange = function(){
-            if( false == document.getElementById("showLabels").checked ){
-                vis.nodeLabelsVisible(false);
-                vis_style.nodes.size = 75;
-                vis.visualStyle( vis_style );
-            }
-            else{
-                vis.nodeLabelsVisible(true);
-                vis_style.nodes.size = "auto";
-                vis.visualStyle( vis_style );
-            }
-        }
 
-
-        //Remove Gene from Genes of interest
-        document.getElementById("deleteButton").onclick = function() {
-					opts = $('#geneList')[0].options;
-					todel = $('#geneList')[0].selectedIndex;
-					delete current_hi_genes[ opts[todel].value ];
-
-					updateGeneList();
-        }
-
-        //Gene of Interest Keypress shortcuts
-        document.getElementById("geneInput").onkeyup = function(e) {
-            var e = e || window.event;
-            if(e.keyCode == 13)
-                document.getElementById("addButton").click();
-        };
-
-        document.getElementById("geneList").onkeyup = function(e) {
-            var e = e || window.event;
-            if(e.keyCode == 46)
-                document.getElementById("deleteButton").click();
-        };
-
-
-        //Key Up/Down Events **
-        document.getElementById(div_id).onkeydown = function(e){
-            var e = e || window.event;
-
-            //shift
-            if( e.keyCode == 16 ){
-                if (augment > 0){
-                    augment *= -1;
-                }
-            }
-            //alt
-            else if( e.keyCode == 18 ){
-                vis.panEnabled( true );
-            }
-        }
-
-        document.getElementById(div_id).onkeyup = function(e){
-            var e = e || window.event;
-
-            //shift
-            if( e.keyCode == 16 ){
-                if(augment < 0){
-                    augment *= -1;
-                }
-            }
-            //alt
-            else if( e.keyCode == 18 ){
-                vis.panEnabled( false );
-            }
-        }
-
-        //download graph as file
-        document.getElementById("export").onclick = function() {
-            var typeList = document.getElementById("fileType");
-            var type = typeList.options[typeList.selectedIndex].value;
-            var fname = document.getElementById("outFileName").value;
-            fname = (fname==''?'PhenomeMap':fname);
-            vis.exportNetwork(type, 'index.php?action=analyze&cmd=cytoscapefile&file='+type+'&fname='+fname);
-        }
 });
 
 function load_cytoscape() {
@@ -185,9 +106,9 @@ function load_cytoscape() {
 
     var options = {
         // where you have the Cytoscape Web SWF
-        swfPath: "swf/CytoscapeWeb",
+        swfPath: "../../static/js/CytoscapeWeb",
         // where you have the Flash installer SWF
-        flashInstallerPath: "swf/playerProductInstall"
+        flashInstallerPath: "../../static/js/playerProductInstall"
     };
 
 
