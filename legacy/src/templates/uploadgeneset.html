@@ -3,461 +3,176 @@
 {% import 'macros.html' as macros %}
 
 <div class="page-header">
-    <h1>{{ title }}</h1>
+    <h1>Upload Geneset</h1>
 </div>
-
 <p>
-    Use this form to upload your GeneSet data to GeneWeaver. As part of the upload process you will be able to decide
-    if your GeneSet data should be publicly accessible or private. Please note that required fields will be marked by an
-    asterisk (*).
+    Use this page to upload a geneset.<br>A * indicates required fields.
 </p>
 
-<div class="page-header">
-    <h2>GeneSet Metadata</h2>
-</div>
-
-<p>
-    Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our
-    curation team or, in the case of private data, maximum integration into the existing GeneWeaver
-    dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our
-    <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
-</p>
-
-<form id="geneuploadform" class="form-horizontal" role="form">
-    <div class="form-group">
-        <label for="gs_name" class="col-md-3 control-label">GeneSet Name&nbsp;(*):</label>
-
-        <div class="col-md-6">
-            <input
-                    class="form-control tooltip-enabled"
-                    type="text"
-                    name="gs_name"
-                    id="gs_name"
-                    placeholder="Eg: TODO GET EXAMPLE TITLE"
-                    data-toggle="tooltip"
-                    data-html="true"
-                    title="This name is displayed on most pages and listings, such as search results. Use a brief description that would fit into this statement:&lt;br /&gt; &lt;i&gt; &#34;This data represents &amp;lt;GeneSet Name&amp;gt;&#34;&lt;i&gt;"/>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="gs_abbreviation" class="col-md-3 control-label">GeneSet Figure Label&nbsp;(*):</label>
-
-        <div class="col-md-6">
-            <input
-                    class="form-control tooltip-enabled"
-                    type="text"
-                    name="gs_abbreviation"
-                    id="gs_abbreviation"
-                    placeholder="Eg: TODO GET EXAMPLE ABBREV"
-                    title="This label is displayed on most images and figures produced by tools when space is at a premium. Use standard acronyms and abbreviations as necessary, but keep it short and unique to distinguish sets."/>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="gs_description" class="col-md-3 control-label">GeneSet Description&nbsp;(*):</label>
-
-        <div class="col-md-6">
-            <textarea
-                    class="form-control tooltip-enabled"
-                    name="gs_description"
-                    id="gs_description"
-                    rows="6"
-                    title="A description of the data, including (but not limitied to) population, tissue, protocol, assay type, etc."></textarea>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="gs_groups_sel" class="col-md-3 control-label">Access Restrictions&nbsp;(*):</label>
-
-        <div class="col-md-6">
-            <div class="radio">
-                <label>
-                    <input type="radio" name="optionsRadios" id="optionsRadios1" value="option1" checked>
-                    public (gives everyone access to this GeneSet)
-                </label>
-            </div>
-            <div class="radio">
-                <label>
-                    <input type="radio" name="optionsRadios" id="optionsRadios2" value="option2">
-                    restricted (only you and any groups you select below will have access)
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <div class="page-header">
-        <h2>Reference Info</h2>
-    </div>
-
+<form>
+    <h2>Geneset Metadata</h2>
     <p>
-        If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically
-        fill in the publication info, otherwise you may manually enter publication information. Providing this will
-        allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and
-        streamline our curation efforts.
+        Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
     </p>
 
-    <div id="pubmed_row" class="form-group">
-        <label for="pub_pubmed" class="col-md-3 control-label">PubMed:</label>
-
-        <div class="col-md-6">
-            <div class="input-group">
-                <input type="text" class="form-control" id="pub_pubmed" placeholder="Eg: 21734011">
-                <span class="input-group-btn">
-                    <button id="loadpubmedbtn" class="btn btn-default" type="button">Load Reference Info</button>
-                </span>
-            </div>
+    <div class="row">
+        <div class="col-md-2">
+            GeneSet Name*:
         </div>
-    </div>
-
-    <div class="form-group">
-        <div class="col-md-offset-3 col-md-2" data-toggle="buttons">
-            <label id="manualpubmedbtn" class="btn btn-default">
-                <input id="manualpubmedcheckbox" type="checkbox">
-                <span class="glyphicon glyphicon-edit"></span> Edit Reference Info Manually ...
-            </label>
+        <div class="col-md-4">
+            <input type="text" name="gs_name">
         </div>
-    </div>
-
-    <div id="ref-info-panel" class="nospace collapse">
-        <div class="form-group">
-            <label for="pub_title" class="col-md-3 control-label">Title:</label>
-
-            <div class="col-md-6">
-                <input class="form-control" type="text" name="pub_title" id="pub_title" placeholder="Eg: Genetic analysis in the Collaborative Cross breeding population"/>
-            </div>
+    </div><br>
+    <div class="row">
+        <div class="col-md-2">
+            GeneSet Figure Label*:
         </div>
-
-        <div class="form-group">
-            <label for="pub_authors" class="col-md-3 control-label">Authors:</label>
-
-            <div class="col-md-6">
-                <input class="form-control" type="text" name="pub_authors" id="pub_authors"/>
-            </div>
+        <div class="col-md-4">
+            <input type="text" name="gs_abbreviation">
         </div>
-
-        <div class="form-group">
-            <label for="pub_abstract" class="col-md-3 control-label">Abstract:</label>
-
-            <div class="col-md-6">
-                <textarea class="form-control" name="pub_abstract" id="pub_abstract" rows="6"></textarea>
-            </div>
+    </div><br>
+    <div class="row">
+        <div class="col-md-2">
+            GeneSet Description*:
         </div>
-
-        <div class="form-group">
-            <label for="pub_journal" class="col-md-3 control-label">Journal:</label>
-
-            <div class="col-md-6">
-                <input class="form-control" type="text" name="pub_journal" id="pub_journal"/>
-            </div>
+        <div class="col-md-4">
+            <input type="text" name="gs_description">
         </div>
-
-        <div class="form-group">
-            <label for="pub_volume" class="col-md-3 control-label">Volume/Pages:</label>
-
-            <div class="col-md-2">
-                <input class="form-control" type="text" name="pub_volume" id="pub_volume"/>
-            </div>
-
-            <div class="col-md-2">
-                <input class="form-control" type="text" name="pub_pages" id="pub_pages"/>
-            </div>
+    </div><br>
+    <div class="row">
+        <div class="col-md-2">
+            Access Restrictions*:
         </div>
-
-        <div class="form-group">
-            <label for="pub_month" class="col-md-3 control-label">Month/Year:</label>
-
-            <div class="col-md-2">
-                <input class="form-control" type="text" name="pub_month" id="pub_month"/>
-            </div>
-            <div class="col-md-2">
-                <input class="form-control" type="text" name="pub_year" id="pub_year"/>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="page-header">
-        <h2>Gene List</h2>
-    </div>
-
-    <p>Provide a list of genes to associate with the descriptive info from above.</p>
-
-    <div class="form-group">
-        <label for="file_text" class="col-md-3 control-label">Input Gene List (*):</label>
-
-        <div class="col-md-6">
-            <textarea class="form-control" name="file_text" id="file_text" rows="20"></textarea>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="sp_id" class="col-md-3 control-label">Species/ID Kind (*):</label>
-
-        <div class="col-md-3">
-            <select
-                    class="form-control tooltip-enabled"
-                    id="sp_id"
-                    name="sp_id"
-                    title="The species that the gene identifiers are coming from.">
-                {% for sp_key, sp_value in all_species.iteritems() %}
-                    <option value="{{ sp_key }}">{% if sp_value %}{{ sp_value }}{% else %}-- please select --{% endif %}</option>
-                {% endfor %}
+        <div class="col-xs-4">
+            <select class="form-control">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
             </select>
         </div>
+    </div><br>
 
-        <div class="col-md-3">
-            <select
-                    class="form-control tooltip-enabled"
-                    id="gs_gene_id_type"
-                    name="gs_gene_id_type"
-                    title="The gene identifier source database.">
-                <option value="0">-- please select --</option>
-                {{ macros.nested_html_options(gidts) }}
+    <h2>Reference Info</h2>
+    <p>
+        If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
+    </p>
+
+    <div class="row">
+        <div class="col-md-2">
+            PubMed ID:
+        </div>
+        <div class="col-md-4">
+            <input type="text" name="pub_pubmed">
+        </div>
+    </div><br>
+    <button class="btn bg-blue">Manual Entry</button><br><br>
+
+    <h2>Gene List</h2>
+    <p>
+        Provide a list of genes to associate with the descriptive info from above.
+    </p>
+    <div class="row">
+        <div class="col-md-2">
+            Species:
+        </div>
+        <div class="col-xs-6 col-sm-4">
+            <select class="form-control" name="sp_id">
+                <option label="-- Please Select --" value="0"></option>     
+                <option label="Mus musculus" value="1"></option>        
+                <option label="Homo sapiens" value="2"></option>        
+                <option label="Rattus norvegicus" value="3"></option>       
+                <option label="Danio rerio" value="4"></option>     
+                <option label="Drosophila melanogaster" value="5"></option>     
+                <option label="Macaca mulatta" value="6"></option>      
+                <option label="Caenorhabditis elegans" value="8"></option>      
+                <option label="Saccharomyces cerevisiae" value="9"></option>        
+                <option label="Gallus gallus" value="10"></option>      
             </select>
         </div>
-    </div>
-
-    <div class="form-group">
-        <div class="col-md-offset-3 col-md-3">
-            <button id="gs_upload_submit" class="btn btn-default" type="submit" value="Upload GeneSet">
-                Upload GeneSet
-            </button>
+    </div><br>
+    <div class="row">
+        <div class="col-md-2">
+            Gene Identifiers:
         </div>
-    </div>
+        <div class="col-xs-6 col-sm-4">
+            <select class="form-control">
+                <option value="0">-- Auto-detect --</option>
+                <option label="Entrez" value="-1">Entrez</option>
+                <option label="Ensembl Gene" value="-2">Ensembl Gene</option>
+                <option label="Ensembl Protein" value="-3">Ensembl Protein</option>
+                <option label="Ensembl Transcript" value="-4">Ensembl Transcript</option>
+                <option label="Unigene" value="-5">Unigene</option>
+                <option label="Gene Symbol" value="-7" selected="selected">Gene Symbol</option>
+                <option label="Unannotated" value="-8">Unannotated</option>
+                <option label="MGI" value="-10">MGI</option>
+                <option label="HGNC" value="-11">HGNC</option>
+                <option label="RGD" value="-12">RGD</option>
+                <option label="ZFIN" value="-13">ZFIN</option>
+                <option label="FlyBase" value="-14">FlyBase</option>
+                <option label="Wormbase" value="-15">Wormbase</option>
+                <option label="SGD" value="-16">SGD</option>
+                <option label="miRBase" value="-17">miRBase</option>
+                <optgroup label="MicroArrays">
+                    <option label="Affymetrix C. elegans Genome Array" value="88">Affymetrix C. elegans Genome Array</option>
+                    <option label="Affymetrix Drosophila Genome 2.0" value="79">Affymetrix Drosophila Genome 2.0</option>
+                    <option label="Affymetrix HT Human Genome U133A" value="22">Affymetrix HT Human Genome U133A</option>
+                    <option label="Affymetrix Human 35K Set" value="74">Affymetrix Human 35K Set</option>
+                    <option label="Affymetrix Human 35K SubA" value="4">Affymetrix Human 35K SubA</option>
+                    <option label="Affymetrix Human 35K SubB" value="5">Affymetrix Human 35K SubB</option>
+                    <option label="Affymetrix Human 35K SubC" value="6">Affymetrix Human 35K SubC</option>
+                    <option label="Affymetrix Human 35K SubD" value="7">Affymetrix Human 35K SubD</option>
+                    <option label="Affymetrix Human Genome U133A" value="11">Affymetrix Human Genome U133A</option>
+                    <option label="Affymetrix Human Genome U133A 2.0" value="18">Affymetrix Human Genome U133A 2.0</option>
+                    <option label="Affymetrix Human Genome U133B" value="12">Affymetrix Human Genome U133B</option>
+                    <option label="Affymetrix Human Genome U133 Plus 2.0" value="17">Affymetrix Human Genome U133 Plus 2.0</option>
+                    <option label="Affymetrix Human Genome U133 Set" value="72">Affymetrix Human Genome U133 Set</option>
+                    <option label="Affymetrix Human HG-Focus Target" value="23">Affymetrix Human HG-Focus Target</option>
+                    <option label="Affymetrix Mouse Exon 1.0 ST" value="78">Affymetrix Mouse Exon 1.0 ST</option>
+                    <option label="Affymetrix Mouse Expression 430A" value="13">Affymetrix Mouse Expression 430A</option>
+                    <option label="Affymetrix Mouse Expression 430B" value="14">Affymetrix Mouse Expression 430B</option>
+                    <option label="Affymetrix Mouse Expression 430 Set" value="71">Affymetrix Mouse Expression 430 Set</option>
+                    <option label="Affymetrix Mouse Gene 1.0 ST Array" value="91">Affymetrix Mouse Gene 1.0 ST Array</option>
+                    <option label="Affymetrix Mouse Genome 430 2.0" value="19">Affymetrix Mouse Genome 430 2.0</option>
+                    <option label="Affymetrix Mouse Genome 430A 2.0" value="20">Affymetrix Mouse Genome 430A 2.0</option>
+                    <option label="Affymetrix Murine 11K Set" value="76">Affymetrix Murine 11K Set</option>
+                    <option label="Affymetrix Murine 11K SubA" value="24">Affymetrix Murine 11K SubA</option>
+                    <option label="Affymetrix Murine 11K SubB" value="25">Affymetrix Murine 11K SubB</option>
+                    <option label="Affymetrix Murine Genome U74A" value="1">Affymetrix Murine Genome U74A</option>
+                    <option label="Affymetrix Murine Genome U74B" value="2">Affymetrix Murine Genome U74B</option>
+                    <option label="Affymetrix Murine Genome U74C" value="3">Affymetrix Murine Genome U74C</option>
+                    <option label="Affymetrix Murine Genome U74 Set" value="75">Affymetrix Murine Genome U74 Set</option>
+                    <option label="Affymetrix Murine Genome U74 Version 2" value="9">Affymetrix Murine Genome U74 Version 2</option>
+                    <option label="Affymetrix Murine Genome U74 Version 2" value="10">Affymetrix Murine Genome U74 Version 2</option>
+                    <option label="Affymetrix Murine Genome U74 Version 2" value="8">Affymetrix Murine Genome U74 Version 2</option>
+                    <option label="Affymetrix Murine Genome U74 Version 2 Set" value="70">Affymetrix Murine Genome U74 Version 2 Set</option>
+                    <option label="Affymetrix Rat Exon 1.0 ST" value="80">Affymetrix Rat Exon 1.0 ST</option>
+                    <option label="Affymetrix Rat Expression 230A" value="15">Affymetrix Rat Expression 230A</option>
+                    <option label="Affymetrix Rat Expression 230B" value="16">Affymetrix Rat Expression 230B</option>
+                    <option label="Affymetrix Rat Expression 230 Set" value="73">Affymetrix Rat Expression 230 Set</option>
+                    <option label="Affymetrix Rat Genome 230 2.0" value="21">Affymetrix Rat Genome 230 2.0</option>
+                    <option label="Affymetrix Rhesus Macaque Genome" value="48">Affymetrix Rhesus Macaque Genome</option>
+                    <option label="Affymetrix Yeast Genome 2.0 Array" value="90">Affymetrix Yeast Genome 2.0 Array</option>
+                    <option label="Affymetrix Yeast Genome S98 Array" value="89">Affymetrix Yeast Genome S98 Array</option>
+                    <option label="Affymetrix Zebrafish Genome" value="87">Affymetrix Zebrafish Genome</option>
+                    <option label="Agilent Mouse G4121A (Toxicogenomics)" value="81">Agilent Mouse G4121A (Toxicogenomics)</option>
+                    <option label="Agilent Mouse Whole Genome G4122F" value="26">Agilent Mouse Whole Genome G4122F</option>
+                    <option label="Illumina Human-6 v2.0" value="85">Illumina Human-6 v2.0</option>
+                    <option label="Illumina MouseRef-8 v2.0" value="84">Illumina MouseRef-8 v2.0</option>
+                    <option label="Illumina MouseWG-6 v1.1" value="83">Illumina MouseWG-6 v1.1</option>
+                    <option label="Illumina MouseWG-6 v2.0" value="82">Illumina MouseWG-6 v2.0</option>
+                </optgroup>
+            </select>
+        </div>
+    </div><br>
+    <div class="row">
+        <div class="col-md-2">
+            Input Gene List*:
+        </div>
+        <div class="col-md-4">
+            Have a text file already handy? <a href="">Switch to file upload</a><br>
+            <textarea name="file_text"></textarea>
+        </div>
+    </div><br>
+    <button class="btn bg-blue">Save Changes</button>
 </form>
-
-<script type="text/javascript">
-
-    $(document).ready(function () {
-
-        var gs_upload_submitBtn = $('#gs_upload_submit');
-
-        ODE.toggle('.pub_field');
-
-        var loadPubmedBtn = $('#loadpubmedbtn');
-        var loadPubmedBtnTxt = loadPubmedBtn.text();
-        loadPubmedBtn.click(loadPubmedData);
-
-        var pubmedTxtInput = $('#pub_pubmed');
-        pubmedTxtInput.change(loadPubmedData);
-
-        var manualPubmedBtn = $('#manualpubmedbtn');
-        var manualPubmedCheckbox = $('#manualpubmedcheckbox');
-        manualPubmedCheckbox.change(updateRefInfo);
-        var refInfoPanel = $('#ref-info-panel');
-
-
-        var activePubmedAjaxRequest = null;
-        var activePubmedID = null;
-        function loadPubmedData() {
-            var pubmedID = pubmedTxtInput.val();
-            pubmedID = pubmedID.trim();
-            if(pubmedID) {
-                // if the pubmedID matches the active one we have nothing to do
-                if(pubmedID !== activePubmedID) {
-                    // update the active ID & request and if there is already an active request abort it
-                    if(activePubmedAjaxRequest !== null) {
-                        activePubmedAjaxRequest.abort();
-                    }
-                    activePubmedAjaxRequest = null;
-                    activePubmedID = pubmedID;
-
-                    loadPubmedBtn.empty();
-                    loadPubmedBtn.append('<span class="fa fa-spinner fa-spin"></span> ' + loadPubmedBtnTxt);
-                    function doneLoading() {
-                        activePubmedAjaxRequest = null;
-                        activePubmedID = null;
-
-                        loadPubmedBtn.empty();
-                        loadPubmedBtn.text(loadPubmedBtnTxt);
-                    }
-
-                    activePubmedAjaxRequest = $.ajax({
-                        dataType: "json",
-                        url: "pubmed_info/" + pubmedID + ".json",
-                        success: function (data) {
-                            doneLoading();
-
-                            // if the ref info panel is not already expanded do it now
-                            if (!manualPubmedCheckbox.prop('checked')) {
-                                manualPubmedBtn.button('toggle');
-                                updateRefInfo();
-                            }
-
-                            $('#pub_title').val(data['title']);
-                            $('#pub_authors').val(data['authors']);
-                            $('#pub_abstract').val(data['abstract']);
-                            $('#pub_journal').val(data['journal']);
-                            $('#pub_volume').val(data['volume']);
-                            $('#pub_pages').val(data['pages']);
-                            $('#pub_month').val(data['pub_month']);
-                            $('#pub_year').val(data['pub_year']);
-                        },
-                        error: function () {
-                            doneLoading();
-                            errAfterPubmedID('failed to load data for: ' + pubmedID);
-                        }
-                    });
-                }
-            } else {
-                if(activePubmedAjaxRequest !== null) {
-                    activePubmedAjaxRequest.abort();
-                }
-                activePubmedAjaxRequest = null;
-                activePubmedID = null;
-                errAfterPubmedID(
-                        'you must either enter a pubmed ID to load reference info or use the ' +
-                        '"Edit Reference Info Manually ..." to directly edit the reference info');
-            }
-        }
-
-        function updateRefInfo() {
-            refInfoPanel.collapse(manualPubmedCheckbox.prop('checked') ? 'show' : 'hide');
-        }
-
-        function errAfterPubmedID(errMsg) {
-            $('#pubmed_row').after(
-                '<div class="row">' +
-                    '<div class="col-md-offset-3 col-md-6">' +
-                        '<div class="alert alert-danger alert-dismissable">' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-                            escapeHtml(errMsg) +
-                        '</div>' +
-                    '</div>' +
-                '</div>');
-        }
-
-        /////////////////////////////////
-        // Gene list ID kind inference //
-        /////////////////////////////////
-
-        var fileTextBox = $('#file_text');
-        fileTextBox.on('keydown', function (e) {
-            var keyCode = e.keyCode || e.which;
-            if (keyCode == 9) {
-                e.preventDefault();
-
-                if (document.selection) {
-                    this.focus();
-                    document.selection.createRange().text = '\t';
-                } else if (this.selectionStart || this.selectionStart == '0') {
-                    var s = this.selectionStart;
-                    var e = this.selectionEnd;
-                    var scr = this.scrollTop;
-
-                    this.value = this.value.substring(0, s) + '\t' + this.value.substring(e);
-
-                    this.selectionStart = s + 1;
-                    this.selectionEnd = s + 1;
-
-                    if (scr) this.scrollTop = scr;
-                } else {
-                    this.value += '\t';
-                }
-            }
-
-            maybeInferIDKind();
-        });
-
-        var idKindAlreadyChanged = false;
-        fileTextBox.change(maybeInferIDKind);
-
-        var spIDDropDown = $('#sp_id');
-        spIDDropDown.change(function() {
-            idKindAlreadyChanged = true;
-        });
-        var gsGeneIDDropDown = $('#gs_gene_id_type');
-        gsGeneIDDropDown.change(function() {
-            idKindAlreadyChanged = true;
-        });
-
-        // at intervals check if we're ready to infer ID kind
-        var infIntervalID = setInterval(maybeInferIDKind, 200);
-
-        // We hard code an arbitrary minimum number of lines before we'll try to
-        // infer ID kind and we have a maximum for performance reasons
-        var minInferenceLineCount = 5;
-        var maxInferenceLineCount = 20;
-
-        var prevFileText = null;
-
-        /**
-         * This function will send an AJAX request to guess (infer) what kind
-         * of IDs the user is entering as long as the ID kind has not been
-         * selected and there are enough lines of data to make a reasonable
-         * guess.
-         */
-        function maybeInferIDKind() {
-            if(idKindAlreadyChanged) {
-                // If either the user has already set the ID kind or if the
-                // inference has already been done we don't want to override
-                // that so instead we do nothing.
-                return;
-            }
-
-            // we break the input text into lines so that we can pop off the
-            // last line (prevents us from sending an unfinished last line)
-            // as well as limiting what we send using the min/max inference
-            // count hard-coded values
-            var fileText = fileTextBox.val();
-            if(fileText.length == 0 || fileText == prevFileText) {
-                return;
-            }
-            prevFileText = fileText;
-            var fileLines = fileText.split(/\r\n|\n|\r/);
-            fileLines.pop();
-            if(fileLines.length < minInferenceLineCount) {
-                return;
-            }
-            if(fileLines.length > maxInferenceLineCount) {
-                fileLines.length = maxInferenceLineCount;
-            }
-
-            fileText = fileLines.join('\n');
-            console.log('sending file text:');
-            console.log(fileText);
-            $.ajax({
-                type: 'POST',
-                url: 'inferidkind.json',
-                data: {
-                    file_text: fileText
-                },
-                success: function(data) {
-                    console.log(data);
-                    if(data.most_successfull_id_kinds.length >= 1) {
-                        var firstIDKind = data.most_successfull_id_kinds[0];
-                        spIDDropDown.val(firstIDKind.species_id);
-                        gsGeneIDDropDown.val(firstIDKind.source_id);
-                    }
-                },
-                error: function() {
-                    console.log('inference failure occured. Ignoring for now');
-                }
-            });
-
-            idKindAlreadyChanged = true;
-            clearInterval(infIntervalID);
-            prevFileText = null;
-        }
-
-        $('#geneuploadform').submit(function(evt) {
-            var text = fileTextBox.val();
-            if(text) {
-                console.log(text);
-            } else {
-                evt.preventDefault();
-            }
-        });
-
-        // enable tooltips on anything with a class "tooltip-enabled"
-        $('.tooltip-enabled').tooltip({
-            animation: false
-        });
-    });
-
-</script>
-<br/>
-<br/>
 
 {% include 'footer.html' %}

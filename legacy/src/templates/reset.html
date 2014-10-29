@@ -1,0 +1,36 @@
+{% include 'header.html' %}
+<div class="container" id="login-block">
+    <div class="row">
+        <div class="col-sm-6 col-md-4 col-sm-offset-3 col-md-offset-4">
+            <div class="login-box clearfix animated flipInY">
+                <!-- <div class="page-icon animated bounceInDown">
+                    <img src="assets/img/account/login-questionmark-icon.png" alt="Questionmark icon">
+                </div> -->
+                <div class="login-logo">
+                    <a href="#">
+                        <img class="img-responsive" src="static/images/gw-oldlogo.png" alt="Company Logo">
+                    </a>
+                </div>
+                <hr>
+                <div class="login-form">
+                    <!-- BEGIN ERROR BOX -->
+                    <div class="alert alert-danger hide">
+                        <button type="button" class="close" data-dismiss="alert">×</button>
+                        <h4>Error!</h4>
+                        Your Error Message goes here
+                    </div>
+                    <!-- END ERROR BOX -->
+                    <form method="post" action="{{url_for('reset_password')}}">
+                        <p style="color:#FFF">Enter your email address below and we'll send a new password to your inbox.</p>
+                        <input id="usr_email" name="usr_email" type="email" class="form-control" placeholder="E-mail">
+                        <button type="submit" class="btn btn-login btn-reset">Reset password</button>
+                    </form>
+                    <div class="login-links">
+                        <a href="register.html"> Don't have an account? <strong>Sign Up</strong></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'footer.html' %}
