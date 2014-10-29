@@ -1,0 +1,126 @@
+{% set title="Edit Genesets" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header">
+	<h1>Account and Groups</h1>
+</div>
+
+<div class="row">
+	<div class="col-md-6">
+		<div class="panel panel-primary">
+			<div class="panel-heading">
+				<h2 class="panel-title">Manage Groups</h2>
+			</div>
+			<div class="panel-body">
+				<div class="panel panel-info">
+					<div class="panel-heading">
+						<div class="row">
+							<div class="col-xs-6">
+								Group Name
+							</div>
+							<div class="col-xs-6">
+								Actions
+							</div>
+						</div>
+					</div>
+					<div class="panel-body">
+						<form>
+							<div class="row">
+								<div class="col-xs-2">
+									Group:
+								</div>
+								<div class="col-xs-4">
+									<input type="text" name="group_name">
+								</div>
+								<div class="col-xs-3">
+									<button class="btn btn-primary">Join</button>
+								</div>
+								<div class="col-xs-3">
+									<button class="btn btn-primary">Create</button>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-6">
+		<div class="panel panel-primary">
+			<div class="panel-heading">
+				<h2 class="panel-title">Update Account</h2>
+			</div>
+			<div class="panel-body">
+				<form>
+					<div class="row">
+						<div class="col-md-4">
+							Name:
+						</div>
+						<div class="col-md-8">
+							<input type="text" name="username">
+						</div>
+					</div><br>
+					<div class="row">
+						<div class="col-md-4">
+							Email:
+						</div>
+						<div class="col-md-8">
+							<input type="text" name="email">
+						</div>
+					</div><br>
+					<button class="btn bg-blue">Save Changes</button><br><br>
+				</form>
+
+				<h4 class="section-header">Change Password</h4><hr>
+				<form method="post" action="{{url_for('change_password')}}">
+					<div class="row">
+						<div class="col-md-4">
+							Current Password:
+						</div>
+						<div class="col-md-8">
+							<input type="password" name="curr_pass">
+						</div>
+					</div><br>
+					<div class="row">
+						<div class="col-md-4">
+							New Password:
+						</div>
+						<div class="col-md-8">
+							<input type="password" name="new_pass" id="password_1">
+						</div>
+					</div><br>
+					<div class="row">
+						<div class="col-md-4">
+							Confirm New Password:
+						</div>
+						<div class="col-md-8">
+							<input type="password" name="conf_new" id="password_2">
+						</div>
+                    </div>
+                    <br>
+					<button id="change_password" class="ui-state-disabled btn bg-blue">Change Password</button>
+				</form>
+			</div>
+		</div>		
+	</div>
+</div>
+
+<script>
+$(document).ready(function() {
+   $("#password_2").keyup(validate);
+});
+
+function validate() {
+    var password_1 = $("#password_1").val();
+    var password_2 = $("#password_2").val();
+
+    if(password_1 == password_2) {
+        $("#change_password").removeClass("ui-state-disabled");        
+    }
+    else {
+        $("#change_password").addClass("ui-state-disabled");        
+    }
+}
+</script>
+{% include 'footer.html' %}

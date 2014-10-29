@@ -6,12 +6,10 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 
-from jinja2 import Environment, meta, PackageLoader
+TOOL_CLASSNAME = 'ABBA'
+abba_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-TOOL_CLASSNAME = 'JaccardSimilarity'
-jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
-
-@jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html', methods=['POST'])
+@abba_blueprint.route('/run-abba.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
@@ -73,7 +71,7 @@ def run_tool():
     return response
 
 
-@jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
+@abba_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
@@ -83,23 +81,17 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
-
-        # env = Environment()
-        # parsed_content = env.parse(async_result)
-        # temp = meta.find_undeclared_variables(parsed_content)
-        # return temp
-
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/JaccardSimilarity_result.html',
-            async_result=json.loads(async_result.result),
+            'tool/abba_result.html',
+            async_result=async_result,
             tool=tool)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
 
 
-@jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+@abba_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)

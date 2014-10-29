@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from hashlib import md5
 import json
+import string
+import random
 from psycopg2.pool import ThreadedConnectionPool
 
 
@@ -426,28 +428,68 @@ def get_user_byemail(user_email):
 
 
 def register_user(user_first_name, user_last_name, user_email, user_password):
-        """
-        Insert a user to the db
-        :param user_first_name: the user's first name, if not provided use "Guest" as default
-        :param user_last_name:  the user's last name, if not provided use "User" as default
-        :param user_email:      the user's email address, if not provided use "" as default
-        :param user_password:   the user's password, if not provided use "" as default
-        """
-        with PooledCursor() as cursor:
-                password_md5 = md5(user_password).hexdigest()
-                cursor.execute(
-                    '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
+    """
+    Insert a user to the db
+    :param user_first_name: the user's first name, if not provided use "Guest" as default
+    :param user_last_name:  the user's last name, if not provided use "User" as default
+    :param user_email:      the user's email address, if not provided use "" as default
+    :param user_password:   the user's password, if not provided use "" as default
+    """
+    with PooledCursor() as cursor:
+        password_md5 = md5(user_password).hexdigest()
+        cursor.execute(
+            '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
                         VALUES (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s)''',
-                    {
-                    'user_first_name': user_first_name,
-                    'user_last_name': user_last_name,
-                    'user_email': user_email,
-                    'user_password': password_md5
-                    }
-                )
-                cursor.connection.commit()
-                return get_user_byemail(user_email)
+            {
+                'user_first_name': user_first_name,
+                'user_last_name': user_last_name,
+                'user_email': user_email,
+                'user_password': password_md5
+            }
+        )
+        cursor.connection.commit()
+        return get_user_byemail(user_email)
 
+
+def reset_password(user_email):
+    """
+    Update a user password
+    :param user_email:      the user's email address, if not provided use "" as default
+    :param user_password:   the user's password, if not provided use "" as default
+    """
+
+    char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits
+    new_password = ''.join(random.sample(char_set, 8))
+    print new_password
+    print get_user_byemail(user_email)
+    with PooledCursor() as cursor:
+        password_md5 = md5(new_password).hexdigest()
+        cursor.execute(
+            '''UPDATE usr
+               SET usr_password = %s
+               WHERE usr_email = %s''', (password_md5, user_email)
+        )
+        cursor.connection.commit()
+    print get_user_byemail(user_email)
+    return new_password
+
+def change_password(user_id, new_password):
+    """
+    Update a user password
+    :param user_email:      the user's email address, if not provided use "" as default
+    :param new_password_1:   the user's password, if not provided use "" as default
+    :param new_password_2:   the user's password, if not provided use "" as default
+    """
+    with PooledCursor() as cursor:
+
+        password_md5 = md5(new_password).hexdigest()
+        cursor.execute(
+            '''UPDATE usr
+               SET usr_password = %s
+               WHERE usr_id = %s''', (password_md5, user_id)
+        )
+        cursor.connection.commit()
+    return
 
 def get_geneset(geneset_id, user_id=None):
     """
@@ -568,7 +610,7 @@ class ToolConfig:
     def params(self):
         if self.__params is None:
             self.__params = OrderedDict(((tp.name, tp)
-                                        for tp in get_tool_params(self.classname)))
+                                         for tp in get_tool_params(self.classname)))
 
         return self.__params
 
@@ -638,64 +680,117 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
 
+
 def get_all_userids():
     with PooledCursor() as cursor:
         cursor.execute(
-             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
+            '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
-    
-    
+
+
 # sample api calls begin
 
 # get all genesets associated to a gene by gene_ref_id and gdb_id
 # 	if homology is included at the end of the URL also return all
-#	genesets associated with homologous genes 
-def get_genesets_by_gene_id(gene_ref_id, gdb_name, homology):
+#private function that is not called by api
+def get_user_id_by_apikey(apikey):
+    """
+    Looks up a User in the database
+    :param user_id:     the user's apikey
+    :return:            the User id matching the apikey or None if no such user is found
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT usr_id FROM production.usr WHERE apikey=%s''', (apikey,))
+    return cursor.fetchone()
+
+#   genesets associated with homologous genes 
+def get_genesets_by_gene_id( apikey, gene_ref_id, gdb_name, homology):
     """
     Get all genesets for a specific gene_id
     :return: the geneset into matching the given ID or None if no such gene is found
     """
-    if not homology:
-        with PooledCursor() as cursor:
-            cursor.execute(
-                ''' SELECT row_to_json(row, true) 
-                    FROM (  SELECT geneset.*
-							FROM production.geneset 
-                            WHERE geneset.gs_id in 
-                            (
-								SELECT gs_id
-								FROM (extsrc.gene join odestatic.genedb using(gdb_id))
-									join extsrc.geneset_value using(ode_gene_id)
-								WHERE ode_ref_id = %s and gdb_name = %s
-							)
-						) row; ''', (gene_ref_id, gdb_name,))
-    else:
-        with PooledCursor() as cursor:
-            cursor.execute(
-                ''' SELECT row_to_json(row, true) 
-                    FROM (  SELECT geneset.* 
-							FROM production.geneset 
-                            WHERE geneset.gs_id in 
-                            (
-								SELECT gs_id
-								FROM extsrc.geneset_value
-								WHERE geneset_value.ode_gene_id in 
-								(	
-									SELECT ode_gene_id
-									FROM extsrc.homology
-									WHERE hom_id in
-									( 
-										SELECT hom_id
-										FROM extsrc.homology join extsrc.gene using(ode_gene_id)
-											join odestatic.genedb using(gdb_id)
-										WHERE ode_ref_id = %s and gdb_name = %s
+    curUsrId = get_user_id_by_apikey(apikey)
+    if(curUsrId):
+		if not homology:
+			with PooledCursor() as cursor:
+				cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM (  SELECT geneset.*
+								FROM production.geneset 
+								WHERE geneset.gs_id in 
+								(
+									SELECT gs_id
+									FROM (extsrc.gene join odestatic.genedb using(gdb_id))
+										join extsrc.geneset_value using(ode_gene_id)
+									WHERE ode_ref_id = %s and gdb_name = %s
+								) and ( cur_id < 5 or (cur_id = 5 and usr_id = %s) )
+							) row; ''', (gene_ref_id, gdb_name,curUsrId,))
+		else:
+			with PooledCursor() as cursor:
+				cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM (  SELECT geneset.* 
+								FROM production.geneset 
+								WHERE geneset.gs_id in 
+								(
+									SELECT gs_id
+									FROM extsrc.geneset_value
+									WHERE geneset_value.ode_gene_id in 
+									(	
+										SELECT ode_gene_id
+										FROM extsrc.homology
+										WHERE hom_id in
+										( 
+											SELECT hom_id
+											FROM extsrc.homology join extsrc.gene using(ode_gene_id)
+												join odestatic.genedb using(gdb_id)
+											WHERE ode_ref_id = %s and gdb_name = %s
+										)
 									)
-								)
-							)
-						) row; ''', (gene_ref_id, gdb_name,))
-
+								) and ( cur_id < 5 or (cur_id = 5 and usr_id = %s) )
+							) row; ''', (gene_ref_id, gdb_name, curUsrId,))
+    else:
+		if not homology:
+			with PooledCursor() as cursor:
+				cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM (  SELECT geneset.*
+								FROM production.geneset 
+								WHERE geneset.gs_id in 
+								(
+									SELECT gs_id
+									FROM (extsrc.gene join odestatic.genedb using(gdb_id))
+										join extsrc.geneset_value using(ode_gene_id)
+									WHERE ode_ref_id = %s and gdb_name = %s
+								) and cur_id < 5
+							) row; ''', (gene_ref_id, gdb_name,))
+		else:
+			with PooledCursor() as cursor:
+				cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM (  SELECT geneset.* 
+								FROM production.geneset 
+								WHERE geneset.gs_id in 
+								(
+									SELECT gs_id
+									FROM extsrc.geneset_value
+									WHERE geneset_value.ode_gene_id in 
+									(	
+										SELECT ode_gene_id
+										FROM extsrc.homology
+										WHERE hom_id in
+										( 
+											SELECT hom_id
+											FROM extsrc.homology join extsrc.gene using(ode_gene_id)
+												join odestatic.genedb using(gdb_id)
+											WHERE ode_ref_id = %s and gdb_name = %s
+										)
+									)
+								) and cur_id < 5
+							) row; ''', (gene_ref_id, gdb_name,))		
     return cursor.fetchall()
-    
+
+
 def get_genes_by_geneset_id(geneset_id):
     """
     Get all gene info for a specifics gene_id
@@ -710,6 +805,7 @@ def get_genes_by_geneset_id(geneset_id):
                         where gs_id = %s) row; ''', (geneset_id,))
 
     return cursor.fetchall()
+
 
 def get_gene_by_id(gene_id):
     """
@@ -741,3 +837,20 @@ def get_geneset_by_id(geneset_id):
                         where gs_id = %s) row; ''', (geneset_id,))
 
     return cursor.fetchall()
+    
+def get_geneset_by_user(apikey):
+	"""
+	Get all gene info for a specifics user
+	:return: the genesets matching the given apikey or None if no such genesets are found
+	"""
+	apiUsrId = get_user_id_by_apikey(apikey)
+	if(apiUsrId):
+		with PooledCursor() as cursor:
+			cursor.execute(
+				''' SELECT row_to_json(row, true) 
+					FROM (  SELECT * 
+							FROM production.geneset
+							WHERE usr_id = %s) row; ''', (apiUsrId,))
+		return cursor.fetchall()
+	else:
+		return "No user with that key"
