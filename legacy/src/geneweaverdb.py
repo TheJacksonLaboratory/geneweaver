@@ -692,6 +692,19 @@ def get_all_userids():
 
 # get all genesets associated to a gene by gene_ref_id and gdb_id
 # 	if homology is included at the end of the URL also return all
+
+# Tool Information Functions  
+def get_file(apikey, task_id, file_type): 
+	# if exists
+	if(True):
+		# return file
+		return task_id.file_type
+
+def get_status(task_id):
+	# use funtion call from celerey already implemented in each tool
+	return "States should be here"
+
+
 #private function that is not called by api
 def get_user_id_by_apikey(apikey):
     """
@@ -702,7 +715,8 @@ def get_user_id_by_apikey(apikey):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT usr_id FROM production.usr WHERE apikey=%s''', (apikey,))
     return cursor.fetchone()
-
+    
+    
 #   genesets associated with homologous genes 
 def get_genesets_by_gene_id( apikey, gene_ref_id, gdb_name, homology):
     """

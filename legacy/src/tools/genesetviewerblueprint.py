@@ -71,6 +71,7 @@ def run_tool():
 
     return response
     
+@geneset_viewer_blueprint.route('/run-genesest-viewer-api.html', methods=['POST'])  
 def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     # TODO need to check for read permissions on genesets
 
