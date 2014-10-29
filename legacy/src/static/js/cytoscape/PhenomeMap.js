@@ -14,6 +14,12 @@ var augment = .25;
 
 var selected_genesets=[], selected_geneset_genes=[], selected_genes=[];
 
+var enlarged_view = false;
+
+// maximum number of genes allowed to be listed in each node when using the
+// "show gene names" option
+MAX_TOP_GENES = 20
+
 function updateGeneList() {
 	selected_genes=[];
 	geneopts='';
