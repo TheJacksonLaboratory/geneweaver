@@ -1,0 +1,14 @@
+/*------------------------------------------------------------------------------------*/
+/*------------------------------  YOUR CUSTOM CSS STYLE  -----------------------------*/
+
+
+/* Make the elements in the navbar white rather than gray*/
+.navbar-inverse .navbar-nav>li>a {
+	color: #fff;
+}
+#anon-user-span a {
+	color: #fff;
+}
+#valid-user-span, #valid-user-span a{
+	color: #fff;
+}

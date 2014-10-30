@@ -1,0 +1,128 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+
+<br /><h4>Table view:</h4>
+
+
+<br clear="all" /><div class="floatGeneList">
+<form name="listform" id="listform">
+<table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left" style=" border-bottom: thin solid #ccc;"> &nbsp;
+
+{% for item in async_result.geneset_table %}
+  </th><th style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: thin solid #ccrc; {cycle values=",background-color: #fff;"}">
+  <a href="{{ item.url }}">{{ item.gsID }}</a>
+{% endfor %}
+</th></tr>
+
+{% for item in async_result.geneset_table %}
+<tr><td style="border-bottom: none; white-space:nowrap;" align="left">
+<label><input type="checkbox" name="gs_id[]" value="{{ item.gsID[:2] }}">
+<a style="font-size:1.0em;" href="{{ item.url }}">{{ item.text }}</a></td>
+    {% for jac in item.entries %}
+	<td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
+    {% if jac.url %}
+	   <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
+    {% else %}
+	   <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
+    {% endif %}
+    </td>
+    </label>
+
+	{% endfor %}
+<td style="width: 25em;">&nbsp;</td></tr>
+{% endfor %}
+
+<tr><td colspan="4" style="border-bottom: none;">
+<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All </label>
+    <select name="addToProject" onchange="return ODE.add_to_project(this);">
+        <option value="-1">Add selected to project...</option>
+        {% for project in list %}
+            <option value="{{project.name}}">{{project.name}} ({{project.count}})</option>
+        {% endfor %}
+        <option value="-2">+ Create new project...</option>
+</td></tr>
+</table><br clear="all" />
+
+
+<br /><a href="{{ async_result.csv_url }}">Download Matrix as CSV</a>
+
+<br /><br /><h4>Venn Diagram view:</h4>
+
+<!--<script type="text/javascript">-->
+<!--$(window).load(function() {ldelim}-->
+	<!--$('#svgFrame')[0].width=document.body.offsetWidth-100;-->
+	<!--$('#svgFrame')[0].height=document.body.offsetWidth-100;-->
+	<!--if( $('#svgFrame')[0].width>{{ async_result.width }} ) $('#svgFrame')[0].width={{ async_result.width }};-->
+	<!--if( $('#svgFrame')[0].height>{{ async_result.height }} ) $('#svgFrame')[0].height={{ async_result.height }};-->
+<!--{literal}-->
+<!--});-->
+
+<!--function chgImage(sel, dl) {-->
+	<!--if(!dl) {-->
+<!--{/literal}-->
+		<!--if( sel.value=='png' ) $('#svgFrame')[0].src='{ode_link action=analyze cmd=convert other="format=png&run=$runhash"}';-->
+		<!--if( sel.value=='svg' ) $('#svgFrame')[0].src='{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}';-->
+<!--{literal}load-->
+	<!--} else {-->
+		<!--switch( sel.selectedIndex ) {-->
+<!--{/literal}-->
+			<!--case 1: window.location.href='{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}'; break;-->
+			<!--case 2: window.location.href='{ode_link action=analyze cmd=convert other="format=pdf&run=$runhash"}'; break;-->
+			<!--case 3: window.location.href='{ode_link action=analyze cmd=convert other="format=jpg&run=$runhash"}'; break;-->
+			<!--case 4: window.location.href='{ode_link action=analyze cmd=convert other="format=png&run=$runhash"}'; break;-->
+			<!--case 5: window.location.href='{ode_link action=analyze cmd=convert other="format=png&width=5000&run=$runhash"}'; break;-->
+<!--{literal}-->
+		<!--}-->
+	<!--}-->
+<!--}-->
+<!--{/literal}-->
+<!--</script>-->
+
+<!--<br />View:<label>SVG<input type="radio" name="imgtype" value="svg" onclick="chgImage(this,false);" checked></label>-->
+<!--| <label>PNG<input type="radio" name="imgtype" value="png" onclick="chgImage(this,false);"></label> &nbsp; &nbsp;-->
+<!--Download: <select onchange="chgImage(this, true);"><option>Select file type...</option>-->
+<!--<option>SVG</option><option>PDF</option><option>JPG (lossy)</option>-->
+<!--<option>Normal PNG</option><option>Large PNG</option></select><br />-->
+<!--<br /><iframe src="{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}" id="svgFrame"></iframe>-->
+<!--- <a target="_blank" href="{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}">Open in new window</a>-->
+
+
+<svg width="{{async_result.width}}" height="{{async_result.height}}" viewBox="0 0 {{async_result.width}} {{async_result.height}}"
+      xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"
+      >
+{% for gs in async_result.geneset_labels %}
+	<a xlink:href="{{ gs.url|safe}}" target="_top"><text x="{{gs.txA}}" y="{{gs.tyA}}" text-anchor="start" transform="rotate(-45 {{gs.txA}} {{gs.tyA}})">{{gs.text|safe}}</text></a>
+	<a xlink:href="{{ gs.url|safe}}" target="_top"><text x="{{ gs.txB }}" y="{{ gs.tyB }}" text-anchor="end">{{ gs.text|safe }}</text></a>
+{% endfor %}
+
+{% for venn in async_result.venn_diagrams %}
+	<a xlink:href="{{ venn.url }}" target="_top">
+	<g transform="translate({{ venn.tx }} {{ venn.ty }})" opacity="{{ venn.opacity }}">
+     <circle cx="{{ venn.c1x }}" cy="{{ venn.c1y }}" r="{{ venn.r1 }}" fill="#ff0000" fill-opacity="1.0" stroke="#000000" stroke-width="1px" >
+       <title>{{venn.title1|safe}}</title><desc>{{venn.desc1|safe}}</desc>
+     </circle>
+     <circle cx="{{ venn.c2x }}" cy="{{ venn.c2y }}" r="{{ venn.r2 }}" fill="#0000ff" fill-opacity="0.4" stroke="#000000" stroke-width="1px" >
+       <title>{{ venn.title2|safe}}</title><desc>{$venn.desc2|safe}</desc>
+     </circle>
+     {% for vtext in venn.text %}
+       <text x="{{ vtext.tx }}" y="{{ vtext.ty }}" text-anchor="middle" transform="scale(0.75)">{{vtext.text|safe}}</text>
+     {% endfor %}
+	</g></a>
+{% endfor %}
+
+<g id="ToolTip" opacity="0.8" visibility="hidden" pointer-events="none">
+	<rect id="tipbox" x="0" y="5" width="88" height="20" rx="2" ry="2" fill="white" stroke="black"/>
+	<text id="tipText" x="5" y="20" font-family="Arial" font-size="12">
+		<tspan id="tipTitle" x="5" font-weight="bold"><![CDATA[]]></tspan>
+		<tspan id="tipDesc" x="5" dy="15" fill="blue"><![CDATA[]]></tspan>
+	</text>
+</g>
+</svg>
+
+{% include 'footer.html' %}

@@ -1,0 +1,178 @@
+{% set title="Edit Genesets" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header">
+	<h1>Edit Genesets</h1>
+</div>
+<p>
+	Use this page to edit the genesets that you have uploaded.<br>A * indicates required fields.
+</p>
+
+<form>
+	<h2>Geneset Metadata</h2>
+	<p>
+		Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
+	</p>
+
+	<div class="row">
+		<div class="col-md-2">
+			GeneSet Name*:
+		</div>
+		<div class="col-md-4">
+			<input type="text" name="gs_name">
+		</div>
+	</div><br>
+	<div class="row">
+		<div class="col-md-2">
+			GeneSet Figure Label*:
+		</div>
+		<div class="col-md-4">
+			<input type="text" name="gs_abbreviation">
+		</div>
+	</div><br>
+	<div class="row">
+		<div class="col-md-2">
+			GeneSet Description*:
+		</div>
+		<div class="col-md-4">
+			<input type="text" name="gs_description">
+		</div>
+	</div><br>
+	<div class="row">
+		<div class="col-md-2">
+			Access Restrictions*:
+		</div>
+		<div class="col-xs-4">
+			<select class="form-control">
+				<option value="private">Private</option>
+				<option value="public">Public</option>
+			</select>
+		</div>
+	</div><br>
+
+	<h2>Reference Info</h2>
+	<p>
+		If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
+	</p>
+
+	<div class="row">
+		<div class="col-md-2">
+			PubMed ID:
+		</div>
+		<div class="col-md-4">
+			<input type="text" name="pub_pubmed">
+		</div>
+	</div><br>
+	<button class="btn bg-blue">Manual Entry</button><br><br>
+
+	<h2>Gene List</h2>
+	<p>
+		Provide a list of genes to associate with the descriptive info from above.
+	</p>
+	<div class="row">
+		<div class="col-md-2">
+			Species:
+		</div>
+		<div class="col-xs-6 col-sm-4">
+			<select class="form-control" name="sp_id">
+				<option label="-- Please Select --" value="0"></option>		
+				<option label="Mus musculus" value="1"></option>		
+				<option label="Homo sapiens" value="2"></option>		
+				<option label="Rattus norvegicus" value="3"></option>		
+				<option label="Danio rerio" value="4"></option>		
+				<option label="Drosophila melanogaster" value="5"></option>		
+				<option label="Macaca mulatta" value="6"></option>		
+				<option label="Caenorhabditis elegans" value="8"></option>		
+				<option label="Saccharomyces cerevisiae" value="9"></option>		
+				<option label="Gallus gallus" value="10"></option>		
+			</select>
+		</div>
+	</div><br>
+	<div class="row">
+		<div class="col-md-2">
+			Gene Identifiers:
+		</div>
+		<div class="col-xs-6 col-sm-4">
+			<select class="form-control">
+			    <option value="0">-- Auto-detect --</option>
+			    <option label="Entrez" value="-1">Entrez</option>
+				<option label="Ensembl Gene" value="-2">Ensembl Gene</option>
+				<option label="Ensembl Protein" value="-3">Ensembl Protein</option>
+				<option label="Ensembl Transcript" value="-4">Ensembl Transcript</option>
+				<option label="Unigene" value="-5">Unigene</option>
+				<option label="Gene Symbol" value="-7" selected="selected">Gene Symbol</option>
+				<option label="Unannotated" value="-8">Unannotated</option>
+				<option label="MGI" value="-10">MGI</option>
+				<option label="HGNC" value="-11">HGNC</option>
+				<option label="RGD" value="-12">RGD</option>
+				<option label="ZFIN" value="-13">ZFIN</option>
+				<option label="FlyBase" value="-14">FlyBase</option>
+				<option label="Wormbase" value="-15">Wormbase</option>
+				<option label="SGD" value="-16">SGD</option>
+				<option label="miRBase" value="-17">miRBase</option>
+				<optgroup label="MicroArrays">
+					<option label="Affymetrix C. elegans Genome Array" value="88">Affymetrix C. elegans Genome Array</option>
+					<option label="Affymetrix Drosophila Genome 2.0" value="79">Affymetrix Drosophila Genome 2.0</option>
+					<option label="Affymetrix HT Human Genome U133A" value="22">Affymetrix HT Human Genome U133A</option>
+					<option label="Affymetrix Human 35K Set" value="74">Affymetrix Human 35K Set</option>
+					<option label="Affymetrix Human 35K SubA" value="4">Affymetrix Human 35K SubA</option>
+					<option label="Affymetrix Human 35K SubB" value="5">Affymetrix Human 35K SubB</option>
+					<option label="Affymetrix Human 35K SubC" value="6">Affymetrix Human 35K SubC</option>
+					<option label="Affymetrix Human 35K SubD" value="7">Affymetrix Human 35K SubD</option>
+					<option label="Affymetrix Human Genome U133A" value="11">Affymetrix Human Genome U133A</option>
+					<option label="Affymetrix Human Genome U133A 2.0" value="18">Affymetrix Human Genome U133A 2.0</option>
+					<option label="Affymetrix Human Genome U133B" value="12">Affymetrix Human Genome U133B</option>
+					<option label="Affymetrix Human Genome U133 Plus 2.0" value="17">Affymetrix Human Genome U133 Plus 2.0</option>
+					<option label="Affymetrix Human Genome U133 Set" value="72">Affymetrix Human Genome U133 Set</option>
+					<option label="Affymetrix Human HG-Focus Target" value="23">Affymetrix Human HG-Focus Target</option>
+					<option label="Affymetrix Mouse Exon 1.0 ST" value="78">Affymetrix Mouse Exon 1.0 ST</option>
+					<option label="Affymetrix Mouse Expression 430A" value="13">Affymetrix Mouse Expression 430A</option>
+					<option label="Affymetrix Mouse Expression 430B" value="14">Affymetrix Mouse Expression 430B</option>
+					<option label="Affymetrix Mouse Expression 430 Set" value="71">Affymetrix Mouse Expression 430 Set</option>
+					<option label="Affymetrix Mouse Gene 1.0 ST Array" value="91">Affymetrix Mouse Gene 1.0 ST Array</option>
+					<option label="Affymetrix Mouse Genome 430 2.0" value="19">Affymetrix Mouse Genome 430 2.0</option>
+					<option label="Affymetrix Mouse Genome 430A 2.0" value="20">Affymetrix Mouse Genome 430A 2.0</option>
+					<option label="Affymetrix Murine 11K Set" value="76">Affymetrix Murine 11K Set</option>
+					<option label="Affymetrix Murine 11K SubA" value="24">Affymetrix Murine 11K SubA</option>
+					<option label="Affymetrix Murine 11K SubB" value="25">Affymetrix Murine 11K SubB</option>
+					<option label="Affymetrix Murine Genome U74A" value="1">Affymetrix Murine Genome U74A</option>
+					<option label="Affymetrix Murine Genome U74B" value="2">Affymetrix Murine Genome U74B</option>
+					<option label="Affymetrix Murine Genome U74C" value="3">Affymetrix Murine Genome U74C</option>
+					<option label="Affymetrix Murine Genome U74 Set" value="75">Affymetrix Murine Genome U74 Set</option>
+					<option label="Affymetrix Murine Genome U74 Version 2" value="9">Affymetrix Murine Genome U74 Version 2</option>
+					<option label="Affymetrix Murine Genome U74 Version 2" value="10">Affymetrix Murine Genome U74 Version 2</option>
+					<option label="Affymetrix Murine Genome U74 Version 2" value="8">Affymetrix Murine Genome U74 Version 2</option>
+					<option label="Affymetrix Murine Genome U74 Version 2 Set" value="70">Affymetrix Murine Genome U74 Version 2 Set</option>
+					<option label="Affymetrix Rat Exon 1.0 ST" value="80">Affymetrix Rat Exon 1.0 ST</option>
+					<option label="Affymetrix Rat Expression 230A" value="15">Affymetrix Rat Expression 230A</option>
+					<option label="Affymetrix Rat Expression 230B" value="16">Affymetrix Rat Expression 230B</option>
+					<option label="Affymetrix Rat Expression 230 Set" value="73">Affymetrix Rat Expression 230 Set</option>
+					<option label="Affymetrix Rat Genome 230 2.0" value="21">Affymetrix Rat Genome 230 2.0</option>
+					<option label="Affymetrix Rhesus Macaque Genome" value="48">Affymetrix Rhesus Macaque Genome</option>
+					<option label="Affymetrix Yeast Genome 2.0 Array" value="90">Affymetrix Yeast Genome 2.0 Array</option>
+					<option label="Affymetrix Yeast Genome S98 Array" value="89">Affymetrix Yeast Genome S98 Array</option>
+					<option label="Affymetrix Zebrafish Genome" value="87">Affymetrix Zebrafish Genome</option>
+					<option label="Agilent Mouse G4121A (Toxicogenomics)" value="81">Agilent Mouse G4121A (Toxicogenomics)</option>
+					<option label="Agilent Mouse Whole Genome G4122F" value="26">Agilent Mouse Whole Genome G4122F</option>
+					<option label="Illumina Human-6 v2.0" value="85">Illumina Human-6 v2.0</option>
+					<option label="Illumina MouseRef-8 v2.0" value="84">Illumina MouseRef-8 v2.0</option>
+					<option label="Illumina MouseWG-6 v1.1" value="83">Illumina MouseWG-6 v1.1</option>
+					<option label="Illumina MouseWG-6 v2.0" value="82">Illumina MouseWG-6 v2.0</option>
+				</optgroup>
+			</select>
+		</div>
+	</div><br>
+	<div class="row">
+		<div class="col-md-2">
+			Input Gene List*:
+		</div>
+		<div class="col-md-4">
+			Have a text file already handy? <a href="">Switch to file upload</a><br>
+			<textarea name="file_text"></textarea>
+		</div>
+	</div><br>
+	<button class="btn bg-blue">Save Changes</button>
+</form>
+
+{% include 'footer.html' %}

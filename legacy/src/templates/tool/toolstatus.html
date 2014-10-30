@@ -1,0 +1,44 @@
+{% set title=tool.name + " Status" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+<p>
+    The current status of your job is: <span id="status-label">{{ async_result.state|e }}</span>. This will be updated every five seconds.
+</p>
+
+<script type="text/javascript">
+
+    var checkStatusTimeoutMS = 5000;
+    $(document).ready(function () {
+        var statusLabel = $('#status-label');
+        function checkStatus() {
+            $.ajax({
+                dataType: "json",
+                url: "{{ url_for(tool.classname + '.status_json', task_id=async_result.task_id) }}",
+                success: function (data) {
+                    statusLabel.text(data.state);
+                    if(data.isReady) {
+                        // the task is ready so forcing a reload will show results
+                        document.location.reload(true);
+                    } else {
+                        window.setTimeout(checkStatus, checkStatusTimeoutMS);
+                    }
+                },
+                error: function () {
+                    statusLabel.text('error occurred');
+                }
+            });
+
+        }
+
+        window.setTimeout(checkStatus, checkStatusTimeoutMS);
+    });
+
+</script>
+
+
+{% include 'footer.html' %}

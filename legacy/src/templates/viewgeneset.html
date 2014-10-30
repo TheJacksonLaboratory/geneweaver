@@ -1,0 +1,45 @@
+{% set title="Geneset Details" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header" xmlns="http://www.w3.org/1999/html">
+    <h1>Geneset Details</h1>
+</div>
+
+<p>
+    Description: {{ geneset.description }}
+    <br>
+    Uploaded: {{ geneset.creation_date }}
+    <br>
+    Species: {{ geneset.sp_id }}
+    <br>
+
+    {% if geneset.uri %}
+        URI: <a href="{{ geneset.uri }}">{{ geneset.uri }}</a>
+        <br>
+    {% endif %}
+
+    {% if geneset.publication %}
+        Authors: {{ geneset.publication.authors }}
+        <br>
+        Title: {{ geneset.publication.title }}
+        <br>
+        Journal: {{ geneset.publication.journal }}
+        <br>
+        Abstract: {{ geneset.publication.abstract }}
+        <br>
+    {% endif %}
+
+    {% for ont_assoc in geneset.ontological_associations %}
+        Ref ID: {{ ont_assoc.reference_id }}, Name: {{ ont_assoc.name }}
+        <br>
+    {% endfor %}
+
+    {% for geneset_value in geneset.geneset_values %}
+        ODE Gene ID: {{ geneset_value.ode_gene_id }}, Value: {{ geneset_value.value }}
+        <br>
+    {% endfor %}
+</p>
+
+
+{% include 'footer.html' %}
