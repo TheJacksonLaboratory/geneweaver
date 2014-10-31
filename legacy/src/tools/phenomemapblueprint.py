@@ -85,7 +85,7 @@ def view_result(task_id):
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/PhenomeMap_result.html',
-            async_result=async_result,
+            async_result=json.loads(async_result.result),
             tool=tool)
     else:
         # render a page telling their results are pending

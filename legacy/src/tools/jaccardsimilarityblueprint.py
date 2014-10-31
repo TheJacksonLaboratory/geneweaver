@@ -6,7 +6,7 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 
-from jinja2 import Environment, meta, PackageLoader
+from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 
 TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -79,21 +79,27 @@ def view_result(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
 
-        # env = Environment()
-        # parsed_content = env.parse(async_result)
-        # temp = meta.find_undeclared_variables(parsed_content)
-        # return temp
+        # env = Environment(loader=FileSystemLoader('templates'))
+        # template = env.get_template('tool/test.svg')
+        # output = template.render(
+        #     'tool/JaccardSimilarity_svg.html',
+        #     async_result=json.loads(async_result.result))
+        #
+        # return output
 
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
             async_result=json.loads(async_result.result),
-            tool=tool)
+            tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
