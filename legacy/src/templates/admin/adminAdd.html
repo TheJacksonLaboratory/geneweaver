@@ -1,0 +1,43 @@
+
+{% extends 'admin/AdminTemplateOverride.html' %}
+
+{% block brand %}
+          <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
+{% endblock %}
+
+<script>
+    $(document).ready(function()  {
+   
+	String.prototype.capitalize = function() {
+    	    return this.charAt(0).toUpperCase() + this.slice(1);
+	}
+    });    
+</script>
+
+{% block body %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+
+
+<form id="form1" class="form-horizontal" data-parsley-validate="" novalidate="">
+   <h3 align=left>Add {{toadd}}</h3>
+   <p>
+   <div>
+     {% for col in columns %}
+        <div class="form-group">
+    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}}</label>
+	    <div class="col-sm-9">
+    		<input class="form-control" type="text" required=""></input>
+    		<!--<ul id="parsley-id-2012" class="parsley-errors-list"></ul>-->
+	   </div>
+        </div>
+    {% endfor %}
+  </div>
+  <p><p>
+  <div class="col-sm-9 col-sm-offset-3">
+    <div class="pull-left">
+        <button class="btn btn-primary m-b-10" type="submit">Add</button>
+    </div>
+  </div>  
+</form>
+
+{% endblock %}

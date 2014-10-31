@@ -1,11 +1,12 @@
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
-from flask.ext.admin.contrib.sqla import ModelView
 from flask.ext import restful
+from flask import request
 import adminviews
 import genesetblueprint
 import geneweaverdb
+import json
 import os
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint, booleanalgebrablueprint
 
@@ -28,20 +29,42 @@ print '"How to generate good secret keys" AT              '
 print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
 print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
+
+
 #*************************************
-admin=Admin(app,name='Admin', index_view=adminviews.AdminHome(url='/admin', name='Admin Home'));
+admin=Admin(app, name='Geneweaver', index_view=adminviews.AdminHome(url='/admin', name='Admin'));
 
 
-admin.add_view(adminviews.Users(name='View Users', endpoint='viewUsers', category='User Tools'))
-admin.add_view(adminviews.Users(name='View Permissions', endpoint='editUsers', category='User Tools'))
-admin.add_view(adminviews.Users(name='View Groups', endpoint='editGroups', category='User Tools'))
+admin.add_view(adminviews.Viewers(name='Users', endpoint='viewUsers', category='User Tools'))
+admin.add_view(adminviews.Viewers(name='Publications', endpoint='viewPublications', category='User Tools'))
+admin.add_view(adminviews.Viewers(name='Groups', endpoint='viewGroups', category='User Tools'))
+admin.add_view(adminviews.Viewers(name='Projects', endpoint='viewProjects', category='User Tools'))
 
-admin.add_view(adminviews.Users(name='View Genes', endpoint='viewGenese', category='Gene Tools'))
-admin.add_view(adminviews.Users(name='View Genesets', endpoint='viewGenesets', category='Gene Tools'))
-admin.add_link(MenuLink(name='Geneweaver Home', url='/'))
+admin.add_view(adminviews.Viewers(name='Genesets', endpoint='viewGenesets', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(name='Genes', endpoint='viewGenes', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(name='Geneset Info', endpoint='viewGenesetInfo', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(name='Gene Info', endpoint='viewGeneInfo', category='Gene Tools'))
 
-#RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
-RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
+admin.add_view(adminviews.Add(name='User', endpoint='newUser', category='Add'))
+admin.add_view(adminviews.Add(name='Publication', endpoint='newPub', category='Add'))
+admin.add_view(adminviews.Add(name='Group', endpoint='newGroup', category='Add'))
+admin.add_view(adminviews.Add(name='Project', endpoint='newProject', category='Add'))
+admin.add_view(adminviews.Add(name='Geneset', endpoint='newGeneset', category='Add'))
+admin.add_view(adminviews.Add(name='Gene', endpoint='newGene', category='Add'))
+admin.add_view(adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
+admin.add_view(adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
+
+
+admin.add_view(adminviews.Edit(endpoint='adminEdit'))
+
+admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
+
+
+
+
+#*************************************
+
+RESULTS_PATH = '/var/www/html/geneweaver/results'
 
 
 @app.route('/results/<path:filename>')
@@ -128,6 +151,7 @@ def _logout():
         del flask.g.user
     except AttributeError:
         pass
+
 
 
 def _form_login():
@@ -220,11 +244,41 @@ def render_forgotpass():
 def render_search():
     return flask.render_template('search.html')
 
+
 #************************************************************************
-@app.route('/adminViewer.html')
-def get_usr_id():
-    Users = geneweaverdb.get_all_userids()
-    return flask.render_template('adminViewer.html', Users=Users)
+
+@app.route('/accountmanage.html')
+def render_account_manage():
+    user_id = flask.session.get('user_id')
+    if user_id:	
+        current_user = geneweaverdb.get_user(user_id)
+        return flask.render_template('accountmanage.html', current_user=current_user)
+    else:
+	return flask.render_template('index.html')
+
+#admin route to add new item to the database
+#@app.route('/admin/add')
+def render_admin_add():
+    if "user" in flask.g and flask.g.user.is_admin:
+	columns = geneweaverdb.get_table_columns(table)
+	print columns
+        return flask.render_template('admin/add.html', columns=columns)
+    else:
+	return flask.render_template('index.html')
+
+#this routes from datatables to get database information
+#only admins are allowed to get results back from this route
+@app.route('/admin/serversidedb')
+def get_db_data():
+    if "user" in flask.g and flask.g.user.is_admin:
+        results = geneweaverdb.get_server_side(request.args)
+        return json.dumps(results,default=date_handler)
+    else:
+	return flask.render_template('index.html')
+
+def date_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
 #************************************************************************
 
 @app.route('/manage.html')
@@ -289,6 +343,7 @@ def change_password():
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
     return flask.render_template('index.html')
+
 
 # ********************************************
 # START API BLOCK

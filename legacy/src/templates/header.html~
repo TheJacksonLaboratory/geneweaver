@@ -132,7 +132,7 @@
                window.location = "/admin";
             });
 	    $('#account-button').click(function(event) {
-               window.location = "/accountsettings.html";
+               window.location = "/accountmanage.html";
             });
         });
     </script>
