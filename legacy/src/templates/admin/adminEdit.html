@@ -1,12 +1,22 @@
 {% extends 'admin/AdminTemplateOverride.html' %}
 
-{% block brand %}
-          <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
-{% endblock %}
-
 <script>
     $(document).ready(function()  {
    
+	$("#add-form").submit(function(event) {    		    
+
+    		    $.ajax({
+          		type: "POST",
+           		url: "../../admin/adminAdd",
+           		data: $("#add-form").serialize(), // serializes the form's elements.
+           		success: function(data)
+           		{
+               		    alert("OK");
+           		}
+         	    });
+		    return false;
+	});  
+
 	String.prototype.capitalize = function() {
     	    return this.charAt(0).toUpperCase() + this.slice(1);
 	}
@@ -16,6 +26,47 @@
 {% block body %}
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
+  <h3 align=left>Edit {{toEdit}}</h3>
+	 <p>
+
+	<form method="post" action="../../admin/adminEdit" id="add-form">     
+	   <div>
+	     {% for col in columns %}
+		<div class="form-group">
+	    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}} - {{currentValue}}</label>
+		    <div class="col-sm-9">
+	    		<input name={{col.column_name}} class="form-control" type="text"></input>	    		
+		   </div>
+		</div>
+	    {% endfor %}
+	  </div>
+	  <p><p>
+	  <div class="col-sm-9 col-sm-offset-3">
+	    <div class="pull-left">
+		<input class="btn btn-primary m-b-10" type="submit" value="Submit Changes"></input>
+		<input class="btn btn-primary m-b-10" type="submit" value="Delete"></input>
+	    </div>
+	  </div>  
+	</form>
+	
+	<!--<form method="post" action="../../admin/adminAdd" id="add-form" class="form-horizontal" data-parsley-validate="" novalidate="">     
+	   <div>
+	     {% for col in columns %}
+		<div class="form-group">
+	    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}}</label>
+		    <div class="col-sm-9">
+	    		<input name={{col.column_name}} class="form-control" type="text" required=""></input>	    		
+		   </div>
+		</div>
+	    {% endfor %}
+	  </div>
+	  <p><p>
+	  <div class="col-sm-9 col-sm-offset-3">
+	    <div class="pull-left">
+		<input class="btn btn-primary m-b-10" type="submit" value="Add"></input>
+	    </div>
+	  </div>  
+	</form>-->
 
 
 {% endblock %}

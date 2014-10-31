@@ -53,13 +53,7 @@ admin.add_view(adminviews.Add(name='Gene', endpoint='newGene', category='Add'))
 admin.add_view(adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
 admin.add_view(adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
 
-
-admin.add_view(adminviews.Edit(endpoint='adminEdit'))
-
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
-
-
-
 
 #*************************************
 
@@ -246,27 +240,37 @@ def render_search():
 
 #************************************************************************
 
-@app.route('/accountmanage.html')
-def render_account_manage():
-    user_id = flask.session.get('user_id')
-    if user_id:	
-        current_user = geneweaverdb.get_user(user_id)
-        return flask.render_template('accountmanage.html', current_user=current_user)
-    else:
-	return flask.render_template('index.html')
-
-#admin route to add new item to the database
-#@app.route('/admin/add')
-def render_admin_add():
+@app.route('/admin/adminEdit',methods=['POST'])
+def admin_edit():  
     if "user" in flask.g and flask.g.user.is_admin:
-	columns = geneweaverdb.get_table_columns(table)
-	print columns
-        return flask.render_template('admin/add.html', columns=columns)
+        form=flask.request.form
+	geneweaverdb.admin_insert(form)
+    	print form
+        return json.dumps(form)
+    else:
+	return flask.render_template('index.html') 
+
+@app.route('/admin/adminSubmitEdit',methods=['POST'])
+def admin_submit_edit():  
+    if "user" in flask.g and flask.g.user.is_admin:
+        form=flask.request.form
+	geneweaverdb.admin_insert(form)
+    	print form
+        return flask.render_template('/admin/adminSuccess.html') 
     else:
 	return flask.render_template('index.html')
+ 
+#route called by admin add upon submission
+@app.route('/admin/adminAdd',methods=['POST'])
+def admin_add():  
+    if "user" in flask.g and flask.g.user.is_admin:
+        form=flask.request.form
+	geneweaverdb.admin_add(form) 
+        return json.dumps("Add Complete")
+    else:
+	return flask.render_template('index.html')  
 
-#this routes from datatables to get database information
-#only admins are allowed to get results back from this route
+#fetches info for admin viewers
 @app.route('/admin/serversidedb')
 def get_db_data():
     if "user" in flask.g and flask.g.user.is_admin:

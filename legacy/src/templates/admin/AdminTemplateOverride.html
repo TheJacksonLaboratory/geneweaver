@@ -16,10 +16,18 @@
 
         <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">        
         <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}">
+	
+	<!--<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>-->
+
+	<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-1.11.js') }}"></script>
+        <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-migrate-1.2.1.js') }}"></script>
+    	<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-ui/jquery-ui-1.10.4.min.js') }}"></script>
+    	<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-mobile/jquery.mobile-1.4.2.js') }}"></script>
 
     <!-- BEGIN PIXIT STYLE -->
-    	<link href="{{ url_for('static', filename='pixit/admin/assets/css/icons/icons.min.css') }}" rel="stylesheet">
+
     	<!--<link href="{{ url_for('static', filename='pixit/admin/assets/css/bootstrap.min.css') }}" rel="stylesheet">-->
+    	<link href="{{ url_for('static', filename='pixit/admin/assets/css/icons/icons.min.css') }}" rel="stylesheet">
     	<link href="{{ url_for('static', filename='pixit/admin/assets/css/plugins.min.css') }}" rel="stylesheet">
     	<link href="{{ url_for('static', filename='pixit/admin/assets/css/style.min.css') }}" rel="stylesheet">
     	<link href="{{ url_for('static', filename='pixit/admin/assets/css/colors/color-blue.css') }}" rel="stylesheet">
@@ -65,17 +73,10 @@
     {% endblock %}
 
     {% block tail_js %}
-    <!--<script src="{{ admin_static.url(filename='bootstrap/js/bootstrap.min.js') }}" type="text/javascript"></script>-->
-    <!--<script src="{{ admin_static.url(filename='select2/select2.min.js') }}" type="text/javascript"></script>  -->
+    
 
-    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.dataTables.js') }}"></script>  
-    <script type="text/javascript" src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>
-
-<!-- BEGIN MANDATORY SCRIPTS -->
-    <!--<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-1.11.js') }}"></script>-->
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-migrate-1.2.1.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-ui/jquery-ui-1.10.4.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-mobile/jquery.mobile-1.4.2.js') }}"></script>
+<!-- BEGIN MANDATORY SCRIPTS -->   
+    
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-dropdown/bootstrap-hover-dropdown.min.js') }}"></script>
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-select/bootstrap-select.js') }}"></script>
@@ -88,6 +89,12 @@
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-progressbar/bootstrap-progressbar.js') }}"></script>
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery.cookie.min.js') }}" type="text/javascript"></script>
     <!-- END MANDATORY SCRIPTS -->
+    
+    <!--<script src="{{ admin_static.url(filename='bootstrap/js/bootstrap.min.js') }}" type="text/javascript"></script>   -->
+    <script src="{{ admin_static.url(filename='select2/select2.min.js') }}" type="text/javascript"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.dataTables.js') }}"></script>  
+    <script type="text/javascript" src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script> 
+
     <!--<script src="{{ url_for('static', filename='pixit/admin/assets/js/application.js') }}"></script>-->
     {% endblock %}
 

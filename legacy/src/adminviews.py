@@ -69,32 +69,33 @@ class Viewers(Authentication, BaseView):
 	    return self.render('admin/adminindex.html')
 
 class Add(Authentication, BaseView):
+    @expose('/adminAdd', methods=('GET','POST' ))
     @expose('/')
     def index(self):
         if self.endpoint == 'newUser':
-	    columns = geneweaverdb.get_table_columns('usr')
-            return self.render('admin/adminAdd.html', columns=columns, toadd="User")
+	    columns = geneweaverdb.get_table_columns('usr','production.usr')
+            return self.render('admin/adminAdd.html', columns=columns, toadd="User", table="production.usr")
         elif self.endpoint == 'newPub':
- 	    columns = geneweaverdb.get_table_columns('publication')
-            return self.render('admin/adminAdd.html', columns=columns, toadd="Publication")
+ 	    columns = geneweaverdb.get_table_columns('publication',"production.publication")
+            return self.render('admin/adminAdd.html', columns=columns, toadd="Publication", table="production.publication")
         elif self.endpoint == 'newGeneset':
-	    columns = geneweaverdb.get_table_columns('geneset')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset")
+	    columns = geneweaverdb.get_table_columns('geneset',"production.geneset")
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset", table="production.geneset")
         elif self.endpoint == 'newProject':
-	    columns = geneweaverdb.get_table_columns('project')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Project")
+	    columns = geneweaverdb.get_table_columns('project',"production.project")
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Project", table="production.project")
 	elif self.endpoint == 'newGene':
-	    columns = geneweaverdb.get_table_columns('gene')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene")
+	    columns = geneweaverdb.get_table_columns('gene',"extsrc.gene")
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene", table="extsrc.gene")
 	elif self.endpoint == 'newGenesetInfo':
-	    columns = geneweaverdb.get_table_columns('geneset_info')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset Info")
+	    columns = geneweaverdb.get_table_columns('geneset_info',"production.geneset_info")
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset Info", table="production.geneset_info")
 	elif self.endpoint == 'newGeneInfo':
-	    columns = geneweaverdb.get_table_columns('gene_info')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene Info")
+	    columns = geneweaverdb.get_table_columns('gene_info',"extsrc.gene_info")
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene Info", table="extsrc.gene_info")
 	elif self.endpoint == 'newGroup':
-	    columns = geneweaverdb.get_table_columns('grp')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Group")
+	    columns = geneweaverdb.get_table_columns('grp','production.grp')
+	    return self.render('admin/adminAdd.html', columns=columns, toadd="Group", table="production.grp")
         else:
 	    return self.render('admin/adminindex.html')
 
