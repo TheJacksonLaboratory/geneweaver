@@ -2,12 +2,13 @@
 {% extends 'admin/AdminTemplateOverride.html' %}
 
 {% block body %}
-<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+<!--<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>-->
 
 <script id=viewer>
     $(document).ready(function()  {        
 	 var table = '{{table}}';
 	 var columns = {{jcolumns | safe}};
+	 var editRoute="../../admin/adminEdit/" + table;
 
 	String.prototype.capitalize = function() {
     	    return this.charAt(0).toUpperCase() + this.slice(1);
@@ -24,15 +25,41 @@
 		    "data": {"table": table}
                 },
 	    "columns": columns,
-	    "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
-                $('td:eq(0)', nRow).html('<a href="#">' +  aData[0] + '</a>');
+	    /*"aoColumnDefs" : [ 
+                    {
+                        "aTargets": [0],	
+                        "fnCreatedCell" : function(nTd, sData, oData, iRow, iCol){
+                            var b = $('<button style="margin: 0">edit</button>');
+                            b.button();
+                            b.on('click',function(){
+                                document.location.href = oData[0];
+                                return false;
+                            });
+                            $(nTd).empty();
+                            $(nTd).prepend(b);
+                        }
+		     }
+                    ],*/
+	   /* "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                $('td:eq(0)', nRow).html('<a href='+nRow+'>' +  aData[0] + '</a>');
                 return nRow;
-        },    	    
+        },*/    	    
         });
 
-	$('#adminViewer tbody').on( 'click', 'tr', function () {
-            
-        });
+	$('#adminViewer td').live('click', function() {
+    		var anOpen = [];
+    		var nTr = this.parentNode;
+    		var i = $.inArray(nTr, anOpen);
+		var data = [];
+		data.push('{{table}}');
+		j=0;
+    		$(this).parent().find("td").each(function() {
+        	    data.push(columns[j]["name"]+'=\''+$(this).html()+'\''); // logs each cell value 
+		    j++;
+		});
+		//alert(data)
+   		window.location = "/admin/adminEdit/"+data;
+ 	});
     });
 </script>
 

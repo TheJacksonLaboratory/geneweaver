@@ -335,7 +335,7 @@ def get_server_side(rargs):
  
         return response
 
-def get_table_columns(table, table1):
+def get_table_columns(table):
     sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND column_name NOT IN (
 SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary);''' % (table,table)
     with PooledCursor() as cursor:	
@@ -348,10 +348,22 @@ def admin_delete_item(args):
 	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
 	return list(dictify_cursor(cursor))
 
-def admin_get_data(args):
+def get_foreign_keys(table):
     with PooledCursor() as cursor:
 	cursor.execute(
-	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
+	     '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (table))
+	return list(dictify_cursor(cursor))
+
+def admin_get_data(table,constraint):
+    sql = '''SELECT * FROM %s WHERE %s;''' % (table,constraint)
+    with PooledCursor() as cursor:
+	cursor.execute(sql)
+	return list(dictify_cursor(cursor))
+
+def admin_delete(table, constraints):
+    sql = '''SELECT * FROM %s WHERE %s;''' % (table,constraint)
+    with PooledCursor() as cursor:
+	cursor.execute(sql)
 	return list(dictify_cursor(cursor))
 
 def admin_set_edit(args):

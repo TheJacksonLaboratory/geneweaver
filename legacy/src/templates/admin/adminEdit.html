@@ -1,21 +1,41 @@
 {% extends 'admin/AdminTemplateOverride.html' %}
 
+
+
+{% block body %}
 <script>
     $(document).ready(function()  {
    
-	$("#add-form").submit(function(event) {    		    
+	$("#edit-form").submit(function(event) {    		    
 
+	    event.preventDefault();
     		    $.ajax({
           		type: "POST",
-           		url: "../../admin/adminAdd",
+           		url: "../../admin/adminSubmitEdit",
            		data: $("#add-form").serialize(), // serializes the form's elements.
            		success: function(data)
            		{
-               		    alert("OK");
+               		    alert(data);
            		}
          	    });
-		    return false;
+		   //location.replace(document.referrer);
 	});  
+
+	$("#delete-button").click(function() {
+	    if (confirm('Are you sure you wish to delete this?')) { 
+ 		$.ajax({
+          		type: "POST",
+           		url: "../../admin/adminDelete",
+           		data: $("#add-form").serialize(), // serializes the form's elements.
+           		success: function(data)
+           		{
+               		    alert(data);
+           		}
+         	    });
+		
+		//location.replace(document.referrer);
+	    }
+	});
 
 	String.prototype.capitalize = function() {
     	    return this.charAt(0).toUpperCase() + this.slice(1);
@@ -23,19 +43,17 @@
     });    
 </script>
 
-{% block body %}
-<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
 
-  <h3 align=left>Edit {{toEdit}}</h3>
+  <h3 align=left>Edit {{table}}</h3>
 	 <p>
-
-	<form method="post" action="../../admin/adminEdit" id="add-form">     
+	
+	<form id="edit-form" class="form-horizontal" data-parsley-validate="" novalidate="">     
 	   <div>
-	     {% for col in columns %}
+	     {% for val in columns %}
 		<div class="form-group">
-	    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}} - {{currentValue}}</label>
+	    	  <label class="col-sm-3 control-label">{{val}}</label>
 		    <div class="col-sm-9">
-	    		<input name={{col.column_name}} class="form-control" type="text"></input>	    		
+	    		<input name={{val}} class="form-control" type="text" required=""></input>	    		
 		   </div>
 		</div>
 	    {% endfor %}
@@ -43,30 +61,11 @@
 	  <p><p>
 	  <div class="col-sm-9 col-sm-offset-3">
 	    <div class="pull-left">
-		<input class="btn btn-primary m-b-10" type="submit" value="Submit Changes"></input>
-		<input class="btn btn-primary m-b-10" type="submit" value="Delete"></input>
+		<input class="btn btn-primary" type="submit" value="Submit Changes"></input>
+		<input id="delete-button" class="btn btn-primary" type="button" value="Delete"></input>
 	    </div>
 	  </div>  
 	</form>
-	
-	<!--<form method="post" action="../../admin/adminAdd" id="add-form" class="form-horizontal" data-parsley-validate="" novalidate="">     
-	   <div>
-	     {% for col in columns %}
-		<div class="form-group">
-	    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}}</label>
-		    <div class="col-sm-9">
-	    		<input name={{col.column_name}} class="form-control" type="text" required=""></input>	    		
-		   </div>
-		</div>
-	    {% endfor %}
-	  </div>
-	  <p><p>
-	  <div class="col-sm-9 col-sm-offset-3">
-	    <div class="pull-left">
-		<input class="btn btn-primary m-b-10" type="submit" value="Add"></input>
-	    </div>
-	  </div>  
-	</form>-->
 
 
 {% endblock %}
