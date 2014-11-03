@@ -6,10 +6,10 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 
-TOOL_CLASSNAME = 'PhenomeMap'
-phenomemap_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+TOOL_CLASSNAME = 'BooleanAlgebra'
+boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@phenomemap_blueprint.route('/run-phenome-map.html', methods=['POST'])
+@boolean_algebra_blueprint.route('/run-boolean-algebra.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
@@ -21,15 +21,6 @@ def run_tool():
         # TODO add nice error message about missing genesets
         raise Exception('there must be at least two genesets selected to run this tool')
 
-    # gather the params into a dictionary
-    homology_str = 'Homology'
-    params = {homology_str: None}
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        params[tool_param.name] = form[tool_param.name]
-        if tool_param.name.endswith('_' + homology_str):
-            params[homology_str] = form[tool_param.name]
-    if params[homology_str] != 'Excluded':
-        params[homology_str] = 'Included'
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -72,7 +63,7 @@ def run_tool():
     return response
 
 
-@phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
@@ -84,15 +75,15 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/PhenomeMap_result.html',
-            async_result=json.loads(async_result.result),
+            'tool/BooleanAlgebra_result.html',
+            async_result=async_result,
             tool=tool)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
 
 
-@phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
