@@ -43,7 +43,7 @@
            		}
          	    });
 		
-		window.location.replace(document.referrer)
+window.location.replace(document.referrer)
 		//history.back();
 	       // window.location.reload();	    
 	    } 

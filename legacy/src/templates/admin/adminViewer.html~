@@ -25,11 +25,11 @@ var editor;
 		    "data": {"table": table}
                 },
 	    "columns": columns,
-	    /*"oTableTools": {
+	    "oTableTools": {
             	"sRowSelect": "single",
 		"aButtons": [ "delete selected", "Edit" ]
-            },*/
-            "fnDrawCallback": function() {
+            }
+            /*"fnDrawCallback": function() {
       		$('table#adminViewer td').bind('mouseenter', function () { 
 			$(this).parent().children().each(function(){
 				$(this).addClass('datatablerowhighlight'); 
@@ -40,10 +40,10 @@ var editor;
 				$(this).removeClass('datatablerowhighlight'); 
 			});  
 	  	});		    
-	    }   	    
+	    }   */	    
         });
 
-	$('#adminViewer td').live('click', function() {
+	/*$('#adminViewer td').live('click', function() {
     		var anOpen = [];
     		var nTr = this.parentNode;
     		var i = $.inArray(nTr, anOpen);
@@ -56,7 +56,7 @@ var editor;
 		});
 		//alert(data)
    		window.location = "/admin/adminEdit/"+data;
- 	});	
+ 	});	*/
 
 	String.prototype.capitalize = function() {
     	    return this.charAt(0).toUpperCase() + this.slice(1);

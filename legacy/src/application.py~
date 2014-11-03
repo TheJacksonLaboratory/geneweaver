@@ -275,7 +275,7 @@ def admin_edit(strdata):
 def admin_delete():
     if "user" in flask.g and flask.g.user.is_admin:
         form = flask.request.form
-	geneweaverdb.admin_delete(form)
+	#geneweaverdb.admin_delete(form)
     	print form
         return json.dumps("Deletion Successful")
     else:
