@@ -6,6 +6,8 @@ import random
 from psycopg2.pool import ThreadedConnectionPool
 import distutils.sysconfig
 from distutils.util import strtobool
+from tools import toolcommon as tc
+
 #import simplejson
 
 
@@ -779,8 +781,8 @@ def get_file(apikey, task_id, file_type):
 		return task_id.file_type
 
 def get_status(task_id):
-	# use funtion call from celerey already implemented in each tool
-	return "States should be here"
+	async_result = tc.celery_app.AsyncResult(task_id)
+	return async_result.state
 
 
 #private function that is not called by api

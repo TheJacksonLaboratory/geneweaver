@@ -389,6 +389,10 @@ class ToolJaccardSimilarity(restful.Resource):
     def get(self, apikey, homology, pairwiseDeletion, genesets):
         return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
+class ToolCombine(restful.Resource):
+    def get(self, apikey, homology, genesets):
+        return combineblueprint.run_tool_api(apikey, homology, genesets)
+
 
 api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
 api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
@@ -404,7 +408,7 @@ api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
 api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
 api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
 api.add_resource(ToolJaccardSimilarity, '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
-
+api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
 
 # ********************************************
 # END API BLOCK

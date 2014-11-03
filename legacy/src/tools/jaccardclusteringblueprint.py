@@ -74,7 +74,7 @@ def run_tool():
     return response
 
 
-@jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['GET'])
+#@jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['GET'])
 def run_tool_api(apikey, homology, method, genesetsPassed):
 	
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -96,7 +96,6 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
                 paramsAPI[homology_str] = 'Included'
                 paramsAPI[tool_param.name] = 'Included'
                 
-    print(paramsAPI)
     	
     # pull out the selected geneset IDs
     selected_geneset_ids = genesetsPassed.split(":")

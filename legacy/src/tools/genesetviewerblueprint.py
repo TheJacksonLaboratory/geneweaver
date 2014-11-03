@@ -30,7 +30,6 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
-	print(params)
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     # insert result for this run
@@ -97,7 +96,6 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
             if homology != 'Excluded':
                 params[homology_str] = 'Included'
                 params[tool_param.name] = 'Included'
-	print(params)
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     
