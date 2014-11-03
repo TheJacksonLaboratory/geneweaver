@@ -64,7 +64,6 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 
 #*************************************
->>>>>>> development
 
 RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
