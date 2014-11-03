@@ -64,8 +64,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
-RESULTS_PATH = '/var/www/html/geneweaver/results'
-
+RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
 @app.route('/results/<path:filename>')
 def static_results(filename):
@@ -379,7 +378,10 @@ class GetGenesetByProjectId(restful.Resource):
 # TODO format syntax       
 class ToolGetFile(restful.Resource):
     def get(self, apikey, task_id, file_type):
-        return geneweaverdb.get_file(apikey, task_id, file_type) 
+        return geneweaverdb.get_file(apikey, task_id, file_type)
+class ToolGetLink(restful.Resource):
+    def get(self, apikey, task_id, file_type):
+        return geneweaverdb.get_link(apikey, task_id, file_type)  
 class ToolGetStatus(restful.Resource):
     def get(self, task_id):
         return geneweaverdb.get_status(task_id) 
@@ -412,12 +414,15 @@ api.add_resource(GetProjectsByUser, '/api/get/project/byuser/<apikey>/')
 api.add_resource(GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
 
 api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
+api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
 
 api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
 api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
 api.add_resource(ToolJaccardSimilarity, '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
 api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
+
+
 
 # ********************************************
 # END API BLOCK

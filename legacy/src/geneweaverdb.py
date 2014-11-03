@@ -10,8 +10,8 @@ from tools import toolcommon as tc
 import os
 from flask import Flask, redirect
 
-#import simplejson
-
+BASIC_URL = 'localhost:5000'
+RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
@@ -636,7 +636,7 @@ def get_geneset_values(geneset_id):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
-
+        
 
 class ToolParam:
     def __init__(self, tool_param_dict):
@@ -776,6 +776,8 @@ def get_all_userids():
 # 	if homology is included at the end of the URL also return all
 
 # Tool Information Functions  
+
+
 def get_file(apikey, task_id, file_type): 
 	#check to see if user has permissions for the result
 	user_id = get_user_id_by_apikey(apikey)
@@ -786,16 +788,34 @@ def get_file(apikey, task_id, file_type):
 		return "Error: User does not have permission to view the file."
 	
 	# if exists
-	script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
-	script_dir =  script_dir + "/../../"
-	rel_path = "results/" + task_id + "." + file_type
-	abs_file_path = os.path.join(script_dir, rel_path)
+	rel_path = task_id + "." + file_type
+	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
 	print(abs_file_path)
 	if(os.path.exists(abs_file_path)):
-		return rel_path
+		return redirect( "/results/"+ rel_path)
 	else:
 		return "Error: No such File! Check documentatin for supported file types of each tool."
-
+		
+		
+def get_link(apikey, task_id, file_type): 
+	#check to see if user has permissions for the result
+	user_id = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute('''SELECT usr_id FROM production.result WHERE res_runhash=%s''', (task_id,))
+	user_id_result = cursor.fetchone()
+	if(user_id != user_id_result):
+		return "Error: User does not have permission to view the file."
+	
+	# if exists
+	rel_path = task_id + "." + file_type
+	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
+	print(abs_file_path)
+	if(os.path.exists(abs_file_path)):
+		return BASIC_URL + "/results/"+ rel_path
+	else:
+		return "Error: No such File! Check documentatin for supported file types of each tool."
+		
+		
 def get_status(task_id):
 	async_result = tc.celery_app.AsyncResult(task_id)
 	return async_result.state
