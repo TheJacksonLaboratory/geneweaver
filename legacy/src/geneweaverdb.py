@@ -7,6 +7,8 @@ from psycopg2.pool import ThreadedConnectionPool
 import distutils.sysconfig
 from distutils.util import strtobool
 from tools import toolcommon as tc
+import os
+from flask import Flask, redirect
 
 #import simplejson
 
@@ -776,9 +778,15 @@ def get_all_userids():
 # Tool Information Functions  
 def get_file(apikey, task_id, file_type): 
 	# if exists
-	if(True):
-		# return file
-		return task_id.file_type
+	script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
+	script_dir =  script_dir + "/../../"
+	rel_path = "results/" + task_id + "." + file_type
+	abs_file_path = os.path.join(script_dir, rel_path)
+	print(abs_file_path)
+	if(os.path.exists(abs_file_path)):
+		return rel_path
+	else:
+		return "Error: No such File! Check documentatin for supported file types of each tool."
 
 def get_status(task_id):
 	async_result = tc.celery_app.AsyncResult(task_id)

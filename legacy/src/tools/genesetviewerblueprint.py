@@ -129,13 +129,6 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
         },
         task_id=task_id)
 
-    # render the status page and perform a 303 redirect to the
-    # URL that uniquely identifies this run
-    new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
-    response = flask.make_response(tc.render_tool_pending(async_result, tool))
-    response.status_code = 303
-    response.headers['location'] = new_location
-
     return task_id
 
 
