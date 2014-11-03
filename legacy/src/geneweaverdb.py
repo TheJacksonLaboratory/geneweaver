@@ -777,6 +777,14 @@ def get_all_userids():
 
 # Tool Information Functions  
 def get_file(apikey, task_id, file_type): 
+	#check to see if user has permissions for the result
+	user_id = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute('''SELECT usr_id FROM production.result WHERE res_runhash=%s''', (task_id,))
+	user_id_result = cursor.fetchone()
+	if(user_id != user_id_result):
+		return "Error: User does not have permission to view the file."
+	
 	# if exists
 	script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
 	script_dir =  script_dir + "/../../"
@@ -956,3 +964,48 @@ def get_geneset_by_user(apikey):
 		return cursor.fetchall()
 	else:
 		return "No user with that key"
+
+def get_projects_by_user(apikey):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(  	SELECT * 
+								FROM production.project
+								WHERE usr_id = (SELECT usr_id
+												FROM production.usr
+												WHERE apikey = %s)											
+							) row; ''', (apikey,))
+	return cursor.fetchall();
+
+def get_geneset_by_project_id(apikey, projectid):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(  	SELECT gs_id
+								FROM production.project2geneset
+								WHERE pj_id in (SELECT pj_id
+												FROM production.geneset
+												WHERE pj_id = %s and usr_id = %s)
+							) row; ''', (projectid, user))
+	return cursor.fetchall()
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

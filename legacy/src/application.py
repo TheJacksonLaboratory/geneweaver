@@ -369,6 +369,13 @@ class GetGenesetById(restful.Resource):
 class GetGenesetByUser(restful.Resource):
     def get(self, apikey):
         return geneweaverdb.get_geneset_by_user(apikey)
+class GetProjectsByUser(restful.Resource):
+    def get(self, apikey):
+        return geneweaverdb.get_projects_by_user(apikey)
+class GetGenesetByProjectId(restful.Resource):
+    def get(self, apikey, projectid):
+        return geneweaverdb.get_geneset_by_project_id(apikey, projectid)  
+        
 # TODO format syntax       
 class ToolGetFile(restful.Resource):
     def get(self, apikey, task_id, file_type):
@@ -377,7 +384,7 @@ class ToolGetStatus(restful.Resource):
     def get(self, task_id):
         return geneweaverdb.get_status(task_id) 
                 
-# error tooljaccardclustering not actually running           
+#Tools          
 class ToolJaccardClustering(restful.Resource):
     def get(self, apikey, homology, method, genesets):
         return jaccardclusteringblueprint.run_tool_api(apikey, homology, method, genesets)
@@ -385,7 +392,7 @@ class ToolJaccardClustering(restful.Resource):
 class ToolGenesetViewer(restful.Resource):
     def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
         return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
-
+#Error: JaccardSimilarity does not create files => not an API problem, tool itself problem.
 class ToolJaccardSimilarity(restful.Resource):
     def get(self, apikey, homology, pairwiseDeletion, genesets):
         return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
@@ -401,7 +408,8 @@ api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
 api.add_resource(GetGenesetById, '/api/get/geneset/bygenesetid/<genesetid>/')
 api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
-
+api.add_resource(GetProjectsByUser, '/api/get/project/byuser/<apikey>/')
+api.add_resource(GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
 
 api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
