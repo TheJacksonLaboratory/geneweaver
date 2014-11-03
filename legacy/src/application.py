@@ -66,6 +66,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
+
 @app.route('/results/<path:filename>')
 def static_results(filename):
     return flask.send_from_directory(RESULTS_PATH, filename)
