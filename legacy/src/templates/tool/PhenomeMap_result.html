@@ -2,20 +2,69 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-<div class="page-header">
-    <h1>{{ title }}</h1>
+<!-- JSON support for IE (needed to use JS API) -->
+<script type="text/javascript" src="../../static/js/cytoscape/json2.min.js"></script>
+<!-- Flash embedding utility (needed to embed Cytoscape Web) -->
+<script type="text/javascript" src="../../static/js/cytoscape/AC_OETags.min.js"></script>
+<!-- Cytoscape Web JS API (needed to reference org.cytoscapeweb.Visualization) -->
+<script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
+<!-- Cytoscape settings and graph rendering for tool output -->
+<script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
+<div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 400px; width: 95%; border-style: solid;">
+    <br/>
+    <br/>
+    Loading Hierarchical Similarity Graph...<br/>
+    <br/>
+    <br/>
+</div>
+<!-- js file for heatmap color interpolations -->
+<!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
+<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a>
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in Static View</a>
+
+<div id="stats" align="left" style="float: left; margin: 10px">
+    <h3>Statistics</h3>
+</div>
+<div id="shortcuts" align="left" style="float: left; margin: 10px">
+    <h3>Shortcuts</h3>
+    <table>
+        <tr><td><b>Zoom in:</b></td><td>double click background</br></td></tr>
+        <tr><td><b>Zoom out:</b></td><td>shift + double click background</br></td></tr>
+        <tr><td><b>Panning mode:</b></td><td> drag background</br></td></tr>
+    </table>
 </div>
 
-<div class="row">
-    <div class="col-md-12 link-panel" style="text-align: center;">
-        <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.svg') }}"></iframe>
-        <br />
-        <a href="{{ url_for('static_results', filename=async_result.task_id + '.pdf') }}">Export Phenome Map as a PDF</a>
-        -
-        <a target="_blank" href="{{ url_for('static_results', filename=async_result.task_id + '.svg') }}">Open in new window</a>
-    </div>
-</div>
 
 
+<script type="text/javascript">
+    function loadStats() {
+        var result = {{ async_result|tojson }};
+        var stats_url = '/results/' + result.parameters.output_prefix + '.el.profile';
+        $.get(stats_url, function(data) {
+            var lines = data.split('\n');
+            lines = lines.slice(Math.max(lines.length - 8, 1), lines.length - 2);
+            if(lines.length != 6) {
+                $('#stats').append('Not available.');
+                return;
+            }
+            values = [];
+            $.each(lines, function(i, v) { values.push(v.split(':')[1].trim()); });
+            stats_table = $('<table></table>');
+            stats_table.append(
+                '<tr><td>Number of genes:</td><td>' + values[0] + '</td></tr>'
+                + '<tr><td>Number of genesets:</td><td>' + values[1] + '</td></tr>'
+                + '<tr><td>Number of bicliques:</td><td>' + values[3] + '</td></tr>'
+                + '<tr><td>Number of edges:</td><td>' + values[2] + '</td></tr>'
+                + '<tr><td>Max edge biclique size:</td><td>' + values[4] + '</td></tr>'
+                + '<tr><td>Max vertex biclique size:</td><td>' + values[5] + '</td></tr>'
+            );
+            stats_table.find('td').css('padding', 0);
+            $('#stats').append(stats_table);
+        });
+    }
+    // load statistics from file
+    $(window).load(loadStats);
+</script>
 
 {% include 'footer.html' %}
+

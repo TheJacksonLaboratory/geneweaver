@@ -4,15 +4,15 @@ import json
 import string
 import random
 from psycopg2.pool import ThreadedConnectionPool
+import distutils.sysconfig
+from distutils.util import strtobool
+import simplejson
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
-
     """Extend ThreadedConnectionPool to initialize the search_path"""
-
     def __init__(self, minconn, maxconn, *args, **kwargs):
-        ThreadedConnectionPool.__init__(
-            self, minconn, maxconn, *args, **kwargs)
+        ThreadedConnectionPool.__init__(self, minconn, maxconn, *args, **kwargs)
 
     def _connect(self, key=None):
         """Create a new connection and set its search_path"""
@@ -25,8 +25,7 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
         return conn
 
 
-# the global threaded connection pool that should be used for all DB
-# connections in this application
+# the global threaded connection pool that should be used for all DB connections in this application
 pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database='geneweaver',
@@ -38,7 +37,6 @@ pool = GeneWeaverThreadedConnectionPool(
 
 
 class PooledConnection(object):
-
     """
     A pooled connection suitable for using in a with ... as ...: construct (the connection is automatically
     returned to the pool at the end of the with block)
@@ -62,7 +60,6 @@ class PooledConnection(object):
 
 
 class PooledCursor(object):
-
     """
     A cursor obtained from a connection pool. This is suitable for using in a with ... as ...: construct (the
     underlying connection will be automatically returned to the connection pool
@@ -102,7 +99,6 @@ def dictify_cursor(cursor):
 
 
 class Project:
-
     def __init__(self, proj_dict):
         self.project_id = proj_dict['pj_id']
         self.user_id = proj_dict['usr_id']
@@ -122,8 +118,7 @@ class Project:
         self.created = proj_dict['pj_created']
         self.notes = proj_dict['pj_notes']
 
-        # depending on if/how the project table is joined the following may be
-        # available
+        # depending on if/how the project table is joined the following may be available
         self.count = proj_dict.get('count')
         self.deprecated = proj_dict.get('deprecated')
         self.group_name = proj_dict.get('group')
@@ -207,8 +202,7 @@ def get_all_species():
     returns an ordered mapping from species ID to species name for all available species
     """
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT sp_id, sp_name FROM species ORDER BY sp_id;''')
+        cursor.execute('''SELECT sp_id, sp_name FROM species ORDER BY sp_id;''')
         return OrderedDict(cursor)
 
 
@@ -254,10 +248,108 @@ def get_microarray_types(sp_id=0):
             '''SELECT * FROM platform WHERE (sp_id=%(sp_id)s OR 0=%(sp_id)s) ORDER BY pf_name;''',
             {'sp_id': sp_id})
         return list(dictify_cursor(cursor))
+#*************************************
+
+def get_server_side(rargs):
+    
+    source_table = rargs.get('table', type=str)
+    source_columns = []
+    select_columns = []
+
+    i=0
+    temp = rargs.get('columns[%d][name]' % i)    
+    while temp is not None:
+	col_name ='cast(' + temp + ' as text)'
+	source_columns.append(col_name)
+	select_columns.append(temp)
+        i=i+1
+        temp = rargs.get('columns[%d][name]' % i)  
+    
+
+    #select and from clause creation
+    select_clause = 'SELECT %s ' % ','.join(select_columns)
+    from_clause = 'FROM %s' % source_table
+  
+
+    # Paging
+    iDisplayStart = rargs.get('start', type=int)
+    iDisplayLength = rargs.get('length', type=int)
+    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
+    		    if (iDisplayStart is not None and iDisplayLength != -1) \
+    		    else ''    
+
+    #searching
+    search_value = rargs.get('search[value]')     
+    search_clauses = []
+    if search_value:
+        for i in range(len(source_columns)):
+	    search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i],search_value))
+	search_clause = 'OR '.join(search_clauses)
+    else:
+ 	search_clause=''
+    
+ 
+    # Sorting
+    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+    sorting_direction = rargs.get('order[0][dir]', type=str)
+    sort_dir = 'ASC NULLS LAST' \
+    	   	if sorting_direction == 'asc' \
+    		else 'DESC NULLS LAST'
+    order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
+  
+    #joins all clauses together as a query
+    where_clause = 'WHERE %s' % search_clause if search_clause else ''
+    #print where_clause
+    sql = ' '.join([select_clause,
+    		    from_clause,
+    		    where_clause,
+    		    order_clause,
+   		    limit_clause]) + ';'
+    #print sql
+ 
+    with PooledCursor() as cursor:
+        #cursor.execute(sql, ac_patterns + pc_patterns)
+	cursor.execute(sql)
+        things = cursor.fetchall()
 
 
+        sEcho = rargs.get('sEcho', type=int)
+ 
+    # Count of all values in table
+        cursor.execute(' '.join(['SELECT COUNT(*)', from_clause]) + ';')
+        iTotalRecords = cursor.fetchone()[0]
+ 
+    # Count of all values that satisfy WHERE clause
+        iTotalDisplayRecords = iTotalRecords
+        if where_clause:
+            sql = ' '.join([select_clause, from_clause, where_clause]) + ';'
+            #cursor.execute(sql, ac_patterns + pc_patterns)
+	    cursor.execute(sql)
+            iTotalDisplayRecords = cursor.rowcount
+ 
+        response = {'sEcho': sEcho,
+    	    	    'iTotalRecords': iTotalRecords,
+    		    'iTotalDisplayRecords': iTotalDisplayRecords,
+   		    'aaData': things
+   		    }
+ 
+        return response
+
+def get_table_columns(table):
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
+	return list(dictify_cursor(cursor))
+
+def admin_insert(columns, table):
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
+	return list(dictify_cursor(cursor))
+
+
+#*************************************************************
 class User:
-
     def __init__(self, usr_dict):
         self.user_id = usr_dict['usr_id']
         self.first_name = usr_dict['usr_first_name']
@@ -283,7 +375,6 @@ class User:
 
 
 class Publication:
-
     def __init__(self, pub_dict):
         self.pub_id = pub_dict['pub_id']
         self.authors = pub_dict['pub_authors']
@@ -298,7 +389,6 @@ class Publication:
 
 
 class Geneset:
-
     def __init__(self, gs_dict):
         self.geneset_id = gs_dict['gs_id']
         self.user_id = gs_dict['usr_id']
@@ -335,8 +425,7 @@ class Geneset:
         self.uri = gs_dict['gs_uri']
         self.gene_id_type = gs_dict['gs_gene_id_type']
         self.creation_date = gs_dict['gs_created']
-        # TODO document how admin flag works. Is it similar to usr_admin in the
-        # user table?
+        # TODO document how admin flag works. Is it similar to usr_admin in the user table?
         self.admin_flag = gs_dict['admin_flag']
         self.updated_date = gs_dict['gs_updated']
         # TODO document how status works
@@ -352,8 +441,7 @@ class Geneset:
     @property
     def ontological_associations(self):
         if self.__ontological_associations is None:
-            self.__ontological_associations = get_ontologies_for_geneset(
-                self.geneset)
+            self.__ontological_associations = get_ontologies_for_geneset(self.geneset)
         return self.__ontological_associations
 
     @property
@@ -364,7 +452,6 @@ class Geneset:
 
 
 class Ontology:
-
     def __init__(self, ont_dict):
         self.ontology_id = ont_dict['ont_id']
         self.reference_id = ont_dict['ont_ref_id']
@@ -421,13 +508,13 @@ def get_user_byemail(user_email):
     :return: the User matching the given email or None if no such user is found
     """
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT * FROM usr WHERE usr_email=%s''', (user_email,))
+        cursor.execute('''SELECT * FROM usr WHERE usr_email=%s''', (user_email,))
         users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
         return users[0] if len(users) == 1 else None
 
 
 def register_user(user_first_name, user_last_name, user_email, user_password):
+
     """
     Insert a user to the db
     :param user_first_name: the user's first name, if not provided use "Guest" as default
@@ -473,6 +560,23 @@ def reset_password(user_email):
     print get_user_byemail(user_email)
     return new_password
 
+def change_password(user_id, new_password):
+    """
+    Update a user password
+    :param user_email:      the user's email address, if not provided use "" as default
+    :param new_password_1:   the user's password, if not provided use "" as default
+    :param new_password_2:   the user's password, if not provided use "" as default
+    """
+    with PooledCursor() as cursor:
+
+        password_md5 = md5(new_password).hexdigest()
+        cursor.execute(
+            '''UPDATE usr
+               SET usr_password = %s
+               WHERE usr_id = %s''', (password_md5, user_id)
+        )
+        cursor.connection.commit()
+    return
 
 def get_geneset(geneset_id, user_id=None):
     """
@@ -484,8 +588,7 @@ def get_geneset(geneset_id, user_id=None):
                         user has read permission, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The
-    # geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
     if user_id is None:
         user_id = -1
 
@@ -514,7 +617,6 @@ def get_ontologies_for_geneset(geneset_id):
 
 
 class GenesetValue:
-
     def __init__(self, gsv_dict):
         self.gs_id = gsv_dict['gs_id']
         self.ode_gene_id = gsv_dict['ode_gene_id']
@@ -528,13 +630,11 @@ class GenesetValue:
 
 def get_geneset_values(geneset_id):
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
+        cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
 class ToolParam:
-
     def __init__(self, tool_param_dict):
         self.tool_classname = tool_param_dict['tool_classname']
         self.name = tool_param_dict['tp_name']
@@ -578,13 +678,11 @@ def get_tool_params(tool_classname, only_visible=False):
 
 
 class ToolConfig:
-
     def __init__(self, tool_dict):
         self.classname = tool_dict['tool_classname']
         self.name = tool_dict['tool_name']
         self.description = tool_dict['tool_description']
-        self.requirements = [x.strip()
-                             for x in tool_dict['tool_requirements'].split(',')]
+        self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
         self.is_active = tool_dict['tool_active'] == '1'
         self.sort_priority = tool_dict['tool_sort']
         self.__params = None
@@ -592,6 +690,7 @@ class ToolConfig:
     @property
     def params(self):
         if self.__params is None:
+
             self.__params = OrderedDict(((tp.name, tp)
                                          for tp in get_tool_params(self.classname)))
 
@@ -600,8 +699,7 @@ class ToolConfig:
 
 def get_tool(tool_classname):
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT * FROM tool WHERE tool_classname=%s;''', (tool_classname,))
+        cursor.execute('''SELECT * FROM tool WHERE tool_classname=%s;''', (tool_classname,))
         tools = [ToolConfig(tool_dict) for tool_dict in dictify_cursor(cursor)]
 
         return tools[0] if len(tools) == 1 else None
@@ -613,8 +711,7 @@ def get_active_tools():
     :return: a list of active tools
     """
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT * FROM tool WHERE tool_active='1' ORDER BY tool_sort;''')
+        cursor.execute('''SELECT * FROM tool WHERE tool_active='1' ORDER BY tool_sort;''')
         return [ToolConfig(tool_dict) for tool_dict in dictify_cursor(cursor)]
 
 
@@ -628,8 +725,7 @@ def get_run_status(run_hash):
 
     with PooledCursor() as cursor:
         # finds the total number of runs waiting to run
-        cursor.execute(
-            '''SELECT count(*) FROM result WHERE res_started IS NULL;''')
+        cursor.execute('''SELECT count(*) FROM result WHERE res_started IS NULL;''')
         total_queued = list(cursor)[0][0]
 
         # finds the number of runs ahead of us that are waiting to run
@@ -655,8 +751,7 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
             VALUES (%s, %s, %s, %s, %s, %s, %s, now())
             RETURNING res_id;
             ''',
-            (usr_id, res_runhash, ','.join(gs_ids),
-             res_data, res_tool, res_description, res_status)
+            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
         )
         cursor.connection.commit()
 

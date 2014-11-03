@@ -73,13 +73,13 @@
 				</form>
 
 				<h4 class="section-header">Change Password</h4><hr>
-				<form>
+				<form method="post" action="{{url_for('change_password')}}">
 					<div class="row">
 						<div class="col-md-4">
 							Current Password:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="curr_pass">
+							<input type="password" name="curr_pass">
 						</div>
 					</div><br>
 					<div class="row">
@@ -87,7 +87,7 @@
 							New Password:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="new_pass">
+							<input type="password" name="new_pass" id="password_1">
 						</div>
 					</div><br>
 					<div class="row">
@@ -95,14 +95,32 @@
 							Confirm New Password:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="conf_new">
+							<input type="password" name="conf_new" id="password_2">
 						</div>
-					</div><br>
-					<button class="btn bg-blue">Change Password</button>
+                    </div>
+                    <br>
+					<button id="change_password" class="ui-state-disabled btn bg-blue">Change Password</button>
 				</form>
 			</div>
 		</div>		
 	</div>
 </div>
 
+<script>
+$(document).ready(function() {
+   $("#password_2").keyup(validate);
+});
+
+function validate() {
+    var password_1 = $("#password_1").val();
+    var password_2 = $("#password_2").val();
+
+    if(password_1 == password_2) {
+        $("#change_password").removeClass("ui-state-disabled");        
+    }
+    else {
+        $("#change_password").addClass("ui-state-disabled");        
+    }
+}
+</script>
 {% include 'footer.html' %}

@@ -6,12 +6,10 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 
-from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
+TOOL_CLASSNAME = 'BooleanAlgebra'
+boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-TOOL_CLASSNAME = 'JaccardSimilarity'
-jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
-
-@jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html', methods=['POST'])
+@boolean_algebra_blueprint.route('/run-boolean-algebra.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
@@ -23,15 +21,6 @@ def run_tool():
         # TODO add nice error message about missing genesets
         raise Exception('there must be at least two genesets selected to run this tool')
 
-    # gather the params into a dictionary
-    homology_str = 'Homology'
-    params = {homology_str: None}
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        params[tool_param.name] = form[tool_param.name]
-        if tool_param.name.endswith('_' + homology_str):
-            params[homology_str] = form[tool_param.name]
-    if params[homology_str] != 'Excluded':
-        params[homology_str] = 'Included'
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -54,6 +43,7 @@ def run_tool():
         tool.name,
         desc,
         desc)
+
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
@@ -73,39 +63,27 @@ def run_tool():
     return response
 
 
-@jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
-
-        # env = Environment(loader=FileSystemLoader('templates'))
-        # template = env.get_template('tool/test.svg')
-        # output = template.render(
-        #     'tool/JaccardSimilarity_svg.html',
-        #     async_result=json.loads(async_result.result))
-        #
-        # return output
-
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/JaccardSimilarity_result.html',
-            async_result=json.loads(async_result.result),
-            tool=tool, list=gwdb.get_all_projects(user_id))
+            'tool/BooleanAlgebra_result.html',
+            async_result=async_result,
+            tool=tool)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
 
 
-@jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
