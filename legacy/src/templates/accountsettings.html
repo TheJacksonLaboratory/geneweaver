@@ -49,8 +49,8 @@
 			</div>
 			<form method="post" action="{{url_for('generate_api_key')}}">
 				<div class="panel-body">
-					<div class="col-xs-2">
-						API Key: {{API_KEY_HERE}}
+					<div class="col-xs-7">
+						API Key: {{user.api_key}}
 					</div>
 					<button id="generate_api_key" class="btn btn-primary pull-right">Generate New Key</button>
 				</div>
@@ -69,7 +69,7 @@
 							Name:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="username">
+							<input type="text" name="username" value="{{user.first_name}} {{user.last_name}}">
 						</div>
 					</div><br>
 					<div class="row">
@@ -77,7 +77,7 @@
 							Email:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="email">
+							<input type="text" name="email" value="{{user.email}}">
 						</div>
 					</div><br>
 					<button class="btn bg-blue">Save Changes</button><br><br>

@@ -28,15 +28,21 @@ print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
 print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
 #*************************************
-admin=Admin(app,name='Admin', index_view=adminviews.AdminHome(url='/admin', name='Admin Home'));
+admin = Admin(app, name='Admin', index_view=adminviews.AdminHome(
+    url='/admin', name='Admin Home'))
 
 
-admin.add_view(adminviews.Users(name='View Users', endpoint='viewUsers', category='User Tools'))
-admin.add_view(adminviews.Users(name='View Permissions', endpoint='editUsers', category='User Tools'))
-admin.add_view(adminviews.Users(name='View Groups', endpoint='editGroups', category='User Tools'))
+admin.add_view(adminviews.Users(
+    name='View Users', endpoint='viewUsers', category='User Tools'))
+admin.add_view(adminviews.Users(
+    name='View Permissions', endpoint='editUsers', category='User Tools'))
+admin.add_view(adminviews.Users(
+    name='View Groups', endpoint='editGroups', category='User Tools'))
 
-admin.add_view(adminviews.Users(name='View Genes', endpoint='viewGenese', category='Gene Tools'))
-admin.add_view(adminviews.Users(name='View Genesets', endpoint='viewGenesets', category='Gene Tools'))
+admin.add_view(adminviews.Users(
+    name='View Genes', endpoint='viewGenese', category='Gene Tools'))
+admin.add_view(adminviews.Users(
+    name='View Genesets', endpoint='viewGenesets', category='Gene Tools'))
 admin.add_link(MenuLink(name='Geneweaver Home', url='/'))
 
 #RESULTS_PATH = '/Users/kss/projects/GeneWeaver/results'
@@ -136,7 +142,8 @@ def _form_login():
     form = flask.request.form
     if 'usr_email' in form:
         # TODO deal with login failure
-        user = geneweaverdb.authenticate_user(form['usr_email'], form['usr_password'])
+        user = geneweaverdb.authenticate_user(
+            form['usr_email'], form['usr_password'])
         if user is not None:
             flask.session['user_id'] = user.user_id
             remote_addr = flask.request.remote_addr
@@ -146,18 +153,20 @@ def _form_login():
     flask.g.user = user
     return user
 
+
 def send_mail(to, subject, body):
     print to, subject, body
-    sendmail_location = "/usr/bin/mail" # sendmail location
+    sendmail_location = "/usr/bin/mail"  # sendmail location
     p = os.popen("%s -t" % sendmail_location, "w")
     p.write("From: NoReply@geneweaver.org\n")
     p.write("To: %s\n" % to)
     p.write("Subject: %s\n" % subject)
-    p.write("\n") # blank line separating headers from body
+    p.write("\n")  # blank line separating headers from body
     p.write(body)
     status = p.close()
     if status != 0:
         print "Sendmail exit status", status
+
 
 def _form_register():
     user = None
@@ -169,7 +178,8 @@ def _form_register():
         if user is not None:
             return None
         else:
-            user = geneweaverdb.register_user(form['usr_name'], 'User', form['usr_email'], form['usr_password'])
+            user = geneweaverdb.register_user(
+                form['usr_name'], 'User', form['usr_email'], form['usr_password'])
             return user
 
 
@@ -199,32 +209,41 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+
 @app.route('/editgenesets.html')
 def render_editgenesets():
     return flask.render_template('editgenesets.html')
 
+
 @app.route('/accountsettings.html')
 def render_accountsettings():
-    return flask.render_template('accountsettings.html')
+    user = geneweaverdb.get_user(flask.session.get('user_id'))
+    return flask.render_template('accountsettings.html', user=user)
+
 
 @app.route('/login.html')
 def render_login():
     return flask.render_template('login.html')
 
+
 @app.route('/resetpassword.html')
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
+
 
 @app.route('/search.html')
 def render_search():
     return flask.render_template('search.html')
 
 #************************************************************************
+
+
 @app.route('/adminViewer.html')
 def get_usr_id():
     Users = geneweaverdb.get_all_userids()
     return flask.render_template('adminViewer.html', Users=Users)
 #************************************************************************
+
 
 @app.route('/manage.html')
 def render_manage():
@@ -240,11 +259,14 @@ def render_help():
 def render_register():
     return flask.render_template('register.html')
 
+
 @app.route('/reset.html', methods=['GET', 'POST'])
 def render_reset():
     return flask.render_template('reset.html')
 
 # render home if register is successful
+
+
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
     user = _form_register()
@@ -259,6 +281,7 @@ def json_register_successful():
     flask.g.user = user
     return flask.render_template('index.html')
 
+
 @app.route('/reset_submit.html', methods=['GET', 'POST'])
 def reset_password():
     form = flask.request.form
@@ -267,11 +290,10 @@ def reset_password():
         return flask.render_template('reset.html', reset_failed=True)
     else:
         new_password = geneweaverdb.reset_password(user.email)
-        send_mail(user.email, "Password Reset Request", "Your new temporary password is: " + new_password)
+        send_mail(user.email, "Password Reset Request",
+                  "Your new temporary password is: " + new_password)
         return flask.render_template('index.html')
 
-# @app.route('/accountsettings.html', methods=['GET', 'POST'])
-#     return flask.render_template('accountsettings.html', API_KEY_HERE="HI GUYS")
 
 @app.route('/change_password', methods=['POST'])
 def change_password():
@@ -282,15 +304,17 @@ def change_password():
         user = geneweaverdb.get_user(flask.session.get('user_id'))
 
         if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
-    	    return flask.render_template('accountsettings.html')
+            return flask.render_template('accountsettings.html')
         else:
-            success = geneweaverdb.change_password(user.user_id, form['new_pass'])
-    	    return flask.render_template('accountsettings.html')
+            success = geneweaverdb.change_password(
+                user.user_id, form['new_pass'])
+            return flask.render_template('accountsettings.html')
+
 
 @app.route('/generate_api_key', methods=['POST'])
 def generate_api_key():
-    print "HELLO"
-    return flask.render_template('accountsettings.html')
+    geneweaverdb.generate_api_key(flask.session.get('user_id'))
+    return flask.redirect('accountsettings.html')
 
 
 @app.route('/index.html', methods=['GET', 'POST'])
@@ -304,30 +328,50 @@ def render_home():
 
 api = restful.Api(app)
 
+
 class GetGenesetsByGeneRefId(restful.Resource):
+
     def get(self, apikey, gene_ref_id, gdb_name):
         return geneweaverdb.get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, False)
+
+
 class GetGenesetsByGeneRefIdHomology(restful.Resource):
+
     def get(self, apikey, gene_ref_id, gdb_name):
         return geneweaverdb.get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, True)
+
+
 class GetGenesByGenesetId(restful.Resource):
+
     def get(self, genesetid):
         return geneweaverdb.get_geneset_by_id(genesetid)
+
+
 class GetGeneByGeneId(restful.Resource):
+
     def get(self, geneid):
         return geneweaverdb.get_gene_by_id(geneid)
+
+
 class GetGenesetById(restful.Resource):
+
     def get(self, genesetid):
         return geneweaverdb.get_geneset_by_id(genesetid)
+
+
 class GetGenesetByUser(restful.Resource):
+
     def get(self, apikey):
         return geneweaverdb.get_geneset_by_user(apikey)
 
-api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
-api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
+api.add_resource(GetGenesetsByGeneRefId,
+                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
+api.add_resource(GetGenesetsByGeneRefIdHomology,
+                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
 api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
 api.add_resource(GetGenesetById, '/api/get/geneset/byid/<genesetid>/')
-api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
+api.add_resource(
+    GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 
 # api.add_resource(GetGenesetByUser, '/api/tool/genesetveiwer/<apikey>/<params>/')
