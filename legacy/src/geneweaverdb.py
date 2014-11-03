@@ -6,7 +6,6 @@ import random
 from psycopg2.pool import ThreadedConnectionPool
 import distutils.sysconfig
 from distutils.util import strtobool
-import simplejson
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
