@@ -59,6 +59,28 @@
     </div>
 {% endmacro %}
 
+{% macro tool_param_textbox(tool_param) %}
+    <div class="form-group">
+        <label for="{{ tool_param.name|e }}" class="col-md-6 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-6">
+            {% for opt in tool_param.options %}
+                <div class="radio">
+                    <label>
+                        <input
+                                type="text"
+                                name="{{ tool_param.name|e }}"
+                                id="{{ tool_param.name|e }}_{{ loop.index }}"
+                                value="{{ opt|e }}"
+                                {% if opt == tool_param.default %}  checked{% endif %}>
+                        {{ opt|e }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+
 {% macro tool_run_button(tool) %}
     <input
         type='submit'
