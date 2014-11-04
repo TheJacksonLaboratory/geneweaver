@@ -1,0 +1,21 @@
+{% extends 'admin/AdminTemplateOverride.html' %}
+
+{% block brand %}
+          <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
+{% endblock %}
+
+<script>
+    $(document).ready(function()  {
+   
+	String.prototype.capitalize = function() {
+    	    return this.charAt(0).toUpperCase() + this.slice(1);
+	}
+    });    
+</script>
+
+{% block body %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+
+
+
+{% endblock %}
