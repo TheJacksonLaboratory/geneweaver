@@ -32,22 +32,28 @@
                 {% for proj in g.user.projects %}
                     <div id="project-{{ proj.project_id }}" class="panel panel-info">
                         <div class="panel-heading">
-                            <h2 class="panel-title">
-                                <div class="row">
-                                    <div class="col-xs-2">
-                                    <input
-                                            class="proj-checkbox"
-                                            data-project="{{ proj.project_id }}"
-                                            type="checkbox">
+                            <label>
+                                <h2 class="panel-title">
+                                    <div class="row">
+                                        <div class="col-xs-1">
+                                            
+                                            <input
+                                                    class="proj-checkbox"
+                                                    data-project="{{ proj.project_id }}"
+                                                    type="checkbox">
+                                            
+                                        </div>
+
+                                        <div class="col-xs-10">
+                                            <a data-toggle="collapse" right data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
+                                            <span class="glyphicon glyphicon-plus"></span>
+                                            {{ proj.name }}
+                                            </a>
+
+                                        </div>
                                     </div>
-                                    <div class="col-xs-10">
-                                        <a data-toggle="collapse" right data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
-                                        <span class="glyphicon glyphicon-plus"></span>
-                                        {{ proj.name }}
-                                        </a>
-                                    </div>
-                                </div>
-                            </h2>
+                                </h2>
+                            </label>
                         </div>
                         <div id="genesets-{{ proj.project_id }}" class="panel-collapse collapse">
                             <div class="panel-body">

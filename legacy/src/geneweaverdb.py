@@ -6,7 +6,12 @@ import random
 from psycopg2.pool import ThreadedConnectionPool
 import distutils.sysconfig
 from distutils.util import strtobool
+from tools import toolcommon as tc
+import os
+from flask import Flask, redirect
 
+BASIC_URL = 'localhost:5000'
+RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
@@ -335,16 +340,90 @@ def get_server_side(rargs):
         return response
 
 def get_table_columns(table):
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
+    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND column_name NOT IN (
+SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary);''' % (table,table)
+    with PooledCursor() as cursor:	
+	cursor.execute(sql)
 	return list(dictify_cursor(cursor))
 
-def admin_insert(columns, table):
+def admin_delete_item(args):
     with PooledCursor() as cursor:
 	cursor.execute(
-	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
+	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
 	return list(dictify_cursor(cursor))
+
+def get_foreign_keys(table):
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (table))
+	return list(dictify_cursor(cursor))
+
+def admin_get_data(table,constraint, cols):
+    sql = '''SELECT %s FROM %s WHERE %s;''' % (','.join(cols),table,constraint)
+    #print sql
+    with PooledCursor() as cursor:
+	cursor.execute(sql)
+	return list(dictify_cursor(cursor))
+
+def admin_delete(args):
+    table = args.get('table', type=str)
+
+    colmerge = []
+    keys=args.keys()
+    for key in keys:	
+	if key != 'table':
+	    value = args.get(key,type=str)
+	    if value:	    	
+		colmerge.append(key+'=\''+value+'\'')   
+   
+
+    sql = '''DELETE FROM %s WHERE %s;''' % (table,' AND '.join(colmerge))
+
+    print sql
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
+	return list(dictify_cursor(cursor))
+
+def admin_set_edit(args):
+    table = args.get('table', type=str)
+
+    colmerge = []
+    keys=args.keys()
+    for key in keys:	
+	if key != 'table':
+	    value = args.get(key,type=str)
+	    if value:	    	
+		colmerge.append(key+'=\''+value+'\'')   
+   
+
+    sql = '''UPDATE %s SET %s;''' % (table,','.join(colmerge))
+
+    print sql
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
+	return list(dictify_cursor(cursor))
+
+def admin_add(args):
+    table = args.get('table', type=str)
+    source_columns = []
+    column_values = []   
+    
+    keys=args.keys()
+
+    #sql creation   	   
+    for key in keys:	
+	if key != 'table':
+	    value = args.get(key,type=str)
+	    if value:
+	    	source_columns.append(key)
+	    	column_values.append(value)
+
+    sql = 'INSERT INTO %s (%s) VALUES (\'%s\');'% (table, ','.join(source_columns), '\',\''.join(column_values))
+    print sql
+    with PooledCursor() as cursor:
+	cursor.execute(sql)
 
 
 #*************************************************************
@@ -604,6 +683,32 @@ def get_geneset(geneset_id, user_id=None):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
 
+def get_genesets_by_user_id(user_id):
+    """
+    Gets all Genesets owned by the specified user
+    :param user_id:     the owning user ID
+    :return:            the Genesetx corresponding to the given ID
+    """
+
+    # TODO not sure if we really need to convert to -1 here. The
+    # geneset_is_readable function may be able to handle None
+    #if user_id is None:
+    #    user_id = -1
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT *
+            FROM production.geneset
+            WHERE usr_id=%(user_id)s;
+            ''',
+            {
+                'user_id': user_id,
+            }
+        )
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets if len(genesets) > 0 else None
+
 
 def get_ontologies_for_geneset(geneset_id):
     with PooledCursor() as cursor:
@@ -629,7 +734,7 @@ def get_geneset_values(geneset_id):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
-
+        
 
 class ToolParam:
     def __init__(self, tool_param_dict):
@@ -767,6 +872,53 @@ def get_all_userids():
 
 # get all genesets associated to a gene by gene_ref_id and gdb_id
 # 	if homology is included at the end of the URL also return all
+
+# Tool Information Functions  
+
+
+def get_file(apikey, task_id, file_type): 
+	#check to see if user has permissions for the result
+	user_id = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute('''SELECT usr_id FROM production.result WHERE res_runhash=%s''', (task_id,))
+	user_id_result = cursor.fetchone()
+	if(user_id != user_id_result):
+		return "Error: User does not have permission to view the file."
+	
+	# if exists
+	rel_path = task_id + "." + file_type
+	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
+	print(abs_file_path)
+	if(os.path.exists(abs_file_path)):
+		return redirect( "/results/"+ rel_path)
+	else:
+		return "Error: No such File! Check documentatin for supported file types of each tool."
+		
+		
+def get_link(apikey, task_id, file_type): 
+	#check to see if user has permissions for the result
+	user_id = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute('''SELECT usr_id FROM production.result WHERE res_runhash=%s''', (task_id,))
+	user_id_result = cursor.fetchone()
+	if(user_id != user_id_result):
+		return "Error: User does not have permission to view the file."
+	
+	# if exists
+	rel_path = task_id + "." + file_type
+	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
+	print(abs_file_path)
+	if(os.path.exists(abs_file_path)):
+		return BASIC_URL + "/results/"+ rel_path
+	else:
+		return "Error: No such File! Check documentatin for supported file types of each tool."
+		
+		
+def get_status(task_id):
+	async_result = tc.celery_app.AsyncResult(task_id)
+	return async_result.state
+
+
 #private function that is not called by api
 def get_user_id_by_apikey(apikey):
     """
@@ -777,7 +929,8 @@ def get_user_id_by_apikey(apikey):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT usr_id FROM production.usr WHERE apikey=%s''', (apikey,))
     return cursor.fetchone()
-
+    
+    
 #   genesets associated with homologous genes 
 def get_genesets_by_gene_id( apikey, gene_ref_id, gdb_name, homology):
     """
@@ -930,6 +1083,31 @@ def get_geneset_by_user(apikey):
 	else:
 		return "No user with that key"
 
+def get_projects_by_user(apikey):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(  	SELECT * 
+								FROM production.project
+								WHERE usr_id = (SELECT usr_id
+												FROM production.usr
+												WHERE apikey = %s)											
+							) row; ''', (apikey,))
+	return cursor.fetchall();
+
+def get_geneset_by_project_id(apikey, projectid):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(  	SELECT gs_id
+								FROM production.project2geneset
+								WHERE pj_id in (SELECT pj_id
+												FROM production.geneset
+												WHERE pj_id = %s and usr_id = %s)
+							) row; ''', (projectid, user))
+	return cursor.fetchall()
+    
 def generate_api_key(user_id):
     char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits
     new_api_key = ''.join(random.sample(char_set, 24))
