@@ -6,8 +6,12 @@
     <h1>{{ title }}</h1>
 </div>
 
-<br /><h3>Gene List:</h3>
+<h3>Gene List:</h3>
      <h8>Gene count: {{async_result.num_genes}}</h8>
+
+<form method="POST" action="nw_check_exec.php">
+    <input type="submit" name="new_geneset" value="Create New Geneset"/>
+</form>
 
 <div class="panel">
     <div class="dd-nestable">
