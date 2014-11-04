@@ -340,16 +340,90 @@ def get_server_side(rargs):
         return response
 
 def get_table_columns(table):
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
+    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND column_name NOT IN (
+SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary);''' % (table,table)
+    with PooledCursor() as cursor:	
+	cursor.execute(sql)
 	return list(dictify_cursor(cursor))
 
-def admin_insert(columns, table):
+def admin_delete_item(args):
     with PooledCursor() as cursor:
 	cursor.execute(
-	     '''SELECT column_name FROM information_schema.columns WHERE table_name=%s''', (table,))
+	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
 	return list(dictify_cursor(cursor))
+
+def get_foreign_keys(table):
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (table))
+	return list(dictify_cursor(cursor))
+
+def admin_get_data(table,constraint, cols):
+    sql = '''SELECT %s FROM %s WHERE %s;''' % (','.join(cols),table,constraint)
+    #print sql
+    with PooledCursor() as cursor:
+	cursor.execute(sql)
+	return list(dictify_cursor(cursor))
+
+def admin_delete(args):
+    table = args.get('table', type=str)
+
+    colmerge = []
+    keys=args.keys()
+    for key in keys:	
+	if key != 'table':
+	    value = args.get(key,type=str)
+	    if value:	    	
+		colmerge.append(key+'=\''+value+'\'')   
+   
+
+    sql = '''DELETE FROM %s WHERE %s;''' % (table,' AND '.join(colmerge))
+
+    print sql
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
+	return list(dictify_cursor(cursor))
+
+def admin_set_edit(args):
+    table = args.get('table', type=str)
+
+    colmerge = []
+    keys=args.keys()
+    for key in keys:	
+	if key != 'table':
+	    value = args.get(key,type=str)
+	    if value:	    	
+		colmerge.append(key+'=\''+value+'\'')   
+   
+
+    sql = '''UPDATE %s SET %s;''' % (table,','.join(colmerge))
+
+    print sql
+    with PooledCursor() as cursor:
+	cursor.execute(
+	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
+	return list(dictify_cursor(cursor))
+
+def admin_add(args):
+    table = args.get('table', type=str)
+    source_columns = []
+    column_values = []   
+    
+    keys=args.keys()
+
+    #sql creation   	   
+    for key in keys:	
+	if key != 'table':
+	    value = args.get(key,type=str)
+	    if value:
+	    	source_columns.append(key)
+	    	column_values.append(value)
+
+    sql = 'INSERT INTO %s (%s) VALUES (\'%s\');'% (table, ','.join(source_columns), '\',\''.join(column_values))
+    print sql
+    with PooledCursor() as cursor:
+	cursor.execute(sql)
 
 
 #*************************************************************
@@ -360,6 +434,7 @@ class User:
         self.last_name = usr_dict['usr_last_name']
         self.email = usr_dict['usr_email']
         self.prefs = usr_dict['usr_prefs']
+        self.api_key = usr_dict['apikey']
 
         usr_admin = usr_dict['usr_admin']
         self.is_curator = usr_admin == 1
@@ -551,8 +626,6 @@ def reset_password(user_email):
 
     char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits
     new_password = ''.join(random.sample(char_set, 8))
-    print new_password
-    print get_user_byemail(user_email)
     with PooledCursor() as cursor:
         password_md5 = md5(new_password).hexdigest()
         cursor.execute(
@@ -561,7 +634,6 @@ def reset_password(user_email):
                WHERE usr_email = %s''', (password_md5, user_email)
         )
         cursor.connection.commit()
-    print get_user_byemail(user_email)
     return new_password
 
 def change_password(user_id, new_password):
@@ -1009,23 +1081,15 @@ def get_geneset_by_project_id(apikey, projectid):
 												WHERE pj_id = %s and usr_id = %s)
 							) row; ''', (projectid, user))
 	return cursor.fetchall()
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+def generate_api_key(user_id):
+    char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits
+    new_api_key = ''.join(random.sample(char_set, 24))
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''UPDATE usr
+               SET apikey = %s
+               WHERE usr_id = %s''', (new_api_key, user_id)
+        )
+        cursor.connection.commit()
+    return new_api_key
