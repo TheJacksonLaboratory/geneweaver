@@ -332,11 +332,17 @@ def date_handler(obj):
 def render_manage():
     return flask.render_template('my_genesets.html')
 
+@app.route('/results.html')
+def render_user_results():
+    return flask.render_template('results.html')
 
 @app.route('/help.html')
 def render_help():
     return flask.render_template('help.html')
 
+@app.route('/about.html')
+def render_about():
+    return flask.render_template('about.html')
 
 @app.route('/register.html', methods=['GET', 'POST'])
 def render_register():
