@@ -1,10 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head lang="en">
-    <meta charset="UTF-8">
-    <title></title>
-</head>
-<body>
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
 
-</body>
-</html>
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+<br /><h3>Gene List:</h3>
+     <h8>Gene count: {{async_result.num_genes}}</h8>
+
+<div class="panel">
+    <div class="dd-nestable">
+        <ul class="dd-list">
+            {% for gene in async_result.gene_names %}
+            <div class="dd-handle  col-xs-4">
+                <li class="dd-item">
+                    {{gene}}
+                </li>
+            </div>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% include 'footer.html' %}
