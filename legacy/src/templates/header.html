@@ -157,8 +157,23 @@
         </div>
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Manage GenSets <span class="caret"></span></a>
+                    <ul class="dropdown-menu" role="menu">
+                        <li><a href="#">My Gensets</a></li>
+                        <li><a href="#">Upload Gensets</a></li>
+                        <li><a href="#">Batch Upload Gensets</a></li>
+                    </ul>
+                </li>
                 <li><a href="{{ url_for('render_editgenesets')|safe }}">Edit GeneSets</a></li>
-                <li><a href="{{ url_for('render_analyze')|safe }}">Analyze GeneSets</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Analyze Genesets<span class="caret"></span></a>
+                    <ul class="dropdown-menu" role="menu">
+                        <li><a href="#">My Projects</a></li>
+                        <li><a href="#">Shared Projects</a></li>
+                        <li><a href="#">Results</a></li>
+                    </ul>
+                </li>
                 <li><a href="{{ url_for('render_about')|safe }}">About</a></li>
                 <li><a href="{{ url_for('render_help')|safe }}">Help</a></li>
             </ul>
