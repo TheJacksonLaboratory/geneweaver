@@ -285,6 +285,9 @@ def date_handler(obj):
 def render_manage():
     return flask.render_template('my_genesets.html')
 
+@app.route('/results.html')
+def render_user_results():
+    return flask.render_template('results.html')
 
 @app.route('/help.html')
 def render_help():

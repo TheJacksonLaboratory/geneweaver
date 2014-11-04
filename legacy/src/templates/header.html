@@ -171,7 +171,7 @@
                     <ul class="dropdown-menu" role="menu">
                         <li><a href="#">My Projects</a></li>
                         <li><a href="#">Shared Projects</a></li>
-                        <li><a href="#">Results</a></li>
+                        <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
                     </ul>
                 </li>
                 <li><a href="{{ url_for('render_about')|safe }}">About</a></li>
