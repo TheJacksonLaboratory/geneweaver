@@ -1,0 +1,148 @@
+{% set title="Geneset Details" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header" xmlns="http://www.w3.org/1999/html">
+    <h1>Geneset Details</h1>
+</div>
+
+<div class="panel panel-default">
+<div class="panel-heading bg-blue">
+	<h3 class="panel-title">Gene Set #{{geneset.geneset_id}} - {{geneset.name}}</h3>
+</div>
+<div class="panel-body">
+<table class="table table-hover">
+<col width="100">
+  <col width="800">
+<tbody>
+	<tr class="first">
+		<th>Description:</th>
+		<td>{{ geneset.description }}</td>
+	</tr>
+	<tr>
+		<th>Uploaded:</th>
+		<td>{{ geneset.creation_date }}</td>
+	</tr>
+	<tr>
+		<th>Species:</th>
+		<td>
+	{% if geneset.sp_id == 1 %}
+		Mouse
+	{% endif %}
+	{% if geneset.sp_id == 2 %}
+		Human
+	{% endif %}
+	{% if geneset.sp_id == 3 %}
+		Rat
+	{% endif %}
+	{% if geneset.sp_id == 4 %}
+		Zebrafish
+	{% endif %}
+	{% if geneset.sp_id == 5 %}
+		Fly
+	{% endif %}
+	{% if geneset.sp_id == 6 %}
+		Monkey
+	{% endif %}
+		</td>
+	</tr>
+	{% if geneset.uri %}
+	<tr>
+        <th>URI: </th>
+	<td><a href="{{ geneset.uri }}">{{ geneset.uri }}</a></td>
+        </tr>
+        {% endif %}
+	{% if geneset.publication.author %}
+	<tr>
+		<th>Authors:</th>
+		<td>{{ geneset.publication.authors }}</td>
+	</tr>
+	{% endif %}
+	{% if geneset.publication.title %}
+	<tr>
+		<th>Title:</th>
+		<td>{{ geneset.publication.title }}</td>
+	</tr>
+	{% endif %}
+	{% if geneset.publication.journal %}
+	<tr>
+		<th>Journal:</th>
+		<td>
+		<u>{{ geneset.publication.journal }}</u>
+		{{ geneset.publication.month }} {{ geneset.publication.year }}, Vol {{ geneset.publication.volume }}, pp. {{ geneset.publication.pages }}
+		</td>
+	</tr>
+	{% endif %}
+	{% if geneset.publication.abstract %}
+	<tr>
+		<th>Abstract:</th>
+		<td>
+		{{ geneset.publication.abstract }}
+		{% if geneset.publication.pubmed_id %}
+		<a href="http://www.ncbi.nlm.nih.gov/pubmed/{{geneset.publication.pubmed_id}}">
+		<b>PUBMED: {{geneset.publication.pubmed_id}}</b>
+		</a>
+		<br>
+		<!-- TODO link this with a search for this pubmed ID -->
+		<a href="#">Find other GeneSets from this publication.</a>
+		</td>
+		{% endif %}
+	</tr>
+	{% endif %}
+	<!-- TODO Determine how to retrieve ont assoc from db. Is the Geneset object fetching these? ->
+	<!--
+	<tr>
+		<th>Ontological Associations:</th>
+		<td>
+		<ul>
+			{% for ont_assoc in geneset.ontological_associations %}
+			<li>
+			{{ ont_assoc.ontology_id }}, Name: {{ ont_assoc.name }}
+			</li>
+	    		{% endfor %}
+		</ul>
+		</td>
+	</tr>
+	-->
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Show the Geneset List -->
+<div class="panel panel-default">
+<div class="panel-heading bg-blue">
+	<h3 class="panel-title">Gene List</h3>
+</div>
+<div class="panel-body">
+<!-- TODO make the table sortable, show more gene details -->
+<table class="table table-hover">
+<tbody>
+<tr>
+	<th>Gene Symbol</th>
+	<th>LinkOuts</th>
+	<th>Data Value</th>
+</tr>
+
+{% for geneset_value in geneset.geneset_values %}
+<tr>
+<td>
+<!-- TODO Determine how to show gene with multiple sources listed -->
+<a href="/search/{{ geneset_value.source_list[0] }}/1">{{ geneset_value.source_list[0] }}</a>
+</td>
+<td>
+<!-- TODO Insert outside links here -->
+Links
+</td>
+<td>
+{{ geneset_value.value }}
+</td>
+</tr>
+{% endfor %}
+
+</tbody>
+</table>
+</div>
+</div>
+
+{% include 'footer.html' %}

@@ -683,6 +683,32 @@ def get_geneset(geneset_id, user_id=None):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
 
+def get_genesets_by_user_id(user_id):
+    """
+    Gets all Genesets owned by the specified user
+    :param user_id:     the owning user ID
+    :return:            the Genesetx corresponding to the given ID
+    """
+
+    # TODO not sure if we really need to convert to -1 here. The
+    # geneset_is_readable function may be able to handle None
+    #if user_id is None:
+    #    user_id = -1
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT *
+            FROM production.geneset
+            WHERE usr_id=%(user_id)s;
+            ''',
+            {
+                'user_id': user_id,
+            }
+        )
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets if len(genesets) > 0 else None
+
 
 def get_ontologies_for_geneset(geneset_id):
     with PooledCursor() as cursor:
