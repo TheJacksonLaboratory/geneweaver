@@ -346,12 +346,6 @@ SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class
 	cursor.execute(sql)
 	return list(dictify_cursor(cursor))
 
-def admin_delete_item(args):
-    with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
-	return list(dictify_cursor(cursor))
-
 def get_foreign_keys(table):
     with PooledCursor() as cursor:
 	cursor.execute(
@@ -367,43 +361,38 @@ def admin_get_data(table,constraint, cols):
 
 def admin_delete(args):
     table = args.get('table', type=str)
+    primKey = args.get('ElementID', type=str)   
 
-    colmerge = []
-    keys=args.keys()
-    for key in keys:	
-	if key != 'table':
-	    value = args.get(key,type=str)
-	    if value:	    	
-		colmerge.append(key+'=\''+value+'\'')   
-   
-
-    sql = '''DELETE FROM %s WHERE %s;''' % (table,' AND '.join(colmerge))
+    sql = '''DELETE FROM %s WHERE %s;''' % (table,primKey)
 
     print sql
     with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
-	return list(dictify_cursor(cursor))
+	cursor.execute(sql)
+	cursor.connection.commit()
+	return "Deletion Successful"
 
 def admin_set_edit(args):
     table = args.get('table', type=str)
+    primKey = args.get('ElementID', type=str)
 
+    #print primKey
+	
     colmerge = []
     keys=args.keys()
     for key in keys:	
-	if key != 'table':
+	if key != 'table' and key != 'ElementID':
 	    value = args.get(key,type=str)
-	    if value:	    	
+	    if value and value != "None":	    	
 		colmerge.append(key+'=\''+value+'\'')   
    
 
-    sql = '''UPDATE %s SET %s;''' % (table,','.join(colmerge))
+    sql = '''UPDATE %s SET %s WHERE %s;''' % (table,','.join(colmerge), primKey)
 
     print sql
     with PooledCursor() as cursor:
-	cursor.execute(
-	     '''SELECT * FROM production.usr WHERE usr_id=1;''',)
-	return list(dictify_cursor(cursor))
+	cursor.execute(sql)
+	cursor.connection.commit()
+	return "Edit Successful"
 
 def admin_add(args):
     table = args.get('table', type=str)
@@ -422,9 +411,14 @@ def admin_add(args):
 
     sql = 'INSERT INTO %s (%s) VALUES (\'%s\');'% (table, ','.join(source_columns), '\',\''.join(column_values))
     print sql
-    with PooledCursor() as cursor:
-	cursor.execute(sql)
-
+    try:
+        with PooledCursor() as cursor:
+	    cursor.execute(sql)
+            cursor.connection.commit()
+	    return "Add Successful"
+    except Exception, e:
+	return e;
+	
 
 #*************************************************************
 class User:

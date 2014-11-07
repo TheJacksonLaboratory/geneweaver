@@ -350,7 +350,7 @@ def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
 
 
-#************************************************************************
+#****** ADMIN ROUTES ******************************************************************
 
 
 class AdminEdit(adminviews.Authentication, BaseView):
@@ -372,45 +372,46 @@ def admin_edit(strdata):
 	for col in columns:
 	    cols.append(col["column_name"])
 	
-	column_values = geneweaverdb.admin_get_data(table,keyID, cols)
-	jcolumns=json.dumps(column_values,default=date_handler)
-	#print jcolumns
+	column_values = geneweaverdb.admin_get_data(table,keyID, cols)	
+	#jcolumns=json.dumps(column_values,default=date_handler)
 
-        return AdminEdit().render("admin/adminEdit.html", jcolumns=jcolumns, columns=column_values, table=table)
+	#print keyID
+
+        return AdminEdit().render("admin/adminEdit.html", columns=column_values, table=table, key=keyID)
     else:
 	return flask.render_template('admin/adminForbidden.html') 
-
-@app.route('/admin/adminDelete',methods=['POST'])
-def admin_delete():
-    if "user" in flask.g and flask.g.user.is_admin:
-        form = flask.request.form
-	geneweaverdb.admin_delete(form)
-    	print form
-        return json.dumps("Deletion Successful")
-    else:
-	return flask.render_template('admin/adminForbidden.html')
 
 @app.route('/admin/adminSubmitEdit', methods=['POST'])
 def admin_submit_edit():  
     if "user" in flask.g and flask.g.user.is_admin:
         form=flask.request.form
-	geneweaverdb.admin_set_edit(form)
+	status = geneweaverdb.admin_set_edit(form)
     	#print form
-        return json.dumps("Edit Successful")
+        return json.dumps(status)
     else:
 	return flask.render_template('admin/adminForbidden.html')
- 
-#route called by admin add upon submission
+
+
+@app.route('/admin/adminDelete',methods=['POST'])
+def admin_delete():
+    if "user" in flask.g and flask.g.user.is_admin:
+        form = flask.request.form
+	result = geneweaverdb.admin_delete(form)
+    	#print form
+        return json.dumps(result)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
+
+
 @app.route('/admin/adminAdd',methods=['POST'])
 def admin_add():  
     if "user" in flask.g and flask.g.user.is_admin:
         form=flask.request.form
-	geneweaverdb.admin_add(form) 
-        return json.dumps("Add Complete")
+	result = geneweaverdb.admin_add(form) 
+        return json.dumps(result)
     else:
 	return flask.render_template('admin/adminForbidden.html')  
 
-#fetches info for admin viewers
 @app.route('/admin/serversidedb')
 def get_db_data():
     if "user" in flask.g and flask.g.user.is_admin:
