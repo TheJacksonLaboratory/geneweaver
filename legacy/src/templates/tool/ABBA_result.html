@@ -1,0 +1,207 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+
+{% if async_result.parameters.ABBA_ShowInter == "Enabled" %}
+    {% set show_inter=1  %}
+{% else %}
+    {% set show_inter=0  %}
+{% endif %}
+
+{% if async_result.parameters.ABBA_IgnHom == "Enabled" %}
+    {% set ign_hom=1  %}
+{% else %}
+    {% set ign_hom=0  %}
+{% endif %}
+
+
+<div>Enter your genes of interest below, then click search. You may search for gene identifiers from the major databases.
+</div><br />
+<form id="abba_search" method="post" action="{ode_link action=search cmd=genes}">
+<table width="80%">
+{% if async_result.InputGenes %}
+    {% set have_results=1 %}
+    <tr>
+        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%"><b>Genes of Interest:</b><br /><br />
+  	        <label>
+             <input type="checkbox" name="ABBA_IgnHom" value="yes" {% if ign_hom %} checked="checked" {% endif %} /> Ignore homologous genes</label><br /><br />
+            <input type='submit' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/> <br /> <br  />
+        </td>
+        <td style="border-top: 1px solid #555;">
+            <table class="table table-striped"width="100%" style="font-size: 0.8em;">
+            {% for sym, gene in async_result.CollapsedInputGenes.items() %}
+                <tr class="{cycle values="even,odd"}">
+                    <td valign="top">{{sym}}</td>
+                    <td>
+                        <a href="#" onclick="return ODE.toggle('#gene_expand_{{sym}}');">
+                            ({{gene['species_count']}} direct species hit {% if not ign_hom %}, {{gene['homology_count']}} hits via homology {% endif %})
+                        </a>
+                        <br />
+                        <ul id="gene_expand_{{sym}}" style="display: none;">
+                            {% for sp,ogid in gene['species'].items() %}
+                                <li>Direct Match: {{sp}}
+                                    <a href="{ode_link action=search cmd=genes other="&remgene=ogid"}">[remove]</a>
+                                </li>
+                            {% endfor %}
+                            {% for sp,ogid in gene['homology'].items() %}
+                                <li>Homology: {{sp}}
+                                    <a href="{ode_link action=search cmd=genes other="&remgene=ogid"}">[remove]</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            {% endfor %}
+            </table>
+        </td>
+    </tr>
+{% else %}
+    <tr>
+        <td align="left" valign="top" width="10%"><b>Genes of Interest:</b><br /><br />
+  	        <label><input type="checkbox" name="ABBA_IgnHom" value="yes" />Ignore homologous genes</label>
+        </td>
+        <td>
+            <textarea name="input_genes" style="width: 75%;" rows="10" cols="40"></textarea>
+        </td>
+    </tr>
+{% endif %}
+
+{% if have_results==1 and show_inter==1 %}
+    <tr>
+        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%">
+            <b>{{async_result.GSResultCount}} Matching GeneSets:</b><br /><br />
+            <label><input type="checkbox" name="ABBA_ShowInter" value="yes" {% if show_inter %} checked="checked" {% endif %} ch /> Show Intermediate Results</label><br /><br />
+            <label>Minimum Genes:
+                <select name="MinGenes">
+                    {% for i in range(10) %}
+                        {% if i == async_result.MinGenes %}
+                            <option selected="selected">{{loop.index0}}</option>
+                        {% else %}
+                            <option>{{loop.index}}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </label>
+            <br  /><br  />
+            <label>Curation Tiers:
+                <select name="Tierset">
+                    {% for i in async_result.Tiersets %}
+                        {% if i == async_result.SelectedTierset %}
+                            <option selected="selected">{{async_result.Tiersets[i]}}</option>
+                        {% else %}
+                            <option>{{async_result.Tiersets[i]}}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </label>
+            <br  /><br  />
+            <label>Restrict Species:
+                <select name="RestrictSpecies">
+                    {% for i in async_result.Species %}
+                        {% if i == async_result.RestrictSpecies %}
+                            <option selected="selected">{{async_result.Species[i]}}</option>
+                        {% else %}
+                            <option>{{async_result.Species[i]}}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </label>
+            <br  /><br  />
+            <input type='submit' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
+        </td>
+        <td style="border-top: 1px solid #555;">
+            {% if async_result.GSResults and async_result.GSResultCount<400 %}
+            <table class="table table-striped" width="100%" style="font-size: 0.8em;">
+                {% for key, values in async_result.GSResults.items() %}
+	                {% set gs_id=values['gs_id'] %}
+                    <tr class="{cycle values="even,odd"}">
+                        <td valign="top">GS {{values['gs_id']}}: {{values['gs_name']}}
+                            <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
+                                {% for gene in values.genes %}<li>{{gene['ode_ref_id']}} ({$input_genes.$gene.species})</li>{% endfor %}
+                            </ul>
+                        </td>
+                        <td valign="top"><a href="#" onclick="return ODE.toggle('#geneset_{{values['gs_id']}}_genes');">({{values['matched']}}/{{values['gs_count']}}&nbsp;genes)</a></td>
+	                        {% set gs_id=values['gs_id'] %}
+                    </tr>
+                {% endfor %}
+                <tr class="header">
+                    <td colspan="4">
+                    </td>
+                </tr>
+            </table>
+            {% elif async_result.GSResultCount>400 %}
+                <div class="message">More than 400 genesets, not listing them all for brevity. Increase the thresholds on the left to get a more manageable result.</div>
+            {% else %}
+                <div class="message">No results. Try decreasing the thresholds on the left...</div>
+            {% endif %}
+        </td>
+    </tr>
+{% endif %}
+
+{% if have_results==1 %}
+    <tr>
+        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%">
+            <b>{{async_result.GeneResultCount}} Result Genes:</b>
+            <br />
+            <br />
+            <label>Minimum GeneSets:
+                <select name="MinGenesets">
+                    {% for i in range(async_result.GSResultCount) %}
+                        {% if i == async_result.MinGenesets %}
+                            <option selected="selected">{{loop.index0}}</option>
+                        {% else %}
+                            <option>{{loop.index}}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </label>
+            <br />
+            <br />
+            <input type='submit' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
+            <br />
+            <br />
+        </td>
+        <td style="border-top: 1px solid #555;">
+            {% if async_result.GeneResults and async_result.GeneResultCount<400 %}
+                <table class="table table-striped" width="100%" style="font-size: 0.8em;">
+                    {% for key, values in async_result.GeneResults.items() %}
+                        <tr class="{cycle values="even,odd"}">
+	                        <td valign="top">
+                                <a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a>
+                            </td>
+                            <td valign="top">
+                                <a href="#" onclick="return ODE.toggle('#genes_{{values['ode_ref_id']}}_genesets');">({{values['matched']}} GeneSets)</a>
+                                <ul id="genes_{{values['ode_ref_id']}}_genesets" style="display: none;">
+                                {% for gs in values['genesets'] %}
+                                    <li>
+                                        <a href="/viewgenesetdetails/{{gs}}">GS{{gs}}</a>
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            </td>
+                            {% set ogid= values['ode_gene_id'] %}
+                            <td valign="top">
+                                <a HREF="javascript:history.go(0)">[remove]</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% elif async_result.GeneResultCount>400 %}
+                <div class="message">More than 400 results. Try increasing the thresholds on the left to get a more manageable result.</div>
+            {% else %}
+                <div class="message">No results. Try decreasing the thresholds on the left.</div>
+            {% endif %}
+        </td>
+    </tr>
+{% endif %}
+
+</table>
+</form>
+
+{% include 'footer.html' %}
+

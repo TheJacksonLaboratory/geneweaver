@@ -83,8 +83,8 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/abba_result.html',
-            async_result=async_result,
+            'tool/ABBA_result.html',
+            async_result=json.loads(async_result.result),
             tool=tool)
     else:
         # render a page telling their results are pending
