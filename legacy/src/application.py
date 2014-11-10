@@ -407,7 +407,10 @@ def admin_delete():
 def admin_add():  
     if "user" in flask.g and flask.g.user.is_admin:
         form=flask.request.form
+	table = form.get('table', type=str).split(".")[1]
 	result = geneweaverdb.admin_add(form) 
+	#result = geneweaverdb.get_table_column_info(table)
+	print result
         return json.dumps(result)
     else:
 	return flask.render_template('admin/adminForbidden.html')  
@@ -416,6 +419,8 @@ def admin_add():
 def get_db_data():
     if "user" in flask.g and flask.g.user.is_admin:
         results = geneweaverdb.get_server_side(request.args)
+	for c in results['aaData']:
+	    print c
         return json.dumps(results,default=date_handler)
     else:
 	return flask.render_template('admin/adminForbidden.html')

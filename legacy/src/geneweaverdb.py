@@ -309,7 +309,7 @@ def get_server_side(rargs):
     		    where_clause,
     		    order_clause,
    		    limit_clause]) + ';'
-    #print sql
+    print sql
  
     with PooledCursor() as cursor:
         #cursor.execute(sql, ac_patterns + pc_patterns)
@@ -342,22 +342,39 @@ def get_server_side(rargs):
 def get_table_columns(table):
     sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND column_name NOT IN (
 SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary);''' % (table,table)
-    with PooledCursor() as cursor:	
-	cursor.execute(sql)
-	return list(dictify_cursor(cursor))
+    try:
+        with PooledCursor() as cursor:	
+	    cursor.execute(sql)
+	    return list(dictify_cursor(cursor))
+    except Exception, e:
+	return str(e)
 
+def get_all_columns(table):
+    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s';''' % (table)
+    try:
+        with PooledCursor() as cursor:	
+	    cursor.execute(sql)
+	    return list(dictify_cursor(cursor))
+    except Exception, e:
+	return str(e)
 def get_foreign_keys(table):
-    with PooledCursor() as cursor:
-	cursor.execute(
+    try:
+        with PooledCursor() as cursor:
+	    cursor.execute(
 	     '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (table))
-	return list(dictify_cursor(cursor))
+	    return list(dictify_cursor(cursor))
+    except Exception, e:
+	return str(e)
 
 def admin_get_data(table,constraint, cols):
     sql = '''SELECT %s FROM %s WHERE %s;''' % (','.join(cols),table,constraint)
     #print sql
-    with PooledCursor() as cursor:
-	cursor.execute(sql)
-	return list(dictify_cursor(cursor))
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute(sql)
+	    return list(dictify_cursor(cursor))
+    except Exception, e:
+	return str(e)
 
 def admin_delete(args):
     table = args.get('table', type=str)
@@ -366,10 +383,13 @@ def admin_delete(args):
     sql = '''DELETE FROM %s WHERE %s;''' % (table,primKey)
 
     print sql
-    with PooledCursor() as cursor:
-	cursor.execute(sql)
-	cursor.connection.commit()
-	return "Deletion Successful"
+    try:
+        with PooledCursor() as cursor:
+	    cursor.execute(sql)
+	    cursor.connection.commit()
+	    return "Deletion Successful"
+    except Exception, e:
+	return str(e)
 
 def admin_set_edit(args):
     table = args.get('table', type=str)
@@ -383,16 +403,20 @@ def admin_set_edit(args):
 	if key != 'table' and key != 'ElementID':
 	    value = args.get(key,type=str)
 	    if value and value != "None":	    	
-		colmerge.append(key+'=\''+value+'\'')   
-   
+		colmerge.append(key+'=\''+value+'\'')  
 
+    colmerge.append(primKey)    
+    
     sql = '''UPDATE %s SET %s WHERE %s;''' % (table,','.join(colmerge), primKey)
 
     print sql
-    with PooledCursor() as cursor:
-	cursor.execute(sql)
-	cursor.connection.commit()
-	return "Edit Successful"
+    try:
+        with PooledCursor() as cursor:
+    	    cursor.execute('''SELECT * FROM production.usr LIMIT 1''')
+	    cursor.connection.commit()
+	    return "Edit Successful"
+    except Exception, e:
+	return str(e)
 
 def admin_add(args):
     table = args.get('table', type=str)
@@ -417,7 +441,7 @@ def admin_add(args):
             cursor.connection.commit()
 	    return "Add Successful"
     except Exception, e:
-	return e;
+	return str(e)
 	
 
 #*************************************************************
