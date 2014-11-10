@@ -9,6 +9,7 @@ import geneweaverdb
 import json
 import os
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint, booleanalgebrablueprint
+import sphinxapi
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -248,9 +249,105 @@ def render_forgotpass():
     return flask.render_template('resetpassword.html')
 
 
-@app.route('/search.html')
-def render_search():
-    return flask.render_template('search.html')
+@app.route('/viewgenesetdetails/<int:gs_id>')
+def render_viewgeneset(gs_id):
+    user_id=flask.session.get('user_id')
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    return flask.render_template('viewgenesetdetails.html', geneset=geneset)
+
+
+@app.route('/mygenesets.html')
+def render_viewgenesets():
+    #get the genesets belonging to the user
+    user_id=flask.session.get('user_id')
+    if user_id:
+        genesets = geneweaverdb.get_genesets_by_user_id(user_id)
+    return flask.render_template('mygenesets.html',genesets=genesets)
+
+@app.route('/search/<string:search_term>/<int:pagination_page>')
+def render_search(search_term, pagination_page):
+    #do a query of the search term, fetch the matching genesets
+    ################################
+    #TODO create a pooled connected somewhwere within genewaver
+    client = sphinxapi.SphinxClient()
+    client.SetServer('bepo.ecs.baylor.edu', 9312)
+    #Set the limit to get all results within the range of 1000
+    #Retrieve only the results within the limit of the current page specified in the pagination option
+    resultsPerPage = 25
+    offset=resultsPerPage*(pagination_page - 1)
+    limit = resultsPerPage
+    max_matches=1000
+    #Set the limits and query the client
+    client.SetLimits(offset, limit, max_matches)
+    results = client.Query(search_term)
+    #Transform the genesets into geneset objects for Jinga display
+    genesets = list()
+    for match in results['matches']:
+        genesetID = match['id']
+        #TODO eliminate database query
+        genesets.append(geneweaverdb.get_geneset(genesetID, flask.session.get('user_id')))
+    #Calculate pagination information for display
+    ##############################
+    numResults = int(results['total'])
+    #Do ceiling integer division
+    numPages = ((numResults - 1) // resultsPerPage) + 1
+    currentPage = pagination_page
+    #Calculate the bouding numbers for pagination
+    end_page_number = currentPage + 4
+    if end_page_number > numPages:
+        end_page_number = numPages        
+    #
+    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
+    #render the page with the genesets
+    return flask.render_template('search.html', searchresults=results, genesets=genesets, paginationValues=paginationValues)
+
+@app.route('/search', methods=['POST'])
+def render_searchFromHome():
+    #Get the posted information from the form
+    ##########################
+    form = flask.request.form
+    #Search term is given from the searchbar in the form
+    search_term = form['searchbar']
+    #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
+    pagination_page = int(form['pagination_page'])
+    #do a query of the search term, fetch the matching genesets
+    ################################
+    #TODO create a pooled connected somewhwere within genewaver
+    client = sphinxapi.SphinxClient()
+    client.SetServer('bepo.ecs.baylor.edu', 9312)
+    #Set the limit to get all results within the range of 1000
+    #Retrieve only the results within the limit of the current page specified in the pagination option
+    resultsPerPage = 25
+    offset=resultsPerPage*(pagination_page - 1)
+    limit = resultsPerPage
+    max_matches=1000
+    #Set the limits and query the client
+    client.SetLimits(offset, limit, max_matches)
+    results = client.Query(search_term)
+    #Transform the genesets into geneset objects for Jinga display
+    genesets = list()
+    for match in results['matches']:
+        genesetID = match['id']
+        #TODO eliminate database query
+        genesets.append(geneweaverdb.get_geneset(genesetID, flask.session.get('user_id')))
+    #Calculate pagination information for display
+    ##############################
+    numResults = int(results['total'])
+    #Do ceiling integer division
+    numPages = ((numResults - 1) // resultsPerPage) + 1
+    currentPage = pagination_page
+    #Calculate the bouding numbers for pagination
+    end_page_number = currentPage + 4
+    if end_page_number > numPages:
+        end_page_number = numPages 
+    #
+    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
+    #render the page with the genesets
+    return flask.render_template('search.html', searchresults=results, genesets=genesets, paginationValues=paginationValues)
+
+@app.route('/searchsuggestionterms.json')
+def render_search_suggestions():
+    return flask.render_template('searchsuggestionterms.json')
 
 
 #************************************************************************

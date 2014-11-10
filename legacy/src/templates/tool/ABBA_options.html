@@ -3,11 +3,17 @@
 <div class="panel panel-info">
 	<div class="panel-heading">
 		<h2 class="panel-title">
-			<!-- <a data-toggle="collapse" data-parent="#accordion" href="#abbaCollapse">
+			<a data-toggle="collapse" data-parent="#accordion" href="#abbaCollapse">
 				ABBA
-			</a> -->
-			ABBA
+			</a>
 		</h2>
-		<div class="btn">{{ macros.tool_run_button(tool) }}</div>
+	</div>
+	<div id="abbaCollapse" class="panel-collapse collapse">
+		<div class="panel-body">
+			<div class="form-group">{{ macros.tool_param_textbox(tool.params['ABBA_InputGenes']) }}</div>
+			<div class="form-group">{{ macros.tool_param_radio(tool.params['ABBA_IgnHom']) }}</div>
+			<div class="form-group">{{ macros.tool_param_radio(tool.params['ABBA_ShowInter']) }}</div>
+			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+		</div>
 	</div>
 </div>
