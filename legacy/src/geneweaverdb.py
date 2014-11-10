@@ -167,10 +167,11 @@ def get_genesets_for_project(project_id, auth_user_id):
         )
         return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         
-# work in progress, currently does not check permissions, however the interface never
+# this function currently does not check permissions of genesets or projects, however the interface never
 #	should have a pj_id that the user doesn't have permission to if they use the 
-#	get_all_projects function below      
-def insert_genesets_to_project(project_id, geneset_id):
+#	get_all_projects function below, and no geneset should be able to be selected from front end
+#	that the current user does not have permisiions on      
+def insert_geneset_to_project(project_id, geneset_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
