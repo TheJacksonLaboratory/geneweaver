@@ -9,7 +9,7 @@ import geneweaverdb
 import json
 import os
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint, booleanalgebrablueprint
-import sphinxapi
+#import sphinxapi
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -585,16 +585,17 @@ class ToolCombine(restful.Resource):
     def get(self, apikey, homology, genesets):
         return combineblueprint.run_tool_api(apikey, homology, genesets)
 
+class ToolPhenomeMap(restful.Resource):
+    def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
+        return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
-api.add_resource(GetGenesetsByGeneRefId,
-                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
-api.add_resource(GetGenesetsByGeneRefIdHomology,
-                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
+
+api.add_resource(GetGenesetsByGeneRefId,'/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
+api.add_resource(GetGenesetsByGeneRefIdHomology,'/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
 api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
 
 api.add_resource(GetGenesetById, '/api/get/geneset/byid/<genesetid>/')
-api.add_resource(
-    GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
+api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 api.add_resource(GetProjectsByUser, '/api/get/project/byuser/<apikey>/')
@@ -608,7 +609,7 @@ api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>
 api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
 api.add_resource(ToolJaccardSimilarity, '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
 api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
-
+api.add_resource(ToolPhenomeMap, '/api/tool/phenomemap/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<genesets>/')
 
 
 # ********************************************

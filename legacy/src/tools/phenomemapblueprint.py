@@ -72,6 +72,112 @@ def run_tool():
     return response
 
 
+@phenomemap_blueprint.route('/run-phenome-map-api.html', methods=['POST'])
+def run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
+    # TODO need to check for read permissions on genesets
+    user_id = gwdb.get_user_id_by_apikey(apikey)
+
+    # pull out the selected geneset IDs
+    # gather the params into a dictionary
+    homology_str = 'Homology'
+    params = {homology_str: None}
+    
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+		if tool_param.name.endswith('_' + 'MinGenes'):
+		    params[tool_param.name] = minGenes
+		    if minGenes not in ['1','2','3','4','5','6','7','8','9','10','15','20','25']:
+				params[tool_param.name] = '1'
+		if tool_param.name.endswith('_' + 'PermutationTimeLimit'):
+		    params[tool_param.name] = permutationTimeLimit
+		    if permutationTimeLimit not in ['5','10','15','20']:
+				params[tool_param.name] = '5'
+		if tool_param.name.endswith('_' + 'MaxInNode'):
+		    params[tool_param.name] = maxInNode
+		    if maxInNode not in ['4','8','12','16','20','24','28','32']:
+				params[tool_param.name] = '4'
+		if tool_param.name.endswith('_' + 'Permutations'):
+		    params[tool_param.name] = permutations
+		    if permutations not in ['100000','50000','25000','5000','1000','500','100','0']:
+		        params[tool_param.name] = '0'
+		if tool_param.name.endswith('_' + 'DisableBootstrap'):
+		    params[tool_param.name] = disableBootstrap
+		    if disableBootstrap not in ['False','True']:
+		        params[tool_param.name] = 'False'
+		if tool_param.name.endswith('_' + 'MinOverlap'):
+		    params[tool_param.name] = minOverlap
+		    if minOverlap not in ['0%','5%','10%','15%','20%','25%','50%','75%']:
+		        params[tool_param.name] = '0%'
+		if tool_param.name.endswith('_' + 'NodeCutoff'):
+		    params[tool_param.name] = nodeCutoff
+		    if nodeCutoff not in ['Auto','1.0','0.1','0.01','0.001','0.0001','0.00001']:
+		        params[tool_param.name] = 'Auto'
+		if tool_param.name.endswith('_' + 'GeneIsNode'):
+		    params[tool_param.name] = geneIsNode
+		    if geneIsNode not in ['All', 'Exclusive']:
+		        params[tool_param.name] = 'All'
+		if tool_param.name.endswith('_' + 'UseFDR'):
+		    params[tool_param.name] = useFDR
+		    if useFDR not in ['False','True']:
+		        params[tool_param.name] = 'False'
+		if tool_param.name.endswith('_' + 'HideUnEmphasized'):
+		    params[tool_param.name] = hideUnEmphasized
+		    if hideUnEmphasized not in ['False','True']:
+		        params[tool_param.name] = 'False'
+		if tool_param.name.endswith('_' + 'p-Value'):
+		    params[tool_param.name] = p_Value
+		    if p_Value not in ['1.0','0.5','0.10','0.05','0.01']:
+		        params[tool_param.name] = '1.0'
+		if tool_param.name.endswith('_' + 'MaxLevel'):
+		    params[tool_param.name] = maxLevel
+		    if maxLevel not in ['0','10','20','40','60','80','100']:
+		        params[tool_param.name] = '40'
+		if tool_param.name.endswith('_' + homology_str):
+			params[homology_str] = 'Excluded'
+			params[tool_param.name] = 'Excluded'
+			if homology != 'Excluded':
+				params[homology_str] = 'Included'
+				params[tool_param.name] = 'Included'
+
+    # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
+    selected_geneset_ids = genesets.split(":")
+    if len(selected_geneset_ids) < 2:
+        # TODO add nice error message about missing genesets
+        raise Exception('there must be at least two genesets selected to run this tool')
+        
+    print(params)   
+    # insert result for this run
+    user_id = None
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        # TODO add nice error message about missing user ID.
+        raise Exception('internal error: user ID missing')
+
+    task_id = str(uuid.uuid4())
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
+    gwdb.insert_result(
+        user_id,
+        task_id,
+        selected_geneset_ids,
+        json.dumps(params),
+        tool.name,
+        desc,
+        desc)
+
+    async_result = tc.celery_app.send_task(
+        tc.fully_qualified_name(TOOL_CLASSNAME),
+        kwargs={
+            'gsids': selected_geneset_ids,
+            'output_prefix': task_id,
+            'params': params,
+        },
+        task_id=task_id)
+
+    return task_id
+
+
+
 @phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task

@@ -10,7 +10,6 @@ from tools import toolcommon as tc
 import os
 from flask import Flask, redirect
 
-BASIC_URL = 'localhost:5000'
 RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -957,7 +956,7 @@ def get_link(apikey, task_id, file_type):
 	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
 	print(abs_file_path)
 	if(os.path.exists(abs_file_path)):
-		return BASIC_URL + "/results/"+ rel_path
+		return "/results/"+ rel_path
 	else:
 		return "Error: No such File! Check documentatin for supported file types of each tool."
 		
