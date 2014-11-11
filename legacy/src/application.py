@@ -363,23 +363,44 @@ class AdminEdit(adminviews.Authentication, BaseView):
 @app.route('/admin/adminEdit/<strdata>')
 def admin_edit(strdata):  
     if "user" in flask.g and flask.g.user.is_admin:
-	data=strdata.split(",");
+	print strdata
+	data=strdata.split(",")
 	table=data[0]
-	keyID=data[1]
-	columns = geneweaverdb.get_table_columns(table.split(".")[1])
+
+	columns = geneweaverdb.get_all_columns(table)
+	prim_keys = geneweaverdb.get_primary_keys(table.split(".")[1])
+
+	
+	
+
+	
 
 	cols = []
-	for col in columns:
+	for col in columns:	    
 	    cols.append(col["column_name"])
 	
-	column_values = geneweaverdb.admin_get_data(table,keyID, cols)	
+	primary_keys = "";
+	column_values = geneweaverdb.admin_get_data(table, cols, keys)	
 	#jcolumns=json.dumps(column_values,default=date_handler)
 
 	#print keyID
 
-        return AdminEdit().render("admin/adminEdit.html", columns=column_values, table=table, key=keyID)
+        return AdminEdit().render("admin/adminEdit.html", columns=column_values,keys=keys, table=table)
     else:
 	return flask.render_template('admin/adminForbidden.html') 
+
+@app.route('/admin/adminEdit')
+def admin_edit1():  
+    if "user" in flask.g and flask.g.user.is_admin:
+        form=request.args
+	print form
+	column_values=[]
+	keys=[]
+	table="test.user"
+    	#print form
+        return AdminEdit().render("admin/adminEdit.html", columns=column_values,keys=keys, table=table)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
 
 @app.route('/admin/adminSubmitEdit', methods=['POST'])
 def admin_submit_edit():  
@@ -407,10 +428,10 @@ def admin_delete():
 def admin_add():  
     if "user" in flask.g and flask.g.user.is_admin:
         form=flask.request.form
-	table = form.get('table', type=str).split(".")[1]
-	result = geneweaverdb.admin_add(form) 
+	table = form.get('table', type=str)
+	result = geneweaverdb.admin_add(form)
 	#result = geneweaverdb.get_table_column_info(table)
-	print result
+	#print result
         return json.dumps(result)
     else:
 	return flask.render_template('admin/adminForbidden.html')  
@@ -419,8 +440,6 @@ def admin_add():
 def get_db_data():
     if "user" in flask.g and flask.g.user.is_admin:
         results = geneweaverdb.get_server_side(request.args)
-	for c in results['aaData']:
-	    print c
         return json.dumps(results,default=date_handler)
     else:
 	return flask.render_template('admin/adminForbidden.html')

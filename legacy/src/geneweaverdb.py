@@ -339,9 +339,8 @@ def get_server_side(rargs):
  
         return response
 
-def get_table_columns(table):
-    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND column_name NOT IN (
-SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary);''' % (table,table)
+def get_all_columns(table):
+    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s'AND table_schema='%s';''' % (table.split(".")[1],table.split(".")[0])
     try:
         with PooledCursor() as cursor:	
 	    cursor.execute(sql)
@@ -349,14 +348,15 @@ SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class
     except Exception, e:
 	return str(e)
 
-def get_all_columns(table):
-    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s';''' % (table)
+def get_primary_keys(table):
+    sql = '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (table)
     try:
         with PooledCursor() as cursor:	
 	    cursor.execute(sql)
 	    return list(dictify_cursor(cursor))
     except Exception, e:
 	return str(e)
+
 def get_foreign_keys(table):
     try:
         with PooledCursor() as cursor:
@@ -366,8 +366,30 @@ def get_foreign_keys(table):
     except Exception, e:
 	return str(e)
 
-def admin_get_data(table,constraint, cols):
-    sql = '''SELECT %s FROM %s WHERE %s;''' % (','.join(cols),table,constraint)
+#get all columns for a table that aren't auto increment and can't be null
+def get_required_columns(table):
+    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s'AND table_schema='%s' AND is_nullable='NO' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (table.split(".")[1],table.split(".")[0],table.split(".")[1],"%nextval(%",table.split(".")[0])
+    try:
+        with PooledCursor() as cursor:	
+	    cursor.execute(sql)
+	    return list(dictify_cursor(cursor))
+    except Exception, e:
+	return str(e)
+
+#gets all columns for a table that aren't auto increment and can be null
+def get_nullable_columns(table):
+    sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND table_schema='%s' AND is_nullable='YES' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (table.split(".")[1],table.split(".")[0],table.split(".")[1],"%nextval(%",table.split(".")[0])
+    print sql
+    try:
+        with PooledCursor() as cursor:	
+	    cursor.execute(sql)
+	    return list(dictify_cursor(cursor))
+    except Exception, e:
+	return str(e)
+
+#gets values for columns of specified key(s)
+def admin_get_data(table, cols, keys):
+    sql = '''SELECT %s FROM %s WHERE %s;''' % (','.join(cols),table,' AND '.join(keys))
     #print sql
     try:
         with PooledCursor() as cursor:
@@ -376,6 +398,7 @@ def admin_get_data(table,constraint, cols):
     except Exception, e:
 	return str(e)
 
+#removes item from db that has specified primary key(s)
 def admin_delete(args):
     table = args.get('table', type=str)
     primKey = args.get('ElementID', type=str)   
@@ -391,6 +414,7 @@ def admin_delete(args):
     except Exception, e:
 	return str(e)
 
+#updates columns for specified key(s)
 def admin_set_edit(args):
     table = args.get('table', type=str)
     primKey = args.get('ElementID', type=str)
@@ -418,6 +442,7 @@ def admin_set_edit(args):
     except Exception, e:
 	return str(e)
 
+#adds item into db for specified table
 def admin_add(args):
     table = args.get('table', type=str)
     source_columns = []
@@ -433,6 +458,8 @@ def admin_add(args):
 	    	source_columns.append(key)
 	    	column_values.append(value)
 
+    if len(source_columns) <= 0:
+	return "Nothing to insert"
     sql = 'INSERT INTO %s (%s) VALUES (\'%s\');'% (table, ','.join(source_columns), '\',\''.join(column_values))
     print sql
     try:
