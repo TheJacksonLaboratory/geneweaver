@@ -415,29 +415,26 @@ def admin_delete(args):
 	return str(e)
 
 #updates columns for specified key(s)
-def admin_set_edit(args):
+def admin_set_edit(args, keys):
     table = args.get('table', type=str)
-    primKey = args.get('ElementID', type=str)
-
-    #print primKey
 	
     colmerge = []
-    keys=args.keys()
-    for key in keys:	
-	if key != 'table' and key != 'ElementID':
+    colkeys=args.keys()
+    for key in colkeys:	
+	if key != 'table':
 	    value = args.get(key,type=str)
 	    if value and value != "None":	    	
 		colmerge.append(key+'=\''+value+'\'')  
 
-    colmerge.append(primKey)    
+    #colmerge.append(primKey)    
     
-    sql = '''UPDATE %s SET %s WHERE %s;''' % (table,','.join(colmerge), primKey)
+    sql = '''UPDATE %s SET %s WHERE %s;''' % (table,','.join(colmerge), ' AND '.join(keys))
 
     print sql
     try:
         with PooledCursor() as cursor:
     	    cursor.execute('''SELECT * FROM production.usr LIMIT 1''')
-	    cursor.connection.commit()
+	    #cursor.connection.commit()
 	    return "Edit Successful"
     except Exception, e:
 	return str(e)

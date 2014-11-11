@@ -2,11 +2,7 @@
 <script>
     $(document).ready(function()  {
 	var table = '{{table}}';
-	var primKey = '{{key}}';	
-
-	//var encodedKey = encodeURIComponent(primKey);
-	//var encodedKey = escape(primKey);
-	//document.getElementById("result-label").innerHTML = encodedKey;
+	var primKey = '{{key}}';
    
 	$("#edit-form").submit(function(event) {    		    
 	    event.preventDefault();
@@ -19,7 +15,6 @@
            		data: data,
            		success: function(data)
            		{
-               		   //document.getElementById("result-label").innerHTML = data;
 	 		    alert(data);
            		}
          	    });
@@ -41,22 +36,13 @@
            		data: data
          	    });
 		
-		window.location.replace(document.referrer)
-		//history.back();
-	       // window.location.reload();	    
+		window.location.replace(document.referrer)    
 	    } 
 	    
 	});
 
 	function resizeInput() {
-    	   $(this).attr('size', $(this).val().length);
-}
-
-	$('input[type="text"]')
-      	    // event handler
-    	    .keyup(resizeInput)
-    	    // resize on page load
-    	    .each(resizeInput);
+    	   $(this).attr('size', $(this).val().length);}
 
 	String.prototype.capitalize = function() {
     	    return this.charAt(0).toUpperCase() + this.slice(1);
@@ -79,11 +65,11 @@
 		</div>
 	    {% endfor %}
 		
-	     {% for val in columns[0] %}
+	     {% for val in columns %}
 		<div class="form-group">
 	    	  <label class="col-sm-3 control-label" style="width:20%" >"{{val.replace("_"," ").capitalize()}}:"</label>
 		    <div class="col-sm-9">
-	    		<input name={{val}} type="text" style="width:100%" required="" value="{{columns[0][val]}}"></input>	    		
+	    		<input name={{val}} type="text" style="width:100%" required="" value="{{columns[val]}}"></input>	    		
 		   </div>
 		</div>
 	    {% endfor %}
