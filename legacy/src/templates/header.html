@@ -110,8 +110,9 @@
                 posting.done(function(data) {
                     if(data.success) {
                         userName.text(data.usr_first_name);
-                        anonUserSpan.css('display', 'none');
-                        validUserSpan.css('display', '');
+                        location.reload();
+                        // anonUserSpan.css('display', 'none');
+                        // validUserSpan.css('display', '');
                     } else {
                         alert("login attempt failed");
                     }
@@ -120,10 +121,7 @@
 
             $('#logout-button').click(function(event) {
                 $.get("{{ url_for('json_logout')|safe }}", function() {
-                    userEmail.val('');
-                    userPassword.val('');
-                    anonUserSpan.css('display', '');
-                    validUserSpan.css('display', 'none');
+                    location.reload();
                 });
             });
             $('#admin-button').click(function(event) {
@@ -141,8 +139,7 @@
 </head>
 
 <body>
-<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation" style="padding:5px;">
         <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                 <span class="sr-only">Toggle navigation</span>
@@ -159,9 +156,9 @@
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
                 <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Manage GenSets <span class="caret"></span></a>
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Manage GeneSets <span class="caret"></span></a>
                     <ul class="dropdown-menu" role="menu">
-                        <li><a href="/mygenesets.html">My Gensets</a></li>
+                        <li><a href="/mygenesets.html">My Genesets</a></li>
                         <li><a href="#">Upload Gensets</a></li>
                         <li><a href="#">Batch Upload Gensets</a></li>
                     </ul>
@@ -203,7 +200,6 @@
             </div>
         </div>
         <!--/.nav-collapse -->
-    </div>
 </div>
 
     <!-- BEGIN MANDATORY SCRIPTS -->
