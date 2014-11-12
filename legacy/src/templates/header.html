@@ -27,6 +27,7 @@
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/custom.css') }}" rel="stylesheet">
     <!-- END  MANDATORY STYLE -->
 
+    <link href="{{ url_for('static', filename='css/search.css') }}" rel="stylesheet">
 
     <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/ode.js') }}"></script>
@@ -109,9 +110,9 @@
                 posting.done(function(data) {
                     if(data.success) {
                         userName.text(data.usr_first_name);
-                        anonUserSpan.css('display', 'none');
-                        validUserSpan.css('display', '');
-  			window.location.reload();
+                        location.reload();
+                        // anonUserSpan.css('display', 'none');
+                        // validUserSpan.css('display', '');
                     } else {
                         alert("login attempt failed");
                     }
@@ -120,21 +121,15 @@
 
             $('#logout-button').click(function(event) {
                 $.get("{{ url_for('json_logout')|safe }}", function() {
-                    userEmail.val('');
-                    userPassword.val('');
-                    anonUserSpan.css('display', '');
-                    validUserSpan.css('display', 'none');		    
-		    window.location.reload();
+                    location.reload();
                 });
             });
-	    //redirects 
-	    $('#admin-button').click(function(event) {
+            $('#admin-button').click(function(event) {
                window.location = "/admin";
             });
-	    $('#account-button').click(function(event) {
-               window.location = "/accountsettings.html";
-            });
         });
+        //redirects 
+        
     </script>
 
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/modernizr/modernizr-2.6.2-respond-1.1.0.min.js') }}"></script>
@@ -144,8 +139,7 @@
 </head>
 
 <body>
-<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation" style="padding:5px;">
         <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                 <span class="sr-only">Toggle navigation</span>
@@ -161,12 +155,25 @@
         </div>
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Manage GeneSets <span class="caret"></span></a>
+                    <ul class="dropdown-menu" role="menu">
+                        <li><a href="/mygenesets.html">My Genesets</a></li>
+                        <li><a href="#">Upload Gensets</a></li>
+                        <li><a href="#">Batch Upload Gensets</a></li>
+                    </ul>
+                </li>
                 <li><a href="{{ url_for('render_editgenesets')|safe }}">Edit GeneSets</a></li>
-                <li><a href="{{ url_for('render_analyze')|safe }}">Analyze GeneSets</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="help.html">Help</a></li>
-		
-		<!--{% if "user" in g and g.user.is_admin == false %}<li><a href="/admin">Admin</a></li>{% endif %} -->
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Analyze Genesets<span class="caret"></span></a>
+                    <ul class="dropdown-menu" role="menu">
+                        <li><a href="#">My Projects</a></li>
+                        <li><a href="#">Shared Projects</a></li>
+                        <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
+                    </ul>
+                </li>
+                <li><a href="{{ url_for('render_about')|safe }}">About</a></li>
+                <li><a href="{{ url_for('render_help')|safe }}">Help</a></li>
             </ul>
 
             <div id="loginpanel" class="nospace">
@@ -184,18 +191,15 @@
 
                     <!-- we show this span when there is a user logged in -->
                     <span id="valid-user-span"{% if "user" not in g %} style="display: none"{% endif %}>
-
                         Welcome <span id="user-name">{% if "user" in g %}{{ g.user.first_name|e }}{% endif %}</span>: <a href="{{ url_for('render_accountsettings')|safe }}">Account settings</a>
                         <button type='button' id="logout-button" class="btn btn-default">Logout</button>
-			<button type='button' id="account-button" class="btn btn-default">My Account</button>	
-			<!-- Admin page button, hides the button if the logged in user if not an admin -->
-			<button type='button' id="admin-button" class="btn btn-default" {% if "user" in g and g.user.is_admin == false%}style="display: none"{% endif %}>Admin Page</button>		
+                        <!-- Admin page button, hides the button if the logged in user if not an admin -->
+                        <button type='button' id="admin-button" class="btn btn-default" {% if "user" in g and g.user.is_admin == false%}style="display: none"{% endif %}>Admin Page</button>
                     </span>
                 </form>
             </div>
         </div>
         <!--/.nav-collapse -->
-    </div>
 </div>
 
     <!-- BEGIN MANDATORY SCRIPTS -->

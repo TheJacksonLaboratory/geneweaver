@@ -23,8 +23,8 @@
 
 {% macro tool_param_select(tool_param) %}
     <div class="form-group">
-        <label for="{{ tool_param.name|e }}" class="col-md-6 control-label">{{ tool_param.label_name|e }}:</label>
-        <div class="col-md-6">
+        <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-8">
             <select
                     class="form-control tooltip-enabled"
                     id="{{ tool_param.name|e }}"
@@ -40,8 +40,8 @@
 
 {% macro tool_param_radio(tool_param) %}
     <div class="form-group">
-        <label for="{{ tool_param.name|e }}" class="col-md-6 control-label">{{ tool_param.label_name|e }}:</label>
-        <div class="col-md-6">
+        <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-8">
             {% for opt in tool_param.options %}
                 <div>
                     <label>
@@ -59,9 +59,51 @@
     </div>
 {% endmacro %}
 
+{% macro tool_param_checkbox(tool_param) %}
+    <div class="form-group">
+        <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-8">
+            {% for opt in tool_param.options %}
+                <div class="ui-checkbox">
+                    <input
+                        type="checkbox"
+                        name="{{ tool_param.name|e }}"
+                        id="{{ tool_param.name|e }}_{{ loop.index }}"
+                        {% if opt == tool_param.default %}  checked{% endif %}>
+                        {{ opt|e }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro tool_param_textbox(tool_param) %}
+    <div class="form-group">
+        <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-8">
+            {% for opt in tool_param.options %}
+                <div>
+                    <label>
+                        <input
+                                type="text"
+                                name="{{ tool_param.name|e }}"
+                                id="{{ tool_param.name|e }}_{{ loop.index }}"
+                                value="{{ opt|e }}"
+                                {% if opt == tool_param.default %}  checked{% endif %}>
+                        {{ opt|e }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+
 {% macro tool_run_button(tool) %}
-    <input
+    <button class="btn btn-primary" 
         type='submit'
-        value='Run'
-        onclick='this.form.action="{{ url_for(tool.classname + '.run_tool') }}";'/>
+        value='run'
+        onclick='this.form.action="{{ url_for(tool.classname + '.run_tool') }}";'>
+        Run
+    </button>
 {% endmacro %}

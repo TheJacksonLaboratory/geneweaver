@@ -21,6 +21,10 @@ def run_tool():
         # TODO add nice error message about missing genesets
         raise Exception('there must be at least two genesets selected to run this tool')
 
+    params = {}
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        params[tool_param.name] = form[tool_param.name]
+
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -68,6 +72,8 @@ def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
@@ -76,8 +82,8 @@ def view_result(task_id):
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/BooleanAlgebra_result.html',
-            async_result=async_result,
-            tool=tool)
+            async_result=json.loads(async_result.result),
+            tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)

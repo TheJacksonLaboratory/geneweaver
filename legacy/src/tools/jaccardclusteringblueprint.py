@@ -32,6 +32,7 @@ def run_tool():
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
+
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     # insert result for this run
@@ -71,6 +72,66 @@ def run_tool():
     response.headers['location'] = new_location
 
     return response
+
+
+#@jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['GET'])
+def run_tool_api(apikey, homology, method, genesetsPassed):
+	
+    user_id = gwdb.get_user_id_by_apikey(apikey)
+    # TODO need to check for read permissions on genesets
+	
+    # gather the params into a dictionary
+    homology_str = 'Homology'
+    paramsAPI = {homology_str: None}
+
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        if tool_param.name.endswith('_' + 'Method'):
+		    paramsAPI[tool_param.name] = method
+		    if method not in ['Ward', 'Single', 'Centroid', 'McQuitty', 'Average', 'Complete', 'Median']:
+				paramsAPI[tool_param.name] = 'Ward'
+        if tool_param.name.endswith('_' + homology_str):
+            paramsAPI[homology_str] = 'Excluded'
+            paramsAPI[tool_param.name] = 'Excluded'
+            if homology != 'Excluded':
+                paramsAPI[homology_str] = 'Included'
+                paramsAPI[tool_param.name] = 'Included'
+                
+    	
+    # pull out the selected geneset IDs
+    selected_geneset_ids = genesetsPassed.split(":")
+    if len(selected_geneset_ids) < 3:
+        # TODO add nice error message about missing genesets
+        raise Exception('There must be at least three genesets selected to run this tool')
+        
+
+    # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
+
+    # insert result for this run
+    
+    task_id = str(uuid.uuid4())
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
+    gwdb.insert_result(
+        user_id,
+        task_id,
+        selected_geneset_ids,
+        json.dumps(paramsAPI),
+        tool.name,
+        desc,
+        desc)
+
+    async_result = tc.celery_app.send_task(
+        tc.fully_qualified_name(TOOL_CLASSNAME),
+        kwargs={
+            'gsids': selected_geneset_ids,
+            'output_prefix': task_id,
+            'params': paramsAPI,
+        },
+        task_id=task_id)
+        
+	# TODO SOON return file istead of just name of file
+    return task_id
+
 
 @jaccardclustering_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
