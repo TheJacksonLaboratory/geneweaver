@@ -1,11 +1,9 @@
 {% set title="Edit Genesets" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-
 <div class="page-header">
 	<h1>Account and Groups</h1>
 </div>
-
 <div class="row">
 	<div class="col-md-6">
 		<div class="panel panel-primary">
@@ -45,6 +43,19 @@
 				</div>
 			</div>
 		</div>
+		<div class="panel panel-primary">
+			<div class="panel-heading">
+				<h2 class="panel-title">Generate API Key</h2>
+			</div>
+			<form method="post" action="{{url_for('generate_api_key')}}">
+				<div class="panel-body">
+					<div class="col-xs-7">
+						API Key: {{user.api_key}}
+					</div>
+					<button id="generate_api_key" class="btn btn-primary pull-right">Generate New Key</button>
+				</div>
+			</form>
+		</div>
 	</div>
 	<div class="col-md-6">
 		<div class="panel panel-primary">
@@ -58,7 +69,7 @@
 							Name:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="username">
+							<input type="text" name="username" value="{{user.first_name}} {{user.last_name}}">
 						</div>
 					</div><br>
 					<div class="row">
@@ -66,12 +77,11 @@
 							Email:
 						</div>
 						<div class="col-md-8">
-							<input type="text" name="email">
+							<input type="text" name="email" value="{{user.email}}">
 						</div>
 					</div><br>
 					<button class="btn bg-blue">Save Changes</button><br><br>
 				</form>
-
 				<h4 class="section-header">Change Password</h4><hr>
 				<form method="post" action="{{url_for('change_password')}}">
 					<div class="row">
@@ -97,30 +107,27 @@
 						<div class="col-md-8">
 							<input type="password" name="conf_new" id="password_2">
 						</div>
-                    </div>
-                    <br>
+					</div>
+					<br>
 					<button id="change_password" class="ui-state-disabled btn bg-blue">Change Password</button>
 				</form>
 			</div>
-		</div>		
+		</div>
 	</div>
 </div>
-
 <script>
 $(document).ready(function() {
-   $("#password_2").keyup(validate);
+$("#password_2").keyup(validate);
 });
-
 function validate() {
-    var password_1 = $("#password_1").val();
-    var password_2 = $("#password_2").val();
-
-    if(password_1 == password_2) {
-        $("#change_password").removeClass("ui-state-disabled");        
-    }
-    else {
-        $("#change_password").addClass("ui-state-disabled");        
-    }
+var password_1 = $("#password_1").val();
+var password_2 = $("#password_2").val();
+if(password_1 == password_2) {
+$("#change_password").removeClass("ui-state-disabled");
+}
+else {
+$("#change_password").addClass("ui-state-disabled");
+}
 }
 </script>
 {% include 'footer.html' %}
