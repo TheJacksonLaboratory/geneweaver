@@ -9,7 +9,7 @@ import geneweaverdb
 import json
 import os
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint, booleanalgebrablueprint
-#import sphinxapi
+import sphinxapi
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
