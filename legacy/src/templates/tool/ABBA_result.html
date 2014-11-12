@@ -6,7 +6,7 @@
     <h1>{{ title }}</h1>
 </div>
 
-
+{{async_result}}
 {% if async_result.parameters.ABBA_ShowInter == "yes" %}
     {% set show_inter=1  %}
 {% else %}
@@ -153,9 +153,20 @@
                 {% for key, values in async_result.GSResults.items() %}
 	                {% set gs_id=values['gs_id'] %}
                     <tr class="{cycle values="even,odd"}">
-                        <td valign="top">GS {{values['gs_id']}}: {{values['gs_name']}}
+                        <td valign="top"><div href="/search/{{values['ode_ref_id']}}/1">GS {{values['gs_id']}}: {{values['gs_name']}}</div>
                             <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
-                                {% for gene in values.genes %}<li>{{gene['ode_ref_id']}} ({$input_genes.$gene.species})</li>{% endfor %}
+                                {% for gene in values.genes %}<li><script> 
+															
+document.write('{{gene}}');
+																var stuffString = "{{async_result}}";
+																stuffString = stuffString.replace(/&#39;/ig,'\"');
+																var stuffString2 = '\''+stuffString+'\'';
+																stuffString2 = stuffString2.replace(/u"/ig, '\"');
+																stuffString2 = stuffString2.replace(/'/ig, '');
+																modifiableData = JSON.parse(stuffString2);
+																document.write(modifiableData.GeneResults['{{gene}}'].ode_ref_id);
+document.write(modifiableData.GeneResults['{{gene}}'].species);
+																					</script></a></li>{% endfor %}
                             </ul>
                         </td>
                         <td valign="top"><a href="#" onclick="return ODE.toggle('#geneset_{{values['gs_id']}}_genes');">({{values['matched']}}/{{values['gs_count']}}&nbsp;genes)</a></td>
@@ -178,8 +189,9 @@
 
 {% if have_results==1 %}
     <tr>
+	{% set GeneCount = async_result.GeneResultCount %}
         <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%">
-            <b>{{async_result.GeneResultCount}} Result Genes:</b>
+            <b>{{GeneCount}} Result Genes:</b>
             <label>Minimum GeneSets:
                 <select name="ABBA_MinGenesets"  class="form-control" data-live-search="true">
                     {% for i in range(async_result.GSResultCount) %}
@@ -201,7 +213,7 @@
             {% if async_result.GeneResults and async_result.GeneResultCount<400 %}
                 <table class="table table-striped" width="100%" style="font-size: 0.8em;">
                     {% for key, values in async_result.GeneResults.items() %}
-                        <tr class="{cycle values="even,odd"}">
+                        <tr id="{{key}}" class="{cycle values="even,odd"}">
 	                        <td valign="top">
                                 <a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a>
                             </td>
@@ -210,14 +222,23 @@
                                 <ul id="genes_{{values['ode_ref_id']}}_genesets" style="display: none;">
                                 {% for gs in values['genesets'] %}
                                     <li>
-                                        <a href="/viewgenesetdetails/{{gs}}">GS{{gs}}</a>
+                                        <a href="/viewgenesetdetails/{{gs}}">GS{{gs}} <script> 
+																var a = {{async_result.GeneResultCount}};
+																var stuffString = "{{async_result}}";
+																stuffString = stuffString.replace(/&#39;/ig,'\"');
+																var stuffString2 = '\''+stuffString+'\'';
+																stuffString2 = stuffString2.replace(/u"/ig, '\"');
+																stuffString2 = stuffString2.replace(/'/ig, '');
+																modifiableData = JSON.parse(stuffString2);
+																document.write(modifiableData.GSResults['{{gs}}'].gs_name);
+																					</script></a>
                                     </li>
                                 {% endfor %}
                                 </ul>
                             </td>
                             {% set ogid= values['ode_gene_id'] %}
                             <td valign="top">
-                                <a HREF="javascript:history.go(0)">[remove]</a>
+                                <a onclick="removeGene({{ogid}});toggle({{key}});" >[remove]</a>
                             </td>
                         </tr>
                     {% endfor %}
@@ -514,6 +535,38 @@
     $(document).ready(function(){
         $('textarea').autosize();
     });
+</script>
+
+<script type="text/javascript">
+makeInnerList();
+function makeInnerList() {
+	var a = {{async_result.GeneResultCount}};
+	var stuffString = "{{async_result}}";
+	stuffString = stuffString.replace(/&#39;/ig,'\"');
+	var stuffString2 = '\''+stuffString+'\'';
+	stuffString2 = stuffString2.replace(/u"/ig, '\"');
+	stuffString2 = stuffString2.replace(/'/ig, '');
+	modifiableData = JSON.parse(stuffString2);
+};
+
+function removeGene(ogid) {
+	delete modifiableData.GeneResults[ogid];
+	var blah = modifiableData;
+};
+
+function toggle(id) {
+ if( document.getElementById(id).style.display=='none' ){
+   document.getElementById(id).style.display = '';
+ }else{
+   document.getElementById(id).style.display = 'none';
+ }
+}
+
+function returnGSName(gsid)
+{
+	document.getElementById(gsid).innerHTML = modifiableData.GSResults[gsid].gs_name;
+}
+
 </script>
 {% include 'footer.html' %}
 
