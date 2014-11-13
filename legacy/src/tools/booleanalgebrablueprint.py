@@ -59,8 +59,6 @@ def run_tool():
             },
             task_id=task_id)
 
-        print params['at_least']
-
         # render the status page and perform a 303 redirect to the
         # URL that uniquely identifies this run
         new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)

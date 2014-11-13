@@ -2,12 +2,24 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+        {{async_result.parameters}}
+
+
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
 
 <h8>Gene count: {{async_result.num_genes}}</h8>
 <br><br>
+
+        <button id="createGeneset" class="float-left submit-button" >Add to New GeneSet</button>
+<script type="text/javascript">
+    document.getElementById("createGeneset").onclick = function () {
+        location.href = "/editgenesets.html";
+    }
+</script>
+        <br><br>
+
 
 <div class="panel panel-default">
 <div class="panel-heading bg-blue">
@@ -20,19 +32,31 @@
 <tr>
 	<th>Gene Symbol</th>
 	<th>LinkOuts</th>
-	<th>Data Value</th>
+	<th>In Gene sets</th>
 </tr>
+
+<td>
+<input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs');"><p style="margin-left: 50px;"> Select All </p>
+</td>
 
 {% for gene in async_result.gene_names %}
 <tr>
 <td>
-
-<a href="/search/{{ gene }}/1">{{ gene }}</a>
+<input type="checkbox" name="gs" value="{{ gene }}" onclick="exefunction()">
+<a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
 </td>
 <td>
 Links
 </td>
 {% endfor %}
+
+        <script language="javascript" type="text/javascript">
+            function exefunction(){
+                var lfckv = document.getElementById("lifecheck").checked;
+                alert(lfckv);
+            }
+        </script>
+
 
 <td>
 
