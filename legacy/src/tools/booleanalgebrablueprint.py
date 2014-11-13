@@ -19,7 +19,7 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        flask.flash("Warning: You need at least 2 genes!")
+        flask.flash("Warning: You need at least 2 gene sets!")
         return flask.redirect('analyze.html')
 
     else:

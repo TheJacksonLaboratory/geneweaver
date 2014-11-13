@@ -20,7 +20,7 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
-        flask.flash("Warning: You need at least 3 genes!")
+        flask.flash("Warning: You need at least 3 gene sets!")
         return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
