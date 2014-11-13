@@ -1,71 +1,72 @@
 {% extends 'admin/AdminTemplateOverride.html' %}
 {% block body %}
-<script>
-   function autoRefresh_activity_list()
-   {
-	var list = document.getElementById('activity-list');
-        var entry = document.createElement('li');
-	entry.appendChild(document.createTextNode("Test"));
-	//list.insertBefore(entry,list.childNodes[0])
-	
-   } 
-   setInterval('autoRefresh_activity_list()', 5000); 
-</script>
 
-<h3 align=left>Admin Tools</h3>
-<div class="table-responsive" style="float:left;width:60%" >
-   <h5 align=left>User Tools</h5>
-   <table id="adminT1" style="width:100%;background-color:#FFFFFF" class="table table-striped" table border="2" bgcolor="#D5D5C1">
-      <tbody>
-         <tr class="active">
-            <td style="width:150px"> <a href="/admin/viewUsers">Users</a></td>
-            <td style="width:10px; text-align: left"><a href="/admin/newUser">Add</a></td>
-         </tr >
-         <tr class="active">
-            <td style="width:150px"><a href="/admin/viewPublications">Publications</a></td>
-            <td style="width:10px; text-align: left"><a href="/admin/newPub">Add</a></td>
-         </tr>
-         <tr class="active">
-            <td style="width:150px"><a href="/admin/viewGroups">Groups</a></td>
-            <td style="width:10px; text-align: left"><a href="/admin/newGroup">Add</a></td>
-         </tr>
-         <tr class="active">
-            <td style="width:150px"><a href="/admin/viewProjects">Projects</a></td>
-            <td style="width:10px; text-align: left"><a href="/admin/newProject">Add</a></td>
-         </tr>
-      </tbody>
-   </table>
-   <h5 align=left>Gene Tools</h5>
-   <table id="adminT2" style="width:100%;background-color:#FFFFFF" class="table table-striped" table border="2" bgcolor="#D5D5C1">
-      <tr>
-         <td style="width:150px"><a href="/admin/viewGenesets">Genesets</a></td>
-         <td style="width:5px; text-align: left"><a href="/admin/newGeneset">Add</a></td>
-      </tr>
-      <tr>
-         <td style="width:150px"><a href="/admin/viewGenes">Genes</a></td>
-         <td style="width:5px; text-align: left"><a href="/admin/newGene">Add</a></td>
-      </tr>
-      <tr>
-         <td style="width:150px"><a href="/admin/viewGenesetInfo">Geneset Info</a></td>
-         <td style="width:5px; text-align: left"><a href="/admin/newGenesetInfo">Add</a></td>
-      </tr>
-      <tr>
-         <td style="width:150px"><a href="/admin/viewGeneInfo">Gene Info</a></td>
-         <td style="width:5px; text-align: left"><a href="/admin/newGeneInfo">Add</a></td>
-      </tr>
-   </table>
-</div>
-<div style="float:right;width:35%">
-   <h5 align=center>Recent Activity</h5>
-   <div style="width:100%;background-color:#FFFFFF;border: 1px solid black;">
-      <ul id="activity-list" style="list-style-type:none">
-         <li>activity data 1</li>
-         <li>activity data 2</li>
-         <li>activity data 3</li>
-      </ul>
-   </div>
-</div>
-</div>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+<h5>Genesets per Tier</h5>
+
+<style>
+
+.chart rect {
+  fill: steelblue;
+}
+
+.chart text {
+  font: 10px sans-serif;
+}
+
+.axis path {
+  display: none;
+}
+
+.axis line {
+  stroke: #fff;
+  stroke-opacity: .5;
+  shape-rendering: crispEdges;
+}
+
+</style>
+<svg class="chart"></svg>
+<script>
+
+var data = [4, 8, 15, 16, 23, 42].reverse();
+
+var margin = {top: 30, right: 0, bottom: 0, left: 30},
+    width = 420,
+    barHeight = 20,
+    height = barHeight * data.length;
+
+var x = d3.scale.linear()
+    .domain([0, d3.max(data)])
+    .range([0, width]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("top")
+    .tickSize(-height);
+
+var chart = d3.select(".chart")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+chart.append("g")
+    .attr("class", "bars")
+  .selectAll("rect")
+    .data(data)
+  .enter().append("rect")
+    .attr("y", function(d, i) { return i * barHeight; })
+    .attr("height", barHeight - 1)
+    .attr("width", x);
+
+chart.append("g")
+    .attr("class", "axis")
+    .call(xAxis)
+  .select(".tick line")
+    .style("stroke", "#000");
+
+</script>
 {% endblock %}
 
 

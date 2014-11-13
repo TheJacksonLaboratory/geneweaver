@@ -417,6 +417,9 @@ def admin_delete(args):
 #updates columns for specified key(s)
 def admin_set_edit(args, keys):
     table = args.get('table', type=str)
+
+    if len(keys) <= 0:
+	return "Error: No primary key constraints set"
 	
     colmerge = []
     colkeys=args.keys()
