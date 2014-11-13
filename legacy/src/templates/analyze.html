@@ -6,6 +6,12 @@
     <h1>{{ title }}</h1>
 </div>
 
+<div class = "error">
+{% if status == 0 %}
+        <p style="font-size: 150%; color: red">Warning: You need to select more genesets!</p>
+{% endif %}
+</div>
+
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
 
