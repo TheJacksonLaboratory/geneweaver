@@ -1,41 +1,39 @@
 {% set title="My Genesets" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-
 <div class="page-header">
 	<h1>My Genesets</h1>
 </div>
 
-	
 <div class="panel panel-default">
-<div class="panel-heading bg-blue">
-	<h3 class="panel-title">Genesets</h3>
-</div>
-<div class="panel-body">
-
-	<table class="table table-striped">
-
-	<tbody>
-	<!-- List all genesets that are not deleted -->
-	{% for gs in genesets if not gs.status == "deleted" %}
-	    <tr>
-	<td>
-	{% include 'viewGenesetSummaryPartial.html' %}
-
-	</td>
-	<td>
-	<a class="btn bg-blue" href="#">Edit</a>
-	</td>
-	<td>
-	<a class="btn bg-blue" href="#">Delete</a>
-	</td>
-	</tr>
-
-
-	{% endfor %}
-	</tbody>
-	</table>
-
-</div>
+	<div class="panel-heading bg-blue">
+		<h3 class="panel-title">Genesets</h3>
+	</div>
+	<div class="panel-body">
+		<table class="table table-striped">
+			<tbody>
+				<!-- List all genesets that are not deleted -->
+				{%if "user" in g%}
+					{% for gs in genesets if not gs.status == "deleted" %}
+						<tr>
+							<td>
+								{% include 'viewGenesetSummaryPartial.html' %}
+							</td>
+							<td>
+								<a class="btn bg-blue" href="#">Edit</a>
+							</td>
+							<td>
+								<a class="btn bg-blue" href="#">Delete</a>
+							</td>
+						</tr>
+					{% endfor %}
+				{% else %}
+					<tr>
+						<td>Create an account to save genesets</td>
+					</tr>
+				{% endif %}
+			</tbody>
+		</table>
+	</div>
 </div>
 {% include 'footer.html' %}
