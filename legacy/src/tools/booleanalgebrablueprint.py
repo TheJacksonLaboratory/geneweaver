@@ -9,7 +9,7 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'BooleanAlgebra'
 boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@boolean_algebra_blueprint.route('/analyze.html', methods=['POST'])
+@boolean_algebra_blueprint.route('/run-boolean-algebra.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
@@ -19,8 +19,9 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        active_tools = gwdb.get_active_tools()
-        return flask.render_template('analyze.html', active_tools=active_tools, status=0)
+        flask.flash("Warning: You need at least 2 genes!")
+        return flask.redirect('analyze.html')
+
     else:
         params = {}
         for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):

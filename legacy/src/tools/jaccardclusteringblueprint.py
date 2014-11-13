@@ -9,7 +9,7 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'JaccardClustering'
 jaccardclustering_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@jaccardclustering_blueprint.route('/JaccardClustering.html', methods=['POST'])
+@jaccardclustering_blueprint.route('/run-jaccard-clustering.html', methods=['POST'])
 def run_tool():
 
      # TODO need to check for read permissions on genesets
@@ -20,7 +20,8 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
-        raise Exception('There must be at least three genesets selected to run this tool')
+        flask.flash("Warning: You need at least 3 genes!")
+        return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
     homology_str = 'Homology'

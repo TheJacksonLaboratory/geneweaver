@@ -20,7 +20,9 @@ def run_tool():
 
     params = {}
     if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1 :
-        raise Exception('there is no input')
+        # TODO add nice error message about missing genesets
+        flask.flash("Warning: You need to have input or/and at least a gene set selected!")
+        return flask.redirect('analyze.html')
 
     params['ABBA_InputGenes'] = form['ABBA_InputGenes']
     if 'ABBA_IgnHom' in form:
