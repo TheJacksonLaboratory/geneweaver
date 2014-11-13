@@ -26,7 +26,7 @@ def run_tool():
         params = {}
         for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
             params[tool_param.name] = form[tool_param.name]
-
+            params['at_least'] = form["BooleanAlgebra_min_sets"]
 
         # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -35,8 +35,8 @@ def run_tool():
         if 'user_id' in flask.session:
             user_id = flask.session['user_id']
         else:
-            # TODO add nice error message about missing user ID.
-            raise Exception('internal error: user ID missing')
+            flask.flash("Internal error: user ID missing")
+            return flask.redirect('analyze.html')
 
         task_id = str(uuid.uuid4())
         tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -58,6 +58,8 @@ def run_tool():
                 'params': params,
             },
             task_id=task_id)
+
+        print params['at_least']
 
         # render the status page and perform a 303 redirect to the
         # URL that uniquely identifies this run
