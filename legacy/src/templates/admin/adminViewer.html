@@ -25,10 +25,6 @@ var editor;
 		    "data": {"table": table}
                 },
 	    "columns": columns,
-	    /*"oTableTools": {
-            	"sRowSelect": "single",
-		"aButtons": [ "delete selected", "Edit" ]
-            },*/
             "fnDrawCallback": function() {
       		$('table#adminViewer td').bind('mouseenter', function () { 
 			$(this).parent().children().each(function(){
@@ -52,11 +48,9 @@ var editor;
     		$(this).parent().find("td").each(function() {
 	 	    var item = $(this).html();
 		    var key = columns[j]["name"];
-        	    data[key]= item; // logs each cell value 
+        	    data[key]= item;  
 		    j++;
 		});
-
-   		//window.location = "/admin/adminEdit/"+data;
 
 		 $.ajax({
           	   type: "GET",
@@ -64,7 +58,6 @@ var editor;
            	   data: data, 
            	   success: function(data)
            	   {
-			//alert(data);
 			$("#maindiv").html(data);               	      
            	   }
             });

@@ -36,7 +36,6 @@ app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5
 
 admin=Admin(app, name='Geneweaver', index_view=adminviews.AdminHome(url='/admin', name='Admin'));
 
-
 admin.add_view(adminviews.Viewers(name='Users', endpoint='viewUsers', category='User Tools'))
 admin.add_view(adminviews.Viewers(name='Publications', endpoint='viewPublications', category='User Tools'))
 admin.add_view(adminviews.Viewers(name='Groups', endpoint='viewGroups', category='User Tools'))
@@ -55,9 +54,6 @@ admin.add_view(adminviews.Add(name='Geneset', endpoint='newGeneset', category='A
 admin.add_view(adminviews.Add(name='Gene', endpoint='newGene', category='Add'))
 admin.add_view(adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
 admin.add_view(adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
-
-
-#admin.add_view(adminviews.Edit(name='Edit',endpoint='adminEdit'))
 
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
@@ -364,7 +360,6 @@ class AdminEdit(adminviews.Authentication, BaseView):
 def admin_widget_1():  
     if "user" in flask.g and flask.g.user.is_admin:
 	data = geneweaverdb.genesets_per_tier()
-    	print data
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -373,29 +368,22 @@ def admin_widget_1():
 def admin_edit():  
     if "user" in flask.g and flask.g.user.is_admin:
         rargs=request.args
-	table = rargs['table']
-	keys=[]
-    	
-        return AdminEdit().render("admin/adminEdit.html", columns=rargs ,keys=keys, table=table)
+	table = rargs['table']    	
+        return AdminEdit().render("admin/adminEdit.html", columns=rargs , table=table)
     else:
 	return flask.render_template('admin/adminForbidden.html')
 
 @app.route('/admin/adminSubmitEdit', methods=['POST'])
 def admin_submit_edit():  
     if "user" in flask.g and flask.g.user.is_admin:
-        form=flask.request.form
-	
+        form=flask.request.form	
 	table = form['table']
-
 	prim_keys = geneweaverdb.get_primary_keys(table.split(".")[1])
-
 	keys = []
 	for att in prim_keys:
 	    temp = form[att['attname']]
-	    keys.append(att['attname'] + "=\'" + temp + "\'")
-		
-	status = geneweaverdb.admin_set_edit(form, keys)
-    	
+	    keys.append(att['attname'] + "=\'" + temp + "\'")		
+	status = geneweaverdb.admin_set_edit(form, keys)    	
         return json.dumps(status)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -406,7 +394,6 @@ def admin_delete():
     if "user" in flask.g and flask.g.user.is_admin:
         form = flask.request.form
 	result = geneweaverdb.admin_delete(form)
-    	#print form
         return json.dumps(result)
     else:
 	return flask.render_template('admin/adminForbidden.html')

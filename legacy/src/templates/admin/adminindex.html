@@ -4,86 +4,113 @@
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <!--<script type="text/javascript" src="{{ url_for('static', filename='js/adminWidgets.js') }}"></script>  -->
 
-<h5>Genesets per Tier</h5>
 <style>
-   .chart rect {
-   fill: steelblue;
+   .bar:hover {
+  	fill: brown;
    }
    .chart text {
-   font: 10px sans-serif;
+      font: 10px sans-serif;
    }
    .axis path {
-   display: none;
+       display: none;
    }
    .axis line {
-   stroke: #fff;
-   stroke-opacity: .5;
-   shape-rendering: crispEdges;
+       stroke: #fff;
+       stroke-opacity: .5;
+       shape-rendering: crispEdges;
    }
 </style>
-<svg class="chart"></svg>
+<div>
+   <div>
+      <svg class="genesets_per_tier" ></svg>
+   </div>
+   <div>
+      <svg class="genesets_per_species_and_tier" ></svg>
+   </div>
+</div>
 <script>
-   $(document).ready(function()  { 
-   
-       genesets_per_tier();
-   
-   });   
+    $(document).ready(function() {
 
-function genesets_per_tier() {
-    $.ajax({
-        type: "GET",
-        url: "../admin/genesetspertier",
-        success: function(return_data) {
-            //alert(return_data);
-            var array = JSON.parse(return_data);
-            //alert(array['1']);	
-	     
-            var data = [array['1'],array['2'],array['3'],array['4'],array['5']];
+        genesets_per_tier("../admin/genesetspertier", ".genesets_per_tier");
 
-            var margin = {
-                    top: 30,
-                    right: 0,
-                    bottom: 0,
-                    left: 30
-                },
-                width = 420,
-                barHeight = 20,
-                height = barHeight * data.length;
-
-            var x = d3.scale.linear()
-                .domain([0, d3.max(data)])
-                .range([0, width]);
-
-            var xAxis = d3.svg.axis()
-                .scale(x)
-                .orient("top")
-                .tickSize(-height);
-
-            var chart = d3.select(".chart")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-            chart.append("g")
-                .attr("class", "bars")
-                .selectAll("rect")
-                .data(data)
-                .enter().append("rect")
-                .attr("y", function(d, i) {
-                    return i * barHeight;
-                })
-                .attr("height", barHeight - 1)
-                .attr("width", x);
-
-            chart.append("g")
-                .attr("class", "axis")
-                .call(xAxis)
-                .select(".tick line")
-                .style("stroke", "#000");
-        }
     });
-}
+
+    function genesets_per_tier(url, chartname) {
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function(return_data) {
+                var data = JSON.parse(return_data);
+                generate_chart(data, chartname);
+            }
+        });
+    }
+
+    function generate_chart(data, chartname) {
+        var margin = { top: 80, right: 180, bottom: 80, left: 180 },
+            width = 660 - margin.left - margin.right,
+            height = 400 - margin.top - margin.bottom;
+
+        var x = d3.scale.ordinal()
+            .domain(d3.keys(data))
+            .rangeRoundBands([0, width], .3, .1);
+
+        var y = d3.scale.linear()
+            .range([height, 0])
+            .domain([0, d3.max(d3.values(data)) + 50]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .ticks(8);
+
+        var chart = d3.select(chartname)
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        chart.append("text")
+            .attr("class", "title")
+            .attr("y", -26)
+            .text("Genesets per Tier");
+
+        chart.selectAll(".bar")
+            .data(d3.entries(data))
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", function(d,i) { return x(x.domain()[i]); })
+            .attr("width", x.rangeBand())
+            .attr("y", function(d) { return y(d.value); })
+            .attr("height", function(d) { return height - y(d.value); })
+	    .attr("fill", "steelblue" );
+
+        chart.selectAll("text")
+            .data(d3.values(data))
+            .enter()
+            .append("text")
+	    .attr("text-anchor", "middle")
+	    .attr("x", function(d, i) { return x(x.domain()[i]) + (x.rangeBand()/2); })
+	    .attr("y", function(d) { return y(d) - 7; })	    
+            .text(function(d) {return d;})
+	    .attr("font-family", "sans-serif")
+   	    .attr("font-size", "8px")
+            .attr("fill", "black");
+
+        chart.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+            .selectAll(".tick text");
+
+        chart.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+    }
 </script>
 
 {% endblock %}

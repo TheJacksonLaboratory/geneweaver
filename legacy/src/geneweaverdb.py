@@ -483,12 +483,12 @@ def genesets_per_tier():
 	    four=cursor.fetchone()[0]
 	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;''')
 	    five=cursor.fetchone()[0]
-	    response = {'1': one,
-    	    	    '2': two,
-    		    '3': three,
-   		    '4': four,
-		    '5': five
-   		    }
+	    response = OrderedDict([('Tier 1', one),
+    	    	    ('Tier 2', two),
+    		    ('Tier 3', three),
+   		    ('Tier 4', four),
+		    ('Tier 5', five)
+   		    ])
         return response
     except Exception, e:
         return str(e)
