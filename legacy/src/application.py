@@ -360,16 +360,21 @@ class AdminEdit(adminviews.Authentication, BaseView):
         super(AdminEdit, self).__init__(*args, **kwargs)
 	self.admin = admin
 
-@app.route('/admin/adminEdit')
-def admin_edit1():  
+@app.route('/admin/genesetspertier')
+def admin_widget_1():  
     if "user" in flask.g and flask.g.user.is_admin:
+	data = geneweaverdb.genesets_per_tier()
+    	print data
+        return json.dumps(data)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
 
+@app.route('/admin/adminEdit')
+def admin_edit():  
+    if "user" in flask.g and flask.g.user.is_admin:
         rargs=request.args
 	table = rargs['table']
-	#rargs.pop ("table",None)
-
-	
-	keys = []
+	keys=[]
     	
         return AdminEdit().render("admin/adminEdit.html", columns=rargs ,keys=keys, table=table)
     else:
@@ -421,6 +426,7 @@ def admin_add():
 def get_db_data():
     if "user" in flask.g and flask.g.user.is_admin:
         results = geneweaverdb.get_server_side(request.args)
+	print results
         return json.dumps(results,default=date_handler)
     else:
 	return flask.render_template('admin/adminForbidden.html')

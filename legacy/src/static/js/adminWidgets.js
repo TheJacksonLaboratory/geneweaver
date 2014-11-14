@@ -1,34 +1,3 @@
-{% extends 'admin/AdminTemplateOverride.html' %}
-
-{% block body %}
-<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-<!--<script type="text/javascript" src="{{ url_for('static', filename='js/adminWidgets.js') }}"></script>  -->
-
-<h5>Genesets per Tier</h5>
-<style>
-   .chart rect {
-   fill: steelblue;
-   }
-   .chart text {
-   font: 10px sans-serif;
-   }
-   .axis path {
-   display: none;
-   }
-   .axis line {
-   stroke: #fff;
-   stroke-opacity: .5;
-   shape-rendering: crispEdges;
-   }
-</style>
-<svg class="chart"></svg>
-<script>
-   $(document).ready(function()  { 
-   
-       genesets_per_tier();
-   
-   });   
-
 function genesets_per_tier() {
     $.ajax({
         type: "GET",
@@ -36,9 +5,9 @@ function genesets_per_tier() {
         success: function(return_data) {
             //alert(return_data);
             var array = JSON.parse(return_data);
-            //alert(array['1']);	
+            //alert(array.1);	
 	     
-            var data = [array['1'],array['2'],array['3'],array['4'],array['5']];
+            var data = [0,1,40,2];
 
             var margin = {
                     top: 30,
@@ -84,8 +53,3 @@ function genesets_per_tier() {
         }
     });
 }
-</script>
-
-{% endblock %}
-
-

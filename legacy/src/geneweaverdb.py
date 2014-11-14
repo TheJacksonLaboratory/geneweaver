@@ -469,6 +469,29 @@ def admin_add(args):
 	    return "Add Successful"
     except Exception, e:
 	return str(e)
+
+def genesets_per_tier():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1;''')
+	    one=cursor.fetchone()[0]
+	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2;''')
+	    two=cursor.fetchone()[0]
+	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3;''')
+	    three=cursor.fetchone()[0]
+  	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4;''')
+	    four=cursor.fetchone()[0]
+	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;''')
+	    five=cursor.fetchone()[0]
+	    response = {'1': one,
+    	    	    '2': two,
+    		    '3': three,
+   		    '4': four,
+		    '5': five
+   		    }
+        return response
+    except Exception, e:
+        return str(e)
 	
 
 #*************************************************************
