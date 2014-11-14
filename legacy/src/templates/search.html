@@ -18,6 +18,7 @@
 </form>
 <br />
 <!-- Show the panel heading with pagination -->
+{% if paginationValues != None %}
 <div class="panel panel-default">
 <div class="panel-heading bg-blue">
 	<h3 class="panel-title">Geneset Results Found: {{paginationValues.numResults}} results. Viewing page {{paginationValues.currentPage}} of {{paginationValues.numPages}} pages </h3>
@@ -69,7 +70,7 @@
 	</table>
 </div>
 </div>
-
+{%endif%}
 
 
 {% include 'footer.html' %}
