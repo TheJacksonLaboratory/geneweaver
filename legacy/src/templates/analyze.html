@@ -64,11 +64,11 @@
                                             <td>
                                                 <label>
                                                     <input
-                                                            class="gs-checkbox"
+                                                            
                                                             data-parentproject="{{ proj.project_id }}"
                                                             type="checkbox"
                                                             name="geneset_{{ geneset.geneset_id }}"
-                                                            value="1">
+                                                            >
                                                     {{ geneset.name }}
                                                 </label>
                                             </td>
@@ -80,6 +80,8 @@
                         </div>
                     </div>
                 {% endfor %}
+            {% else %}
+                <p>You have no genesets!</p>
             {% endif %}
         </div>
     </div>
