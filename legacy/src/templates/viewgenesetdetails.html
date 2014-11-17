@@ -122,6 +122,7 @@
 	<th>Gene Symbol</th>
 	<th>LinkOuts</th>
 	<th>Data Value</th>
+	<th>Emphasis</th>
 </tr>
 
 {% for geneset_value in geneset.geneset_values %}
@@ -136,6 +137,9 @@ Links
 </td>
 <td>
 {{ geneset_value.value }}
+</td>
+<td>
+<label><input type="checkbox" name="Emphasized" value="yes" /></label>
 </td>
 </tr>
 {% endfor %}
