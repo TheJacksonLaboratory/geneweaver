@@ -17,6 +17,10 @@ body {
 	background-color: white;
 }
 
+.dropdown-menu {
+	width: auto !important
+}
+
 * {
 	margin: 0;
 }
