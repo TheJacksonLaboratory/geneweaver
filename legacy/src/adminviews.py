@@ -80,8 +80,10 @@ class Viewers(Authentication, BaseView):
 	    dbcols=geneweaverdb.get_all_columns( table)	
 	    print dbcols    
             columns=[]
-	    for col in dbcols:
-		columns.append({'name': col['column_name']})
+	    #for col in dbcols:
+	#	columns.append({'name': col['column_name']})
+	    
+	    columns.append({'name': 'ode_gene_id'})
 	    jcolumns=json.dumps(columns)
             return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneInfo", table= table)
 
@@ -90,7 +92,7 @@ class Viewers(Authentication, BaseView):
 	    dbcols=geneweaverdb.get_all_columns( table)
             columns=[]
 	    for col in dbcols:
-		columns.append({'name': col['column_name']})
+		columns.append({'name': col['column_name']})	    
 	    jcolumns=json.dumps(columns)
             return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table= table)
 
@@ -152,12 +154,3 @@ class Add(Authentication, BaseView):
 
         else:
 	    return self.render('admin/adminindex.html')
-
-
-
-
-
-
-
-
-
