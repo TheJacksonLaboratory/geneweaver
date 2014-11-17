@@ -153,20 +153,9 @@
                 {% for key, values in async_result.GSResults.items() %}
 	                {% set gs_id=values['gs_id'] %}
                     <tr class="{cycle values="even,odd"}">
-                        <td valign="top"><div href="/search/{{values['ode_ref_id']}}/1">GS {{values['gs_id']}}: {{values['gs_name']}}</div>
+                        <td valign="top"><a href="/search/{{key}}/1">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
                             <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
-                                {% for gene in values.genes %}<li><script> 
-															
-document.write('{{gene}}');
-																var stuffString = "{{async_result}}";
-																stuffString = stuffString.replace(/&#39;/ig,'\"');
-																var stuffString2 = '\''+stuffString+'\'';
-																stuffString2 = stuffString2.replace(/u"/ig, '\"');
-																stuffString2 = stuffString2.replace(/'/ig, '');
-																modifiableData = JSON.parse(stuffString2);
-																document.write(modifiableData.GeneResults['{{gene}}'].ode_ref_id);
-document.write(modifiableData.GeneResults['{{gene}}'].species);
-																					</script></a></li>{% endfor %}
+                                {% for gene in values.genes %}<li>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
                             </ul>
                         </td>
                         <td valign="top"><a href="#" onclick="return ODE.toggle('#geneset_{{values['gs_id']}}_genes');">({{values['matched']}}/{{values['gs_count']}}&nbsp;genes)</a></td>
@@ -222,16 +211,7 @@ document.write(modifiableData.GeneResults['{{gene}}'].species);
                                 <ul id="genes_{{values['ode_ref_id']}}_genesets" style="display: none;">
                                 {% for gs in values['genesets'] %}
                                     <li>
-                                        <a href="/viewgenesetdetails/{{gs}}">GS{{gs}} <script> 
-																var a = {{async_result.GeneResultCount}};
-																var stuffString = "{{async_result}}";
-																stuffString = stuffString.replace(/&#39;/ig,'\"');
-																var stuffString2 = '\''+stuffString+'\'';
-																stuffString2 = stuffString2.replace(/u"/ig, '\"');
-																stuffString2 = stuffString2.replace(/'/ig, '');
-																modifiableData = JSON.parse(stuffString2);
-																document.write(modifiableData.GSResults['{{gs}}'].gs_name);
-																					</script></a>
+                                        <a href="/viewgenesetdetails/{{gs[0]}}">GS{{gs[0]}}: {{gs[1]}}</a>
                                     </li>
                                 {% endfor %}
                                 </ul>
@@ -251,7 +231,8 @@ document.write(modifiableData.GeneResults['{{gene}}'].species);
         </td>
     </tr>
 {% endif %}
-
+<tr class="header"><td colspan="3"><input type="button" value="Save to GeneSet" onclick="ODE.redirect('index.php?action=search&cmd=genes&savetogeneset=yes');"></td>
+</tr>
 </table>
 </form>
 
