@@ -1,6 +1,0 @@
-digraph G {
-  rankdir=RL;
-  ranksep=3; 
- node [shape=box, style=filled, fixedsize, width=0.2, height=0.2];
- edge [color=white, fontname=Courier, fontsize=10, labelangle=0, labeldistance=10.0, arrowtype=none];
-}
