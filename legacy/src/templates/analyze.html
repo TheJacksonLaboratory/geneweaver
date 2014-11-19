@@ -87,16 +87,16 @@
 
 <script type="text/javascript">
     function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
-        var anyChecked = false;
+        var allChecked = true;
         genesetCheckboxes.each(function(i, gsCheckbox) {
             gsCheckbox = $(gsCheckbox);
-            if(gsCheckbox.prop('checked')) {
-                anyChecked = true;
+            if(!gsCheckbox.prop('checked')) {
+                allChecked = false;
                 return false;
             }
         });
 
-        projCheckbox.prop('checked', anyChecked);
+        projCheckbox.prop('checked', allChecked);
     }
 
     function projectCheckboxChanged(projCheckbox, genesetCheckboxes) {
