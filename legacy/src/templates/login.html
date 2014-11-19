@@ -2,50 +2,44 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-<div class="page-header">
-	<h1>Login</h1>
-</div>
-
-<form>
-	<div class="row">
-		<div class="col-md-4">
-			<h4 class="text-center">
-				Please enter your email address and password.
-			</h4>
-		</div>
-	</div><br>
-	<div class="row">
-		<div class="col-md-2">
-			Email:
-		</div>
-		<div class="col-md-4">
-			<input type="text" name="email">
-		</div>
-	</div><br>
-	<div class="row">
-		<div class="col-md-2">
-			Password:
-		</div>
-		<div class="col-md-4">
-			<input type="password" name="password">
-		</div>
-	</div><br>
-	<div class="row">
-		<div class="col-md-4">
-			<button class="btn btn-primary">Login</button>
-		</div>
-	</div><br>
-	<div class="row">
-		<div class="col-md-4">
-			If you do not have an account, you may <a href="{{url_for('render_register')|safe}}">register here</a>.
-		</div>
-	</div>
-	<div class="row">
-		<div class="col-md-4">
-			<a href="{{url_for('render_forgotpass')|safe}}">Forgot your password?</a>
-		</div>
-	</div>
-</form>
+<div class="container" id="login-block">
+        <div class="row">
+            <div class="col-sm-6 col-md-4 col-sm-offset-3 col-md-offset-4">
+                <div class="login-box clearfix animated flipInY">
+                    <div class="page-icon animated bounceInDown">
+                        <img src="static/pixit/admin/assets/img/account/user-icon.png" alt="Key icon">
+                    </div>
+                    <div class="login-logo">
+                        <a href="#?login-theme-3">
+                            <img src="static/images/GW2-logo.png" alt="Company Logo">
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="login-form">
+                        <!-- BEGIN ERROR BOX -->
+                        <div class="alert alert-danger hide">
+                            <button type="button" class="close" data-dismiss="alert">×</button>
+                            <h4>Error!</h4>
+                            Your Error Message goes here
+                        </div>
+                        <!-- END ERROR BOX -->
+                        <form method="post" action="{{url_for('json_login')}}">
+                            <input type="text" placeholder="Username" id="usr_email" name="usr_email" class="input-field form-control user">
+                            <input type="password" placeholder="Password" id="usr_password" name="usr_password" class="input-field form-control password">
+                            <div class="div-login" style="margin:auto;text-align:center">
+                                <button style="display: inline;" id="submit-form" class="btn btn-login ladda-button" data-style="expand-left"><span class="ladda-label">login</span></button>
+                            </div> 
+                        </form>
+                        <div class="login-links">
+                            <a href="reset.html">Forgot password?</a>
+                            <br>
+                            <a href="register.html">Don't have an account? <strong>Sign Up</strong></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 {% include 'footer.html' %}
