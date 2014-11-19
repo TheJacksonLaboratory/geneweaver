@@ -56,18 +56,19 @@
                             <div class="panel-body">
                                 <table class="table table-striped">
                                     <tbody>
-                                        {% for geneset in proj.get_genesets(g.user.user_id) %}
+                                        {% for gs in proj.get_genesets(g.user.user_id) %}
                                             <tr>
                                                 <td>
                                                     <input
-                                                            
-                                                            data-parentproject="{{ proj.project_id }}"
-                                                            type="checkbox"
-                                                            name="geneset_{{ geneset.geneset_id }}"
-                                                            >
+                                                                data-parentproject="{{ proj.project_id }}"
+                                                                type="checkbox"
+                                                                name="geneset_{{ gs.geneset_id }}"
+                                                                class="table-checkbox"
+                                                                >
                                                 </td>
+                                                <span></span>
                                                 <td>
-                                                    {{ geneset.name }}
+                                                    {% include 'viewGenesetSummaryPartial.html' %}
                                                 </td>
                                             </tr>
                                         {% endfor %}
