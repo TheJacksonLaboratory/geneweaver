@@ -1,0 +1,50 @@
+{% include 'header.html' %}
+
+<table width="100%">
+    <tr>
+        <td>Add to list:</td>
+        <td>Current Emphasis List:</td>
+    </tr>
+    <tr>
+        <td rowspan="2">
+            <ul>
+                {% if emphgenes|length > 0 %}
+                    <p class="message">No genes set.</p>
+                {% else %}
+                    {% set var=all_emph %}
+                    {% set value="" %}
+                    {% for gene in emphgenes %}
+                        {% set var=oid %}
+                        {% set value=gene.ode_gene_id %}
+		                {% set var=all_emph %}
+                        {% set value="all_emph oid" %}
+        		        <li>{{gene.ode_ref_id}} ({{gene.sp_name}}) - remove</li>
+	                {% endfor %}
+                    <br />
+
+                {% endif %}
+            </ul>
+        </td>
+        <td>
+            <form action="{{ url_for('render_emphasis') }}" method="post">
+            <label>Find Gene: <input type="text" name="Emphasis_SearchGene" /></label><input type="submit" value="go" />
+            </form>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            {% if foundgenes|length > 0 %}
+                {% set var = all_found %}
+                {% set value='' %}
+                {% for gene in foundgenes %}
+                    {{ gene.ode_ref_id|lower }} ({{gene.sp_name}}) - <a href="{{url_for('render_emphasis', Emphasis_AddGene=gene.ode_gene_id)}}">add</a>
+                    <br />
+                {% endfor %}
+                <br />
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+
+{% include 'footer.html' %}

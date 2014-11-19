@@ -472,6 +472,39 @@ def admin_add(args):
     with PooledCursor() as cursor:
 	cursor.execute(sql)
 
+# New code for Tools, Next 5 functions Modify usr2gene for Emphasis
+# Not tested fucntion, query tested; returns usr id of usr it was inserted for
+def create_usr2gene(user_id, ode_gene_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO extsrc.usr2gene (usr_id, ode_gene_id)
+            VALUES (%s, %s)
+            RETURNING usr_id;
+            ''',
+            (user_id, ode_gene_id,)
+        )
+        cursor.connection.commit()
+        # return the primary ID for the insert that we just performed
+        return cursor.fetchone()[0]
+
+# insert delete all  with usr id
+# insert delete specific gene_id with usr id
+
+# Not tested fucntion, query tested; insert get all gene and species stuff from u2g, gene, and species
+def get_gene_and_species_info_by_user(user_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gene.*, species.* FROM (extsrc.gene INNER JOIN odestatic.species USING (sp_id)) INNER JOIN usr2gene USING (ode_gene_id) WHERE gene.ode_pref and usr2gene.usr_id = (%s);''', (user_id,))
+    return list(dictify_cursor(cursor))
+
+# Not tested fucntion, query tested;gets all gene and species stuff from gene, and species
+def get_gene_and_species_info(ode_ref_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gene.*, species.* FROM extsrc.gene INNER JOIN odestatic.species USING (sp_id) WHERE lower(ode_ref_id)=lower(%s);''', (ode_ref_id,))
+    return list(dictify_cursor(cursor))
+# end block of Emphasis functions
 
 #*************************************************************
 class User:

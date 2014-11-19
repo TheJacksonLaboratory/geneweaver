@@ -289,6 +289,49 @@ def new_search():
 
     return flask.render_template('search.html', paginationValues=None)
 
+@app.route('/emphasis.html', methods=['GET', 'POST'])
+def render_emphasis():
+
+    '''
+    Emphasis_AddGene
+    Emphasis_RemoveGene
+    Emphasis_RemoveAllGenes
+    Emphasis_SearchGene
+    '''
+
+    foundgenes={}
+    emphgenes={}
+    user_id = flask.session['user_id']
+
+    if flask.request.method == 'POST' :
+        form  = flask.request.form
+
+        if 'Emphasis_SearchGene' in form:
+            search_gene = form['Emphasis_SearchGene']
+            foundgenes = geneweaverdb.get_gene_and_species_info(search_gene)
+
+    elif flask.request.method == 'GET' :
+        args = flask.request.args
+
+        if 'Emphasis_AddGene' in args :
+            add_gene = args['Emphasis_AddGene']
+            #if add_gene:
+                #geneweaverdb.create_usr2gene(user_id, add_gene)
+            
+        '''
+            if 'Emphasis_RemoveGene' in form :
+                remove_gene = form['Emphasis_RemoveGene']
+                if remove_gene:
+                    #remove gene from usr2gene
+
+            if 'Emphasis_RemoveAllGene' in form :
+                #Remove all genes
+        '''
+
+
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+
+    return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
 
 @app.route('/search/<string:search_term>/<int:pagination_page>')
 def render_search(search_term, pagination_page):
