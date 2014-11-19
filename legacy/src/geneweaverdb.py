@@ -480,16 +480,31 @@ def create_usr2gene(user_id, ode_gene_id):
             '''
             INSERT INTO extsrc.usr2gene (usr_id, ode_gene_id)
             VALUES (%s, %s)
-            RETURNING usr_id;
             ''',
             (user_id, ode_gene_id,)
         )
         cursor.connection.commit()
         # return the primary ID for the insert that we just performed
-        return cursor.fetchone()[0]
 
 # insert delete all  with usr id
+def delete_usr2gene_by_user(user_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+	        '''DELETE FROM usr2gene WHERE usr_id=%s;''',(user_id,)
+        )
+
+        cursor.connection.commit()
+        return
+
 # insert delete specific gene_id with usr id
+def delete_usr2gene_by_user_and_gene(user_id, ode_gene_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+	        '''DELETE FROM usr2gene WHERE usr_id=%s AND ode_gene_id=%s;''',(user_id, ode_gene_id,)
+        )
+        cursor.connection.commit()
+        return
+
 
 # Not tested fucntion, query tested; insert get all gene and species stuff from u2g, gene, and species
 def get_gene_and_species_info_by_user(user_id):

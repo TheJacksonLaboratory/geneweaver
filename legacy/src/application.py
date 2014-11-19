@@ -301,7 +301,11 @@ def render_emphasis():
 
     foundgenes={}
     emphgenes={}
+    emphgeneids = []
     user_id = flask.session['user_id']
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
 
     if flask.request.method == 'POST' :
         form  = flask.request.form
@@ -318,20 +322,27 @@ def render_emphasis():
             if add_gene:
                 geneweaverdb.create_usr2gene(user_id, add_gene)
 
-        '''
-            if 'Emphasis_RemoveGene' in form :
-                remove_gene = form['Emphasis_RemoveGene']
-                if remove_gene:
-                    #remove gene from usr2gene
+        if 'Emphasis_AddAllGenes' in args :
+            add_all_genes = args['Emphasis_AddAllGenes']
+            if add_all_genes:
+                genes_list = add_all_genes.split(' ')
+                for gene in genes_list:
+                    if not str(gene) in emphgeneids :
+                        geneweaverdb.create_usr2gene(user_id, gene)
 
-            if 'Emphasis_RemoveAllGene' in form :
-                #Remove all genes
-        '''
+
+        if 'Emphasis_RemoveGene' in args :
+            remove_gene = args['Emphasis_RemoveGene']
+            if remove_gene:
+                geneweaverdb.delete_usr2gene_by_user_and_gene(user_id, remove_gene)
+
+        if 'Emphasis_RemoveAllGenes' in args :
+            if args['Emphasis_RemoveAllGenes'] == 'yes' :
+                geneweaverdb.delete_usr2gene_by_user(user_id)
+
 
 
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
-    print emphgenes
-
     return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
 
 @app.route('/search/<string:search_term>/<int:pagination_page>')
