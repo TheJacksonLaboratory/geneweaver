@@ -1,0 +1,35 @@
+digraph G {
+  rankdir=LR;
+  splines=true;
+  epsilon=.001; maxiter=1500;
+  node [color=black, fontname="DejaVu Sans", fontsize=10];
+Gene_18445 [color=green, shape=ellipse, label="Htra1", target="_parent", URL="/index.php?action=search&searchwhat=2&q=Htra1"];
+Gene_21296 [color=green, shape=ellipse, label="Cpne1", target="_parent", URL="/index.php?action=search&searchwhat=2&q=Cpne1"];
+Gene_5033 [color=green, shape=ellipse, label="Snrk", target="_parent", URL="/index.php?action=search&searchwhat=2&q=Snrk"];
+Gene_5058 [color=green, shape=ellipse, label="Btg2", target="_parent", URL="/index.php?action=search&searchwhat=2&q=Btg2"];
+Gene_5075 [color=green, shape=ellipse, label="Rgs4", target="_parent", URL="/index.php?action=search&searchwhat=2&q=Rgs4"];
+{ rank=same;
+  node [shape=box, style=filled, fontsize=10];
+GeneSet_0 [fillcolor="/paired10/4", label="NTX_NA_B6D2", tooltip="NTX_NA_B6D2", target="_parent", URL="/index.php?action=manage&cmd=viewgeneset&gs_id=5"];
+GeneSet_1 [fillcolor="/paired10/5", label="NTX_PFC_B6D2", tooltip="NTX_PFC_B6D2", target="_parent", URL="/index.php?action=manage&cmd=viewgeneset&gs_id=4"];
+GeneSet_2 [fillcolor="/paired10/6", label="Riken CBL Development", tooltip="Riken CBL Development", target="_parent", URL="/index.php?action=manage&cmd=viewgeneset&gs_id=391"];
+  r0 [style=invis];
+}
+ { node[style=invis]; edge [style=invis]; r1 -> r2 -> r0 -> r3; }
+ { rank=min; r3; Gene_18445; Gene_5075; Gene_5058; Gene_5033; Gene_21296; }
+GeneSet_0->Gene_18445 [color="/paired10/4"];
+GeneSet_1->Gene_18445 [color="/paired10/5"];
+GeneSet_2->Gene_18445 [color="/paired10/6"];
+GeneSet_0->Gene_21296 [color="/paired10/4"];
+GeneSet_1->Gene_21296 [color="/paired10/5"];
+GeneSet_2->Gene_21296 [color="/paired10/6"];
+GeneSet_0->Gene_5033 [color="/paired10/4"];
+GeneSet_1->Gene_5033 [color="/paired10/5"];
+GeneSet_2->Gene_5033 [color="/paired10/6"];
+GeneSet_0->Gene_5058 [color="/paired10/4"];
+GeneSet_1->Gene_5058 [color="/paired10/5"];
+GeneSet_2->Gene_5058 [color="/paired10/6"];
+GeneSet_0->Gene_5075 [color="/paired10/4"];
+GeneSet_1->Gene_5075 [color="/paired10/5"];
+GeneSet_2->Gene_5075 [color="/paired10/6"];
+}

@@ -1,0 +1,11 @@
+digraph G {
+  rankdir=LR;
+  splines=true;
+  epsilon=.001; maxiter=1500;
+  node [color=black, fontname="DejaVu Sans", fontsize=10];
+{ rank=same;
+  node [shape=box, style=filled, fontsize=10];
+  r0 [style=invis];
+}
+ { node[style=invis]; edge [style=invis]; r1 -> r2 -> r0; }
+}
