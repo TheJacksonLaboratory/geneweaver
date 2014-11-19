@@ -153,7 +153,7 @@
                 {% for key, values in async_result.GSResults.items() %}
 	                {% set gs_id=values['gs_id'] %}
                     <tr class="{cycle values="even,odd"}">
-						<td valign="top"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
+						<td valign="top"><input type="checkbox" name="g_id[]" value="{{values['gs_id']}}" /></td>
                         <td valign="top"><a href="/search/{{key}}/1">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
                             <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
                                 {% for gene in values.genes %}<li>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
@@ -165,23 +165,16 @@
                 {% endfor %}
                 <tr class="header">
                     <td colspan="4">
-						<label>
-							<input type="checkbox" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All &nbsp; 
-						</label>
-							<select name="Projects"  class="form-control" data-live-search="true">	
-								<option selected="selected">Add Selected to Project...</option>
-							</select>
+						<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'g_id[]');"> Select All </label>
+    <select name="addToProject" onchange="return ODE.add_to_project(this);">
+        <option value="-1">Add selected to project...</option>
+        {% for project in list %}
+            <option value="{{project.name}}">{{project.name}} ({{project.count}})</option>
+        {% endfor %}
+        <option value="-2">+ Create new project...</option>
 					</td>
                 </tr>
 			{% if not show_inter %}
-$title = isset($params['title'])?$params['title']:'Add Selected to Project...';
-$cont = isset($params['container'])?", '".$params['container']."'":'';
-?>
-<div id="projectAJAXDiv"><select name="addToProject" onchange="return ODE.add_to_project(this<?php print $cont; ?>);">
-<option value="-1"><?php print $title; ?></option>
-<?php ACTION_Analyze::showProjectOptions(); ?>
-</select></div>
-<?php
 			<script> 
 			document.getElementById("inter0").style.display = 'none';
 			document.getElementById("inter1").style.display = 'none';
@@ -231,10 +224,9 @@ $cont = isset($params['container'])?", '".$params['container']."'":'';
                 <table class="table table-striped" width="100%" style="font-size: 0.8em;">
                     {% for key, values in async_result.GeneResults.items() %}
                         <tr id="{{key}}" class="{cycle values="even,odd"}">
-	                        <td valign="top">
-                                <a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a>
-                            </td>
-                            <td valign="top">
+				<td valign="top"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
+                                <td valign="top"><a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a></td>
+                           	<td valign="top">
                                 <a href="#" onclick="return ODE.toggle('#genes_{{values['ode_ref_id']}}_genesets');">({{values['matched']}} GeneSets)</a>
                                 <ul id="genes_{{values['ode_ref_id']}}_genesets" style="display: none;">
                                 {% for gs in values['genesets'] %}
@@ -245,11 +237,11 @@ $cont = isset($params['container'])?", '".$params['container']."'":'';
                                 </ul>
                             </td>
                             {% set ogid= values['ode_gene_id'] %}
-                            <td valign="top">
-                                <a onclick="removeGene({{ogid}});toggle({{key}});" >[remove]</a>
-                            </td>
                         </tr>
                     {% endfor %}
+					<tr><td>	
+							<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All </label>
+					<input type="button" value="Save to GeneSet" onclick="ODE.redirect('index.php?action=search&cmd=genes&savetogeneset=yes');"></tr></td>
                 </table>
             {% elif async_result.GeneResultCount>400 %}
                 <div class="message">More than 400 results. Try increasing the thresholds on the left to get a more manageable result.</div>
@@ -259,8 +251,6 @@ $cont = isset($params['container'])?", '".$params['container']."'":'';
         </td>
     </tr>
 {% endif %}
-<tr class="header"><td colspan="3"><input type="button" value="Save to GeneSet" onclick="ODE.redirect('index.php?action=search&cmd=genes&savetogeneset=yes');"></td>
-</tr>
 </table>
 </form>
 
