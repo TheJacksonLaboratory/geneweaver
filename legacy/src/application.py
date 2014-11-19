@@ -315,9 +315,9 @@ def render_emphasis():
 
         if 'Emphasis_AddGene' in args :
             add_gene = args['Emphasis_AddGene']
-            #if add_gene:
-                #geneweaverdb.create_usr2gene(user_id, add_gene)
-            
+            if add_gene:
+                geneweaverdb.create_usr2gene(user_id, add_gene)
+
         '''
             if 'Emphasis_RemoveGene' in form :
                 remove_gene = form['Emphasis_RemoveGene']
@@ -330,6 +330,7 @@ def render_emphasis():
 
 
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    print emphgenes
 
     return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
 
