@@ -139,11 +139,14 @@ def create_geneset():
     # END IMPLEMENTATION NOTES
 
     form = flask.request.form
+    print form 
     sp_id = int(form['sp_id'])
 
     file_text = form['file_text']
     file_lines = file_text.splitlines()
     candidate_sep_regexes = ['\t', ',', ' +']
+
+    
 
     for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
         # TODO php code allows multiple IDs per line. Do we need to continue to allow this? for now expecting 1 ID per line

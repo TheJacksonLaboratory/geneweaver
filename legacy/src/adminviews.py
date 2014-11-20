@@ -83,7 +83,7 @@ class Viewers(Authentication, BaseView):
 	    #for col in dbcols:
 	#	columns.append({'name': col['column_name']})
 	    
-	    columns.append({'name': 'ode_gene_id'})
+	    columns = [{'name': 'ode_gene_id'},{'name': 'gi_accession'},{'name': 'gi_symbol'},{'name': 'gi_name'},{'name': 'gi_description'},{'name': 'gi_type'},{'name': 'gi_chromosome'},{'name': 'gi_start_bp'},{'name': 'gi_end_bp'},{'name': 'gi_strand'},{'name': 'sp_id'},{'name': 'gi_date'}]
 	    jcolumns=json.dumps(columns)
             return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneInfo", table= table)
 

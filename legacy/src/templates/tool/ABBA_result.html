@@ -6,14 +6,13 @@
     <h1>{{ title }}</h1>
 </div>
 
-
-{% if async_result.parameters.ABBA_ShowInter == "Enabled" %}
+{% if async_result.parameters.ABBA_ShowInter == "yes" %}
     {% set show_inter=1  %}
 {% else %}
     {% set show_inter=0  %}
 {% endif %}
 
-{% if async_result.parameters.ABBA_IgnHom == "Enabled" %}
+{% if async_result.parameters.ABBA_IgnHom == "yes" %}
     {% set ign_hom=1  %}
 {% else %}
     {% set ign_hom=0  %}
@@ -21,16 +20,43 @@
 
 
 <div>Enter your genes of interest below, then click search. You may search for gene identifiers from the major databases.
-</div><br />
+</div>
+<br />
 <form id="abba_search" method="post" action="{ode_link action=search cmd=genes}">
+<table width="80%">
+    <tr>
+        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%"><b>Input Genes:</b>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <textarea rows="2" class="form-control valid" name='ABBA_InputGenes' id="textbox" style=" min-height:30px; max-height:100px; resize:vertical; width:40%;">{{async_result.InputGenes}}</textarea>
+        </td>
+    </tr>
+    <tr>
+        <td align="left" valign="top" width="10%">
+            
+  	        <label>
+                <br>
+                <input button class="btn btn-primary" type='submit' name='Update' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>  <br  />
+                <br>
+            </label>
+        </td>
+    </tr>
+</table>
+
 <table width="80%">
 {% if async_result.InputGenes %}
     {% set have_results=1 %}
     <tr>
-        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%"><b>Genes of Interest:</b><br /><br />
-  	        <label>
-             <input type="checkbox" name="ABBA_IgnHom" value="yes" {% if ign_hom %} checked="checked" {% endif %} /> Ignore homologous genes</label><br /><br />
-            <input type='submit' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/> <br /> <br  />
+        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%"><b>Genes of Interest:</b>
+  	        <div>
+                <label>
+                    <input type="checkbox" name="ABBA_IgnHom" value="yes" {% if ign_hom %} checked="checked" {% endif %} /> Ignore homologous genes
+                </label>
+  	        </div>
+            <input button class="btn btn-primary" type='submit' name='Update' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>  <br  />
+            <br>
         </td>
         <td style="border-top: 1px solid #555;">
             <table class="table table-striped"width="100%" style="font-size: 0.8em;">
@@ -41,7 +67,7 @@
                         <a href="#" onclick="return ODE.toggle('#gene_expand_{{sym}}');">
                             ({{gene['species_count']}} direct species hit {% if not ign_hom %}, {{gene['homology_count']}} hits via homology {% endif %})
                         </a>
-                        <br />
+                        
                         <ul id="gene_expand_{{sym}}" style="display: none;">
                             {% for sp,ogid in gene['species'].items() %}
                                 <li>Direct Match: {{sp}}
@@ -62,7 +88,7 @@
     </tr>
 {% else %}
     <tr>
-        <td align="left" valign="top" width="10%"><b>Genes of Interest:</b><br /><br />
+        <td align="left" valign="top" width="10%"><b>Genes of Interest:</b>
   	        <label><input type="checkbox" name="ABBA_IgnHom" value="yes" />Ignore homologous genes</label>
         </td>
         <td>
@@ -71,13 +97,15 @@
     </tr>
 {% endif %}
 
-{% if have_results==1 and show_inter==1 %}
+{% if have_results==1  %}
     <tr>
         <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%">
-            <b>{{async_result.GSResultCount}} Matching GeneSets:</b><br /><br />
-            <label><input type="checkbox" name="ABBA_ShowInter" value="yes" {% if show_inter %} checked="checked" {% endif %} ch /> Show Intermediate Results</label><br /><br />
-            <label>Minimum Genes:
-                <select name="MinGenes">
+            <b>{{async_result.GSResultCount}} Matching GeneSets:</b>
+            <label>
+                <input onclick="toggle('inter0'); toggle('inter1'); toggle('inter2'); toggle('inter3'); toggle('inter4'); toggle('inter5');" type="checkbox" name="ABBA_ShowInter" value="yes" {% if show_inter %} checked="checked" {% endif %} ch /> Show Intermediate Results
+            </label>
+            <label id = "inter0">Minimum Genes:
+                <select name="ABBA_MinGenes"  class="form-control" data-live-search="true" >
                     {% for i in range(10) %}
                         {% if i == async_result.MinGenes %}
                             <option selected="selected">{{loop.index0}}</option>
@@ -88,41 +116,47 @@
                 </select>
             </label>
             <br  /><br  />
-            <label>Curation Tiers:
-                <select name="Tierset">
-                    {% for i in async_result.Tiersets %}
-                        {% if i == async_result.SelectedTierset %}
-                            <option selected="selected">{{async_result.Tiersets[i]}}</option>
-                        {% else %}
-                            <option>{{async_result.Tiersets[i]}}</option>
-                        {% endif %}
-                    {% endfor %}
+            <label id="inter1">Curation Tiers:
+                <select name="ABBA_Tierset"  class="form-control" data-live-search="true">
+                    <option value="0" {% if async_result.parameters.ABBA_Tierset == '0' %} selected="selected" {%endif%}>All</option>
+                    <option value="4" {% if async_result.parameters.ABBA_Tierset == '4' %} selected="selected" {%endif%}>Curated or Provisional (Tier I-IV)</option>
+                    <option value="3" {% if async_result.parameters.ABBA_Tierset == '3' %} selected="selected" {%endif%}>Curated (Tier I-III)</option>
+                    <option value="2" {% if async_result.parameters.ABBA_Tierset == '2' %} selected="selected" {%endif%}>Pro-curated (Tier I-II)</option>
+                    <option value="1" {% if async_result.parameters.ABBA_Tierset == '1' %} selected="selected" {%endif%}>Public Resource (Tier I)</option>
+                    <option value="-1" {% if async_result.parameters.ABBA_Tierset == '-1' %} selected="selected" {%endif%}>Non-Resource (Tier II-V)</option>
+                    <option value="-2" {% if async_result.parameters.ABBA_Tierset == '-2' %} selected="selected" {%endif%}>Curated Non-Resource (Tier II-III)</option>
+                    <option value="-10" {% if async_result.parameters.ABBA_Tierset == '-10' %} selected="selected" {%endif%}>Private/Group Only (Tier V)</option>
                 </select>
             </label>
             <br  /><br  />
-            <label>Restrict Species:
-                <select name="RestrictSpecies">
-                    {% for i in async_result.Species %}
-                        {% if i == async_result.RestrictSpecies %}
-                            <option selected="selected">{{async_result.Species[i]}}</option>
-                        {% else %}
-                            <option>{{async_result.Species[i]}}</option>
-                        {% endif %}
-                    {% endfor %}
+            <label id="inter2">Restrict Species:
+                <select name="ABBA_RestrictSpecies"  class="form-control" data-live-search="true">
+                    <option value="0" {% if async_result.parameters.ABBA_RestrictSpecies == '0' %} selected="selected" {%endif%}>None</option>
+                    <option value="1" {% if async_result.parameters.ABBA_RestrictSpecies == '1' %} selected="selected" {%endif%}>Mus musculus</option>
+                    <option value="2" {% if async_result.parameters.ABBA_RestrictSpecies == '2' %} selected="selected" {%endif%}>Homo sapiens</option>
+                    <option value="3" {% if async_result.parameters.ABBA_RestrictSpecies == '3' %} selected="selected" {%endif%}>Rattus norvegicus</option>
+                    <option value="4" {% if async_result.parameters.ABBA_RestrictSpecies == '4' %} selected="selected" {%endif%}>Danio rerio</option>
+                    <option value="5" {% if async_result.parameters.ABBA_RestrictSpecies == '5' %} selected="selected" {%endif%}>Drosophila melanogaster</option>
+                    <option value="6" {% if async_result.parameters.ABBA_RestrictSpecies == '6' %} selected="selected" {%endif%}>Macaca mulatta</option>
+                    <option value="8" {% if async_result.parameters.ABBA_RestrictSpecies == '8' %} selected="selected" {%endif%}>Caenorhabditis elegans</option>
+                    <option value="9" {% if async_result.parameters.ABBA_RestrictSpecies == '9' %} selected="selected" {%endif%}>Saccharomyces cerevisiae</option>
+                    <option value="10" {% if async_result.parameters.ABBA_RestrictSpecies == '10' %} selected="selected" {%endif%}>Gallus gallus</option>
                 </select>
             </label>
             <br  /><br  />
-            <input type='submit' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
+            <input id="inter4" type='submit' button class="btn btn-primary" name='Update' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
         </td>
-        <td style="border-top: 1px solid #555;">
+		<td id="inter5" style="border-top: 1px solid #555;"></td>
+        <td id="inter3" style="border-top: 1px solid #555;">
             {% if async_result.GSResults and async_result.GSResultCount<400 %}
             <table class="table table-striped" width="100%" style="font-size: 0.8em;">
                 {% for key, values in async_result.GSResults.items() %}
 	                {% set gs_id=values['gs_id'] %}
                     <tr class="{cycle values="even,odd"}">
-                        <td valign="top">GS {{values['gs_id']}}: {{values['gs_name']}}
+						<td valign="top"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
+                        <td valign="top"><a href="/search/{{key}}/1">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
                             <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
-                                {% for gene in values.genes %}<li>{{gene['ode_ref_id']}} ({$input_genes.$gene.species})</li>{% endfor %}
+                                {% for gene in values.genes %}<li>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
                             </ul>
                         </td>
                         <td valign="top"><a href="#" onclick="return ODE.toggle('#geneset_{{values['gs_id']}}_genes');">({{values['matched']}}/{{values['gs_count']}}&nbsp;genes)</a></td>
@@ -131,8 +165,35 @@
                 {% endfor %}
                 <tr class="header">
                     <td colspan="4">
-                    </td>
+						<label>
+							<input type="checkbox" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All &nbsp; 
+						</label>
+							<select name="Projects"  class="form-control" data-live-search="true">	
+								<option selected="selected">Add Selected to Project...</option>
+							</select>
+					</td>
                 </tr>
+			{% if not show_inter %}
+$title = isset($params['title'])?$params['title']:'Add Selected to Project...';
+$cont = isset($params['container'])?", '".$params['container']."'":'';
+?>
+<div id="projectAJAXDiv"><select name="addToProject" onchange="return ODE.add_to_project(this<?php print $cont; ?>);">
+<option value="-1"><?php print $title; ?></option>
+<?php ACTION_Analyze::showProjectOptions(); ?>
+</select></div>
+<?php
+			<script> 
+			document.getElementById("inter0").style.display = 'none';
+			document.getElementById("inter1").style.display = 'none';
+			document.getElementById("inter2").style.display = 'none';
+   			document.getElementById("inter3").style.display = 'none';
+			document.getElementById("inter4").style.display = 'none';
+			</script>
+			{% else %}
+			<script>
+			document.getElementById("inter5").style.display = 'none';
+			</script>
+			{% endif %}
             </table>
             {% elif async_result.GSResultCount>400 %}
                 <div class="message">More than 400 genesets, not listing them all for brevity. Increase the thresholds on the left to get a more manageable result.</div>
@@ -145,12 +206,11 @@
 
 {% if have_results==1 %}
     <tr>
+	{% set GeneCount = async_result.GeneResultCount %}
         <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%">
-            <b>{{async_result.GeneResultCount}} Result Genes:</b>
-            <br />
-            <br />
+            <b>{{GeneCount}} Result Genes:</b>
             <label>Minimum GeneSets:
-                <select name="MinGenesets">
+                <select name="ABBA_MinGenesets"  class="form-control" data-live-search="true">
                     {% for i in range(async_result.GSResultCount) %}
                         {% if i == async_result.MinGenesets %}
                             <option selected="selected">{{loop.index0}}</option>
@@ -160,17 +220,17 @@
                     {% endfor %}
                 </select>
             </label>
-            <br />
-            <br />
-            <input type='submit' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
-            <br />
-            <br />
+            
+            
+            <input type='submit' button class="btn btn-primary" value='Update' name='Update' onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
+            
+            
         </td>
         <td style="border-top: 1px solid #555;">
             {% if async_result.GeneResults and async_result.GeneResultCount<400 %}
                 <table class="table table-striped" width="100%" style="font-size: 0.8em;">
                     {% for key, values in async_result.GeneResults.items() %}
-                        <tr class="{cycle values="even,odd"}">
+                        <tr id="{{key}}" class="{cycle values="even,odd"}">
 	                        <td valign="top">
                                 <a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a>
                             </td>
@@ -179,14 +239,14 @@
                                 <ul id="genes_{{values['ode_ref_id']}}_genesets" style="display: none;">
                                 {% for gs in values['genesets'] %}
                                     <li>
-                                        <a href="/viewgenesetdetails/{{gs}}">GS{{gs}}</a>
+                                        <a href="/viewgenesetdetails/{{gs[0]}}">GS{{gs[0]}}: {{gs[1]}}</a>
                                     </li>
                                 {% endfor %}
                                 </ul>
                             </td>
                             {% set ogid= values['ode_gene_id'] %}
                             <td valign="top">
-                                <a HREF="javascript:history.go(0)">[remove]</a>
+                                <a onclick="removeGene({{ogid}});toggle({{key}});" >[remove]</a>
                             </td>
                         </tr>
                     {% endfor %}
@@ -199,9 +259,323 @@
         </td>
     </tr>
 {% endif %}
-
+<tr class="header"><td colspan="3"><input type="button" value="Save to GeneSet" onclick="ODE.redirect('index.php?action=search&cmd=genes&savetogeneset=yes');"></td>
+</tr>
 </table>
 </form>
 
+
+<script>
+    (function ($) {
+    var
+    defaults = {
+        className: 'autosizejs',
+        id: 'autosizejs',
+        append: '\n',
+        callback: false,
+        resizeDelay: 10,
+        placeholder: true
+    },
+
+    // border:0 is unnecessary, but avoids a bug in Firefox on OSX
+    copy = '<textarea tabindex="-1" style="position:absolute; top:-999px; left:0; right:auto; bottom:auto; border:0; padding: 0; -moz-box-sizing:content-box; -webkit-box-sizing:content-box; box-sizing:content-box; word-wrap:break-word; height:0 !important; min-height:0 !important; overflow:hidden; transition:none; -webkit-transition:none; -moz-transition:none;"/>',
+
+    // line-height is conditionally included because IE7/IE8/old Opera do not return the correct value.
+    typographyStyles = [
+        'fontFamily',
+        'fontSize',
+        'fontWeight',
+        'fontStyle',
+        'letterSpacing',
+        'textTransform',
+        'wordSpacing',
+        'textIndent',
+        'whiteSpace'
+    ],
+
+    // to keep track which textarea is being mirrored when adjust() is called.
+    mirrored,
+
+    // the mirror element, which is used to calculate what size the mirrored element should be.
+    mirror = $(copy).data('autosize', true)[0];
+
+    // test that line-height can be accurately copied.
+    mirror.style.lineHeight = '99px';
+    if ($(mirror).css('lineHeight') === '99px') {
+        typographyStyles.push('lineHeight');
+    }
+    mirror.style.lineHeight = '';
+
+    $.fn.autosize = function (options) {
+        if (!this.length) {
+            return this;
+        }
+
+        options = $.extend({}, defaults, options || {});
+
+        if (mirror.parentNode !== document.body) {
+            $(document.body).append(mirror);
+        }
+
+        return this.each(function () {
+            var
+            ta = this,
+            $ta = $(ta),
+            maxHeight,
+            minHeight,
+            boxOffset = 0,
+            callback = $.isFunction(options.callback),
+            originalStyles = {
+                height: ta.style.height,
+                overflow: ta.style.overflow,
+                overflowY: ta.style.overflowY,
+                wordWrap: ta.style.wordWrap,
+                resize: ta.style.resize
+            },
+            timeout,
+            width = $ta.width(),
+            taResize = $ta.css('resize');
+
+            if ($ta.data('autosize')) {
+                // exit if autosize has already been applied, or if the textarea is the mirror element.
+                return;
+            }
+            $ta.data('autosize', true);
+
+            if ($ta.css('box-sizing') === 'border-box' || $ta.css('-moz-box-sizing') === 'border-box' || $ta.css('-webkit-box-sizing') === 'border-box'){
+                boxOffset = $ta.outerHeight() - $ta.height();
+            }
+
+            // IE8 and lower return 'auto', which parses to NaN, if no min-height is set.
+            minHeight = Math.max(parseFloat($ta.css('minHeight')) - boxOffset || 0, $ta.height());
+
+            $ta.css({
+                overflow: 'hidden',
+                overflowY: 'hidden',
+                wordWrap: 'break-word' // horizontal overflow is hidden, so break-word is necessary for handling words longer than the textarea width
+            });
+
+            if (taResize === 'vertical') {
+                $ta.css('resize','none');
+            } else if (taResize === 'both') {
+                $ta.css('resize', 'horizontal');
+            }
+
+            // The mirror width must exactly match the textarea width, so using getBoundingClientRect because it doesn't round the sub-pixel value.
+            // window.getComputedStyle, getBoundingClientRect returning a width are unsupported, but also unneeded in IE8 and lower.
+            function setWidth() {
+                var width;
+                var style = window.getComputedStyle ? window.getComputedStyle(ta, null) : false;
+
+                if (style) {
+
+                    width = ta.getBoundingClientRect().width;
+
+                    if (width === 0 || typeof width !== 'number') {
+                        width = parseFloat(style.width);
+                    }
+
+                    $.each(['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'], function(i,val){
+                        width -= parseFloat(style[val]);
+                    });
+                } else {
+                    width = $ta.width();
+                }
+
+                mirror.style.width = Math.max(width,0) + 'px';
+            }
+
+            function initMirror() {
+                var styles = {};
+
+                mirrored = ta;
+                mirror.className = options.className;
+                mirror.id = options.id;
+                maxHeight = parseFloat($ta.css('maxHeight'));
+
+                // mirror is a duplicate textarea located off-screen that
+                // is automatically updated to contain the same text as the
+                // original textarea.  mirror always has a height of 0.
+                // This gives a cross-browser supported way getting the actual
+                // height of the text, through the scrollTop property.
+                $.each(typographyStyles, function(i,val){
+                    styles[val] = $ta.css(val);
+                });
+
+                $(mirror).css(styles).attr('wrap', $ta.attr('wrap'));
+
+                setWidth();
+
+                // Chrome-specific fix:
+                // When the textarea y-overflow is hidden, Chrome doesn't reflow the text to account for the space
+                // made available by removing the scrollbar. This workaround triggers the reflow for Chrome.
+                if (window.chrome) {
+                    var width = ta.style.width;
+                    ta.style.width = '0px';
+                    var ignore = ta.offsetWidth;
+                    ta.style.width = width;
+                }
+            }
+
+            // Using mainly bare JS in this function because it is going
+            // to fire very often while typing, and needs to very efficient.
+            function adjust() {
+                var height, original;
+
+                if (mirrored !== ta) {
+                    initMirror();
+                } else {
+                    setWidth();
+                }
+
+                if (!ta.value && options.placeholder) {
+                    // If the textarea is empty, copy the placeholder text into
+                    // the mirror control and use that for sizing so that we
+                    // don't end up with placeholder getting trimmed.
+                    mirror.value = ($ta.attr("placeholder") || '');
+                } else {
+                    mirror.value = ta.value;
+                }
+
+                mirror.value += options.append || '';
+                mirror.style.overflowY = ta.style.overflowY;
+                original = parseFloat(ta.style.height);
+
+                // Setting scrollTop to zero is needed in IE8 and lower for the next step to be accurately applied
+                mirror.scrollTop = 0;
+
+                mirror.scrollTop = 9e4;
+
+                // Using scrollTop rather than scrollHeight because scrollHeight is non-standard and includes padding.
+                height = mirror.scrollTop;
+
+                if (maxHeight && height > maxHeight) {
+                    ta.style.overflowY = 'scroll';
+                    height = maxHeight;
+                } else {
+                    ta.style.overflowY = 'hidden';
+                    if (height < minHeight) {
+                        height = minHeight;
+                    }
+                }
+
+                height += boxOffset;
+
+                if (original !== height) {
+                    ta.style.height = height + 'px';
+
+                    // Trigger a repaint for IE8 for when ta is nested 2 or more levels inside an inline-block
+                    mirror.className = mirror.className;
+
+                    if (callback) {
+                        options.callback.call(ta,ta);
+                    }
+                    $ta.trigger('autosize.resized');
+                }
+            }
+
+            function resize () {
+                clearTimeout(timeout);
+                timeout = setTimeout(function(){
+                    var newWidth = $ta.width();
+
+                    if (newWidth !== width) {
+                        width = newWidth;
+                        adjust();
+                    }
+                }, parseInt(options.resizeDelay,10));
+            }
+
+            if ('onpropertychange' in ta) {
+                if ('oninput' in ta) {
+                    // Detects IE9.  IE9 does not fire onpropertychange or oninput for deletions,
+                    // so binding to onkeyup to catch most of those occasions.  There is no way that I
+                    // know of to detect something like 'cut' in IE9.
+                    $ta.on('input.autosize keyup.autosize', adjust);
+                } else {
+                    // IE7 / IE8
+                    $ta.on('propertychange.autosize', function(){
+                        if(event.propertyName === 'value'){
+                            adjust();
+                        }
+                    });
+                }
+            } else {
+                // Modern Browsers
+                $ta.on('input.autosize', adjust);
+            }
+
+            // Set options.resizeDelay to false if using fixed-width textarea elements.
+            // Uses a timeout and width check to reduce the amount of times adjust needs to be called after window resize.
+
+            if (options.resizeDelay !== false) {
+                $(window).on('resize.autosize', resize);
+            }
+
+            // Event for manual triggering if needed.
+            // Should only be needed when the value of the textarea is changed through JavaScript rather than user input.
+            $ta.on('autosize.resize', adjust);
+
+            // Event for manual triggering that also forces the styles to update as well.
+            // Should only be needed if one of typography styles of the textarea change, and the textarea is already the target of the adjust method.
+            $ta.on('autosize.resizeIncludeStyle', function() {
+                mirrored = null;
+                adjust();
+            });
+
+            $ta.on('autosize.destroy', function(){
+                mirrored = null;
+                clearTimeout(timeout);
+                $(window).off('resize', resize);
+                $ta
+                    .off('autosize')
+                    .off('.autosize')
+                    .css(originalStyles)
+                    .removeData('autosize');
+            });
+
+            // Call adjust in case the textarea already contains text.
+            adjust();
+        });
+    };
+    }(jQuery || $)); // jQuery or jQuery-like library, such as Zepto
+
+
+    $(document).ready(function(){
+        $('textarea').autosize();
+    });
+</script>
+
+<script type="text/javascript">
+makeInnerList();
+function makeInnerList() {
+	var a = {{async_result.GeneResultCount}};
+	var stuffString = "{{async_result}}";
+	stuffString = stuffString.replace(/&#39;/ig,'\"');
+	var stuffString2 = '\''+stuffString+'\'';
+	stuffString2 = stuffString2.replace(/u"/ig, '\"');
+	stuffString2 = stuffString2.replace(/'/ig, '');
+	modifiableData = JSON.parse(stuffString2);
+};
+
+function removeGene(ogid) {
+	delete modifiableData.GeneResults[ogid];
+	var blah = modifiableData;
+};
+
+function toggle(id) {
+ if( document.getElementById(id).style.display=='none' ){
+   document.getElementById(id).style.display = '';
+ }else{
+   document.getElementById(id).style.display = 'none';
+ }
+}
+
+function returnGSName(gsid)
+{
+	document.getElementById(gsid).innerHTML = modifiableData.GSResults[gsid].gs_name;
+}
+
+</script>
 {% include 'footer.html' %}
 

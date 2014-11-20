@@ -33,10 +33,13 @@
  		$.ajax({
           		type: "POST",
            		url: "../../admin/adminDelete",
-           		data: data
-         	    });
-		
-		window.location.replace(document.referrer)    
+           		data: data,
+			success: function(data)
+           		{
+	 		    alert(data);			    
+			    window.location.replace(document.referrer) 
+           		}
+         	    });		   
 	    } 
 	    
 	});

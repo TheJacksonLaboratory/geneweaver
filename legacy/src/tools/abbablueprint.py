@@ -17,19 +17,24 @@ def run_tool():
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
-    if len(selected_geneset_ids) < 2:
-        # TODO add nice error message about missing genesets
-        raise Exception('there must be at least two genesets selected to run this tool')
 
-    # gather the params into a dictionary
-    homology_str = 'Homology'
-    params = {homology_str: None}
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        params[tool_param.name] = form[tool_param.name]
-        if tool_param.name.endswith('_' + homology_str):
-            params[homology_str] = form[tool_param.name]
-    if params[homology_str] != 'Excluded':
-        params[homology_str] = 'Included'
+    params = {}
+    if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1 :
+        raise Exception('there is no input')
+
+    params['ABBA_InputGenes'] = form['ABBA_InputGenes']
+    if 'ABBA_IgnHom' in form:
+        params['ABBA_IgnHom'] = form['ABBA_IgnHom']
+    if 'ABBA_ShowInter' in form:
+        params['ABBA_ShowInter'] = form['ABBA_ShowInter']
+    if 'ABBA_MinGenes' in form:
+        params['ABBA_MinGenes'] = form['ABBA_MinGenes']
+    if 'ABBA_MinGenesets' in form:
+        params['ABBA_MinGenesets'] = form['ABBA_MinGenesets']
+    if 'ABBA_Tierset' in form:
+        params['ABBA_Tierset'] = form['ABBA_Tierset']
+    if 'ABBA_RestrictSpecies' in form:
+        params['ABBA_RestrictSpecies'] = form['ABBA_RestrictSpecies']
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
