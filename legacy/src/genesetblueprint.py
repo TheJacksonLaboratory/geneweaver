@@ -6,6 +6,7 @@ import re
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
 
+#gets species and gene identifiers for uploadgeneset page
 @geneset_blueprint.route('/uploadgeneset.html')
 def render_uploadgeneset():
     gidts = []
@@ -21,11 +22,11 @@ def render_uploadgeneset():
             microarray_id_type_record['pf_name']))
     gidts.append(('MicroArrays', microarray_id_sources))
 
-    return flask.render_template(
-        'uploadgeneset.html',
-        gs=dict(),
-        all_species=geneweaverdb.get_all_species(),
-        gidts=gidts)
+    all_species=geneweaverdb.get_all_species()
+    
+    print gidts
+
+    return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts)
 
 
 def tokenize_lines(candidate_sep_regexes, lines):
@@ -140,6 +141,14 @@ def create_geneset():
 
     form = flask.request.form
     print form 
+    
+    gs_name = str(form['gs_name'])
+    gs_abbreviation = str(form['gs_abbrevation'])
+    gs_description = str(form['gs_description'])
+    public_private = str(form['public_private'])
+    species = str(form['species'])
+    gene_identifier = str(form['gene_identifier'])
+    
     sp_id = int(form['sp_id'])
 
     file_text = form['file_text']
