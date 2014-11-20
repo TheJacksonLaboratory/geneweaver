@@ -5,6 +5,7 @@ import uuid
 
 import geneweaverdb as gwdb
 import toolcommon as tc
+from collections import defaultdict, OrderedDict
 
 TOOL_CLASSNAME = 'ABBA'
 abba_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -42,6 +43,13 @@ def run_tool():
     user_id = None
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
+	projects = gwdb.get_all_projects(user_id)
+	projectDict = OrderedDict()
+	for proj in projects:
+		projectDict[proj.project_id] = {'id': proj.project_id, 'name': proj.name, 'count': proj.count}
+	params['UserProjects'] = projectDict
+	
+	params['UserId'] = user_id
     else:
         # TODO add nice error message about missing user ID.
         raise Exception('internal error: user ID missing')
@@ -62,7 +70,7 @@ def run_tool():
         kwargs={
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
-            'params': params,
+            'params': params
         },
         task_id=task_id)
 

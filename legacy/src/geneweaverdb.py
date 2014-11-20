@@ -8,9 +8,10 @@ import distutils.sysconfig
 from distutils.util import strtobool
 from tools import toolcommon as tc
 import os
-from flask import Flask, redirect
+import flask
 
-BASIC_URL = 'localhost:5000'
+app = flask.Flask(__name__)
+
 RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -166,7 +167,56 @@ def get_genesets_for_project(project_id, auth_user_id):
             }
         )
         return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        
+# this function currently does not check permissions of genesets or projects, however the interface never
+#	should have a pj_id that the user doesn't have permission to if they use the 
+#	get_all_projects function below, and no geneset should be able to be selected from front end
+#	that the current user does not have permisiions on   
+@app.route('/insert_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
+def insert_geneset_to_project(project_id, geneset_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO project2geneset (pj_id, gs_id, modified_on)
+            VALUES (%s, %s, now())
+            RETURNING pj_id;
+            ''',
+            (project_id, geneset_id,)
+        )
+        cursor.connection.commit()
 
+        # return the primary ID for the insert that we just performed
+        return cursor.fetchone()[0]
+
+# this function creates a project with no genesets associated with it
+# if a guest is creating a project, pass in -1 for user_id
+def create_project(project_name, user_id):
+	if user_id > 0:
+		with PooledCursor() as cursor:
+			cursor.execute(
+				'''
+				INSERT INTO project (pj_name, usr_id, pj_created)
+				VALUES (%s, %s, now())
+				RETURNING pj_id;
+				''',
+				(project_name, user_id,)
+			)
+			cursor.connection.commit()
+			# return the primary ID for the insert that we just performed	
+			return cursor.fetchone()[0]
+	else:
+		with PooledCursor() as cursor:
+			cursor.execute(
+				'''
+				INSERT INTO project (pj_name, pj_created)
+				VALUES (%s, now())
+				RETURNING pj_id;
+				''',
+				(project_name,)
+			)
+			cursor.connection.commit()
+			# return the primary ID for the insert that we just performed	
+			return cursor.fetchone()[0]
 
 def get_all_projects(usr_id):
     """
@@ -199,7 +249,6 @@ def get_all_projects(usr_id):
         )
 
         return [Project(d) for d in dictify_cursor(cursor)]
-
 
 def get_all_species():
     """
@@ -909,7 +958,7 @@ def get_link(apikey, task_id, file_type):
 	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
 	print(abs_file_path)
 	if(os.path.exists(abs_file_path)):
-		return BASIC_URL + "/results/"+ rel_path
+		return "/results/"+ rel_path
 	else:
 		return "Error: No such File! Check documentatin for supported file types of each tool."
 		
