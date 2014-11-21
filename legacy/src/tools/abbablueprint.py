@@ -20,7 +20,9 @@ def run_tool():
 
     params = {}
     if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1 :
-        raise Exception('there is no input')
+        # TODO add nice error message about missing genesets
+        flask.flash("Warning: You need to have input or/and at least a gene set selected!")
+        return flask.redirect('analyze.html')
 
     params['ABBA_InputGenes'] = form['ABBA_InputGenes']
     if 'ABBA_IgnHom' in form:
@@ -43,8 +45,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        # TODO add nice error message about missing user ID.
-        raise Exception('internal error: user ID missing')
+        flask.flash("Internal error: user ID missing")
+        return flask.redirect('analyze.html')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
