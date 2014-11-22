@@ -1,0 +1,143 @@
+{% set title="Boolean Algebra" %}
+{% include "header.html" %}
+
+
+<form action="{ode_link action="analyze" cmd="algebra"}" method="post">
+<table width="100%">
+<tr><td valign="top">
+Your Projects:<br/>
+<select multiple="multiple" size="15" name="pj_ids[]" style="width: 400px;">
+{if empty($projects)}
+	<option value="-1">No Projects</option>
+{else}
+{foreach from=$projects item=pj}
+	<option value="{$pj.pj_id}">{$pj.pj_name} - {$pj.count} GeneSets</option>
+{/foreach}
+{/if}
+</select><br />
+(ctrl- or command-click to select multiple)
+		<br/>
+		<br/>
+
+		<div class="message">
+			<label>Name: <input name="gen_name" value="" /></label><br/>
+			<p>Summary:<br/><i id="venn_desc">Nothing</i></p><br/>
+			<br/>
+			<input type="submit" id="venn_action" value="Generate" />
+		</div>
+
+</td><td width="100%" valign="top">
+
+		<style type="text/css">
+{literal}
+			.venn0 {
+				background: transparent url(../../static/images/venn_map_300.png) 0px 0px no-repeat;
+			}
+			.venn1 {
+				background: transparent url(../../static/images/venn_map_300.png) -300px 0px no-repeat;
+			}
+			.venn2 {
+				background: transparent url(../../static/images/venn_map_300.png) -600px 0px no-repeat;
+			}
+
+			.venn3 {
+				background: transparent url(../../static/images/venn_map_300.png) 0px -300px no-repeat;
+			}
+			.venn4 {
+				background: transparent url(../../static/images/venn_map_300.png) -300px -300px no-repeat;
+			}
+			.venn5 {
+				background: transparent url(../../static/images/venn_map_300.png) -600px -300px no-repeat;
+			}
+
+			.venn6 {
+				background: transparent url(../../static/images/venn_map_300.png) 0px -600px no-repeat;
+			}
+			.venn7 {
+				background: transparent url(../../static/images/venn_map_300.png) -300px -600px no-repeat;
+			}
+
+			#venn_dia {
+				width: 300px; height: 300px;
+			}
+
+		</style>
+		<script>
+			var descriptiveVenn = [
+				'Nothing',  // 000
+				'Exclude any genes in more than one geneset', // 001
+				'Exclude any genes that are in less than MIN_SETS genesets, or in all genesets', // 010
+				'Exclude any genes that are in all genesets', // 011
+
+				'Exclude any genes that are not in all genesets', // 100
+				'Exclude any genes that are in more than one geneset but not in all genesets', // 101
+				'Exclude any genes that are in less than MIN_SETS genesets', // 110
+				'Include genes in any geneset', // 111
+			]
+			function chkBox(wh) {
+				var el=document.getElementById(wh);
+				el.checked=!el.checked;
+				updateVenn();
+			}
+			function updateVenn() {
+				var chk = ['vc1','vc2','vc3'];
+				var total=0;
+				for( vc in chk ) {
+					var el=document.getElementById(chk[vc])
+					if( el.checked ) total+=parseInt(el.value);
+				}
+				if( (total&3)==3 ) document.getElementById('min_sets').value='2';
+				document.getElementById('venn_dia').className="venn"+total;
+				desc = descriptiveVenn[total].replace('MIN_SETS', document.getElementById('min_sets').value);
+				if( document.getElementById('venn_gen').selectedIndex==1 ) {
+					desc = desc.replace(/geneset/g,'project').replace(/gene/g,'geneset');
+
+					document.getElementById('gen_from').innerHTML='genesets';
+					document.getElementById('venn_lab1').innerHTML='in exactly 1 project';
+					document.getElementById('venn_lab2').innerHTML='but not all projects';
+					document.getElementById('venn_lab3').innerHTML='in all projects';
+				} else {
+					document.getElementById('gen_from').innerHTML='genes';
+					document.getElementById('venn_lab1').innerHTML='in exactly 1 distinct geneset';
+					document.getElementById('venn_lab2').innerHTML='but not all distinct genesets';
+					document.getElementById('venn_lab3').innerHTML='in all genesets';
+				}
+				document.getElementById('venn_desc').innerHTML=desc;
+			}
+{/literal}
+		</script>
+
+		<p>
+			Using the selection(s) at left, generate a new
+			<select name="gen" id="venn_gen" onchange="updateVenn();">
+				<option value="geneset">GeneSet</option>
+				<option value="project">Project</option>
+			</select> from the <span id="gen_from">genes</span> that are:
+			<br/>
+
+			<label style="padding-left: 20px;"><input id="vc1" type="checkbox" onclick="updateVenn();" name="venn1" value="1" /><span id="venn_lab1">in exactly 1 distinct geneset</span></label><br/>
+			<label style="padding-left: 20px;"><input id="vc2" type="checkbox" onclick="updateVenn();" name="venn2plus" value="2" />in at least </label>
+			<input type="text" id="min_sets" name="min_sets" value="2" maxlength="3" style="width:30px;text-align:right;" onchange="updateVenn();" />
+			<label for="vc2"><span id="venn_lab2">but not all distinct genesets</span></label><br/>
+			<label style="padding-left: 20px;"><input id="vc3" type="checkbox" onclick="updateVenn();" name="vennAll" value="4" /><span id="venn_lab3">in all genesets</span></label><br/>
+		</p>
+		<br/>
+
+		<div id="venn_dia" class="venn0">
+			<img src="/images/empty.png" width="300" height="300" usemap="#fancymap" border="0" />
+			<map id="fancymap" name="fancymap" border="0" style="border:none; outline:none;">
+				<area shape="poly" coords="223,122,200,113,169,115,150,122,129,113,105,112,87,116,74,122,80,141,91,160,104,172,112,177,116,161,125,145,136,132,149,123,154,125,168,136,176,148,183,164,186,177,180,181,165,185,142,187,131,186,117,180,112,177,112,185,116,212,126,230,139,245,150,252,164,243,169,234,178,222,183,211,187,197,187,179"
+					onclick="chkBox('vc2'); blur(); return false;" href="#" alt="" title="" style="border:0; outline:none;" />
+				<area shape="poly" coords="150,122,135,132,120,155,112,176,137,187,168,184,187,176,179,154,164,133"
+					onclick="chkBox('vc3'); blur(); return false;" href="#" alt="" title="" style="border:0; outline:none;" />
+				<area shape="poly" coords="224,121,223,88,195,52,149,36,103,51,80,83,74,120,47,153,33,187,50,229,80,255,120,262,148,253,191,263,240,243,262,200,258,165,244,137,227,125,224,125,212,153,187,177,184,206,169,235,149,250,133,238,120,220,113,204,112,177,94,164,84,151,79,138,74,123,77,119,106,112,127,113,150,122,174,113,198,113,216,118"
+					onclick="chkBox('vc1'); blur(); return false;" href="#" alt="" title="" style="border:0; outline:none;" />
+			</map>
+		</div>
+
+		<p><b>Note:</b> A 3-way venn diagram is shown for simplicity, but results will
+		fit the textual summary given at left. </p>
+</td></tr></table>
+</form>
+
+{include file="footer.tpl"}

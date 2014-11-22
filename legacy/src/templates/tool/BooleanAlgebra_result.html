@@ -6,21 +6,64 @@
     <h1>{{ title }}</h1>
 </div>
 
-<br /><h3>Gene List:</h3>
-     <h8>Gene count: {{async_result.num_genes}}</h8>
+<h8>Gene count: {{async_result.num_genes}}</h8>
+<br><br>
 
-<div class="panel">
-    <div class="dd-nestable">
-        <ul class="dd-list">
-            {% for gene in async_result.gene_names %}
-            <div class="dd-handle  col-xs-4">
-                <li class="dd-item">
-                    {{gene}}
-                </li>
-            </div>
-            {% endfor %}
-        </ul>
-    </div>
+        <button id="createGeneset" class="float-left submit-button" >Add to New GeneSet</button>
+<script type="text/javascript">
+    document.getElementById("createGeneset").onclick = function () {
+        location.href = "/editgenesets.html";
+    }
+</script>
+        <br><br>
+
+
+<div class="panel panel-default">
+<div class="panel-heading bg-blue">
+	<h3 class="panel-title">Gene List</h3>
+</div>
+<div class="panel-body">
+
+<table class="table table-hover">
+<tbody>
+<tr>
+	<th>Gene Symbol</th>
+	<th>LinkOuts</th>
+	<th>In Gene sets</th>
+</tr>
+
+<td>
+<input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs');"><p style="margin-left: 50px;"> Select All </p>
+</td>
+
+{% for gene in async_result.gene_names %}
+<tr>
+<td>
+<input type="checkbox" name="gs" value="{{ gene }}" onclick="exefunction()">
+<a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
+</td>
+<td>
+Links
+</td>
+{% endfor %}
+
+        <script language="javascript" type="text/javascript">
+            function exefunction(){
+                var lfckv = document.getElementById("lifecheck").checked;
+                alert(lfckv);
+            }
+        </script>
+
+
+<td>
+
+</td>
+</tr>
+
+
+</tbody>
+</table>
+</div>
 </div>
 
 {% include 'footer.html' %}

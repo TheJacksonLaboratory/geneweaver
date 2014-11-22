@@ -171,24 +171,34 @@ def get_genesets_for_project(project_id, auth_user_id):
 # this function currently does not check permissions of genesets or projects, however the interface never
 #	should have a pj_id that the user doesn't have permission to if they use the 
 #	get_all_projects function below, and no geneset should be able to be selected from front end
-#	that the current user does not have permisiions on   
-def insert_geneset_to_project(project_id, geneset_id):
-    with PooledCursor() as cursor:
-        cursor.execute(
-            '''
-            INSERT INTO project2geneset (pj_id, gs_id, modified_on)
-            VALUES (%s, %s, now())
-            RETURNING pj_id;
-            ''',
-            (project_id, geneset_id,)
-        )
-        cursor.connection.commit()
+#	that the current user does not have permisiions on. geneset_id_list is a list, project_id is an int
+#	NOT TESTED
+def insert_geneset_to_project(project_id, geneset_id_list):
+	insertQuery = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES"
+	
+	for i in range(0, len(geneset_id_list) -1):
+		insertQuery += "(" + str(project_id) +", "+str(geneset_id_list[i]) + ", now()) ,"
+	insertQuery += "(" + str(project_id) +", "+str(geneset_id_list[-1]) + ", now())"
+	
+	with PooledCursor() as cursor:
+		cursor.execute(
+			insertQuery
+		)
+#           '''
+#           INSERT INTO project2geneset (pj_id, gs_id, modified_on)
+#           VALUES (%s, %s, now())
+#           RETURNING pj_id;
+#           ''',
+#           (project_id, geneset_id,)
+#       )
+	cursor.connection.commit()
 
-        # return the primary ID for the insert that we just performed
-        return cursor.fetchone()[0]
+	# return nothing
+	return
 
 # this function creates a project with no genesets associated with it
 # if a guest is creating a project, pass in -1 for user_id
+# NOT TESTED
 def create_project(project_name, user_id):
 	if user_id > 0:
 		with PooledCursor() as cursor:
@@ -473,6 +483,54 @@ def admin_add(args):
     with PooledCursor() as cursor:
 	cursor.execute(sql)
 
+# New code for Tools, Next 5 functions Modify usr2gene for Emphasis
+# Not tested fucntion, query tested; returns usr id of usr it was inserted for
+def create_usr2gene(user_id, ode_gene_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO extsrc.usr2gene (usr_id, ode_gene_id)
+            VALUES (%s, %s)
+            ''',
+            (user_id, ode_gene_id,)
+        )
+        cursor.connection.commit()
+        # return the primary ID for the insert that we just performed
+
+# insert delete all  with usr id
+def delete_usr2gene_by_user(user_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+	        '''DELETE FROM usr2gene WHERE usr_id=%s;''',(user_id,)
+        )
+
+        cursor.connection.commit()
+        return
+
+# insert delete specific gene_id with usr id
+def delete_usr2gene_by_user_and_gene(user_id, ode_gene_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+	        '''DELETE FROM usr2gene WHERE usr_id=%s AND ode_gene_id=%s;''',(user_id, ode_gene_id,)
+        )
+        cursor.connection.commit()
+        return
+
+
+# Not tested fucntion, query tested; insert get all gene and species stuff from u2g, gene, and species
+def get_gene_and_species_info_by_user(user_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gene.*, species.* FROM (extsrc.gene INNER JOIN odestatic.species USING (sp_id)) INNER JOIN usr2gene USING (ode_gene_id) WHERE gene.ode_pref and usr2gene.usr_id = (%s);''', (user_id,))
+    return list(dictify_cursor(cursor))
+
+# Not tested fucntion, query tested;gets all gene and species stuff from gene, and species
+def get_gene_and_species_info(ode_ref_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gene.*, species.* FROM extsrc.gene INNER JOIN odestatic.species USING (sp_id) WHERE lower(ode_ref_id)=lower(%s);''', (ode_ref_id,))
+    return list(dictify_cursor(cursor))
+# end block of Emphasis functions
 
 #*************************************************************
 class User:
@@ -730,6 +788,37 @@ def get_geneset(geneset_id, user_id=None):
         )
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
+        
+        
+def get_geneset_brief(geneset_id, user_id=None):
+    """
+    Gets the Geneset if either the geneset is publicly visible or the user
+    has permission to view it.
+    :param geneset_id:  the geneset ID
+    :param user_id:     the user ID that needs permission
+    :return:            the Geneset corresponding to the given ID if the
+                        user has read permission, None otherwise
+    """
+
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    if user_id is None:
+        user_id = -1
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT geneset.cur_id, geneset.sp_id, geneset.attribution, geneset.gs_count, geneset.gs_status, geneset.gs_id, geneset.gs_name
+            FROM geneset 
+            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            ''',
+            {
+                'geneset_id': geneset_id,
+                'user_id': user_id,
+            }
+        )
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets[0] if len(genesets) == 1 else None
+
 
 def get_genesets_by_user_id(user_id):
     """
@@ -893,15 +982,15 @@ def get_run_status(run_hash):
         return total_queued, before_queued
 
 
-def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status):
+def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_api = 'f'):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, now())
+            INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started, res_api)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, now(), %s)
             RETURNING res_id;
             ''',
-            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
+            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status, res_api)
         )
         cursor.connection.commit()
 

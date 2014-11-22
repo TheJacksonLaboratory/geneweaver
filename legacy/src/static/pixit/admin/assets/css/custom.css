@@ -16,3 +16,11 @@
 body {
 	background-color: white;
 }
+
+.dropdown-menu {
+	width: auto !important;
+}
+
+.table-checkbox {
+	margin: -6px 0 0 -13px !important;
+}

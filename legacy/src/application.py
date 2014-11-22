@@ -34,30 +34,45 @@ app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5
 
 #*************************************
 
-admin=Admin(app, name='Geneweaver', index_view=adminviews.AdminHome(url='/admin', name='Admin'));
+admin = Admin(app, name='Geneweaver', index_view=adminviews.AdminHome(
+    url='/admin', name='Admin'))
 
 
-admin.add_view(adminviews.Viewers(name='Users', endpoint='viewUsers', category='User Tools'))
-admin.add_view(adminviews.Viewers(name='Publications', endpoint='viewPublications', category='User Tools'))
-admin.add_view(adminviews.Viewers(name='Groups', endpoint='viewGroups', category='User Tools'))
-admin.add_view(adminviews.Viewers(name='Projects', endpoint='viewProjects', category='User Tools'))
+admin.add_view(
+    adminviews.Viewers(name='Users', endpoint='viewUsers', category='User Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Publications', endpoint='viewPublications', category='User Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Groups', endpoint='viewGroups', category='User Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Projects', endpoint='viewProjects', category='User Tools'))
 
-admin.add_view(adminviews.Viewers(name='Genesets', endpoint='viewGenesets', category='Gene Tools'))
-admin.add_view(adminviews.Viewers(name='Genes', endpoint='viewGenes', category='Gene Tools'))
-admin.add_view(adminviews.Viewers(name='Geneset Info', endpoint='viewGenesetInfo', category='Gene Tools'))
-admin.add_view(adminviews.Viewers(name='Gene Info', endpoint='viewGeneInfo', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Genesets', endpoint='viewGenesets', category='Gene Tools'))
+admin.add_view(
+    adminviews.Viewers(name='Genes', endpoint='viewGenes', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Geneset Info', endpoint='viewGenesetInfo', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Gene Info', endpoint='viewGeneInfo', category='Gene Tools'))
 
 admin.add_view(adminviews.Add(name='User', endpoint='newUser', category='Add'))
-admin.add_view(adminviews.Add(name='Publication', endpoint='newPub', category='Add'))
-admin.add_view(adminviews.Add(name='Group', endpoint='newGroup', category='Add'))
-admin.add_view(adminviews.Add(name='Project', endpoint='newProject', category='Add'))
-admin.add_view(adminviews.Add(name='Geneset', endpoint='newGeneset', category='Add'))
+admin.add_view(
+    adminviews.Add(name='Publication', endpoint='newPub', category='Add'))
+admin.add_view(
+    adminviews.Add(name='Group', endpoint='newGroup', category='Add'))
+admin.add_view(
+    adminviews.Add(name='Project', endpoint='newProject', category='Add'))
+admin.add_view(
+    adminviews.Add(name='Geneset', endpoint='newGeneset', category='Add'))
 admin.add_view(adminviews.Add(name='Gene', endpoint='newGene', category='Add'))
-admin.add_view(adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
-admin.add_view(adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
+admin.add_view(
+    adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
+admin.add_view(
+    adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
 
 
-#admin.add_view(adminviews.Edit(name='Edit',endpoint='adminEdit'))
+# admin.add_view(adminviews.Edit(name='Edit',endpoint='adminEdit'))
 
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
@@ -135,12 +150,12 @@ def lookup_user_from_session():
             _logout()
 
 
+@app.route('/logout')
 def _logout():
     try:
         del flask.session['user_id']
     except KeyError:
         pass
-
     try:
         del flask.session['remote_addr']
     except KeyError:
@@ -150,7 +165,6 @@ def _logout():
         del flask.g.user
     except AttributeError:
         pass
-
 
 
 def _form_login():
@@ -219,7 +233,8 @@ def json_login():
         json_result['usr_last_name'] = user.last_name
         json_result['usr_email'] = user.email
 
-    return flask.jsonify(json_result)
+    # return flask.jsonify(json_result)
+    return flask.redirect("index.html")
 
 
 @app.route('/analyze.html')
@@ -251,99 +266,174 @@ def render_forgotpass():
 
 @app.route('/viewgenesetdetails/<int:gs_id>')
 def render_viewgeneset(gs_id):
-    user_id=flask.session.get('user_id')
+    user_id = flask.session.get('user_id')
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     return flask.render_template('viewgenesetdetails.html', geneset=geneset)
 
 
 @app.route('/mygenesets.html')
 def render_viewgenesets():
-    #get the genesets belonging to the user
-    user_id=flask.session.get('user_id')
+    # get the genesets belonging to the user
+    user_id = flask.session.get('user_id')
     if user_id:
         genesets = geneweaverdb.get_genesets_by_user_id(user_id)
-    return flask.render_template('mygenesets.html',genesets=genesets)
+    else:
+        genesets = None
+    return flask.render_template('mygenesets.html', genesets=genesets)
+
+
+@app.route('/search.html')
+def new_search():
+    paginationValues = {'numResults': 0, 'numPages': 1, 'currentPage':
+                        1, 'resultsPerPage': 10, 'search_term': '', 'end_page_number': 1}
+
+    return flask.render_template('search.html', paginationValues=None)
+
+@app.route('/emphasis.html', methods=['GET', 'POST'])
+def render_emphasis():
+
+    '''
+    Emphasis_AddGene
+    Emphasis_RemoveGene
+    Emphasis_RemoveAllGenes
+    Emphasis_SearchGene
+    '''
+
+    foundgenes={}
+    emphgenes={}
+    emphgeneids = []
+    user_id = flask.session['user_id']
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
+
+    if flask.request.method == 'POST' :
+        form  = flask.request.form
+
+        if 'Emphasis_SearchGene' in form:
+            search_gene = form['Emphasis_SearchGene']
+            foundgenes = geneweaverdb.get_gene_and_species_info(search_gene)
+
+    elif flask.request.method == 'GET' :
+        args = flask.request.args
+
+        if 'Emphasis_AddGene' in args :
+            add_gene = args['Emphasis_AddGene']
+            if add_gene:
+                geneweaverdb.create_usr2gene(user_id, add_gene)
+
+        if 'Emphasis_AddAllGenes' in args :
+            add_all_genes = args['Emphasis_AddAllGenes']
+            if add_all_genes:
+                genes_list = add_all_genes.split(' ')
+                for gene in genes_list:
+                    if not str(gene) in emphgeneids :
+                        geneweaverdb.create_usr2gene(user_id, gene)
+
+
+        if 'Emphasis_RemoveGene' in args :
+            remove_gene = args['Emphasis_RemoveGene']
+            if remove_gene:
+                geneweaverdb.delete_usr2gene_by_user_and_gene(user_id, remove_gene)
+
+        if 'Emphasis_RemoveAllGenes' in args :
+            if args['Emphasis_RemoveAllGenes'] == 'yes' :
+                geneweaverdb.delete_usr2gene_by_user(user_id)
+
+
+
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
 
 @app.route('/search/<string:search_term>/<int:pagination_page>')
 def render_search(search_term, pagination_page):
-    #do a query of the search term, fetch the matching genesets
+    # do a query of the search term, fetch the matching genesets
     ################################
-    #TODO create a pooled connected somewhwere within genewaver
+    # TODO create a pooled connected somewhwere within genewaver
     client = sphinxapi.SphinxClient()
     client.SetServer('bepo.ecs.baylor.edu', 9312)
-    #Set the limit to get all results within the range of 1000
-    #Retrieve only the results within the limit of the current page specified in the pagination option
+    # Set the limit to get all results within the range of 1000
+    # Retrieve only the results within the limit of the current page specified
+    # in the pagination option
     resultsPerPage = 25
-    offset=resultsPerPage*(pagination_page - 1)
+    offset = resultsPerPage * (pagination_page - 1)
     limit = resultsPerPage
-    max_matches=1000
-    #Set the limits and query the client
+    max_matches = 1000
+    # Set the limits and query the client
     client.SetLimits(offset, limit, max_matches)
     results = client.Query(search_term)
-    #Transform the genesets into geneset objects for Jinga display
+    # Transform the genesets into geneset objects for Jinga display
     genesets = list()
     for match in results['matches']:
         genesetID = match['id']
-        #TODO eliminate database query
-        genesets.append(geneweaverdb.get_geneset(genesetID, flask.session.get('user_id')))
-    #Calculate pagination information for display
+        # TODO eliminate database query
+        genesets.append(
+            geneweaverdb.get_geneset(genesetID, flask.session.get('user_id')))
+    # Calculate pagination information for display
     ##############################
     numResults = int(results['total'])
-    #Do ceiling integer division
+    # Do ceiling integer division
     numPages = ((numResults - 1) // resultsPerPage) + 1
     currentPage = pagination_page
-    #Calculate the bouding numbers for pagination
+    # Calculate the bouding numbers for pagination
     end_page_number = currentPage + 4
     if end_page_number > numPages:
-        end_page_number = numPages        
+        end_page_number = numPages
     #
-    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
-    #render the page with the genesets
+    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage,
+                        'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number}
+    # render the page with the genesets
     return flask.render_template('search.html', searchresults=results, genesets=genesets, paginationValues=paginationValues)
+
 
 @app.route('/search', methods=['POST'])
 def render_searchFromHome():
-    #Get the posted information from the form
+    # Get the posted information from the form
     ##########################
     form = flask.request.form
-    #Search term is given from the searchbar in the form
+    # Search term is given from the searchbar in the form
     search_term = form['searchbar']
-    #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
+    # pagination_page is a hidden value that indicates which page of results
+    # to go to. Start at page one.
     pagination_page = int(form['pagination_page'])
-    #do a query of the search term, fetch the matching genesets
+    # do a query of the search term, fetch the matching genesets
     ################################
-    #TODO create a pooled connected somewhwere within genewaver
+    # TODO create a pooled connected somewhwere within genewaver
     client = sphinxapi.SphinxClient()
     client.SetServer('bepo.ecs.baylor.edu', 9312)
-    #Set the limit to get all results within the range of 1000
-    #Retrieve only the results within the limit of the current page specified in the pagination option
+    # Set the limit to get all results within the range of 1000
+    # Retrieve only the results within the limit of the current page specified
+    # in the pagination option
     resultsPerPage = 25
-    offset=resultsPerPage*(pagination_page - 1)
+    offset = resultsPerPage * (pagination_page - 1)
     limit = resultsPerPage
-    max_matches=1000
-    #Set the limits and query the client
+    max_matches = 1000
+    # Set the limits and query the client
     client.SetLimits(offset, limit, max_matches)
     results = client.Query(search_term)
-    #Transform the genesets into geneset objects for Jinga display
+    # Transform the genesets into geneset objects for Jinga display
     genesets = list()
     for match in results['matches']:
         genesetID = match['id']
-        #TODO eliminate database query
-        genesets.append(geneweaverdb.get_geneset(genesetID, flask.session.get('user_id')))
-    #Calculate pagination information for display
+        # TODO eliminate database query
+        genesets.append(
+            geneweaverdb.get_geneset(genesetID, flask.session.get('user_id')))
+    # Calculate pagination information for display
     ##############################
     numResults = int(results['total'])
-    #Do ceiling integer division
+    # Do ceiling integer division
     numPages = ((numResults - 1) // resultsPerPage) + 1
     currentPage = pagination_page
-    #Calculate the bouding numbers for pagination
+    # Calculate the bouding numbers for pagination
     end_page_number = currentPage + 4
     if end_page_number > numPages:
-        end_page_number = numPages 
+        end_page_number = numPages
     #
-    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
-    #render the page with the genesets
+    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage,
+                        'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number}
+    # render the page with the genesets
     return flask.render_template('search.html', searchresults=results, genesets=genesets, paginationValues=paginationValues)
+
 
 @app.route('/searchsuggestionterms.json')
 def render_search_suggestions():
@@ -354,70 +444,79 @@ def render_search_suggestions():
 
 
 class AdminEdit(adminviews.Authentication, BaseView):
+
     @expose('/')
     def __init__(self, *args, **kwargs):
         #self._default_view = True
         super(AdminEdit, self).__init__(*args, **kwargs)
-	self.admin = admin
+        self.admin = admin
+
 
 @app.route('/admin/adminEdit/<strdata>')
-def admin_edit(strdata):  
+def admin_edit(strdata):
     if "user" in flask.g and flask.g.user.is_admin:
-	data=strdata.split(",");
-	table=data[0]
-	keyID=data[1]
-	columns = geneweaverdb.get_table_columns(table.split(".")[1])
+        data = strdata.split(",")
+        table = data[0]
+        keyID = data[1]
+        columns = geneweaverdb.get_table_columns(table.split(".")[1])
 
-	cols = []
-	for col in columns:
-	    cols.append(col["column_name"])
-	
-	column_values = geneweaverdb.admin_get_data(table,keyID, cols)
-	jcolumns=json.dumps(column_values,default=date_handler)
-	#print jcolumns
+        cols = []
+        for col in columns:
+            cols.append(col["column_name"])
+
+        column_values = geneweaverdb.admin_get_data(table, keyID, cols)
+        jcolumns = json.dumps(column_values, default=date_handler)
+        # print jcolumns
 
         return AdminEdit().render("admin/adminEdit.html", jcolumns=jcolumns, columns=column_values, table=table)
     else:
-	return flask.render_template('admin/adminForbidden.html') 
+        return flask.render_template('admin/adminForbidden.html')
 
-@app.route('/admin/adminDelete',methods=['POST'])
+
+@app.route('/admin/adminDelete', methods=['POST'])
 def admin_delete():
     if "user" in flask.g and flask.g.user.is_admin:
         form = flask.request.form
-	geneweaverdb.admin_delete(form)
-    	print form
+        geneweaverdb.admin_delete(form)
+        print form
         return json.dumps("Deletion Successful")
     else:
-	return flask.render_template('admin/adminForbidden.html')
+        return flask.render_template('admin/adminForbidden.html')
+
 
 @app.route('/admin/adminSubmitEdit', methods=['POST'])
-def admin_submit_edit():  
+def admin_submit_edit():
     if "user" in flask.g and flask.g.user.is_admin:
-        form=flask.request.form
-	geneweaverdb.admin_set_edit(form)
-    	#print form
+        form = flask.request.form
+        geneweaverdb.admin_set_edit(form)
+        # print form
         return json.dumps("Edit Successful")
     else:
-	return flask.render_template('admin/adminForbidden.html')
- 
-#route called by admin add upon submission
-@app.route('/admin/adminAdd',methods=['POST'])
-def admin_add():  
+        return flask.render_template('admin/adminForbidden.html')
+
+# route called by admin add upon submission
+
+
+@app.route('/admin/adminAdd', methods=['POST'])
+def admin_add():
     if "user" in flask.g and flask.g.user.is_admin:
-        form=flask.request.form
-	geneweaverdb.admin_add(form) 
+        form = flask.request.form
+        geneweaverdb.admin_add(form)
         return json.dumps("Add Complete")
     else:
-	return flask.render_template('admin/adminForbidden.html')  
+        return flask.render_template('admin/adminForbidden.html')
 
-#fetches info for admin viewers
+# fetches info for admin viewers
+
+
 @app.route('/admin/serversidedb')
 def get_db_data():
     if "user" in flask.g and flask.g.user.is_admin:
         results = geneweaverdb.get_server_side(request.args)
-        return json.dumps(results,default=date_handler)
+        return json.dumps(results, default=date_handler)
     else:
-	return flask.render_template('admin/adminForbidden.html')
+        return flask.render_template('admin/adminForbidden.html')
+
 
 def date_handler(obj):
     return obj.isoformat() if hasattr(obj, 'isoformat') else obj
@@ -429,17 +528,21 @@ def date_handler(obj):
 def render_manage():
     return flask.render_template('my_genesets.html')
 
+
 @app.route('/results.html')
 def render_user_results():
     return flask.render_template('results.html')
+
 
 @app.route('/help.html')
 def render_help():
     return flask.render_template('help.html')
 
+
 @app.route('/about.html')
 def render_about():
     return flask.render_template('about.html')
+
 
 @app.route('/register.html', methods=['GET', 'POST'])
 def render_register():
@@ -553,40 +656,72 @@ class GetGenesetByUser(restful.Resource):
 
     def get(self, apikey):
         return geneweaverdb.get_geneset_by_user(apikey)
+
+
 class GetProjectsByUser(restful.Resource):
+
     def get(self, apikey):
         return geneweaverdb.get_projects_by_user(apikey)
+
+
 class GetGenesetByProjectId(restful.Resource):
+
     def get(self, apikey, projectid):
-        return geneweaverdb.get_geneset_by_project_id(apikey, projectid)  
-        
-# TODO format syntax       
+        return geneweaverdb.get_geneset_by_project_id(apikey, projectid)
+
+# TODO format syntax
+
+
 class ToolGetFile(restful.Resource):
+
     def get(self, apikey, task_id, file_type):
         return geneweaverdb.get_file(apikey, task_id, file_type)
+
+
 class ToolGetLink(restful.Resource):
+
     def get(self, apikey, task_id, file_type):
-        return geneweaverdb.get_link(apikey, task_id, file_type)  
+        return geneweaverdb.get_link(apikey, task_id, file_type)
+
+
 class ToolGetStatus(restful.Resource):
+
     def get(self, task_id):
-        return geneweaverdb.get_status(task_id) 
-                
-#Tools          
+        return geneweaverdb.get_status(task_id)
+
+# Tools
+
+
 class ToolJaccardClustering(restful.Resource):
+
     def get(self, apikey, homology, method, genesets):
         return jaccardclusteringblueprint.run_tool_api(apikey, homology, method, genesets)
-        
+
+
 class ToolGenesetViewer(restful.Resource):
+
     def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
         return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
-#Error: JaccardSimilarity does not create files => not an API problem, tool itself problem.
+# Error: JaccardSimilarity does not create files => not an API problem,
+# tool itself problem.
+
+
 class ToolJaccardSimilarity(restful.Resource):
+
     def get(self, apikey, homology, pairwiseDeletion, genesets):
         return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
+
 class ToolCombine(restful.Resource):
+
     def get(self, apikey, homology, genesets):
         return combineblueprint.run_tool_api(apikey, homology, genesets)
+
+
+class ToolPhenomeMap(restful.Resource):
+
+    def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
+        return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
 
 api.add_resource(GetGenesetsByGeneRefId,
@@ -601,23 +736,30 @@ api.add_resource(
 
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 api.add_resource(GetProjectsByUser, '/api/get/project/byuser/<apikey>/')
-api.add_resource(GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
+api.add_resource(
+    GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
 
-api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
-api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
+api.add_resource(
+    ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
+api.add_resource(
+    ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
 
-api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
-api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
-api.add_resource(ToolJaccardSimilarity, '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
-api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
-
+api.add_resource(
+    ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
+api.add_resource(ToolJaccardClustering,
+                 '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
+api.add_resource(ToolJaccardSimilarity,
+                 '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+api.add_resource(
+    ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
+api.add_resource(
+    ToolPhenomeMap, '/api/tool/phenomemap/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<genesets>/')
 
 
 # ********************************************
 # END API BLOCK
 # ********************************************
-
 
 
 if __name__ == '__main__':

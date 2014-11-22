@@ -23,7 +23,7 @@ $( "#searchbar" ).autocomplete({
 });
 
 </script>
-<div class="jumbotron" {% if "user" in g %} style="display: none"{% endif %}>
+<div class="jumbotron">
     <h1>GeneWeaver</h1>
     <p class="lead">
         A system for the integration of functional genomics experiments.
@@ -39,7 +39,7 @@ $( "#searchbar" ).autocomplete({
     </p>
 </div>
 
-<div class="row" {% if "user" not in g %} style="display: none"{% endif %}>
+<!-- <div class="row" {% if "user" not in g %} style="display: none"{% endif %}>
     <form action="/search" method="post">
         <div class="form-group">
             <label class="form-label">
@@ -53,7 +53,7 @@ $( "#searchbar" ).autocomplete({
             </div>
         </div>
     </form>
-</div>
+</div> -->
 <br />
 
 <div class="row">
@@ -65,7 +65,7 @@ $( "#searchbar" ).autocomplete({
         </div>
     </a>
 
-    <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
+    <a class="link-panel" href="#">
         <div class="col-md-3 link-panel" style="text-align: center;">
             <img src="{{ url_for('static', filename='images/GW2-project.png')|safe }}" style="width:50%;"/>
             <br/>
@@ -81,7 +81,7 @@ $( "#searchbar" ).autocomplete({
         </div>
     </a>
 
-    <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
+    <a class="link-panel" href="help.html">
         <div class="col-md-3 link-panel" style="text-align: center;">
             <img src="{{ url_for('static', filename='images/GW2-help.png')|safe }}" style="width:50%;"/>
             <br/>
