@@ -185,8 +185,7 @@
 			    });	
 			for(var i = 0; i < genesets.length; i++)
 			{
-				$.post("/insert_geneset_to_project/"+elm.value+"/"+genesets[i]+".html",function(data,status){
-    			alert("Project: " + elm.value + "\nGeneset: " + genesets[i]);
+				$.get("/add_geneset_to_project/"+elm.value+"/"+genesets[i]+".html",function(data,status){
   				});
 			}
 		}
@@ -243,7 +242,7 @@
                 <table class="table table-striped" width="100%" style="font-size: 0.8em;">
                     {% for key, values in async_result.GeneResults.items() %}
                         <tr id="{{key}}" class="{cycle values="even,odd"}">
-				<td valign="top"><input type="checkbox" name="g_id[]" value="{{values['g_id']}}" /></td>
+				<td valign="top"><input type="checkbox" name="g_id[]" value="{{values['ode_ref_id']}}" /></td>
                                 <td valign="top"><a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a></td>
                            	<td valign="top">
                                 <a href="#" onclick="return ODE.toggle('#genes_{{values['ode_ref_id']}}_genesets');">({{values['matched']}} GeneSets)</a>
@@ -260,7 +259,7 @@
                     {% endfor %}
 					<tr><td>	
 							<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'g_id[]');"> Select All </label>
-					<input type="button" value="Save to GeneSet" onclick="ODE.redirect('index.php?action=search&cmd=genes&savetogeneset=yes');"></tr></td>
+					<input type="button" value="Save to GeneSet" onclick="newGeneset();"></tr></td>
                 </table>
             {% elif async_result.GeneResultCount>400 %}
                 <div class="message">More than 400 results. Try increasing the thresholds on the left to get a more manageable result.</div>
@@ -585,6 +584,17 @@ function returnGSName(gsid)
 	document.getElementById(gsid).innerHTML = modifiableData.GSResults[gsid].gs_name;
 }
 
+function newGeneset()
+{
+	var genes = [];
+	$('input:checkbox[name="g_id[]"]').each(function() {
+	if (this.checked) {
+	    genes.push(this.value);
+	}
+	});
+	alert(genes);
+	window.location.href = "/uploadgenesetpre/"+genes.join("_")+".html";
+}
 </script>
 {% include 'footer.html' %}
 

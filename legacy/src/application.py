@@ -508,6 +508,9 @@ def generate_api_key():
 def render_home():
     return flask.render_template('index.html')
 
+@app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
+def add_geneset_to_project(project_id, geneset_id):
+	return str(geneweaverdb.insert_geneset_to_project(project_id, geneset_id))
 
 # ********************************************
 # START API BLOCK

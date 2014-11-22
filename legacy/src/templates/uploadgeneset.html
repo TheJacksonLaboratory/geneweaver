@@ -169,10 +169,19 @@
         </div>
         <div class="col-md-4">
             Have a text file already handy? <a href="">Switch to file upload</a><br>
-            <textarea name="file_text"></textarea>
+            <textarea id="fillGenes" name="file_text"></textarea>
         </div>
     </div><br>
     <button class="btn bg-blue">Save Changes</button>
 </form>
 
+<body onload="myFunction('{{gidts}}')">
+
+<script>
+function myFunction(genes)
+{
+	genes1 = genes.split("_");
+	document.getElementById("fillGenes").value= genes1;
+}
+</script>
 {% include 'footer.html' %}

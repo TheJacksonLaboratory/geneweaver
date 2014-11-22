@@ -2,12 +2,14 @@ import flask
 import geneweaverdb
 import pubmedsvc
 import re
+from flask import request
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
 
 @geneset_blueprint.route('/uploadgeneset.html')
-def render_uploadgeneset():
+@geneset_blueprint.route('/uploadgenesetpre/<string:genes>.html')
+def render_uploadgeneset(genes = None):
     gidts = []
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
         gidts.append((
@@ -21,12 +23,18 @@ def render_uploadgeneset():
             microarray_id_type_record['pf_name']))
     gidts.append(('MicroArrays', microarray_id_sources))
 
-    return flask.render_template(
-        'uploadgeneset.html',
-        gs=dict(),
-        all_species=geneweaverdb.get_all_species(),
-        gidts=gidts)
-
+    if genes:
+        return flask.render_template(
+            'uploadgeneset.html',
+            gs=dict(),
+            all_species=geneweaverdb.get_all_species(),
+            gidts = genes)
+    else:
+        return flask.render_template(
+            'uploadgeneset.html',
+            gs=dict(),
+            all_species=geneweaverdb.get_all_species(),
+            gidts=gidts)
 
 def tokenize_lines(candidate_sep_regexes, lines):
     """

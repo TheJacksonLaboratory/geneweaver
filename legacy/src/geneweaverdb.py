@@ -172,7 +172,6 @@ def get_genesets_for_project(project_id, auth_user_id):
 #	should have a pj_id that the user doesn't have permission to if they use the 
 #	get_all_projects function below, and no geneset should be able to be selected from front end
 #	that the current user does not have permisiions on   
-@app.route('/insert_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def insert_geneset_to_project(project_id, geneset_id):
     with PooledCursor() as cursor:
         cursor.execute(
