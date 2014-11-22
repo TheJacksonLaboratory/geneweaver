@@ -23,8 +23,6 @@ def render_uploadgeneset():
     gidts.append(('MicroArrays', microarray_id_sources))
 
     all_species=geneweaverdb.get_all_species()
-    
-    print gidts
 
     return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts)
 
@@ -140,29 +138,35 @@ def create_geneset():
     # END IMPLEMENTATION NOTES
 
     form = flask.request.form
-    print form 
+    print form
     
-    gs_name = str(form['gs_name'])
-    gs_abbreviation = str(form['gs_abbrevation'])
-    gs_description = str(form['gs_description'])
-    public_private = str(form['public_private'])
-    species = str(form['species'])
-    gene_identifier = str(form['gene_identifier'])
-    
-    sp_id = int(form['sp_id'])
+    gs_name = form['gs_name']
+    gs_abbreviation = form['gs_abbreviation']
+    gs_description = form['gs_description']
+    public_private = form['public_private']
+    sp_id = form['species']
+    gene_identifier = form['gene_identifier']
 
+    print sp_id
+    
     file_text = form['file_text']
-    file_lines = file_text.splitlines()
-    candidate_sep_regexes = ['\t', ',', ' +']
-
+    if file_text:
+        file_lines = file_text.splitlines()
+    else:
+	print "file"
+	#get lines from the file here
+    
+    candidate_sep_regexes = ['\t', ',', ' +']   
     
 
     for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
+	print curr_toks
         # TODO php code allows multiple IDs per line. Do we need to continue to allow this? for now expecting 1 ID per line
         curr_id = ''
         curr_val = None
         counts_by_source = dict()
         all_results = []
+
         if len(curr_toks) >= 1:
             curr_id = curr_toks[0]
             if len(curr_toks) >= 2:
@@ -173,16 +177,22 @@ def create_geneset():
                     # based on the number of results returned.
                     gene_results = None
                     with geneweaverdb.PooledCursor() as cursor:
-                        cursor.execute(
-                            '''
-                            SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
-                            FROM gene
-                            WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
-                            ''',
-                            (sp_id, curr_id.lower())
-                        )
-                        gene_results = list(geneweaverdb.dictify_cursor(cursor))
-                        all_results += gene_results
+			try:
+                            cursor.execute(
+                                '''
+                                SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
+                                FROM gene
+                                WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
+                                ''',
+                                (sp_id, curr_id.lower())
+                            )
+			    gene_results = list(geneweaverdb.dictify_cursor(cursor))
+	 		except Exception, e:
+			    print str(e)
+                        			
+                        all_results.append(gene_results)
+			print all_results
+
                         if gene_results:
                             result_sources = set()
 
@@ -223,10 +233,7 @@ def create_geneset():
                     # TODO error reporting here
                     pass
 
-    return flask.render_template(
-        'uploadgeneset.html',
-        gs=dict(),
-        all_species=geneweaverdb.get_all_species())
+    sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation) VALUES (%s, %s, %s);''' % (gs_name, gs_description, gs_abbreviation)
 
 
 @geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
