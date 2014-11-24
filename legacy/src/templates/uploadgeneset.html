@@ -15,7 +15,7 @@ $(document).ready(function()  {
            		data: data,
 			success: function(data)
            		{
-			    alert("Success");	
+			    alert(data);	
            		}
          	    });		   
 		
@@ -42,9 +42,10 @@ $(document).ready(function()  {
 
 //toggles between the file or paste uploaders and toggle's enable/disable on inputs
 function toggle_pasting() {
-    $("#paste_uploader").toggle();
-    $("#file_uploader").toggle();    
     
+    $("#file_uploader").toggle(); 
+    $("#paste_uploader").toggle();   
+    	
     $('#file_text').prop('disabled',function() { return !$(this).prop('disabled') })
     $('#file_data').prop('disabled',function() { return !$(this).prop('disabled') })
 }
@@ -116,35 +117,35 @@ function toggle_pasting() {
         </div><br><br>	
 	<div id="pubmed_manual" style="display:none">
 	   <div class="col-md-2">Title:</div>
-	   <div id="file_uploader" class="col-md-4">	          
+	   <div class="col-md-4">	          
               <input type="text" name="pub_title" value size="40"  disabled=""></input>           
            </div><br><br>
 	   <div class="col-md-2">Authors:</div>
-	   <div id="file_uploader" class="col-md-4">	          
+	   <div class="col-md-4">	          
               <input type="text" name="pub_authors" value size="40"  disabled="" ></input>           
            </div><br><br>	   
 	   <div class="col-md-2">Journal:</div>
-	    <div id="file_uploader" class="col-md-4">	          
+	    <div class="col-md-4">	          
               <input type="text" name="pub_journal" value size="40"  disabled="" ></input>           
            </div><br><br>
 	   <div class="col-md-2">Volume:</div>
- 	   <div id="file_uploader" class="col-md-4">	          
+ 	   <div class="col-md-4">	          
               <input type="text" name="pub_volume" value size="10" maxlength="10"  disabled="" ></input>           
            </div><br><br>
 	   <div class="col-md-2">Pages:</div>
-	    <div id="file_uploader" class="col-md-4">	          
+	    <div class="col-md-4">	          
               <input type="text" name="pub_pages" value size="15" maxlength="15"  disabled="" ></input>           
            </div><br><br>
 	   <div class="col-md-2">Month:</div>
-	    <div id="file_uploader" class="col-md-4">	          
+	    <div class="col-md-4">	          
               <input type="text" name="pub_month" value size="3" maxlength="3"  disabled="" ></input>           
            </div><br><br>
 	   <div class="col-md-2">Year:</div>
-	    <div id="file_uploader" class="col-md-4">	          
+	    <div  class="col-md-4">	          
               <input type="text" name="pub_year" value size="4" maxlength="4"  disabled=""></input>           
            </div><br><br>
 	   <div class="col-md-2">Abstract:</div>
-	    <div id="file_uploader" class="col-md-4">	          
+	    <div  class="col-md-4">	          
               <textarea name="pub_abstract" id="pub_abstract" cols="40" rows="10"  disabled=""></textarea>           
            </div><br><br>
 	</div>
@@ -195,12 +196,12 @@ function toggle_pasting() {
             Input Gene List*:
         </div>        	 
         <div id="paste_uploader" class="col-md-4" style="display: block">
-            <button class="button" onclick="toggle_pasting()">Click here to upload a file</button>
+            <button class="button" type="button" onclick="toggle_pasting()">Click here to upload a file</button>
             <br>Manually Enter Genes one per line.<br>Format (tab separated): gene	genescore<br>	
             <textarea id="file_text" rows="15" cols="40" name="file_text" placeholder="gene1    0.92" required></textarea>
         </div>
         <div id="file_uploader" class="col-md-4" style="display: none">
-	    <button class="button" onclick="toggle_pasting()" >Click here to manually enter data</button><br><br>
+	    <button class="button" type="button" onclick="toggle_pasting()" >Click here to manually enter data</button><br><br>
             Select a Tab-separated Plain Text…           
             <input id="file_data" type="file" name="selected_file" disabled required></input>           
         </div>

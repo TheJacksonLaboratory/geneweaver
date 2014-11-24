@@ -147,7 +147,7 @@ def create_geneset():
     sp_id = form['species']
     gene_identifier = form['gene_identifier']
 
-    print sp_id
+    #print sp_id
     
     file_text = form['file_text']
     if file_text:
@@ -158,83 +158,111 @@ def create_geneset():
     
     candidate_sep_regexes = ['\t', ',', ' +']   
     
+    all_results = []
+    invalid_genes = []
 
     for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
-	print curr_toks
+	#print curr_toks
         # TODO php code allows multiple IDs per line. Do we need to continue to allow this? for now expecting 1 ID per line
         curr_id = ''
         curr_val = None
-        counts_by_source = dict()
-        all_results = []
+        counts_by_source = dict()       
 
         if len(curr_toks) >= 1:
             curr_id = curr_toks[0]
             if len(curr_toks) >= 2:
-                try:
-                    curr_val = float(curr_toks[1])
-
+ 		curr_val = float(curr_toks[1])
+            try:         
                     # We'll get results from both the gene table and platform table. We'll decide later which to use
                     # based on the number of results returned.
-                    gene_results = None
-                    with geneweaverdb.PooledCursor() as cursor:
-			try:
-                            cursor.execute(
-                                '''
-                                SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
-                                FROM gene
-                                WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
-                                ''',
-                                (sp_id, curr_id.lower())
-                            )
-			    gene_results = list(geneweaverdb.dictify_cursor(cursor))
-	 		except Exception, e:
-			    print str(e)
-                        			
-                        all_results.append(gene_results)
-			print all_results
 
-                        if gene_results:
-                            result_sources = set()
+		    #getting gene table results
+                gene_results = None
+                with geneweaverdb.PooledCursor() as cursor:			
+                    cursor.execute(
+                        '''
+                        SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
+                        FROM gene
+                        WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
+                        ''',
+                        (sp_id, curr_id.lower())
+                    )
+		    gene_results = list(geneweaverdb.dictify_cursor(cursor))
+                    all_results += gene_results
 
-                            for curr_result in gene_results:
-                                key_tuple = (True, curr_result['source'])
-                                curr_counts = None
-                                try:
-                                    curr_counts = counts_by_source[key_tuple]
-                                except KeyError:
-                                    curr_counts = [0, 0]
-                                    counts_by_source[key_tuple] = curr_counts
+                    if gene_results:
+                        result_sources = set()
+                        for curr_result in gene_results:
+                            key_tuple = (True, curr_result['source'])
+                            curr_counts = None
+                            try:
+                                curr_counts = counts_by_source[key_tuple]
+                            except KeyError:
+                                curr_counts = [0, 0]
+                                counts_by_source[key_tuple] = curr_counts
 
-                                # we need to make sure not to double count a source here
-                                if curr_result['source'] not in result_sources:
-                                    curr_counts[0] += 1
-                                curr_counts[1] += 1
+                            # we need to make sure not to double count a source here
+                            if curr_result['source'] not in result_sources:
+                                curr_counts[0] += 1
+                            curr_counts[1] += 1
+		        print result_sources
+		    print counts_by_source
 
-                    platform_results = None
-                    with geneweaverdb.PooledCursor() as cursor:
-                        cursor.execute(
-                            '''
-                            SELECT ode_gene_id, m.pf_id AS source, prb_ref_id AS ref_id, pf_set
-                            FROM platform m,probe p,probe2gene p2g
-                            WHERE p.pf_id=m.pf_id AND p2g.prb_id=p.prb_id AND m.sp_id=%s AND LOWER(prb_ref_id)=%s
-                            GROUP BY ode_gene_id, m.pf_id, prb_ref_id, m.pf_set;
-                            ''',
-                            (sp_id, curr_id.lower())
-                        )
-                        platform_results = list(cursor)
-                        if platform_results:
-                            first_result = platform_results
+		    #getting platform results
+                platform_results = None
+                with geneweaverdb.PooledCursor() as cursor:
+                    cursor.execute(
+                        '''
+                        SELECT ode_gene_id, m.pf_id AS source, prb_ref_id AS ref_id, pf_set
+                        FROM platform m,probe p,probe2gene p2g
+                        WHERE p.pf_id=m.pf_id AND p2g.prb_id=p.prb_id AND m.sp_id=%s AND LOWER(prb_ref_id)=%s
+                        GROUP BY ode_gene_id, m.pf_id, prb_ref_id, m.pf_set;
+                        ''',
+                        (sp_id, curr_id.lower())
+                    )
+                    platform_results = list(cursor)
+                    if platform_results:
+                        first_result = platform_results
 
-                    if not (gene_results or platform_results):
-                        # TODO tell user we didn't find a match for curr_id
-                        pass
-
-                except ValueError:
-                    # TODO error reporting here
+                if not (gene_results or platform_results):
+	      	    invalid_genes.append(curr_id)
                     pass
 
-    sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation) VALUES (%s, %s, %s);''' % (gs_name, gs_description, gs_abbreviation)
+            except Exception, e:
+                return str(e)
+		pass
 
+      
+    #if any genes in the list were not found it will tell the user which were not found
+    if len(invalid_genes) > 0:
+        return "Unable to find these Genes for specified species:\n" + ', '.join(invalid_genes) + "\n\nEither remove them and resubmit the geneset or contact Geneweaver to have them added."
+
+    #creating the geneset
+    if public_private == "public":
+    	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, gs_count, sp_id) 
+		VALUES ('%s','%s','%s','%s','%s');''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id)
+	get_GS_id = '''SELECT gs_id FROM production.geneset 
+		WHERE gs_name='%s' AND gs_description='%s' AND gs_abbreviation='%s' AND gs_count='%s' AND sp_id='%s';''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id)
+    else:
+	user_id = flask.g.user.user_id if 'user' in flask.g else None
+	if user_id == None:
+	    return "You must be signed in to make a private geneset."
+	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, gs_count, sp_id, usr_id)
+		 VALUES ('%s','%s','%s','%s','%s','%s');''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id, user_id)
+	get_GS_id = '''SELECT gs_id FROM production.geneset 
+		WHERE gs_name='%s' AND gs_description='%s' AND gs_abbreviation='%s' 
+		AND gs_count='%s' AND sp_id='%s' AND usr_id='%s';''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id, user_id)
+
+    
+
+    
+    gs_id = ""
+
+    #for item in temp_results:	
+	#GS_value_sql = '''INSERT INTO extsrc.genset_value(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, gsv_value_list, gsv_in_threshold) VALUES ('%s','%s','%s','%s','%s','%s');''' % #(gs_id, item['ode_gene_id'], )
+
+
+    return "Geneset Created"
 
 @geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
 def view_geneset(geneset_id):
