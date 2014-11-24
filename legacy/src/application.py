@@ -593,11 +593,11 @@ def change_password():
         user = geneweaverdb.get_user(flask.session.get('user_id'))
 
         if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
-            return flask.render_template('accountsettings.html')
+            return flask.render_template('accountsettings.html', user=user)
         else:
             success = geneweaverdb.change_password(
                 user.user_id, form['new_pass'])
-            return flask.render_template('accountsettings.html')
+            return flask.render_template('accountsettings.html', user=user)
 
 
 @app.route('/generate_api_key', methods=['POST'])
