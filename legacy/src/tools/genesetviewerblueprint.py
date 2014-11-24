@@ -15,8 +15,12 @@ def run_tool():
 
     form = flask.request.form
 
+    
+   
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
+
+    
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
         raise Exception('there must be at least two genesets selected to run this tool')
@@ -40,6 +44,7 @@ def run_tool():
         # TODO add nice error message about missing user ID.
         raise Exception('internal error: user ID missing')
 
+
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
@@ -50,7 +55,7 @@ def run_tool():
         json.dumps(params),
         tool.name,
         desc,
-        desc)
+        desc,'f')
 
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
@@ -76,6 +81,7 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
     
+    print("Blueprint: " + genesets)
 
     # gather the params into a dictionary
     homology_str = 'Homology'
