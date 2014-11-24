@@ -81,7 +81,6 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
     
-    print("Blueprint: " + genesets)
 
     # gather the params into a dictionary
     homology_str = 'Homology'
