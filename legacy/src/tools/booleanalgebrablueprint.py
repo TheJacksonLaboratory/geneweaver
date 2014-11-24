@@ -19,52 +19,54 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        raise Exception('there must be at least two genesets selected to run this tool')
+        flask.flash("Warning: You need at least 2 gene sets!")
+        return flask.redirect('analyze.html')
 
-    params = {}
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        params[tool_param.name] = form[tool_param.name]
-
-
-    # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
-
-    # insert result for this run
-    user_id = None
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
     else:
-        # TODO add nice error message about missing user ID.
-        raise Exception('internal error: user ID missing')
+        params = {}
+        for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+            params[tool_param.name] = form[tool_param.name]
+            params['at_least'] = form["BooleanAlgebra_min_sets"]
 
-    task_id = str(uuid.uuid4())
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
-    desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
-    gwdb.insert_result(
-        user_id,
-        task_id,
-        selected_geneset_ids,
-        json.dumps(params),
-        tool.name,
-        desc,
-        desc)
+        # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
-    async_result = tc.celery_app.send_task(
-        tc.fully_qualified_name(TOOL_CLASSNAME),
-        kwargs={
-            'gsids': selected_geneset_ids,
-            'output_prefix': task_id,
-            'params': params,
-        },
-        task_id=task_id)
+        # insert result for this run
+        user_id = None
+        if 'user_id' in flask.session:
+            user_id = flask.session['user_id']
+        else:
+            flask.flash("Internal error: user ID missing")
+            return flask.redirect('analyze.html')
 
-    # render the status page and perform a 303 redirect to the
-    # URL that uniquely identifies this run
-    new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
-    response = flask.make_response(tc.render_tool_pending(async_result, tool))
-    response.status_code = 303
-    response.headers['location'] = new_location
+        task_id = str(uuid.uuid4())
+        tool = gwdb.get_tool(TOOL_CLASSNAME)
+        desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
+        gwdb.insert_result(
+            user_id,
+            task_id,
+            selected_geneset_ids,
+            json.dumps(params),
+            tool.name,
+            desc,
+            desc)
 
-    return response
+        async_result = tc.celery_app.send_task(
+            tc.fully_qualified_name(TOOL_CLASSNAME),
+            kwargs={
+                'gsids': selected_geneset_ids,
+                'output_prefix': task_id,
+                'params': params,
+            },
+            task_id=task_id)
+
+        # render the status page and perform a 303 redirect to the
+        # URL that uniquely identifies this run
+        new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
+        response = flask.make_response(tc.render_tool_pending(async_result, tool))
+        response.status_code = 303
+        response.headers['location'] = new_location
+
+        return response
 
 
 @boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
@@ -83,7 +85,7 @@ def view_result(task_id):
         return flask.render_template(
             'tool/BooleanAlgebra_result.html',
             async_result=json.loads(async_result.result),
-            tool=tool, list=gwdb.get_all_projects(user_id))
+            tool=tool)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
