@@ -536,6 +536,61 @@ def genesets_per_tier():
         return response
     except Exception, e:
         return str(e)
+
+def genesets_per_species_per_tier():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 1 GROUP BY sp_id ORDER BY sp_id;''')
+	    one=OrderedDict(cursor)
+	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 2 GROUP BY sp_id ORDER BY sp_id;''')
+	    two=OrderedDict(cursor)
+	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 3 GROUP BY sp_id ORDER BY sp_id;''')
+	    three=OrderedDict(cursor)
+  	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 4 GROUP BY sp_id ORDER BY sp_id;''')
+	    four=OrderedDict(cursor)
+	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 5 GROUP BY sp_id ORDER BY sp_id;''')
+	    five=OrderedDict(cursor)
+	    response = OrderedDict([('Tier 1', one),
+    	    	    ('Tier 2', two),
+    		    ('Tier 3', three),
+   		    ('Tier 4', four),
+		    ('Tier 5', five)
+   		    ])
+        return response
+    except Exception, e:
+        return str(e)
+
+def monthly_tool_stats():
+    tools = [];
+    with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT DISTINCT res_tool FROM production.result WHERE res_created >= now() - interval '30 days';''')
+    tools = list(dictify_cursor(cursor))
+
+    try:
+        with PooledCursor() as cursor:
+	    response = OrderedDict()
+	    for tool in tools:	
+   	        cursor.execute('''SELECT res_created, count(*) FROM production.result WHERE res_created >= now() - interval '30 days' AND res_tool=%s GROUP BY res_created ORDER BY res_created desc;''', (tool['res_tool'],))		
+		response.update({tool['res_tool']: OrderedDict(cursor)})
+        return response
+    except Exception, e:
+        return str(e)
+
+def user_tool_stats():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT usr_id, count(*) FROM production.result WHERE res_created >= now() - interval '6 months' GROUP BY usr_id ORDER BY count(*) desc limit 20;''')				
+        return OrderedDict(cursor)
+    except Exception, e:
+        return str(e)
+
+def currently_running_tools():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT res_id, usr_id, res_tool, res_status FROM production.result WHERE res_completed is NULL;''')				
+        return list(dictify_cursor(cursor))
+    except Exception, e:
+        return str(e)
 	
 
 #*************************************************************

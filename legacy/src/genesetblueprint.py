@@ -232,8 +232,8 @@ def create_geneset():
                 return str(e)
 		pass
 
-      
-    #if any genes in the list were not found it will tell the user which were not found
+	      
+	    #if any genes in the list were not found it will tell the user which were not found
     if len(invalid_genes) > 0:
         return "Unable to find these Genes for specified species:\n" + ', '.join(invalid_genes) + "\n\nEither remove them and resubmit the geneset or contact Geneweaver to have them added."
 

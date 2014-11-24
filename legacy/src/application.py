@@ -8,6 +8,7 @@ import genesetblueprint
 import geneweaverdb
 import json
 import os
+from collections import OrderedDict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint, booleanalgebrablueprint
 import sphinxapi
 
@@ -401,6 +402,46 @@ def admin_widget_1():
     else:
 	return flask.render_template('admin/adminForbidden.html')
 
+@app.route('/admin/genesetsperspeciespertier')
+def admin_widget_2():  
+    if "user" in flask.g and flask.g.user.is_admin:
+	data = geneweaverdb.genesets_per_species_per_tier()
+        return json.dumps(data)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
+
+
+@app.route('/admin/monthlytoolstats')
+def admin_widget_3():  
+    if "user" in flask.g and flask.g.user.is_admin:
+	data = geneweaverdb.monthly_tool_stats()
+	new_data = OrderedDict()
+
+	for tool in data:
+	    temp = OrderedDict()
+	    for key in data[tool]:
+		temp.update({str(key).split("-")[1]+"/"+str(key).split("-")[2]: data[tool][key]})
+	    new_data.update({tool: temp})	
+        return json.dumps(new_data)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
+
+@app.route('/admin/usertoolstats')
+def admin_widget_4():  
+    if "user" in flask.g and flask.g.user.is_admin:
+	data = geneweaverdb.user_tool_stats()	
+        return json.dumps(data)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
+
+@app.route('/admin/currentlyrunningtools')
+def admin_widget_5():  
+    if "user" in flask.g and flask.g.user.is_admin:
+	data = geneweaverdb.currently_running_tools()	
+        return json.dumps(data, default=date_handler)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
+
 @app.route('/admin/adminEdit')
 def admin_edit():  
     if "user" in flask.g and flask.g.user.is_admin:
@@ -462,6 +503,8 @@ def get_db_data():
     else:
         return flask.render_template('admin/adminForbidden.html')
 
+def str_handler(obj):
+    return str(obj)
 
 def date_handler(obj):
     return obj.isoformat() if hasattr(obj, 'isoformat') else obj

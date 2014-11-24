@@ -19,101 +19,150 @@
        stroke: #000;
        shape-rendering: crispEdges;
    }
-   .divleft {
-	float:left;
-	 width:33%;
-    }
 </style>
 
 
 
 <div>
+<div style="text-align: center">
    <h3>Statistics</h3>
-   <div>
-      <button id="button-one" >Genesets Per Tier</button>
-      <div id = "div-one" style="display:none">
-         <svg id="genesets_per_tier" class="chart" ></svg>
+   <select id="stat_select" class="form-control" style="width:auto">
+       <option label="genesets_per_tier" value="genesets_per_tier">Genesets Per Tier</option>
+       <option label="genesets_per_species_per_tier" value="genesets_per_species_per_tier">Genesets Per Species Per Tier</option>
+       <option label="monthly_tool_stats" value="monthly_tool_stats">Monthly Tool Stats</option>
+       <option label="tools_ran_per_user" value="user_tools_ran">Tools Ran Per User</option>       
+       <option label="currently_running_tools" value="currently_running_tools">Currently Running Tools</option>
+       <option label="size_of_genesets" value="size_of_genesets">Size of Genesets</option>
+   </select><br><br>
+</div>
+   <div id="graph_container" class="container" style="text-align: center">	
+      <div id = "div-one" style="display:none" >
+           <svg id="genesets_per_tier" class="chart" ></svg>
+      </div>
+      <div id = "div-two" style="display:none">         
+            <svg id="genesets_per_species_and_tier1" class="chart"></svg>	 	
+            <svg id="genesets_per_species_and_tier2" class="chart"></svg>	 	
+            <svg id="genesets_per_species_and_tier3" class="chart"></svg>	 	
+            <svg id="genesets_per_species_and_tier4" class="chart"></svg>	 	
+            <svg id="genesets_per_species_and_tier5" class="chart"></svg>	 	
+      </div>
+      <div id = "div-three" style="display:none">         	 	
+      </div>
+      <div id = "div-four" style="display:none">         
+            <svg id="user_tools_ran" class="chart"></svg>	 	
+      </div>
+      <div id = "div-five" style="display:none">         
+            <br><table id='tools-running' style="2;background-color:#FAFAFA" class="table" table border="1">
+	       <thead>
+		  <tr>
+     		    <th>ResID</th>
+     		    <th>UserID</th>
+		    <th>Tool</th>
+		    <th>Status</th>
+  		  </tr>		
+	       </thead>
+	    </table>	 	
+      </div>
+      <div id = "div-x" style="display:none">
+          <svg id="bubble_chart" ></svg>
       </div>
    </div>
-   <div>
-      <button id="button-two" >Genesets Per Species/Tier</button>
-      <div id = "div-two" style="display:none">
-         <div class="divleft">
-            <svg id="genesets_per_species_and_tier1" class="chart"></svg>
-	 	</div>
-	 	<div class="divleft">
-            <svg id="genesets_per_species_and_tier2" class="chart"></svg>
-	 	</div>
-	 	<div class="divleft">
-            <svg id="genesets_per_species_and_tier3" class="chart"></svg>
-	 	</div>
-	 	<div class="divleft">
-            <svg id="genesets_per_species_and_tier4" class="chart"></svg>
-	 	</div>
-	 	<div class="divleft">
-            <svg id="genesets_per_species_and_tier5" class="chart"></svg>
-	 	</div>
-      </div>
-    </div>
-	<div style="clear:left">
-      <button id="button-x" >Tool Run Times</button>
-      <div id = "div-x" style="display:none">
-         <svg id="bubble_chart" ></svg>
-      </div>
-    </div>
 </div>
 
 
 <script>
 
     $(document).ready(function() {
-		$("#button-one").click(function(){
-       		var myInput = document.getElementById("genesets_per_tier").innerHTML;
-			if (myInput == "") {
-		    	get_bar_chart_info("../admin/genesetspertier", "#genesets_per_tier", "Genesets Per Tier");
-			}
-  			$("#div-one").toggle();
-	 	});
-		$("#button-two").click(function(){
-			var myInput1 = document.getElementById("genesets_per_species_and_tier1").innerHTML;
-			var myInput2 = document.getElementById("genesets_per_species_and_tier2").innerHTML;
-			var myInput3 = document.getElementById("genesets_per_species_and_tier3").innerHTML;
-			var myInput4 = document.getElementById("genesets_per_species_and_tier4").innerHTML;
-			var myInput5 = document.getElementById("genesets_per_species_and_tier5").innerHTML;
+		get_db_info("../admin/genesetspertier", "#genesets_per_tier", "Genesets Per Tier");
+		$('#div-one').show();			
 
-			if (myInput1 == "" || myInput2 == "" || myInput3 == "" || myInput4 == "" || myInput5 == "") {
-		 	   get_bar_chart_info("../admin/genesetspertier", "#genesets_per_species_and_tier1", "Genesets Per Tier");
-		 	   get_bar_chart_info("../admin/genesetspertier", "#genesets_per_species_and_tier2", "Genesets Per Tier");
-		 	   get_bar_chart_info("../admin/genesetspertier", "#genesets_per_species_and_tier3", "Genesets Per Tier");
-		  	   get_bar_chart_info("../admin/genesetspertier", "#genesets_per_species_and_tier4", "Genesets Per Tier");
-		 	   get_bar_chart_info("../admin/genesetspertier", "#genesets_per_species_and_tier5", "Genesets Per Tier");
-			}	        
-  			$("#div-two").toggle();
-	 	});
+		$("#stat_select").change(function() {
 
-		//generate_bubble_chart("", "#bubblechart", "")
+		   $("#graph_container div").hide();
+		   
+		   var item = $(this);
+		   if(item.val() == 'genesets_per_tier') 
+		   {
+			get_db_info("../admin/genesetspertier", "#genesets_per_tier", "Genesets Per Tier");
+			$('#div-one').show();			
+		   }
+		   if(item.val() == 'genesets_per_species_per_tier') 
+		   {
+			get_db_info("../admin/genesetsperspeciespertier", "#genesets_per_species_and_tier", "Genesets Per Species Per Tier");
+			$('#div-two').show();			
+		   }
+		   if(item.val() == 'monthly_tool_stats') 
+		   {
+			get_db_info("../admin/monthlytoolstats", "", "Monthly Tool Stats");
+			$('#div-three').show();			
+		   }
+       		   if(item.val() == 'user_tools_ran') 
+		   {
+			get_db_info("../admin/usertoolstats", "#user_tools_ran", "Tools Ran Per User (Top 20)");
+			$('#div-four').show();			
+		   }
+		   if(item.val() == 'currently_running_tools') 
+		   {
+			get_db_info("../admin/currentlyrunningtools", "#tools-running-list", "Currently Running Tools");
+			$('#div-five').show();			
+		   }
+		    	    
+		});
     });
 
-    function get_bar_chart_info(url, chartname, title) {
+    function get_db_info(url, element, title) {
         $.ajax({
             type: "GET",
             url: url,
             success: function(return_data) {
                 var data = JSON.parse(return_data);
-                generate_bar_chart(data, chartname, title);
+	        if(title=="Genesets Per Species Per Tier")
+		{
+		     generate_bar_chart(data['Tier 1'], element+"1", title+" 1", "#Genesets");
+		     generate_bar_chart(data['Tier 2'], element+"2", title+" 2", "#Genesets");
+	    	     generate_bar_chart(data['Tier 3'], element+"3", title+" 3", "#Genesets");
+	             generate_bar_chart(data['Tier 4'], element+"4", title+" 4", "#Genesets");
+		     generate_bar_chart(data['Tier 5'], element+"5", title+" 5", "#Genesets");
+		}
+		else if(title == "Genesets Per Tier")
+		{
+                    generate_bar_chart(data, element, title, "#Genesets");
+		}
+		else if(title == "Monthly Tool Stats")
+		{		    		   
+  		    for(var key in data) 
+		    {
+			var id = key.replace(" ", "") + "_stats";
+			$('#div-three').append("<svg id="+id+" class='chart'></svg>")			
+			generate_bar_chart(data[key], '#'+id, key + ' ' + title, "#Times Ran");
+		    }
+		}
+		else if(title == "Tools Ran Per User (Top 20)")
+		{
+                    generate_bar_chart(data, element, title, "#Times Ran");
+		}
+		else if(title == "Currently Running Tools")
+		{
+                    for(var key in data) 
+		    {
+			$('#tools-running').append("<tr ><td> "+data[key]['res_id']+" </td><td> " +data[key]['usr_id'] + "  </td><td> " +data[key]['res_tool'] + " </td> <td> " +data[key]['res_status'] +" </td></tr>")
+		    }
+		    $('#tools-running').dataTable( {
+   		    });
+		}	
             }
         });
     }
 
 	
-    function generate_bar_chart(data, chartname, title) {
+    function generate_bar_chart(data, chartname, title, yaxislabel) {
         var margin = {
                 top: 80,
                 right: 50,
                 bottom: 80,
                 left: 50
             },
-            width = 325,
+            width = d3.keys(data).length * 40,
             height = 250;
 
         var x = d3.scale.ordinal()
@@ -191,7 +240,7 @@
       	    .attr("y", 6)
       	    .attr("dy", ".5em")
       	    .style("text-anchor", "end")
-	    .text("# Genesets");
+	    .text(yaxislabel);
     }
 
     function generate_bubble_chart(data, chartname, title) {
