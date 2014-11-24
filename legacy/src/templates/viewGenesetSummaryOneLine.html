@@ -1,0 +1,59 @@
+	<!-- Label the tier - which is the curation id, Geneset.cur_id -->
+	{% if gs.cur_id == 1 %}
+                    <span class="tier1">Tier I</span>
+	{% endif %}
+        {%if gs.cur_id == 2 %}
+                    <span class="tier2">Tier II</span>
+	{% endif %}
+        {%if gs.cur_id == 3 %}
+                    <span class="tier3">Tier III</span>
+	{% endif %}
+        {% if gs.cur_id == 4 %}
+                    <span class="tier4">Tier IV</span>
+	{% endif %}
+        {%if gs.cur_id == 5 %}
+                    <span class="tier5">Tier V</span>
+        {% endif %}
+
+	<!-- Label the species -->
+	{% if gs.sp_id == 1 %}
+		<span class="mouse">Mouse</span>
+	{% endif %}
+	{% if gs.sp_id == 2 %}
+		<span class="human">Human</span>
+	{% endif %}
+	{% if gs.sp_id == 3 %}
+		<span class="rat">Rat</span>
+	{% endif %}
+	{% if gs.sp_id == 4 %}
+		<span class="zebrafish">Zebrafish</span>
+	{% endif %}
+	{% if gs.sp_id == 5 %}
+		<span class="fly">Fly</span>
+	{% endif %}
+	{% if gs.sp_id == 6 %}
+		<span class="monkey">Monkey</span>
+	{% endif %}
+	
+	<!-- Label the attribution -->
+	{% if gs.attribution == 2 %}
+		<span class="ctd">CTD</span>
+	{% endif %}
+	{% if gs.attribution == 7 %}
+		<span class="drg">DRG</span>
+	{% endif %}
+	{% if gs.attribution == 8 %}
+		<span class="go">GO</span>
+	{% endif %}
+	{% if gs.attribution == 9 %}
+		<span class="mp">MP</span>
+	{% endif %}
+	
+	<!-- Show the geneset size -->
+	<span class="gs_size">{{gs.count}} Genes</span>
+	<!-- need status for if not normal -->
+	{% if gs.status != "normal" %}
+	<span class="gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
+	{% endif %}
+ 	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a>
+<br />
