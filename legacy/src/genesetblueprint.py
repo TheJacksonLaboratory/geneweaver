@@ -290,7 +290,7 @@ def create_geneset():
 		
 
     print GS_sql
-    gs_id = "id will be got from query";
+    gs_id = "TBA";
     #with geneweaverdb.PooledCursor() as cursor:
     #	    cursor.execute(GS_sql)
     #       cursor.connection.commit()
@@ -302,6 +302,8 @@ def create_geneset():
 	geneset_update_sql = '''UPDATE production.geneset SET %s WHERE %s;''' % ('pub_id=\''+pub_id+'\'', 'gs_id=\''+gs_id+'\'') 
 	print geneset_update_sql
 
+    Min=False
+    Max=False
     for ode_gene_id in unique_gene_ids:
 	values = []
 	sources = []
@@ -316,6 +318,10 @@ def create_geneset():
 
 	avg = 0
 	for val in values:
+	    if Min == False or val < Min:
+		Min=val
+	    if Max == False or val > Max:
+		Max=val
 	    avg += val
 	avg /= len(values)		
 	    
@@ -325,7 +331,34 @@ def create_geneset():
     #	    cursor.execute(GS_value_sql)
     #	    cursor.connection.commit()
 
+    gs_threshold_type=None
+    gs_threshold = None
+    if Min >= -1 and Max <= 1:
+	if Min >= 0 and Max <= 1:
+	    if Min==Max and Max==1:
+		gs_threshold_type=3
+		gs_threshold='0.5'
+	    elif Max > 0.5:
+		gs_threshold_type=4
+		gs_threshold='0,1'
+	    elif Max < 0.25:
+		gs_threshold_type=1
+		gs_threshold="\'"+str(Max)+"\'"
+	else:
+	    gs_threshold_type=4
+	    gs_threshold='0,1'
+    else:
+	gs_threshold_type=5
+	gs_threshold="\'"+str(Min)+","+str(Max)+"\'"
 
+    gs_count = "TBA"
+    gs_count_sql = '''SELECT count(ode_ref_id) FROM extsrc.geneset_value NATURAL JOIN extsrc.gene WHERE ode_pref AND gs_id=%s GROUP BY gs_id;''' % (gs_id,)
+
+    gs_update_sql = '''UPDATE production.geneset SET %s, %s, %s WHERE %s;''' % ('gs_count=\''+str(gs_count)+'\'', 'gs_threshold='+str(gs_threshold), 'gs_threshold_type='+str(gs_threshold_type), 'gs_id=\''+str(gs_id)+'\'')
+
+    print gs_count_sql
+    print gs_update_sql
+	
     return "Geneset Created"
 
 @geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
