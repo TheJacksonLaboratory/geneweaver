@@ -634,7 +634,7 @@ class GetGenesetsByGeneRefIdHomology(restful.Resource):
 class GetGenesByGenesetId(restful.Resource):
 
     def get(self, genesetid):
-        return geneweaverdb.get_geneset_by_id(genesetid)
+        return geneweaverdb.get_genes_by_geneset_id(genesetid)
 
 
 class GetGeneByGeneId(restful.Resource):
@@ -646,7 +646,7 @@ class GetGeneByGeneId(restful.Resource):
 class GetGenesetById(restful.Resource):
 
     def get(self, genesetid):
-        return geneweaverdb.get_geneset_by_id(genesetid)
+        return geneweaverdb.get_geneset_by_geneset_id(genesetid)
 
 
 class GetGenesetByUser(restful.Resource):
