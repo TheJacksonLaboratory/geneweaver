@@ -908,8 +908,7 @@ def get_tool_params(tool_classname, only_visible=False):
                 '''SELECT * FROM tool_param WHERE tool_classname=%s AND tp_visible ORDER BY tp_name;''',
                 (tool_classname,))
         else:
-            cursor.execute(
-                '''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
+            cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
                 (tool_classname,))
         return [ToolParam(d) for d in dictify_cursor(cursor)]
 
@@ -1229,6 +1228,69 @@ def get_projects_by_user(apikey):
 												WHERE apikey = %s)											
 							) row; ''', (apikey,))
 	return cursor.fetchall();
+
+def get_all_ontologies_by_geneset(gs_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(
+								SELECT *
+								FROM extsrc.ontology natural join odestatic.ontologydb
+								WHERE ont_id in (	SELECT ont_id
+													FROM extsrc.geneset_ontology
+													WHERE gs_id = %s
+												)
+								or ont_id in    (	SELECT ont_children
+													FROM extsrc.ontology
+													WHERE ont_id in (	SELECT ont_id
+																		FROM extsrc.geneset_ontology
+																		WHERE gs_id = %s
+																	)
+												)
+								or ont_id in	(	SELECT ont_parents
+													FROM extsrc.ontology
+													WHERE ont_id in	(	SELECT ont_id
+																		FROM extsrc.geneset_ontology
+																		WHERE gs_id = %s
+																	)
+												) order by ont_id
+							) row; ''', (gs_id, gs_id, gs_id))
+	return cursor.fetchall();
+
+#TESTING
+def get_genesets_by_projects(apikey, projectids):
+	user = get_user_id_by_apikey(apikey)
+	projects = '('
+	pArray = projectids.split(':')
+	formGenesets = ''
+	print(user[0])
+	
+	for proj in pArray:
+		if(len(projects) > 1):
+			projects += ','
+		projects += proj
+	projects += ')'
+	
+	query = 'SELECT gs_id FROM production.project2geneset WHERE pj_id in (SELECT pj_id FROM production.geneset WHERE pj_id in '
+	query += projects
+	query += ' and usr_id = '
+	query +=  str(user[0])
+	query += ');'
+	
+	print("LOOK HERE FOR QUERY:")
+	print(query)
+	
+	with PooledCursor() as cursor:
+		cursor.execute(query)					
+							
+	genesets = cursor.fetchall()
+	
+	for geneset in genesets:
+		if(len(formGenesets) > 0):
+			formGenesets += ':'
+		formGenesets += str(geneset[0])
+	
+	return formGenesets
 
 def get_geneset_by_project_id(apikey, projectid):
 	user = get_user_id_by_apikey(apikey)
