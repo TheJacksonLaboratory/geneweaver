@@ -138,12 +138,44 @@ def create_geneset():
     # END IMPLEMENTATION NOTES
 
     form = flask.request.form
-    print form
+    #print form
+
+    pub_id = None
+    if 'pub_pubmed' in form.keys() and form['pub_pubmed']:
+	pid = 	form['pub_pubmed']
+	with geneweaverdb.PooledCursor() as cursor:
+	    pubcheck = None
+    	    cursor.execute('''SELECT * FROM production.publication where pub_id=%s;''', (pid,))
+            pubcheck=list(cursor)
+	    if len(pubcheck) < 1:
+		return "Invalid publication ID."
+	    else:
+		pub_id=form['pub_pubmed']
+    elif 'pub_pubmed' not in form.keys():
+	cols = dict()
+	reg = re.compile('pub_*')
+	for item in form.keys():
+	    if re.match(reg, item):
+		if form[item]:
+		    cols.update({item:form[item]})
+	if len(cols) > 0:
+	    values = []
+	    keys = []
+	    for item in cols.keys():
+		values.append(cols[item])
+		keys.append(item)
+	    with geneweaverdb.PooledCursor() as cursor:
+	        pub_sql = '''INSERT INTO production.publication(%s) VALUES ('%s') RETURNING pub_id;''' % (','.join(keys), '\',\''.join(values), )
+    	        #cursor.execute(pub_sql)
+		#cursor.connection.commit()
+		#pub_id=cursor.fetchone()[0]
+	 	print pub_sql
+		
     
     gs_name = form['gs_name']
     gs_abbreviation = form['gs_abbreviation']
     gs_description = form['gs_description']
-    public_private = form['public_private']
+    public_private = form['permissions']
     sp_id = form['species']
     gene_identifier = form['gene_identifier']
 
@@ -160,6 +192,7 @@ def create_geneset():
     
     all_results = []
     invalid_genes = []
+    unique_gene_ids = []
 
     for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
 	#print curr_toks
@@ -188,8 +221,17 @@ def create_geneset():
                         (sp_id, curr_id.lower())
                     )
 		    gene_results = list(geneweaverdb.dictify_cursor(cursor))
+		    #adds genescore to the list
+		    if gene_results:
+		        gene_results[0].update({'value':curr_val})
+
+	 	        #adds to geneID list if unique
+   		        if gene_results[0]['ode_gene_id'] not in unique_gene_ids:
+		            unique_gene_ids.append(gene_results[0]['ode_gene_id'])
+
                     all_results += gene_results
 
+	  	    #idk what this does?
                     if gene_results:
                         result_sources = set()
                         for curr_result in gene_results:
@@ -205,10 +247,8 @@ def create_geneset():
                             if curr_result['source'] not in result_sources:
                                 curr_counts[0] += 1
                             curr_counts[1] += 1
-		        print result_sources
-		    print counts_by_source
 
-		    #getting platform results
+		#getting platform results
                 platform_results = None
                 with geneweaverdb.PooledCursor() as cursor:
                     cursor.execute(
@@ -232,34 +272,58 @@ def create_geneset():
                 return str(e)
 		pass
 
+    
 	      
-	    #if any genes in the list were not found it will tell the user which were not found
+    #if any genes in the list were not found it will tell the user which were not found
     if len(invalid_genes) > 0:
         return "Unable to find these Genes for specified species:\n" + ', '.join(invalid_genes) + "\n\nEither remove them and resubmit the geneset or contact Geneweaver to have them added."
 
-    #creating the geneset
+    #creating the geneset queries
     if public_private == "public":
-    	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, gs_count, sp_id) 
-		VALUES ('%s','%s','%s','%s','%s');''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id)
-	get_GS_id = '''SELECT gs_id FROM production.geneset 
-		WHERE gs_name='%s' AND gs_description='%s' AND gs_abbreviation='%s' AND gs_count='%s' AND sp_id='%s';''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id)
+    	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, sp_id) VALUES ('%s','%s','%s','%s') RETURNING gs_id;''' % (gs_name, gs_description, gs_abbreviation, sp_id)
+	
     else:
 	user_id = flask.g.user.user_id if 'user' in flask.g else None
 	if user_id == None:
 	    return "You must be signed in to make a private geneset."
-	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, gs_count, sp_id, usr_id)
-		 VALUES ('%s','%s','%s','%s','%s','%s');''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id, user_id)
-	get_GS_id = '''SELECT gs_id FROM production.geneset 
-		WHERE gs_name='%s' AND gs_description='%s' AND gs_abbreviation='%s' 
-		AND gs_count='%s' AND sp_id='%s' AND usr_id='%s';''' % (gs_name, gs_description, gs_abbreviation, len(all_results), sp_id, user_id)
+	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, sp_id, usr_id, gs_created) VALUES ('%s','%s','%s','%s','%s',now()) RETURNING gs_id;''' % (gs_name, gs_description, gs_abbreviation, sp_id, user_id)
+		
 
+    print GS_sql
+    gs_id = "id will be got from query";
+    #with geneweaverdb.PooledCursor() as cursor:
+    #	    cursor.execute(GS_sql)
+    #       cursor.connection.commit()
+    #       gs_id=cursor.fetchone()[0]				
+    #if gs_id == None:
+    #	return "Error getting geneset ID."
     
+    if pub_id:
+	geneset_update_sql = '''UPDATE production.geneset SET %s WHERE %s;''' % ('pub_id=\''+pub_id+'\'', 'gs_id=\''+gs_id+'\'') 
+	print geneset_update_sql
 
-    
-    gs_id = ""
+    for ode_gene_id in unique_gene_ids:
+	values = []
+	sources = []
+	
+	for res in all_results:
+	    if res['ode_gene_id'] == ode_gene_id:
+	        sources.append(res['ref_id'])
+		if res['value']:
+		    values.append(res['value'])
+		else:
+		    values.append(1)
 
-    #for item in temp_results:	
-	#GS_value_sql = '''INSERT INTO extsrc.genset_value(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, gsv_value_list, gsv_in_threshold) VALUES ('%s','%s','%s','%s','%s','%s');''' % #(gs_id, item['ode_gene_id'], )
+	avg = 0
+	for val in values:
+	    avg += val
+	avg /= len(values)		
+	    
+	GS_value_sql = '''INSERT INTO extsrc.genset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list) VALUES ('%s','%s','%s',('%s'),('%s'));''' % (gs_id, ode_gene_id, avg, '\',\''.join(sources), '\',\''.join(str(v) for v in values))
+	print GS_value_sql
+	#with geneweaverdb.PooledCursor() as cursor:
+    #	    cursor.execute(GS_value_sql)
+    #	    cursor.connection.commit()
 
 
     return "Geneset Created"
