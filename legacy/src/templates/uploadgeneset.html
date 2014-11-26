@@ -8,18 +8,44 @@ $(document).ready(function()  {
 
 	$('#upload-geneset-form').submit(function(event) {
 		event.preventDefault();
+		$('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') })
+
+		var data = new FormData($(this)[0]);
+
+		var fileSelect = document.getElementById('file_data');
+	   	var reader = new FileReader();
+		if( !fileSelect.disabled )
+		{
+		    var file = fileSelect.files;		    
+	  	    //formData.append('selected_file', file[0], file[0].name);
+		    reader.onload = createReaderHandler(file[0].name);
+		    reader.readAsText(file[0]);
+
+		}
+
 		var data = $("#upload-geneset-form").serialize();
+		//alert(reader.result);
+
  		$.ajax({
           		type: "POST",
            		url: "../creategeneset.html",
            		data: data,
+			//processData: false,
+    			//contentType: false,
 			success: function(data)
            		{
-			    alert(data);	
+			    alert(data);
+			    $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') })	
            		}
          	    });		   
 		
 	});
+
+	function createReaderHandler(name) {
+  	    return function(ev) {
+    		data[name] = ev.target.result;
+  	};
+}
 	$("#pubmed_manual_button").click(function() {
 		$("#pubmed_manual").toggle();
 		
@@ -60,7 +86,7 @@ function toggle_pasting() {
 <p>
     Use this page to upload a geneset.<br>A * indicates required fields.
 </p>
-<form id="upload-geneset-form" type="multipart/form-data">
+<form id="upload-geneset-form"  enctype="multipart/form-data" method="POST" >
     <h2>Geneset Metadata</h2>
     <p>
         Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
@@ -70,7 +96,7 @@ function toggle_pasting() {
             GeneSet Name*:
         </div>
         <div class="col-md-4">
-            <input type="text" name="gs_name" required>
+            <input type="text" name="gs_name" required value="admin">
         </div>
     </div>
     <br>
@@ -79,7 +105,7 @@ function toggle_pasting() {
             GeneSet Figure Label*:
         </div>
         <div class="col-md-4">
-            <input type="text" name="gs_abbreviation" required>
+            <input type="text" name="gs_abbreviation" required value="admin"> 
         </div>
     </div>
     <br>
@@ -88,7 +114,7 @@ function toggle_pasting() {
             GeneSet Description*:
         </div>
         <div class="col-md-4">
-            <input type="text" name="gs_description" required>
+            <input type="text" name="gs_description" required value="admin">
         </div>
     </div>
     <br>
@@ -198,7 +224,7 @@ function toggle_pasting() {
         <div id="paste_uploader" class="col-md-4" style="display: block">
             <button class="button" type="button" onclick="toggle_pasting()">Click here to upload a file</button>
             <br>Manually Enter Genes one per line.<br>Format (tab separated): gene	genescore<br>	
-            <textarea id="file_text" rows="15" cols="40" name="file_text" placeholder="gene1    0.92" required></textarea>
+            <textarea id="file_text" rows="15" cols="40" name="file_text" placeholder="gene1    0.92" required ></textarea>
         </div>
         <div id="file_uploader" class="col-md-4" style="display: none">
 	    <button class="button" type="button" onclick="toggle_pasting()" >Click here to manually enter data</button><br><br>
