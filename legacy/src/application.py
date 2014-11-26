@@ -398,6 +398,7 @@ class AdminEdit(adminviews.Authentication, BaseView):
 def admin_widget_1():  
     if "user" in flask.g and flask.g.user.is_admin:
 	data = geneweaverdb.genesets_per_tier()
+	print data
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -439,6 +440,15 @@ def admin_widget_5():
     if "user" in flask.g and flask.g.user.is_admin:
 	data = geneweaverdb.currently_running_tools()	
         return json.dumps(data, default=date_handler)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
+
+@app.route('/admin/sizeofgenesets')
+def admin_widget_6():  
+    if "user" in flask.g and flask.g.user.is_admin:
+	data = geneweaverdb.size_of_genesets()
+	print data	
+        return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
 

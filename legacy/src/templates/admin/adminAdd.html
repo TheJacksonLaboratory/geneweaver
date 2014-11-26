@@ -49,12 +49,14 @@
 		</div>
 	    {% endfor %}
 	     {% for col in columns %}
+	     {% if col.column_name != '_searchtext' %}
 		<div class="form-group">
 	    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}}</label>
 		    <div class="col-sm-9">
 	    		<input name={{col.column_name}} style="width:100%" class="form-control" type="text"></input>	    		
 		   </div>
 		</div>
+	    {% endif %}
 	    {% endfor %}
 	  <p><p>
 	  <div class="col-sm-9 col-sm-offset-3">

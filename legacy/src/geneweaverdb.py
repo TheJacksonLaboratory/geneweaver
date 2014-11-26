@@ -404,15 +404,6 @@ def get_primary_keys(table):
     except Exception, e:
 	return str(e)
 
-def get_foreign_keys(table):
-    try:
-        with PooledCursor() as cursor:
-	    cursor.execute(
-	     '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (table))
-	    return list(dictify_cursor(cursor))
-    except Exception, e:
-	return str(e)
-
 #get all columns for a table that aren't auto increment and can't be null
 def get_required_columns(table):
     sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s'AND table_schema='%s' AND is_nullable='NO' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (table.split(".")[1],table.split(".")[0],table.split(".")[1],"%nextval(%",table.split(".")[0])
@@ -447,15 +438,18 @@ def admin_get_data(table, cols, keys):
 
 #removes item from db that has specified primary key(s)
 def admin_delete(args,keys):
-    table = args.get('table', type=str)  
+    table = args.get('table', type=str)
+
+    if len(keys) <= 0:
+	return "Error: No primary key constraints set."	  
 
     sql = '''DELETE FROM %s WHERE %s;''' % (table,' AND '.join(keys))
 
     print sql
     try:
         with PooledCursor() as cursor:	    
-    	    cursor.execute('''SELECT * FROM production.usr LIMIT 1''')
-	    #cursor.connection.commit()
+    	    cursor.execute(sql)
+	    cursor.connection.commit()
 	    return "Deletion Successful"
     except Exception, e:
 	return str(e)
@@ -589,6 +583,14 @@ def currently_running_tools():
         with PooledCursor() as cursor:
    	    cursor.execute('''SELECT res_id, usr_id, res_tool, res_status FROM production.result WHERE res_completed is NULL;''')				
         return list(dictify_cursor(cursor))
+    except Exception, e:
+        return str(e)
+
+def size_of_genesets():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT gs_id, gs_count FROM production.geneset WHERE gs_status not like 'de%' ORDER BY gs_id limit 1000;''')				
+        return OrderedDict(cursor)
     except Exception, e:
         return str(e)
 	
