@@ -700,35 +700,66 @@ class ToolJaccardClustering(restful.Resource):
     def get(self, apikey, homology, method, genesets):
         return jaccardclusteringblueprint.run_tool_api(apikey, homology, method, genesets)
 
+class ToolJaccardClusteringProjects(restful.Resource):
+
+	def get(self, apikey, homology, method, projects):
+		genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+		return jaccardclusteringblueprint.run_tool_api(apikey, homology, method, genesets)
 
 class ToolGenesetViewer(restful.Resource):
 
 	def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
 		return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
 
+class ToolGenesetViewerProjects(restful.Resource):
+
+	def get(self, apikey, homology, supressDisconnected, minDegree, projects):
+		genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+		return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
 
 class ToolJaccardSimilarity(restful.Resource):
 
     def get(self, apikey, homology, pairwiseDeletion, genesets):
         return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
+class ToolJaccardSimilarityProjects(restful.Resource):
+
+    def get(self, apikey, homology, pairwiseDeletion, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
 class ToolCombine(restful.Resource):
 
     def get(self, apikey, homology, genesets):
         return combineblueprint.run_tool_api(apikey, homology, genesets)
+        
+class ToolCombineProjects(restful.Resource):
 
+    def get(self, apikey, homology, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return combineblueprint.run_tool_api(apikey, homology, genesets)
 
 class ToolPhenomeMap(restful.Resource):
 
     def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
         return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
+class ToolPhenomeMapProjects(restful.Resource):
+
+    def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
+
 class ToolBooleanAlgebra(restful.Resource):
 
     def get(self, apikey, relation, genesets):
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
-        
+  
+class ToolBooleanAlgebraProjects(restful.Resource):
+
+    def get(self, apikey, relation, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)      
 
 api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
 api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
@@ -747,11 +778,22 @@ api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>
 api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
 
 api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
+api.add_resource(ToolGenesetViewerProjects, '/api/tool/genesetviewer/byprojects/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<projects>/')
+
 api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
+api.add_resource(ToolJaccardClusteringProjects, '/api/tool/jaccardclustering/byprojects/<apikey>/<homology>/<method>/<projects>/')
+
 api.add_resource(ToolJaccardSimilarity, '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+api.add_resource(ToolJaccardSimilarityProjects, '/api/tool/jaccardsimilarity/byprojects/<apikey>/<homology>/<pairwiseDeletion>/<projects>/')
+
 api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
+api.add_resource(ToolCombineProjects, '/api/tool/combine/byprojects/<apikey>/<homology>/<projects>/')
+
 api.add_resource(ToolPhenomeMap, '/api/tool/phenomemap/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<genesets>/')
+api.add_resource(ToolPhenomeMapProjects, '/api/tool/phenomemap/byprojects/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<projects>/')
+
 api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relation>/<genesets>/')
+api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byprojects/<apikey>/<relation>/<projects>/')
 
 # ********************************************
 # END API BLOCK

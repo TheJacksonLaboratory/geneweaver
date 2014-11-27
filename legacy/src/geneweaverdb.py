@@ -1387,7 +1387,7 @@ def get_all_ontologies_by_geneset(gs_id):
 							) row; ''', (gs_id, gs_id, gs_id))
 	return cursor.fetchall();
 
-#TESTING
+
 def get_genesets_by_projects(apikey, projectids):
 	user = get_user_id_by_apikey(apikey)
 	projects = '('
@@ -1406,9 +1406,6 @@ def get_genesets_by_projects(apikey, projectids):
 	query += ' and usr_id = '
 	query +=  str(user[0])
 	query += ');'
-	
-	print("LOOK HERE FOR QUERY:")
-	print(query)
 	
 	with PooledCursor() as cursor:
 		cursor.execute(query)					
