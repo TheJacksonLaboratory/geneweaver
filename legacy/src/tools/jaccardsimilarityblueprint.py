@@ -117,7 +117,8 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets):
         json.dumps(params),
         tool.name,
         desc,
-        desc)
+        desc, 't')
+        
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={

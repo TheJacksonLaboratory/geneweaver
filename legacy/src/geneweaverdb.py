@@ -169,24 +169,34 @@ def get_genesets_for_project(project_id, auth_user_id):
 # this function currently does not check permissions of genesets or projects, however the interface never
 #	should have a pj_id that the user doesn't have permission to if they use the 
 #	get_all_projects function below, and no geneset should be able to be selected from front end
-#	that the current user does not have permisiions on      
-def insert_geneset_to_project(project_id, geneset_id):
-    with PooledCursor() as cursor:
-        cursor.execute(
-            '''
-            INSERT INTO project2geneset (pj_id, gs_id, modified_on)
-            VALUES (%s, %s, now())
-            RETURNING pj_id;
-            ''',
-            (project_id, geneset_id,)
-        )
-        cursor.connection.commit()
+#	that the current user does not have permisiions on. geneset_id_list is a list, project_id is an int
+#	NOT TESTED
+def insert_geneset_to_project(project_id, geneset_id_list):
+	insertQuery = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES"
+	
+	for i in range(0, len(geneset_id_list) -1):
+		insertQuery += "(" + str(project_id) +", "+str(geneset_id_list[i]) + ", now()) ,"
+	insertQuery += "(" + str(project_id) +", "+str(geneset_id_list[-1]) + ", now())"
+	
+	with PooledCursor() as cursor:
+		cursor.execute(
+			insertQuery
+		)
+#           '''
+#           INSERT INTO project2geneset (pj_id, gs_id, modified_on)
+#           VALUES (%s, %s, now())
+#           RETURNING pj_id;
+#           ''',
+#           (project_id, geneset_id,)
+#       )
+	cursor.connection.commit()
 
-        # return the primary ID for the insert that we just performed
-        return cursor.fetchone()[0]
+	# return nothing
+	return
 
 # this function creates a project with no genesets associated with it
 # if a guest is creating a project, pass in -1 for user_id
+# NOT TESTED
 def create_project(project_name, user_id):
 	if user_id > 0:
 		with PooledCursor() as cursor:
@@ -247,6 +257,135 @@ def get_all_projects(usr_id):
 
         return [Project(d) for d in dictify_cursor(cursor)]
 
+# Begin group block, Getting specific groups for a user, and creating/modifying them
+
+def get_all_owned_groups(usr_id):
+    """
+    returns all owned groups of the given user ID
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT *
+			   FROM prodction.usr2group
+			   WHERE usr_id = %s and u2g_privileges = 1''', (user_id,)
+        )
+        
+        return list(dictify_cursor(cursor))
+
+def get_all_member_groups(usr_id):
+    """
+    returns all groups the given user ID is a member of
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT *
+			   FROM prodction.usr2group
+			   WHERE usr_id = %s and (u2g_privileges = 0 or u2g_privileges IS NOT NULL)''', (user_id,)
+        )
+        
+        return list(dictify_cursor(cursor))
+
+# group_name is a string provided by user, group_private should be either true or false
+# true, the group is private. false the group is public.
+# The user_id will be initialized as the owner of the group        
+def create_group(group_name, group_private, user_id):
+	if(group_private):
+		with PooledCursor() as cursor:
+			cursor.execute(
+				'''
+				INSERT INTO production.grp (grp_name, grp_private)
+				VALUES (%s, %s)
+				RETURNING grp_id;
+				''',
+				(group_name, 't',)
+			)
+			cursor.connection.commit()
+			# return the primary ID for the insert that we just performed	
+			grp_id = cursor.fetchone()[0]
+	else:
+		with PooledCursor() as cursor:
+			cursor.execute(
+				'''
+				INSERT INTO production.grp (grp_name, grp_private)
+				VALUES (%s, %s)
+				RETURNING grp_id;
+				''',
+				(group_name, 'f',)
+			)
+			cursor.connection.commit()
+			# return the primary ID for the insert that we just performed	
+			grp_id = cursor.fetchone()[0]
+			
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''
+			INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges)
+			VALUES (%s, %s, 1 );
+			''',
+			(grp_id, user_id, )
+		)
+		cursor.connection.commit()		
+	
+	return grp_id
+
+# adds a user to the group specified.
+# permision should be passed as 0 if it is a normal user
+# permision should be passed as 1 if it is an admin
+# permision is defaulted to 0			        
+def add_user_to_group(group_id, user_id, permission = 0):
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''
+			INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges)
+			VALUES (%s, %s, %s)
+			RETURNING grp_id;
+			''',
+			(group_id, user_id, permission,)
+		)
+		cursor.connection.commit()
+		# return the primary ID for the insert that we just performed	
+		grp_id = cursor.fetchone()[0]
+			
+	return grp_id
+
+# switches group active field between false and true, and true and false	
+def toggle_group_active(group_id, user_id ):
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''
+			UPDATE production.usr2grp
+			SET u2g_active = not u2gactive
+			WHERE grp_id = %s and usr_id = %s;
+			''',
+			(group_id, user_id,)
+		)
+		cursor.connection.commit()
+		return
+
+# Be Careful with this fucntion
+# Only let owners of groups call this function
+def delete_group(group_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''
+			DELETE FROM production.usr2grp
+			WHERE grp_id = %s;
+			''',
+			(group_id,)
+		)
+		cursor.connection.commit()
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''
+			DELETE FROM production.grp
+			WHERE grp_id = %s;
+			''',
+			(group_id,)
+		)
+		cursor.connection.commit()
+		return
+			
+# End group block
 
 def get_all_species():
     """
@@ -472,6 +611,54 @@ def admin_add(args):
     with PooledCursor() as cursor:
 	cursor.execute(sql)
 
+# New code for Tools, Next 5 functions Modify usr2gene for Emphasis
+# Not tested fucntion, query tested; returns usr id of usr it was inserted for
+def create_usr2gene(user_id, ode_gene_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO extsrc.usr2gene (usr_id, ode_gene_id)
+            VALUES (%s, %s)
+            ''',
+            (user_id, ode_gene_id,)
+        )
+        cursor.connection.commit()
+        # return the primary ID for the insert that we just performed
+
+# insert delete all  with usr id
+def delete_usr2gene_by_user(user_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+	        '''DELETE FROM usr2gene WHERE usr_id=%s;''',(user_id,)
+        )
+
+        cursor.connection.commit()
+        return
+
+# insert delete specific gene_id with usr id
+def delete_usr2gene_by_user_and_gene(user_id, ode_gene_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+	        '''DELETE FROM usr2gene WHERE usr_id=%s AND ode_gene_id=%s;''',(user_id, ode_gene_id,)
+        )
+        cursor.connection.commit()
+        return
+
+
+# Not tested fucntion, query tested; insert get all gene and species stuff from u2g, gene, and species
+def get_gene_and_species_info_by_user(user_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gene.*, species.* FROM (extsrc.gene INNER JOIN odestatic.species USING (sp_id)) INNER JOIN usr2gene USING (ode_gene_id) WHERE gene.ode_pref and usr2gene.usr_id = (%s);''', (user_id,))
+    return list(dictify_cursor(cursor))
+
+# Not tested fucntion, query tested;gets all gene and species stuff from gene, and species
+def get_gene_and_species_info(ode_ref_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gene.*, species.* FROM extsrc.gene INNER JOIN odestatic.species USING (sp_id) WHERE lower(ode_ref_id)=lower(%s);''', (ode_ref_id,))
+    return list(dictify_cursor(cursor))
+# end block of Emphasis functions
 
 #*************************************************************
 class User:
@@ -729,6 +916,37 @@ def get_geneset(geneset_id, user_id=None):
         )
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
+        
+        
+def get_geneset_brief(geneset_id, user_id=None):
+    """
+    Gets the Geneset if either the geneset is publicly visible or the user
+    has permission to view it.
+    :param geneset_id:  the geneset ID
+    :param user_id:     the user ID that needs permission
+    :return:            the Geneset corresponding to the given ID if the
+                        user has read permission, None otherwise
+    """
+
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    if user_id is None:
+        user_id = -1
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT geneset.cur_id, geneset.sp_id, geneset.attribution, geneset.gs_count, geneset.gs_status, geneset.gs_id, geneset.gs_name
+            FROM geneset 
+            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            ''',
+            {
+                'geneset_id': geneset_id,
+                'user_id': user_id,
+            }
+        )
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets[0] if len(genesets) == 1 else None
+
 
 def get_genesets_by_user_id(user_id):
     """
@@ -820,8 +1038,7 @@ def get_tool_params(tool_classname, only_visible=False):
                 '''SELECT * FROM tool_param WHERE tool_classname=%s AND tp_visible ORDER BY tp_name;''',
                 (tool_classname,))
         else:
-            cursor.execute(
-                '''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
+            cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
                 (tool_classname,))
         return [ToolParam(d) for d in dictify_cursor(cursor)]
 
@@ -892,15 +1109,15 @@ def get_run_status(run_hash):
         return total_queued, before_queued
 
 
-def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status):
+def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_api = 'f'):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, now())
+            INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started, res_api)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, now(), %s)
             RETURNING res_id;
             ''',
-            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
+            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status, res_api)
         )
         cursor.connection.commit()
 
@@ -1098,7 +1315,7 @@ def get_gene_by_id(gene_id):
     return cursor.fetchall()
 
 
-def get_geneset_by_id(geneset_id):
+def get_geneset_by_geneset_id(geneset_id):
     """
     Get all gene info for a specifics gene_id
     :return: the gene matching the given ID or None if no such gene is found
@@ -1108,7 +1325,7 @@ def get_geneset_by_id(geneset_id):
         cursor.execute(
             ''' SELECT row_to_json(row, true) 
                 FROM (  SELECT * 
-                        FROM extsrc.geneset_value 
+                        FROM production.geneset
                         where gs_id = %s) row; ''', (geneset_id,))
 
     return cursor.fetchall()
@@ -1141,6 +1358,66 @@ def get_projects_by_user(apikey):
 												WHERE apikey = %s)											
 							) row; ''', (apikey,))
 	return cursor.fetchall();
+
+def get_all_ontologies_by_geneset(gs_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(
+								SELECT *
+								FROM extsrc.ontology natural join odestatic.ontologydb
+								WHERE ont_id in (	SELECT ont_id
+													FROM extsrc.geneset_ontology
+													WHERE gs_id = %s
+												)
+								or ont_id in    (	SELECT ont_children
+													FROM extsrc.ontology
+													WHERE ont_id in (	SELECT ont_id
+																		FROM extsrc.geneset_ontology
+																		WHERE gs_id = %s
+																	)
+												)
+								or ont_id in	(	SELECT ont_parents
+													FROM extsrc.ontology
+													WHERE ont_id in	(	SELECT ont_id
+																		FROM extsrc.geneset_ontology
+																		WHERE gs_id = %s
+																	)
+												) order by ont_id
+							) row; ''', (gs_id, gs_id, gs_id))
+	return cursor.fetchall();
+
+
+def get_genesets_by_projects(apikey, projectids):
+	user = get_user_id_by_apikey(apikey)
+	projects = '('
+	pArray = projectids.split(':')
+	formGenesets = ''
+	print(user[0])
+	
+	for proj in pArray:
+		if(len(projects) > 1):
+			projects += ','
+		projects += proj
+	projects += ')'
+	
+	query = 'SELECT gs_id FROM production.project2geneset WHERE pj_id in (SELECT pj_id FROM production.geneset WHERE pj_id in '
+	query += projects
+	query += ' and usr_id = '
+	query +=  str(user[0])
+	query += ');'
+	
+	with PooledCursor() as cursor:
+		cursor.execute(query)					
+							
+	genesets = cursor.fetchall()
+	
+	for geneset in genesets:
+		if(len(formGenesets) > 0):
+			formGenesets += ':'
+		formGenesets += str(geneset[0])
+	
+	return formGenesets
 
 def get_geneset_by_project_id(apikey, projectid):
 	user = get_user_id_by_apikey(apikey)
