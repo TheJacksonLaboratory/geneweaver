@@ -452,6 +452,35 @@ def admin_widget_6():
     else:
 	return flask.render_template('admin/adminForbidden.html')
 
+@app.route('/admin/timetoruntools')
+def admin_widget_7():  
+    if "user" in flask.g and flask.g.user.is_admin:
+	tools = geneweaverdb.tools();
+	#print tools
+	data = geneweaverdb.gs_in_tool_run()
+
+	geneset_sizes = dict()
+	master_distinct_sizes = []
+	for t in tools:
+	    tool = t['res_tool']
+	    distinct_sizes = []		    
+	    for item in data:
+		if item['res_tool'] == tool:
+		    size = len(item['gs_ids'].split(","))
+		    if size not in distinct_sizes:			
+			distinct_sizes.append(size)
+		    if size not in master_distinct_sizes:			
+			distinct_sizes.append(size)
+	    #print distinct_sizes
+	    geneset_sizes.update({tool: distinct_sizes})
+
+	print geneset_sizes	
+	
+	#print data	
+        return json.dumps(data)
+    else:
+	return flask.render_template('admin/adminForbidden.html')
+
 @app.route('/admin/adminEdit')
 def admin_edit():  
     if "user" in flask.g and flask.g.user.is_admin:

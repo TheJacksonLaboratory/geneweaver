@@ -21,7 +21,7 @@ class Viewers(Authentication, BaseView):
     @expose('/')
     def index(self):
         if self.endpoint == 'viewUsers':
-	    table='production.usr'
+	    table='production.result'
 	    dbcols=geneweaverdb.get_all_columns( table)
             columns=[]
 	    for col in dbcols:

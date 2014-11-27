@@ -589,8 +589,32 @@ def currently_running_tools():
 def size_of_genesets():
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT gs_id, gs_count FROM production.geneset WHERE gs_status not like 'de%' ORDER BY gs_id limit 1000;''')				
+   	    cursor.execute('''SELECT gs_id, gs_count FROM production.geneset WHERE gs_status not like 'de%' ORDER BY gs_count DESC limit 1000;''')				
         return OrderedDict(cursor)
+    except Exception, e:
+        return str(e)
+
+def avg_tool_times():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT res_tool, avg(res_completed - res_started) FROM production.result GROUP BY res_tool ORDER BY res_tool''')				
+        return OrderedDict(cursor)
+    except Exception, e:
+        return str(e)
+
+def gs_in_tool_run():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT res_id, res_tool, gs_ids FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_id;''')				
+        return list(dictify_cursor(cursor))
+    except Exception, e:
+        return str(e)
+
+def tools():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT DISTINCT res_tool FROM production.result;''')				
+        return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)
 	

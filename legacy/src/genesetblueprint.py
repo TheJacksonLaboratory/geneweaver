@@ -128,7 +128,7 @@ def infer_id_kind():
 
 
 @geneset_blueprint.route('/creategeneset.html', methods=['POST'])
-def create_geneset():
+def create_geneset(): 
 
     form = flask.request.form
     print form
@@ -164,8 +164,7 @@ def create_geneset():
 
     for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
         curr_id = ''
-        curr_val = None
-        #counts_by_source = dict()  
+        curr_val = None 
 
         if len(curr_toks) >= 1:
             curr_id = curr_toks[0]
@@ -193,23 +192,6 @@ def create_geneset():
 		            unique_gene_ids.append(gene_results[0]['ode_gene_id'])
 
                         all_results += gene_results
-
-	  	    #idk what this does?
-                   # if gene_results:
-                   #    result_sources = set()
-                    #    for curr_result in gene_results:
-                     #       key_tuple = (True, curr_result['source'])
-                    #        curr_counts = None
-                     #       try:
-                      #          curr_counts = counts_by_source[key_tuple]
-                       #     except KeyError:
-                        #        curr_counts = [0, 0]
-                         #       counts_by_source[key_tuple] = curr_counts
-
-                            # we need to make sure not to double count a source here
-                        #    if curr_result['source'] not in result_sources:
-                         #       curr_counts[0] += 1
-                          #  curr_counts[1] += 1
 
 		#getting platform results
                 platform_results = None
@@ -251,6 +233,44 @@ def create_geneset():
     if len(all_results) < 1:
 	return "No genes found to enter"
 
+    pub_id = None
+    if form['pub_pubmed']:
+	exists = True
+	with geneweaverdb.PooledCursor() as cursor:
+	    pubcheck = None
+    	    cursor.execute('''SELECT pub_id FROM production.publication where pub_pubmed=%s;''', (form['pub_pubmed'],))
+	    try:
+                 pubcheck=cursor.fetchone()[0]
+	    except Exception:
+		pubcheck=None
+
+	    if pubcheck:
+		pub_id=pubcheck	
+	    else:
+		exists=False    
+	if exists == False:
+	    cols = dict()
+	    reg = re.compile('pub_*')
+	    for item in form.keys():
+	        if re.match(reg, item):
+		    if form[item]:
+		        cols.update({item:form[item]})
+	    if len(cols) > 0:
+	        values = []
+	        keys = []
+	        for item in cols.keys():
+	    	    values.append(cols[item])
+		    keys.append(item)
+	        with geneweaverdb.PooledCursor() as cursor:
+	            pub_sql = '''INSERT INTO production.publication(%s) VALUES ('%s') RETURNING pub_id;''' % (','.join(keys), '\',\''.join(values), )
+    	            #cursor.execute(pub_sql)
+		    #cursor.connection.commit()
+		    #pub_id=cursor.fetchone()[0]
+	 	    print pub_sql
+	    
+		
+	
+
     file_id=None
     with geneweaverdb.PooledCursor() as cursor:
         file_sql = '''INSERT INTO production.file(file_size, file_contents) VALUES (%s, '%s') RETURNING file_id;''' % ( len(file_text), file_text, )
@@ -268,13 +288,19 @@ def create_geneset():
     
     gs_id = "None";
     with geneweaverdb.PooledCursor() as cursor:
-	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, sp_id, usr_id, gs_created, cur_id, file_id) VALUES ('%s','%s','%s','%s',%s,now(),%s,%s) RETURNING gs_id;''' % (gs_name, gs_description, gs_abbreviation, sp_id, user_id, cur_id, file_id)
+	GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, sp_id, usr_id, gs_created, cur_id, file_id, gs_status) VALUES ('%s','%s','%s','%s',%s,now(),%s,%s,'%s') RETURNING gs_id;''' % (gs_name, gs_description, gs_abbreviation, sp_id, user_id, cur_id, file_id,"normal")
     #	cursor.execute(GS_sql)
     #   cursor.connection.commit()
     #   gs_id=cursor.fetchone()[0]	
-        print GS_sql   			
-    #if gs_id == None:
-    #	return "Error getting geneset ID."
+        print GS_sql
+	#if gs_id == None:
+        #    return "Error getting geneset ID."   	
+	if pub_id:
+	    pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id ,gs_id)	
+	#   cursor.execute(pub_sql)
+    	#   cursor.connection.commit()	
+	    print pub_sql
+    
     
 
     #creates geneset_value insertion queries for every unique ode_gene_id

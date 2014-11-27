@@ -47,6 +47,7 @@
        <option label="tools_ran_per_user" value="user_tools_ran">Tools Ran Per User</option>       
        <option label="currently_running_tools" value="currently_running_tools">Currently Running Tools</option>
        <option label="size_of_genesets" value="size_of_genesets">Size of Genesets</option>
+       <option label="time_to_run_tools" value="time_to_run_tools">Relative Time to Run Tools</option>
    </select><br><br>
 </div>
    <div id="graph_container" class="container" style="text-align: center">	
@@ -80,8 +81,8 @@
       <div id = "div-six" style="display:none">         
             <svg id="size_of_genesets" class="chart"></svg>	 	
       </div>
-      <div id = "div-x" style="display:none">
-          <svg id="bubble_chart" ></svg>
+      <div id = "div-seven" style="display:none">
+          <svg id="time_to_run_tools" ></svg>
       </div>
    </div>
 </div>
@@ -128,6 +129,11 @@
 			get_db_info("../admin/sizeofgenesets", "#size_of_genesets", "Size of Genesets");
 			$('#div-six').show();			
 		   }
+		   if(item.val() == 'time_to_run_tools') 
+		   {
+			get_db_info("../admin/timetoruntools", "#time_to_run_tools", "Time to Run a Tool");
+			$('#div-seven').show();			
+		   }	
 		    	    
 		});
     });
@@ -283,26 +289,10 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
                 //d0 = data[i - 1],
                 //d1 = data[i],
                 //d = x0 - d0.date > d1.date - x0 ? d1 : d0;
-            //focus.attr("transform", "translate(" + x(d.key) + "," + y(d.value) + ")");
-            focus.select("text").text(d3.keys(data)[x0]);
-        } 
-
-	function closest(array,num){
-    		var i=0;
-    		var minDiff=1000;
-    		var ans;
-    		for(i in array){
-         		var m=Math.abs(num-array[i]);
-         		if(m<minDiff){ 
-                		minDiff=m; 
-                		ans=array[i]; 
-            	}
-      }
-    return ans;
+            focus.attr("transform", "translate(" + x(d3.keys(data)[x0]) + "," + y(data[d3.keys(data)[x0]]) + ")");
+            focus.select("text").text("Geneset ID: " + d3.keys(data)[x0] + ", Size: " + data[d3.keys(data)[x0]]);
+        } 	
 }
-}
-
-
 	
     function generate_bar_chart(data, chartname, title, yaxislabel) {
         var margin = {
