@@ -1,0 +1,177 @@
+{% set title="GeneSet Intersection List" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+{% for gs in genesets %}
+	<!-- Label the tier - which is the curation id, Geneset.cur_id -->
+    <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ gs.geneset_id }}">
+    <a style="margin-left:30px; font-size:18px;">
+	{% if gs.cur_id == 1 %}
+                    <span class="tier1">Tier I</span>
+	{% endif %}
+        {%if gs.cur_id == 2 %}
+                    <span class="tier2">Tier II</span>
+	{% endif %}
+        {%if gs.cur_id == 3 %}
+                    <span class="tier3">Tier III</span>
+	{% endif %}
+        {% if gs.cur_id == 4 %}
+                    <span class="tier4">Tier IV</span>
+	{% endif %}
+        {%if gs.cur_id == 5 %}
+                    <span class="tier5">Tier V</span>
+        {% endif %}
+
+	<!-- Label the species -->
+	{% if gs.sp_id == 1 %}
+		<span class="mouse">Mouse</span>
+	{% endif %}
+	{% if gs.sp_id == 2 %}
+		<span class="human">Human</span>
+	{% endif %}
+	{% if gs.sp_id == 3 %}
+		<span class="rat">Rat</span>
+	{% endif %}
+	{% if gs.sp_id == 4 %}
+		<span class="zebrafish">Zebrafish</span>
+	{% endif %}
+	{% if gs.sp_id == 5 %}
+		<span class="fly">Fly</span>
+	{% endif %}
+	{% if gs.sp_id == 6 %}
+		<span class="monkey">Monkey</span>
+	{% endif %}
+
+	<!-- Label the attribution -->
+	{% if gs.attribution == 2 %}
+		<span class="ctd">CTD</span>
+	{% endif %}
+	{% if gs.attribution == 7 %}
+		<span class="drg">DRG</span>
+	{% endif %}
+	{% if gs.attribution == 8 %}
+		<span class="go">GO</span>
+	{% endif %}
+	{% if gs.attribution == 9 %}
+		<span class="mp">MP</span>
+	{% endif %}
+
+	<!-- Show the geneset size -->
+	<span class="gs_size">{{gs.count}} Genes</span>
+	<!-- need status for if not normal -->
+	{% if gs.status != "normal" %}
+	<span class="gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
+	{% endif %}
+ 	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a></a>
+<br />
+
+{% endfor %}
+
+<input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
+    <p style="margin-left:30px; font-size: 15px;"> Select All
+    <select name="addToProject" onchange="return ODE.add_to_project(this);">
+        <option value="-1">Add selected to project...</option>
+        {% for project in list %}
+            <option value="{{project.name}}">{{project.name}} ({{project.count}})</option>
+        {% endfor %}
+        <option value="-2">+ Create new project...</option></select></p>
+
+<br /><br /><h3>Venn Diagram:</h3><hr>
+  <h4>Gene Symbol:</h4>
+  {% set size=300 %}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 {{size}} {{size}}"
+      xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"
+      >
+{% set venn = async_result.venn_diagrams[index|int] %}
+	<g transform="translate(50 50) scale(2)" opacity="{{ venn.opacity }}">
+     <circle cx="{{ venn.c1x }}" cy="{{ venn.c1y }}" r="{{ venn.r1 }}" fill="#ff0000" fill-opacity="1.0" stroke="#000000" stroke-width="1px" >
+       <title>{{venn.title1|safe}}</title><desc>{{venn.desc1|safe}}</desc>
+     </circle>
+     <circle cx="{{ venn.c2x }}" cy="{{ venn.c2y }}" r="{{ venn.r2 }}" fill="#0000ff" fill-opacity="0.4" stroke="#000000" stroke-width="1px" >
+       <title>{{ venn.title2|safe}}</title><desc>{$venn.desc2|safe}</desc>
+     </circle>
+     {% for vtext in venn.text %}
+       <text x="{{ vtext.tx }}" y="{{ vtext.ty }}" text-anchor="middle" transform="scale(0.75)">{{vtext.text|safe}}</text>
+     {% endfor %}
+	</g>
+
+</svg>
+
+<br /><br /><h3>Gene List:</h3><hr>
+<div class="xfloatGeneList">
+
+<style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
+
+<table cellspacing="0" style="font-size: 0.75em;"><tr><th rowspan="{$numgs}" valign="bottom">
+<p style="font-size: 0.75em; font-weight: normal;">
+<img src="images/greendot.png" /> = Exact same gene in all sets<br />
+<img src="images/purpledot.png" /> = Homologous gene cluster</p><br />Gene Symbol
+</th><th rowspan="{$numgs}" valign="bottom">Links
+
+{foreach from=$gsids key=j item=gs}
+      {assign var=rs value=`$numgs-$j`}
+      {assign var=cs value=`$rs+1`}
+      {if $j!=0 }
+        </th></tr><tr><th rowspan="{$rs}" style="border-left: 1px solid #000; border-bottom: none;
+        {if $j%2==1 } background-color: #fff;{/if}">&nbsp;
+      {/if}
+
+      </th><th align="left" colspan="{$cs}" style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
+      {if $j%2==0 } background-color: #fff;{/if}">
+      <a href="{ode_link action=manage cmd=viewgeneset other="gs_id=$gs"}">{$results.$gs.gs_abbreviation}</a>
+{/foreach}
+</th></tr>
+
+{foreach from=$genes key=name item=gene}
+      <tr><td class="{$gene.gaggle_tags}">{$truegenes.$name}</td><td class="gsIconBox" style="text-align: left;">
+      {foreach from=$gene.linkouts key=name item=url }
+         <a href="{$url}" target="_new"><img alt="{$name}" title="{$name}" src="images/linkouts/{$name|lower}.png" /></a>
+      {/foreach}
+      {foreach from=$gsids key=j item=gs }
+         </td><td valign="top" style="border-left: 1px solid #000;
+         {if $j%2==0 } background-color: #fff;{/if} padding: 0.5em;">
+         {if $gene.$gs!=0 }
+           {if $gene.$gs==1 }<div class="containedGene"><img src="images/greendot.png" alt="In GS{$gs}" /></div>
+           {elseif $gene.$gs==2 }<div class="containedHomology"><img src="images/purpledot.png" alt="In GS{$gs}, with homology to {$truegenes.$name}" /></div>
+           {/if}
+         {else}-{/if}
+      {/foreach}
+      </td><td width="250px">&nbsp;</td></tr>
+{/foreach}
+
+</table></div>
+
+<span class="gaggle-data">
+<span style="display:none;" class="gaggle-name">All displayed Genes</span>
+<span style="display:none;" class="gaggle-species">{$best_species}</span>
+<span style="display:none;" class="gaggle-namelist-tag">gene_tag</span>
+<span style="display: none;" class="gaggle-size">{$displayed_genes[0]}</span>
+</span>
+{if $sorton=='h'}
+ {assign var=with value='homologous to'}
+{else}
+ {assign var=with value='in'}
+{/if}
+{counter assign=i start=1}
+{foreach from=$gsids item=x}
+      {counter}
+      {if $i>1 && $i<=$numgs}
+      <span class="gaggle-data">
+      <span style="display:none;" class="gaggle-name">Genes {$with} {$i}{if $i!=$numgs}+{/if} Gene Sets</span>
+      <span style="display:none;" class="gaggle-species">{$best_species}</span>
+      <span style="display:none;" class="gaggle-namelist-tag">{$sorton}{$i}</span>
+      <span style="display: none;" class="gaggle-size">{$displayed_genes[$i]}</span>
+      </span>
+      {/if}
+{/foreach}
+</center>
+<a href="{$smarty.server.REQUEST_URI}&type=csv">Download this list as a .CSV file</a>
+<br />
+<br />
+
+<br>
+{% include 'footer.html' %}

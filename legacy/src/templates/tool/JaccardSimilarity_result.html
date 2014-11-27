@@ -6,9 +6,7 @@
     <h1>{{ title }}</h1>
 </div>
 
-
 <br /><h4>Table view:</h4>
-
 
 <br clear="all" /><div class="floatGeneList">
 <form name="listform" id="listform">
@@ -20,32 +18,37 @@
 {% endfor %}
 </th></tr>
 
+{% set j = 0 %}
 {% for item in async_result.geneset_table %}
+    {% set i = 0 %}
 <tr><td style="border-bottom: none; white-space:nowrap;" align="left">
-<label><input type="checkbox" name="gs_id[]" value="{{ item.gsID[:2] }}">
-<a style="font-size:1.0em;" href="{{ item.url }}">{{ item.text }}</a></td>
+<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
+<a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
     {% for jac in item.entries %}
 	<td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
-    {% if jac.url %}
+    {% if jac.url == "0" %}
+       <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}">{{ jac.text | safe }}</a>
+    {% elif jac.url %}
 	   <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
     {% else %}
 	   <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
     {% endif %}
     </td>
-    </label>
-
+    {% set i = i + 1 %}
 	{% endfor %}
+    {%set j = j + 1 %}
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
 
 <tr><td colspan="4" style="border-bottom: none;">
-<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All </label>
+<input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
+    <p style="margin-left:30px; font-size: 15px;"> Select All
     <select name="addToProject" onchange="return ODE.add_to_project(this);">
         <option value="-1">Add selected to project...</option>
         {% for project in list %}
             <option value="{{project.name}}">{{project.name}} ({{project.count}})</option>
         {% endfor %}
-        <option value="-2">+ Create new project...</option>
+        <option value="-2">+ Create new project...</option></select></p>
 </td></tr>
 </table><br clear="all" />
 
