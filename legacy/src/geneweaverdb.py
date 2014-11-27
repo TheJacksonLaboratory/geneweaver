@@ -594,18 +594,23 @@ def size_of_genesets():
     except Exception, e:
         return str(e)
 
-def avg_tool_times():
+def avg_tool_times(keys, tool):
+    #if len(keys) < 2:
+	#sql='''SELECT (res_completed - res_started) FROM production.result WHERE res_tool='%s' AND res_id=%s;''' % (tool, ' OR res_id='.join(str(v) for v in keys))
+   # else:
+    sql='''SELECT avg(res_completed - res_started) FROM production.result WHERE res_tool='%s' AND res_id=%s;''' % (tool, ' OR res_id='.join(str(v) for v in keys))
+    print sql
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT res_tool, avg(res_completed - res_started) FROM production.result GROUP BY res_tool ORDER BY res_tool''')				
-        return OrderedDict(cursor)
+   	    cursor.execute(sql)				
+        return cursor.fetchone()[0]
     except Exception, e:
         return str(e)
 
 def gs_in_tool_run():
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT res_id, res_tool, gs_ids FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_id;''')				
+   	    cursor.execute('''SELECT res_id, res_tool, gs_ids, res_completed FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_completed DESC LIMIT 100;''')				
         return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)

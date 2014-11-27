@@ -456,28 +456,45 @@ def admin_widget_6():
 def admin_widget_7():  
     if "user" in flask.g and flask.g.user.is_admin:
 	tools = geneweaverdb.tools();
-	#print tools
 	data = geneweaverdb.gs_in_tool_run()
 
 	geneset_sizes = dict()
-	master_distinct_sizes = []
+	genesets_by_resid = dict()
+
+	all_gs_sizes=[]
 	for t in tools:
 	    tool = t['res_tool']
-	    distinct_sizes = []		    
+	    distinct_sizes = dict()	    
 	    for item in data:
 		if item['res_tool'] == tool:
 		    size = len(item['gs_ids'].split(","))
-		    if size not in distinct_sizes:			
-			distinct_sizes.append(size)
-		    if size not in master_distinct_sizes:			
-			distinct_sizes.append(size)
-	    #print distinct_sizes
+		    genesets_by_resid.update({item['res_id']: item['gs_ids'].split(",")})
+		    if size not in all_gs_sizes:
+			all_gs_sizes.append(size)
+		    if size not in distinct_sizes.keys():
+			arr = [item['res_id']]			
+			distinct_sizes.update({size:arr})
+		    else:
+			arr=distinct_sizes[size]
+			arr.append(item['res_id'])
+			distinct_sizes.update({size:arr})
 	    geneset_sizes.update({tool: distinct_sizes})
 
-	print geneset_sizes	
+	#print geneset_sizes	
+
+		    
+	for item in geneset_sizes:
+	    for num in geneset_sizes[item]:
+		avg = geneweaverdb.avg_tool_times(geneset_sizes[item][num], item)
+		geneset_sizes[item][num]=avg.total_seconds()*1000
+		
+
+	print geneset_sizes
+	print genesets_by_resid
+	    
 	
 	#print data	
-        return json.dumps(data)
+        return json.dumps(geneset_sizes)
     else:
 	return flask.render_template('admin/adminForbidden.html')
 
