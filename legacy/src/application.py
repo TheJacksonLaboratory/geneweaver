@@ -593,11 +593,11 @@ def change_password():
         user = geneweaverdb.get_user(flask.session.get('user_id'))
 
         if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
-            return flask.render_template('accountsettings.html')
+            return flask.render_template('accountsettings.html', user=user)
         else:
             success = geneweaverdb.change_password(
                 user.user_id, form['new_pass'])
-            return flask.render_template('accountsettings.html')
+            return flask.render_template('accountsettings.html', user=user)
 
 
 @app.route('/generate_api_key', methods=['POST'])
@@ -634,7 +634,7 @@ class GetGenesetsByGeneRefIdHomology(restful.Resource):
 class GetGenesByGenesetId(restful.Resource):
 
     def get(self, genesetid):
-        return geneweaverdb.get_geneset_by_id(genesetid)
+        return geneweaverdb.get_genes_by_geneset_id(genesetid)
 
 
 class GetGeneByGeneId(restful.Resource):
@@ -646,7 +646,7 @@ class GetGeneByGeneId(restful.Resource):
 class GetGenesetById(restful.Resource):
 
     def get(self, genesetid):
-        return geneweaverdb.get_geneset_by_id(genesetid)
+        return geneweaverdb.get_geneset_by_geneset_id(genesetid)
 
 
 class GetGenesetByUser(restful.Resource):
@@ -666,9 +666,16 @@ class GetGenesetByProjectId(restful.Resource):
     def get(self, apikey, projectid):
         return geneweaverdb.get_geneset_by_project_id(apikey, projectid)
 
-# TODO format syntax
+class GetOntologyByGensetId(restful.Resource):
+
+    def get(self, apikey, gs_id):
+		#user = geneweaverdb.get_user_id_by_apikey(apikey)
+		#if (user == ''):
+			#TODO ? - Do we want to throw error, or can anyone view ontology info?
+        return geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
 
+# Tool Functions
 class ToolGetFile(restful.Resource):
 
     def get(self, apikey, task_id, file_type):
@@ -685,10 +692,9 @@ class ToolGetStatus(restful.Resource):
 
     def get(self, task_id):
         return geneweaverdb.get_status(task_id)
+         
 
 # Tools
-
-
 class ToolJaccardClustering(restful.Resource):
 
     def get(self, apikey, homology, method, genesets):
@@ -697,10 +703,8 @@ class ToolJaccardClustering(restful.Resource):
 
 class ToolGenesetViewer(restful.Resource):
 
-    def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
-        return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
-# Error: JaccardSimilarity does not create files => not an API problem,
-# tool itself problem.
+	def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
+		return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
 
 
 class ToolJaccardSimilarity(restful.Resource):
@@ -720,39 +724,34 @@ class ToolPhenomeMap(restful.Resource):
     def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
         return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
+class ToolBooleanAlgebra(restful.Resource):
 
-api.add_resource(GetGenesetsByGeneRefId,
-                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
-api.add_resource(GetGenesetsByGeneRefIdHomology,
-                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
+    def get(self, apikey, relation, genesets):
+        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
+        
+
+api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
+api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
 api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
+api.add_resource(GetOntologyByGensetId, '/api/get/ontologies/bygeneset/<apikey>/<gs_id>/')
 
 api.add_resource(GetGenesetById, '/api/get/geneset/byid/<genesetid>/')
-api.add_resource(
-    GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
+api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 api.add_resource(GetProjectsByUser, '/api/get/project/byuser/<apikey>/')
-api.add_resource(
-    GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
+api.add_resource(GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
 
-api.add_resource(
-    ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
-api.add_resource(
-    ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
+api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
+api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
 
-api.add_resource(
-    ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
-api.add_resource(ToolJaccardClustering,
-                 '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
-api.add_resource(ToolJaccardSimilarity,
-                 '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
-api.add_resource(
-    ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
-api.add_resource(
-    ToolPhenomeMap, '/api/tool/phenomemap/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<genesets>/')
-
+api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
+api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
+api.add_resource(ToolJaccardSimilarity, '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
+api.add_resource(ToolPhenomeMap, '/api/tool/phenomemap/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<genesets>/')
+api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relation>/<genesets>/')
 
 # ********************************************
 # END API BLOCK
