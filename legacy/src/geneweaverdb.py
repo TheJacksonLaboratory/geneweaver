@@ -595,17 +595,24 @@ def size_of_genesets():
         return str(e)
 
 def avg_tool_times(keys, tool):
-    #if len(keys) < 2:
-	#sql='''SELECT (res_completed - res_started) FROM production.result WHERE res_tool='%s' AND res_id=%s;''' % (tool, ' OR res_id='.join(str(v) for v in keys))
-   # else:
     sql='''SELECT avg(res_completed - res_started) FROM production.result WHERE res_tool='%s' AND res_id=%s;''' % (tool, ' OR res_id='.join(str(v) for v in keys))
-    print sql
+    #print sql
     try:
         with PooledCursor() as cursor:
    	    cursor.execute(sql)				
         return cursor.fetchone()[0]
     except Exception, e:
-        return str(e)
+        return 0
+
+def avg_genes(keys):
+    sql='''SELECT avg(gs_count) FROM production.geneset WHERE gs_id=%s;''' % (' OR gs_id='.join(str(v) for v in keys))
+    #print sql
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute(sql)				
+        return cursor.fetchone()[0]
+    except Exception, e:
+        return 0
 
 def gs_in_tool_run():
     try:

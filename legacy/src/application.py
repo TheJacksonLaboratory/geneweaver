@@ -398,7 +398,6 @@ class AdminEdit(adminviews.Authentication, BaseView):
 def admin_widget_1():  
     if "user" in flask.g and flask.g.user.is_admin:
 	data = geneweaverdb.genesets_per_tier()
-	print data
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -417,7 +416,6 @@ def admin_widget_3():
     if "user" in flask.g and flask.g.user.is_admin:
 	data = geneweaverdb.monthly_tool_stats()
 	new_data = OrderedDict()
-
 	for tool in data:
 	    temp = OrderedDict()
 	    for key in data[tool]:
@@ -479,22 +477,29 @@ def admin_widget_7():
 			arr.append(item['res_id'])
 			distinct_sizes.update({size:arr})
 	    geneset_sizes.update({tool: distinct_sizes})
-
-	#print geneset_sizes	
-
 		    
 	for item in geneset_sizes:
 	    for num in geneset_sizes[item]:
+		gs = []
+		for i in geneset_sizes[item][num]:
+		    for j in genesets_by_resid[i]:
+			if j not in gs:
+		            gs.append(j)	
+		avggenes = 0
+		if len(gs) > 0:
+		    avggenes=geneweaverdb.avg_genes(gs)
 		avg = geneweaverdb.avg_tool_times(geneset_sizes[item][num], item)
-		geneset_sizes[item][num]=avg.total_seconds()*1000
+		geneset_sizes[item][num]={"time":avg.total_seconds()*1000, "genes":avggenes}
 		
-
-	print geneset_sizes
-	print genesets_by_resid
-	    
 	
-	#print data	
-        return json.dumps(geneset_sizes)
+	dat = []
+	for tool in geneset_sizes:	    
+	    for size in geneset_sizes[tool]:
+		temp = dict();
+		temp.update({"tool": tool, "size": str(size), "time":str(int(geneset_sizes[tool][size]['time'])), "genes":str(int(geneset_sizes[tool][size]['genes']))})
+		dat.append(temp)
+	    	
+        return json.dumps(dat)
     else:
 	return flask.render_template('admin/adminForbidden.html')
 
