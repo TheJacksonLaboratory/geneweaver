@@ -2,8 +2,25 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+{{ async_result.gs_ids }}
+
 <div class="page-header">
 	<h1>{{ title }}</h1>
+</div>
+
+<div class="panel panel-info">
+	<div class="panel-heading">
+		<h2 class="panel-title">
+			<a data-toggle="collapse" data-parent="#accordion" href="#resultCollapse">
+				View All GeneSets in Results
+			</a>
+		</h2>
+	</div>
+	<div id="gsvCollapse" class="panel-collapse collapse">
+		<div class="panel-body">
+			
+		</div>
+	</div>
 </div>
 
 <div class="row">
