@@ -8,6 +8,7 @@
 
 <br /><h4>Table view:</h4>
 
+<!-- this is the gs ids -->
 
 <br clear="all" /><div class="floatGeneList">
 <form name="listform" id="listform">
@@ -19,10 +20,13 @@
 {% endfor %}
 </th></tr>
 
+<!-- this is the gs names -->
+
 {% for item in async_result.geneset_table %}
 <tr><td style="border-bottom: none; white-space:nowrap;" align="left">
 <label><input type="checkbox" name="gs_id[]" value="{{ item.gsID[:2] }}">
 <a style="font-size:1.0em;" href="{{ item.url }}">{{ item.text }}</a></td>
+
     {% for jac in item.entries %}
 	<td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
     {% if jac.url %}
@@ -36,6 +40,9 @@
 	{% endfor %}
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
+
+
+<!-- this is for the project selection -->
 
 <tr><td colspan="4" style="border-bottom: none;">
 <label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All </label>
@@ -73,6 +80,8 @@ Download As:
     </div>
 </div>
 
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
+
 <script type="text/javascript">
 	var urlMenu = document.getElementById("downloadType");
 	urlMenu.onchange = function () {
@@ -91,6 +100,20 @@ function changeImg(sel, dl) {
 	}
 	
 }
+
+function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
+        var allChecked = true;
+        genesetCheckboxes.each(function(i, gsCheckbox) {
+            gsCheckbox = $(gsCheckbox);
+            if(!gsCheckbox.prop('checked')) {
+                allChecked = false;
+                return false;
+            }
+        });
+
+        projCheckbox.prop('checked', allChecked);
+    }
+
 </script>
 
 <!--<script type="text/javascript">-->
