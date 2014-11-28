@@ -27,18 +27,31 @@
 	<th>In Gene sets</th>
 </tr>
 
+<tr>
 <td>
-<input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs');"><p style="margin-left: 50px;"> Select All </p>
+    <input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs');"><p style="margin-left: 50px;"> Select All </p>
 </td>
+<td></td>
+<td></td>
+</tr>
 
 {% for gene in async_result.gene_names %}
 <tr>
 <td>
-<input type="checkbox" name="gs" value="{{ gene }}" onclick="exefunction()">
+<input id="{{gene}}" type="checkbox" name="gs" value="{{ gene }}">
 <a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
 </td>
 <td>
 Links
+</td>
+<td>
+{% for gsid in async_result.geneset_from[gene] %}
+    {% for ags in async_result.genesets[gsid] %}
+        {% for gs in ags %}
+            {% include 'viewGenesetTitleOnly.html' %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
 </td>
 {% endfor %}
 
@@ -48,7 +61,6 @@ Links
                 alert(lfckv);
             }
         </script>
-
 
 <td>
 
@@ -63,9 +75,16 @@ Links
 
 <script type="text/javascript">
     function add_to_geneset() {
-        var gene_names = {{gene_list|tojson}};
+        var gene_names = {{async_result.gene_names|tojson}};
+        var genes = [];
 
-        var gene_list = gene_names.join(", ");
+        for (i=0; i<gene_names.length; i++) {
+            if (document.getElementById(gene_names[i]).checked) {
+                genes.push(gene_names[i]);
+            }
+        }
+
+        var gene_list = genes.join(", ");
 
         var url = "/uploadgeneset.html/" + gene_list;
         window.location = url;

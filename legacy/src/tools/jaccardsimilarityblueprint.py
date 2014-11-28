@@ -177,4 +177,5 @@ def geneset_intersection(gsID_1, gsID_2, i):
         geneset1 = geneset2 = None
 
     return flask.render_template(
-        "geneset_intersection.html", async_result=json.loads(r.async_result.result), index=i, genesets=genesets, genes=intersect_genes, list=list)
+        "geneset_intersection.html", async_result=json.loads(r.async_result.result),
+        index=i, genesets=genesets, genes=intersect_genes, list=list)
