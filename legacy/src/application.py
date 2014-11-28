@@ -47,6 +47,8 @@ admin.add_view(adminviews.Viewers(
     name='Groups', endpoint='viewGroups', category='User Tools'))
 admin.add_view(adminviews.Viewers(
     name='Projects', endpoint='viewProjects', category='User Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Files', endpoint='viewFiles', category='User Tools'))
 
 admin.add_view(adminviews.Viewers(
     name='Genesets', endpoint='viewGenesets', category='Gene Tools'))
@@ -56,6 +58,8 @@ admin.add_view(adminviews.Viewers(
     name='Geneset Info', endpoint='viewGenesetInfo', category='Gene Tools'))
 admin.add_view(adminviews.Viewers(
     name='Gene Info', endpoint='viewGeneInfo', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(
+    name='Geneset Value', endpoint='viewGenesetVals', category='Gene Tools'))
 
 admin.add_view(adminviews.Add(name='User', endpoint='newUser', category='Add'))
 admin.add_view(

@@ -96,6 +96,25 @@ class Viewers(Authentication, BaseView):
 	    jcolumns=json.dumps(columns)
             return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table= table)
 
+	elif self.endpoint == 'viewFiles':
+	    table='production.file'
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})	    
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table= table)
+	
+	elif self.endpoint == 'viewGenesetVals':
+	    table='extsrc.geneset_value'
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		if col['column_name'] != 'gsv_value' and col['column_name'] != 'gsv_value_list':
+		    columns.append({'name': col['column_name']})	    
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table= table)
+
  	else:
 	    return self.render('admin/adminindex.html')
 
