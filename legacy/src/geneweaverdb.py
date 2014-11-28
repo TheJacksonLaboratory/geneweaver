@@ -617,7 +617,7 @@ def avg_genes(keys):
 def gs_in_tool_run():
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT res_id, res_tool, gs_ids, res_completed FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_completed DESC LIMIT 100;''')				
+   	    cursor.execute('''SELECT res_id, res_tool, gs_ids, res_completed FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_completed DESC LIMIT 500;''')				
         return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)

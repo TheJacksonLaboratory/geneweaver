@@ -420,11 +420,11 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
 
         var scale = d3.scale.sqrt()
 	    .domain([d3.min(data, function(d) { return parseInt(d.size);}), d3.max(data, function(d) { return parseInt(d.size);})])
-            .range([1, 20]);
+            .range([5, 30]);
 
         var opacity = d3.scale.sqrt()
             .domain([d3.min(data, function(d) { return parseInt(d.size);}), d3.max(data, function(d) { return parseInt(d.size); })])
-            .range([1, .5]);
+            .range([.9, .2]);
 
         var color = d3.scale.category10();
 
@@ -486,6 +486,25 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
                 return y(d.y);
             })
             .ease("bounce");
+
+	var legend = svg.selectAll(".legend")
+      	.data(color.domain())
+    	.enter().append("g")
+      	.attr("class", "legend")
+      	.attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+  	legend.append("rect")
+      	.attr("x", width + 18)
+      	.attr("width", 18)
+      	.attr("height", 18)
+      	.style("fill", color);
+
+  	legend.append("text")
+      	.attr("x", width+15)
+     	 .attr("y", 9)
+     	 .attr("dy", ".35em")
+      	 .style("text-anchor", "end")
+     	 .text(function(d) { return d; });
 
 
         function fade(c, opacity) {
