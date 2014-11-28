@@ -53,12 +53,45 @@
 
 <br /><br /><h4>Venn Diagram view:</h4>
 
+View As:</br>
+<form>
+	<label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
+	<label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
+</form>
+
+Download As:
+<select name="downloadType" id="downloadType">
+	<option value="null">Select file type...</option>
+	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
+	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
+	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
+</select>
+
 <div class="row">
     <div class="col-md-12 link-panel" style="text-align: center;">
-        <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}" frameborder="0"></iframe>
+        <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}" id="svgFrame" frameborder="0"></iframe>
     </div>
 </div>
 
+<script type="text/javascript">
+	var urlMenu = document.getElementById("downloadType");
+	urlMenu.onchange = function () {
+		if(this.value!='null'){
+			window.open(this.options[this.selectedIndex].value, '_blank');
+		}
+	}
+	
+function changeImg(sel, dl) {
+	
+	if(sel.value=='svg') {
+		document.getElementById("svgFrame").src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}";
+	}
+	else if(sel.value=='png') {
+		document.getElementById("svgFrame").src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}";
+	}
+	
+}
+</script>
 
 <!--<script type="text/javascript">-->
 <!--$(window).load(function() {ldelim}-->
