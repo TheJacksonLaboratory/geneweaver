@@ -1131,6 +1131,31 @@ def get_all_userids():
             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
 
+def get_gene_id_by_intersection(geneset_id1, geneset_id2):
+    """
+    Get all gene info for all genes in both genesets (mainly for jaccard similarity intersection page)
+    :return: all the gene ids (ode gene ids) for the genes intersecting
+    """
+    gene_id1 = []
+    gene_id2 = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', [geneset_id1])
+        for gid in cursor:
+                gene_id1.append(gid[0])
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', [geneset_id2])
+        for gid in cursor:
+                gene_id2.append(gid[0])
+
+    return list(set(gene_id1).intersection(gene_id2))
+
 
 # sample api calls begin
 

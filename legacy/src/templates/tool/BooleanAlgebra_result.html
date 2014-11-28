@@ -9,12 +9,7 @@
 <h8>Gene count: {{async_result.num_genes}}</h8>
 <br><br>
 
-        <button id="createGeneset" class="float-left submit-button" >Add to New GeneSet</button>
-<script type="text/javascript">
-    document.getElementById("createGeneset").onclick = function () {
-        location.href = "/editgenesets.html";
-    }
-</script>
+        <button onclick="add_to_geneset()" id="createGeneset" class="float-left submit-button" >Add to New GeneSet</button>
         <br><br>
 
 
@@ -65,5 +60,16 @@ Links
 </table>
 </div>
 </div>
+
+<script type="text/javascript">
+    function add_to_geneset() {
+        var gene_names = {{gene_list|tojson}};
+
+        var gene_list = gene_names.join(", ");
+
+        var url = "/uploadgeneset.html/" + gene_list;
+        window.location = url;
+    }
+</script>
 
 {% include 'footer.html' %}

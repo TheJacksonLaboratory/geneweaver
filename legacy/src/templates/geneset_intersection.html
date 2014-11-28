@@ -6,6 +6,8 @@
     <h1>{{ title }}</h1>
 </div>
 
+        {{genes}}
+
 {% for gs in genesets %}
 	<!-- Label the tier - which is the curation id, Geneset.cur_id -->
     <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ gs.geneset_id }}">
@@ -92,7 +94,7 @@
        <title>{{venn.title1|safe}}</title><desc>{{venn.desc1|safe}}</desc>
      </circle>
      <circle cx="{{ venn.c2x }}" cy="{{ venn.c2y }}" r="{{ venn.r2 }}" fill="#0000ff" fill-opacity="0.4" stroke="#000000" stroke-width="1px" >
-       <title>{{ venn.title2|safe}}</title><desc>{$venn.desc2|safe}</desc>
+       <title>{{ venn.title2|safe}}</title><desc>{venn.desc2|safe}</desc>
      </circle>
      {% for vtext in venn.text %}
        <text x="{{ vtext.tx }}" y="{{ vtext.ty }}" text-anchor="middle" transform="scale(0.75)">{{vtext.text|safe}}</text>
@@ -106,14 +108,14 @@
 
 <style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
 
-<table cellspacing="0" style="font-size: 0.75em;"><tr><th rowspan="{$numgs}" valign="bottom">
-<p style="font-size: 0.75em; font-weight: normal;">
-<img src="images/greendot.png" /> = Exact same gene in all sets<br />
-<img src="images/purpledot.png" /> = Homologous gene cluster</p><br />Gene Symbol
-</th><th rowspan="{$numgs}" valign="bottom">Links
+<table cellspacing="0" style="font-size: 1em;"><tr><th rowspan="2" valign="bottom">
+<p style="font-size: 1em; font-weight: normal;">
+<img src="/static/images/greendot.png" /> = Exact same gene in all sets<br />
+<img src="/static/images/purpledot.png" /> = Homologous gene cluster</p><br />Gene Symbol
+</th><th rowspan="2" valign="bottom">Links
 
 {foreach from=$gsids key=j item=gs}
-      {assign var=rs value=`$numgs-$j`}
+      {assign var=rs value=`2-$j`}
       {assign var=cs value=`$rs+1`}
       {if $j!=0 }
         </th></tr><tr><th rowspan="{$rs}" style="border-left: 1px solid #000; border-bottom: none;
@@ -159,9 +161,9 @@
 {counter assign=i start=1}
 {foreach from=$gsids item=x}
       {counter}
-      {if $i>1 && $i<=$numgs}
+      {if $i>1 && $i<=2}
       <span class="gaggle-data">
-      <span style="display:none;" class="gaggle-name">Genes {$with} {$i}{if $i!=$numgs}+{/if} Gene Sets</span>
+      <span style="display:none;" class="gaggle-name">Genes {$with} {$i}{if $i!=2}+{/if} Gene Sets</span>
       <span style="display:none;" class="gaggle-species">{$best_species}</span>
       <span style="display:none;" class="gaggle-namelist-tag">{$sorton}{$i}</span>
       <span style="display: none;" class="gaggle-size">{$displayed_genes[$i]}</span>
@@ -169,7 +171,6 @@
       {/if}
 {/foreach}
 </center>
-<a href="{$smarty.server.REQUEST_URI}&type=csv">Download this list as a .CSV file</a>
 <br />
 <br />
 

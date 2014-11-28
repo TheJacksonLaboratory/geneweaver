@@ -171,8 +171,10 @@ def geneset_intersection(gsID_1, gsID_2, i):
         geneset1 = gwdb.get_geneset(gsID_1[2:], user_id)
         geneset2 = gwdb.get_geneset(gsID_2[2:], user_id)
         genesets = [geneset1, geneset2]
+        intersect_genes = gwdb.get_gene_id_by_intersection(gsID_1[2:], gsID_2[2:])
         list=gwdb.get_all_projects(user_id)
     else:
         geneset1 = geneset2 = None
 
-    return flask.render_template("geneset_intersection.html", async_result=json.loads(r.async_result.result), index=i, genesets=genesets, list=list)
+    return flask.render_template(
+        "geneset_intersection.html", async_result=json.loads(r.async_result.result), index=i, genesets=genesets, genes=intersect_genes, list=list)
