@@ -1509,6 +1509,51 @@ def get_geneset_by_project_id(apikey, projectid):
 												WHERE pj_id = %s and usr_id = %s)
 							) row; ''', (projectid, user))
 	return cursor.fetchall()
+	
+#API only	
+def add_project_for_user(apikey, pj_name):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' INSERT INTO production.project
+						(usr_id, pj_name) VALUES (%s, %s)
+						RETURNING pj_id;
+						''', (user, pj_name,))
+		cursor.connection.commit()
+	return cursor.fetchone()
+	
+#API only	
+def add_geneset_to_project(apikey, pj_id, gs_id):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' INSERT INTO production.project2geneset
+								(pj_id, gs_id) VALUES ((SELECT pj_id
+														FROM production.project
+														WHERE usr_id = %s AND pj_id = %s),
+														(SELECT gs_id
+														 FROM production.geneset
+														 WHERE gs_id = %s AND ( usr_id = %s OR
+																				cur_id != 5)))
+								RETURNING pj_id, gs_id; 
+					''', (user, pj_id, gs_id, user,))
+		cursor.connection.commit()
+	return cursor.fetchall()	
+
+#API only  
+def delete_geneset_from_project(apikey, pj_id, gs_id):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					'''DELETE FROM production.project2geneset
+								WHERE pj_id = ( SELECT pj_id
+												FROM production.project
+												WHERE usr_id = %s AND pj_id = %s)
+												AND gs_id = %s
+								RETURNING pj_id, gs_id; 
+					''', (user, pj_id, gs_id))
+		cursor.connection.commit()
+	return cursor.fetchall()
     
 def generate_api_key(user_id):
     char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits

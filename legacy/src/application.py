@@ -695,6 +695,21 @@ class GetResultByTaskId(restful.Resource):
     def get(self, apikey, taskid):
         return geneweaverdb.get_result_by_runhash(apikey, taskid)
 
+class AddProjectByUser(restful.Resource):
+
+    def get(self, apikey, project_name):
+        return geneweaverdb.add_project_for_user(apikey, project_name)
+
+class AddGenesetToProject(restful.Resource):
+
+    def get(self, apikey, projectid, genesetid):
+        return geneweaverdb.add_geneset_to_project(apikey, projectid, genesetid)
+
+class DeleteGenesetFromProject(restful.Resource):
+
+    def get(self, apikey, projectid, genesetid):
+        return geneweaverdb.delete_geneset_from_project(apikey, projectid, genesetid)
+
 class GetGenesetByProjectId(restful.Resource):
 
     def get(self, apikey, projectid):
@@ -813,6 +828,9 @@ api.add_resource(GetPublicationById, '/api/get/publication/byid/<apikey>/<public
 api.add_resource(GetSpeciesByid, '/api/get/species/byid/<apikey>/<speciesid>/')
 api.add_resource(GetResultsByUser, '/api/get/results/byuser/<apikey>/')
 api.add_resource(GetResultByTaskId, '/api/get/result/bytaskid/<apikey>/<taskid>/')
+api.add_resource(AddProjectByUser, '/api/add/project/byuser/<apikey>/<project_name>/')
+api.add_resource(AddGenesetToProject, '/api/add/geneset/toproject/<apikey>/<projectid>/<genesetid>/')
+api.add_resource(DeleteGenesetFromProject, '/api/delete/geneset/fromproject/<apikey>/<projectid>/<genesetid>/')
 
 api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
