@@ -266,9 +266,14 @@ def render_forgotpass():
 
 @app.route('/viewgenesetdetails/<int:gs_id>')
 def render_viewgeneset(gs_id):
-    user_id = flask.session.get('user_id')
+    emphgenes={}
+    emphgeneids = []
+    user_id = flask.session['user_id']
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    return flask.render_template('viewgenesetdetails.html', geneset=geneset)
+    return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids)
 
 
 @app.route('/mygenesets.html')
@@ -344,6 +349,16 @@ def render_emphasis():
 
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
+
+@app.route('/emphasize/<string:add_gene>.html', methods=['GET', 'POST'])
+def emphasize(add_gene):
+	user_id = flask.session['user_id']
+	return str(geneweaverdb.create_usr2gene(user_id, add_gene))
+
+@app.route('/deemphasize/<string:rm_gene>.html', methods=['GET', 'POST'])
+def deemphasize(rm_gene):
+	user_id = flask.session['user_id']
+	return str(geneweaverdb.delete_usr2gene_by_user_and_gene(user_id, rm_gene))
 
 @app.route('/search/<string:search_term>/<int:pagination_page>')
 def render_search(search_term, pagination_page):
@@ -614,6 +629,7 @@ def render_home():
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def add_geneset_to_project(project_id, geneset_id):
 	return str(geneweaverdb.insert_geneset_to_project(project_id, geneset_id))
+
 
 # ********************************************
 # START API BLOCK

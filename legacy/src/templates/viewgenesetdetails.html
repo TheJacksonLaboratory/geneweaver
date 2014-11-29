@@ -136,10 +136,10 @@
 Links
 </td>
 <td>
-{{ geneset_value.value }}
+{{ geneset_value.value }} 
 </td>
 <td>
-<label><input type="checkbox" name="Emphasized" value="yes" /></label>
+<input type="checkbox" name="g_id[]" id="{{geneset_value.ode_gene_id}}" onclick="emphasize('{{geneset_value.ode_gene_id}}');" class="table-checkbox"/>
 </td>
 </tr>
 {% endfor %}
@@ -149,4 +149,28 @@ Links
 </div>
 </div>
 
+{% for gene in emphgeneids %}
+<script>
+document.getElementById("{{gene}}").checked=true;
+</script>
+{% endfor %}
+
+<body onload="myFunction()">
+
+<script type="text/javascript">
+function emphasize(id)
+{
+	if(document.getElementById(id).checked)
+	{
+		$.get("/emphasize/"+id+".html",function(data,status){
+  				});
+	}
+	else
+	{
+		$.get("/deemphasize/"+id+".html",function(data,status){
+  				});
+	}
+}
+
+</script>
 {% include 'footer.html' %}

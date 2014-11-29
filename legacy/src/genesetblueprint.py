@@ -36,6 +36,27 @@ def render_uploadgeneset(genes = None):
             all_species=geneweaverdb.get_all_species(),
             gidts=gidts)
 
+@geneset_blueprint.route('/batchuploadgeneset.html')
+def render_batchuploadgeneset(genes = None):
+    gidts = []
+    for gene_id_type_record in geneweaverdb.get_gene_id_types():
+        gidts.append((
+            'gene_{0}'.format(gene_id_type_record['gdb_id']),
+            gene_id_type_record['gdb_name']))
+
+    microarray_id_sources = []
+    for microarray_id_type_record in geneweaverdb.get_microarray_types():
+        microarray_id_sources.append((
+            'ma_{0}'.format(microarray_id_type_record['pf_id']),
+            microarray_id_type_record['pf_name']))
+    gidts.append(('MicroArrays', microarray_id_sources))
+
+    return flask.render_template(
+        'batchuploadgeneset.html',
+        gs=dict(),
+        all_species=geneweaverdb.get_all_species(),
+        gidts=gidts)
+
 def tokenize_lines(candidate_sep_regexes, lines):
     """
     This function will tokenize all of the following lines and in doing so will attempt to infer which
