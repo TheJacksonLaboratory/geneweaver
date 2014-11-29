@@ -1359,6 +1359,84 @@ def get_projects_by_user(apikey):
 							) row; ''', (apikey,))
 	return cursor.fetchall();
 
+def get_probes_by_gene(apikey, ode_ref_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(	SELECT * 
+								FROM odestatic.probe 
+								WHERE prb_id IN (	SELECT prb_id
+													FROM extsrc.probe2gene
+													WHERE ode_gene_id IN (	SELECT ode_gene_id
+																			FROM extsrc.gene
+																			WHERE ode_ref_id = %s))
+							) row; ''', (ode_ref_id,))
+	return cursor.fetchall();
+
+def get_platform_by_id(apikey, pf_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(	SELECT * 
+								FROM odestatic.platform
+								WHERE pf_id = %s
+							) row; ''', (pf_id,))
+	return cursor.fetchall();
+	
+def get_snp_by_geneid(apikey, ode_ref_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(	SELECT * 
+								FROM extsrc.snp
+								WHERE ode_gene_id IN (	SELECT ode_gene_id
+														FROM extsrc.gene
+														WHERE ode_ref_id = %s)
+							) row; ''', (ode_ref_id,))
+	return cursor.fetchall();	
+
+def get_publication_by_id(apikey, pub_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(	SELECT *
+								FROM production.publication
+								WHERE pub_id = %s
+							) row; ''', (pub_id,))
+	return cursor.fetchall();
+
+def get_species_by_id(apikey, sp_id):
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(	SELECT *
+								FROM odestatic.species
+								WHERE sp_id = %s
+							) row; ''', (sp_id,))
+	return cursor.fetchall();
+
+def get_results_by_user(apikey):
+	usr_id = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(	SELECT res_created, res_runhash
+								FROM production.result
+								WHERE usr_id = %s ORDER BY res_created DESC
+							) row; ''', (usr_id,))
+	return cursor.fetchall();
+	
+def get_result_by_runhash(apikey, res_runhash):
+	usr_id = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(	SELECT *
+								FROM production.result
+								WHERE usr_id = %s and res_runhash = %s
+							) row; ''', (usr_id, res_runhash))
+	return cursor.fetchall();
+
 def get_all_ontologies_by_geneset(gs_id):
 	with PooledCursor() as cursor:
 		cursor.execute(
@@ -1387,7 +1465,7 @@ def get_all_ontologies_by_geneset(gs_id):
 							) row; ''', (gs_id, gs_id, gs_id))
 	return cursor.fetchall();
 
-
+#call by API only
 def get_genesets_by_projects(apikey, projectids):
 	user = get_user_id_by_apikey(apikey)
 	projects = '('
