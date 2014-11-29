@@ -660,6 +660,40 @@ class GetProjectsByUser(restful.Resource):
     def get(self, apikey):
         return geneweaverdb.get_projects_by_user(apikey)
 
+class GetProbesByGene(restful.Resource):
+
+    def get(self, apikey, gene_ref_id):
+        return geneweaverdb.get_probes_by_gene(apikey, gene_ref_id)
+        
+class GetPlatformById(restful.Resource):
+
+    def get(self, apikey, platformid):
+        return geneweaverdb.get_platform_by_id(apikey, platformid)    
+        
+class GetSnpByGeneid(restful.Resource):
+
+    def get(self, apikey, gene_ref_id):
+        return geneweaverdb.get_snp_by_geneid(apikey, gene_ref_id)     
+
+class GetPublicationById(restful.Resource):
+
+    def get(self, apikey, publicationid):
+        return geneweaverdb.get_publication_by_id(apikey, publicationid)  
+
+class GetSpeciesByid(restful.Resource):
+
+    def get(self, apikey, speciesid):
+        return geneweaverdb.get_species_by_id(apikey, speciesid)
+
+class GetResultsByUser(restful.Resource):
+
+    def get(self, apikey):
+        return geneweaverdb.get_results_by_user(apikey)
+
+class GetResultByTaskId(restful.Resource):
+
+    def get(self, apikey, taskid):
+        return geneweaverdb.get_result_by_runhash(apikey, taskid)
 
 class GetGenesetByProjectId(restful.Resource):
 
@@ -772,6 +806,13 @@ api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 api.add_resource(GetProjectsByUser, '/api/get/project/byuser/<apikey>/')
 api.add_resource(GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
+api.add_resource(GetProbesByGene, '/api/get/probes/bygeneid/<apikey>/<gene_ref_id>/')
+api.add_resource(GetPlatformById, '/api/get/platform/byid/<apikey>/<platformid>/')
+api.add_resource(GetSnpByGeneid, '/api/get/snp/bygeneid/<apikey>/<gene_ref_id>/')
+api.add_resource(GetPublicationById, '/api/get/publication/byid/<apikey>/<publicationid>/')
+api.add_resource(GetSpeciesByid, '/api/get/species/byid/<apikey>/<speciesid>/')
+api.add_resource(GetResultsByUser, '/api/get/results/byuser/<apikey>/')
+api.add_resource(GetResultByTaskId, '/api/get/result/bytaskid/<apikey>/<taskid>/')
 
 api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
