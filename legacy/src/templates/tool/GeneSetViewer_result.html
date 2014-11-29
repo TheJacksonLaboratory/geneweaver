@@ -2,22 +2,9 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-{{ async_result }}
-
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
-
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="row">
-
-        <!-- the Analysis tools column -->
-        <div class="col-md-4">
-            <div class="page-header"><h2>Rerun Tool Options</h2></div>
-                {% include 'tool/' + tool.classname + '_options.html' %}
-        </div>
-    </div>
-</form>
 
 <div class="row">
     <div class="col-md-12 link-panel" style="text-align: center;">
@@ -28,17 +15,5 @@
         <a target="_blank" href="{{ url_for('static_results', filename=async_result.task_id + '.svg') }}">Open in new window</a>
     </div>
 </div>
-
-<script type="text/javascript">
-genesetCheckboxes.each(function(i, {{ async_result.gsids }}) {
-                gsCheckbox = $({{ async_result.gsids }});
-                console.log('registering');
-                console.log(gsCheckbox);
-                gsCheckbox.change(function() {
-                    console.log('gs change happended');
-                    genesetCheckboxChanged(projCheckbox, genesetCheckboxes);
-                });
-            });
-</script>
 
 {% include 'footer.html' %}
