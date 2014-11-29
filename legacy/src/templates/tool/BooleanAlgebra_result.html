@@ -34,7 +34,7 @@
 {% for gene in async_result.gene_names %}
 <tr>
 <td>
-<input type="checkbox" name="gs" value="{{ gene }}" onclick="exefunction()">
+<input id="{{gene}}" type="checkbox" name="gs" value="{{ gene }}" onclick="exefunction()">
 <a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
 </td>
 <td>
@@ -63,9 +63,16 @@ Links
 
 <script type="text/javascript">
     function add_to_geneset() {
-        var gene_names = {{gene_list|tojson}};
+        var gene_names = {{async_result.gene_names|tojson}};
+        var genes = [];
 
-        var gene_list = gene_names.join(", ");
+        for (i=0; i<gene_names.length; i++) {
+            if (document.getElementById(gene_names[i]).checked) {
+                genes.push(gene_names[i]);
+            }
+        }
+
+        var gene_list = genes.join(", ");
 
         var url = "/uploadgeneset.html/" + gene_list;
         window.location = url;
