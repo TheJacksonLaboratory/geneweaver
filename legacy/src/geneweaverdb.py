@@ -1510,6 +1510,17 @@ def get_geneset_by_project_id(apikey, projectid):
 							) row; ''', (projectid, user))
 	return cursor.fetchall()
 	
+def get_gene_database_by_id(apikey, gdb_id):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(  	SELECT *
+								FROM odestatic.genedb
+								WHERE gdb_id = %s
+							) row; ''', (gdb_id,))
+	return cursor.fetchall()
+	
 #API only	
 def add_project_for_user(apikey, pj_name):
 	user = get_user_id_by_apikey(apikey)
