@@ -5,6 +5,7 @@ import uuid
 
 import geneweaverdb as gwdb
 import toolcommon as tc
+from collections import defaultdict, OrderedDict
 
 TOOL_CLASSNAME = 'ABBA'
 abba_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -20,7 +21,9 @@ def run_tool():
 
     params = {}
     if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1 :
-        raise Exception('there is no input')
+        # TODO add nice error message about missing genesets
+        flask.flash("Warning: You need to have input or/and at least a gene set selected!")
+        return flask.redirect('analyze.html')
 
     params['ABBA_InputGenes'] = form['ABBA_InputGenes']
     if 'ABBA_IgnHom' in form:
@@ -42,9 +45,16 @@ def run_tool():
     user_id = None
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
+	projects = gwdb.get_all_projects(user_id)
+	projectDict = OrderedDict()
+	for proj in projects:
+		projectDict[proj.project_id] = {'id': proj.project_id, 'name': proj.name, 'count': proj.count}
+	params['UserProjects'] = projectDict
+	
+	params['UserId'] = user_id
     else:
-        # TODO add nice error message about missing user ID.
-        raise Exception('internal error: user ID missing')
+        flask.flash("Internal error: user ID missing")
+        return flask.redirect('analyze.html')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -62,7 +72,7 @@ def run_tool():
         kwargs={
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
-            'params': params,
+            'params': params
         },
         task_id=task_id)
 

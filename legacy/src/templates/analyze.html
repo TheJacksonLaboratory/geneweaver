@@ -6,6 +6,20 @@
     <h1>{{ title }}</h1>
 </div>
 
+{% with errors = get_flashed_messages() %}
+{% if errors %}
+<div class="alert-message block-message error">
+  <a class="close" href="#">×</a>
+  <ul>
+    {%- for msg in errors %}
+    <li style="color: red; font-size: 125%">{{ msg }}</li>
+    {% endfor -%}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+
+
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
 

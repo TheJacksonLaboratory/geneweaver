@@ -18,6 +18,13 @@ def run_tool():
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
+    # Used only when rerunning the tool from the results page
+    if 'genesets' in form:
+        add_genesets = form['genesets'].split(' ')
+        edited_add_genesets = [gs[2:] for gs in add_genesets]
+        selected_geneset_ids = selected_geneset_ids + edited_add_genesets
+		
+	
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
         raise Exception('There must be at least three genesets selected to run this tool')
@@ -31,6 +38,8 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
+        
+  
 
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
@@ -146,7 +155,7 @@ def view_result(task_id):
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardClustering_result.html',
-            async_result=async_result,
+            async_result=json.loads(async_result.result),
             tool=tool)
     else:
         # render a page telling their results are pending

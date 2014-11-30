@@ -17,6 +17,12 @@ def run_tool():
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
+    # Used only when rerunning the tool from the results page
+    if 'genesets' in form:
+        add_genesets = form['genesets'].split(' ')
+        edited_add_genesets = [gs[2:] for gs in add_genesets]
+        selected_geneset_ids = selected_geneset_ids + edited_add_genesets
+    
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
         raise Exception('there must be at least two genesets selected to run this tool')
