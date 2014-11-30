@@ -2,19 +2,71 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+
 <div class="page-header">
 	<h1>{{ title }}</h1>
 </div>
 
+<p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
+
+<form id="todo-id" class="form-horizontal" role="form" method="post">
+    <div class="row">
+        <div class="col-md-4">
+                <div class="panel panel-info">
+				<div class="panel-heading">
+					<h2 class="panel-title">
+						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+							Rerun Tool Options
+						</a>
+					</h2>
+				</div>
+				<div id="jcCollapse" class="panel-collapse collapse">
+					<div class="panel-body">
+						<div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
+						<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+
+						<input type="text" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+
+						<button class="btn btn-primary" 
+							type='submit'
+							value='run'
+							onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
+							Run
+						</button>
+					</div>
+				</div>
+			</div>
+        </div>
+    </div>
+</form>
+
+<p>View GeneSet Information:</p>
+<select name="genesetDetails" id="genesetDetails">
+	<option value="null">Select GeneSet...</option>
+	{% for gs in async_result.edited_gs_ids %}
+		<option value="/viewgenesetdetails/{{ async_result.edited_gs_ids[gs] }}">{{ async_result.edited_gs_names[gs] }}</option>
+	{% endfor %}
+</select>
+
 <div class="row">
 	<div class="col-md-12 link panel" style="test-align: center;">
-		<OBJECT data="{{ url_for('static_results', filename=async_result.task_id + '.png') }}" type="image/png" height="1500" width="1500">
+		<OBJECT data="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}" type="image/png" height="1500" width="1500">
 		</OBJECT>
 		<br />
-		<a href="{{ url_for('static_results', filename=async_result.task_id + '.pdf') }}">Export Jaccard Clustering Graph as PDF</a>
+		<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Jaccard Clustering Graph as PDF</a>
 		-
-		<a target="_blank" href="{{ url_for('static_results', filename=async_result.task_id + '.png') }}">Open in new window</a>
+		<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">Open in new window</a>
 	</div>
 </div>
+
+
+<script type="text/javascript">
+	var urlMenu = document.getElementById("genesetDetails");
+	urlMenu.onchange = function () {
+		if(this.value!='null'){
+			window.open(this.options[this.selectedIndex].value, '_blank');
+		}
+	}
+</script>
 
 {% include 'footer.html' %}

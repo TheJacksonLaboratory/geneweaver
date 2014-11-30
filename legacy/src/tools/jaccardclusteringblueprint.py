@@ -9,7 +9,7 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'JaccardClustering'
 jaccardclustering_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@jaccardclustering_blueprint.route('/run-jaccard-clustering.html', methods=['POST'])
+@jaccardclustering_blueprint.route('/JaccardClustering.html', methods=['POST'])
 def run_tool():
 
      # TODO need to check for read permissions on genesets
@@ -18,10 +18,15 @@ def run_tool():
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
+    if 'genesets' in form:
+        add_genesets = form['genesets'].split(' ')
+        edited_add_genesets = [gs[2:] for gs in add_genesets]
+        selected_geneset_ids = selected_geneset_ids + edited_add_genesets
+		
+	
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
-        flask.flash("Warning: You need at least 3 gene sets!")
-        return flask.redirect('analyze.html')
+        raise Exception('There must be at least three genesets selected to run this tool')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -32,6 +37,8 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
+        
+  
 
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
@@ -41,8 +48,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        flask.flash("Internal error: user ID missing")
-        return flask.redirect('analyze.html')
+        # TODO add nice error message about missing user ID.
+        raise Exception('internal error: user ID missing')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -119,7 +126,7 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
         json.dumps(paramsAPI),
         tool.name,
         desc,
-        desc, 't')
+        desc)
 
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
@@ -147,7 +154,7 @@ def view_result(task_id):
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardClustering_result.html',
-            async_result=async_result,
+            async_result=json.loads(async_result.result),
             tool=tool)
     else:
         # render a page telling their results are pending
