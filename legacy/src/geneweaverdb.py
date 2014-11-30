@@ -1131,6 +1131,31 @@ def get_all_userids():
             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
 
+def get_gene_id_by_intersection(geneset_id1, geneset_id2):
+    """
+    Get all gene info for all genes in both genesets (mainly for jaccard similarity intersection page)
+    :return: all the gene ids (ode gene ids) for the genes intersecting
+    """
+    gene_id1 = []
+    gene_id2 = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', [geneset_id1])
+        for gid in cursor:
+                gene_id1.append(gid[0])
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', [geneset_id2])
+        for gid in cursor:
+                gene_id2.append(gid[0])
+
+    return list(set(gene_id1).intersection(gene_id2))
+
 
 # sample api calls begin
 
@@ -1508,6 +1533,62 @@ def get_geneset_by_project_id(apikey, projectid):
 												FROM production.geneset
 												WHERE pj_id = %s and usr_id = %s)
 							) row; ''', (projectid, user))
+	return cursor.fetchall()
+	
+def get_gene_database_by_id(apikey, gdb_id):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' SELECT row_to_json(row, true) 
+						FROM(  	SELECT *
+								FROM odestatic.genedb
+								WHERE gdb_id = %s
+							) row; ''', (gdb_id,))
+	return cursor.fetchall()
+	
+#API only	
+def add_project_for_user(apikey, pj_name):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' INSERT INTO production.project
+						(usr_id, pj_name) VALUES (%s, %s)
+						RETURNING pj_id;
+						''', (user, pj_name,))
+		cursor.connection.commit()
+	return cursor.fetchone()
+	
+#API only	
+def add_geneset_to_project(apikey, pj_id, gs_id):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					''' INSERT INTO production.project2geneset
+								(pj_id, gs_id) VALUES ((SELECT pj_id
+														FROM production.project
+														WHERE usr_id = %s AND pj_id = %s),
+														(SELECT gs_id
+														 FROM production.geneset
+														 WHERE gs_id = %s AND ( usr_id = %s OR
+																				cur_id != 5)))
+								RETURNING pj_id, gs_id; 
+					''', (user, pj_id, gs_id, user,))
+		cursor.connection.commit()
+	return cursor.fetchall()	
+
+#API only  
+def delete_geneset_from_project(apikey, pj_id, gs_id):
+	user = get_user_id_by_apikey(apikey)
+	with PooledCursor() as cursor:
+		cursor.execute(
+					'''DELETE FROM production.project2geneset
+								WHERE pj_id = ( SELECT pj_id
+												FROM production.project
+												WHERE usr_id = %s AND pj_id = %s)
+												AND gs_id = %s
+								RETURNING pj_id, gs_id; 
+					''', (user, pj_id, gs_id))
+		cursor.connection.commit()
 	return cursor.fetchall()
     
 def generate_api_key(user_id):
