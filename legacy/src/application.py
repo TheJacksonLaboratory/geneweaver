@@ -690,10 +690,30 @@ class GetResultsByUser(restful.Resource):
     def get(self, apikey):
         return geneweaverdb.get_results_by_user(apikey)
 
+class GetGeneDatabaseById(restful.Resource):
+
+    def get(self, apikey, gene_database_id):
+        return geneweaverdb.get_gene_database_by_id(apikey, gene_database_id)
+
 class GetResultByTaskId(restful.Resource):
 
     def get(self, apikey, taskid):
         return geneweaverdb.get_result_by_runhash(apikey, taskid)
+
+class AddProjectByUser(restful.Resource):
+
+    def get(self, apikey, project_name):
+        return geneweaverdb.add_project_for_user(apikey, project_name)
+
+class AddGenesetToProject(restful.Resource):
+
+    def get(self, apikey, projectid, genesetid):
+        return geneweaverdb.add_geneset_to_project(apikey, projectid, genesetid)
+
+class DeleteGenesetFromProject(restful.Resource):
+
+    def get(self, apikey, projectid, genesetid):
+        return geneweaverdb.delete_geneset_from_project(apikey, projectid, genesetid)
 
 class GetGenesetByProjectId(restful.Resource):
 
@@ -813,11 +833,20 @@ api.add_resource(GetPublicationById, '/api/get/publication/byid/<apikey>/<public
 api.add_resource(GetSpeciesByid, '/api/get/species/byid/<apikey>/<speciesid>/')
 api.add_resource(GetResultsByUser, '/api/get/results/byuser/<apikey>/')
 api.add_resource(GetResultByTaskId, '/api/get/result/bytaskid/<apikey>/<taskid>/')
+api.add_resource(GetGeneDatabaseById, '/api/get/genedatabase/byid/<apikey>/<gene_database_id>/')
 
+#Not Gets
+#Projects
+api.add_resource(AddProjectByUser, '/api/add/project/byuser/<apikey>/<project_name>/')
+api.add_resource(AddGenesetToProject, '/api/add/geneset/toproject/<apikey>/<projectid>/<genesetid>/')
+api.add_resource(DeleteGenesetFromProject, '/api/delete/geneset/fromproject/<apikey>/<projectid>/<genesetid>/')
+
+#Tool Functions
 api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
 
+#Tool Calls
 api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
 api.add_resource(ToolGenesetViewerProjects, '/api/tool/genesetviewer/byprojects/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<projects>/')
 
