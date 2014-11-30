@@ -836,6 +836,11 @@ class GetOntologyByGensetId(restful.Resource):
 			#TODO ? - Do we want to throw error, or can anyone view ontology info?
         return geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
+    def get(self, apikey, gs_id):
+		#user = geneweaverdb.get_user_id_by_apikey(apikey)
+		#if (user == ''):
+			#TODO ? - Do we want to throw error, or can anyone view ontology info?
+        return geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
 # Tool Functions
 class ToolGetFile(restful.Resource):
@@ -907,13 +912,16 @@ class ToolPhenomeMap(restful.Resource):
         return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
 class ToolPhenomeMapProjects(restful.Resource):
-
     def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, projects):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
 class ToolBooleanAlgebra(restful.Resource):
+    def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
+class ToolBooleanAlgebra(restful.Resource):
     def get(self, apikey, relation, genesets):
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
   
