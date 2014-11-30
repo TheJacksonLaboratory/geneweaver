@@ -17,83 +17,159 @@ class AdminHome(Authentication, AdminIndexView):
         return self.render('admin/adminindex.html')
 
 
-
-
 class Viewers(Authentication, BaseView):
     @expose('/')
     def index(self):
         if self.endpoint == 'viewUsers':
-            columns=[ {'name': 'usr_id'},{'name': 'usr_email'}, {'name': 'usr_first_name'}, {'name': 'usr_last_seen'}]
+	    table='production.usr'
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})
+
 	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newUser", table="production.usr")
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newUser", table= table)
 
         elif self.endpoint == 'viewPublications':
-            columns=[{'name': 'pub_id'},{'name': 'pub_title'}, {'name': 'pub_authors'}, {'name': 'pub_month'}, {'name': 'pub_year'}]
+	    table='production.publication'
+            dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})
 	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newPub", table="production.publication")
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newPub", table= table)
 
-        elif self.endpoint == 'viewGroups':	          
-	    columns=[{'name': 'grp_id'},{'name': 'grp_name'}, {'name': 'grp_private'}, {'name': 'grp_created'}]
+        elif self.endpoint == 'viewGroups':	
+	    table='production.grp'          
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})
 	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGroup", table="production.grp")
-
-	elif self.endpoint == 'viewGenesets':
-            columns=[{'name': 'gs_id'},{'name': 'gs_abbreviation'}, {'name': 'gs_name'}, {'name': 'gs_description'}]
-	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneset", table="production.geneset")
-
-	elif self.endpoint == 'viewGenesetInfo':
-	    columns=[{'name': 'gs_id'}, {'name': 'gsi_analyses'}, {'name': 'gsi_pageviews'}]
-	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGenesetInfo", table="production.geneset_info")
-
-	elif self.endpoint == 'viewGeneInfo':
-	    columns=[{'name': 'ode_gene_id'},{'name': 'gi_name'}, {'name': 'gi_description'}]
-	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneInfo", table="extsrc.gene_info")
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGroup", table= table)
 
 	elif self.endpoint == 'viewProjects':
-            columns=[{'name': 'pj_id'},{'name': 'pj_name'}, {'name': 'pj_groups'}, {'name': 'pj_created'}]
+	    table='production.project'
+            dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})
 	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newProject", table="production.project")
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newProject", table= table)
+
+	elif self.endpoint == 'viewGenesets':
+	    table='production.geneset'
+            dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneset", table= table)
+
+	elif self.endpoint == 'viewGenesetInfo':
+	    table='production.geneset_info'
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGenesetInfo", table= table)
+
+	elif self.endpoint == 'viewGeneInfo':
+	    table='extsrc.gene_info'
+	    dbcols=geneweaverdb.get_all_columns( table)	
+	    print dbcols    
+            columns=[]
+	    #for col in dbcols:
+	#	columns.append({'name': col['column_name']})
+	    
+	    columns = [{'name': 'ode_gene_id'},{'name': 'gi_accession'},{'name': 'gi_symbol'},{'name': 'gi_name'},{'name': 'gi_description'},{'name': 'gi_type'},{'name': 'gi_chromosome'},{'name': 'gi_start_bp'},{'name': 'gi_end_bp'},{'name': 'gi_strand'},{'name': 'sp_id'},{'name': 'gi_date'}]
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGeneInfo", table= table)
 
 	elif self.endpoint == 'viewGenes':
-	    columns=[{'name': 'ode_gene_id'}, {'name': 'ode_date'}]
+	    table='extsrc.gene'
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})	    
 	    jcolumns=json.dumps(columns)
-            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table="extsrc.gene")
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table= table)
+
+	elif self.endpoint == 'viewFiles':
+	    table='production.file'
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		columns.append({'name': col['column_name']})	    
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table= table)
+	
+	elif self.endpoint == 'viewGenesetVals':
+	    table='extsrc.geneset_value'
+	    dbcols=geneweaverdb.get_all_columns( table)
+            columns=[]
+	    for col in dbcols:
+		if col['column_name'] != 'gsv_value' and col['column_name'] != 'gsv_value_list':
+		    columns.append({'name': col['column_name']})	    
+	    jcolumns=json.dumps(columns)
+            return self.render('admin/adminViewer.html',jcolumns=jcolumns, columns=columns , route="newGene", table= table)
 
  	else:
 	    return self.render('admin/adminindex.html')
 
+
+# Add endpoints that render input form using table columns that are not auto increment
 class Add(Authentication, BaseView):
-    @expose('/adminAdd', methods=('GET','POST' ))
     @expose('/')
     def index(self):
         if self.endpoint == 'newUser':
-	    columns = geneweaverdb.get_table_columns('usr')
-            return self.render('admin/adminAdd.html', columns=columns, toadd="User", table="production.usr")
+	    table="production.usr"
+	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+            return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="User", table=table)
+
         elif self.endpoint == 'newPub':
- 	    columns = geneweaverdb.get_table_columns('publication')
-            return self.render('admin/adminAdd.html', columns=columns, toadd="Publication", table="production.publication")
+	    table="production.publication"
+ 	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+            return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Publication", table=table)
+
         elif self.endpoint == 'newGeneset':
-	    columns = geneweaverdb.get_table_columns('geneset')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset", table="production.geneset")
+	    table="production.geneset"
+	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+	    return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Geneset", table=table)
+
         elif self.endpoint == 'newProject':
-	    columns = geneweaverdb.get_table_columns('project')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Project", table="production.project")
-	elif self.endpoint == 'newGene':
-	    columns = geneweaverdb.get_table_columns('gene')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene", table="extsrc.gene")
+	    table="production.project"
+	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+	    return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Project", table=table)
+
 	elif self.endpoint == 'newGenesetInfo':
-	    columns = geneweaverdb.get_table_columns('geneset_info')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Geneset Info", table="production.geneset_info")
-	elif self.endpoint == 'newGeneInfo':
-	    columns = geneweaverdb.get_table_columns('gene_info')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Gene Info", table="extsrc.gene_info")
+	    table="production.geneset_info"
+	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+	    return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Geneset Info", table=table)
+
 	elif self.endpoint == 'newGroup':
-	    columns = geneweaverdb.get_table_columns('grp')
-	    return self.render('admin/adminAdd.html', columns=columns, toadd="Group", table="production.grp")
+	    table="production.grp"
+	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+	    return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Group", table=table)
+
+	elif self.endpoint == 'newGene':
+	    table="extsrc.gene"
+	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+	    return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Gene", table=table)	
+
+	elif self.endpoint == 'newGeneInfo':
+	    table="extsrc.gene_info"
+	    columns=geneweaverdb.get_nullable_columns(table)
+	    requiredCols = geneweaverdb.get_required_columns(table)
+	    return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Gene Info", table=table)	
+
         else:
 	    return self.render('admin/adminindex.html')
-
-

@@ -131,7 +131,7 @@ messages = array of messages
             <span class="icon-bar"></span>
             </button>
             <a class="navbar-brand" href="{{ url_for('render_home')|safe }}">
-                <img style="max-width:100%; max-height:100%;"src="static/images/GW2-logo.png" alt="Company Logo"> GeneWeaver
+                <img style="max-width:100%; max-height:100%;"src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="Company Logo"> GeneWeaver
             </a>
         </div>
         <div class="collapse navbar-collapse">
@@ -167,7 +167,9 @@ messages = array of messages
                     <!-- If user is Admin -->
                     {% if "user" in g and g.user.is_admin == true%}
                         <li>
-                            <a href="admin">Admin Pages</a>
+                            <a href="admin">
+                                <i class="fa fa-gears"></i> Admin Page
+                            </a>
                         </li>
                     {% endif %}
                     <!-- Logged in user -->
