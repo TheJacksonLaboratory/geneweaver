@@ -42,7 +42,7 @@
 <a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
 </td>
 <td>
-Links
+{% include 'linkouts.html' %}
 </td>
 <td>
 {% for gsid in async_result.geneset_from[gene] %}
@@ -54,14 +54,6 @@ Links
 {% endfor %}
 </td>
 {% endfor %}
-
-        <script language="javascript" type="text/javascript">
-            function exefunction(){
-                var lfckv = document.getElementById("lifecheck").checked;
-                alert(lfckv);
-            }
-        </script>
-
 <td>
 
 </td>
