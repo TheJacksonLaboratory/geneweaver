@@ -1,0 +1,47 @@
+<!-- Define a form used for submitting future search requests. The action and method must match what routes are expecting. -->
+<!-- Note that search_filters_panel.html javascript depends on this id being properly  set in the form below for the search bar-->
+<form action="/search/" method="GET" id="searchBarForm">
+{% include'search/search_bar.html' %}
+</form>
+<br />
+{% if paginationValues != None %}
+<div class="row">
+
+<div class="col-lg-4">
+{% include 'search/search_filters_panel.html' %}
+</div>
+
+
+<div class="col-lg-8">
+	<!-- Show the panel heading with pagination, found in the search_results_header.html partial -->
+	{% include 'search/search_results_header.html' %}
+	<!-- Show the geneset table with geneset results -->
+	<div class="panel-body">
+		{% if paginationValues.numResults == 1000 %}
+		<!-- TODO Update this graphic -->
+		<span class="alert bg-red">Search results are limited to 1000 results. Try refining your search.</span>
+		<br /><br />
+		{% endif %}
+		<table class="table table-hover">
+		<thead>
+		<tr>
+		<th>Result</th>
+		</tr>
+		</thead>
+		<tbody>
+		{% for gs in genesets %}
+		<tr>
+		<td>
+		{% include 'viewGenesetSummaryPartial.html' %}
+		</td>
+		</tr>
+		<!-- TODO create a selector for adding genesets to projects, link will go here -->
+		{% endfor %}
+		</tbody>
+		</table>
+	</div>
+	</div>
+</div>
+{% endif %}
+</div>
+

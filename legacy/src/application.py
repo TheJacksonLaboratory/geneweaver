@@ -10,6 +10,7 @@ import json
 import os
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint, booleanalgebrablueprint
 import sphinxapi
+import search
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -282,13 +283,6 @@ def render_viewgenesets():
     return flask.render_template('mygenesets.html', genesets=genesets)
 
 
-@app.route('/search.html')
-def new_search():
-    paginationValues = {'numResults': 0, 'numPages': 1, 'currentPage':
-                        1, 'resultsPerPage': 10, 'search_term': '', 'end_page_number': 1}
-
-    return flask.render_template('search.html', paginationValues=None)
-
 @app.route('/emphasis.html', methods=['GET', 'POST'])
 def render_emphasis():
 
@@ -351,7 +345,7 @@ def render_search(search_term, pagination_page):
     ################################
     # TODO create a pooled connected somewhwere within genewaver
     client = sphinxapi.SphinxClient()
-    client.SetServer('bepo.ecs.baylor.edu', 9312)
+    client.SetServer('localhost', 9312)
     # Set the limit to get all results within the range of 1000
     # Retrieve only the results within the limit of the current page specified
     # in the pagination option
@@ -385,55 +379,60 @@ def render_search(search_term, pagination_page):
     # render the page with the genesets
     return flask.render_template('search.html', searchresults=results, genesets=genesets, paginationValues=paginationValues)
 
+@app.route('/search.html')
+def new_search():
+    paginationValues = {'numResults': 0, 'numPages': 1, 'currentPage':
+                        1, 'resultsPerPage': 10, 'search_term': '', 'end_page_number': 1}
+    print 'search from link'
+    return flask.render_template('search.html', paginationValues=None)
 
-@app.route('/search', methods=['POST'])
+@app.route('/search/')
 def render_searchFromHome():
-    # Get the posted information from the form
+    #Get the posted information from the form TODO add a conditional. If there are insufficient url parameters don't do a search, just render the page don't handle forms.
+    #TODO check search.html. Make sure that if there is no search data, a blank search page is properly displayed (check values in jinja).
     ##########################
     form = flask.request.form
-    # Search term is given from the searchbar in the form
-    search_term = form['searchbar']
-    # pagination_page is a hidden value that indicates which page of results
-    # to go to. Start at page one.
-    pagination_page = int(form['pagination_page'])
-    # do a query of the search term, fetch the matching genesets
-    ################################
-    # TODO create a pooled connected somewhwere within genewaver
-    client = sphinxapi.SphinxClient()
-    client.SetServer('bepo.ecs.baylor.edu', 9312)
-    # Set the limit to get all results within the range of 1000
-    # Retrieve only the results within the limit of the current page specified
-    # in the pagination option
-    resultsPerPage = 25
-    offset = resultsPerPage * (pagination_page - 1)
-    limit = resultsPerPage
-    max_matches = 1000
-    # Set the limits and query the client
-    client.SetLimits(offset, limit, max_matches)
-    results = client.Query(search_term)
-    # Transform the genesets into geneset objects for Jinga display
-    genesets = list()
-    for match in results['matches']:
-        genesetID = match['id']
-        # TODO eliminate database query
-        genesets.append(
-            geneweaverdb.get_geneset(genesetID, flask.session.get('user_id')))
-    # Calculate pagination information for display
-    ##############################
-    numResults = int(results['total'])
-    # Do ceiling integer division
-    numPages = ((numResults - 1) // resultsPerPage) + 1
-    currentPage = pagination_page
-    # Calculate the bouding numbers for pagination
-    end_page_number = currentPage + 4
-    if end_page_number > numPages:
-        end_page_number = numPages
+    #Search term is given from the searchbar in the form
+    search_term = request.args.get('searchbar')
+    #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
+    pagination_page = int(request.args.get('pagination_page'))
+    #Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
+    #Associate the correct fields with each option given by the user
+    field_list = {'searchGenesets': False, 'searchGenes': False, 'searchAbstracts': False, 'searchOntologies': False}
+    search_fields = list()
+    if(request.args.get('searchGenesets')):
+        search_fields.append('name,description,label')
+        field_list['searchGenesets'] = True
+    if(request.args.get('searchGenes')):
+        search_fields.append('genes')
+        field_list['searchGenes'] = True
+    if(request.args.get('searchAbstracts')):
+        search_fields.append('pub_authors,pub_title,pub_abstract,pub_journal')
+        field_list['searchAbstracts'] = True
+    if(request.args.get('searchOntologies')):
+        search_fields.append('ontologies')
+        field_list['searchOntologies'] = True
+    #Add the default case, at least be able to search these values for all searches
+    search_fields.append('gs_id,gsid_prefixed,species,taxid')
+    search_fields =  ','.join(search_fields)
     #
-    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage,
-                        'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number}
-    # render the page with the genesets
-    return flask.render_template('search.html', searchresults=results, genesets=genesets, paginationValues=paginationValues)
+    #TODO update get function, then pull parameter checking out to the function
+    #userValues = search.getUserFiltersFromApplicationRequest(request.form)
+    search_values = search.keyword_paginated_search(search_term, pagination_page, search_fields)
+    return flask.render_template('search.html', searchresults=search_values['searchresults'], genesets=search_values['genesets'], paginationValues=search_values['paginationValues'], field_list = field_list, searchFilters=search_values['searchFilters'])
 
+@app.route('/searchFilter.json',methods=['POST'])
+#This route will take as an argument, search parameters for a filtered search
+def render_search_json():
+    #Get the user values from the request
+    userValues = search.getUserFiltersFromApplicationRequest(request.form)
+    #Get a sphinx search
+    #First, print some diangostic information
+    search_values = search.keyword_paginated_search(userValues['search_term'], userValues['pagination_page'], userValues['search_fields'], userValues['userFilters'])
+    
+    #TODO perform a search based on filtered data
+    #results = search.(something here)
+    return flask.render_template('search.html', searchresults=search_values['searchresults'], genesets=search_values['genesets'], paginationValues=search_values['paginationValues'], field_list = userValues['field_list'], searchFilters=search_values['searchFilters'], userFilters=userValues['userFilters'])
 
 @app.route('/searchsuggestionterms.json')
 def render_search_suggestions():
