@@ -6,13 +6,45 @@
     <h1>{{ title }}</h1>
 </div>
 
+<form id="todo-id" class="form-horizontal" role="form" method="post">
+    <div class="row">
+        <div class="col-md-4">
+                <div class="panel panel-info">
+				<div class="panel-heading">
+					<h2 class="panel-title">
+						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+							Rerun Tool Options
+						</a>
+					</h2>
+				</div>
+				<div id="jcCollapse" class="panel-collapse collapse">
+					<div class="panel-body">
+						<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_Homology']) }}</div>
+						<div class="form-group">{{ macros.tool_param_select(tool.params['GeneSetViewer_MinDegree']) }}</div>
+						<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_SupressDisconnected']) }}</div>
+
+						<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+
+						<button class="btn btn-primary" 
+							type='submit'
+							value='run'
+							onclick='this.form.action="{{ url_for('GeneSetViewer.run_tool') }}";'>
+							Run
+						</button>
+					</div>
+				</div>
+			</div>
+        </div>
+    </div>
+</form>
+
 <div class="row">
     <div class="col-md-12 link-panel" style="text-align: center;">
-        <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.svg') }}" frameborder="0"></iframe>
+        <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.parameters.output_prefix  + '.svg') }}" frameborder="0"></iframe>
         <br />
-        <a href="{{ url_for('static_results', filename=async_result.task_id + '.pdf') }}">Export GeneSet Graph as a PDF</a>
+        <a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix  + '.pdf') }}">Export GeneSet Graph as a PDF</a>
         -
-        <a target="_blank" href="{{ url_for('static_results', filename=async_result.task_id + '.svg') }}">Open in new window</a>
+        <a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix  + '.svg') }}">Open in new window</a>
     </div>
 </div>
 
