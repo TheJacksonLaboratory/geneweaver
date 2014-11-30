@@ -25,7 +25,7 @@
 						<div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
 						<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
 
-						<input type="text" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+						<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
 
 						<button class="btn btn-primary" 
 							type='submit'
