@@ -6,9 +6,38 @@
     <h1>{{ title }}</h1>
 </div>
 
-<br /><h4>Table view:</h4>
+<form id="todo-id" class="form-horizontal" role="form" method="post">
+    <div class="row">
+        <div class="col-md-4">
+                <div class="panel panel-info">
+				<div class="panel-heading">
+					<h2 class="panel-title">
+						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+							Rerun Tool Options
+						</a>
+					</h2>
+				</div>
+				<div id="jcCollapse" class="panel-collapse collapse">
+					<div class="panel-body">
+						<div class="form-group">{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
+						<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
 
-<!-- this is the gs ids -->
+						<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+
+						<button class="btn btn-primary" 
+							type='submit'
+							value='run'
+							onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
+							Run
+						</button>
+					</div>
+				</div>
+			</div>
+        </div>
+    </div>
+</form>
+
+<br /><h4>Table view:</h4>
 
 <br clear="all" /><div class="floatGeneList">
 <form name="listform" id="listform">
@@ -19,8 +48,6 @@
   <a href="{{ item.url }}">{{ item.gsID }}</a>
 {% endfor %}
 </th></tr>
-
-<!-- this is the gs names -->
 
 {% for item in async_result.geneset_table %}
 <tr><td style="border-bottom: none; white-space:nowrap;" align="left">
@@ -41,9 +68,6 @@
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
 
-
-<!-- this is for the project selection -->
-
 <tr><td colspan="4" style="border-bottom: none;">
 <label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All </label>
     <select name="addToProject" onchange="return ODE.add_to_project(this);">
@@ -54,9 +78,6 @@
         <option value="-2">+ Create new project...</option>
 </td></tr>
 </table><br clear="all" />
-
-
-<!--<br /><a href="{{ async_result.csv_url }}">Download Matrix as CSV</a>-->
 
 <br /><br /><h4>Venn Diagram view:</h4>
 
@@ -98,7 +119,6 @@ function changeImg(sel, dl) {
 	else if(sel.value=='png') {
 		document.getElementById("svgFrame").src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}";
 	}
-	
 }
 
 function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
@@ -115,43 +135,5 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
     }
 
 </script>
-
-<!--<script type="text/javascript">-->
-<!--$(window).load(function() {ldelim}-->
-	<!--$('#svgFrame')[0].width=document.body.offsetWidth-100;-->
-	<!--$('#svgFrame')[0].height=document.body.offsetWidth-100;-->
-	<!--if( $('#svgFrame')[0].width>{{ async_result.width }} ) $('#svgFrame')[0].width={{ async_result.width }};-->
-	<!--if( $('#svgFrame')[0].height>{{ async_result.height }} ) $('#svgFrame')[0].height={{ async_result.height }};-->
-<!--{literal}-->
-<!--});-->
-
-<!--function chgImage(sel, dl) {-->
-	<!--if(!dl) {-->
-<!--{/literal}-->
-		<!--if( sel.value=='png' ) $('#svgFrame')[0].src='{ode_link action=analyze cmd=convert other="format=png&run=$runhash"}';-->
-		<!--if( sel.value=='svg' ) $('#svgFrame')[0].src='{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}';-->
-<!--{literal}load-->
-	<!--} else {-->
-		<!--switch( sel.selectedIndex ) {-->
-<!--{/literal}-->
-			<!--case 1: window.location.href='{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}'; break;-->
-			<!--case 2: window.location.href='{ode_link action=analyze cmd=convert other="format=pdf&run=$runhash"}'; break;-->
-			<!--case 3: window.location.href='{ode_link action=analyze cmd=convert other="format=jpg&run=$runhash"}'; break;-->
-			<!--case 4: window.location.href='{ode_link action=analyze cmd=convert other="format=png&run=$runhash"}'; break;-->
-			<!--case 5: window.location.href='{ode_link action=analyze cmd=convert other="format=png&width=5000&run=$runhash"}'; break;-->
-<!--{literal}-->
-		<!--}-->
-	<!--}-->
-<!--}-->
-<!--{/literal}-->
-<!--</script>-->
-
-<!--<br />View:<label>SVG<input type="radio" name="imgtype" value="svg" onclick="chgImage(this,false);" checked></label>-->
-<!--<label>PNG<input type="radio" name="imgtype" value="png" onclick="chgImage(this,false);"></label> &nbsp; &nbsp;-->
-<!--Download: <select onchange="chgImage(this, true);"><option>Select file type...</option>-->
-<!--<option>SVG</option><option>PDF</option><option>JPG (lossy)</option>-->
-<!--<option>Normal PNG</option><option>Large PNG</option></select><br />-->
-<!--<br /><iframe src="{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}" id="svgFrame"></iframe>-->
-<!--- <a target="_blank" href="{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}">Open in new window</a>-->
 
 {% include 'footer.html' %}
