@@ -6,9 +6,7 @@
     <h1>{{ title }}</h1>
 </div>
 
-
 <br /><h4>Table view:</h4>
-
 
 <br clear="all" /><div class="floatGeneList">
 <form name="listform" id="listform">
@@ -20,77 +18,42 @@
 {% endfor %}
 </th></tr>
 
+{% set j = 0 %}
 {% for item in async_result.geneset_table %}
+    {% set i = 0 %}
 <tr><td style="border-bottom: none; white-space:nowrap;" align="left">
-<label><input type="checkbox" name="gs_id[]" value="{{ item.gsID[:2] }}">
-<a style="font-size:1.0em;" href="{{ item.url }}">{{ item.text }}</a></td>
+<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
+<a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
     {% for jac in item.entries %}
 	<td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
-    {% if jac.url %}
+    {% if jac.url == "0" %}
+       <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}">{{ jac.text | safe }}</a>
+    {% elif jac.url %}
 	   <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
     {% else %}
 	   <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
     {% endif %}
     </td>
-    </label>
-
+    {% set i = i + 1 %}
 	{% endfor %}
+    {%set j = j + 1 %}
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
 
 <tr><td colspan="4" style="border-bottom: none;">
-<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All </label>
+<input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
+    <p style="margin-left:30px; font-size: 15px;"> Select All
     <select name="addToProject" onchange="return ODE.add_to_project(this);">
         <option value="-1">Add selected to project...</option>
         {% for project in list %}
             <option value="{{project.name}}">{{project.name}} ({{project.count}})</option>
         {% endfor %}
-        <option value="-2">+ Create new project...</option>
+        <option value="-2">+ Create new project...</option></select></p>
 </td></tr>
 </table><br clear="all" />
 
 
-<!--<br /><a href="{{ async_result.csv_url }}">Download Matrix as CSV</a>-->
-
 <br /><br /><h4>Venn Diagram view:</h4>
-
-<!--<script type="text/javascript">-->
-<!--$(window).load(function() {ldelim}-->
-	<!--$('#svgFrame')[0].width=document.body.offsetWidth-100;-->
-	<!--$('#svgFrame')[0].height=document.body.offsetWidth-100;-->
-	<!--if( $('#svgFrame')[0].width>{{ async_result.width }} ) $('#svgFrame')[0].width={{ async_result.width }};-->
-	<!--if( $('#svgFrame')[0].height>{{ async_result.height }} ) $('#svgFrame')[0].height={{ async_result.height }};-->
-<!--{literal}-->
-<!--});-->
-
-<!--function chgImage(sel, dl) {-->
-	<!--if(!dl) {-->
-<!--{/literal}-->
-		<!--if( sel.value=='png' ) $('#svgFrame')[0].src='{ode_link action=analyze cmd=convert other="format=png&run=$runhash"}';-->
-		<!--if( sel.value=='svg' ) $('#svgFrame')[0].src='{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}';-->
-<!--{literal}load-->
-	<!--} else {-->
-		<!--switch( sel.selectedIndex ) {-->
-<!--{/literal}-->
-			<!--case 1: window.location.href='{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}'; break;-->
-			<!--case 2: window.location.href='{ode_link action=analyze cmd=convert other="format=pdf&run=$runhash"}'; break;-->
-			<!--case 3: window.location.href='{ode_link action=analyze cmd=convert other="format=jpg&run=$runhash"}'; break;-->
-			<!--case 4: window.location.href='{ode_link action=analyze cmd=convert other="format=png&run=$runhash"}'; break;-->
-			<!--case 5: window.location.href='{ode_link action=analyze cmd=convert other="format=png&width=5000&run=$runhash"}'; break;-->
-<!--{literal}-->
-		<!--}-->
-	<!--}-->
-<!--}-->
-<!--{/literal}-->
-<!--</script>-->
-
-<!--<br />View:<label>SVG<input type="radio" name="imgtype" value="svg" onclick="chgImage(this,false);" checked></label>-->
-<!--<label>PNG<input type="radio" name="imgtype" value="png" onclick="chgImage(this,false);"></label> &nbsp; &nbsp;-->
-<!--Download: <select onchange="chgImage(this, true);"><option>Select file type...</option>-->
-<!--<option>SVG</option><option>PDF</option><option>JPG (lossy)</option>-->
-<!--<option>Normal PNG</option><option>Large PNG</option></select><br />-->
-<!--<br /><iframe src="{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}" id="svgFrame"></iframe>-->
-<!--- <a target="_blank" href="{ode_link action=analyze cmd=view other="mime=text/xml&subpage=svg&run=$runhash"}">Open in new window</a>-->
 
 
 <svg width="{{async_result.width}}" height="{{async_result.height}}" viewBox="0 0 {{async_result.width}} {{async_result.height}}"
@@ -108,7 +71,7 @@
        <title>{{venn.title1|safe}}</title><desc>{{venn.desc1|safe}}</desc>
      </circle>
      <circle cx="{{ venn.c2x }}" cy="{{ venn.c2y }}" r="{{ venn.r2 }}" fill="#0000ff" fill-opacity="0.4" stroke="#000000" stroke-width="1px" >
-       <title>{{ venn.title2|safe}}</title><desc>{$venn.desc2|safe}</desc>
+       <title>{{ venn.title2|safe}}</title><desc>{venn.desc2|safe}</desc>
      </circle>
      {% for vtext in venn.text %}
        <text x="{{ vtext.tx }}" y="{{ vtext.ty }}" text-anchor="middle" transform="scale(0.75)">{{vtext.text|safe}}</text>
@@ -125,4 +88,5 @@
 </g>
 </svg>
 
+<br><br>
 {% include 'footer.html' %}

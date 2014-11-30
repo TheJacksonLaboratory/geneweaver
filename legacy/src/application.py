@@ -291,6 +291,61 @@ def new_search():
 
     return flask.render_template('search.html', paginationValues=None)
 
+@app.route('/emphasis.html', methods=['GET', 'POST'])
+def render_emphasis():
+
+    '''
+    Emphasis_AddGene
+    Emphasis_RemoveGene
+    Emphasis_RemoveAllGenes
+    Emphasis_SearchGene
+    '''
+
+    foundgenes={}
+    emphgenes={}
+    emphgeneids = []
+    user_id = flask.session['user_id']
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
+
+    if flask.request.method == 'POST' :
+        form  = flask.request.form
+
+        if 'Emphasis_SearchGene' in form:
+            search_gene = form['Emphasis_SearchGene']
+            foundgenes = geneweaverdb.get_gene_and_species_info(search_gene)
+
+    elif flask.request.method == 'GET' :
+        args = flask.request.args
+
+        if 'Emphasis_AddGene' in args :
+            add_gene = args['Emphasis_AddGene']
+            if add_gene:
+                geneweaverdb.create_usr2gene(user_id, add_gene)
+
+        if 'Emphasis_AddAllGenes' in args :
+            add_all_genes = args['Emphasis_AddAllGenes']
+            if add_all_genes:
+                genes_list = add_all_genes.split(' ')
+                for gene in genes_list:
+                    if not str(gene) in emphgeneids :
+                        geneweaverdb.create_usr2gene(user_id, gene)
+
+
+        if 'Emphasis_RemoveGene' in args :
+            remove_gene = args['Emphasis_RemoveGene']
+            if remove_gene:
+                geneweaverdb.delete_usr2gene_by_user_and_gene(user_id, remove_gene)
+
+        if 'Emphasis_RemoveAllGenes' in args :
+            if args['Emphasis_RemoveAllGenes'] == 'yes' :
+                geneweaverdb.delete_usr2gene_by_user(user_id)
+
+
+
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
 
 @app.route('/search/<string:search_term>/<int:pagination_page>')
 def render_search(search_term, pagination_page):
@@ -646,11 +701,11 @@ def change_password():
         user = geneweaverdb.get_user(flask.session.get('user_id'))
 
         if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
-            return flask.render_template('accountsettings.html')
+            return flask.render_template('accountsettings.html', user=user)
         else:
             success = geneweaverdb.change_password(
                 user.user_id, form['new_pass'])
-            return flask.render_template('accountsettings.html')
+            return flask.render_template('accountsettings.html', user=user)
 
 
 @app.route('/generate_api_key', methods=['POST'])
@@ -687,7 +742,7 @@ class GetGenesetsByGeneRefIdHomology(restful.Resource):
 class GetGenesByGenesetId(restful.Resource):
 
     def get(self, genesetid):
-        return geneweaverdb.get_geneset_by_id(genesetid)
+        return geneweaverdb.get_genes_by_geneset_id(genesetid)
 
 
 class GetGeneByGeneId(restful.Resource):
@@ -699,7 +754,7 @@ class GetGeneByGeneId(restful.Resource):
 class GetGenesetById(restful.Resource):
 
     def get(self, genesetid):
-        return geneweaverdb.get_geneset_by_id(genesetid)
+        return geneweaverdb.get_geneset_by_geneset_id(genesetid)
 
 
 class GetGenesetByUser(restful.Resource):
@@ -713,15 +768,76 @@ class GetProjectsByUser(restful.Resource):
     def get(self, apikey):
         return geneweaverdb.get_projects_by_user(apikey)
 
+class GetProbesByGene(restful.Resource):
+
+    def get(self, apikey, gene_ref_id):
+        return geneweaverdb.get_probes_by_gene(apikey, gene_ref_id)
+        
+class GetPlatformById(restful.Resource):
+
+    def get(self, apikey, platformid):
+        return geneweaverdb.get_platform_by_id(apikey, platformid)    
+        
+class GetSnpByGeneid(restful.Resource):
+
+    def get(self, apikey, gene_ref_id):
+        return geneweaverdb.get_snp_by_geneid(apikey, gene_ref_id)     
+
+class GetPublicationById(restful.Resource):
+
+    def get(self, apikey, publicationid):
+        return geneweaverdb.get_publication_by_id(apikey, publicationid)  
+
+class GetSpeciesByid(restful.Resource):
+
+    def get(self, apikey, speciesid):
+        return geneweaverdb.get_species_by_id(apikey, speciesid)
+
+class GetResultsByUser(restful.Resource):
+
+    def get(self, apikey):
+        return geneweaverdb.get_results_by_user(apikey)
+
+class GetGeneDatabaseById(restful.Resource):
+
+    def get(self, apikey, gene_database_id):
+        return geneweaverdb.get_gene_database_by_id(apikey, gene_database_id)
+
+class GetResultByTaskId(restful.Resource):
+
+    def get(self, apikey, taskid):
+        return geneweaverdb.get_result_by_runhash(apikey, taskid)
+
+class AddProjectByUser(restful.Resource):
+
+    def get(self, apikey, project_name):
+        return geneweaverdb.add_project_for_user(apikey, project_name)
+
+class AddGenesetToProject(restful.Resource):
+
+    def get(self, apikey, projectid, genesetid):
+        return geneweaverdb.add_geneset_to_project(apikey, projectid, genesetid)
+
+class DeleteGenesetFromProject(restful.Resource):
+
+    def get(self, apikey, projectid, genesetid):
+        return geneweaverdb.delete_geneset_from_project(apikey, projectid, genesetid)
 
 class GetGenesetByProjectId(restful.Resource):
 
     def get(self, apikey, projectid):
         return geneweaverdb.get_geneset_by_project_id(apikey, projectid)
 
-# TODO format syntax
+class GetOntologyByGensetId(restful.Resource):
+
+    def get(self, apikey, gs_id):
+		#user = geneweaverdb.get_user_id_by_apikey(apikey)
+		#if (user == ''):
+			#TODO ? - Do we want to throw error, or can anyone view ontology info?
+        return geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
 
+# Tool Functions
 class ToolGetFile(restful.Resource):
 
     def get(self, apikey, task_id, file_type):
@@ -738,74 +854,124 @@ class ToolGetStatus(restful.Resource):
 
     def get(self, task_id):
         return geneweaverdb.get_status(task_id)
+         
 
 # Tools
-
-
 class ToolJaccardClustering(restful.Resource):
 
     def get(self, apikey, homology, method, genesets):
         return jaccardclusteringblueprint.run_tool_api(apikey, homology, method, genesets)
 
+class ToolJaccardClusteringProjects(restful.Resource):
+
+	def get(self, apikey, homology, method, projects):
+		genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+		return jaccardclusteringblueprint.run_tool_api(apikey, homology, method, genesets)
 
 class ToolGenesetViewer(restful.Resource):
 
-    def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
-        return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
-# Error: JaccardSimilarity does not create files => not an API problem,
-# tool itself problem.
+	def get(self, apikey, homology, supressDisconnected, minDegree, genesets):
+		return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
 
+class ToolGenesetViewerProjects(restful.Resource):
+
+	def get(self, apikey, homology, supressDisconnected, minDegree, projects):
+		genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+		return genesetviewerblueprint.run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets)
 
 class ToolJaccardSimilarity(restful.Resource):
 
     def get(self, apikey, homology, pairwiseDeletion, genesets):
         return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
+class ToolJaccardSimilarityProjects(restful.Resource):
+
+    def get(self, apikey, homology, pairwiseDeletion, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
 class ToolCombine(restful.Resource):
 
     def get(self, apikey, homology, genesets):
         return combineblueprint.run_tool_api(apikey, homology, genesets)
+        
+class ToolCombineProjects(restful.Resource):
 
+    def get(self, apikey, homology, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return combineblueprint.run_tool_api(apikey, homology, genesets)
 
 class ToolPhenomeMap(restful.Resource):
 
     def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
         return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
 
+class ToolPhenomeMapProjects(restful.Resource):
 
-api.add_resource(GetGenesetsByGeneRefId,
-                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
-api.add_resource(GetGenesetsByGeneRefIdHomology,
-                 '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
+    def get(self, apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return phenomemapblueprint.run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets)
+
+class ToolBooleanAlgebra(restful.Resource):
+
+    def get(self, apikey, relation, genesets):
+        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
+  
+class ToolBooleanAlgebraProjects(restful.Resource):
+
+    def get(self, apikey, relation, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)      
+
+api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
+api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
 api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
+api.add_resource(GetOntologyByGensetId, '/api/get/ontologies/bygeneset/<apikey>/<gs_id>/')
 
 api.add_resource(GetGenesetById, '/api/get/geneset/byid/<genesetid>/')
-api.add_resource(
-    GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
+api.add_resource(GetGenesByGenesetId, '/api/get/genes/bygenesetid/<genesetid>/')
 
 api.add_resource(GetGeneByGeneId, '/api/get/gene/bygeneid/<geneid>/')
 api.add_resource(GetProjectsByUser, '/api/get/project/byuser/<apikey>/')
-api.add_resource(
-    GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
+api.add_resource(GetGenesetByProjectId, '/api/get/geneset/byprojectid/<apikey>/<projectid>/')
+api.add_resource(GetProbesByGene, '/api/get/probes/bygeneid/<apikey>/<gene_ref_id>/')
+api.add_resource(GetPlatformById, '/api/get/platform/byid/<apikey>/<platformid>/')
+api.add_resource(GetSnpByGeneid, '/api/get/snp/bygeneid/<apikey>/<gene_ref_id>/')
+api.add_resource(GetPublicationById, '/api/get/publication/byid/<apikey>/<publicationid>/')
+api.add_resource(GetSpeciesByid, '/api/get/species/byid/<apikey>/<speciesid>/')
+api.add_resource(GetResultsByUser, '/api/get/results/byuser/<apikey>/')
+api.add_resource(GetResultByTaskId, '/api/get/result/bytaskid/<apikey>/<taskid>/')
+api.add_resource(GetGeneDatabaseById, '/api/get/genedatabase/byid/<apikey>/<gene_database_id>/')
 
-api.add_resource(
-    ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
-api.add_resource(
-    ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
+#Not Gets
+#Projects
+api.add_resource(AddProjectByUser, '/api/add/project/byuser/<apikey>/<project_name>/')
+api.add_resource(AddGenesetToProject, '/api/add/geneset/toproject/<apikey>/<projectid>/<genesetid>/')
+api.add_resource(DeleteGenesetFromProject, '/api/delete/geneset/fromproject/<apikey>/<projectid>/<genesetid>/')
+
+#Tool Functions
+api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')
+api.add_resource(ToolGetLink, '/api/tool/get/link/<apikey>/<task_id>/<file_type>/')
 api.add_resource(ToolGetStatus, '/api/tool/get/status/<task_id>/')
 
-api.add_resource(
-    ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
-api.add_resource(ToolJaccardClustering,
-                 '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
-api.add_resource(ToolJaccardSimilarity,
-                 '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
-api.add_resource(
-    ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
-api.add_resource(
-    ToolPhenomeMap, '/api/tool/phenomemap/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<genesets>/')
+#Tool Calls
+api.add_resource(ToolGenesetViewer, '/api/tool/genesetviewer/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<genesets>/')
+api.add_resource(ToolGenesetViewerProjects, '/api/tool/genesetviewer/byprojects/<apikey>/<homology>/<supressDisconnected>/<minDegree>/<projects>/')
 
+api.add_resource(ToolJaccardClustering, '/api/tool/jaccardclustering/<apikey>/<homology>/<method>/<genesets>/')
+api.add_resource(ToolJaccardClusteringProjects, '/api/tool/jaccardclustering/byprojects/<apikey>/<homology>/<method>/<projects>/')
+
+api.add_resource(ToolJaccardSimilarity, '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+api.add_resource(ToolJaccardSimilarityProjects, '/api/tool/jaccardsimilarity/byprojects/<apikey>/<homology>/<pairwiseDeletion>/<projects>/')
+
+api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
+api.add_resource(ToolCombineProjects, '/api/tool/combine/byprojects/<apikey>/<homology>/<projects>/')
+
+api.add_resource(ToolPhenomeMap, '/api/tool/phenomemap/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<genesets>/')
+api.add_resource(ToolPhenomeMapProjects, '/api/tool/phenomemap/byprojects/<apikey>/<homology>/<minGenes>/<permutationTimeLimit>/<maxInNode>/<permutations>/<disableBootstrap>/<minOverlap>/<nodeCutoff>/<geneIsNode>/<useFDR>/<hideUnEmphasized>/<p_Value>/<maxLevel>/<projects>/')
+
+api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relation>/<genesets>/')
+api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byprojects/<apikey>/<relation>/<projects>/')
 
 # ********************************************
 # END API BLOCK

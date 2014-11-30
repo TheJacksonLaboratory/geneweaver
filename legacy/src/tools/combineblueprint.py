@@ -19,7 +19,8 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        raise Exception('there must be at least two genesets selected to run this tool')
+        flask.flash("Warning: You need at least 2 gene sets!")
+        return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -37,8 +38,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        # TODO add nice error message about missing user ID.
-        raise Exception('internal error: user ID missing')
+        flask.flash("Internal error: user ID missing")
+        return flask.redirect('analyze.html')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -107,7 +108,7 @@ def run_tool_api(apikey, homology, genesets):
         json.dumps(paramsAPI),
         tool.name,
         desc,
-        desc)
+        desc, 't')
 
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
