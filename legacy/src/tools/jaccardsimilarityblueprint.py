@@ -51,12 +51,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-<<<<<<< HEAD
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze.html')
-=======
-        # TODO add nice error message about missing user ID.
-        raise Exception('internal error: user ID missing')
 
     # Gather emphasis gene ids and put them in paramters
     emphgeneids = []
@@ -64,7 +60,6 @@ def run_tool():
     emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
->>>>>>> origin/development
    
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -181,14 +176,17 @@ def status_json(task_id):
         'state': async_result.state,
     })
 
-@jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>')
+@jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>.html')
 def geneset_intersection(gsID_1, gsID_2, i):
     user_id = flask.session.get('user_id')
     if user_id:
         geneset1 = gwdb.get_geneset(gsID_1[2:], user_id)
         geneset2 = gwdb.get_geneset(gsID_2[2:], user_id)
         genesets = [geneset1, geneset2]
-        intersect_genes = gwdb.get_gene_id_by_intersection(gsID_1[2:], gsID_2[2:])
+        intersect_genes = {}
+        temp_genes = gwdb.get_gene_sym_by_intersection(gsID_1[2:], gsID_2[2:])
+        for j in range(0, len(temp_genes[0])):
+            intersect_genes[temp_genes[0][j]] = gwdb.if_gene_has_homology(temp_genes[1][j])
         list=gwdb.get_all_projects(user_id)
     else:
         geneset1 = geneset2 = None

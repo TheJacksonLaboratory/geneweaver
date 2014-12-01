@@ -11,96 +11,62 @@
 	<!-- Label the tier - which is the curation id, Geneset.cur_id -->
     <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ gs.geneset_id }}">
     <a style="margin-left:30px; font-size:18px;">
-	{% if gs.cur_id == 1 %}
-                    <span class="tier1">Tier I</span>
-	{% endif %}
-        {%if gs.cur_id == 2 %}
-                    <span class="tier2">Tier II</span>
-	{% endif %}
-        {%if gs.cur_id == 3 %}
-                    <span class="tier3">Tier III</span>
-	{% endif %}
-        {% if gs.cur_id == 4 %}
-                    <span class="tier4">Tier IV</span>
-	{% endif %}
-        {%if gs.cur_id == 5 %}
-                    <span class="tier5">Tier V</span>
-        {% endif %}
-
-	<!-- Label the species -->
-	{% if gs.sp_id == 1 %}
-		<span class="mouse">Mouse</span>
-	{% endif %}
-	{% if gs.sp_id == 2 %}
-		<span class="human">Human</span>
-	{% endif %}
-	{% if gs.sp_id == 3 %}
-		<span class="rat">Rat</span>
-	{% endif %}
-	{% if gs.sp_id == 4 %}
-		<span class="zebrafish">Zebrafish</span>
-	{% endif %}
-	{% if gs.sp_id == 5 %}
-		<span class="fly">Fly</span>
-	{% endif %}
-	{% if gs.sp_id == 6 %}
-		<span class="monkey">Monkey</span>
-	{% endif %}
-
-	<!-- Label the attribution -->
-	{% if gs.attribution == 2 %}
-		<span class="ctd">CTD</span>
-	{% endif %}
-	{% if gs.attribution == 7 %}
-		<span class="drg">DRG</span>
-	{% endif %}
-	{% if gs.attribution == 8 %}
-		<span class="go">GO</span>
-	{% endif %}
-	{% if gs.attribution == 9 %}
-		<span class="mp">MP</span>
-	{% endif %}
-
-	<!-- Show the geneset size -->
-	<span class="gs_size">{{gs.count}} Genes</span>
-	<!-- need status for if not normal -->
-	{% if gs.status != "normal" %}
-	<span class="gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
-	{% endif %}
- 	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a></a>
+	{% include 'viewGenesetSummaryPartial.html' %}
 <br />
 
 {% endfor %}
-
+<div id="project_selector">
 <input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
     <p style="margin-left:30px; font-size: 15px;"> Select All
     <select name="addToProject" onchange="javascript:handleSelect(this);">
         <option value="-1">Add selected to project...</option>
         {% for project in list %}
-            <option value="{{project.project_id}}">{{project.name}} {{project.project_id}} ({{project.count}})</option>
+            <option value="{{project.project_id}}">{{project.name}} ({{project.count}})</option>
         {% endfor %}
         <option value="-2">+ Create new project...</option></select></p>
+</div>
 	<script type="text/javascript">
 		function handleSelect(elm)
 		{
 			var genesets = []
-            if (elm.value == "-2") {
-
-            }
-            else if (elm.value != "-1") {
-                $('input:checkbox[name="gs_id[]"]').each(function () {
-                    if (this.checked) {
-                        genesets.push(this.value);
-                    }
-                });
-                for (var i = 0; i < genesets.length; i++) {
-                    $.get("/add_geneset_to_project/" + elm.value + "/" + genesets[i] + ".html", function (data, status) {
+            if (elm.value != "-1") {
+                if (elm.value == "-2") {
+                    var name = prompt("Enter a name for the new project:");
+                    $.get("/create_project/" + name + ".html", function (data, status) {
+                        $('input:checkbox[name="gs_id[]"]').each(function () {
+                            if (this.checked) {
+                                genesets.push(this.value);
+                            }
+                        });
+                        if (genesets.length != 0) {
+                            for (var i = 0; i < genesets.length; i++) {
+                                $.get("/add_geneset_to_project/" + data + "/" + genesets[i] + ".html");
+                            }
+                        }
+                        else {
+                            window.alert("Please select gene set(s) to add first!")
+                        }
                     });
-//                    return ODE.add_to_project(this);
+                }
+                else {
+                    $('input:checkbox[name="gs_id[]"]').each(function () {
+                        if (this.checked) {
+                            genesets.push(this.value);
+                        }
+                    });
+                    if (genesets.length != 0) {
+                        for (var i = 0; i < genesets.length; i++) {
+                            $.get("/add_geneset_to_project/" + elm.value + "/" + genesets[i] + ".html", function (data, status) {
+                            });
+                        }
+                    }
+                    else {
+                        window.alert("Please select gene set(s) to add first!")
+                    }
                 }
             }
 		}
-	</script>
+</script>
 
 <br /><br /><h3>Venn Diagram:</h3><hr>
   <h4>Gene Symbol:</h4>
@@ -128,21 +94,21 @@
 
 <style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
 
-<table cellspacing="0" style="font-size: 1em;"><tr><th rowspan="2" valign="bottom">
+<table cellspacing="0" style="font-size: 1em; width: 80%"><tr><th rowspan="2" valign="bottom">
 <p style="font-size: 1em; font-weight: normal;">
 <img src="/static/images/greendot.png" /> = Exact same gene in all sets<br />
 <img src="/static/images/purpledot.png" /> = Homologous gene cluster</p><br />
 Gene Symbol
-</th><th width="25%" rowspan="2" valign="bottom">Links
+</th><th width="20%" rowspan="2" valign="bottom">Links
 
 {% set j = 0 %}
 {% for gs in genesets %}
     {% if j!=0 %}
-    </th></tr><tr><th width="5%" rowspan="{{1}}" style="border-left: 1px solid #000; border-bottom: none;
+    </th></tr><tr><th width="2%" rowspan="1" style="border-left: 1px solid #000; border-bottom: none;
     {% if j%2==1 %} background-color: #fff;{% endif %}">&nbsp;</th>
     {% endif %}
 
-    </th><th width="30%" align="left" colspan="{{genesets|length+1}}" style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
+    </th><th width="50%" align="left" colspan="{{genesets|length+1}}" style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
     {%if j%2==0 %} background-color: #fff;{% endif %}">
     <a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}}</a></th>
     {% set j = j + 1 %}
@@ -150,48 +116,25 @@ Gene Symbol
 
 </th></tr>
 
+{% set j = 0 %}
 {% for genes in gene_sym %}
-      <tr><td class="{$gene.gaggle_tags}">
-          <a href="/search/?searchbar={{ genes }}&pagination_page=1&searchGenes=yes">{{genes}}</a></td><td class="gsIconBox" style="text-align: left;">
-          {% include 'linkouts.html' %}
+      <tr><td class="{{genes}}">
+         <a href="/search/?searchbar={{ genes }}&pagination_page=1&searchGenes=yes">{{genes}}</a></td><td class="gsIconBox" style="text-align: left;">
+         {% include 'linkouts.html' %}
+         {% for gs in genesets %}
          </td><td valign="top" style="border-left: 1px solid #000;
-         {if $j%2==0 } background-color: #fff;{/if} padding: 0.5em;">
-         {if $gene.$gs!=0 }
-           {if $gene.$gs==1 }<div class="containedGene"><img src="images/greendot.png" alt="In GS{$gs}" /></div>
-           {elseif $gene.$gs==2 }<div class="containedHomology"><img src="images/purpledot.png" alt="In GS{$gs}, with homology to {$truegenes.$name}" /></div>
-           {/if}
-         {else}-{/if}
+         {% if j%2==0 %} background-color: #fff;{% endif %} padding: 0.5em;">
+             {% if gene_sym[genes] == 0 %}
+                <div class="containedGene"><img src="/static/images/greendot.png" alt="In GS{{gs.name}}" /></div>
+             {% else %}
+                <div class="containedHomology"><img src="/static/images/purpledot.png" alt="In GS{{gs.name}}, with homology to {{genes}}" /></div>
+             {% endif %}
+        {% endfor %}
       </td><td width="250px">&nbsp;</td></tr>
 {% endfor %}
 
 </table></div>
 
-<span class="gaggle-data">
-<span style="display:none;" class="gaggle-name">All displayed Genes</span>
-<span style="display:none;" class="gaggle-species">{$best_species}</span>
-<span style="display:none;" class="gaggle-namelist-tag">gene_tag</span>
-<span style="display: none;" class="gaggle-size">{$displayed_genes[0]}</span>
-</span>
-{if $sorton=='h'}
- {assign var=with value='homologous to'}
-{else}
- {assign var=with value='in'}
-{/if}
-{counter assign=i start=1}
-{foreach from=$gsids item=x}
-      {counter}
-      {if $i>1 && $i<=2}
-      <span class="gaggle-data">
-      <span style="display:none;" class="gaggle-name">Genes {$with} {$i}{if $i!=2}+{/if} Gene Sets</span>
-      <span style="display:none;" class="gaggle-species">{$best_species}</span>
-      <span style="display:none;" class="gaggle-namelist-tag">{$sorton}{$i}</span>
-      <span style="display: none;" class="gaggle-size">{$displayed_genes[$i]}</span>
-      </span>
-      {/if}
-{/foreach}
-</center>
 <br />
 <br />
-
-<br>
 {% include 'footer.html' %}
