@@ -1550,6 +1550,7 @@ def add_geneset_to_project(apikey, pj_id, gs_id):
 					''', (user, pj_id, gs_id, user,))
 		cursor.connection.commit()
 	return cursor.fetchall()	
+	
 
 #API only  
 def delete_geneset_from_project(apikey, pj_id, gs_id):

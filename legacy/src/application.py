@@ -815,6 +815,7 @@ class ToolBooleanAlgebraProjects(restful.Resource):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)      
 
+
 api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
 api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
 api.add_resource(GetGenesetByUser, '/api/get/geneset/byuser/<apikey>/')
