@@ -102,7 +102,7 @@ def dictify_cursor(cursor):
     """converts all cursor rows into dictionaries where the keys are the column names"""
     return (_dictify_row(cursor, row) for row in cursor)
 
-
+# Begin Project Block, creating veiwing and modifying Projects
 class Project:
     def __init__(self, proj_dict):
         self.project_id = proj_dict['pj_id']
@@ -168,6 +168,9 @@ def get_genesets_for_project(project_id, auth_user_id):
         )
         return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         
+# This should only be used with very small numbers of genesets,
+# it takes a string or int project_id, and a string or int geneset_id 
+# This does not check permisions for project or geneset       
 def insert_geneset_to_project(project_id, geneset_id):
     with PooledCursor() as cursor:
         cursor.execute(
@@ -182,10 +185,29 @@ def insert_geneset_to_project(project_id, geneset_id):
 
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
+        
+# This should only be used with very small numbers of genesets,
+# it takes a string or int project_id
+# geneset_ids_list is a list type, do not passa string or int
+# This does not check permisions for project or geneset        
+def insert_multiple_genesets_to_project(project_id, geneset_ids_list):
+	queryString = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES "
+
+	for gs_id in range(0, len(geneset_ids_list)):
+		queryString += "( " + str(project_id) + ", " + str(geneset_ids_list[gs_id]) " ), "
+	queryString += "( " + str(project_id) + ", " + str(geneset_ids_list[-1]) " ), " 
+	queryString += " RETURNING pj_id;"	
+    with PooledCursor() as cursor:
+        cursor.execute(
+            queryString
+        )
+        cursor.connection.commit()
+
+        # return the primary ID for the insert that we just performed
+        return cursor.fetchone()[0]
 
 # this function creates a project with no genesets associated with it
 # if a guest is creating a project, pass in -1 for user_id
-# NOT TESTED
 def create_project(project_name, user_id):
 	if user_id > 0:
 		with PooledCursor() as cursor:
