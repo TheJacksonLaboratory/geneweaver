@@ -5,6 +5,7 @@ import uuid
 
 import geneweaverdb as gwdb
 import toolcommon as tc
+from collections import defaultdict, OrderedDict
 
 TOOL_CLASSNAME = 'ABBA'
 abba_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -44,6 +45,13 @@ def run_tool():
     user_id = None
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
+	projects = gwdb.get_all_projects(user_id)
+	projectDict = OrderedDict()
+	for proj in projects:
+		projectDict[proj.project_id] = {'id': proj.project_id, 'name': proj.name, 'count': proj.count}
+	params['UserProjects'] = projectDict
+	
+	params['UserId'] = user_id
     else:
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze.html')
@@ -64,7 +72,7 @@ def run_tool():
         kwargs={
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
-            'params': params,
+            'params': params
         },
         task_id=task_id)
 
@@ -84,6 +92,12 @@ def view_result(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 
+    # Gather emphasis gene ids and put them in parameters
+    emphgeneids = []
+    user_id = flask.session.get('user_id')
+    emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(int(row['ode_gene_id']))
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
@@ -92,7 +106,7 @@ def view_result(task_id):
         return flask.render_template(
             'tool/ABBA_result.html',
             async_result=json.loads(async_result.result),
-            tool=tool)
+            tool=tool, emphgeneids=emphgeneids)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
