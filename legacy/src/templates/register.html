@@ -11,6 +11,13 @@
                     <span>{% if register_not_successful %}<h1> <font color="red">The email has been used. Please register again.</font></h1> {% endif %}</span>
                 </div>
             </div>
+            {% if error is defined %}
+                <div class="alert alert-danger">
+                    <button type="button" class="close" data-dismiss="alert">×</button>
+                    <h4>Error!</h4>
+                    {{error}}
+                </div>
+            {% endif %}
             </br></br>
             <div class="row">
                 <div class="col-sm-6 col-md-4 col-sm-offset-3 col-md-offset-4">
@@ -24,8 +31,10 @@
                             <!-- this is the span that will be displayed when there is no user logged in -->
                             <span id="anon-user-span" {% if user %} style="display: none"{% endif %}>
                                 <div class="form-group">
-                                    <input id="usr_name" name="usr_name" type="text" class="form-control" placeholder="Name">
+                                    <input id="usr_first_name" name="usr_first_name" type="text" class="form-control" placeholder="First Name">
                                     <br/><br/>
+                                    <input id="usr_last_name" name="usr_last_name" type="text" class="form-control" placeholder="Last Name">
+                                    <br/><br />
                                     <input id="usr_email" name="usr_email" type="text" class="form-control" placeholder="E-mail">
                                     <br/><br/>
                                     <input id="usr_password" name="usr_password" type="password" class="form-control" placeholder="password">
