@@ -153,7 +153,7 @@
                 {% for key, values in async_result.GSResults.items() %}
 	                {% set gs_id=values['gs_id'] %}
                     <tr class="{cycle values="even,odd"}">
-						<td valign="top"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
+			<td valign="top" width="10%" style="vertical-align: middle; text-align: center;"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
                         <td valign="top"><a href="/search/{{key}}/1">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
                             <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
                                 {% for gene in values.genes %}<li {% if gene[0] in emphgeneids %}style="background-color:#FF66FF" {% endif %}>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
@@ -241,8 +241,8 @@
                 <table class="table table-striped" width="100%" style="font-size: 0.8em;">
                     {% for key, values in async_result.GeneResults.items() %}
                         <tr id="{{key}}" class="{cycle values="even,odd"}"{% if values['ode_gene_id'] in emphgeneids %} style="border:solid 6px #FF66FF" {% endif %}>
-				<td valign="top"><input type="checkbox" name="g_id[]" value="{{values['ode_ref_id']}}" /></td>
-                                <td valign="top"><a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a></td>
+				<td valign="top" width="10%" style="vertical-align: middle; text-align: center;"><input type="checkbox" name="g_id[]" value="{{values['ode_ref_id']}}" /></td>
+                                <td valign="top" width="10%"><a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a></td>
                            	<td valign="top">
                                 <a href="#" onclick="return ODE.toggle('#genes_{{values['ode_ref_id']}}_genesets');">({{values['matched']}} GeneSets)</a>
                                 <ul id="genes_{{values['ode_ref_id']}}_genesets" style="display: none;">
