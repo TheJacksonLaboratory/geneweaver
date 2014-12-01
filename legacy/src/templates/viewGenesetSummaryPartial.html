@@ -118,11 +118,24 @@
 					<h4 class="modal-title" id="myModalLabel">Select projects to which you want to add GS{{gs.geneset_id}}</h4>
 				</div>
 				<div class="modal-body">
-					<h3>Modal Body</h3>
+					<table class="table table-striped">
+						{% for currProj in g.user.projects %}
+							<tr>
+								<td>
+									<input
+										type="checkbox"
+										name="add_to_{{ currProj.project_id }}">
+								</td>
+								<td>
+									{{ currProj.name }}
+								</td>
+							</tr>
+						{% endfor %}
+					</table>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-					<button type="button" class="btn btn-primary">Save changes</button>
+					<button type="button" class="btn btn-primary">Add to selected projects</button>
 				</div>
 			</div>
 		</div>
