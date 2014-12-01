@@ -453,7 +453,7 @@ def render_search_json():
     
     #TODO perform a search based on filtered data
     #results = search.(something here)
-    return flask.render_template('search.html', searchresults=search_values['searchresults'], genesets=search_values['genesets'], paginationValues=search_values['paginationValues'], field_list = userValues['field_list'], searchFilters=search_values['searchFilters'], userFilters=userValues['userFilters'])
+    return flask.render_template('search/search_wrapper_contents.html', searchresults=search_values['searchresults'], genesets=search_values['genesets'], paginationValues=search_values['paginationValues'], field_list = userValues['field_list'], searchFilters=search_values['searchFilters'], userFilters=userValues['userFilters'])
 
 @app.route('/searchsuggestionterms.json')
 def render_search_suggestions():
