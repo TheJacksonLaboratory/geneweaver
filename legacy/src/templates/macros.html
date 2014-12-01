@@ -107,3 +107,10 @@
         Run
     </button>
 {% endmacro %}
+
+{% macro tool_run_link(tool) %}
+	<div 
+        onclick='this.form.action="{{ url_for(tool.classname + '.run_tool') }}";'>
+        {{tool.classname}}
+    </div>
+{% endmacro %}

@@ -2,12 +2,15 @@ import flask
 import geneweaverdb
 import pubmedsvc
 import re
+from flask import request
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
 
+#gets species and gene identifiers for uploadgeneset page
 @geneset_blueprint.route('/uploadgeneset.html')
-def render_uploadgeneset():
+@geneset_blueprint.route('/uploadgenesetpre/<string:genes>.html')
+def render_uploadgeneset(genes = None):
     gidts = []
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
         gidts.append((
@@ -21,18 +24,21 @@ def render_uploadgeneset():
             microarray_id_type_record['pf_name']))
     gidts.append(('MicroArrays', microarray_id_sources))
 
-    return flask.render_template(
-        'uploadgeneset.html',
-        gs=dict(),
-        all_species=geneweaverdb.get_all_species(),
-        gidts=gidts)
+    if genes:
+        return flask.render_template(
+            'uploadgeneset.html',
+            gs=dict(),
+            all_species=geneweaverdb.get_all_species(),
+            gidts = genes)
+    else:
+        return flask.render_template(
+            'uploadgeneset.html',
+            gs=dict(),
+            all_species=geneweaverdb.get_all_species(),
+            gidts=gidts)
 
-@geneset_blueprint.route('/uploadgeneset.html/<gene_list>')
-def render_uploadgeneset_ba(gene_list):
-    """
-    Upload gene set for Boolean Algebra, copies all the gene symbols to the "gene list" part
-    """
-
+@geneset_blueprint.route('/batchuploadgeneset.html/')
+def render_batchuploadgeneset(genes = None):
     gidts = []
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
         gidts.append((
@@ -46,12 +52,28 @@ def render_uploadgeneset_ba(gene_list):
             microarray_id_type_record['pf_name']))
     gidts.append(('MicroArrays', microarray_id_sources))
 
-    return flask.render_template(
-        'uploadgeneset.html',
-        gs=dict(),
-        all_species=geneweaverdb.get_all_species(),
-        gidts=gidts,
-        gene_list=gene_list)
+    all_species=geneweaverdb.get_all_species()
+
+    return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts)
+
+@geneset_blueprint.route('/batchuploadgeneset.html/<genes>')
+def render_batchuploadgeneset_ba(genes):
+    gidts = []
+    for gene_id_type_record in geneweaverdb.get_gene_id_types():
+        gidts.append((
+            'gene_{0}'.format(gene_id_type_record['gdb_id']),
+            gene_id_type_record['gdb_name']))
+
+    microarray_id_sources = []
+    for microarray_id_type_record in geneweaverdb.get_microarray_types():
+        microarray_id_sources.append((
+            'ma_{0}'.format(microarray_id_type_record['pf_id']),
+            microarray_id_type_record['pf_name']))
+    gidts.append(('MicroArrays', microarray_id_sources))
+
+    all_species=geneweaverdb.get_all_species()
+
+    return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts, genes=genes)
 
 def tokenize_lines(candidate_sep_regexes, lines):
     """
@@ -154,38 +176,53 @@ def infer_id_kind():
 
 
 @geneset_blueprint.route('/creategeneset.html', methods=['POST'])
-def create_geneset():
-    # TODO START IMPLEMENTATION NOTES (remove these once impl is complete)
-    #
-    # in php code this corresponds to the Manage.php::editgeneset(...) function with $cmd set to "uploadgeneset"
-    # uploadTemplate followed by uploadTemplate_step2 seems to do the main work (NOTE: 'file_text' request
-    # variable contains all IDs)
-    #
-    # END IMPLEMENTATION NOTES
+def create_geneset(): 
 
-    form = flask.request.form
-    sp_id = int(form['sp_id'])
+    try:
+        form = flask.request.form
+        print form
+ 
+        gs_name = form['gs_name']
+        gs_abbreviation = form['gs_abbreviation']
+        gs_description = form['gs_description']
+        public_private = form['permissions']
+        sp_id = form['species']
+        gene_identifier = form['gene_identifier']   
+   
+        user_id = flask.g.user.user_id if 'user' in flask.g else None
+        if user_id == None:
+	    return "You must be signed in to upload a geneset."
 
-    file_text = form['file_text']
-    file_lines = file_text.splitlines()
-    candidate_sep_regexes = ['\t', ',', ' +']
+        if sp_id == 0 or sp_id == "0":
+	    return "Select a species." 
 
-    for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
-        # TODO php code allows multiple IDs per line. Do we need to continue to allow this? for now expecting 1 ID per line
-        curr_id = ''
-        curr_val = None
-        counts_by_source = dict()
+        file_text = ""
+        file_lines=""
+        if 'file_text' in form.keys():
+	    file_text = form['file_text']
+            file_lines = file_text.splitlines()
+        else:
+	    return "File currently not implemented."
+	    #get lines from the file here    
+    
+        candidate_sep_regexes = ['\t', ',', ' +']   
+    
         all_results = []
-        if len(curr_toks) >= 1:
-            curr_id = curr_toks[0]
-            if len(curr_toks) >= 2:
-                try:
-                    curr_val = float(curr_toks[1])
+        invalid_genes = []
+        unique_gene_ids = []
 
-                    # We'll get results from both the gene table and platform table. We'll decide later which to use
-                    # based on the number of results returned.
+        for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
+            curr_id = ''
+            curr_val = None 
+
+            if len(curr_toks) >= 1:
+                curr_id = curr_toks[0]
+                if len(curr_toks) >= 2:
+ 		    curr_val = float(curr_toks[1])
+                try:      
+		    #getting gene table results
                     gene_results = None
-                    with geneweaverdb.PooledCursor() as cursor:
+                    with geneweaverdb.PooledCursor() as cursor:			
                         cursor.execute(
                             '''
                             SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
@@ -194,25 +231,18 @@ def create_geneset():
                             ''',
                             (sp_id, curr_id.lower())
                         )
-                        gene_results = list(geneweaverdb.dictify_cursor(cursor))
-                        all_results += gene_results
-                        if gene_results:
-                            result_sources = set()
+		        gene_results = list(geneweaverdb.dictify_cursor(cursor))
+		        #if there are gene results, add to list of all results and put ode_gene_id into unique gene_id list
+		        if gene_results:
+		            gene_results[0].update({'value':curr_val})
 
-                            for curr_result in gene_results:
-                                key_tuple = (True, curr_result['source'])
-                                curr_counts = None
-                                try:
-                                    curr_counts = counts_by_source[key_tuple]
-                                except KeyError:
-                                    curr_counts = [0, 0]
-                                    counts_by_source[key_tuple] = curr_counts
+	 	            #adds to geneID list if unique
+   		            if gene_results[0]['ode_gene_id'] not in unique_gene_ids:
+		                unique_gene_ids.append(gene_results[0]['ode_gene_id'])
 
-                                # we need to make sure not to double count a source here
-                                if curr_result['source'] not in result_sources:
-                                    curr_counts[0] += 1
-                                curr_counts[1] += 1
+                            all_results += gene_results
 
+		    #getting platform results
                     platform_results = None
                     with geneweaverdb.PooledCursor() as cursor:
                         cursor.execute(
@@ -224,23 +254,181 @@ def create_geneset():
                             ''',
                             (sp_id, curr_id.lower())
                         )
-                        platform_results = list(cursor)
+                        platform_results = list(geneweaverdb.dictify_cursor(cursor))
+
+		        #if there are platform genes, add to list of all results and put ode_gene_id into unique gene_id list
                         if platform_results:
-                            first_result = platform_results
+                            platform_results[0].update({'value':curr_val})
+
+	 	            #adds to geneID list if unique
+   		            if platform_results[0]['ode_gene_id'] not in unique_gene_ids:
+		                unique_gene_ids.append(platform_results[0]['ode_gene_id'])
+
+                            all_results += platform_results
 
                     if not (gene_results or platform_results):
-                        # TODO tell user we didn't find a match for curr_id
+	          	invalid_genes.append(curr_id)
                         pass
 
-                except ValueError:
-                    # TODO error reporting here
-                    pass
+                except Exception, e:
+                    return str(e)
+	       	    pass
 
-    return flask.render_template(
-        'uploadgeneset.html',
-        gs=dict(),
-        all_species=geneweaverdb.get_all_species())
+    
+	      
+        #if any genes in the list were not found it will tell the user which were not found
+        if len(invalid_genes) > 0:
+            return "Unable to find these Genes for specified species:\n" + ', '.join(invalid_genes) + "\n\nEither remove them and resubmit the geneset or contact Geneweaver to have them added."
+        if len(all_results) < 1:
+	    return "No genes found to enter"
 
+        pub_id = None
+        if form['pub_pubmed'] != None and form['pub_pubmed'] != "":	   
+	    exists = True
+	    with geneweaverdb.PooledCursor() as cursor:
+	        pubcheck = None
+    	        cursor.execute('''SELECT pub_id FROM production.publication where pub_pubmed=%s;''', (form['pub_pubmed'],))
+	        try:
+                     pubcheck=cursor.fetchone()[0]
+	        except Exception:
+		    pubcheck=None
+
+	        if pubcheck:
+		    pub_id=pubcheck	
+	        else:
+		    exists=False    
+	    if exists == False:
+	        cols = dict()
+	        reg = re.compile('pub_*')
+	        for item in form.keys():
+	            if re.match(reg, item):
+		        if form[item]:
+		            cols.update({item:form[item]})
+	        if len(cols) > 0:
+	            values = []
+	            keys = []
+	            for item in cols.keys():
+	    	        values.append(cols[item])
+		        keys.append(item)
+	            with geneweaverdb.PooledCursor() as cursor:
+	                pub_sql = '''INSERT INTO production.publication(%s) VALUES ('%s') RETURNING pub_id;''' % (','.join(keys), '\',\''.join(values), )
+    	                cursor.execute(pub_sql)
+		        cursor.connection.commit()
+		        pub_id=cursor.fetchone()[0]
+	     	        print pub_sql	
+
+        file_id=None
+        with geneweaverdb.PooledCursor() as cursor:
+            file_sql = '''INSERT INTO production.file(file_size, file_contents) VALUES (%s, '%s') RETURNING file_id;''' % ( len(file_text), file_text, )
+            cursor.execute(file_sql)
+	    cursor.connection.commit()
+	    file_id=cursor.fetchone()[0]
+	    print file_sql
+
+        if file_id==None:
+	    return "Error creating file"
+
+    
+        cur_id=None
+        if public_private == "public":
+        	cur_id=4
+        else:	
+	    cur_id=5    
+    
+        gs_id = "None";
+        with geneweaverdb.PooledCursor() as cursor:
+	    GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, sp_id, usr_id, gs_created, cur_id, file_id, gs_status, gs_count) VALUES ('%s','%s','%s','%s',%s,now(),%s,%s,'%s',%s) RETURNING gs_id;''' % (gs_name, gs_description, gs_abbreviation, sp_id, user_id, cur_id, file_id,"normal",0)
+    	    cursor.execute(GS_sql)
+            cursor.connection.commit()
+            gs_id=cursor.fetchone()[0]	
+            print GS_sql
+	    if gs_id == None:
+                return "Error getting geneset ID."   	
+	    if pub_id:
+	        pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id ,gs_id)	
+	        cursor.execute(pub_sql)
+    	        cursor.connection.commit()	
+	        print pub_sql
+    
+    
+
+        #creates geneset_value insertion queries for every unique ode_gene_id
+        Min=False
+        Max=False
+        for ode_gene_id in unique_gene_ids:
+	    values = []
+	    sources = []	
+	    for res in all_results:
+	        if res['ode_gene_id'] == ode_gene_id:
+	            sources.append(res['ref_id'])
+		    if res['value']:
+		        values.append(res['value'])
+		    else:
+		        values.append(1)
+
+	    avg = 0
+	    for val in values:
+	        if Min == False or val < Min:
+		    Min=val
+	        if Max == False or val > Max:
+	    	    Max=val
+	        avg += val
+	    avg /= len(values)		
+
+	    is_thresh = False
+	    if avg <= 1 and avg >= -1:
+		is_thresh=True
+	    
+	    GS_value_sql = '''INSERT INTO extsrc.geneset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) VALUES (%s,%s,'%s','{"%s"}','{%s}',%s,%s);''' % (gs_id, ode_gene_id, avg, '\",\"'.join(sources), ','.join(str(v) for v in values),0, is_thresh)
+	    print GS_value_sql
+    	    with geneweaverdb.PooledCursor() as cursor:
+    	        cursor.execute(GS_value_sql)
+    	        cursor.connection.commit()
+
+
+        #gets threshold type and threshold for the geneset
+        gs_threshold_type=None
+        gs_threshold = None
+        if Min >= -1 and Max <= 1:
+	    if Min >= 0 and Max <= 1:
+	        if Min==Max and Max==1:
+		    gs_threshold_type=3
+		    gs_threshold='0.5'
+	        elif Max > 0.5:
+		    gs_threshold_type=4
+		    gs_threshold='0,1'
+	        elif Max < 0.25:
+		    gs_threshold_type=1
+		    gs_threshold="\'"+str(Max)+"\'"
+	    else:
+	        gs_threshold_type=4
+	        gs_threshold='0,1'
+        else:
+	    gs_threshold_type=5
+	    gs_threshold="\'"+str(Min)+","+str(Max)+"\'"
+
+        #gets gene count for the geneset
+        gs_count=0    
+        with geneweaverdb.PooledCursor() as cursor:
+	    gs_count_sql = '''SELECT count(ode_ref_id) FROM extsrc.geneset_value NATURAL JOIN extsrc.gene WHERE ode_pref AND gs_id=%s GROUP BY gs_id;''' % (gs_id)
+	    #gs_count_sql = '''SELECT count(*) from extsrc.geneset_value where gs_id = %s;''' % (gs_id)	
+    	    cursor.execute(gs_count_sql)
+    	    gs_count=cursor.fetchone()[0]
+	    print gs_count_sql
+
+        #if gs_count == None:
+	    #print error
+
+        #updates the geneset with the gs_count and threshold values    
+        with geneweaverdb.PooledCursor() as cursor:
+	    gs_update_sql = '''UPDATE production.geneset SET gs_count=%s, gs_threshold='%s', gs_threshold_type=%s WHERE gs_id=%s;''' % (gs_count,gs_threshold,gs_threshold_type,gs_id)
+    	    cursor.execute(gs_update_sql)
+    	    cursor.connection.commit()
+    	    print gs_update_sql
+	
+        return "Geneset Created"
+    except Exception, e:
+	return str(e)
 
 @geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
 def view_geneset(geneset_id):
