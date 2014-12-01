@@ -654,6 +654,10 @@ def date_handler(obj):
 def render_manage():
     return flask.render_template('my_genesets.html')
 
+@app.route('/share_projects.html')
+def render_share_projects():
+    active_tools = geneweaverdb.get_active_tools()
+    return flask.render_template('share_projects.html', active_tools=active_tools)
 
 @app.route('/results.html')
 def render_user_results():
