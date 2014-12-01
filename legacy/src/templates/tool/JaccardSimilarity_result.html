@@ -49,23 +49,27 @@
 {% endfor %}
 </th></tr>
 
+{% set j = 0 %}
 {% for item in async_result.geneset_table %}
+    {% set i = 0 %}
 <tr><td style="border-bottom: none; white-space:nowrap;" align="left">
-<input type="checkbox" name="gs_id[]" value="{{ item.gsID[:2] }}">
-<a style="margin-left: 50px; font-size:1.5em;" href="{{ item.url }}">{{ item.text }} &nbsp;</a>
-</td>
-
+<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
+<a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
     {% for jac in item.entries %}
 	<td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
-    {% if jac.url == 0 %}
-	   <a href="/geneset_intersection/4/5/6">{{ jac.text | safe }}</a>
+    {% if jac.url == "0" %}
+        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}">{{ jac.text | safe }}</a>
+    {% elif jac.url == "1" %}
+        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}">{{ jac.text | safe }}</a>
+    {% elif jac.url %}
+	   <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
     {% else %}
 	   <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
     {% endif %}
     </td>
-    </label>
-
+    {% set i = i + 1 %}
 	{% endfor %}
+    {%set j = j + 1 %}
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
 
