@@ -1,3 +1,19 @@
+	<!-- Script for hiding or displaying geneset details -->
+	<script type="text/javascript">function toggleDetails(id) {
+		var element = document.getElementById(id);
+		if(element.style.display == "none")
+		{
+			element.style.display="block";
+		}
+		else
+		{
+			element.style.display="none";
+		}
+	}
+	</script>
+
+	<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')"><span class="fa fa-chevron-down"></span></a>
+
 	<!-- Label the tier - which is the curation id, Geneset.cur_id -->
 	{% if gs.cur_id == 1 %}
                     <span class="tier1">Tier I</span>
@@ -56,19 +72,14 @@
 	<span class="gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
 	{% endif %}
  	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a>
-<br />
+	<br>
+
+	<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">
 	<!-- ##################### Geneset metadata #################3-->
             <table class="genesetMeta" cellspacing="0" cellpadding="0" border="0">
                     <tr>
                         <th>Figure Label:</th>
                         <td style="width: 30em;">{{gs.abbreviation}}</td>
-                        <th>Species:</th>
-                        <td>
-			<!--TODO  need logic for any/all --> 
-                            {{gs.sp_id}}
-                        </td>
-                        <th>Data Points:</th>
-                        <td>{{gs.count}}</td>
                     </tr>
 
                     <!-- TODO account for null authors, get Publication info -->
@@ -82,4 +93,4 @@
                         <td>{{gs.description}}</td>
                     </tr>
                 </table>
-
+	</div>

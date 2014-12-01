@@ -1,34 +1,42 @@
-<br clear="both">
+
+</div> <!-- end container div -->
+<div class="push"></div>
+</div> <!-- end wrapper div -->
+
 <div class="footer">
+	<div class="panel bd-0 bd-t-blue">
+		<div class="panel-footer">
+			<div class="container">
+			<div class="row">
 
-	<div class="row">
+				<div class="col-md-3">
+					<a href="http://www.jax.org/"><img width="200" height="85" src="{{url_for('static', filename='images/jax.gif')}}" alt="JAX"></a>
+				</div>
 
-		<div class="col-md-3">
-			<a href="http://www.jax.org/"><img width="200" height="85" src="{{url_for('static', filename='images/jax.gif')}}" alt="JAX"></a>
+				<div class="col-md-2">
+					<img src="{{ url_for('static', filename='images/powered_by_ode.png') }}" alt="powered by ODE" style="border:none;">
+				</div>
+
+				<div class="col-md-5">
+					Gene Weaver / The Ontological Discovery Environment was initiated as a project of the <a href="http://www.iniastress.org/">NIAAA</a> Integrative Neuroscience Initiative on Alcoholism (U01AA13499, U24AA13513), and is supported by RO1 AA18776. This page is maintained by <a href="mailto:Erich_Baker@baylor.edu">Erich Baker</a> and <a href="mailto:Elissa.Chesler@jax.org">Elissa Chesler</a>. For applicable policies see our <a href="{{ url_for('render_help')|safe }}">privacy</a>, <a href="{{ url_for('render_help')|safe }}">data sharing</a>, and <a href="{{ url_for('render_help')|safe }}">usage</a> documents.
+				</div>
+
+				<div class="col-md-2">
+					<a href="http://www.neuinfo.org/">
+						<img src="{{url_for('static', filename='images/registered_with_nif_button.jpg')}}" alt="Registered with NIF" style="border:none;">
+					</a>
+				</div>
+			</div>
+
+			{% if usr_id %}
+			<script type="text/javascript">ODE.help_init();</script>
+			{% endif %}
+			<br/>
+
 		</div>
-
-		<div class="col-md-2">
-			<img src="{{ url_for('static', filename='images/powered_by_ode.png') }}" alt="powered by ODE" style="border:none;">
-		</div>
-
-		<div class="col-md-5">
-			Gene Weaver / The Ontological Discovery Environment was initiated as a project of the <a href="http://www.iniastress.org/">NIAAA</a> Integrative Neuroscience Initiative on Alcoholism (U01AA13499, U24AA13513), and is supported by RO1 AA18776. This page is maintained by <a href="mailto:Erich_Baker@baylor.edu">Erich Baker</a> and <a href="mailto:Elissa.Chesler@jax.org">Elissa Chesler</a>. For applicable policies see our <a href="{{ url_for('render_help')|safe }}">privacy</a>, <a href="{{ url_for('render_help')|safe }}">data sharing</a>, and <a href="{{ url_for('render_help')|safe }}">usage</a> documents.
-		</div>
-
-		<div class="col-md-2">
-			<a href="http://www.neuinfo.org/">
-				<img src="{{url_for('static', filename='images/registered_with_nif_button.jpg')}}" alt="Registered with NIF" style="border:none;">
-			</a>
 		</div>
 	</div>
 </div>
 
-{% if usr_id %}
-<script type="text/javascript">ODE.help_init();</script>
-{% endif %}
-
-<br />
-
-</div> <!-- end container div -->
 </body>
 </html>
