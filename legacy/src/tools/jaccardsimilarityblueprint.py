@@ -51,8 +51,20 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
+<<<<<<< HEAD
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze.html')
+=======
+        # TODO add nice error message about missing user ID.
+        raise Exception('internal error: user ID missing')
+
+    # Gather emphasis gene ids and put them in paramters
+    emphgeneids = []
+    user_id = flask.session['user_id']
+    emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
+>>>>>>> origin/development
    
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)

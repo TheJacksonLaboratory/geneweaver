@@ -43,6 +43,29 @@
             (for users with many projects the current version is too slow)
             #}
             {% if "user" in g %}
+				<div id="new project" class="panel panel-info">
+                        <div class="panel-heading">
+                            <h2 class="panel-title">
+                                <div class="row">
+                                    <div class="col-xs-10">
+										{% set blah="blah" %}
+                                        <a href='#' onclick='getProjName()'>
+										<script>
+										function getProjName(){
+											var pjname=prompt("Enter the name of your new project: ");
+											if(pjname != null){
+											  window.location="/analyze_new_project/" + pjname + ".html";
+											 }
+										}
+										</script>
+                                        <span class="fa fa-folder-o"></span>
+                                        Create New Empty Project
+                                        </a>
+                                    </div>
+                                </div>
+                            </h2>
+                        </div>
+                    </div>
                 {% for proj in g.user.projects %}
                     <div id="project-{{ proj.project_id }}" class="panel panel-info">
                         <div class="panel-heading">

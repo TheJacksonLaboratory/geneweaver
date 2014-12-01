@@ -11,7 +11,7 @@
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-12">
                 <div class="panel panel-info">
 				<div class="panel-heading">
 					<h2 class="panel-title">
@@ -22,17 +22,23 @@
 				</div>
 				<div id="jcCollapse" class="panel-collapse collapse">
 					<div class="panel-body">
-						<div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
-
-						<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-
-						<button class="btn btn-primary" 
-							type='submit'
-							value='run'
-							onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
-							Run
-						</button>
+						<div class="row">
+							<div class="col-md-4">
+								<div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+								<button class="btn btn-primary" 
+									type='submit'
+									value='run'
+									onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
+									Run
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

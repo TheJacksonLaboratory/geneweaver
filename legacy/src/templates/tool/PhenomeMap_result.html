@@ -17,7 +17,7 @@
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-12">
                 <div class="panel panel-info">
 				<div class="panel-heading">
 					<h2 class="panel-title">
@@ -28,28 +28,66 @@
 				</div>
 				<div id="jcCollapse" class="panel-collapse collapse">
 					<div class="panel-body">
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
-						<div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
-
-						<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-
-						<button class="btn btn-primary" 
-							type='submit'
-							value='run'
-							onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
-							Run
-						</button>
+						<div class="row">
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-5">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
+							</div>
+							<div class="col-md-3">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
+							</div>
+							<div class="col-md-4">
+								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+							</div>
+							<div class="col-md-4">
+								<button class="btn btn-primary" 
+								type='submit'
+								value='run'
+								onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
+								Run
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
