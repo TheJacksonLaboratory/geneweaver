@@ -92,6 +92,12 @@ def view_result(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 
+    # Gather emphasis gene ids and put them in parameters
+    emphgeneids = []
+    user_id = flask.session.get('user_id')
+    emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(int(row['ode_gene_id']))
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
@@ -100,7 +106,7 @@ def view_result(task_id):
         return flask.render_template(
             'tool/ABBA_result.html',
             async_result=json.loads(async_result.result),
-            tool=tool)
+            tool=tool, emphgeneids=emphgeneids)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
