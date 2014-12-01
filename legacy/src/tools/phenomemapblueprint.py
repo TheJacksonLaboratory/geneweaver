@@ -24,8 +24,8 @@ def run_tool():
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
     
     if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 genes!")
-        return flask.redirect('analyze.html')
+        # TODO add nice error message about missing genesets
+        raise Exception('there must be at least two genesets selected to run this tool')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -53,6 +53,7 @@ def run_tool():
     emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
+    params['EmphasisGenes'] = emphgeneids
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
