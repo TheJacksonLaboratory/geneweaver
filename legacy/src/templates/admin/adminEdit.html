@@ -1,24 +1,21 @@
-{% extends 'admin/AdminTemplateOverride.html' %}
 
-
-
-{% block body %}
 <script>
     $(document).ready(function()  {
-	var table = '{{table}}';	
-	var jcolumns = '{{columns}}';
+	var table = '{{table}}';
+	var primKey = '{{key}}';
    
 	$("#edit-form").submit(function(event) {    		    
 	    event.preventDefault();
 
-	    var data = $("#edit-form").serialize() + "&table="+table;	 	    
+	    var data = $("#edit-form").serialize() + "&table="+table;	 	
+    
     		    $.ajax({
           		type: "POST",
            		url: "../../admin/adminSubmitEdit",
            		data: data,
            		success: function(data)
            		{
-               		    alert(data);
+	 		    alert(data);
            		}
          	    });
 		   //location.replace(document.referrer);
@@ -37,28 +34,18 @@
           		type: "POST",
            		url: "../../admin/adminDelete",
            		data: data,
-           		success: function(data)
+			success: function(data)
            		{
-               		    
+	 		    alert(data);			    
+			    window.location.replace(document.referrer) 
            		}
-         	    });
-		
-		window.location.replace(document.referrer)
-		//history.back();
-	       // window.location.reload();	    
+         	    });		   
 	    } 
 	    
 	});
 
 	function resizeInput() {
-    	   $(this).attr('size', $(this).val().length);
-}
-
-	$('input[type="text"]')
-      	    // event handler
-    	    .keyup(resizeInput)
-    	    // resize on page load
-    	    .each(resizeInput);
+    	   $(this).attr('size', $(this).val().length);}
 
 	String.prototype.capitalize = function() {
     	    return this.charAt(0).toUpperCase() + this.slice(1);
@@ -71,14 +58,16 @@
 	 <p>
 	
 	<form id="edit-form" class="form-horizontal" data-parsley-validate="" novalidate="">     
-	   <div>
-	     {% for val in columns[0] %}
+	   <div>		
+	     {% for val in columns %}	
+	   	 {% if val != '_searchtext' %}
 		<div class="form-group">
 	    	  <label class="col-sm-3 control-label" style="width:20%" >"{{val.replace("_"," ").capitalize()}}:"</label>
 		    <div class="col-sm-9">
-	    		<input name={{val}} type="text" style="width:100%" required="" value="{{columns[0][val]}}"></input>	    		
+	    		<input name={{val}} type="text" style="width:100%" required="" value="{{columns[val]}}"></input>	    		
 		   </div>
 		</div>
+		{% endif %}
 	    {% endfor %}
 	  </div>
 	  <p><p>
@@ -87,9 +76,8 @@
 		<input class="btn btn-primary" type="submit" value="Submit Changes"></input>
 		<input id="delete-button" class="btn btn-primary" type="button" value="Delete"></input>		
 		<input id="cancel-button" class="btn btn-primary" type="button" value="Cancel"></input>
+		<label id="result-label" class="col-sm-3"></label>
 	    </div>
 	  </div>  
 	</form>
 
-
-{% endblock %}

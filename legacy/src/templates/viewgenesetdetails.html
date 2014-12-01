@@ -133,7 +133,8 @@
 </td>
 <td>
 <!-- TODO Insert outside links here -->
-Links
+{% set gene=geneset_value.source_list[0] %}
+{% include 'linkouts.html' %}
 </td>
 <td>
 {{ geneset_value.value }} 
