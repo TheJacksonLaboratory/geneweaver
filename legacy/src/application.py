@@ -401,7 +401,15 @@ class AdminEdit(adminviews.Authentication, BaseView):
 @app.route('/admin/genesetspertier')
 def admin_widget_1():  
     if "user" in flask.g and flask.g.user.is_admin:
-	data = geneweaverdb.genesets_per_tier()
+	alldata = geneweaverdb.genesets_per_tier(True)
+	nondeleted = geneweaverdb.genesets_per_tier(False)
+	species=geneweaverdb.get_species_name()
+
+	data = dict()
+	data.update({"all":alldata})
+	data.update({"nondeleted":nondeleted})
+	data.update({"species":species})
+	#print data
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -409,7 +417,14 @@ def admin_widget_1():
 @app.route('/admin/genesetsperspeciespertier')
 def admin_widget_2():  
     if "user" in flask.g and flask.g.user.is_admin:
-	data = geneweaverdb.genesets_per_species_per_tier()
+	alldata = geneweaverdb.genesets_per_species_per_tier(True)
+	nondeleted = geneweaverdb.genesets_per_species_per_tier(False)
+	species=geneweaverdb.get_species_name()
+
+	data = dict()
+	data.update({"all":alldata})
+	data.update({"nondeleted":nondeleted})
+	data.update({"species":species})
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -440,7 +455,8 @@ def admin_widget_4():
 @app.route('/admin/currentlyrunningtools')
 def admin_widget_5():  
     if "user" in flask.g and flask.g.user.is_admin:
-	data = geneweaverdb.currently_running_tools()	
+	data = geneweaverdb.currently_running_tools()
+	print data	
         return json.dumps(data, default=date_handler)
     else:
 	return flask.render_template('admin/adminForbidden.html')
