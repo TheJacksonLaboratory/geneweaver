@@ -39,22 +39,13 @@ $( "#searchbar" ).autocomplete({
     </p>
 </div>
 
-<!-- <div class="row" {% if "user" not in g %} style="display: none"{% endif %}>
-    <form action="/search" method="post">
-        <div class="form-group">
-            <label class="form-label">
-                <h3>Search Genesets</h3>
-            </label>
-            <span class="tips"> like "monkey, fly, calcium"</span>
-            <div class="controls">
-                <input id="searchbar" name="searchbar" class="input-lg" style="width:90%" type="text" placeholder="Search terms">
-                <input name = "pagination_page" type="hidden" value="1">
-                <input type="submit" class="btn btn-primary" value="Search">
-            </div>
-        </div>
-    </form>
-</div> -->
+<div class="row">
+<form action="/search/" method="GET">
+{% include'search/search_bar.html' %}
+</form>
+</div>
 <br />
+
 
 <div class="row">
     <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">

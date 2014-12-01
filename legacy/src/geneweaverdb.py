@@ -1077,7 +1077,70 @@ def get_geneset(geneset_id, user_id=None):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
         
-        
+def get_geneset_no_user(geneset_id):
+    """
+    Gets the Geneset regardless of whether the user has permission to view it
+    :param geneset_id:  the geneset ID
+    :param user_id:     the user ID that needs permission
+    :return:            the Geneset corresponding to the given ID if the
+                        user has read permission, None otherwise
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT *
+            FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
+            WHERE gs_id=%(geneset_id)s;
+            ''',
+            {
+                'geneset_id': geneset_id,
+            }
+        )
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets[0] if len(genesets) == 1 else None
+
+def get_user_groups(usr_id):
+    """
+    Gets a list of groups that the user belongs to
+    :param usr_id:  the user ID
+    :return:        The list of groups that the user belongs to
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT grp_id
+            FROM usr2grp
+            WHERE usr_id=%(usr_id)s;
+            ''',
+            {
+                'usr_id': usr_id,
+            }
+        )
+        grp_ids = [row_dict['grp_id'] for row_dict in dictify_cursor(cursor)]
+        return grp_ids
+
+def get_group_users(grp_id):
+    """
+    Gets a list of users in a group
+    :param usr_id:  the user ID
+    :return:        The list of groups that the user belongs to
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT usr_id
+            FROM usr2grp
+            WHERE grp_id=%(grp_id)s;
+            ''',
+            {
+                'grp_id': grp_id,
+            }
+        )
+        usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
+        return usr_ids
 def get_geneset_brief(geneset_id, user_id=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user

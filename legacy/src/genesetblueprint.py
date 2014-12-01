@@ -37,7 +37,7 @@ def render_uploadgeneset(genes = None):
             all_species=geneweaverdb.get_all_species(),
             gidts=gidts)
 
-@geneset_blueprint.route('/batchuploadgeneset.html')
+@geneset_blueprint.route('/batchuploadgeneset.html/')
 def render_batchuploadgeneset(genes = None):
     gidts = []
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
@@ -56,12 +56,8 @@ def render_batchuploadgeneset(genes = None):
 
     return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts)
 
-@geneset_blueprint.route('/uploadgeneset.html/<gene_list>')
-def render_uploadgeneset_ba(gene_list):
-    """
-    Upload gene set for Boolean Algebra, copies all the gene symbols to the "gene list" part
-    """
-
+@geneset_blueprint.route('/batchuploadgeneset.html/<genes>')
+def render_batchuploadgeneset_ba(genes):
     gidts = []
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
         gidts.append((
@@ -75,12 +71,9 @@ def render_uploadgeneset_ba(gene_list):
             microarray_id_type_record['pf_name']))
     gidts.append(('MicroArrays', microarray_id_sources))
 
-    return flask.render_template(
-        'batchuploadgeneset.html',
-        gs=dict(),
-        all_species=geneweaverdb.get_all_species(),
-        gidts=gidts,
-        gene_list=gene_list)
+    all_species=geneweaverdb.get_all_species()
+
+    return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts, genes=genes)
 
 def tokenize_lines(candidate_sep_regexes, lines):
     """
