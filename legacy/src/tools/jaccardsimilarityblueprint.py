@@ -11,6 +11,10 @@ from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+class result():
+    async_result=''
+r = result()
+
 @jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
@@ -21,7 +25,8 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        raise Exception('there must be at least two genesets selected to run this tool')
+        flask.flash("Warning: You need at least 2 gene sets!")
+        return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -40,8 +45,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        # TODO add nice error message about missing user ID.
-        raise Exception('internal error: user ID missing')
+        flask.flash("Internal error: user ID missing")
+        return flask.redirect('analyze.html')
    
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -54,7 +59,7 @@ def run_tool():
         tool.name,
         desc,
         desc)
-    async_result = tc.celery_app.send_task(
+    r.async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
             'gsids': selected_geneset_ids,
@@ -66,7 +71,7 @@ def run_tool():
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
-    response = flask.make_response(tc.render_tool_pending(async_result, tool))
+    response = flask.make_response(tc.render_tool_pending(r.async_result, tool))
     response.status_code = 303
     response.headers['location'] = new_location
 
@@ -112,7 +117,8 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets):
         json.dumps(params),
         tool.name,
         desc,
-        desc)
+        desc, 't')
+        
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
@@ -128,33 +134,24 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets):
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
-    async_result = tc.celery_app.AsyncResult(task_id)
+    r.async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-    if async_result.state in states.PROPAGATE_STATES:
+    if r.async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
-    elif async_result.state in states.READY_STATES:
-
-        # env = Environment(loader=FileSystemLoader('templates'))
-        # template = env.get_template('tool/test.svg')
-        # output = template.render(
-        #     'tool/JaccardSimilarity_svg.html',
-        #     async_result=json.loads(async_result.result))
-        #
-        # return output
-
+    elif r.async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
-            async_result=json.loads(async_result.result),
+            async_result=json.loads(r.async_result.result),
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending
-        return tc.render_tool_pending(async_result, tool)
+        return tc.render_tool_pending(r.async_result, tool)
 
 
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
@@ -166,3 +163,19 @@ def status_json(task_id):
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
     })
+
+@jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>')
+def geneset_intersection(gsID_1, gsID_2, i):
+    user_id = flask.session.get('user_id')
+    if user_id:
+        geneset1 = gwdb.get_geneset(gsID_1[2:], user_id)
+        geneset2 = gwdb.get_geneset(gsID_2[2:], user_id)
+        genesets = [geneset1, geneset2]
+        intersect_genes = gwdb.get_gene_id_by_intersection(gsID_1[2:], gsID_2[2:])
+        list=gwdb.get_all_projects(user_id)
+    else:
+        geneset1 = geneset2 = None
+
+    return flask.render_template(
+        "geneset_intersection.html", async_result=json.loads(r.async_result.result),
+        index=i, genesets=genesets, genes=intersect_genes, list=list)

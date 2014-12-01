@@ -10,17 +10,10 @@
 	</div>
 	<div id="baCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
-			<div class="form-group">{{ macros.tool_param_radio(tool.params['BooleanAlgebra_Relation']) }}</div>
+			<div class="form-group">{{ macros.tool_param_radio(tool.params['BooleanAlgebra_Relation']) }}
+            <label><input type="text" name="BooleanAlgebra_min_sets" id="min_sets" value="2"
+                          style="margin-left: 160px; width:30px;text-align:center;"> geneset(s) </label> </div>
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
-</div><!DOCTYPE html>
-<html>
-<head lang="en">
-    <meta charset="UTF-8">
-    <title></title>
-</head>
-<body>
-
-</body>
-</html>
+    </div>

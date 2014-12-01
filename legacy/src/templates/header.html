@@ -131,11 +131,14 @@ messages = array of messages
             <span class="icon-bar"></span>
             </button>
             <a class="navbar-brand" href="{{ url_for('render_home')|safe }}">
-                <img style="max-width:100%; max-height:100%;"src="static/images/GW2-logo.png" alt="Company Logo"> GeneWeaver
+                <img style="max-width:100%; max-height:100%;"src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="Company Logo"> GeneWeaver
             </a>
         </div>
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav pull-right header-menu">
+                <li>
+                    <a href="/search.html"><span class="fa fa-search"></span></a>
+                </li>
                 <li class="dropdown">
                     <a href="/mygenesets.html" class="dropdown-toggle" data-hover="dropdown">Manage GeneSets <span class="caret"></span></a>
                     <ul class="dropdown-menu" role="menu">
@@ -152,6 +155,7 @@ messages = array of messages
                         <li><a href="#">My Projects</a></li>
                         <li><a href="#">Shared Projects</a></li>
                         <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
+                        <li><a href="{{ url_for('render_emphasis')|safe }}">Emphasize Genes</a></li>
                     </ul>
                 </li>
                 <li class="nav navbar-nav pull-right" id="loginpanel">

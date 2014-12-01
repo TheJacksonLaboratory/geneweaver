@@ -10,6 +10,11 @@
 <script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
 <!-- Cytoscape settings and graph rendering for tool output -->
 <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
+
+<div class="page-header">
+	<h1>{{ title }}</h1>
+</div>
+
 <div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
     <br/>
     <br/>
@@ -19,7 +24,8 @@
 </div>
 <!-- js file for heatmap color interpolations -->
 <!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
-<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a>
+<a id="viewSize" href="">Enlarge View</a> | 
+<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a> | 
 <a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in Static View</a>
 
 <div id="stats" align="left" style="float: left; margin: 10px">
