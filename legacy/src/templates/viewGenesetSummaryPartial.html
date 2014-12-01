@@ -12,11 +12,17 @@
 	}
 	</script>
 
-	<!-- Script for displaying overlay to select projects to which to add geneset-->
-	<script type="text/javascript">function displayOverlay(geneset_id) {
-		// window.alert(geneset_id);
-
-		//$("modal").modal();
+	<!-- Script for adding geneset to selected projects-->
+	<script type="text/javascript">function addToSelected(geneset_id) {
+		alert(geneset_id);
+		var selector = ".modal_checkbox_" + geneset_id;
+		alert(selector);
+		$(selector).each(function(i) {
+			if(this.checked)
+			{
+				console.log("Wanting to add to " + this.name);
+			}
+		});
 	}
 	</script>
 
@@ -106,8 +112,7 @@
                 		type="button"
                 		class="btn bg-blue"
                 		data-toggle="modal"
-                		data-target="#addModal"
-                		onclick="displayOverlay({{gs.geneset_id}})">Add to projects...</button><td>
+                		data-target="#addModal">Add to projects...</button><td>
                 </tr>
             </table>
 	</div>
@@ -124,10 +129,11 @@
 								<td>
 									<input
 										type="checkbox"
-										name="add_to_{{ currProj.project_id }}">
+										class="modal_checkbox_{{gs.geneset_id}}"
+										name="{{ currProj.project_id }}">
 								</td>
 								<td>
-									{{ currProj.name }}
+									{{ currProj.name }} {{ currProj.project_id }}
 								</td>
 							</tr>
 						{% endfor %}
@@ -135,7 +141,7 @@
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-					<button type="button" class="btn btn-primary">Add to selected projects</button>
+					<button type="button" class="btn btn-primary" onclick="addToSelected({{gs.geneset_id}})">Add to selected projects</button>
 				</div>
 			</div>
 		</div>
