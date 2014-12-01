@@ -68,7 +68,7 @@ $( "#filterForm" ).on( "change", function( event ) {
 	// Put the results in a div
 	posting.done(function( data ) {
 		//Update the searchwrapper with the results
-		$( "#replaceConentsOnUpdatedSeach" ).empty().append( data );
+		$( "#replaceConentsOnUpdatedSeach" ).html( data ).trigger("create");
 	});
 	
 	
