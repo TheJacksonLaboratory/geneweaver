@@ -7,11 +7,11 @@
             <div class="col-sm-6 col-md-4 col-sm-offset-3 col-md-offset-4">
                 <div class="login-box clearfix animated flipInY">
                     <div class="page-icon animated bounceInDown">
-                        <img src="static/pixit/admin/assets/img/account/user-icon.png" alt="Key icon">
+                        <img src="{{ url_for('static', filename='pixit/admin/assets/img/account/user-icon.png') }}" alt="Key icon">
                     </div>
                     <div class="login-logo">
                         <a href="#?login-theme-3">
-                            <img src="static/images/GW2-logo.png" alt="Company Logo">
+                            <img src="{{url_for('static', filename='images/GW2-logo.png')}}" alt="Company Logo">
                         </a>
                     </div>
                     <hr>

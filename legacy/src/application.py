@@ -214,7 +214,7 @@ def _form_register():
             return None
         else:
             user = geneweaverdb.register_user(
-                form['usr_name'], 'User', form['usr_email'], form['usr_password'])
+                form['usr_first_name'], form['usr_last_name'], form['usr_email'], form['usr_password'])
             return user
 
 
@@ -230,7 +230,7 @@ def json_login():
     user = _form_login()
     if user is None:
         json_result['success'] = False
-        return flask.render_template("login.html", error="Invalid Credentials")
+        return flask.redirect(flask.url_for('render_login_error'))
     else:
         json_result['success'] = True
         json_result['usr_first_name'] = user.first_name
@@ -262,7 +262,9 @@ def render_accountsettings():
 def render_login():
     return flask.render_template('login.html')
 
-
+@app.route('/login_error')
+def render_login_error():
+    return flask.render_template('login.html',error="Invalid Credentials")
 
 @app.route('/resetpassword.html')
 def render_forgotpass():
@@ -682,6 +684,16 @@ def render_reset():
 
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
+    form = flask.request.form
+    if not form['usr_first_name']:
+        return flask.render_template('register.html', error="Please enter your first name.")
+    elif not form['usr_last_name']:
+        return flask.render_template('register.html', error="Please enter your last name.")
+    elif not form['usr_email']:
+        return flask.render_template('register.html', error="Please enter your email.")
+    elif not form['usr_password']:
+        return flask.render_template('register.html', error="Please enter your password.")
+
     user = _form_register()
     if user is None:
         return flask.render_template('register.html', register_not_successful=True)
