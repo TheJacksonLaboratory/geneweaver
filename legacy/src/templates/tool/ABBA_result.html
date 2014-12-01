@@ -6,7 +6,6 @@
     <h1>{{ title }}</h1>
 </div>
 
-{{async_result}}
 {% if async_result.parameters.ABBA_ShowInter == "yes" %}
     {% set show_inter=1  %}
 {% else %}
@@ -157,7 +156,7 @@
 						<td valign="top"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
                         <td valign="top"><a href="/search/{{key}}/1">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
                             <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
-                                {% for gene in values.genes %}<li>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
+                                {% for gene in values.genes %}<li {% if gene[0] in emphgeneids %}style="background-color:#FF66FF" {% endif %}>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
                             </ul>
                         </td>
                         <td valign="top"><a href="#" onclick="return ODE.toggle('#geneset_{{values['gs_id']}}_genes');">({{values['matched']}}/{{values['gs_count']}}&nbsp;genes)</a></td>
@@ -241,7 +240,7 @@
             {% if async_result.GeneResults and async_result.GeneResultCount<400 %}
                 <table class="table table-striped" width="100%" style="font-size: 0.8em;">
                     {% for key, values in async_result.GeneResults.items() %}
-                        <tr id="{{key}}" class="{cycle values="even,odd"}">
+                        <tr id="{{key}}" class="{cycle values="even,odd"}"{% if values['ode_gene_id'] in emphgeneids %} style="border:solid 6px #FF66FF" {% endif %}>
 				<td valign="top"><input type="checkbox" name="g_id[]" value="{{values['ode_ref_id']}}" /></td>
                                 <td valign="top"><a href="/search/'{{values['ode_ref_id']}}/1">{{values['ode_ref_id']}}</a></td>
                            	<td valign="top">
@@ -592,7 +591,6 @@ function newGeneset()
 	    genes.push(this.value);
 	}
 	});
-	alert(genes);
 	window.location.href = "/uploadgenesetpre/"+genes.join("_")+".html";
 }
 </script>

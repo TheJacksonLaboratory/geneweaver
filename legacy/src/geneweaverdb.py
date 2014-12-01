@@ -168,33 +168,20 @@ def get_genesets_for_project(project_id, auth_user_id):
         )
         return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         
-# this function currently does not check permissions of genesets or projects, however the interface never
-#	should have a pj_id that the user doesn't have permission to if they use the 
-#	get_all_projects function below, and no geneset should be able to be selected from front end
-#	that the current user does not have permisiions on. geneset_id_list is a list, project_id is an int
-#	NOT TESTED
-def insert_geneset_to_project(project_id, geneset_id_list):
-	insertQuery = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES"
-	
-	for i in range(0, len(geneset_id_list) -1):
-		insertQuery += "(" + str(project_id) +", "+str(geneset_id_list[i]) + ", now()) ,"
-	insertQuery += "(" + str(project_id) +", "+str(geneset_id_list[-1]) + ", now())"
-	
-	with PooledCursor() as cursor:
-		cursor.execute(
-			insertQuery
-		)
-#           '''
-#           INSERT INTO project2geneset (pj_id, gs_id, modified_on)
-#           VALUES (%s, %s, now())
-#           RETURNING pj_id;
-#           ''',
-#           (project_id, geneset_id,)
-#       )
-	cursor.connection.commit()
+def insert_geneset_to_project(project_id, geneset_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO project2geneset (pj_id, gs_id, modified_on)
+            VALUES (%s, %s, now())
+            RETURNING pj_id;
+            ''',
+            (project_id, geneset_id,)
+        )
+        cursor.connection.commit()
 
-	# return nothing
-	return
+        # return the primary ID for the insert that we just performed
+        return cursor.fetchone()[0]
 
 # this function creates a project with no genesets associated with it
 # if a guest is creating a project, pass in -1 for user_id
