@@ -13,15 +13,17 @@
 
 
 <div class="col-lg-8">
+{% if paginationValues.numResults == 1000 %}
+<div class="panel-body bg-red p-15">
+<strong>Search results are limited to 1000 results. Try refining your search.</strong>
+</div>
+<br />
+{% endif %}
 	<!-- Show the panel heading with pagination, found in the search_results_header.html partial -->
 	{% include 'search/search_results_header.html' %}
 	<!-- Show the geneset table with geneset results -->
 	<div class="panel-body">
-		{% if paginationValues.numResults == 1000 %}
-		<!-- TODO Update this graphic -->
-		<span class="alert bg-red">Search results are limited to 1000 results. Try refining your search.</span>
-		<br /><br />
-		{% endif %}
+
 		<table class="table table-hover">
 		<thead>
 		<tr>
