@@ -4,6 +4,7 @@ import sphinxapi
 
 #Sphinx server connection information
 sphinx_server = 'bepo.ecs.baylor.edu'
+#sphinx_server = 'localhost'
 sphinx_port = 9312
 #The number of maximum search results to return (not by page, but in total)
 max_matches=1000
@@ -242,15 +243,15 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #Perform the query
     #Important to set the correct match mode
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
-    #If filters are specified apply filters and perform a filtered search
-    if(userFilters):
-        buildFilterSelectStatementSetFilters(userFilters, client)
     #Also get the results for the full search - this is used for creating filters. To create filters, we need all the results, not just the paginated number of results.
     client.SetLimits(0, 1000, 1000)
     #Set wide filter (select everything filter nothing)
     #client.SetSelect("*")
     #Get the full results used to build filter bar statistics before performing a filtered search
     full_results = client.Query(query)
+    #If filters are specified apply filters and perform a filtered search
+    if(userFilters):
+        buildFilterSelectStatementSetFilters(userFilters, client)
     #Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)
     results = client.Query(query)

@@ -27,7 +27,7 @@ function goToPage(pageNum) {
 <div class="panel-heading bg-blue">
 {% if paginationValues != None %}
 	<!-- The contents of this h3 tag show the search results panel header. The panel contains the search results.-->
-	<h3 class="panel-title">Geneset Results Found: {{paginationValues.numResults}} results. Viewing page {{paginationValues.currentPage}} of {{paginationValues.numPages}} pages </h3>
+	<h3 class="panel-title p-10">Found {{paginationValues.numResults}} results. Viewing page {{paginationValues.currentPage}} of {{paginationValues.numPages}} </h3>
 	<!-- 
 	This is a little tricky, but allows server side pagination, based on the paginationValues dict, defined in search.py.
 	A button group is used, with buttons linking to different pages. Pages are defined in the route in the form of /search/<search term>/<pagination page>

@@ -106,16 +106,19 @@
                     <th>Description:</th>
                     <td>{{gs.description}}</td>
                 </tr>
+		{% if g.user is defined %}
                 <tr>
-                	<td><button
+                	<td> <button
                 		id="add-{{gs.geneset_id}}-button"
                 		type="button"
                 		class="btn bg-blue"
                 		data-toggle="modal"
                 		data-target="#addModal_{{gs.geneset_id}}">Add to projects...</button><td>
                 </tr>
+		{% endif %}
             </table>
 	</div>
+	{% if g.user is defined %}
 	<div class="modal fade" id="addModal_{{gs.geneset_id}}">
 		<div class="modal-dialog">
 			<div class="modal-content">
@@ -146,3 +149,4 @@
 			</div>
 		</div>
 	</div>
+	{% endif %}
