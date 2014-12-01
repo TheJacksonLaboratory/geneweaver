@@ -17,11 +17,13 @@
                     <hr>
                     <div class="login-form">
                         <!-- BEGIN ERROR BOX -->
-                        <div class="alert alert-danger hide">
+                        {% if error is defined %}
+                        <div class="alert alert-danger">
                             <button type="button" class="close" data-dismiss="alert">×</button>
                             <h4>Error!</h4>
-                            Your Error Message goes here
+                            {{error}}
                         </div>
+                        {% endif %}
                         <!-- END ERROR BOX -->
                         <form method="post" action="{{url_for('json_login')}}">
                             <input type="text" placeholder="Username" id="usr_email" name="usr_email" class="input-field form-control user">

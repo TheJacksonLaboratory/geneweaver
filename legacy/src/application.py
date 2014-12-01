@@ -230,6 +230,7 @@ def json_login():
     user = _form_login()
     if user is None:
         json_result['success'] = False
+        return flask.render_template("login.html", error="Invalid Credentials")
     else:
         json_result['success'] = True
         json_result['usr_first_name'] = user.first_name
@@ -260,6 +261,7 @@ def render_accountsettings():
 @app.route('/login.html')
 def render_login():
     return flask.render_template('login.html')
+
 
 
 @app.route('/resetpassword.html')
