@@ -39,7 +39,7 @@
 <tr>
 <td>
 <input id="{{gene}}" type="checkbox" name="gs" value="{{ gene }}">
-<a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
+<a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes" style="margin-left: 50px;">{{ gene }}</a></button>
 </td>
 <td>
 {% include 'linkouts.html' %}

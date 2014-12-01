@@ -2,6 +2,7 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
@@ -130,29 +131,29 @@
 <table cellspacing="0" style="font-size: 1em;"><tr><th rowspan="2" valign="bottom">
 <p style="font-size: 1em; font-weight: normal;">
 <img src="/static/images/greendot.png" /> = Exact same gene in all sets<br />
-<img src="/static/images/purpledot.png" /> = Homologous gene cluster</p><br />Gene Symbol
-</th><th rowspan="2" valign="bottom">Links
+<img src="/static/images/purpledot.png" /> = Homologous gene cluster</p><br />
+Gene Symbol
+</th><th width="25%" rowspan="2" valign="bottom">Links
 
-{foreach from=$gsids key=j item=gs}
-      {assign var=rs value=`2-$j`}
-      {assign var=cs value=`$rs+1`}
-      {if $j!=0 }
-        </th></tr><tr><th rowspan="{$rs}" style="border-left: 1px solid #000; border-bottom: none;
-        {if $j%2==1 } background-color: #fff;{/if}">&nbsp;
-      {/if}
+{% set j = 0 %}
+{% for gs in genesets %}
+    {% if j!=0 %}
+    </th></tr><tr><th width="5%" rowspan="{{1}}" style="border-left: 1px solid #000; border-bottom: none;
+    {% if j%2==1 %} background-color: #fff;{% endif %}">&nbsp;</th>
+    {% endif %}
 
-      </th><th align="left" colspan="{$cs}" style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
-      {if $j%2==0 } background-color: #fff;{/if}">
-      <a href="{ode_link action=manage cmd=viewgeneset other="gs_id=$gs"}">{$results.$gs.gs_abbreviation}</a>
-{/foreach}
+    </th><th width="30%" align="left" colspan="{{genesets|length+1}}" style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
+    {%if j%2==0 %} background-color: #fff;{% endif %}">
+    <a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}}</a></th>
+    {% set j = j + 1 %}
+{% endfor %}
+
 </th></tr>
 
-{foreach from=$genes key=name item=gene}
-      <tr><td class="{$gene.gaggle_tags}">{$truegenes.$name}</td><td class="gsIconBox" style="text-align: left;">
-      {foreach from=$gene.linkouts key=name item=url }
-         <a href="{$url}" target="_new"><img alt="{$name}" title="{$name}" src="images/linkouts/{$name|lower}.png" /></a>
-      {/foreach}
-      {foreach from=$gsids key=j item=gs }
+{% for genes in gene_sym %}
+      <tr><td class="{$gene.gaggle_tags}">
+          <a href="/search/?searchbar={{ genes }}&pagination_page=1&searchGenes=yes">{{genes}}</a></td><td class="gsIconBox" style="text-align: left;">
+          {% include 'linkouts.html' %}
          </td><td valign="top" style="border-left: 1px solid #000;
          {if $j%2==0 } background-color: #fff;{/if} padding: 0.5em;">
          {if $gene.$gs!=0 }
@@ -160,9 +161,8 @@
            {elseif $gene.$gs==2 }<div class="containedHomology"><img src="images/purpledot.png" alt="In GS{$gs}, with homology to {$truegenes.$name}" /></div>
            {/if}
          {else}-{/if}
-      {/foreach}
       </td><td width="250px">&nbsp;</td></tr>
-{/foreach}
+{% endfor %}
 
 </table></div>
 
