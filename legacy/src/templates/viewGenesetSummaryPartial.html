@@ -14,17 +14,13 @@
 
 	<!-- Script for adding geneset to selected projects-->
 	<script type="text/javascript">function addToSelected(geneset_id) {
-		alert(geneset_id);
 		var selector = ".modal_checkbox_" + geneset_id;
-		alert(selector);
 		$(selector).each(function() {
 			if(this.checked)
 			{
-				console.log("Wanting to add " + geneset_id + " to " + this.name);
 				var route = "/add_geneset_to_project/"+this.name+"/"+geneset_id+".html";
-				console.log(route);
-				// $.get(route,function(data,status){
-  		// 		});
+				$.get(route,function(data,status){
+  		 		});
 			}
 		});
 	}
@@ -116,11 +112,11 @@
                 		type="button"
                 		class="btn bg-blue"
                 		data-toggle="modal"
-                		data-target="#addModal">Add to projects...</button><td>
+                		data-target="#addModal_{{gs.geneset_id}}">Add to projects...</button><td>
                 </tr>
             </table>
 	</div>
-	<div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="basicModal" aria-hidden="true">
+	<div class="modal fade" id="addModal_{{gs.geneset_id}}">
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
@@ -137,7 +133,7 @@
 										name="{{ currProj.project_id }}">
 								</td>
 								<td>
-									{{ currProj.name }} {{ currProj.project_id }}
+									{{ currProj.name }}
 								</td>
 							</tr>
 						{% endfor %}
@@ -145,7 +141,7 @@
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-					<button type="button" class="btn btn-primary" onclick="addToSelected('{{ gs.geneset_id }}')">Add to selected projects</button>
+					<button type="button" class="btn btn-primary" onclick="addToSelected('{{ gs.geneset_id }}')" data-dismiss="modal">Add to selected projects</button>
 				</div>
 			</div>
 		</div>
