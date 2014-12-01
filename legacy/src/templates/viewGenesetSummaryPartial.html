@@ -77,20 +77,26 @@
 	<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">
 	<!-- ##################### Geneset metadata #################3-->
             <table class="genesetMeta" cellspacing="0" cellpadding="0" border="0">
-                    <tr>
-                        <th>Figure Label:</th>
-                        <td style="width: 30em;">{{gs.abbreviation}}</td>
-                    </tr>
+                <tr>
+                    <th>Figure Label:</th>
+                    <td style="width: 30em;">{{gs.abbreviation}}</td>
+                </tr>
 
-                    <!-- TODO account for null authors, get Publication info -->
-                        <tr>
-                            <th>Authors:</th>
-                            <td><i>{{gs.publication.authors}}</i></td>
-                        </tr>
-                   
+                <!-- TODO account for null authors, get Publication info -->
                     <tr>
-                        <th>Description:</th>
-                        <td>{{gs.description}}</td>
+                        <th>Authors:</th>
+                        <td><i>{{gs.publication.authors}}</i></td>
                     </tr>
-                </table>
+               
+                <tr>
+                    <th>Description:</th>
+                    <td>{{gs.description}}</td>
+                </tr>
+                <tr>
+                	<td><button
+                		id="add-{{gs.geneset_id}}-button"
+                		type="button"
+                		class="btn bg-blue">Add to projects...</button><td>
+                </tr>
+            </table>
 	</div>
