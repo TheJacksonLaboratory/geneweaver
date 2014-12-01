@@ -191,12 +191,12 @@ def insert_geneset_to_project(project_id, geneset_id):
 # geneset_ids_list is a list type, do not passa string or int
 # This does not check permisions for project or geneset        
 def insert_multiple_genesets_to_project(project_id, geneset_ids_list):
-	queryString = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES "
+    queryString = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES "
 
-	for gs_id in range(0, len(geneset_ids_list)):
-		queryString += "( " + str(project_id) + ", " + str(geneset_ids_list[gs_id]) " ), "
-	queryString += "( " + str(project_id) + ", " + str(geneset_ids_list[-1]) " ), " 
-	queryString += " RETURNING pj_id;"	
+    for gs_id in range(0, len(geneset_ids_list)):
+        queryString += str( "( " + str(project_id) + ", " + str(geneset_ids_list[gs_id]) +  " ), " )
+    queryString += str("( " + str(project_id) + ", " + str(geneset_ids_list[-1]) + " ), " )
+    queryString += " RETURNING pj_id;"	
     with PooledCursor() as cursor:
         cursor.execute(
             queryString
