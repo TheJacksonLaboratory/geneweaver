@@ -9,10 +9,10 @@
 <div class="panel panel-primary">
 	<div class="panel-heading">
 		<div class="row">
-			<div class="col-xs-8">
+			<div class="col-xs-6">
 				<h2 class="panel-title">Description</h2>
 			</div>
-			<div class="col-xs-2">
+			<div class="col-xs-4">
 				<h2 class="panel-title">When</h2>
 			</div>
 			<div class="col-xs-2">
@@ -21,17 +21,19 @@
 		</div>
 	</div>
 	<div class="panel-body">
-		<div class="row">
-			<div class="col-xs-8">
-				Descriptions here
-			</div>
-			<div class="col-xs-2">
-				Timestamps here	
-			</div>
-			<div class="col-xs-2">
-				Execution durations here
-			</div>
-		</div>		
+        {% for result in tool_stats %}
+            <div class="row">
+                <div class="col-xs-6">
+                    {{ result.res_description }}
+                </div>
+                <div class="col-xs-4">
+                    {{ result.res_started}}
+                </div>
+                <div class="col-xs-2">
+                    {{ result.res_duration }}
+                </div>
+            </div>
+        {% endfor %}
 	</div>
 </div>
 

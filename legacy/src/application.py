@@ -657,6 +657,13 @@ def render_manage():
 
 @app.route('/results.html')
 def render_user_results():
+    user_id = None
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        tool_stats = geneweaverdb.tool_stats_by_user(user_id)
+        return flask.render_template('results.html', tool_stats=tool_stats)
+
     return flask.render_template('results.html')
 
 
