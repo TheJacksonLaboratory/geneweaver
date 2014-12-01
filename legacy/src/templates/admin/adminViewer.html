@@ -1,7 +1,7 @@
 {% extends 'admin/AdminTemplateOverride.html' %}
 
 {% block body %}
-
+<div id="maindiv">
 <style>
 .datatablerowhighlight {
     background-color: #ECFFB3;
@@ -25,10 +25,6 @@ var editor;
 		    "data": {"table": table}
                 },
 	    "columns": columns,
-	    /*"oTableTools": {
-            	"sRowSelect": "single",
-		"aButtons": [ "delete selected", "Edit" ]
-            },*/
             "fnDrawCallback": function() {
       		$('table#adminViewer td').bind('mouseenter', function () { 
 			$(this).parent().children().each(function(){
@@ -44,18 +40,27 @@ var editor;
         });
 
 	$('#adminViewer td').live('click', function() {
-    		var anOpen = [];
-    		var nTr = this.parentNode;
-    		var i = $.inArray(nTr, anOpen);
-		var data = [];
-		data.push('{{table}}');
+    		
+		var data = {};
+		data['table'] = '{{table}}';
+
 		j=0;
     		$(this).parent().find("td").each(function() {
-        	    data.push(columns[j]["name"]+'=\''+$(this).html()+'\''); // logs each cell value 
+	 	    var item = $(this).html();
+		    var key = columns[j]["name"];
+        	    data[key]= item;  
 		    j++;
 		});
-		//alert(data)
-   		window.location = "/admin/adminEdit/"+data;
+
+		 $.ajax({
+          	   type: "GET",
+           	   url: "../../admin/adminEdit",
+           	   data: data, 
+           	   success: function(data)
+           	   {
+			$("#maindiv").html(data);               	      
+           	   }
+            });
  	});	
 
 	String.prototype.capitalize = function() {
@@ -73,7 +78,7 @@ var editor;
 <p>
 
 <div class="table-responsive">
-  <table id="adminViewer" style="2" class="table" table border="1">  
+  <table id="adminViewer" style="2;background-color:#B8D4FF" class="table" table border="1">  
     <thead>
       <tr>
 	{% for col in columns %}
@@ -90,5 +95,5 @@ var editor;
   </tfoot>
   </table>
 </div>
-
+</div>
 {% endblock %} 

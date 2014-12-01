@@ -1,3 +1,33 @@
+	<!-- Script for hiding or displaying geneset details -->
+	<script type="text/javascript">function toggleDetails(id) {
+		var element = document.getElementById(id);
+		if(element.style.display == "none")
+		{
+			element.style.display="block";
+		}
+		else
+		{
+			element.style.display="none";
+		}
+	}
+	</script>
+
+	<!-- Script for adding geneset to selected projects-->
+	<script type="text/javascript">function addToSelected(geneset_id) {
+		var selector = ".modal_checkbox_" + geneset_id;
+		$(selector).each(function() {
+			if(this.checked)
+			{
+				var route = "/add_geneset_to_project/"+this.name+"/"+geneset_id+".html";
+				$.get(route,function(data,status){
+  		 		});
+			}
+		});
+	}
+	</script>
+
+	<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')"><span class="fa fa-chevron-down"></span></a>
+
 	<!-- Label the tier - which is the curation id, Geneset.cur_id -->
 	{% if gs.cur_id == 1 %}
                     <span class="tier1">Tier I</span>
@@ -56,30 +86,63 @@
 	<span class="gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
 	{% endif %}
  	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a>
-<br />
+	<br>
+
+	<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">
 	<!-- ##################### Geneset metadata #################3-->
             <table class="genesetMeta" cellspacing="0" cellpadding="0" border="0">
-                    <tr>
-                        <th>Figure Label:</th>
-                        <td style="width: 30em;">{{gs.abbreviation}}</td>
-                        <th>Species:</th>
-                        <td>
-			<!--TODO  need logic for any/all --> 
-                            {{gs.sp_id}}
-                        </td>
-                        <th>Data Points:</th>
-                        <td>{{gs.count}}</td>
-                    </tr>
+                <tr>
+                    <th>Figure Label:</th>
+                    <td style="width: 30em;">{{gs.abbreviation}}</td>
+                </tr>
 
-                    <!-- TODO account for null authors, get Publication info -->
-                        <tr>
-                            <th>Authors:</th>
-                            <td><i>{{gs.publication.authors}}</i></td>
-                        </tr>
-                   
+                <!-- TODO account for null authors, get Publication info -->
                     <tr>
-                        <th>Description:</th>
-                        <td>{{gs.description}}</td>
+                        <th>Authors:</th>
+                        <td><i>{{gs.publication.authors}}</i></td>
                     </tr>
-                </table>
-
+               
+                <tr>
+                    <th>Description:</th>
+                    <td>{{gs.description}}</td>
+                </tr>
+                <tr>
+                	<td><button
+                		id="add-{{gs.geneset_id}}-button"
+                		type="button"
+                		class="btn bg-blue"
+                		data-toggle="modal"
+                		data-target="#addModal_{{gs.geneset_id}}">Add to projects...</button><td>
+                </tr>
+            </table>
+	</div>
+	<div class="modal fade" id="addModal_{{gs.geneset_id}}">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title" id="myModalLabel">Select projects to which you want to add GS{{gs.geneset_id}}</h4>
+				</div>
+				<div class="modal-body">
+					<table class="table table-striped">
+						{% for currProj in g.user.projects %}
+							<tr>
+								<td>
+									<input
+										type="checkbox"
+										class="modal_checkbox_{{gs.geneset_id}}"
+										name="{{ currProj.project_id }}">
+								</td>
+								<td>
+									{{ currProj.name }}
+								</td>
+							</tr>
+						{% endfor %}
+					</table>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					<button type="button" class="btn btn-primary" onclick="addToSelected('{{ gs.geneset_id }}')" data-dismiss="modal">Add to selected projects</button>
+				</div>
+			</div>
+		</div>
+	</div>

@@ -144,16 +144,16 @@ messages = array of messages
                     <ul class="dropdown-menu" role="menu">
                         <li><a href="/mygenesets.html">My Genesets</a></li>
                         <li><a href="/search.html">Search Genesets</a></li>
-                        <li><a href="#">Upload Gensets</a></li>
-                        <li><a href="#">Batch Upload Gensets</a></li>
+                        <li><a href="{{ url_for('geneset.render_uploadgeneset')}}">Upload Gensets</a></li>
+                        <li><a href="{{ url_for('geneset.render_batchuploadgeneset')}}">Batch Upload Gensets</a></li>
                         <li><a href="{{ url_for('render_editgenesets')|safe }}">Edit GeneSets</a></li>
                     </ul>
                 </li>
                 <li class="dropdown">
                     <a href="{{ url_for('render_analyze')|safe }}" class="dropdown-toggle" data-hover="dropdown">Analyze Genesets<span class="caret"></span></a>
                     <ul class="dropdown-menu" role="menu">
-                        <li><a href="#">My Projects</a></li>
-                        <li><a href="#">Shared Projects</a></li>
+                        <li><a href="{{ url_for('render_analyze')|safe }}">My Projects</a></li>
+                        <li><a href="{{ url_for('render_share_projects')|safe }}">Shared Projects</a></li>
                         <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
                         <li><a href="{{ url_for('render_emphasis')|safe }}">Emphasize Genes</a></li>
                     </ul>
@@ -167,7 +167,9 @@ messages = array of messages
                     <!-- If user is Admin -->
                     {% if "user" in g and g.user.is_admin == true%}
                         <li>
-                            <a href="admin">Admin Pages</a>
+                            <a href="admin">
+                                <i class="fa fa-gears"></i> Admin Page
+                            </a>
                         </li>
                     {% endif %}
                     <!-- Logged in user -->

@@ -9,12 +9,7 @@
 <h8>Gene count: {{async_result.num_genes}}</h8>
 <br><br>
 
-        <button id="createGeneset" class="float-left submit-button" >Add to New GeneSet</button>
-<script type="text/javascript">
-    document.getElementById("createGeneset").onclick = function () {
-        location.href = "/editgenesets.html";
-    }
-</script>
+        <button onclick="add_to_geneset()" id="createGeneset" class="float-left submit-button" >Add to New GeneSet</button>
         <br><br>
 
 
@@ -32,29 +27,33 @@
 	<th>In Gene sets</th>
 </tr>
 
+<tr>
 <td>
-<input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs');"><p style="margin-left: 50px;"> Select All </p>
+    <input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs');"><p style="margin-left: 50px;"> Select All </p>
 </td>
+<td></td>
+<td></td>
+</tr>
 
 {% for gene in async_result.gene_names %}
 <tr>
 <td>
-<input type="checkbox" name="gs" value="{{ gene }}" onclick="exefunction()">
+<input id="{{gene}}" type="checkbox" name="gs" value="{{ gene }}">
 <a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
 </td>
 <td>
-Links
+{% include 'linkouts.html' %}
+</td>
+<td>
+{% for gsid in async_result.geneset_from[gene] %}
+    {% for ags in async_result.genesets[gsid] %}
+        {% for gs in ags %}
+            {% include 'viewGenesetTitleOnly.html' %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
 </td>
 {% endfor %}
-
-        <script language="javascript" type="text/javascript">
-            function exefunction(){
-                var lfckv = document.getElementById("lifecheck").checked;
-                alert(lfckv);
-            }
-        </script>
-
-
 <td>
 
 </td>
@@ -65,5 +64,22 @@ Links
 </table>
 </div>
 </div>
+
+<script type="text/javascript">
+    function add_to_geneset() {
+        var gene_names = {{async_result.gene_names|tojson}};
+        var genes = [];
+
+        for (i=0; i<gene_names.length; i++) {
+            if (document.getElementById(gene_names[i]).checked) {
+                genes.push(gene_names[i]);
+            }
+        }
+        var gene_list = genes.join('%0A');
+
+        var url = "/batchuploadgeneset.html/" + gene_list;
+        window.location = url;
+    }
+</script>
 
 {% include 'footer.html' %}
