@@ -510,7 +510,7 @@ def admin_widget_4():
 @app.route('/admin/currentlyrunningtools')
 def admin_widget_5():  
     if "user" in flask.g and flask.g.user.is_admin:
-	data = geneweaverdb.currently_running_tools()
+	data = geneweaverdb.currently_running_tools()	
 	#print data	
         return json.dumps(data, default=date_handler)
     else:
@@ -571,9 +571,10 @@ def admin_widget_7():
 	for tool in geneset_sizes:	    
 	    for size in geneset_sizes[tool]:
 		temp = dict();
-		temp.update({"tool": tool, "size": str(size), "time":str(int(geneset_sizes[tool][size]['time'])), "genes":str(int(geneset_sizes[tool][size]['genes']))})
+		time = int(geneset_sizes[tool][size]['time'])
+		temp.update({"tool": tool, "size": str(size), "time":time, "genes":str(int(geneset_sizes[tool][size]['genes']))})
 		dat.append(temp)
-	    	
+
         return json.dumps(dat)
     else:
 	return flask.render_template('admin/adminForbidden.html')

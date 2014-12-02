@@ -731,7 +731,7 @@ def monthly_tool_stats():
         with PooledCursor() as cursor:
 	    response = OrderedDict()
 	    for tool in tools:	
-   	        cursor.execute('''SELECT res_created, count(*) FROM production.result WHERE res_created >= now() - interval '30 days' AND res_tool=%s GROUP BY res_created ORDER BY res_created desc;''', (tool['res_tool'],))		
+   	        cursor.execute('''SELECT res_created, count(*) FROM production.result WHERE res_created >= now() - interval '30 days' AND res_tool=%s GROUP BY res_created ORDER BY res_created desc;''', (tool['res_tool'],))
 		response.update({tool['res_tool']: OrderedDict(cursor)})
         return response
     except Exception, e:
@@ -750,6 +750,17 @@ def user_tool_stats():
         with PooledCursor() as cursor:
    	    cursor.execute('''SELECT usr_id, count(*) FROM production.result WHERE res_created >= now() - interval '6 months' GROUP BY usr_id ORDER BY count(*) desc limit 20;''')				
         return OrderedDict(cursor)
+    except Exception, e:
+        return str(e)
+
+def tool_stats_by_user(user_id):
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT res_description, res_started, age(res_completed,res_started) as res_duration
+                          FROM production.result
+                          WHERE res_created >= now() - interval '30 days' AND usr_id=%s
+                          ORDER BY res_started desc;''',(user_id,))
+        return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)
 
