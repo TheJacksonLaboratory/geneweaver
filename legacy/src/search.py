@@ -219,6 +219,18 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     client.SetFilterRange('gs_count', geneCountMin, geneCountMax)
     return None
 
+def api_search(search_term, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid'):
+    '''
+    The purpose of api search is to do a simple keyword search based on a simple keyword. The results returned are what only guests would see, so there are no tier 5 results returned.
+    '''
+    client = sphinxapi.SphinxClient()
+    client.SetServer(sphinx_server, sphinx_port)
+    query = '@('+search_fields+') '+search_term
+    client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
+    client.SetFilter('cur_id', [0,1,2,3,4])
+    client.SetLimits(0, 1000, 1000)
+    return client.Query(query)
+
 def keyword_paginated_search(search_term, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
     #do a query of the search term, fetch the matching genesets and pagination information
     #search_term - the term to search for

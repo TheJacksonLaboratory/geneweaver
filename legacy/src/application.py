@@ -988,8 +988,13 @@ class ToolBooleanAlgebraProjects(restful.Resource):
 
     def get(self, apikey, relation, projects):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
-        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)      
+        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)    
+  
+class KeywordSearchGuest(restful.Resource):
+    def get(self, apikey, search_term):
+        return search.api_search(search_term)
 
+api.add_resource(KeywordSearchGuest, '/api/get/search/bykeyword/<apikey>/<search_term>/')
 
 api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
 api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')
