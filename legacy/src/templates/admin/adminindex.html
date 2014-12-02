@@ -54,14 +54,19 @@
    <div id="graph_container" class="container" style="text-align: center">
       <img id="spinner" src="{{ url_for('static', filename='images/spinner.gif') }}" style="width:20px;height:20px" alt="Loading..." style="display:none"/>	
       <div id = "div-one" style="display:none" >
-           <svg id="genesets_per_tier" class="chart" ></svg>
+	
       </div>
       <div id = "div-two" style="display:none">         
-            <svg id="genesets_per_species_and_tier1" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier2" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier3" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier4" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier5" class="chart"></svg>	 	
+            <svg id="genesets_per_species_and_tier1" class="chart"></svg>	 
+	    <svg id="genesets_per_species_and_tier1all" class="chart"></svg><br>	 		
+            <svg id="genesets_per_species_and_tier2" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier2all" class="chart"></svg><br> 		 	
+            <svg id="genesets_per_species_and_tier3" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier3all" class="chart"></svg><br>	 		 	
+            <svg id="genesets_per_species_and_tier4" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier4all" class="chart"></svg><br>	 		 	
+            <svg id="genesets_per_species_and_tier5" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier5all" class="chart"></svg><br>	 		 	
       </div>
       <div id = "div-three" style="display:none">         	 	
       </div>
@@ -76,6 +81,7 @@
      		    <th>UserID</th>
 		    <th>Tool</th>
 		    <th>Status</th>
+		    <th>Created</th>
   		  </tr>		
 	       </thead>
 	    </table>	 	
@@ -149,17 +155,45 @@
             success: function(return_data) {
 	        $("#spinner").hide();
                 var data = JSON.parse(return_data);
+		
 	        if(title=="Genesets Per Species Per Tier")
-		{
-		     generate_bar_chart(data['Tier 1'], element+"1", title+" 1", "#Genesets");
-		     generate_bar_chart(data['Tier 2'], element+"2", title+" 2", "#Genesets");
-	    	     generate_bar_chart(data['Tier 3'], element+"3", title+" 3", "#Genesets");
-	             generate_bar_chart(data['Tier 4'], element+"4", title+" 4", "#Genesets");
-		     generate_bar_chart(data['Tier 5'], element+"5", title+" 5", "#Genesets");
+		{	     
+		    var legend="";
+		    for(var key in data["species"]) {
+		  	if(data["species"][key]) {
+			    legend += key + "=" + data["species"][key] + "  "; }
+		    }	
+		    $('#div-two').prepend("<font size='2'>"+legend+"</font><br>");	
+
+		     generate_bar_chart(data["nondeleted"]['Tier 1'], element+"1", title+" 1 (Non-Deleted)", "#Genesets");
+		     generate_bar_chart(data["nondeleted"]['Tier 2'], element+"2", title+" 2 (Non-Deleted)", "#Genesets");
+	    	     generate_bar_chart(data["nondeleted"]['Tier 3'], element+"3", title+" 3 (Non-Deleted)", "#Genesets");
+	             generate_bar_chart(data["nondeleted"]['Tier 4'], element+"4", title+" 4 (Non-Deleted)", "#Genesets");
+		     generate_bar_chart(data["nondeleted"]['Tier 5'], element+"5", title+" 5 (Non-Deleted)", "#Genesets");
+
+		     generate_bar_chart(data["all"]['Tier 1'], element+"1all", title+" 1 (All)", "#Genesets");
+		     generate_bar_chart(data["all"]['Tier 2'], element+"2all", title+" 2 (All)", "#Genesets");
+	    	     generate_bar_chart(data["all"]['Tier 3'], element+"3all", title+" 3 (All)", "#Genesets");
+	             generate_bar_chart(data["all"]['Tier 4'], element+"4all", title+" 4 (All)", "#Genesets");
+		     generate_bar_chart(data["all"]['Tier 5'], element+"5all", title+" 5 (All)", "#Genesets");
 		}
 		else if(title == "Genesets Per Tier")
 		{
-                    generate_bar_chart(data, element, title, "#Genesets");
+		    var legend="";
+		    for(var key in data["species"]) {
+		  	if(data["species"][key]) {
+			    legend += key + "=" + data["species"][key] + "  "; }
+		    }
+		    $('#div-one').prepend("<font size='2'>"+legend+"</font><br>");	
+
+		   
+		    var id="all";
+		    $('#div-one').append("<svg id="+id+" class='chart'></svg>")			
+			generate_bar_chart(data[id], '#'+id, "Genesets Per Tier (All)", "#Times Ran");
+
+                    id="nondeleted";
+		    $('#div-one').append("<svg id="+id+" class='chart'></svg>")			
+			generate_bar_chart(data[id], '#'+id, "Genesets Per Tier (Non-Deleted)", "#Times Ran");
 		}
 		else if(title == "Monthly Tool Stats")
 		{		    		   
@@ -178,9 +212,10 @@
 		{
                     for(var key in data) 
 		    {
-			$('#tools-running').append("<tr ><td> "+data[key]['res_id']+" </td><td> " +data[key]['usr_id'] + "  </td><td> " +data[key]['res_tool'] + " </td> <td> " +data[key]['res_status'] +" </td></tr>")
+			$('#tools-running').append("<tr ><td> "+data[key]['res_id']+" </td><td> " +data[key]['usr_id'] + "  </td><td> " +data[key]['res_tool'] + " </td> <td> " +data[key]['res_status'] +" </td><td> " + data[key]['res_created'] +  "</td></tr>")
 		    }
 		    $('#tools-running').dataTable( {
+			 "order": [[ 4, "desc" ]]
    		    });
 		}	
 		else if(title == "Size of Genesets")
@@ -307,6 +342,13 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
             width = d3.keys(data).length * 40,
             height = 250;	
 
+	
+
+	    if(width < title.length * 5)
+	    {
+		width=title.length * 5;
+	    }
+
         var x = d3.scale.ordinal()
             .domain(d3.keys(data))
             .rangeRoundBands([0, width], .3, .5);
@@ -397,7 +439,7 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
                 x: data1[i]['size'],
                 y: data1[i]['genes'],
                 c: data1[i]['tool'],
-                size: data1[i]['time']*100,
+                size: data1[i]['time'],
             });
         }
 	console.log(data);
@@ -420,11 +462,11 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
 
         var scale = d3.scale.sqrt()
 	    .domain([d3.min(data, function(d) { return parseInt(d.size);}), d3.max(data, function(d) { return parseInt(d.size);})])
-            .range([5, 30]);
+            .range([5, 100]);
 
         var opacity = d3.scale.sqrt()
             .domain([d3.min(data, function(d) { return parseInt(d.size);}), d3.max(data, function(d) { return parseInt(d.size); })])
-            .range([.9, .2]);
+            .range([.95, .4]);
 
         var color = d3.scale.category10();
 
