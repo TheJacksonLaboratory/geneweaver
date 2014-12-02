@@ -35,7 +35,6 @@ def getOtherUsersAccessForGroups():
             for j in usersInGroup:
                 visibleUsers.add(j)
     return  ','.join(str(i) for i in list(visibleUsers))
-    #print groupIds
 
 def getUserFiltersFromApplicationRequest(form):
     #TODO update to handle both post and get with parameters
@@ -156,7 +155,7 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     #Given a set of filters established by the user (this is a list of what is selected on the filter side bar) -
     #update the sphinxQL select statement, and set appropriate filters on the Sphinx client
     sphinxSelect = '* '
-    #sphinxSelect += ', (count(cur_id=\'1\')) AS tier1Count'
+    #sphinxSelect += ', count(cur_id=1) AS tier1Count'
     #sphinxSelect += ', cur_id IN('+','.join(str(i) for i in list(curationLevelsAllowed))+')'
     #sphinxSelect += ', cur_id AS curationLevel'
     #sphinxSelect+=
@@ -229,7 +228,10 @@ def api_search(search_term, search_fields='name,description,label,genes,pub_auth
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     client.SetFilter('cur_id', [0,1,2,3,4])
     client.SetLimits(0, 1000, 1000)
-    return client.Query(query)
+    results = client.Query(query)
+    if (results == None):
+        print client.GetLastError()
+    return results
 
 def keyword_paginated_search(search_term, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
     #do a query of the search term, fetch the matching genesets and pagination information
@@ -280,7 +282,10 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
         genesets.append(geneweaverdb.get_geneset_no_user(genesetID))
     #Calculate pagination information for display
     ##############################
+    #Get the number of matches to present
     numResults = int(results['total'])
+    #Get the total number of matches
+    totalFound = int(results['total_found'])
     #Do ceiling integer division
     numPages = ((numResults - 1) // resultsPerPage) + 1
     currentPage = pagination_page
@@ -288,7 +293,7 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     end_page_number = currentPage + 4
     if end_page_number > numPages:
         end_page_number = numPages
-    paginationValues = {'numResults': numResults, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
+    paginationValues = {'numResults': numResults,'totalFound':totalFound, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
     #Create filter information to send to the template for use in displaying search_filters_panel.html
     #Get a dictionary representing the search filter values present. Use the full search results to do this.
     searchFilters = getSearchFilterValues(full_results)
