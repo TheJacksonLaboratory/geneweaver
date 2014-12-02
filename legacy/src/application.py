@@ -244,6 +244,13 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/analyze_new_project/<string:pj_name>.html')
+def render_analyze_new_project(pj_name):
+    args = flask.request.args
+    active_tools = geneweaverdb.get_active_tools()
+    user = geneweaverdb.get_user(flask.session.get('user_id'))
+    geneweaverdb.create_project(pj_name, user.user_id)
+    return flask.render_template('analyze.html', active_tools=active_tools)
 
 @app.route('/editgenesets.html')
 def render_editgenesets():
@@ -351,6 +358,7 @@ def render_emphasis():
 
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
+
 
 @app.route('/emphasize/<string:add_gene>.html', methods=['GET', 'POST'])
 def emphasize(add_gene):
