@@ -1,5 +1,5 @@
 {% include 'header.html' %}
-<script>
+ <script>
 $(function() {
 //Get the search suggestions from the server
 
@@ -21,8 +21,9 @@ $( "#searchbar" ).autocomplete({
     source: suggestedSearchTermsData
     });
 });
+
 </script>
-<div class="jumbotron" style="padding-top:0px; margin-top:0px">
+<div class="jumbotron" style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px">
     <h1>GeneWeaver</h1>
     <p class="lead">
         A system for the integration of functional genomics experiments.
@@ -38,51 +39,42 @@ $( "#searchbar" ).autocomplete({
     </p>
 </div>
 
-<!-- <div class="row" {% if "user" not in g %} style="display: none"{% endif %}>
-    <form action="/search" method="post">
-        <div class="form-group">
-            <label class="form-label">
-                <h3>Search Genesets</h3>
-            </label>
-            <span class="tips"> like "monkey, fly, calcium"</span>
-            <div class="controls">
-                <input id="searchbar" name="searchbar" class="input-lg" style="width:90%" type="text" placeholder="Search terms">
-                <input name = "pagination_page" type="hidden" value="1">
-                <input type="submit" class="btn btn-primary" value="Search">
-            </div>
-        </div>
-    </form>
-</div> -->
+<div class="row" align="center">
+<form action="/search/" method="GET">
+{% include'search/search_bar.html' %}
+</form>
+</div>
 <br />
+
 
 <div class="row">
     <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
-        <div class="col-md-3 link-panel" style="text-align: center;">
-            <img src="{{ url_for('static', filename='images/GW2-upload.png')|safe }}" style="width:50%;"/>
+        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+            <img src="{{ url_for('static', filename='images/GW2-upload.png')|safe }}" style="width:50%"/>
             <br/>
             <strong>Upload Genesets</strong>
         </div>
     </a>
 
     <a class="link-panel" href="#">
-        <div class="col-md-3 link-panel" style="text-align: center;">
-            <img src="{{ url_for('static', filename='images/GW2-project.png')|safe }}" style="width:50%;"/>
+        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+            <img src="{{ url_for('static', filename='images/GW2-project.png')|safe }}" style="width:50%"/>
             <br/>
             <strong>Manage Projects</strong>
         </div>
     </a>
 
     <a class="link-panel" href="{{ url_for('render_analyze')|safe }}">
-        <div class="col-md-3 link-panel" style="text-align: center;">
-            <img src="{{ url_for('static', filename='images/GW2-analyze.png')|safe }}" style="width:50%;"/>
+        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+            <img src="{{ url_for('static', filename='images/GW2-analyze.png')|safe }}" style="width:50%"/>
             <br/>
             <strong>Analyze and Discover GeneSet Relations</strong>
         </div>
     </a>
 
     <a class="link-panel" href="help.html">
-        <div class="col-md-3 link-panel" style="text-align: center;">
-            <img src="{{ url_for('static', filename='images/GW2-help.png')|safe }}" style="width:50%;"/>
+        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+            <img src="{{ url_for('static', filename='images/GW2-help.png')|safe }}" style="width:50%"/>
             <br/>
             <strong> 
             Help
