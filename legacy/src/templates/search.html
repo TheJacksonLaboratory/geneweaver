@@ -1,76 +1,16 @@
-{% set title="Geneset Details" %}
+<!--
+This page is a wrapper for the search page contents. Actual search page results are defined in the /search folder partials
+-->
+{% set title="Search Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-<!-- Uncomment to debug values from Sphinx -->
-<!-- {{searchresults}} -->
-<form action="/search" method="post">
-<div class="form-group">
-	<label class="form-label">
-	<h3>Search Genesets</h3>
-	</label>
-	<span class="tips"> like "monkey, fly, calcium"</span>
-	<div class="controls">
-		<input id="searchbar" name="searchbar" class="input-lg" style="width:90%" type="text" value="{{paginationValues.search_term}}">
-		<input name = "pagination_page" type="hidden" value="1">
-		<input type="submit" class="btn btn-primary" value="Search">
-	</div>
-</div>
-</form>
-<br />
-<!-- Show the panel heading with pagination -->
-{% if paginationValues != None %}
-<div class="panel panel-default">
-<div class="panel-heading bg-blue">
-	<h3 class="panel-title">Geneset Results Found: {{paginationValues.numResults}} results. Viewing page {{paginationValues.currentPage}} of {{paginationValues.numPages}} pages </h3>
-	<div class="btn-group" style="float: right">
-	{% if paginationValues.currentPage - 5 > 0 %}
-	<a href="/search/{{paginationValues.search_term}}/{{paginationValues.currentPage - 5}}"><button class="btn btn-default" type="button">
-	<i class="fa fa-angle-left"></i>
-	</button></a>
-	{% elif paginationValues.currentPage -1 > 0 %}
-	<a href="/search/{{paginationValues.search_term}}/{{paginationValues.currentPage - 1}}"><button class="btn btn-default" type="button">
-	<i class="fa fa-angle-left"></i>
-	</button></a>
-	{% else %}
-	{% endif %}
+<!-- Define a div whos contents will be replaced every time a new search is performed. So, when say the number of genes slider is 
+changed, an ajax request that recreates the contents of this div will be sent to the browser, and it's contents updated, including all search options. -->
+<div id="replaceConentsOnUpdatedSeach">
 
-	{% for i in range(paginationValues.currentPage, paginationValues.end_page_number+1) %}
-	<a href="/search/{{paginationValues.search_term}}/{{i}}"><button class="btn btn-default {% if paginationValues.currentPage == i %} active{% endif %}">{{i}}</button></a>
-	{% endfor %}
-        
-	{% if paginationValues.end_page_number < paginationValues.numPages %}
-	<a href="/search/{{paginationValues.search_term}}/{{paginationValues.end_page_number + 1}}"><button class="btn btn-default" type="button">
-	<i class="fa fa-angle-right"></i>
-	</button></a>
-	{% endif %}
-	</div>
+{% include 'search/search_wrapper_contents.html' %}
+
 </div>
-<!-- Show the geneset table with geneset results -->
-<div class="panel-body">
-	{% if paginationValues.numResults == 1000 %}
-	<span class="alert bg-red">WARNING: Search results are limited to 1000 results. Try refining your search.</span>
-	<br /><br />
-	{% endif %}
-	<table class="table table-hover">
-	<thead>
-	<tr>
-	<th>Result</th>
-	</tr>
-	</thead>
-	<tbody>
-	{% for gs in genesets %}
-	<tr>
-	<td>
-	{% include 'viewGenesetSummaryPartial.html' %}
-	</td>
-	</tr>
-	<!-- TODO create a selector for adding genesets to projects -->
-	{% endfor %}
-	</tbody>
-	</table>
-</div>
-</div>
-{%endif%}
 
 
 {% include 'footer.html' %}

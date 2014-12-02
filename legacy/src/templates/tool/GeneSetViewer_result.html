@@ -8,7 +8,7 @@
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-12">
                 <div class="panel panel-info">
 				<div class="panel-heading">
 					<h2 class="panel-title">
@@ -19,18 +19,28 @@
 				</div>
 				<div id="jcCollapse" class="panel-collapse collapse">
 					<div class="panel-body">
-						<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_Homology']) }}</div>
-						<div class="form-group">{{ macros.tool_param_select(tool.params['GeneSetViewer_MinDegree']) }}</div>
-						<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_SupressDisconnected']) }}</div>
+						<div class="row">
+							<div class="col-md-4">
+								<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_Homology']) }}</div>
+							</div>
+							<div class="col-md-3">
+								<div class="form-group">{{ macros.tool_param_select(tool.params['GeneSetViewer_MinDegree']) }}</div>
+							</div>
+							<div class="col-md-5">
+								<div class="form-group">{{ macros.tool_param_radio(tool.params['GeneSetViewer_SupressDisconnected']) }}</div>
+							</div>
+						<div class="row">
+							<div class="col-md-6">
+								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
 
-						<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-
-						<button class="btn btn-primary" 
-							type='submit'
-							value='run'
-							onclick='this.form.action="{{ url_for('GeneSetViewer.run_tool') }}";'>
-							Run
-						</button>
+								<button class="btn btn-primary" 
+									type='submit'
+									value='run'
+									onclick='this.form.action="{{ url_for('GeneSetViewer.run_tool') }}";'>
+									Run
+								</button>
+							</div>
+						</div>						
 					</div>
 				</div>
 			</div>

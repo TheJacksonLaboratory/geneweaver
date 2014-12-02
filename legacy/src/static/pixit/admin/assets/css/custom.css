@@ -24,3 +24,7 @@ body {
 .table-checkbox {
 	margin: -6px 0 0 -13px !important;
 }
+
+.genesetDetails {
+	display: none;
+}
