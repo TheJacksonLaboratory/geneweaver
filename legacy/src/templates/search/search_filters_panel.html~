@@ -1,0 +1,274 @@
+<!-- Included for the jquery slider -->
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+
+<script>
+$(document).ready(function() {
+
+
+//Set up the slider for gene count values, and change value on slider update
+ $( "#slider-range" ).slider({
+range: true,
+//Establish the range of slider values
+min: {{searchFilters.geneCounts.geneCountMin}},
+max: {{searchFilters.geneCounts.geneCountMax}},
+//Set the initial values
+values: [ 
+{% if userFilters is defined %}
+{{userFilters.geneCounts.geneCountMin}} 
+{% else%}
+{{searchFilters.geneCounts.geneCountMin}}
+{% endif %}
+, {% if userFilters is defined %}
+{{userFilters.geneCounts.geneCountMax}} 
+{% else%}
+{{searchFilters.geneCounts.geneCountMax}}
+{% endif %} 
+],
+//Update the form on each slide event
+slide: function( event, ui ) {
+$( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
+$( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
+//Update the label
+$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).slider( "values", 0 )+" to " + $( "#slider-range" ).slider( "values", 1 ));
+},
+start: function (event, ui) {
+this.previous_low = ui.values[0];
+this.previous_high = ui.values[1];
+},
+stop: function (event, ui) {
+if (ui.values[0] != this.previous_low ||
+ui.values[1] != this.previous_high) {
+$( "#filterForm" ).change();
+}
+}
+});
+//Set initial values for minimum label
+$( "#geneCountMin" ).val( "" + $( "#slider-range" ).slider( "values", 0 ));
+//Set initial values for maximum label
+$( "#geneCountMax" ).val( "" + $( "#slider-range" ).slider( "values", 1 ));
+//Update the label
+$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).slider( "values", 0 )+" to " + $( "#slider-range" ).slider( "values", 1 ));
+
+//On filter form change, update the page, performing a new search.
+//This script calls a new paginated search anytime a filter option is changed in the filter panel. The resulting HTML view of the results are put inside the search wrapper div.
+
+$( "#filterForm" ).on( "change", function( event ) {
+	
+	// Stop form from submitting normally
+	event.preventDefault();
+
+	// Send the data using post
+	var $form = $( this ),
+	url = $form.attr( "action" );
+        //The data to send is both the parameters from the filters and the search bar
+        var data = $( "#filterForm" ).serialize() +"&"+$( "#searchBarForm" ).serialize()
+        //alert(data)
+	var posting = $.post( url, data );
+	// Put the results in a div
+	posting.done(function( data ) {
+		//Update the searchwrapper with the results
+		$( "#replaceConentsOnUpdatedSeach" ).empty().append( data );
+	});
+	
+	
+
+});
+});
+</script>
+<!-- Update the search results page width -->
+<!-- TODO if the overall page container is updated, this should be deleted. This is temporary -->
+<style>
+.container    {width: 1400px !important;}
+</style>
+
+<div class="panel bd-0 bd-l-blue">
+<div class="panel-heading">
+<h3 class="panel-title">
+Filter results
+</h3>
+</div>
+
+<div class="panel-body">
+<div class="row">
+<div class="col-md-12">
+
+<!-- BEGIN FILTER PANEL CONTENTS -->
+{% if searchFilters is defined %}
+<div class="tabcordion">
+	<ul id="myTab" class="nav nav-tabs">
+		<li class="active">
+		<a data-toggle="tab" href="#tab1_1">General</a>
+		</li>
+		<li class="">
+		<a data-toggle="tab" href="#tab1_2">Tiers</a>
+		</li>
+		<li class="">
+		<a data-toggle="tab" href="#tab1_3">Species</a>
+		</li>
+		<li class="">
+		<a data-toggle="tab" href="#tab1_4">Attributions</a>
+		</li>
+	</ul>
+	<div class="tab-content">
+	<div id="tab1_1" class="tab-pane active in">
+		<!-- Expects the jinja dict variable searchFilters as created by getSearchFilterValues() in search.py to determine which values to give ie there are 100 tier5 genes in the results-->
+		<!-- Expects the jinja dict variable userFilters to determine which items are checked or unchecked.-->
+		<!-- If the variable does not exist, default behavior is for all items possible to be checked-->
+		<form action="/searchFilter.json" id="filterForm">
+		
+		<div id="genesetCountLabel"></div> <br />
+		<input type="hidden" name="geneCountMin" id="geneCountMin">
+		 
+		<input type="hidden" name="geneCountMax" id="geneCountMax">
+		
+		<div id="slider-range"></div> <br />
+		Tiers
+		<input type="checkbox"
+		{% if userFilters is not defined or userFilters.tierList.noTier == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %}
+		name="noTier" id="noTierCheckbox">  <label for="noTierCheckbox"> No Tier ({{searchFilters.tierList.noTier}}) </label>
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.tierList.tier1 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="tier1" id="tier1Checkbox">  <label for="tier1Checkbox"> Tier 1 ({{searchFilters.tierList.tier1}}) </label>
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.tierList.tier2 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="tier2" id="tier2Checkbox">  <label for="tier2Checkbox"> Tier 2 ({{searchFilters.tierList.tier2}}) </label>
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.tierList.tier3 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="tier3" id="tier3Checkbox">  <label for="tier3Checkbox"> Tier 3 ({{searchFilters.tierList.tier3}}) </label>
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.tierList.tier4 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="tier4" id="tier4Checkbox">  <label for="tier4Checkbox"> Tier 4 ({{searchFilters.tierList.tier4}}) </label>
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.tierList.tier5 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="tier5" id="tier5Checkbox">  <label for="tier5Checkbox"> Tier 5 ({{searchFilters.tierList.tier5}}) </label>
+		<!-- Species Filters -->
+
+		Species
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp1 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp1" id="sp1Checkbox">  <label for="sp1Checkbox"> Mus musculus ({{searchFilters.speciesList.sp1}}) </label>
+		
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp2 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp2" id="sp2Checkbox">  <label for="sp2Checkbox"> Homo sapiens ({{searchFilters.speciesList.sp2}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp3 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp3" id="sp3Checkbox">  <label for="sp3Checkbox"> Rattus norvegicus ({{searchFilters.speciesList.sp3}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp4 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp4" id="sp4Checkbox">  <label for="sp4Checkbox"> Danio rerio ({{searchFilters.speciesList.sp4}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp5 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp5" id="sp5Checkbox">  <label for="sp5Checkbox"> Drosophila melanogaster ({{searchFilters.speciesList.sp5}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp6 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp6" id="sp6Checkbox">  <label for="sp6Checkbox"> Macaca mulatta ({{searchFilters.speciesList.sp6}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp8 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp8" id="sp8Checkbox">  <label for="sp8Checkbox"> Caenorhabditis elegans ({{searchFilters.speciesList.sp8}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp9 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp9" id="sp9Checkbox">  <label for="sp9Checkbox"> Saccharomyces cerevisiae ({{searchFilters.speciesList.sp9}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp10 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp10" id="sp10Checkbox">  <label for="sp10Checkbox"> Gallus gallus ({{searchFilters.speciesList.sp10}}) </label>
+
+		<input type="checkbox" 
+		{% if userFilters is not defined or userFilters.speciesList.sp0 == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %} 
+		name="sp0" id="sp0Checkbox">  <label for="sp0Checkbox"> No species ({{searchFilters.speciesList.sp0}}) </label>
+
+		</form>
+		
+		
+		
+	</div>
+	
+	<div id="tab1_2" class="tab-pane">
+		Tiers
+	</div>
+	<div id="tab1_3" class="tab-pane">
+		Species
+	</div>
+	<div id="tab1_4" class="tab-pane">
+		Attributions
+	</div>
+	</div>
+</div>
+{% endif %}
+<!-- END FILTER PANEL CONTENTS -->
+
+</div>
+</div>
+</div>
+</div>
