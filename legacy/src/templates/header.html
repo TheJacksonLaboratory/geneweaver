@@ -155,7 +155,9 @@ messages = array of messages
                         <li><a href="{{ url_for('render_analyze')|safe }}">My Projects</a></li>
                         <li><a href="{{ url_for('render_share_projects')|safe }}">Shared Projects</a></li>
                         <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
+                        {% if "user" in g %}
                         <li><a href="{{ url_for('render_emphasis')|safe }}">Emphasize Genes</a></li>
+                        {% endif %}
                     </ul>
                 </li>
                 <li class="nav navbar-nav pull-right" id="loginpanel">
@@ -186,7 +188,7 @@ messages = array of messages
                     <!-- Not logged in user -->
                     {% if "user" not in g %}
                         <li {% if "user" in g %} style="display: none"{% endif %}>
-                            <a href="login.html">
+                            <a href="/login.html">
                                 <i class="fa fa-sign-in"></i> Sign In
                             </a>
                         </li>
