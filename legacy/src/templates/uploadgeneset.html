@@ -96,7 +96,7 @@ function toggle_pasting() {
             GeneSet Name*:
         </div>
         <div class="col-md-4">
-            <input type="text" name="gs_name" required value="admin">
+            <input type="text" name="gs_name" required>
         </div>
     </div>
     <br>
@@ -105,7 +105,7 @@ function toggle_pasting() {
             GeneSet Figure Label*:
         </div>
         <div class="col-md-4">
-            <input type="text" name="gs_abbreviation" required value="admin"> 
+            <input type="text" name="gs_abbreviation" required> 
         </div>
     </div>
     <br>
@@ -114,7 +114,7 @@ function toggle_pasting() {
             GeneSet Description*:
         </div>
         <div class="col-md-4">
-            <input type="text" name="gs_description" required value="admin">
+            <input type="text" name="gs_description" required>
         </div>
     </div>
     <br>
@@ -223,8 +223,13 @@ function toggle_pasting() {
         </div>        	 
         <div id="paste_uploader" class="col-md-4" style="display: block">
             <button class="button" type="button" onclick="toggle_pasting()">Click here to upload a file</button>
-            <br>Manually Enter Genes one per line.<br>Format (tab separated): gene	genescore<br>	
-            <textarea id="file_text" rows="15" cols="40" name="file_text" placeholder="gene1    0.92" required ></textarea>
+            <br>Manually Enter Genes one per line.<br>Format (tab separated): gene	genescore<br>
+                {% if genes %}
+                    <textarea id="file_text" rows="15" cols="40" name="file_text">{{genes}}</textarea>
+                {% else %}
+                    <textarea id="file_text" rows="15" cols="40" name="file_text" placeholder="gene1    0.92" required ></textarea>
+                {% endif %}
+
         </div>
         <div id="file_uploader" class="col-md-4" style="display: none">
 	    <button class="button" type="button" onclick="toggle_pasting()" >Click here to manually enter data</button><br><br>

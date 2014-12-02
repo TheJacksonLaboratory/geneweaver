@@ -9,6 +9,7 @@ from distutils.util import strtobool
 from tools import toolcommon as tc
 import os
 import flask
+from flask import redirect
 
 app = flask.Flask(__name__)
 
@@ -102,7 +103,7 @@ def dictify_cursor(cursor):
     """converts all cursor rows into dictionaries where the keys are the column names"""
     return (_dictify_row(cursor, row) for row in cursor)
 
-
+# Begin Project Block, creating veiwing and modifying Projects
 class Project:
     def __init__(self, proj_dict):
         self.project_id = proj_dict['pj_id']
@@ -168,6 +169,9 @@ def get_genesets_for_project(project_id, auth_user_id):
         )
         return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         
+# This should only be used with very small numbers of genesets,
+# it takes a string or int project_id, and a string or int geneset_id 
+# This does not check permisions for project or geneset       
 def insert_geneset_to_project(project_id, geneset_id):
     with PooledCursor() as cursor:
         cursor.execute(
@@ -182,10 +186,29 @@ def insert_geneset_to_project(project_id, geneset_id):
 
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
+        
+# This should only be used with very small numbers of genesets,
+# it takes a string or int project_id
+# geneset_ids_list is a list type, do not passa string or int
+# This does not check permisions for project or geneset        
+def insert_multiple_genesets_to_project(project_id, geneset_ids_list):
+    queryString = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES "
+
+    for gs_id in range(0, len(geneset_ids_list)):
+        queryString += str( "( " + str(project_id) + ", " + str(geneset_ids_list[gs_id]) +  " ), " )
+    queryString += str("( " + str(project_id) + ", " + str(geneset_ids_list[-1]) + " ), " )
+    queryString += " RETURNING pj_id;"	
+    with PooledCursor() as cursor:
+        cursor.execute(
+            queryString
+        )
+        cursor.connection.commit()
+
+        # return the primary ID for the insert that we just performed
+        return cursor.fetchone()[0]
 
 # this function creates a project with no genesets associated with it
 # if a guest is creating a project, pass in -1 for user_id
-# NOT TESTED
 def create_project(project_name, user_id):
 	if user_id > 0:
 		with PooledCursor() as cursor:
@@ -321,20 +344,50 @@ def create_group(group_name, group_private, user_id):
 # permision should be passed as 0 if it is a normal user
 # permision should be passed as 1 if it is an admin
 # permision is defaulted to 0			        
-def add_user_to_group(group_id, user_id, permission = 0):
+def add_user_to_group(group_id, owner_id, usr_email, permission = 0):
 	with PooledCursor() as cursor:
 		cursor.execute(
 			'''
 			INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges)
-			VALUES (%s, %s, %s)
+			VALUES ((SELECT grp_id
+					 FROM production.usr2grp
+					 WHERE grp_id = %s AND usr_id = %s AND u2g privileges = 1),
+					(SELECT usr_id
+					 FROM production.usr
+					 WHERE usr_email = %s LIMIT 1), %s)
 			RETURNING grp_id;
 			''',
-			(group_id, user_id, permission,)
+			(group_id, owner_id, usr_email, permission,)
 		)
 		cursor.connection.commit()
 		# return the primary ID for the insert that we just performed	
 		grp_id = cursor.fetchone()[0]
 			
+	return grp_id
+
+def remove_user_from_group(group_id, owner_id, usr_email):
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''
+			DELETE FROM production.usr2grp
+			WHERE grp_id = (SELECT grp_id
+							FROM production.usr2grp
+							WHERE grp_id = %s AND usr_id = %s AND u2g_Privileges = 1)
+							OR grp_id = (SELECT grp_id
+										 FROM production.usr2grp
+										 WHERE grp_id = %s AND usr_id = (SELECT usr_id
+																		 FROM production.usr
+																		 WHERE usr_email = %s LIMIT 1))
+				 AND usr_id = (SELECT usr_id
+							   FROM production.usr
+							   WHERE usr_email = %s LIMIT 1); 
+							
+			''',
+			(group_id, user_id, group_id, usr_email, usr_email,)
+		)
+		cursor.connection.commit()
+		# return the primary ID for the insert that we just performed	
+				
 	return grp_id
 
 # switches group active field between false and true, and true and false	
@@ -353,26 +406,32 @@ def toggle_group_active(group_id, user_id ):
 
 # Be Careful with this fucntion
 # Only let owners of groups call this function
-def delete_group(group_id):
+def delete_group(group_id, owner_id):
 	with PooledCursor() as cursor:
 		cursor.execute(
 			'''
 			DELETE FROM production.usr2grp
-			WHERE grp_id = %s;
+			WHERE grp_id = (SELECT grp_id
+							FROM production.usr2grp
+							WHERE grp_id = %s AND  usr_id = %s AND u2g_privileges = 1)
+			RETURNING grp_id;
 			''',
-			(group_id,)
+			(group_id, owner_id,)
 		)
 		cursor.connection.commit()
+		grp_id = cursor.fetchone();
 	with PooledCursor() as cursor:
 		cursor.execute(
 			'''
 			DELETE FROM production.grp
 			WHERE grp_id = %s;
 			''',
-			(group_id,)
+			(grp_id,)
 		)
 		cursor.connection.commit()
-		return
+	return
+		
+
 			
 # End group block
 
@@ -636,18 +695,32 @@ def admin_add(args):
     except Exception, e:
 	return str(e)
 
-def genesets_per_tier():
+def genesets_per_tier(includeDeleted):
+
+    if includeDeleted:	
+	sql1='''SELECT count(*) FROM production.geneset WHERE cur_id = 1;'''
+	sql2='''SELECT count(*) FROM production.geneset WHERE cur_id = 2;'''
+	sql3='''SELECT count(*) FROM production.geneset WHERE cur_id = 3;'''
+	sql4='''SELECT count(*) FROM production.geneset WHERE cur_id = 4;'''
+	sql5='''SELECT count(*) FROM production.geneset WHERE cur_id = 5;'''	
+    else:
+	sql1='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1;'''
+	sql2='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2;'''
+	sql3='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3;'''
+	sql4='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4;'''
+	sql5='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;'''
+
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1;''')
+   	    cursor.execute(sql1)
 	    one=cursor.fetchone()[0]
-	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2;''')
+	    cursor.execute(sql2)
 	    two=cursor.fetchone()[0]
-	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3;''')
+	    cursor.execute(sql3)
 	    three=cursor.fetchone()[0]
-  	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4;''')
+  	    cursor.execute(sql4)
 	    four=cursor.fetchone()[0]
-	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;''')
+	    cursor.execute(sql5)
 	    five=cursor.fetchone()[0]
 	    response = OrderedDict([('Tier 1', one),
     	    	    ('Tier 2', two),
@@ -659,18 +732,32 @@ def genesets_per_tier():
     except Exception, e:
         return str(e)
 
-def genesets_per_species_per_tier():
+def genesets_per_species_per_tier(includeDeleted):
+
+    if includeDeleted:
+	sql1='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 1 GROUP BY sp_id ORDER BY sp_id;'''
+	sql2='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 2 GROUP BY sp_id ORDER BY sp_id;'''
+	sql3='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 3 GROUP BY sp_id ORDER BY sp_id;'''
+	sql4='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 4 GROUP BY sp_id ORDER BY sp_id;'''
+	sql5='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 5 GROUP BY sp_id ORDER BY sp_id;'''
+    else:
+	sql1='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1 GROUP BY sp_id ORDER BY sp_id;'''
+	sql2='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2 GROUP BY sp_id ORDER BY sp_id;'''
+	sql3='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3 GROUP BY sp_id ORDER BY sp_id;'''
+	sql4='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4 GROUP BY sp_id ORDER BY sp_id;'''
+	sql5='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5 GROUP BY sp_id ORDER BY sp_id;'''
+
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 1 GROUP BY sp_id ORDER BY sp_id;''')
+   	    cursor.execute(sql1)
 	    one=OrderedDict(cursor)
-	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 2 GROUP BY sp_id ORDER BY sp_id;''')
+	    cursor.execute(sql2)
 	    two=OrderedDict(cursor)
-	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 3 GROUP BY sp_id ORDER BY sp_id;''')
+	    cursor.execute(sql3)
 	    three=OrderedDict(cursor)
-  	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 4 GROUP BY sp_id ORDER BY sp_id;''')
+  	    cursor.execute(sql4)
 	    four=OrderedDict(cursor)
-	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 5 GROUP BY sp_id ORDER BY sp_id;''')
+	    cursor.execute(sql5)
 	    five=OrderedDict(cursor)
 	    response = OrderedDict([('Tier 1', one),
     	    	    ('Tier 2', two),
@@ -692,9 +779,17 @@ def monthly_tool_stats():
         with PooledCursor() as cursor:
 	    response = OrderedDict()
 	    for tool in tools:	
-   	        cursor.execute('''SELECT res_created, count(*) FROM production.result WHERE res_created >= now() - interval '30 days' AND res_tool=%s GROUP BY res_created ORDER BY res_created desc;''', (tool['res_tool'],))		
+   	        cursor.execute('''SELECT res_created, count(*) FROM production.result WHERE res_created >= now() - interval '30 days' AND res_tool=%s GROUP BY res_created ORDER BY res_created desc;''', (tool['res_tool'],))
 		response.update({tool['res_tool']: OrderedDict(cursor)})
         return response
+    except Exception, e:
+        return str(e)
+
+def get_species_name():
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT sp_id, sp_name FROM odestatic.species;''')				
+        return OrderedDict(cursor)
     except Exception, e:
         return str(e)
 
@@ -706,10 +801,21 @@ def user_tool_stats():
     except Exception, e:
         return str(e)
 
+def tool_stats_by_user(user_id):
+    try:
+        with PooledCursor() as cursor:
+   	    cursor.execute('''SELECT res_description, res_started, age(res_completed,res_started) as res_duration
+                          FROM production.result
+                          WHERE res_created >= now() - interval '30 days' AND usr_id=%s
+                          ORDER BY res_started desc;''',(user_id,))
+        return list(dictify_cursor(cursor))
+    except Exception, e:
+        return str(e)
+
 def currently_running_tools():
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT res_id, usr_id, res_tool, res_status FROM production.result WHERE res_completed is NULL;''')				
+   	    cursor.execute('''SELECT res_id, usr_id, res_tool, res_status, res_created FROM production.result WHERE res_completed is NULL ORDER BY res_created desc;''')				
         return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)
@@ -1064,7 +1170,70 @@ def get_geneset(geneset_id, user_id=None):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
         
-        
+def get_geneset_no_user(geneset_id):
+    """
+    Gets the Geneset regardless of whether the user has permission to view it
+    :param geneset_id:  the geneset ID
+    :param user_id:     the user ID that needs permission
+    :return:            the Geneset corresponding to the given ID if the
+                        user has read permission, None otherwise
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT *
+            FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
+            WHERE gs_id=%(geneset_id)s;
+            ''',
+            {
+                'geneset_id': geneset_id,
+            }
+        )
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets[0] if len(genesets) == 1 else None
+
+def get_user_groups(usr_id):
+    """
+    Gets a list of groups that the user belongs to
+    :param usr_id:  the user ID
+    :return:        The list of groups that the user belongs to
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT grp_id
+            FROM usr2grp
+            WHERE usr_id=%(usr_id)s;
+            ''',
+            {
+                'usr_id': usr_id,
+            }
+        )
+        grp_ids = [row_dict['grp_id'] for row_dict in dictify_cursor(cursor)]
+        return grp_ids
+
+def get_group_users(grp_id):
+    """
+    Gets a list of users in a group
+    :param usr_id:  the user ID
+    :return:        The list of groups that the user belongs to
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT usr_id
+            FROM usr2grp
+            WHERE grp_id=%(grp_id)s;
+            ''',
+            {
+                'grp_id': grp_id,
+            }
+        )
+        usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
+        return usr_ids
 def get_geneset_brief(geneset_id, user_id=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user
@@ -1722,6 +1891,7 @@ def add_geneset_to_project(apikey, pj_id, gs_id):
 					''', (user, pj_id, gs_id, user,))
 		cursor.connection.commit()
 	return cursor.fetchall()	
+	
 
 #API only  
 def delete_geneset_from_project(apikey, pj_id, gs_id):
