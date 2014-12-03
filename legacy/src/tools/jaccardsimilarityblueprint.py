@@ -31,8 +31,8 @@ def run_tool():
         
         
     if len(selected_geneset_ids) < 2:
-        # TODO add nice error message about missing genesets
-        raise Exception('there must be at least two genesets selected to run this tool')
+        flask.flash("Warning: You need at least 2 genes!")
+        return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -51,8 +51,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        # TODO add nice error message about missing user ID.
-        raise Exception('internal error: user ID missing')
+        flask.flash("Internal error: user ID missing")
+        return flask.redirect('analyze.html')
 
     # Gather emphasis gene ids and put them in paramters
     emphgeneids = []
@@ -176,18 +176,21 @@ def status_json(task_id):
         'state': async_result.state,
     })
 
-@jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>')
+@jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>.html')
 def geneset_intersection(gsID_1, gsID_2, i):
     user_id = flask.session.get('user_id')
     if user_id:
         geneset1 = gwdb.get_geneset(gsID_1[2:], user_id)
         geneset2 = gwdb.get_geneset(gsID_2[2:], user_id)
         genesets = [geneset1, geneset2]
-        intersect_genes = gwdb.get_gene_id_by_intersection(gsID_1[2:], gsID_2[2:])
+        intersect_genes = {}
+        temp_genes = gwdb.get_gene_sym_by_intersection(gsID_1[2:], gsID_2[2:])
+        for j in range(0, len(temp_genes[0])):
+            intersect_genes[temp_genes[0][j]] = gwdb.if_gene_has_homology(temp_genes[1][j])
         list=gwdb.get_all_projects(user_id)
     else:
         geneset1 = geneset2 = None
 
     return flask.render_template(
         "geneset_intersection.html", async_result=json.loads(r.async_result.result),
-        index=i, genesets=genesets, genes=intersect_genes, list=list)
+        index=i, genesets=genesets, gene_sym=intersect_genes, list=list)

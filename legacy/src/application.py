@@ -444,7 +444,6 @@ def render_search(search_term, pagination_page):
 def new_search():
     paginationValues = {'numResults': 0, 'numPages': 1, 'currentPage':
                         1, 'resultsPerPage': 10, 'search_term': '', 'end_page_number': 1}
-    print 'search from link'
     return flask.render_template('search.html', paginationValues=None)
 
 @app.route('/search/')
@@ -480,6 +479,8 @@ def render_searchFromHome():
     #TODO update get function, then pull parameter checking out to the function
     #userValues = search.getUserFiltersFromApplicationRequest(request.form)
     search_values = search.keyword_paginated_search(search_term, pagination_page, search_fields)
+    if(search_values['STATUS'] == 'ERROR'):
+        return flask.render_template('search.html', paginationValues=None)
     return flask.render_template('search.html', searchresults=search_values['searchresults'], genesets=search_values['genesets'], paginationValues=search_values['paginationValues'], field_list = field_list, searchFilters=search_values['searchFilters'])
 
 @app.route('/searchFilter.json',methods=['POST'])
@@ -818,6 +819,11 @@ def render_home():
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def add_geneset_to_project(project_id, geneset_id):
 	return str(geneweaverdb.insert_geneset_to_project(project_id, geneset_id))
+
+@app.route('/create_project/<string:project_name>.html', methods=['GET', 'POST'])
+def create_project(project_name):
+    user_id = flask.session['user_id']
+    return str(geneweaverdb.create_project(project_name, user_id))
 
 
 # ********************************************

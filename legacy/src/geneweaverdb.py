@@ -9,7 +9,6 @@ from distutils.util import strtobool
 from tools import toolcommon as tc
 import os
 import flask
-from flask import redirect
 
 app = flask.Flask(__name__)
 
@@ -103,7 +102,7 @@ def dictify_cursor(cursor):
     """converts all cursor rows into dictionaries where the keys are the column names"""
     return (_dictify_row(cursor, row) for row in cursor)
 
-# Begin Project Block, creating veiwing and modifying Projects
+
 class Project:
     def __init__(self, proj_dict):
         self.project_id = proj_dict['pj_id']
@@ -169,9 +168,6 @@ def get_genesets_for_project(project_id, auth_user_id):
         )
         return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         
-# This should only be used with very small numbers of genesets,
-# it takes a string or int project_id, and a string or int geneset_id 
-# This does not check permisions for project or geneset       
 def insert_geneset_to_project(project_id, geneset_id):
     with PooledCursor() as cursor:
         cursor.execute(
@@ -186,29 +182,10 @@ def insert_geneset_to_project(project_id, geneset_id):
 
         # return the primary ID for the insert that we just performed
         return cursor.fetchone()[0]
-        
-# This should only be used with very small numbers of genesets,
-# it takes a string or int project_id
-# geneset_ids_list is a list type, do not passa string or int
-# This does not check permisions for project or geneset        
-def insert_multiple_genesets_to_project(project_id, geneset_ids_list):
-    queryString = "INSERT INTO project2geneset (pj_id, gs_id, modified_on) VALUES "
-
-    for gs_id in range(0, len(geneset_ids_list)):
-        queryString += str( "( " + str(project_id) + ", " + str(geneset_ids_list[gs_id]) +  " ), " )
-    queryString += str("( " + str(project_id) + ", " + str(geneset_ids_list[-1]) + " ), " )
-    queryString += " RETURNING pj_id;"	
-    with PooledCursor() as cursor:
-        cursor.execute(
-            queryString
-        )
-        cursor.connection.commit()
-
-        # return the primary ID for the insert that we just performed
-        return cursor.fetchone()[0]
 
 # this function creates a project with no genesets associated with it
 # if a guest is creating a project, pass in -1 for user_id
+# NOT TESTED
 def create_project(project_name, user_id):
 	if user_id > 0:
 		with PooledCursor() as cursor:
@@ -367,6 +344,7 @@ def add_user_to_group(group_name, owner_id, usr_email, permission = 0):
 			
 	return grp_id
 
+
 def remove_user_from_group(group_name, owner_id, usr_email):
 	with PooledCursor() as cursor:
 		cursor.execute(
@@ -389,8 +367,7 @@ def remove_user_from_group(group_name, owner_id, usr_email):
 			(group_name, owner_id, group_name, usr_email, usr_email,)
 		)
 		cursor.connection.commit()
-		# return the primary ID for the insert that we just performed	
-				
+		# return the primary ID for the insert that we just performed				
 	return
 
 # switches group active field between false and true, and true and false	
@@ -422,7 +399,6 @@ def delete_group(group_name, owner_id):
 			(group_name, owner_id,)
 		)
 		cursor.connection.commit()
-		grp_id = cursor.fetchone();
 	with PooledCursor() as cursor:
 		cursor.execute(
 			'''
@@ -432,9 +408,7 @@ def delete_group(group_name, owner_id):
 			(group_name,)
 		)
 		cursor.connection.commit()
-	return
-		
-
+		return
 			
 # End group block
 
@@ -698,32 +672,18 @@ def admin_add(args):
     except Exception, e:
 	return str(e)
 
-def genesets_per_tier(includeDeleted):
-
-    if includeDeleted:	
-	sql1='''SELECT count(*) FROM production.geneset WHERE cur_id = 1;'''
-	sql2='''SELECT count(*) FROM production.geneset WHERE cur_id = 2;'''
-	sql3='''SELECT count(*) FROM production.geneset WHERE cur_id = 3;'''
-	sql4='''SELECT count(*) FROM production.geneset WHERE cur_id = 4;'''
-	sql5='''SELECT count(*) FROM production.geneset WHERE cur_id = 5;'''	
-    else:
-	sql1='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1;'''
-	sql2='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2;'''
-	sql3='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3;'''
-	sql4='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4;'''
-	sql5='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;'''
-
+def genesets_per_tier():
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute(sql1)
+   	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1;''')
 	    one=cursor.fetchone()[0]
-	    cursor.execute(sql2)
+	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2;''')
 	    two=cursor.fetchone()[0]
-	    cursor.execute(sql3)
+	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3;''')
 	    three=cursor.fetchone()[0]
-  	    cursor.execute(sql4)
+  	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4;''')
 	    four=cursor.fetchone()[0]
-	    cursor.execute(sql5)
+	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;''')
 	    five=cursor.fetchone()[0]
 	    response = OrderedDict([('Tier 1', one),
     	    	    ('Tier 2', two),
@@ -735,32 +695,18 @@ def genesets_per_tier(includeDeleted):
     except Exception, e:
         return str(e)
 
-def genesets_per_species_per_tier(includeDeleted):
-
-    if includeDeleted:
-	sql1='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 1 GROUP BY sp_id ORDER BY sp_id;'''
-	sql2='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 2 GROUP BY sp_id ORDER BY sp_id;'''
-	sql3='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 3 GROUP BY sp_id ORDER BY sp_id;'''
-	sql4='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 4 GROUP BY sp_id ORDER BY sp_id;'''
-	sql5='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 5 GROUP BY sp_id ORDER BY sp_id;'''
-    else:
-	sql1='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1 GROUP BY sp_id ORDER BY sp_id;'''
-	sql2='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2 GROUP BY sp_id ORDER BY sp_id;'''
-	sql3='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3 GROUP BY sp_id ORDER BY sp_id;'''
-	sql4='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4 GROUP BY sp_id ORDER BY sp_id;'''
-	sql5='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5 GROUP BY sp_id ORDER BY sp_id;'''
-
+def genesets_per_species_per_tier():
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute(sql1)
+   	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 1 GROUP BY sp_id ORDER BY sp_id;''')
 	    one=OrderedDict(cursor)
-	    cursor.execute(sql2)
+	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 2 GROUP BY sp_id ORDER BY sp_id;''')
 	    two=OrderedDict(cursor)
-	    cursor.execute(sql3)
+	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 3 GROUP BY sp_id ORDER BY sp_id;''')
 	    three=OrderedDict(cursor)
-  	    cursor.execute(sql4)
+  	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 4 GROUP BY sp_id ORDER BY sp_id;''')
 	    four=OrderedDict(cursor)
-	    cursor.execute(sql5)
+	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 5 GROUP BY sp_id ORDER BY sp_id;''')
 	    five=OrderedDict(cursor)
 	    response = OrderedDict([('Tier 1', one),
     	    	    ('Tier 2', two),
@@ -788,14 +734,6 @@ def monthly_tool_stats():
     except Exception, e:
         return str(e)
 
-def get_species_name():
-    try:
-        with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT sp_id, sp_name FROM odestatic.species;''')				
-        return OrderedDict(cursor)
-    except Exception, e:
-        return str(e)
-
 def user_tool_stats():
     try:
         with PooledCursor() as cursor:
@@ -818,7 +756,7 @@ def tool_stats_by_user(user_id):
 def currently_running_tools():
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT res_id, usr_id, res_tool, res_status, res_created FROM production.result WHERE res_completed is NULL ORDER BY res_created desc;''')				
+   	    cursor.execute('''SELECT res_id, usr_id, res_tool, res_status FROM production.result WHERE res_completed is NULL;''')				
         return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)
@@ -1450,31 +1388,59 @@ def get_all_userids():
             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
 
-def get_gene_id_by_intersection(geneset_id1, geneset_id2):
+def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
     """
     Get all gene info for all genes in both genesets (mainly for jaccard similarity intersection page)
     :return: all the gene ids (ode gene ids) for the genes intersecting
     """
     gene_id1 = []
     gene_id2 = []
+    intersect_sym = []
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
-            ''', [geneset_id1])
+            ''', (geneset_id1,))
         for gid in cursor:
                 gene_id1.append(gid[0])
         cursor.execute(
             '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
-            ''', [geneset_id2])
+            ''', (geneset_id2,))
         for gid in cursor:
                 gene_id2.append(gid[0])
 
-    return list(set(gene_id1).intersection(gene_id2))
+        intersect_id = list(set(gene_id1).intersection(gene_id2))
 
+        for gene_id in intersect_id:
+            cursor.execute(
+                '''SELECT gi_symbol
+                   FROM extsrc.gene_info
+                   where ode_gene_id = %s;
+                ''', (gene_id,))
+            for gid in cursor:
+                intersect_sym.append(gid[0])
+
+        return intersect_sym, intersect_id
+
+def if_gene_has_homology(gene_id):
+    """
+    Chech if the gene has homolgy (use in intersection page)
+    :param gene_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT hom_id
+               FROM extsrc.homology
+               where ode_gene_id = %s;
+            ''', (gene_id,))
+        if cursor.fetchone():
+            return 1
+        else:
+            return 0
 
 # sample api calls begin
 
@@ -1894,7 +1860,6 @@ def add_geneset_to_project(apikey, pj_id, gs_id):
 					''', (user, pj_id, gs_id, user,))
 		cursor.connection.commit()
 	return cursor.fetchall()	
-	
 
 #API only  
 def delete_geneset_from_project(apikey, pj_id, gs_id):

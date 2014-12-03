@@ -5,7 +5,6 @@
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
-
 <h8>Gene count: {{async_result.num_genes}}</h8>
 <br><br>
 
@@ -39,7 +38,7 @@
 <tr>
 <td>
 <input id="{{gene}}" type="checkbox" name="gs" value="{{ gene }}">
-<a href="/search/{{ gene }}/1" style="margin-left: 50px;">{{ gene }}</a></button>
+<a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes" style="margin-left: 50px;">{{ gene }}</a></button>
 </td>
 <td>
 {% include 'linkouts.html' %}
@@ -75,10 +74,17 @@
                 genes.push(gene_names[i]);
             }
         }
-        var gene_list = genes.join('%0A');
 
-        var url = "/batchuploadgeneset.html/" + gene_list;
-        window.location = url;
+        if (genes.length != 0) {
+
+            var gene_list = genes.join('%0A');
+
+            var url = "/batchuploadgeneset.html/" + gene_list;
+            window.location = url;
+        }
+        else {
+            window.alert("Please select at least one gene to add!");
+        }
     }
 </script>
 
