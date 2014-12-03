@@ -177,16 +177,42 @@
 		function handleSelect(elm)
 		{
 			var genesets = []
-			    $('input:checkbox[name="gs_id[]"]').each(function() {
-				if (this.checked) {
-				    genesets.push(this.value);
-				}
-			    });	
-			for(var i = 0; i < genesets.length; i++)
-			{
-				$.get("/add_geneset_to_project/"+elm.value+"/"+genesets[i]+".html",function(data,status){
-  				});
-			}
+            if (elm.value != "-1") {
+                if (elm.value == "-2") {
+                    var name = prompt("Enter a name for the new project:");
+                    $.get("/create_project/" + name + ".html", function (data, status) {
+                        $('input:checkbox[name="gs_id[]"]').each(function () {
+                            if (this.checked) {
+                                genesets.push(this.value);
+                            }
+                        });
+                        if (genesets.length != 0) {
+                            for (var i = 0; i < genesets.length; i++) {
+                                $.get("/add_geneset_to_project/" + data + "/" + genesets[i] + ".html");
+                            }
+                        }
+                        else {
+                            window.alert("Please select gene set(s) to add first!")
+                        }
+                    });
+                }
+                else {
+                    $('input:checkbox[name="gs_id[]"]').each(function () {
+                        if (this.checked) {
+                            genesets.push(this.value);
+                        }
+                    });
+                    if (genesets.length != 0) {
+                        for (var i = 0; i < genesets.length; i++) {
+                            $.get("/add_geneset_to_project/" + elm.value + "/" + genesets[i] + ".html", function (data, status) {
+                            });
+                        }
+                    }
+                    else {
+                        window.alert("Please select gene set(s) to add first!")
+                    }
+                }
+            }
 		}
 	</script>
 					</td>

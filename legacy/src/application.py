@@ -792,6 +792,11 @@ def render_home():
 def add_geneset_to_project(project_id, geneset_id):
 	return str(geneweaverdb.insert_geneset_to_project(project_id, geneset_id))
 
+@app.route('/create_project/<string:project_name>.html', methods=['GET', 'POST'])
+def create_project(project_name):
+    user_id = flask.session['user_id']
+    return str(geneweaverdb.create_project(project_name, user_id))
+
 
 # ********************************************
 # START API BLOCK
