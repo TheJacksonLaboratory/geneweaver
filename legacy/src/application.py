@@ -265,7 +265,8 @@ def remove_user_group(group_name, user_id, user_email):
 	
 @app.route ("/gwdb/delete_group/<group_name>/<user_id>/") 
 def delete_group(group_name, user_id):
-	return geneweaverdb.delete_group(group_name, user_id)
+	geneweaverdb.delete_group(group_name, user_id)
+	return flask.redirect("/accoutnsetings.html")
 	
 
 

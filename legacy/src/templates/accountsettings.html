@@ -338,6 +338,7 @@ var groupName = $("#groupDelete").val();
 var userId = {{user.user_id}};
 	$.get("/gwdb/delete_group/"+groupName+"/"+userId+"/",function(data,status){
 	});
+	
 }
 
 function addGroupUser() {
