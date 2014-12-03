@@ -14,6 +14,7 @@
 			<tbody>
 				<!-- List all genesets that are not deleted -->
 				{%if "user" in g%}
+					{% if genesets %}
 					{% for gs in genesets if not gs.status == "deleted" %}
 						<tr>
 							<td>
@@ -27,6 +28,11 @@
 							</td>
 						</tr>
 					{% endfor %}
+					{% else %}
+					<tr>
+						<td>You have no genesets!</td>
+					</tr>
+					{% endif %}
 				{% else %}
 					<tr>
 						<td>Create an account to save genesets</td>
