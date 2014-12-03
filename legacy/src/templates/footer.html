@@ -3,12 +3,12 @@
 <div class="push"></div>
 </div> <!-- end wrapper div -->
 
-<div class="footer">
+<footer class="footer">
 	<div class="panel bd-0 bd-t-info">
 		<div class="panel-footer">
 			<div class="container">
 			<div class="row">
-				<div class="col-md-3">
+				<div class="col-md-2">
 					<h4>Manage Genesets</h4>
 					<hr>
 					<ul class="manageGenesetLinks">
@@ -19,12 +19,12 @@
 						<li><a href="/editgenesets.html">Edit Genesets</a></li>
 					</ul>
 				</div>
-				<div class="col-md-3">
+				<div class="col-md-2">
 					<h4>Analyze Genesets</h4>
 					<hr style="size: 40px;">
 					<ul class="analyzeGenesetLinks" role="menu">
                         <li><a href="/analyze.html">My Projects</a></li>
-                        <li><a href="/share_projects.html">Shared Projects</a></li>
+                        <li><a href="/share_projects.html"> Shared Projects</a></li>
                         <li><a href="/results.html">Results</a></li>
                         {% if "user" in g %}
                         <li><a href="/emphasis.html">Emphasize Genes</a></li>
@@ -32,36 +32,42 @@
                     </ul>
 				</div>
 				{% if "user" in g %}
-				<div class="col-md-3">
-					<h4>Manage Account</h4>
+				<div class="col-md-2">
+					<h4>Manage Accounts</h4>
 					<hr>
 					<ul class="loggedInLinks">
-						<li><a href="/"> Home Page</a></li>
-                        <li><a href="accountsettings.html"> Account Settings</a></li>
+                        <li><a href="/accountsettings.html">Account Settings</a></li>
                     </ul>
 				</div>
 				{% endif %}
 				{% if "user" not in g %}
-				<div class="col-md-3">
-					<h4>User Options</h4>
+				<div class="col-md-2">
+					<h4>Manage Accounts</h4>
 					<hr>
 					<ul class="loggedOutLinks">
-						<li><a href="/"> Home Page</a></li>
-                        <li><a href="/login.html"> Sign In </a></li>
-                        <li><a href="/reset.html"> Forgot Password</a></li>
+                        <li><a href="/login.html">Sign In</a></li>
+                        <li><a href="/reset.html">Forgot Password</a></li>
                         <li><a href="/register.html">Create Account</a></li>
                     </ul>
 				</div>
 				{% endif %}
-				<div class="col-md-3">
-					<a href="#top">
-						<button class="btn btn-primary" style="margin-top: 10px;margin-bottom: 10px;margin-left: 23px;">Back to Top
-						<span class="fa fa-angle-double-up"></span></button>
+				<div class="col-md-2">
+					<h4>GeneWeaver Links</h4>
+					<hr>
+					<ul class="geneWeaverLinks">
+						<li><a href="/">Home Page</a></li>
+                        <li><a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Documentation">Help</a></li>
+                        <li><a href="/about.html">About</a></li>
+                    </ul>
+				</div>
+				<div class="col-md-2">
+					<a href="#top" style="margin-top: 10px;margin-bottom: 10px;margin-left: 55px;">Back to Top
+						<span class="fa fa-angle-double-up"></span>
 					</a>
 					<a href="http://www.neuinfo.org/" style="padding:10px;">
 						<img src="{{url_for('static', filename='images/registered_with_nif_button.jpg')}}" alt="Registered with NIF" style="border:none; margin-bottom:10px;  margin-left: 25px; margin-right: 25px;"></a>
 					</a>
-					<a href="http://www.jax.org/" style="margin-bottom: 10px;"><img width="200" height="85" src="/static/images/jax.gif" alt="JAX" style="margin-bottom: 10px;">
+					<a href="http://www.jax.org/" style="margin-bottom: 10px;"><img width="200" height="85" src="/static/images/jax.gif" alt="JAX" style="margin-bottom: 10px;  border:1px solid #021a40">
 					</a>
 
 				</div>
@@ -82,7 +88,7 @@
 		</div>
 		</div>
 	</div>
-</div>
+</footer>
 
 </body>
 </html>

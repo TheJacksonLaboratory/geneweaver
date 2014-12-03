@@ -246,7 +246,6 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
-<<<<<<< HEAD
 @app.route ("/gwdb/get_group/<user_id>/") 
 def get_group(user_id):
 	return geneweaverdb.get_all_member_groups(user_id)
@@ -270,7 +269,7 @@ def delete_group(group_name, user_id):
 	
 
 
-=======
+
 @app.route('/share_projects.html')
 def render_shareprojects():
     active_tools = geneweaverdb.get_active_tools()
@@ -283,7 +282,7 @@ def render_analyze_new_project(pj_name):
     user = geneweaverdb.get_user(flask.session.get('user_id'))
     geneweaverdb.create_project(pj_name, user.user_id)
     return flask.render_template('analyze.html', active_tools=active_tools)
->>>>>>> origin/development
+
 
 @app.route('/editgenesets.html')
 def render_editgenesets():
