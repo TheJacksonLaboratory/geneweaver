@@ -246,6 +246,11 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/share_projects.html')
+def render_shareprojects():
+    active_tools = geneweaverdb.get_active_tools()
+    return flask.render_template('share_projects.html', active_tools=active_tools)
+
 @app.route('/analyze_new_project/<string:pj_name>.html')
 def render_analyze_new_project(pj_name):
     args = flask.request.args
@@ -257,7 +262,6 @@ def render_analyze_new_project(pj_name):
 @app.route('/editgenesets.html')
 def render_editgenesets():
     return flask.render_template('editgenesets.html')
-
 
 @app.route('/accountsettings.html')
 def render_accountsettings():
