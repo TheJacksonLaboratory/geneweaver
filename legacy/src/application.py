@@ -246,6 +246,13 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/analyze_new_project/<string:pj_name>.html')
+def render_analyze_new_project(pj_name):
+    args = flask.request.args
+    active_tools = geneweaverdb.get_active_tools()
+    user = geneweaverdb.get_user(flask.session.get('user_id'))
+    geneweaverdb.create_project(pj_name, user.user_id)
+    return flask.render_template('analyze.html', active_tools=active_tools)
 
 @app.route('/editgenesets.html')
 def render_editgenesets():
@@ -349,6 +356,7 @@ def render_emphasis():
 
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
+
 
 @app.route('/emphasize/<string:add_gene>.html', methods=['GET', 'POST'])
 def emphasize(add_gene):
@@ -528,7 +536,7 @@ def admin_widget_4():
 @app.route('/admin/currentlyrunningtools')
 def admin_widget_5():  
     if "user" in flask.g and flask.g.user.is_admin:
-	data = geneweaverdb.currently_running_tools()
+	data = geneweaverdb.currently_running_tools()	
 	#print data	
         return json.dumps(data, default=date_handler)
     else:
@@ -589,9 +597,10 @@ def admin_widget_7():
 	for tool in geneset_sizes:	    
 	    for size in geneset_sizes[tool]:
 		temp = dict();
-		temp.update({"tool": tool, "size": str(size), "time":str(int(geneset_sizes[tool][size]['time'])), "genes":str(int(geneset_sizes[tool][size]['genes']))})
+		time = int(geneset_sizes[tool][size]['time'])
+		temp.update({"tool": tool, "size": str(size), "time":time, "genes":str(int(geneset_sizes[tool][size]['genes']))})
 		dat.append(temp)
-	    	
+
         return json.dumps(dat)
     else:
 	return flask.render_template('admin/adminForbidden.html')

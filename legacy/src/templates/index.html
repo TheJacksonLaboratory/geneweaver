@@ -23,7 +23,7 @@ $( "#searchbar" ).autocomplete({
 });
 
 </script>
-<div class="jumbotron">
+<div class="jumbotron" style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px">
     <h1>GeneWeaver</h1>
     <p class="lead">
         A system for the integration of functional genomics experiments.
@@ -38,11 +38,10 @@ $( "#searchbar" ).autocomplete({
         <a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Movie">demo video</a>.
     </p>
 </div>
-
-<div class="row">
-<form action="/search/" method="GET">
-{% include'search/search_bar.html' %}
-</form>
+<div class="row" align="center">
+    <form action="/search/" method="GET">
+        {% include'search/search_bar.html' %}
+    </form>
 </div>
 <br />
 
