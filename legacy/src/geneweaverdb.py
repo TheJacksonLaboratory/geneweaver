@@ -1502,7 +1502,7 @@ def get_file(apikey, task_id, file_type):
 	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
 	print(abs_file_path)
 	if(os.path.exists(abs_file_path)):
-		return redirect( "/results/"+ rel_path)
+		return flask.redirect( "/results/"+ rel_path)
 	else:
 		return "Error: No such File! Check documentatin for supported file types of each tool."
 		
