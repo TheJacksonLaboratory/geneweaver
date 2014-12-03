@@ -166,15 +166,7 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     #Given a set of filters established by the user (this is a list of what is selected on the filter side bar) -
     #update the sphinxQL select statement, and set appropriate filters on the Sphinx client
     sphinxSelect = '* '
-    #sphinxSelect += ', count(cur_id=1) AS tier1Count'
-    #sphinxSelect += ', cur_id IN('+','.join(str(i) for i in list(curationLevelsAllowed))+')'
-    #sphinxSelect += ', cur_id AS curationLevel'
-    #sphinxSelect+=
-    #sphinxSelect += ', (gs) AS publicGeneSets'
-    #print sphinxSelect
     client.SetSelect(sphinxSelect)
-    #client.SetFilter('isReadable', [1])
-    #client.SetFilter('curationLevel', [0,1,2,3,4,5])
     '''
     Set the filters for selected Tiers
     
