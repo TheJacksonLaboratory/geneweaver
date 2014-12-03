@@ -6,14 +6,11 @@
         <div class="row">
             <div class="col-sm-6 col-md-4 col-sm-offset-3 col-md-offset-4">
                 <div class="login-box clearfix animated flipInY">
-                    <div class="page-icon animated bounceInDown">
-                        <img src="{{ url_for('static', filename='pixit/admin/assets/img/account/user-icon.png') }}" alt="Key icon">
-                    </div>
                     <div class="login-logo">
                         <a href="#?login-theme-3">
                             <img src="{{url_for('static', filename='images/GW2-logo.png')}}" alt="Company Logo">
                         </a>
-                    </div>
+                </div>   
                     <hr>
                     <div class="login-form">
                         <!-- BEGIN ERROR BOX -->
@@ -26,7 +23,7 @@
                         {% endif %}
                         <!-- END ERROR BOX -->
                         <form method="post" action="{{url_for('json_login')}}">
-                            <input type="text" placeholder="Username" id="usr_email" name="usr_email" class="input-field form-control user">
+                            <input type="text" placeholder="Email" id="usr_email" name="usr_email" class="input-field form-control user">
                             <input type="password" placeholder="Password" id="usr_password" name="usr_password" class="input-field form-control password">
                             <div class="div-login" style="margin:auto;text-align:center">
                                 <button style="display: inline;" id="submit-form" class="btn btn-login ladda-button" data-style="expand-left"><span class="ladda-label">login</span></button>

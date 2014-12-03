@@ -154,7 +154,7 @@
 	                {% set gs_id=values['gs_id'] %}
                     <tr class="{cycle values="even,odd"}">
 			<td valign="top" width="10%" style="vertical-align: middle; text-align: center;"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
-                        <td valign="top"><a href="/search/{{key}}/1">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
+                        <td valign="top"><a href="http://lazlo.ecs.baylor.edu/search/?searchbar={{key}}&pagination_page=1&searchGenes=yes">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
                             <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
                                 {% for gene in values.genes %}<li {% if gene[0] in emphgeneids %}style="background-color:#FF66FF" {% endif %}>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
                             </ul>

@@ -16,7 +16,7 @@ This is designed to be used throughout the site.
 		<input id="searchbar" name="searchbar" class="input-lg" style="width:90%" type="text" value="{% if paginationValues %}{{paginationValues.search_term}}{% endif %}">
 		<input id="searchbar_pagination_page" name = "pagination_page" type="hidden" value="1">
 		
-		<div class="row">
+		<div class="row" align="center" style="width:90%">
 		<!-- Search in checkboxes -->
 			<div class="col-md-2"><input type="checkbox" value="yes"
 			{% if field_list %}
@@ -69,7 +69,7 @@ This is designed to be used throughout the site.
 			name="searchOntologies" id="searchOntologies"> <label for="searchOntologies"> Ontologies </label></div>
 
 			<!-- Submit button to perform search -->
-			<div class="col-md-4"><input type="submit" class="btn btn-primary" value="Search"></div>
+			<div class="col-md-4" align="right"><input type="submit" class="btn btn-primary" value="Search"></div>
 		</div>
 	</div>
 </div>
