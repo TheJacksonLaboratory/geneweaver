@@ -62,6 +62,12 @@ def getUserFiltersFromApplicationRequest(form):
     if (form.get("tier5")):
         tierList['tier5'] = 'yes'
 
+    statusList = {'deprecated': 'no', 'provisional': 'no'}
+    if(form.get("deprecated")):
+        statusList['deprecated'] = 'yes'
+    if(form.get("provisional")):
+        statusList['provisional'] = 'yes'
+
     #Get all of the selected species options from the form
     speciesList = {'sp0':'no','sp1':'no', 'sp2':'no', 'sp3':'no', 'sp4':'no', 'sp5':'no', 'sp6':'no', 'sp8':'no', 'sp9':'no', 'sp10':'no'}
     if (form.get("sp0")):
@@ -92,7 +98,7 @@ def getUserFiltersFromApplicationRequest(form):
     if(form.get("geneCountMax")):
         geneCounts['geneCountMax'] = form.get("geneCountMax")
     #Build the filter list into a dictionary type accepted search
-    userFilters={'tierList':tierList, 'speciesList':speciesList, 'geneCounts': geneCounts}
+    userFilters={'statusList':statusList,'tierList':tierList, 'speciesList':speciesList, 'geneCounts': geneCounts}
     #Build the search bar data list
     #Search term is given from the searchbar in the form
     search_term = form.get('searchbar')
@@ -155,12 +161,19 @@ def getSearchFilterValues(search_results, query):
     results = client.Query(query)
     for match in results['matches']:
         speciesCountArray[int(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
+    ##Query for status counts TODO make this work properly
+    statusCountArray = [0,0,0]
+    client.SetGroupBy('gs_status', sphinxapi.SPH_GROUPBY_ATTR);
+    results = client.Query(query)
+    for match in results['matches']:
+        statusCountArray[int(match['attrs']['@groupby'])] = int(match['attrs']['@count'])
     #Update dictionaries with data to return
+    statusList = {'provisional': statusCountArray[1], 'deprecated': statusCountArray[2]}
     tierList = {'noTier': tierCountArray[0], 'tier1': tierCountArray[1],'tier2': tierCountArray[2],'tier3': tierCountArray[3],'tier4': tierCountArray[4],'tier5': tierCountArray[5]}
     speciesList = {'sp0':speciesCountArray[0],'sp1':speciesCountArray[1], 'sp2':speciesCountArray[2], 'sp3':speciesCountArray[3], 'sp4':speciesCountArray[4], 'sp5':speciesCountArray[5], 'sp6':speciesCountArray[6], 'sp8':speciesCountArray[8], 'sp9':speciesCountArray[9], 'sp10':speciesCountArray[10]}
     geneCounts = {'geneCountMin': minGeneCount, 'geneCountMax': maxGeneCount}
     #Combine various dictionaries into a single search results dictionary and return
-    return {'tierList': tierList, 'speciesList': speciesList, 'geneCounts': geneCounts}
+    return {'statusList': statusList,'tierList': tierList, 'speciesList': speciesList, 'geneCounts': geneCounts}
 
 def buildFilterSelectStatementSetFilters(userFilters, client):
     #Given a set of filters established by the user (this is a list of what is selected on the filter side bar) -
@@ -219,6 +232,18 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     geneCountMin = int(userFilters['geneCounts']['geneCountMin'])
     geneCountMax = int(userFilters['geneCounts']['geneCountMax'])
     client.SetFilterRange('gs_count', geneCountMin, geneCountMax)
+    '''
+    Filter by GS Status
+    '''
+    #TODO make this work properly there seems to be an error
+    statusFilterList = list()
+    #Always allow at least normal
+    statusFilterList.append(0)
+    if(userFilters['statusList']['provisional'] == 'yes'):
+        statusFilterList.append(1)
+    if(userFilters['statusList']['deprecated'] == 'yes'):
+        statusFilterList.append(2)
+    client.SetFilter('gs_status', statusFilterList, False)
     return None
 
 def api_search(search_term, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid'):
