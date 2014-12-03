@@ -277,9 +277,9 @@ def get_all_owned_groups(usr_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT *
-			   FROM prodction.usr2group
-			   WHERE usr_id = %s and u2g_privileges = 1''', (user_id,)
+            '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
+			   FROM production.usr2grp
+			   WHERE usr_id = %s and u2g_privileges = 1)''', (usr_id,)
         )
         
         return list(dictify_cursor(cursor))
@@ -290,16 +290,17 @@ def get_all_member_groups(usr_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT *
-			   FROM prodction.usr2group
-			   WHERE usr_id = %s and (u2g_privileges = 0 or u2g_privileges IS NOT NULL)''', (user_id,)
+            '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
+			   FROM production.usr2grp
+			   WHERE usr_id = %s and (u2g_privileges = 0 or u2g_privileges IS NULL))''', (usr_id,)
         )
         
         return list(dictify_cursor(cursor))
 
 # group_name is a string provided by user, group_private should be either true or false
 # true, the group is private. false the group is public.
-# The user_id will be initialized as the owner of the group        
+# The user_id will be initialized as the owner of the group   
+    
 def create_group(group_name, group_private, user_id):
 	if(group_private):
 		with PooledCursor() as cursor:
@@ -344,20 +345,21 @@ def create_group(group_name, group_private, user_id):
 # permision should be passed as 0 if it is a normal user
 # permision should be passed as 1 if it is an admin
 # permision is defaulted to 0			        
-def add_user_to_group(group_id, owner_id, usr_email, permission = 0):
+def add_user_to_group(group_name, owner_id, usr_email, permission = 0):
 	with PooledCursor() as cursor:
 		cursor.execute(
 			'''
 			INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges)
 			VALUES ((SELECT grp_id
 					 FROM production.usr2grp
-					 WHERE grp_id = %s AND usr_id = %s AND u2g privileges = 1),
+					 WHERE grp_id = (SELECT grp_id FROM production.grp WHERE grp_name = %s) 
+					 AND usr_id = %s AND u2g_privileges = 1),
 					(SELECT usr_id
 					 FROM production.usr
 					 WHERE usr_email = %s LIMIT 1), %s)
 			RETURNING grp_id;
 			''',
-			(group_id, owner_id, usr_email, permission,)
+			(group_name, owner_id, usr_email, permission,)
 		)
 		cursor.connection.commit()
 		# return the primary ID for the insert that we just performed	
@@ -365,30 +367,31 @@ def add_user_to_group(group_id, owner_id, usr_email, permission = 0):
 			
 	return grp_id
 
-def remove_user_from_group(group_id, owner_id, usr_email):
+def remove_user_from_group(group_name, owner_id, usr_email):
 	with PooledCursor() as cursor:
 		cursor.execute(
 			'''
 			DELETE FROM production.usr2grp
-			WHERE grp_id = (SELECT grp_id
+			WHERE (grp_id = (SELECT grp_id
 							FROM production.usr2grp
-							WHERE grp_id = %s AND usr_id = %s AND u2g_Privileges = 1)
+							WHERE grp_id = (SELECT grp_id FROM production.grp WHERE grp_name = %s) 
+							AND usr_id = %s AND u2g_Privileges = 1)
 							OR grp_id = (SELECT grp_id
 										 FROM production.usr2grp
-										 WHERE grp_id = %s AND usr_id = (SELECT usr_id
+										 WHERE grp_id = (SELECT grp_id FROM production.grp WHERE grp_name = %s) AND usr_id = (SELECT usr_id
 																		 FROM production.usr
-																		 WHERE usr_email = %s LIMIT 1))
+																		 WHERE usr_email = %s LIMIT 1)))
 				 AND usr_id = (SELECT usr_id
 							   FROM production.usr
 							   WHERE usr_email = %s LIMIT 1); 
 							
 			''',
-			(group_id, user_id, group_id, usr_email, usr_email,)
+			(group_name, owner_id, group_name, usr_email, usr_email,)
 		)
 		cursor.connection.commit()
 		# return the primary ID for the insert that we just performed	
 				
-	return grp_id
+	return
 
 # switches group active field between false and true, and true and false	
 def toggle_group_active(group_id, user_id ):
@@ -406,17 +409,17 @@ def toggle_group_active(group_id, user_id ):
 
 # Be Careful with this fucntion
 # Only let owners of groups call this function
-def delete_group(group_id, owner_id):
+def delete_group(group_name, owner_id):
 	with PooledCursor() as cursor:
 		cursor.execute(
 			'''
 			DELETE FROM production.usr2grp
 			WHERE grp_id = (SELECT grp_id
 							FROM production.usr2grp
-							WHERE grp_id = %s AND  usr_id = %s AND u2g_privileges = 1)
+							WHERE grp_id = (SELECT grp_id FROM production.grp WHERE grp_name = %s) AND  usr_id = %s AND u2g_privileges = 1)
 			RETURNING grp_id;
 			''',
-			(group_id, owner_id,)
+			(group_name, owner_id,)
 		)
 		cursor.connection.commit()
 		grp_id = cursor.fetchone();
@@ -424,9 +427,9 @@ def delete_group(group_id, owner_id):
 		cursor.execute(
 			'''
 			DELETE FROM production.grp
-			WHERE grp_id = %s;
+			WHERE grp_name = %s;
 			''',
-			(grp_id,)
+			(group_name,)
 		)
 		cursor.connection.commit()
 	return

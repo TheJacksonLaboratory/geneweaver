@@ -11,36 +11,226 @@
 				<h2 class="panel-title">Manage Groups</h2>
 			</div>
 			<div class="panel-body">
-				<div class="panel panel-info">
-					<div class="panel-heading">
-						<div class="row">
-							<div class="col-xs-6">
-								Group Name
+				
+					
+					<div class="panel panel-info" id="memberAccordion">
+						<div class="panel-heading">
+							<div class="row">
+								<div class="col-xs-6">
+									<a data-toggle="collapse" right data-parent="#memberAccordion" href="#member">
+										Groups I'm A Part Of
+										<span class="fa fa-chevron-down"></span>
+									</a>
+								</div>
 							</div>
-							<div class="col-xs-6">
-								Actions
+						</div>
+						<div id="member" class="panel-collapse collapse" >
+							<div class="panel-body">
+								<div>
+									<table class ="table table-striped">
+									<th>Owner of</th>
+									{% for grpO in groupsOwnerOf %}
+										<tr>
+											<td>
+												{{grpO.grp_name}}
+											</td>
+										</tr>
+									{% endfor %}
+									</table>
+								</div>
+								<div>
+									<table class ="table table-striped">
+									<th>Member of</th>
+									{% for grpM in groupsMemberOf %}
+										<tr>
+											<td>
+												{{grpM.grp_name}}
+											</td>
+										</tr>
+									{% endfor %}
+									</table>
+								</div>
 							</div>
 						</div>
 					</div>
-					<div class="panel-body">
-						<form>
+				<div class="panel-group" id="groupAccordion">				
+					<div class="panel panel-info">
+						<div class="panel-heading">
 							<div class="row">
-								<div class="col-xs-2">
-									Group:
-								</div>
-								<div class="col-xs-4">
-									<input type="text" name="group_name">
-								</div>
-								<div class="col-xs-3">
-									<button class="btn btn-primary">Join</button>
-								</div>
-								<div class="col-xs-3">
-									<button class="btn btn-primary">Create</button>
+								<div class="col-xs-10">
+									
+									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#create">
+									Create New Group
+									<span class="fa fa-chevron-down"></span>
+									</a>
 								</div>
 							</div>
-						</form>
+						</div>
+						
+						<div id="create" class="panel-collapse collapse" >
+						<div class="panel-body">
+							<form>
+								<div class="row">
+									<div class="col-xs-2">
+										Group:
+									</div>
+									<div class="col-xs-4">
+										<input type="text" name="group_name" id="groupCreate">
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-xs-6">
+										<label><input type="checkbox" name="private_box" value="Private" id="groupPrivate" checked>Private</label>
+									</div>
+									<div class="col-xr-2">
+										<button class="btn btn-primary pull-right" 
+											type='submit'
+											value='Create'
+											onclick='createGroup()'>Create
+										</button>
+									</div>
+								</div>
+							</form>
+						</div>
+						</div>
 					</div>
-				</div>
+					
+					
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							<div class="row">
+								<div class="col-xs-10">
+									
+									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#delete">
+									Delete Group
+									<span class="fa fa-chevron-down"></span>
+									</a>
+								</div>
+							</div>
+						</div>
+						
+						<div id="delete" class="panel-collapse collapse" >
+						<div class="panel-body">
+							<form>
+								<div class="row">
+									<p>You can only delete groups you own.</p>
+								</div>
+								<div class="row">
+									<div class="col-xs-2">
+										Group:
+									</div>
+									<div class="col-xs-4">
+										<input type="text" name="group_name" id="groupDelete">
+									</div>
+									<div class="col-xr-2">
+										<button class="btn btn-primary pull-right" 
+											type='submit'
+											value='Delete'
+											onclick='deleteGroup()'>Delete
+										</button>
+									</div>
+								</div>
+							</form>
+						</div>
+						</div>
+					</div>
+					
+				
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							<div class="row">
+								<div class="col-xs-10">
+									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#add">
+									Add User to Group
+									<span class="fa fa-chevron-down"></span>
+									</a>
+								</div>
+							</div>
+						</div>
+						<div id="add" class="panel-collapse collapse" >
+						<div class="panel-body">
+							<form>
+								<div class="row">
+									<p>You can only add users to groups you own.</p>
+								</div>
+								<div class="row">
+									<div class="col-xs-2">
+										Group:
+									</div>
+									<div class="col-xs-4">
+										<input type="text" name="group_name" id="groupAddUser">
+									</div>
+								</div>
+								<br>
+								<div class="row">
+									<div class="col-xs-2">
+										User Email:
+									</div>
+									<div class="col-xs-4">
+										<input type="text" name="user_email" id="groupAddEmail">
+									</div>
+									<div class="col-xr-2">
+										<button class="btn btn-primary pull-right" 
+											type='submit'
+											value='Add'
+											onclick='addGroupUser()'>Add
+										</button>
+									</div>
+								</div>
+							</form>
+						</div>
+						</div>
+					</div>
+				
+				
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							<div class="row">
+								<div class="col-xs-10">
+									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#remove">
+									Remove User from Group
+									<span class="fa fa-chevron-down"></span>
+									</a>
+								</div>
+							</div>
+						</div>
+						<div id="remove" class="panel-collapse collapse" >
+						<div class="panel-body">
+							<form>
+								<div class="row">
+									<p>You can only remove users from groups you own.</p>
+								</div>
+								<div class="row">
+									<div class="col-xs-2">
+										Group:
+									</div>
+									<div class="col-xs-4">
+										<input type="text" name="group_name" id="groupRemoveUser">
+									</div>
+								</div>
+								<br>
+								<div class="row">
+									<div class="col-xs-2">
+										User Email:
+									</div>
+									<div class="col-xs-4">
+										<input type="text" name="user_email" id="groupRemoveEmail">
+									</div>
+									<div class="col-xr-2">
+										<button class="btn btn-primary pull-right" 
+											type='submit'
+											value='Remove'
+											onclick='removeGroupUser()'>Remove
+										</button>
+									</div>
+								</div>
+							</form>
+						</div>
+						</div>
+					</div>
+				</div>	
+
+				
 			</div>
 		</div>
 		<div class="panel panel-primary">
@@ -115,6 +305,8 @@
 		</div>
 	</div>
 </div>
+
+
 <script>
 $(document).ready(function() {
 $("#password_2").keyup(validate);
@@ -129,5 +321,38 @@ else {
 $("#change_password").addClass("ui-state-disabled");
 }
 }
+
+function createGroup() {
+var groupName = $("#groupCreate").val();
+var isPrivate = $("#groupPrivate").val();
+var userId = {{user.user_id}};
+	$.get("/gwdb/create_group/"+groupName+"/"+isPrivate+"/"+userId+"/",function(data,status){
+	});
+
+}
+function deleteGroup() {
+var groupName = $("#groupDelete").val();
+var userId = {{user.user_id}};
+	$.get("/gwdb/delete_group/"+groupName+"/"+userId+"/",function(data,status){
+	});
+}
+
+function addGroupUser() {
+var groupName = $("#groupAddUser").val();
+var userEmail = $("#groupAddEmail").val();
+var userId = {{user.user_id}};
+	$.get("/gwdb/add_user_group/"+groupName+"/"+userId+"/"+userEmail+"/",function(data,status){
+	});
+}
+
+function removeGroupUser() {
+var groupName = $("#groupRemoveUser").val();
+var userEmail = $("#groupRemoveEmail").val();
+var userId = {{user.user_id}};
+	$.get("/gwdb/remove_user_group/"+groupName+"/"+userId+"/"+userEmail+"/",function(data,status){
+	});
+}
+
+
 </script>
 {% include 'footer.html' %}

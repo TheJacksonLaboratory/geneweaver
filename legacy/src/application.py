@@ -246,6 +246,29 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route ("/gwdb/get_group/<user_id>/") 
+def get_group(user_id):
+	return geneweaverdb.get_all_member_groups(user_id)
+
+@app.route ("/gwdb/create_group/<group_name>/<group_private>/<user_id>/") 
+def create_group(group_name, group_private, user_id):
+	return geneweaverdb.create_group(group_name, group_private, user_id)
+
+@app.route ("/gwdb/add_user_group/<group_name>/<user_id>/<user_email>/") 
+def add_user_group(group_name, user_id, user_email):
+	print(user_email)
+	return geneweaverdb.add_user_to_group(group_name, user_id, user_email) 
+	
+@app.route ("/gwdb/remove_user_group/<group_name>/<user_id>/<user_email>/") 
+def remove_user_group(group_name, user_id, user_email):
+	return geneweaverdb.remove_user_from_group(group_name, user_id, user_email)
+	
+@app.route ("/gwdb/delete_group/<group_name>/<user_id>/") 
+def delete_group(group_name, user_id):
+	return geneweaverdb.delete_group(group_name, user_id)
+	
+
+
 
 @app.route('/editgenesets.html')
 def render_editgenesets():
@@ -255,7 +278,9 @@ def render_editgenesets():
 @app.route('/accountsettings.html')
 def render_accountsettings():
     user = geneweaverdb.get_user(flask.session.get('user_id'))
-    return flask.render_template('accountsettings.html', user=user)
+    groupsMemberOf = geneweaverdb.get_all_member_groups(flask.session.get('user_id'))
+    groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
+    return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf, groupsOwnerOf= groupsOwnerOf)
 
 
 @app.route('/login.html')
@@ -269,6 +294,7 @@ def render_login_error():
 @app.route('/resetpassword.html')
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
+
 
 
 @app.route('/viewgenesetdetails/<int:gs_id>')
