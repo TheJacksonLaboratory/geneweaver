@@ -748,6 +748,14 @@ def genesets_per_species_per_tier(includeDeleted):
     except Exception, e:
         return str(e)
 
+def get_species_name():
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT sp_id, sp_name FROM odestatic.species;''')
+        return OrderedDict(cursor)
+    except Exception, e:
+        return str(e)
+        
 def monthly_tool_stats():
     tools = [];
     with PooledCursor() as cursor:
