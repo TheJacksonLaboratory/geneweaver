@@ -126,7 +126,7 @@ def getUserFiltersFromApplicationRequest(form):
     return {'userFilters': userFilters, 'search_term': search_term, 'pagination_page': pagination_page, 'search_fields': search_fields, 'field_list': field_list}
 
 
-def getSearchFilterValues(search_results, query):
+def getSearchFilterValues(query):
     #Define a results dict used for template display
     #TODO further document the expected use of this structure here
     #
@@ -146,27 +146,35 @@ def getSearchFilterValues(search_results, query):
     client.SetSelect(sphinxSelect)
     client.SetGroupBy('cur_id', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)
+    
     if (results == None):
         print client.GetLastError()
     #Retrieve the curation ID counts
     tierCountArray = [0,0,0,0,0,0]
-    for match in results['matches']:
-        tierCountArray[int(match['attrs']['cur_id'])] = int(match['attrs']['@count'])
+    if (results['total']>0):
+        for match in results['matches']:
+            tierCountArray[int(match['attrs']['cur_id'])] = int(match['attrs']['@count'])
     #Retrieve the geneset min and max counts
-    minGeneCount = int(results['matches'][0]['attrs']['low'])
-    maxGeneCount = int(results['matches'][0]['attrs']['high'])
+    if (results['total']>0):
+        minGeneCount = int(results['matches'][0]['attrs']['low'])
+        maxGeneCount = int(results['matches'][0]['attrs']['high'])
+    else:
+        minGeneCount = 0
+        maxGeneCount = 0
     ##Query for spieces counts
     speciesCountArray = [0,0,0,0,0,0,0,0,0,0,0]
     client.SetGroupBy('sp_id', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)
-    for match in results['matches']:
-        speciesCountArray[int(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
+    if (results['total']>0):
+        for match in results['matches']:
+            speciesCountArray[int(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
     ##Query for status counts TODO make this work properly
     statusCountArray = [0,0,0]
     client.SetGroupBy('gs_status', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)
-    for match in results['matches']:
-        statusCountArray[int(match['attrs']['@groupby'])] = int(match['attrs']['@count'])
+    if (results['total']>0):
+        for match in results['matches']:
+            statusCountArray[int(match['attrs']['@groupby'])] = int(match['attrs']['@count'])
     #Update dictionaries with data to return
     statusList = {'provisional': statusCountArray[1], 'deprecated': statusCountArray[2]}
     tierList = {'noTier': tierCountArray[0], 'tier1': tierCountArray[1],'tier2': tierCountArray[2],'tier3': tierCountArray[3],'tier4': tierCountArray[4],'tier5': tierCountArray[5]}
@@ -291,18 +299,17 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #Set wide filter (select everything filter nothing)
     #client.SetSelect("*")
     #Get the full results used to build filter bar statistics before performing a filtered search
-    full_results = client.Query(query)
+    #full_results = client.Query(query)
     #If filters are specified apply filters and perform a filtered search
     if(userFilters):
         buildFilterSelectStatementSetFilters(userFilters, client)
     #Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)
+    #Run the actual query
+    #Check if the query had an error
     results = client.Query(query)
-    #print results
-    #print 'ran all queries'
-    #print results
     if (results == None):
-        print client.GetLastError()
+        return {'STATUS': 'ERROR'}
     #Transform the genesets into geneset objects for Jinga display
     genesets = list()
     #Only get the first page of results
@@ -325,8 +332,9 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     paginationValues = {'numResults': numResults,'totalFound':totalFound, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
     #Create filter information to send to the template for use in displaying search_filters_panel.html
     #Get a dictionary representing the search filter values present. Use the full search results to do this.
-    searchFilters = getSearchFilterValues(full_results, query)
-    return_values = {'searchresults': results, 'genesets': genesets, 'paginationValues': paginationValues, 'searchFilters': searchFilters}
+    searchFilters = getSearchFilterValues(query)
+    #Build a set of return values to send back to the route. STATUS indicates the status of the search
+    return_values = {'searchresults': results, 'genesets': genesets, 'paginationValues': paginationValues, 'searchFilters': searchFilters, 'STATUS': 'OK'}
     #render the page with the genesets
     #print 'finished actually searching'
     return return_values
