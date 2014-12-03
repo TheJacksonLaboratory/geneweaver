@@ -672,52 +672,90 @@ def admin_add(args):
     except Exception, e:
 	return str(e)
 
-def genesets_per_tier():
+def genesets_per_tier(includeDeleted):
+
+    if includeDeleted:
+        sql1='''SELECT count(*) FROM production.geneset WHERE cur_id = 1;'''
+        sql2='''SELECT count(*) FROM production.geneset WHERE cur_id = 2;'''
+        sql3='''SELECT count(*) FROM production.geneset WHERE cur_id = 3;'''
+        sql4='''SELECT count(*) FROM production.geneset WHERE cur_id = 4;'''
+        sql5='''SELECT count(*) FROM production.geneset WHERE cur_id = 5;'''
+    else:
+        sql1='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1;'''
+        sql2='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2;'''
+        sql3='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3;'''
+        sql4='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4;'''
+        sql5='''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;'''
+
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1;''')
-	    one=cursor.fetchone()[0]
-	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2;''')
-	    two=cursor.fetchone()[0]
-	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3;''')
-	    three=cursor.fetchone()[0]
-  	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4;''')
-	    four=cursor.fetchone()[0]
-	    cursor.execute('''SELECT count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5;''')
-	    five=cursor.fetchone()[0]
-	    response = OrderedDict([('Tier 1', one),
-    	    	    ('Tier 2', two),
-    		    ('Tier 3', three),
-   		    ('Tier 4', four),
-		    ('Tier 5', five)
-   		    ])
+            cursor.execute(sql1)
+            one=cursor.fetchone()[0]
+            cursor.execute(sql2)
+            two=cursor.fetchone()[0]
+            cursor.execute(sql3)
+            three=cursor.fetchone()[0]
+            cursor.execute(sql4)
+            four=cursor.fetchone()[0]
+            cursor.execute(sql5)
+            five=cursor.fetchone()[0]
+            response = OrderedDict([('Tier 1', one),
+                ('Tier 2', two),
+                ('Tier 3', three),
+                ('Tier 4', four),
+                ('Tier 5', five)
+                ])
         return response
     except Exception, e:
         return str(e)
 
-def genesets_per_species_per_tier():
+def genesets_per_species_per_tier(includeDeleted):
+
+    if includeDeleted:
+        sql1='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 1 GROUP BY sp_id ORDER BY sp_id;'''
+        sql2='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 2 GROUP BY sp_id ORDER BY sp_id;'''
+        sql3='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 3 GROUP BY sp_id ORDER BY sp_id;'''
+        sql4='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 4 GROUP BY sp_id ORDER BY sp_id;'''
+        sql5='''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 5 GROUP BY sp_id ORDER BY sp_id;'''
+    else:
+        sql1='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 1 GROUP BY sp_id ORDER BY sp_id;'''
+        sql2='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 2 GROUP BY sp_id ORDER BY sp_id;'''
+        sql3='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 3 GROUP BY sp_id ORDER BY sp_id;'''
+        sql4='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4 GROUP BY sp_id ORDER BY sp_id;'''
+        sql5='''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5 GROUP BY sp_id ORDER BY sp_id;'''
+
+    #print sql1
+
     try:
         with PooledCursor() as cursor:
-   	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 1 GROUP BY sp_id ORDER BY sp_id;''')
-	    one=OrderedDict(cursor)
-	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 2 GROUP BY sp_id ORDER BY sp_id;''')
-	    two=OrderedDict(cursor)
-	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 3 GROUP BY sp_id ORDER BY sp_id;''')
-	    three=OrderedDict(cursor)
-  	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 4 GROUP BY sp_id ORDER BY sp_id;''')
-	    four=OrderedDict(cursor)
-	    cursor.execute('''SELECT sp_id, count(*) FROM production.geneset WHERE cur_id = 5 GROUP BY sp_id ORDER BY sp_id;''')
-	    five=OrderedDict(cursor)
-	    response = OrderedDict([('Tier 1', one),
-    	    	    ('Tier 2', two),
-    		    ('Tier 3', three),
-   		    ('Tier 4', four),
-		    ('Tier 5', five)
-   		    ])
+            cursor.execute(sql1)
+            one=OrderedDict(cursor)
+            cursor.execute(sql2)
+            two=OrderedDict(cursor)
+            cursor.execute(sql3)
+            three=OrderedDict(cursor)
+            cursor.execute(sql4)
+            four=OrderedDict(cursor)
+            cursor.execute(sql5)
+            five=OrderedDict(cursor)
+            response = OrderedDict([('Tier 1', one),
+                ('Tier 2', two),
+                ('Tier 3', three),
+                ('Tier 4', four),
+                ('Tier 5', five)
+                ])
         return response
     except Exception, e:
         return str(e)
 
+def get_species_name():
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT sp_id, sp_name FROM odestatic.species;''')
+        return OrderedDict(cursor)
+    except Exception, e:
+        return str(e)
+        
 def monthly_tool_stats():
     tools = [];
     with PooledCursor() as cursor:
