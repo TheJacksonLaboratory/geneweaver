@@ -10,8 +10,8 @@ import json
 import os
 from collections import OrderedDict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, combineblueprint, abbablueprint, booleanalgebrablueprint
-#import sphinxapi
-#import search
+import sphinxapi
+import search
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
