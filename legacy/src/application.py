@@ -251,6 +251,14 @@ def render_shareprojects():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
+@app.route('/analyze_new_project/<string:pj_name>.html')
+def render_analyze_new_project(pj_name):
+    args = flask.request.args
+    active_tools = geneweaverdb.get_active_tools()
+    user = geneweaverdb.get_user(flask.session.get('user_id'))
+    geneweaverdb.create_project(pj_name, user.user_id)
+    return flask.render_template('analyze.html', active_tools=active_tools)
+
 @app.route('/editgenesets.html')
 def render_editgenesets():
     return flask.render_template('editgenesets.html')
@@ -352,6 +360,7 @@ def render_emphasis():
 
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     return flask.render_template('emphasis.html', emphgenes=emphgenes, foundgenes=foundgenes)
+
 
 @app.route('/emphasize/<string:add_gene>.html', methods=['GET', 'POST'])
 def emphasize(add_gene):
@@ -456,7 +465,7 @@ def render_search_json():
     
     #TODO perform a search based on filtered data
     #results = search.(something here)
-    return flask.render_template('search.html', searchresults=search_values['searchresults'], genesets=search_values['genesets'], paginationValues=search_values['paginationValues'], field_list = userValues['field_list'], searchFilters=search_values['searchFilters'], userFilters=userValues['userFilters'])
+    return flask.render_template('search/search_wrapper_contents.html', searchresults=search_values['searchresults'], genesets=search_values['genesets'], paginationValues=search_values['paginationValues'], field_list = userValues['field_list'], searchFilters=search_values['searchFilters'], userFilters=userValues['userFilters'])
 
 @app.route('/searchsuggestionterms.json')
 def render_search_suggestions():
@@ -477,7 +486,15 @@ class AdminEdit(adminviews.Authentication, BaseView):
 @app.route('/admin/genesetspertier')
 def admin_widget_1():  
     if "user" in flask.g and flask.g.user.is_admin:
-	data = geneweaverdb.genesets_per_tier()
+	alldata = geneweaverdb.genesets_per_tier(True)
+	nondeleted = geneweaverdb.genesets_per_tier(False)
+	species=geneweaverdb.get_species_name()
+
+	data = dict()
+	data.update({"all":alldata})
+	data.update({"nondeleted":nondeleted})
+	data.update({"species":species})
+	#print data
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -485,7 +502,14 @@ def admin_widget_1():
 @app.route('/admin/genesetsperspeciespertier')
 def admin_widget_2():  
     if "user" in flask.g and flask.g.user.is_admin:
-	data = geneweaverdb.genesets_per_species_per_tier()
+	alldata = geneweaverdb.genesets_per_species_per_tier(True)
+	nondeleted = geneweaverdb.genesets_per_species_per_tier(False)
+	species=geneweaverdb.get_species_name()
+
+	data = dict()
+	data.update({"all":alldata})
+	data.update({"nondeleted":nondeleted})
+	data.update({"species":species})
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -517,6 +541,7 @@ def admin_widget_4():
 def admin_widget_5():  
     if "user" in flask.g and flask.g.user.is_admin:
 	data = geneweaverdb.currently_running_tools()	
+	#print data	
         return json.dumps(data, default=date_handler)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -525,7 +550,7 @@ def admin_widget_5():
 def admin_widget_6():  
     if "user" in flask.g and flask.g.user.is_admin:
 	data = geneweaverdb.size_of_genesets()
-	print data	
+	#print data	
         return json.dumps(data)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -576,9 +601,10 @@ def admin_widget_7():
 	for tool in geneset_sizes:	    
 	    for size in geneset_sizes[tool]:
 		temp = dict();
-		temp.update({"tool": tool, "size": str(size), "time":str(int(geneset_sizes[tool][size]['time'])), "genes":str(int(geneset_sizes[tool][size]['genes']))})
+		time = int(geneset_sizes[tool][size]['time'])
+		temp.update({"tool": tool, "size": str(size), "time":time, "genes":str(int(geneset_sizes[tool][size]['genes']))})
 		dat.append(temp)
-	    	
+
         return json.dumps(dat)
     else:
 	return flask.render_template('admin/adminForbidden.html')
@@ -975,7 +1001,13 @@ class ToolBooleanAlgebraProjects(restful.Resource):
 
     def get(self, apikey, relation, projects):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
-        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)      
+        return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)    
+  
+class KeywordSearchGuest(restful.Resource):
+    def get(self, apikey, search_term):
+        return search.api_search(search_term)
+
+api.add_resource(KeywordSearchGuest, '/api/get/search/bykeyword/<apikey>/<search_term>/')
 
 api.add_resource(GetGenesetsByGeneRefId, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/')
 api.add_resource(GetGenesetsByGeneRefIdHomology, '/api/get/geneset/bygeneid/<apikey>/<gene_ref_id>/<gdb_name>/homology')

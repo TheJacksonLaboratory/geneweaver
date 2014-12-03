@@ -42,26 +42,31 @@
     
    <h3>Statistics</h3><br>   
    <select id="stat_select" class="form-control" style="width:auto">
-       <option label="genesets_per_tier" value="genesets_per_tier">Genesets Per Tier</option>
-       <option label="genesets_per_species_per_tier" value="genesets_per_species_per_tier">Genesets Per Species Per Tier</option>
-       <option label="monthly_tool_stats" value="monthly_tool_stats">Monthly Tool Stats</option>
-       <option label="tools_ran_per_user" value="user_tools_ran">Tools Ran Per User</option>       
-       <option label="currently_running_tools" value="currently_running_tools">Currently Running Tools</option>
-       <option label="size_of_genesets" value="size_of_genesets">Size of Genesets</option>
-       <option label="time_to_run_tools" value="time_to_run_tools">Relative Time to Run Tools</option>
+       <option label="Genesets Per Tier" value="genesets_per_tier">Genesets Per Tier</option>
+       <option label="Genesets Per Species Per Tier" value="genesets_per_species_per_tier">Genesets Per Species Per Tier</option>
+       <option label="Monthly Tool Stats" value="monthly_tool_stats">Monthly Tool Stats</option>
+       <option label="Tools Ran Per User" value="user_tools_ran">Tools Ran Per User</option>       
+       <option label="Currently Running Tools" value="currently_running_tools">Currently Running Tools</option>
+       <option label="Size of Genesets" value="size_of_genesets">Size of Genesets</option>
+       <option label="Relative Time to Run Tools" value="time_to_run_tools">Relative Time to Run Tools</option>
    </select><br><br>
 </div>
    <div id="graph_container" class="container" style="text-align: center">
       <img id="spinner" src="{{ url_for('static', filename='images/spinner.gif') }}" style="width:20px;height:20px" alt="Loading..." style="display:none"/>	
       <div id = "div-one" style="display:none" >
-           <svg id="genesets_per_tier" class="chart" ></svg>
+	
       </div>
       <div id = "div-two" style="display:none">         
-            <svg id="genesets_per_species_and_tier1" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier2" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier3" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier4" class="chart"></svg>	 	
-            <svg id="genesets_per_species_and_tier5" class="chart"></svg>	 	
+            <svg id="genesets_per_species_and_tier1" class="chart"></svg>	 
+	    <svg id="genesets_per_species_and_tier1all" class="chart"></svg><br>	 		
+            <svg id="genesets_per_species_and_tier2" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier2all" class="chart"></svg><br> 		 	
+            <svg id="genesets_per_species_and_tier3" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier3all" class="chart"></svg><br>	 		 	
+            <svg id="genesets_per_species_and_tier4" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier4all" class="chart"></svg><br>	 		 	
+            <svg id="genesets_per_species_and_tier5" class="chart"></svg>
+	    <svg id="genesets_per_species_and_tier5all" class="chart"></svg><br>	 		 	
       </div>
       <div id = "div-three" style="display:none">         	 	
       </div>
@@ -76,6 +81,7 @@
      		    <th>UserID</th>
 		    <th>Tool</th>
 		    <th>Status</th>
+		    <th>Created</th>
   		  </tr>		
 	       </thead>
 	    </table>	 	
@@ -84,6 +90,7 @@
             <svg id="size_of_genesets" class="chart"></svg>	 	
       </div>
       <div id = "div-seven" style="display:none">
+	  <div id="bubbletext" style="opacity:0">asdfasdfasdf</div><br>
           <svg id="time_to_run_tools" ></svg>
       </div>
    </div>
@@ -149,17 +156,45 @@
             success: function(return_data) {
 	        $("#spinner").hide();
                 var data = JSON.parse(return_data);
+		
 	        if(title=="Genesets Per Species Per Tier")
-		{
-		     generate_bar_chart(data['Tier 1'], element+"1", title+" 1", "#Genesets");
-		     generate_bar_chart(data['Tier 2'], element+"2", title+" 2", "#Genesets");
-	    	     generate_bar_chart(data['Tier 3'], element+"3", title+" 3", "#Genesets");
-	             generate_bar_chart(data['Tier 4'], element+"4", title+" 4", "#Genesets");
-		     generate_bar_chart(data['Tier 5'], element+"5", title+" 5", "#Genesets");
+		{	     
+		    var legend="";
+		    for(var key in data["species"]) {
+		  	if(data["species"][key]) {
+			    legend += key + "=" + data["species"][key] + "  "; }
+		    }	
+		    $('#div-two').prepend("<font size='2'>"+legend+"</font><br>");	
+
+		     generate_bar_chart(data["nondeleted"]['Tier 1'], element+"1", title+" 1 (Non-Deleted)", "#Genesets");
+		     generate_bar_chart(data["nondeleted"]['Tier 2'], element+"2", title+" 2 (Non-Deleted)", "#Genesets");
+	    	     generate_bar_chart(data["nondeleted"]['Tier 3'], element+"3", title+" 3 (Non-Deleted)", "#Genesets");
+	             generate_bar_chart(data["nondeleted"]['Tier 4'], element+"4", title+" 4 (Non-Deleted)", "#Genesets");
+		     generate_bar_chart(data["nondeleted"]['Tier 5'], element+"5", title+" 5 (Non-Deleted)", "#Genesets");
+
+		     generate_bar_chart(data["all"]['Tier 1'], element+"1all", title+" 1 (All)", "#Genesets");
+		     generate_bar_chart(data["all"]['Tier 2'], element+"2all", title+" 2 (All)", "#Genesets");
+	    	     generate_bar_chart(data["all"]['Tier 3'], element+"3all", title+" 3 (All)", "#Genesets");
+	             generate_bar_chart(data["all"]['Tier 4'], element+"4all", title+" 4 (All)", "#Genesets");
+		     generate_bar_chart(data["all"]['Tier 5'], element+"5all", title+" 5 (All)", "#Genesets");
 		}
 		else if(title == "Genesets Per Tier")
 		{
-                    generate_bar_chart(data, element, title, "#Genesets");
+		    var legend="";
+		    for(var key in data["species"]) {
+		  	if(data["species"][key]) {
+			    legend += key + "=" + data["species"][key] + "  "; }
+		    }
+		    $('#div-one').prepend("<font size='2'>"+legend+"</font><br>");	
+
+		   
+		    var id="all";
+		    $('#div-one').append("<svg id="+id+" class='chart'></svg>")			
+			generate_bar_chart(data[id], '#'+id, "Genesets Per Tier (All)", "#Times Ran");
+
+                    id="nondeleted";
+		    $('#div-one').append("<svg id="+id+" class='chart'></svg>")			
+			generate_bar_chart(data[id], '#'+id, "Genesets Per Tier (Non-Deleted)", "#Times Ran");
 		}
 		else if(title == "Monthly Tool Stats")
 		{		    		   
@@ -178,17 +213,31 @@
 		{
                     for(var key in data) 
 		    {
-			$('#tools-running').append("<tr ><td> "+data[key]['res_id']+" </td><td> " +data[key]['usr_id'] + "  </td><td> " +data[key]['res_tool'] + " </td> <td> " +data[key]['res_status'] +" </td></tr>")
+			$('#tools-running').append("<tr ><td> "+data[key]['res_id']+" </td><td> " +data[key]['usr_id'] + "  </td><td> " +data[key]['res_tool'] + " </td> <td> " +data[key]['res_status'] +" </td><td> " + data[key]['res_created'] +  "</td></tr>")
 		    }
 		    $('#tools-running').dataTable( {
+			 "order": [[ 4, "desc" ]]
    		    });
-		}	
+		}		
 		else if(title == "Size of Genesets")
 		{
-                    generate_line_chart(data, element, title, "Num Times Ran");
+		    var keys = []; 
+		    for(var key in data) {
+		    	keys.push(key); 
+		    }
+		    
+    		    keys.sort(function(a,b){return data[b]-data[a]});
+		    newdata = [];
+		    for(var i in keys) {	
+			var val = keys[i];
+		         newdata.push({key:parseInt(val), value:data[val]});
+		    }
+		   
+                    generate_line_chart(newdata, element, title, "Num Times Ran");
 		}
 		else if(title == "Time to Run a Tool")
 		{
+	 	    $('#bubbletext').show();
                     generate_bubble_chart(data, element, title);
 		}
             }
@@ -198,48 +247,33 @@
 function generate_line_chart(data, chartname, title, yaxislabel) {
     var margin = {
             top: 20,
-            right: 50,
+            right: 200,
             bottom: 30,
             left: 50
         },
-        width = 960 - margin.left - margin.right,
-        height = 500 - margin.top - margin.bottom;
-	
- 	var keys = [];
-	for( var i = 0;i<d3.keys(data).length ;i++)
-	{
-	    keys.push(parseInt(d3.keys(data)[i]));
-	}	
-
+        width = 1000,
+        height = 500;
 	
     var x = d3.scale.ordinal()
 	.rangePoints([0, width], 0.0)
-    	.domain(keys);
-        
-   var ticks = [];
-   for( var i = 4;i<d3.keys(data).length ;i++)
-	{
-	    ticks.push(parseInt(d3.keys(data)[i]));
-	    i+=80
-	}	
-	
+    	.domain(data.map(function (d) { return d.key; }));
 
     var y = d3.scale.linear()	
-        .domain([0, d3.max(d3.values(data))])
+        .domain([0, d3.max(data, function (d) { return d.value; } ) ])
         .range([height, 0]);
 
     var xAxis = d3.svg.axis()
         .scale(x)
         .orient("bottom")
-	.tickValues(ticks);        
+	.tickValues([]);        
 
     var yAxis = d3.svg.axis()
         .scale(y)
         .orient("left")
 
     var line = d3.svg.line()
-        .x(function(d,i) { return x(keys[i]); })
-        .y(function(d) { return y(d.value); });
+        .x(function(d,i) { return x(data[i].key); })
+        .y(function(d,i) { return y(data[i].value); });
 
     var svg = d3.select(chartname)
         .attr("width", width + margin.left + margin.right)
@@ -291,9 +325,9 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
             .on("mousemove", mousemove);
 
         function mousemove() {
-            var x0 = d3.mouse(this)[0];
-            focus.attr("transform", "translate(" + x(d3.keys(data)[x0]) + "," + y(data[d3.keys(data)[x0]]) + ")");
-            focus.select("text").text("Geneset ID: " + d3.keys(data)[x0] + ", Size: " + data[d3.keys(data)[x0]]);
+            var x0 = Math.floor(d3.mouse(this)[0]);
+            focus.attr("transform", "translate(" + x(data[x0].key) + "," + y(data[x0].value) + ")");
+            focus.select("text").text("Geneset ID: " + data[x0].key + ", Size: " + data[x0].value);
         } 	
 }
 	
@@ -304,8 +338,15 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
                 bottom: 80,
                 left: 50
             },
-            width = d3.keys(data).length * 40,
+            width = d3.keys(data).length * 50,
             height = 250;	
+
+	
+
+	    if(width < title.length * 5)
+	    {
+		width=title.length * 5;
+	    }
 
         var x = d3.scale.ordinal()
             .domain(d3.keys(data))
@@ -397,7 +438,7 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
                 x: data1[i]['size'],
                 y: data1[i]['genes'],
                 c: data1[i]['tool'],
-                size: data1[i]['time']*100,
+                size: data1[i]['time'],
             });
         }
 	console.log(data);
@@ -420,11 +461,11 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
 
         var scale = d3.scale.sqrt()
 	    .domain([d3.min(data, function(d) { return parseInt(d.size);}), d3.max(data, function(d) { return parseInt(d.size);})])
-            .range([5, 30]);
+            .range([2, 80]);
 
         var opacity = d3.scale.sqrt()
             .domain([d3.min(data, function(d) { return parseInt(d.size);}), d3.max(data, function(d) { return parseInt(d.size); })])
-            .range([.9, .2]);
+            .range([.95, .4]);
 
         var color = d3.scale.category10();
 
@@ -469,7 +510,7 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
                 return color(d.c);
             })
             .on('mouseover', function(d, i) {
-                fade(d.c, .1);
+                fade(d.c, .1, d.size);
             })
             .on('mouseout', function(d, i) {
                 fadeOut();
@@ -505,15 +546,22 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
      	 .attr("dy", ".35em")
       	 .style("text-anchor", "end")
      	 .text(function(d) { return d; });
+	
+	var tooltip = d3.select(chartname).append("div")
+    	.attr("class", "tooltip")
+    	.style("opacity", 0);
 
-
-        function fade(c, opacity) {
+        function fade(c, opacity,size) {
             svg.selectAll("circle")
                 .filter(function(d) {
                     return d.c != c;
                 })
                 .transition()
                 .style("opacity", opacity);
+		
+	     //$('#bubbletext')
+	     document.getElementById("bubbletext").innerHTML = size + " milliseconds";
+	     document.getElementById("bubbletext").style.opacity=1;
         }
 
         function fadeOut() {
@@ -522,6 +570,7 @@ function generate_line_chart(data, chartname, title, yaxislabel) {
                 .style("opacity", function(d) {
                     opacity(d.size);
                 });
+ 	    document.getElementById("bubbletext").style.opacity=0;
         }
     }
     

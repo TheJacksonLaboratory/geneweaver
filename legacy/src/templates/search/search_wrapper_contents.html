@@ -13,9 +13,9 @@
 
 
 <div class="col-lg-8">
-{% if paginationValues.numResults == 1000 %}
+{% if paginationValues.numResults == 1000 and paginationValues.totalFound > 1000 %}
 <div class="panel-body bg-red p-15">
-<strong>Search results are limited to 1000 results. Try refining your search.</strong>
+<strong>Search results are limited to 1000 results out of {{paginationValues.totalFound}}. Try refining your search.</strong>
 </div>
 <br />
 {% endif %}
