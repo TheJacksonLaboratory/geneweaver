@@ -117,13 +117,30 @@ Filter results
 		<!-- Expects the jinja dict variable userFilters to determine which items are checked or unchecked.-->
 		<!-- If the variable does not exist, default behavior is for all items possible to be checked-->
 		<form action="/searchFilter.json" id="filterForm">
-		
+		Global Filters <br /><br />
 		<div id="genesetCountLabel"></div> <br />
 		<input type="hidden" name="geneCountMin" id="geneCountMin">
 		 
 		<input type="hidden" name="geneCountMax" id="geneCountMax">
 		
 		<div id="slider-range"></div> <br />
+
+		<input type="checkbox"
+		{% if userFilters is not defined or userFilters.statusList.provisional == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %}
+		name="provisional" id="provisionalCheckbox">  <label for="provisionalCheckbox">Include <span class="gs_provisional"> Provisional </span> ({{searchFilters.statusList.provisional}}) </label>
+
+		<input type="checkbox"
+		{% if userFilters is not defined or userFilters.statusList.deprecated == "yes" %} 
+		checked="checked" 
+		{% else %}
+
+		{% endif %}
+		name="deprecated" id="deprecatedCheckbox">  <label for="deprecatedCheckbox">Include <span class="gs_deprecated"> Deprecated </span> ({{searchFilters.statusList.deprecated}}) </label>
+		
 		Tiers
 		<input type="checkbox"
 		{% if userFilters is not defined or userFilters.tierList.noTier == "yes" %} 
