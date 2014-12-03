@@ -56,7 +56,7 @@ $( "#searchbar" ).autocomplete({
         </div>
     </a>
 
-    <a class="link-panel" href="#">
+    <a class="link-panel" href="{{ url_for('render_shareprojects')|safe }}">
         <div class="col-md-3 link-panel" style="text-align: center;">
             <img src="{{ url_for('static', filename='images/GW2-project.png')|safe }}" style="width:50%;"/>
             <br/>
