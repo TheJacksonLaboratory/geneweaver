@@ -1,9 +1,4 @@
-<!-- Define a form used for submitting future search requests. The action and method must match what routes are expecting. -->
-<!-- Note that search_filters_panel.html javascript depends on this id being properly  set in the form below for the search bar-->
-<form action="/search/" method="GET" id="searchBarForm">
-{% include'search/search_bar.html' %}
-</form>
-<br />
+
 {% if paginationValues != None %}
 <div class="row">
 
@@ -13,6 +8,13 @@
 
 
 <div class="col-lg-8">
+<!-- Define a form used for submitting future search requests. The action and method must match what routes are expecting. -->
+<!-- Note that search_filters_panel.html javascript depends on this id being properly  set in the form below for the search bar-->
+<form action="/search/" method="GET" id="searchBarForm">
+{% include'search/search_bar.html' %}
+</form>
+<br />
+
 {% if paginationValues.numResults == 1000 and paginationValues.totalFound > 1000 %}
 <div class="panel-body bg-red p-15">
 <strong>Search results are limited to 1000 results out of {{paginationValues.totalFound}}. Try refining your search.</strong>

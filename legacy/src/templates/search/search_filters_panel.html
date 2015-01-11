@@ -77,10 +77,17 @@ $( "#filterForm" ).on( "change", function( event ) {
 });
 </script>
 {% endif %}
-<!-- Update the search results page width -->
-<!-- TODO if the overall page container is updated, this should be deleted. This is temporary -->
+
+<!-- TODO remove inline CSS to something else?-->
 <style>
+/*Update the search results page width*/
+/*TODO if the overall page container is updated, this should be deleted. This is temporary */
 .container    {width: 1400px !important;}
+
+/* Make the checkboxes smaller */
+
+.ui-checkbox {margin: 0 0 !important;}
+.filter-checkbox {font-size: 12px;}
 </style>
 
 <div class="panel bd-0 bd-l-blue">
@@ -132,7 +139,7 @@ Filter results
 		{% else %}
 
 		{% endif %}
-		name="provisional" id="provisionalCheckbox">  <label for="provisionalCheckbox">Include <span class="gs_provisional"> Provisional </span> ({{searchFilters.statusList.provisional}}) </label>
+		name="provisional" id="provisionalCheckbox">  <label class = "filter-checkbox" for="provisionalCheckbox">Include <span class="gs_provisional"> Provisional </span> ({{searchFilters.statusList.provisional}}) </label>
 
 		<input type="checkbox"
 		{% if userFilters is not defined or userFilters.statusList.deprecated == "yes" %} 
@@ -140,7 +147,7 @@ Filter results
 		{% else %}
 
 		{% endif %}
-		name="deprecated" id="deprecatedCheckbox">  <label for="deprecatedCheckbox">Include <span class="gs_deprecated"> Deprecated </span> ({{searchFilters.statusList.deprecated}}) </label>
+		name="deprecated" id="deprecatedCheckbox">  <label class = "filter-checkbox" for="deprecatedCheckbox">Include <span class="gs_deprecated"> Deprecated </span> ({{searchFilters.statusList.deprecated}}) </label>
 		
 		Tiers
 		<input type="checkbox"
@@ -149,42 +156,42 @@ Filter results
 		{% else %}
 
 		{% endif %}
-		name="noTier" id="noTierCheckbox">  <label for="noTierCheckbox"> No Tier ({{searchFilters.tierList.noTier}}) </label>
+		name="noTier" id="noTierCheckbox">  <label class = "filter-checkbox" for="noTierCheckbox"> No Tier ({{searchFilters.tierList.noTier}}) </label>
 		<input type="checkbox" 
 		{% if userFilters is not defined or userFilters.tierList.tier1 == "yes" %} 
 		checked="checked" 
 		{% else %}
 
 		{% endif %} 
-		name="tier1" id="tier1Checkbox">  <label for="tier1Checkbox"> Tier 1 ({{searchFilters.tierList.tier1}}) </label>
+		name="tier1" id="tier1Checkbox">  <label class = "filter-checkbox" for="tier1Checkbox"> Tier 1 ({{searchFilters.tierList.tier1}}) </label>
 		<input type="checkbox" 
 		{% if userFilters is not defined or userFilters.tierList.tier2 == "yes" %} 
 		checked="checked" 
 		{% else %}
 
 		{% endif %} 
-		name="tier2" id="tier2Checkbox">  <label for="tier2Checkbox"> Tier 2 ({{searchFilters.tierList.tier2}}) </label>
+		name="tier2" id="tier2Checkbox">  <label class = "filter-checkbox" for="tier2Checkbox"> Tier 2 ({{searchFilters.tierList.tier2}}) </label>
 		<input type="checkbox" 
 		{% if userFilters is not defined or userFilters.tierList.tier3 == "yes" %} 
 		checked="checked" 
 		{% else %}
 
 		{% endif %} 
-		name="tier3" id="tier3Checkbox">  <label for="tier3Checkbox"> Tier 3 ({{searchFilters.tierList.tier3}}) </label>
+		name="tier3" id="tier3Checkbox">  <label class = "filter-checkbox" for="tier3Checkbox"> Tier 3 ({{searchFilters.tierList.tier3}}) </label>
 		<input type="checkbox" 
 		{% if userFilters is not defined or userFilters.tierList.tier4 == "yes" %} 
 		checked="checked" 
 		{% else %}
 
 		{% endif %} 
-		name="tier4" id="tier4Checkbox">  <label for="tier4Checkbox"> Tier 4 ({{searchFilters.tierList.tier4}}) </label>
+		name="tier4" id="tier4Checkbox">  <label class = "filter-checkbox" for="tier4Checkbox"> Tier 4 ({{searchFilters.tierList.tier4}}) </label>
 		<input type="checkbox" 
 		{% if userFilters is not defined or userFilters.tierList.tier5 == "yes" %} 
 		checked="checked" 
 		{% else %}
 
 		{% endif %} 
-		name="tier5" id="tier5Checkbox">  <label for="tier5Checkbox"> Tier 5 ({{searchFilters.tierList.tier5}}) </label>
+		name="tier5" id="tier5Checkbox">  <label class = "filter-checkbox" for="tier5Checkbox"> Tier 5 ({{searchFilters.tierList.tier5}}) </label>
 		<!-- Species Filters -->
 
 		Species <br>
@@ -196,7 +203,7 @@ Filter results
             {% else %}
 
             {% endif %}
-            name="{{spID}}" id="{{spID}}Checkbox">  <label for="{{spID}}Checkbox">
+            name="{{spID}}" id="{{spID}}Checkbox">  <label class = "filter-checkbox" for="{{spID}}Checkbox">
             {% if spName == "" %}
                 No Species
             {% else %}
@@ -217,7 +224,7 @@ Filter results
                     {% endif %}
                 name="{{atID}}" id="{{atID}}Checkbox">
 
-                <label for="{{atID}}Checkbox">
+                <label class = "filter-checkbox" for="{{atID}}Checkbox">
                     {{atName}}
                     ({{searchFilters.attributionsList[atID]}}) </label>
 
