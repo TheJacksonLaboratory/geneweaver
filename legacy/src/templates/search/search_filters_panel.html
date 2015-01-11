@@ -110,6 +110,7 @@ Filter results
 		<li class="">
 		<a data-toggle="tab" href="#tab1_4">Attributions</a>
 		</li>
+
 	</ul>
 	<div class="tab-content">
 	<div id="tab1_1" class="tab-pane active in">
@@ -186,86 +187,46 @@ Filter results
 		name="tier5" id="tier5Checkbox">  <label for="tier5Checkbox"> Tier 5 ({{searchFilters.tierList.tier5}}) </label>
 		<!-- Species Filters -->
 
-		Species
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp1 == "yes" %} 
-		checked="checked" 
-		{% else %}
+		Species <br>
+        {% for spID, spName in filterLabels.speciesList.iteritems()| sort %}
+            {% if searchFilters.speciesList[spID] >0 %}
+            <input type="checkbox"
+            {% if userFilters is not defined or userFilters.speciesList[spID] == "yes" %}
+            checked="checked"
+            {% else %}
 
-		{% endif %} 
-		name="sp1" id="sp1Checkbox">  <label for="sp1Checkbox"> Mus musculus ({{searchFilters.speciesList.sp1}}) </label>
-		
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp2 == "yes" %} 
-		checked="checked" 
-		{% else %}
+            {% endif %}
+            name="{{spID}}" id="{{spID}}Checkbox">  <label for="{{spID}}Checkbox">
+            {% if spName == "" %}
+                No Species
+            {% else %}
+                {{spName}}
+            {% endif %}
+            ({{searchFilters.speciesList[spID]}}) </label>
+            {% endif %}
+        {% endfor %}
 
-		{% endif %} 
-		name="sp2" id="sp2Checkbox">  <label for="sp2Checkbox"> Homo sapiens ({{searchFilters.speciesList.sp2}}) </label>
+        <!-- Attribution Filters -->
+        Attribution <br>
+        {% for atID, atName in filterLabels.attributionsList.iteritems()| sort %}
+            {% if searchFilters.attributionsList[atID] > 0 %}
+                <input
+                    type="checkbox"
+                    {% if userFilters is not defined or userFilters.attributionsList[atID] == "yes" %}
+                    checked="checked"
+                    {% endif %}
+                name="{{atID}}" id="{{atID}}Checkbox">
 
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp3 == "yes" %} 
-		checked="checked" 
-		{% else %}
+                <label for="{{atID}}Checkbox">
+                    {{atName}}
+                    ({{searchFilters.attributionsList[atID]}}) </label>
 
-		{% endif %} 
-		name="sp3" id="sp3Checkbox">  <label for="sp3Checkbox"> Rattus norvegicus ({{searchFilters.speciesList.sp3}}) </label>
+            {% endif %}
 
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp4 == "yes" %} 
-		checked="checked" 
-		{% else %}
+        {% endfor %}
 
-		{% endif %} 
-		name="sp4" id="sp4Checkbox">  <label for="sp4Checkbox"> Danio rerio ({{searchFilters.speciesList.sp4}}) </label>
 
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp5 == "yes" %} 
-		checked="checked" 
-		{% else %}
 
-		{% endif %} 
-		name="sp5" id="sp5Checkbox">  <label for="sp5Checkbox"> Drosophila melanogaster ({{searchFilters.speciesList.sp5}}) </label>
-
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp6 == "yes" %} 
-		checked="checked" 
-		{% else %}
-
-		{% endif %} 
-		name="sp6" id="sp6Checkbox">  <label for="sp6Checkbox"> Macaca mulatta ({{searchFilters.speciesList.sp6}}) </label>
-
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp8 == "yes" %} 
-		checked="checked" 
-		{% else %}
-
-		{% endif %} 
-		name="sp8" id="sp8Checkbox">  <label for="sp8Checkbox"> Caenorhabditis elegans ({{searchFilters.speciesList.sp8}}) </label>
-
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp9 == "yes" %} 
-		checked="checked" 
-		{% else %}
-
-		{% endif %} 
-		name="sp9" id="sp9Checkbox">  <label for="sp9Checkbox"> Saccharomyces cerevisiae ({{searchFilters.speciesList.sp9}}) </label>
-
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp10 == "yes" %} 
-		checked="checked" 
-		{% else %}
-
-		{% endif %} 
-		name="sp10" id="sp10Checkbox">  <label for="sp10Checkbox"> Gallus gallus ({{searchFilters.speciesList.sp10}}) </label>
-
-		<input type="checkbox" 
-		{% if userFilters is not defined or userFilters.speciesList.sp0 == "yes" %} 
-		checked="checked" 
-		{% else %}
-
-		{% endif %} 
-		name="sp0" id="sp0Checkbox">  <label for="sp0Checkbox"> No species ({{searchFilters.speciesList.sp0}}) </label>
 
 		</form>
 		
@@ -282,6 +243,7 @@ Filter results
 	<div id="tab1_4" class="tab-pane">
 		Attributions
 	</div>
+
 	</div>
 </div>
 {% endif %}

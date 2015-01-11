@@ -3,8 +3,8 @@ import geneweaverdb
 import sphinxapi
 
 #Sphinx server connection information
-sphinx_server = 'bepo.ecs.baylor.edu'
-#sphinx_server = 'localhost'
+#sphinx_server = 'bepo.ecs.baylor.edu'
+sphinx_server = 'localhost'
 sphinx_port = 9312
 #The number of maximum search results to return (not by page, but in total)
 max_matches=1000
@@ -69,28 +69,34 @@ def getUserFiltersFromApplicationRequest(form):
         statusList['provisional'] = 'yes'
 
     #Get all of the selected species options from the form
-    speciesList = {'sp0':'no','sp1':'no', 'sp2':'no', 'sp3':'no', 'sp4':'no', 'sp5':'no', 'sp6':'no', 'sp8':'no', 'sp9':'no', 'sp10':'no'}
-    if (form.get("sp0")):
-        speciesList['sp0'] = 'yes'
-    if (form.get("sp1")):
-        speciesList['sp1'] = 'yes'
-    if (form.get("sp2")):
-        speciesList['sp2'] = 'yes'
-    if (form.get("sp3")):
-        speciesList['sp3'] = 'yes'
-    if (form.get("sp4")):
-        speciesList['sp4'] = 'yes'
-    if (form.get("sp5")):
-        speciesList['sp5'] = 'yes'
-    if (form.get("sp6")):
-        speciesList['sp6'] = 'yes'
-    if (form.get("sp8")):
-        speciesList['sp8'] = 'yes'
-    if (form.get("sp9")):
-        speciesList['sp9'] = 'yes'
-    if (form.get("sp10")):
-        speciesList['sp10'] = 'yes'
+    #First, get the list of speicies and ID's from the database
+    speciesListFromDB = geneweaverdb.get_all_species()
+    speciesList = {}
+    #Build the default list
+    for sp_id,sp_name in speciesListFromDB.items():
+        speciesList['sp'+str(sp_id)] = 'no'
+    #Check for form items from user
+    for sp_id,sp_name in speciesListFromDB.items():
+        if (form.get('sp'+str(sp_id))):
+            speciesList['sp'+str(sp_id)] = 'yes'
 
+    #Get all of the selected attribution options from the form
+    #First, get the list of attributions and ID's from the database
+    attributionListFromDB = geneweaverdb.get_all_attributions()
+    attributionsList = {}
+
+    #Build the default list
+    for at_id,at_name in attributionListFromDB.items():
+        attributionsList['at'+str(at_id)] = 'no'
+    #TODO remove after updating database
+    attributionsList['at0'] = 'no'
+    #Check for form items from user
+    for at_id,at_name in attributionListFromDB.items():
+        if (form.get('at'+str(at_id))):
+            attributionsList['at'+str(at_id)] = 'yes'
+    #TODO remove after updating database
+    if (form.get('at0')):
+        attributionsList['at0'] = 'yes'
     #Get the geneset size limits
     geneCounts = {'geneCountMin': '0', 'geneCountMax': '1000'}
     if(form.get("geneCountMin")):
@@ -98,7 +104,7 @@ def getUserFiltersFromApplicationRequest(form):
     if(form.get("geneCountMax")):
         geneCounts['geneCountMax'] = form.get("geneCountMax")
     #Build the filter list into a dictionary type accepted search
-    userFilters={'statusList':statusList,'tierList':tierList, 'speciesList':speciesList, 'geneCounts': geneCounts}
+    userFilters={'statusList':statusList,'tierList':tierList, 'speciesList':speciesList, 'attributionsList': attributionsList, 'geneCounts': geneCounts}
     #Build the search bar data list
     #Search term is given from the searchbar in the form
     search_term = form.get('searchbar')
@@ -125,64 +131,107 @@ def getUserFiltersFromApplicationRequest(form):
     search_fields =  ','.join(search_fields)
     return {'userFilters': userFilters, 'search_term': search_term, 'pagination_page': pagination_page, 'search_fields': search_fields, 'field_list': field_list}
 
+'''
+Given a sphinx query, this function will return a list of counts of various filters, intended to be displayed as filter
+counts, ie how many of each species, in search_filters_panel.html
 
+The function performs a query to a separate sphinx server connection, so it will not have any previously applied user
+search filters.
+'''
 def getSearchFilterValues(query):
-    #Define a results dict used for template display
-    #TODO further document the expected use of this structure here
-    #
-    #Given search results from sphinx, this functions counts how many of each filter type, ie how many tier 1 results there are, for building filter side bar.
-    #The partial search_filters_panel.html relies on data from this function. It should be given a searchFilters dictionary that contains filter data discovered here.
-    #For each type of filter, count and set filter value, ie count how many of each tier there is, and set that as a filter in the structure
-    #First, get a list of all the tiers available and the number of them in the results
-
+    '''
+    Create an initial sphinx server connection
+    '''
     client = sphinxapi.SphinxClient()
     client.SetServer(sphinx_server, sphinx_port)
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     client.SetLimits(0, 1000, 1000)
-    ##Query for geneset min and max, as well as tier counts
+    '''
+    Get counts for each filter type
+    '''
+    #Query for GS min and max gene size counts
     sphinxSelect = '*'
-    sphinxSelect += ', (cur_id*10000 + sp_id*100 + attribution) AS tsa_group'
-    sphinxSelect += ', MIN(gs_count) low, MAX(gs_count) high, 0 as dummy'
+    sphinxSelect += ', MIN(gs_count) low, MAX(gs_count) high, 0 as OneRow'
     client.SetSelect(sphinxSelect)
-    client.SetGroupBy('cur_id', sphinxapi.SPH_GROUPBY_ATTR);
+    client.SetGroupBy('OneRow', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)
-    
     if (results == None):
         print client.GetLastError()
-    #Retrieve the curation ID counts
-    tierCountArray = [0,0,0,0,0,0]
-    if (results['total']>0):
-        for match in results['matches']:
-            tierCountArray[int(match['attrs']['cur_id'])] = int(match['attrs']['@count'])
+
     #Retrieve the geneset min and max counts
     if (results['total']>0):
         minGeneCount = int(results['matches'][0]['attrs']['low'])
         maxGeneCount = int(results['matches'][0]['attrs']['high'])
+    #Have a default case, in case the search term has no results
     else:
         minGeneCount = 0
         maxGeneCount = 0
-    ##Query for spieces counts
-    speciesCountArray = [0,0,0,0,0,0,0,0,0,0,0]
-    client.SetGroupBy('sp_id', sphinxapi.SPH_GROUPBY_ATTR);
+
+    #Query for tier counts
+    sphinxSelect = '*'
+    client.SetSelect(sphinxSelect)
+    client.SetGroupBy('cur_id', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)
+    if (results == None):
+        print client.GetLastError()
+    #Retrieve the curation tier ID counts
+    tierCountArray = [0,0,0,0,0,0]
     if (results['total']>0):
         for match in results['matches']:
-            speciesCountArray[int(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
-    ##Query for status counts TODO make this work properly
+            tierCountArray[int(match['attrs']['cur_id'])] = int(match['attrs']['@count'])
+
+    #Query for species counts
+    #First, get the list of speicies and ID's from the database
+    speciesListFromDB = geneweaverdb.get_all_species()
+    speciesList = {}
+    #Build the default list
+    for sp_id,sp_name in speciesListFromDB.items():
+        speciesList['sp'+str(sp_id)] = 0
+    #Perform a sphinx query
+    client.SetGroupBy('sp_id', sphinxapi.SPH_GROUPBY_ATTR);
+    results = client.Query(query)
+    #Count all of the results
+    if (results['total']>0):
+        for match in results['matches']:
+            speciesList['sp'+str(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
+
+    #Query for attribution counts
+    #First, get the list of attributions and ID's from the database
+    attributionsListFromDB = geneweaverdb.get_all_attributions()
+    attributionsList = {}
+    #Build the default list
+    for at_id, at_name in attributionsListFromDB.items():
+        attributionsList['at'+str(at_id)] = 0
+    #Perform a sphinx query
+    client.SetGroupBy('attribution', sphinxapi.SPH_GROUPBY_ATTR);
+    results = client.Query(query)
+    #Count all of the results
+    if (results['total']>0):
+        for match in results['matches']:
+            attributionsList['at'+str(match['attrs']['attribution'])] = int(match['attrs']['@count'])
+
+    #Query for status counts
     statusCountArray = [0,0,0]
     client.SetGroupBy('gs_status', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)
+    #Count the results
     if (results['total']>0):
         for match in results['matches']:
             statusCountArray[int(match['attrs']['@groupby'])] = int(match['attrs']['@count'])
-    #Update dictionaries with data to return
+    '''
+    Create dictionaries with names that search_filters_panel.html understands and return the resulting dictionary
+    '''
     statusList = {'provisional': statusCountArray[1], 'deprecated': statusCountArray[2]}
     tierList = {'noTier': tierCountArray[0], 'tier1': tierCountArray[1],'tier2': tierCountArray[2],'tier3': tierCountArray[3],'tier4': tierCountArray[4],'tier5': tierCountArray[5]}
-    speciesList = {'sp0':speciesCountArray[0],'sp1':speciesCountArray[1], 'sp2':speciesCountArray[2], 'sp3':speciesCountArray[3], 'sp4':speciesCountArray[4], 'sp5':speciesCountArray[5], 'sp6':speciesCountArray[6], 'sp8':speciesCountArray[8], 'sp9':speciesCountArray[9], 'sp10':speciesCountArray[10]}
     geneCounts = {'geneCountMin': minGeneCount, 'geneCountMax': maxGeneCount}
     #Combine various dictionaries into a single search results dictionary and return
-    return {'statusList': statusList,'tierList': tierList, 'speciesList': speciesList, 'geneCounts': geneCounts}
+    return {'statusList': statusList,'tierList': tierList, 'speciesList': speciesList,
+            'attributionsList': attributionsList, 'geneCounts': geneCounts}
 
+'''
+Given a set of filters from the user, and a client connection to a sphinx server, this function will set the
+appropriate filters to the client connection.
+'''
 def buildFilterSelectStatementSetFilters(userFilters, client):
     #Given a set of filters established by the user (this is a list of what is selected on the filter side bar) -
     #update the sphinxQL select statement, and set appropriate filters on the Sphinx client
@@ -213,27 +262,32 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     Build a list of all allowable species ID's, filter the results to match those species ID's
     '''
     speciesIDs = list()
-    if (userFilters['speciesList']['sp0'] == 'yes'):
-        speciesIDs.append(0)
-    if (userFilters['speciesList']['sp1'] == 'yes'):
-        speciesIDs.append(1)
-    if (userFilters['speciesList']['sp2'] == 'yes'):
-        speciesIDs.append(2)
-    if (userFilters['speciesList']['sp3'] == 'yes'):
-        speciesIDs.append(3)
-    if (userFilters['speciesList']['sp4'] == 'yes'):
-        speciesIDs.append(4)
-    if (userFilters['speciesList']['sp5'] == 'yes'):
-        speciesIDs.append(5)
-    if (userFilters['speciesList']['sp6'] == 'yes'):
-        speciesIDs.append(6)
-    if (userFilters['speciesList']['sp8'] == 'yes'):
-        speciesIDs.append(8)
-    if (userFilters['speciesList']['sp9'] == 'yes'):
-        speciesIDs.append(9)
-    if (userFilters['speciesList']['sp10'] == 'yes'):
-        speciesIDs.append(10)
+    #For all species in the user's filter that has 'yes' as a value, add the ID to a list
+    speciesListFromDB = geneweaverdb.get_all_species()
+
+    for sp_id,sp_name in speciesListFromDB.items():
+        if (userFilters['speciesList']['sp'+str(sp_id)] == 'yes'):
+            speciesIDs.append(sp_id)
+
     client.SetFilter('sp_id', speciesIDs)
+
+    '''
+    Set the filters for the selected attribution ID's
+
+    Build a list of all allowable atribution ID's, filter the results to match those attribution ID's
+    '''
+    attributionIDs = list()
+    #For all attributions in the user's filter that has 'yes' as a value, add the ID to a list
+    attributionListFromDB = geneweaverdb.get_all_attributions()
+
+    for at_id,at_name in attributionListFromDB.items():
+        if (userFilters['attributionsList']['at'+str(at_id)] == 'yes'):
+            attributionIDs.append(at_id)
+    #TODO remove this after updating the DB
+    if(userFilters['attributionsList']['at0'] == 'yes'):
+        attributionIDs.append(0)
+    client.SetFilter('attribution', attributionIDs)
+
     '''
     Set the filters for geneset size
     '''
@@ -254,6 +308,15 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     client.SetFilter('gs_status', statusFilterList, False)
     return None
 
+'''
+api_search is a basic way to perform a search that returns a json style representation of the search results. This is
+intended for use in the API.
+
+search_term is a term to build a query from
+search fields are a set of fields understood by sphinx.conf of which the search should be performed
+There are no other filters available for this search. It is intended to be a simple search, although could be expanded
+in the future.
+'''
 def api_search(search_term, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid'):
     '''
     The purpose of api search is to do a simple keyword search based on a simple keyword. The results returned are what only guests would see, so there are no tier 5 results returned.
@@ -270,71 +333,107 @@ def api_search(search_term, search_fields='name,description,label,genes,pub_auth
         print client.GetLastError()
     return results
 
+'''
+keyword_paginated_search is the main way to do a search. It returns a dict object of search data for use in the search template files
+search.html and associated files in templates/search/
+
+ The function is given a search term used to make a query
+ a pagination page, which is a page number to into results to display
+ a set of search fields understood by sphinx.conf as attributes of which to search. These are built in accordance with the checkboxes under the search bar
+ and a dict userFilters, as defined in getUserFiltersFromApplicationRequest which is optional. If supplied, this will limit the search
+'''
 def keyword_paginated_search(search_term, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
-    #do a query of the search term, fetch the matching genesets and pagination information
-    #search_term - the term to search for
-    #pagination_page - the page within the results to go to
-    ################################
+    '''
+    Set up initial search connection and build queries
+    TODO make this work with multiple query boxes (Will have to do multiple queries and combine results)
+    '''
+    #Connect to the sphinx indexed search server
     client = sphinxapi.SphinxClient()
     client.SetServer(sphinx_server, sphinx_port)
-    #Set the limit to get all results within the range of 1000
-    #Retrieve only the results within the limit of the current page specified in the pagination option
+    #Set the number of GS results to fetch per page
     resultsPerPage = 25
+    #Calculate the paginated offset into the results to start from
     offset=resultsPerPage*(pagination_page - 1)
     limit = resultsPerPage
     #Combine the search fields and search term into a Sphinx query
     query = '@('+search_fields+') '+search_term
-    #Set the user ID
-    userId = -1
-    if flask.session.get('user_id'):
-        userId = flask.session.get('user_id')
-    #Get additional user ID's to determine which private GS's the user can see
-    #visibleUsers = getOtherUsersAccessForGroups()
-    #Establish filters based on the user, if filters are given
-    #Perform the query
-    #Important to set the correct match mode
+    #Set the user ID TODO update this to limit tiers to start, then set filter appropriately
+    #userId = -1
+    #if flask.session.get('user_id'):
+    #    userId = flask.session.get('user_id')
+
+    #Set the appropriate matching mode for the sphinx server
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
-    #Also get the results for the full search - this is used for creating filters. To create filters, we need all the results, not just the paginated number of results.
-    client.SetLimits(0, 1000, 1000)
-    #Set wide filter (select everything filter nothing)
-    #client.SetSelect("*")
-    #Get the full results used to build filter bar statistics before performing a filtered search
-    #full_results = client.Query(query)
-    #If filters are specified apply filters and perform a filtered search
+    '''
+    We will have to perform two sphinx searches.
+    1. The first search will take pagination and applied user filters into account. This will get our actual results.
+
+    2. The second search is a broad search, and is used to get accurate counts of how many of each filter, ie species exist.
+    This data is used for labeling the filter checkbox counts, etc.
+
+    '''
+    #Check to see if the user has applied any filters (ie if this is not a search from the home page or initial search)
     if(userFilters):
+        #If there are filters to apply, set the select statement and filters appropiately based on form data
         buildFilterSelectStatementSetFilters(userFilters, client)
     #Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)
     #Run the actual query
-    #Check if the query had an error
     results = client.Query(query)
+    #Check if the query had an error
     if (results == None):
         return {'STATUS': 'ERROR'}
     #Transform the genesets into geneset objects for Jinga display
+    #This is done by creating a list of genesets from the database.
+    #TODO make this use only indexed data???
     genesets = list()
-    #Only get the first page of results
     for match in results['matches']:
         genesetID = match['id']
         genesets.append(geneweaverdb.get_geneset_no_user(genesetID))
-    #Calculate pagination information for display
-    ##############################
-    #Get the number of matches to present
+    '''
+    Calculate pagination information for display
+    '''
     numResults = int(results['total'])
     #Get the total number of matches
     totalFound = int(results['total_found'])
     #Do ceiling integer division
     numPages = ((numResults - 1) // resultsPerPage) + 1
     currentPage = pagination_page
-    #Calculate the bouding numbers for pagination
+    #Calculate the bounding numbers for pagination
     end_page_number = currentPage + 4
     if end_page_number > numPages:
         end_page_number = numPages
+    #Create a dict to send to the template for dispay
     paginationValues = {'numResults': numResults,'totalFound':totalFound, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
-    #Create filter information to send to the template for use in displaying search_filters_panel.html
+    '''
+    Perform the second search that gets the total filter counts for display in search_filters_panel.html
+    '''
     #Get a dictionary representing the search filter values present. Use the full search results to do this.
     searchFilters = getSearchFilterValues(query)
-    #Build a set of return values to send back to the route. STATUS indicates the status of the search
-    return_values = {'searchresults': results, 'genesets': genesets, 'paginationValues': paginationValues, 'searchFilters': searchFilters, 'STATUS': 'OK'}
-    #render the page with the genesets
-    #print 'finished actually searching'
+    '''
+    Get filter label information, ie species names.
+    The key name prefix is used so that names are unique for use in html DOM, ie sp0, sp1 ... for species.
+    '''
+    #Get the species list
+    speciesListFromDB = geneweaverdb.get_all_species()
+    speciesList = {}
+    #Associate a key name with a species name
+    for sp_id,sp_name in speciesListFromDB.items():
+        speciesList['sp'+str(sp_id)] = sp_name
+    #Get the attributions list
+    attributionsListFromDB = geneweaverdb.get_all_attributions()
+    attributionsList = {}
+    #Associate a key name with a attribution name
+    for at_id,at_name in attributionsListFromDB.items():
+        attributionsList['at'+str(at_id)] = at_name
+    #TODO update the database to remove this requirement
+    #Add an additional item for null or no attribution
+    attributionsList['at0'] = 'No Attribution'
+    #Create a filter label dict to send to the template for display
+    filterLabels = {'speciesList': speciesList, 'attributionsList': attributionsList}
+    #Build a set of return values to send to the template for display.
+    return_values = {'searchresults': results, 'genesets': genesets, 'paginationValues': paginationValues,
+                     'searchFilters': searchFilters, 'filterLabels': filterLabels,
+                     #Indicate the status of the search. Since we reached this point in execution, the search was OK.
+                     'STATUS': 'OK'}
     return return_values
