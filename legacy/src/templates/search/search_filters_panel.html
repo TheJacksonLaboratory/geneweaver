@@ -215,6 +215,7 @@ Filter results
 
         <!-- Attribution Filters -->
         Attribution <br>
+
         {% for atID, atName in filterLabels.attributionsList.iteritems()| sort %}
             {% if searchFilters.attributionsList[atID] > 0 %}
                 <input

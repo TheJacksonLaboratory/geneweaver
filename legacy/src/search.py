@@ -202,6 +202,8 @@ def getSearchFilterValues(query):
     #Build the default list
     for at_id, at_name in attributionsListFromDB.items():
         attributionsList['at'+str(at_id)] = 0
+    #TODO remove this after updating the database
+    attributionsList['at0'] = 0
     #Perform a sphinx query
     client.SetGroupBy('attribution', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)

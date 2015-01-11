@@ -463,7 +463,6 @@ def render_search_json():
     search_values = search.keyword_paginated_search(userValues['search_term'], userValues['pagination_page'],
                                                     userValues['search_fields'], userValues['userFilters'])
 
-    #results = search.(something here)
     return flask.render_template('search/search_wrapper_contents.html', searchresults=search_values['searchresults'],
                                  genesets=search_values['genesets'], paginationValues=search_values['paginationValues'],
                                  field_list=userValues['field_list'], searchFilters=search_values['searchFilters'],
