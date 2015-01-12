@@ -367,11 +367,19 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #Set the appropriate matching mode for the sphinx server
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     '''
-    We will have to perform two sphinx searches.
-    1. The first search will take pagination and applied user filters into account. This will get our actual results.
+    We will have to perform three sphinx searches -
 
-    2. The second search is a broad search, and is used to get accurate counts of how many of each filter, ie species exist.
-    This data is used for labeling the filter checkbox counts, etc.
+    1. The first search will take pagination and applied user filters into account. This will get our actual results
+    for a particular page.
+
+    #TODO Implement this search and resulting labels
+    2. The second search will count the number of each filter as applied. So, that means that a filtered broad search
+    is performed to get the counts of filters as applied, ie, there are 240 tier one out of 50 possible (perhaps a
+    species or other filter removed some from the results). This data is used for labeling the
+    filter checkbox counts, etc.
+
+    3. The third search is a broad unfiltered search, and is used to get accurate counts of how many of each filter,
+    ie species exist, regardless of the filters applied. This data is used for labeling the filter checkbox counts, etc.
 
     '''
     #Check to see if the user has applied any filters (ie if this is not a search from the home page or initial search)
