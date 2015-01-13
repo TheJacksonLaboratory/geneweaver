@@ -343,6 +343,7 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #Set the appropriate matching mode for the sphinx server
     #Note that this uses extended syntax http://sphinxsearch.com/docs/current.html#extended-syntax
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
+    
     '''
     We will have to perform three sphinx searches -
 
