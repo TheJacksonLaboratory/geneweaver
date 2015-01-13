@@ -26,7 +26,7 @@ function goToPage(pageNum) {
 <div class="panel-heading bg-blue">
 
     {% if paginationValues != None %}
-
+            <div>
             <!-- The contents of this h3 tag show the search results panel header. The panel contains the search results.-->
             <h3 class="panel-title" style="width:350px">Found {{paginationValues.numResults}} results. Viewing page {{paginationValues.currentPage}} of {{paginationValues.numPages}} </h3>
             <!--
@@ -70,18 +70,19 @@ function goToPage(pageNum) {
                 {% endif %}
             </div>
 
-
+        </div>
 <br />
 
         <!-- Show a list of pages to jump to -->
 
-        <h3 class="panel-title" style="width:100px">Goto Page: </h3>
 
-        <select class="form-control" style="width:100px">
-            {% for i in range(1, paginationValues.numPages + 1) %}
-            <option onclick="goToPage({{i}})" {% if i == paginationValues.currentPage %}selected="selected"{% endif %}>{{i}}</option>
-            {% endfor %}
-        </select>
+            <h3 class="panel-title" style="width:100px">Goto Page: </h3>
+
+            <select class="form-control" style="width:100px" onchange="goToPage(this.selectedIndex +1)">
+                {% for i in range(1, paginationValues.numPages + 1) %}
+                <option {% if i == paginationValues.currentPage %}selected="selected"{% endif %}>{{i}}</option>
+                {% endfor %}
+            </select>
 
 
 {% endif %}
