@@ -310,30 +310,6 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     client.SetFilter('gs_status', statusFilterList, False)
     return None
 
-'''
-api_search is a basic way to perform a search that returns a json style representation of the search results. This is
-intended for use in the API.
-
-search_term is a term to build a query from
-search fields are a set of fields understood by sphinx.conf of which the search should be performed
-There are no other filters available for this search. It is intended to be a simple search, although could be expanded
-in the future.
-'''
-def api_search(search_term, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid'):
-    '''
-    The purpose of api search is to do a simple keyword search based on a simple keyword. The results returned are what only guests would see, so there are no tier 5 results returned.
-    '''
-    client = sphinxapi.SphinxClient()
-    client.SetServer(sphinx_server, sphinx_port)
-    query = '@('+search_fields+') '+search_term
-    client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
-    #Only show publically visible genesets
-    client.SetFilter('cur_id', [0,1,2,3,4])
-    client.SetLimits(0, 1000, 1000)
-    results = client.Query(query)
-    if (results == None):
-        print client.GetLastError()
-    return results
 
 '''
 keyword_paginated_search is the main way to do a search. It returns a dict object of search data for use in the search template files
@@ -365,6 +341,7 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #    userId = flask.session.get('user_id')
 
     #Set the appropriate matching mode for the sphinx server
+    #Note that this uses extended syntax http://sphinxsearch.com/docs/current.html#extended-syntax
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     '''
     We will have to perform three sphinx searches -
@@ -388,6 +365,8 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
         buildFilterSelectStatementSetFilters(userFilters, client)
     #Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)
+    #TODO remove diagnostic query
+    print query
     #Run the actual query
     results = client.Query(query)
     #Check if the query had an error
@@ -447,3 +426,30 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
                      #Indicate the status of the search. Since we reached this point in execution, the search was OK.
                      'STATUS': 'OK'}
     return return_values
+
+
+'''
+api_search is a basic way to perform a search that returns a json style representation of the search results. This is
+intended for use in the API.
+
+search_term is a term to build a query from
+search fields are a set of fields understood by sphinx.conf of which the search should be performed
+There are no other filters available for this search. It is intended to be a simple search, although could be expanded
+in the future.
+'''
+def api_search(search_term, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid'):
+    '''
+    The purpose of api search is to do a simple keyword search based on a simple keyword. The results returned are what only guests would see, so there are no tier 5 results returned.
+    '''
+    client = sphinxapi.SphinxClient()
+    client.SetServer(sphinx_server, sphinx_port)
+    query = '@('+search_fields+') '+search_term
+    #Note that this uses extended syntax http://sphinxsearch.com/docs/current.html#extended-syntax
+    client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
+    #Only show publically visible genesets
+    client.SetFilter('cur_id', [0,1,2,3,4])
+    client.SetLimits(0, 1000, 1000)
+    results = client.Query(query)
+    if (results == None):
+        print client.GetLastError()
+    return results
