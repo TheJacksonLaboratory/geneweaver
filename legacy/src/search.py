@@ -3,8 +3,8 @@ import geneweaverdb
 import sphinxapi
 
 #Sphinx server connection information
-#sphinx_server = 'bepo.ecs.baylor.edu'
-sphinx_server = 'localhost'
+sphinx_server = 'bepo.ecs.baylor.edu'
+#sphinx_server = 'localhost'
 sphinx_port = 9312
 #The number of maximum search results to return (not by page, but in total)
 max_matches=1000
@@ -343,7 +343,7 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #Set the appropriate matching mode for the sphinx server
     #Note that this uses extended syntax http://sphinxsearch.com/docs/current.html#extended-syntax
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
-    
+
     '''
     We will have to perform three sphinx searches -
 
