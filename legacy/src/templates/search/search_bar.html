@@ -4,18 +4,60 @@ The purpose of this partial is to
     1. Define the layout, style, and elements.
     2. Define and enforce use of the appropriate name/value pairs expected by the search route for search options
 
-This is designed to be used throughout the site.
---> 
+This is designed to be used throughout the site, but must be in appropriate form tags.
+An example form tag that works with current routes is below:
+
+<form action="/search/" method="GET" id="searchBarForm">
+ Include the template -> include'search/search_bar.html'
+</form>
+
+-->
+<!-- TODO Make this CSS not inline, move it, or something. -->
+<style>
+/* Make the label text show and not overflow */
+.ui-btn {overflow: visible;}
+</style>
+
+<!-- TODO make this JS not inline-->
+<script>
+/*
+This script will dynamically add up to three search bars and options
+ */
+$(document).ready(function() {
+    $("#addSearchBar1").click(function(){
+        $( "#searchFormGroup" ).clone().appendTo( "#searchFormContainer" );
+    });
+});
+</script>
 <div class="form-group">
 	<label class="form-label">
 	<h3>Search Genesets</h3>
 	</label>
 	<span class="tips"> like "monkey, fly, calcium"</span>
 	<div class="controls">
+     <!-- THis is a container that will hold duplicated search bars, up to three -->
+    <div id="searchFormContainer">
+    <!-- This is a single search form group that will be duplicated on the add search bar button click -->
+    <div id="searchFormGroup">
+    <div class="row" style="width:90%">
+        <div class="col-md-10">
 		<!-- Search bar -->
-		<input id="searchbar" name="searchbar" class="input-lg" style="width:90%" type="text" value="{% if paginationValues %}{{paginationValues.search_term}}{% endif %}">
+		<input id="searchbar" name="searchbar" class="input-lg" style="width:100%" type="text" value="{% if paginationValues %}{{paginationValues.search_term}}{% endif %}">
+        </div>
+            <!-- TODO make buttons add query bars to the search-->
+        <!-- Button for adding a search bar -->
+        <div class="col-md-2" align="right">
+        <button  class="btn btn-sm btn-info" type="button">
+        <i class="fa fa-minus"></i>
+        </button>
+        <!-- Button for removing a search bar -->
+        <button id="addSearchBar1" class="btn btn-sm btn-primary" type="button">
+        <i class="fa fa-plus"></i>
+        </button>
+        </div>
+        <!-- A hidden field, necessary as an argument for search. It tells search to start at page 1.-->
 		<input id="searchbar_pagination_page" name = "pagination_page" type="hidden" value="1">
-		
+	</div>
 		<div class="row" align="center" style="width:90%">
 		<!-- Search in checkboxes -->
 			<div class="col-md-2"><input type="checkbox" value="yes"
@@ -72,4 +114,6 @@ This is designed to be used throughout the site.
 			<div class="col-md-4" align="right"><input type="submit" class="btn btn-primary" value="Search"></div>
 		</div>
 	</div>
+    </div>
+    </div>
 </div>

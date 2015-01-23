@@ -429,9 +429,22 @@ def get_all_species():
     returns an ordered mapping from species ID to species name for all available species
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT sp_id, sp_name FROM species ORDER BY sp_id;''')
+        cursor.execute('''SELECT sp_id, sp_name FROM species  ORDER BY sp_id;''')
         return OrderedDict(cursor)
 
+def get_all_attributions():
+    """
+    returns an ordered mapping from attribution ID to attribution name for all available attributions
+
+    TODO remark - there is an added statement to remove null attributions. At the time of writing, this would be
+    attribution id 1. It has an abbreviation that is null, and description 'none'. However, there are no genesets with
+    gs_attribution set to 1. They are either NULL or 0.
+    """
+    with PooledCursor() as cursor:
+        #TODO resolve issue of the null at_abbrev. For now this is truncated for the search feature, but could be
+        #enabled in the future.
+        cursor.execute('''select at_id, at_abbrev from attribution WHERE at_abbrev IS NOT NULL ORDER BY at_id;''')
+        return OrderedDict(cursor)
 
 def resolve_feature_id(sp_id, feature_id):
     """
