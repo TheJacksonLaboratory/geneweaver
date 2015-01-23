@@ -23,6 +23,16 @@ messages = array of messages
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/style.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/colors/color-blue.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/custom.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.tableTools.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/parsley/parsley.css') }}" rel="stylesheet">
+    <!--
+    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dynamic/media/css/jquery.dataTables.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/jquery.dataTables.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dataTables.tableTools.css') }}" rel="stylesheet">
+    -->
+
+
     <!-- END  MANDATORY STYLE -->
     <link href="{{ url_for('static', filename='css/search.css') }}" rel="stylesheet">
     <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
@@ -116,7 +126,6 @@ messages = array of messages
     //redirects
     
     </script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/modernizr/modernizr-2.6.2-respond-1.1.0.min.js') }}"></script>
 </head>
 <body>
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation" style="padding:5px;">
@@ -131,7 +140,7 @@ messages = array of messages
             <span class="icon-bar"></span>
             </button>
             <a class="navbar-brand" href="{{ url_for('render_home')|safe }}">
-                <img style="max-width:100%; max-height:100%;"src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="Company Logo"> GeneWeaver
+                <img style="max-width:100%; max-height:100%;"src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="GeneWeaver Logo"> GeneWeaver
             </a>
         </div>
         <div class="collapse navbar-collapse">
@@ -253,5 +262,10 @@ messages = array of messages
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery.cookie.min.js') }}" type="text/javascript"></script>
     <!-- END MANDATORY SCRIPTS -->
     <script src="{{ url_for('static', filename='pixit/admin/assets/js/application.js') }}"></script>
+    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dynamic/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.tableTools.js') }}"></script>
+    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.bootstrap.js') }}"></script>
+    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/modernizr/modernizr-2.6.2-respond-1.1.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/parsley/parsley.min.js') }}"></script>
 
     <div class="container">

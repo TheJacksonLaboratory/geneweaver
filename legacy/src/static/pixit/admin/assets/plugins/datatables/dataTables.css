@@ -54,11 +54,11 @@ table.dataTable thead .sorting_asc_disabled,
 table.dataTable thead .sorting_desc_disabled {
 	cursor: pointer;
 }
-
-/* table.dataTable thead .sorting { background: url('sort_both.png') no-repeat center right; } */
-/* table.dataTable thead .sorting_asc { background: url('sort_asc.png') no-repeat center right; } */
- /* table.dataTable thead .sorting_desc { background: url('sort_desc.png') no-repeat center right; } */
-
+/*
+table.dataTable thead .sorting { background: url('sort_both.png') no-repeat center right; }
+table.dataTable thead .sorting_asc { background: url('sort_asc.png') no-repeat center right; }
+table.dataTable thead .sorting_desc { background: url('sort_desc.png') no-repeat center right; }
+*/
 table.dataTable thead .sorting_asc_disabled { background: url('sort_asc_disabled.png') no-repeat center right; }
 table.dataTable thead .sorting_desc_disabled { background: url('sort_desc_disabled.png') no-repeat center right; }
 
@@ -114,7 +114,7 @@ div.dataTables_scrollFoot table {
 
 .table tbody tr.active:hover td,
 .table tbody tr.active:hover th {
-	background-color: #0075b0 !important;
+	background-color: #0075bc !important;
 }
 
 .table tbody tr.active a {

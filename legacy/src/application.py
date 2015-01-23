@@ -725,6 +725,11 @@ def get_db_data():
     else:
         return flask.render_template('admin/adminForbidden.html')
 
+@app.route('/getServersideResultsdb')
+def get_db_results_data():
+    results = geneweaverdb.get_server_side_results(request.args)
+    return json.dumps(results)
+
 
 def str_handler(obj):
     return str(obj)
@@ -759,14 +764,36 @@ def render_user_results():
 
     return flask.render_template('results.html')
 
+@app.route('/deleteResults')
+def delete_result():
+    if 'user_id' in flask.session:
+        # user_id = flask.session['user_id']
+        results = geneweaverdb.delete_results_by_runhash(request.args)
+        return json.dumps(results)
+
+@app.route('/editResults')
+def edit_result():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.edit_results_by_runhash(request.args)
+        return json.dumps(results)
+
 @app.route('/results2')
 def render_user_result_datatable():
+    table = 'production.result'
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-        tool_stats = geneweaverdb.tool_stats_by_user(user_id)
+        columns = []
+        columns.append({'name': 'res_id'})
+        columns.append({'name': 'res_runhash'})
+        columns.append({'name': 'res_duration'})
+        columns.append({'name': 'res_name'})
+        columns.append({'name': 'res_created'})
+        columns.append({'name': 'res_description'})
+        columns.append({'name': 'res_tool'})
+        headerCols = ["", "Name", "Created", "Description", "ID", "RunHash", "Duration"]
     else:
-        tool_stats, user_id = None, 0
-    return flask.render_template('results.html', tool_stats=tool_stats, user_id=user_id)
+        headerCols, user_id, columns = None, 0, None
+    return flask.render_template('results.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
 
 @app.route('/help.html')
 def render_help():

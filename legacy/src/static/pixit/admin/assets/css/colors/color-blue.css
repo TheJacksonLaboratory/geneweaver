@@ -1,17 +1,17 @@
 #sidebar{background-color: #005d8d;} 
 
 /* Header */
-.navbar-inverse {background-color: #005d8d;border-bottom: 1px solid #004c74} 
+.navbar-inverse {background-color: #006400;border-bottom: 1px solid #004c74}
 .navbar-inverse .navbar-nav>.open>a, .navbar-inverse .navbar-nav>.open>a:hover, .navbar-inverse .navbar-nav>.open>a:focus {color: #fff;background-color: #17517A;} 
 .navbar-center {color:#fff}
 /*.navbar-inverse .navbar-brand {color: #fff; background: url('../../img/logo-red.png') no-repeat center; width: 120px}*/
-.sidebar-toggle {color:#adadad;border-right:none} 
+.sidebar-toggle {color:#adadad;border-right:none}
 .sidebar-toggle:hover { color: #fff} 
 .header-menu #user-header .c-white, .header-menu #chat-header .c-white {color:#fff !important} 
 .header-menu #notifications-header .glyph-icon {color:#fff} 
 .header-menu #messages-header .glyph-icon {color:#fff} 
 .header-menu .dropdown-menu .dropdown-header, .header-menu .dropdown-menu .dropdown-header:hover {background: #004C74;color: #FFF;}
-.header-menu .dropdown-menu:after {border-bottom: 6px solid #004C74;}
+.header-menu .dropdown-menu:after {border-bottom: 6px solid #336600;}
 /* Sidebar */
 .sidebar-nav a {color:#fff} 
 .sidebar-nav a:hover {color:#fff;} 
