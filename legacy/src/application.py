@@ -82,7 +82,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
-RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
+RESULTS_PATH = '/var/www/html/geneweaver/results'
 
 
 @app.route('/results/<path:filename>')

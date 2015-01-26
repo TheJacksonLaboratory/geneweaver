@@ -12,7 +12,7 @@ import flask
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '/home/geneweaver/dev/geneweaver/results'
+RESULTS_PATH = '/var/www/html/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
