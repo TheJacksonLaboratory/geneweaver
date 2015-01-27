@@ -754,7 +754,7 @@ def render_help():
     return flask.render_template('help.html')
 
 
-@app.route('/about.html')
+@app.route('/about')
 def render_about():
     return flask.render_template('about.html')
 
