@@ -45,16 +45,6 @@ $(document).ready(function() {
 		<input id="searchbar" name="searchbar" class="input-lg" style="width:100%" type="text" value="{% if paginationValues %}{{paginationValues.search_term}}{% endif %}">
         </div>
             <!-- TODO make buttons add query bars to the search-->
-        <!-- Button for adding a search bar -->
-        <div class="col-md-2" align="right">
-        <button  class="btn btn-sm btn-info" type="button">
-        <i class="fa fa-minus"></i>
-        </button>
-        <!-- Button for removing a search bar -->
-        <button id="addSearchBar1" class="btn btn-sm btn-primary" type="button">
-        <i class="fa fa-plus"></i>
-        </button>
-        </div>
         <!-- A hidden field, necessary as an argument for search. It tells search to start at page 1.-->
 		<input id="searchbar_pagination_page" name = "pagination_page" type="hidden" value="1">
 	</div>
@@ -109,6 +99,18 @@ $(document).ready(function() {
 			{% endif %} 
 
 			name="searchOntologies" id="searchOntologies"> <label for="searchOntologies"> Ontologies </label></div>
+
+                   <!-- Button for adding a search bar -->
+        <div class="col-md-2" align="right">
+        <button  class="btn btn-sm" type="button" style="vertical-align: bottom">
+        <i class="fa fa-minus"></i>
+        </button>
+        <!-- Button for removing a search bar -->
+        <button id="addSearchBar1" class="btn btn-sm" type="button">
+        <i class="fa fa-plus"></i>
+        </button>
+        </div>
+
 
 			<!-- Submit button to perform search -->
 			<div class="col-md-4" align="right"><input type="submit" class="btn btn-primary" value="Search"></div>
