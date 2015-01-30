@@ -14,7 +14,7 @@ messages = array of messages
 #}
 <!DOCTYPE html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
     <title>{% if title %}{{ title|e }} :: {% endif %}Gene Weaver</title>
     <!-- BEGIN PIXIT STYLE -->
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/icons/icons.min.css') }}" rel="stylesheet">
@@ -23,8 +23,10 @@ messages = array of messages
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/style.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/colors/color-blue.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/custom.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.tableTools.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.css') }}"
+          rel="stylesheet">
+    <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.tableTools.css') }}"
+          rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/parsley/parsley.css') }}" rel="stylesheet">
     <!--
     <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dynamic/media/css/jquery.dataTables.css') }}" rel="stylesheet">
@@ -39,16 +41,19 @@ messages = array of messages
     <script type="text/javascript" src="{{ url_for('static', filename='js/ode.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/geneweaver.js') }}"></script>
     <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-238758-4']);
-    _gaq.push(['_setDomainName', 'geneweaver.org']);
-    _gaq.push(['_setAllowLinker', true]);
-    _gaq.push(['_trackPageview']);
-    (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-238758-4']);
+        _gaq.push(['_setDomainName', 'geneweaver.org']);
+        _gaq.push(['_setAllowLinker', true]);
+        _gaq.push(['_trackPageview']);
+        (function () {
+            var ga = document.createElement('script');
+            ga.type = 'text/javascript';
+            ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(ga, s);
+        })();
     </script>
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -58,79 +63,86 @@ messages = array of messages
     <![endif]-->
     <!-- TODO this should be in a CSS file -->
     <style>
-    body {
-    padding-top: 50px;
-    }
-    .starter-template {
-    padding: 40px 15px;
-    text-align: center;
-    }
-    .jumbotron {
-    text-align: center;
-    background-color: transparent;
-    }
-    h1 {
-    font-size: 2em;
-    }
-    h2 {
-    font-size: 1.5em;
-    }
-    .jumbotron h1 {
-    font-size: 3.5em;
-    }
-    a.link-panel {
-    color: inherit !important;
-    text-decoration: inherit !important;
-    }
-    .link-panel:hover {
-    background-color: rgba(153,184,190, 0.2) !important;
-    }
+        body {
+            padding-top: 50px;
+        }
+
+        .starter-template {
+            padding: 40px 15px;
+            text-align: center;
+        }
+
+        .jumbotron {
+            text-align: center;
+            background-color: transparent;
+        }
+
+        h1 {
+            font-size: 2em;
+        }
+
+        h2 {
+            font-size: 1.5em;
+        }
+
+        .jumbotron h1 {
+            font-size: 3.5em;
+        }
+
+        a.link-panel {
+            color: inherit !important;
+            text-decoration: inherit !important;
+        }
+
+        .link-panel:hover {
+            background-color: rgba(153, 184, 190, 0.2) !important;
+        }
     </style>
     <script>
-    $(function() {
-    var anonUserSpan = $('#anon-user-span');
-    var validUserSpan = $('#valid-user-span');
-    var userEmail = $('#usr_email');
-    var userPassword = $('#usr_password');
-    var userName = $('#user-name');
-    $('#loginform').submit(function(event) {
-    // stop the form from submitting normally
-    event.preventDefault();
-    // get the email and password values from the form
-    var authData = {
-    usr_email: userEmail.val(),
-    usr_password: userPassword.val()
-    };
-    // send the data using a post
-    var posting = $.post("{{ url_for('json_login')|safe }}", authData);
-    posting.done(function(data) {
-    if(data.success) {
-    userName.text(data.usr_first_name);
-    location.reload();
-    // anonUserSpan.css('display', 'none');
-    // validUserSpan.css('display', '');
-    } else {
-    alert("login attempt failed");
-    }
-    });
-    });
-    $('#logout-button').click(function(event) {
-    $.get("{{ url_for('json_logout')|safe }}", function() {
-    window.location = "/index.html"
-    });
-    });
-    $('#admin-button').click(function(event) {
-    window.location = "/admin";
-    });
-    });
-    //redirects
-    
+        $(function () {
+            var anonUserSpan = $('#anon-user-span');
+            var validUserSpan = $('#valid-user-span');
+            var userEmail = $('#usr_email');
+            var userPassword = $('#usr_password');
+            var userName = $('#user-name');
+            $('#loginform').submit(function (event) {
+                // stop the form from submitting normally
+                event.preventDefault();
+                // get the email and password values from the form
+                var authData = {
+                    usr_email: userEmail.val(),
+                    usr_password: userPassword.val()
+                };
+                // send the data using a post
+                var posting = $.post("{{ url_for('json_login')|safe }}", authData);
+                posting.done(function (data) {
+                    if (data.success) {
+                        userName.text(data.usr_first_name);
+                        location.reload();
+                        // anonUserSpan.css('display', 'none');
+                        // validUserSpan.css('display', '');
+                    } else {
+                        alert("login attempt failed");
+                    }
+                });
+            });
+            $('#logout-button').click(function (event) {
+                $.get("{{ url_for('json_logout')|safe }}", function () {
+                    window.location = "/index.html"
+                });
+            });
+            $('#admin-button').click(function (event) {
+                window.location = "/admin";
+            });
+        });
+        //redirects
+
     </script>
 </head>
 <body>
-    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation" style="padding:5px;">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation" style="padding:5px;">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
             <span class="sr-only">Toggle navigation</span>
             <!-- NOTE: these icon-bar spans are used for responsive layout. They cause
             the menu to collapse into three horizontal lines in the case of a small
@@ -138,46 +150,51 @@ messages = array of messages
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="{{ url_for('render_home')|safe }}">
-                <img style="max-width:100%; max-height:100%;"src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="GeneWeaver Logo"> GeneWeaver
-            </a>
-        </div>
-        <div class="collapse navbar-collapse">
-            <ul class="nav navbar-nav pull-right header-menu">
-                <li>
-                    <a href="/search.html"><span class="fa fa-search"></span></a>
-                </li>
-                <li class="dropdown">
-                    <a href="/mygenesets.html" class="dropdown-toggle" data-hover="dropdown">Manage GeneSets <span class="caret"></span></a>
-                    <ul class="dropdown-menu" role="menu">
-                        <li><a href="/mygenesets.html">My Genesets</a></li>
-                        <li><a href="/search.html">Search Genesets</a></li>
-                        <li><a href="{{ url_for('geneset.render_uploadgeneset')}}">Upload Gensets</a></li>
-                        <li><a href="{{ url_for('geneset.render_batchuploadgeneset')}}">Batch Upload Gensets</a></li>
-                        <li><a href="{{ url_for('render_editgenesets')|safe }}">Edit GeneSets</a></li>
-                    </ul>
-                </li>
-                <li class="dropdown">
-                    <a href="{{ url_for('render_analyze')|safe }}" class="dropdown-toggle" data-hover="dropdown">Analyze Genesets<span class="caret"></span></a>
-                    <ul class="dropdown-menu" role="menu">
-                        <li><a href="{{ url_for('render_analyze')|safe }}">Analyze Genesets</a></li>
-                        <li><a href="{{ url_for('render_analyze')|safe }}">My Projects</a></li>
-                        <li><a href="{{ url_for('render_share_projects')|safe }}">Shared Projects</a></li>
-                        <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
-                        {% if "user" in g %}
+        </button>
+        <a class="navbar-brand" href="{{ url_for('render_home')|safe }}">
+            <img style="max-width:100%; max-height:100%;" src="{{ url_for('static', filename='images/GW2-logo.png') }}"
+                 alt="GeneWeaver Logo"> GeneWeaver
+        </a>
+    </div>
+    <div class="collapse navbar-collapse">
+        <ul class="nav navbar-nav pull-right header-menu">
+            <li>
+                <a href="/search.html"><span class="fa fa-search"></span></a>
+            </li>
+            <li class="dropdown">
+                <a href="/mygenesets.html" class="dropdown-toggle" data-hover="dropdown">Manage GeneSets <span
+                        class="caret"></span></a>
+                <ul class="dropdown-menu" role="menu">
+                    <li><a href="/mygenesets.html">My Genesets</a></li>
+                    <li><a href="/search.html">Search Genesets</a></li>
+                    <li><a href="{{ url_for('geneset.render_uploadgeneset') }}">Upload Gensets</a></li>
+                    <li><a href="{{ url_for('geneset.render_batchuploadgeneset') }}">Batch Upload Gensets</a></li>
+                    <li><a href="{{ url_for('render_editgenesets')|safe }}">Edit GeneSets</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
+                <a href="{{ url_for('render_analyze')|safe }}" class="dropdown-toggle" data-hover="dropdown">Analyze
+                    Genesets<span class="caret"></span></a>
+                <ul class="dropdown-menu" role="menu">
+                    <li><a href="{{ url_for('render_analyze')|safe }}">Analyze Genesets</a></li>
+                    <li><a href="{{ url_for('render_analyze')|safe }}">My Projects</a></li>
+                    <li><a href="{{ url_for('render_share_projects')|safe }}">Shared Projects</a></li>
+                    <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
+                    {% if "user" in g %}
                         <li><a href="{{ url_for('render_emphasis')|safe }}">Emphasize Genes</a></li>
-                        {% endif %}
-                    </ul>
-                </li>
-                <li class="nav navbar-nav pull-right" id="loginpanel">
-                    <a href="#" class="dropdown-toggle c-white" data-toggle="dropdown" data-hover="dropdown" data-close-others="true" data-original-title="" title="">
-                        <span class="username">Welcome{% if "user" in g %} {{ g.user.first_name|e }}{% else %} guest{% endif %}!</span>
-                        <i class="fa fa-angle-down p-r-10"></i>
-                    </a>
-                    <ul class="dropdown-menu">
+                    {% endif %}
+                </ul>
+            </li>
+            <li class="nav navbar-nav pull-right" id="loginpanel">
+                <a href="#" class="dropdown-toggle c-white" data-toggle="dropdown" data-hover="dropdown"
+                   data-close-others="true" data-original-title="" title="">
+                    <span class="username">Welcome{% if "user" in g %} {{ g.user.first_name|e }}{% else %}
+                        guest{% endif %}!</span>
+                    <i class="fa fa-angle-down p-r-10"></i>
+                </a>
+                <ul class="dropdown-menu">
                     <!-- If user is Admin -->
-                    {% if "user" in g and g.user.is_admin == true%}
+                    {% if "user" in g and g.user.is_admin == true %}
                         <li>
                             <a href="admin">
                                 <i class="fa fa-gears"></i> Admin Page
@@ -192,7 +209,7 @@ messages = array of messages
                             </a>
                         </li>
                         <li>
-                            <a id="logout-button" ><i class="fa fa-power-off"></i> Logout</a>
+                            <a id="logout-button"><i class="fa fa-power-off"></i> Logout</a>
                         </li>
                     {% endif %}
                     <!-- Not logged in user -->
@@ -208,20 +225,19 @@ messages = array of messages
                             </a>
                         </li>
                         <li>
-                            <a href="{{url_for('render_register')|safe}}">Create Account</a> 
+                            <a href="{{ url_for('render_register')|safe }}">Create Account</a>
                         </li>
                     {% endif %}
-                        
-                        
 
-                    </ul>
-                </li>
-                
-            </ul>
-            <!-- <div id="loginpanel" class="nospace">
-                <form id="loginform" name="loginform" class="navbar-form navbar-right" role="search" method="post">
-                    -->        <!-- this is the span that will be displayed when there is no user logged in -->
-                    <!--         <span id="anon-user-span"{% if "user" in g %} style="display: none"{% endif %}>
+
+                </ul>
+            </li>
+
+        </ul>
+        <!-- <div id="loginpanel" class="nospace">
+            <form id="loginform" name="loginform" class="navbar-form navbar-right" role="search" method="post">
+                -->        <!-- this is the span that will be displayed when there is no user logged in -->
+        <!--         <span id="anon-user-span"{% if "user" in g %} style="display: none"{% endif %}>
                     <div class="form-group">
                         <input id="usr_email" name="usr_email" type="text" class="form-control" placeholder="E-mail">
                         <input id="usr_password" name="usr_password" type="password" class="form-control" placeholder="password">
@@ -231,41 +247,44 @@ messages = array of messages
                     <a href="{{ url_for('render_reset') }}"{% if "user" in g %} style="display: none"{% endif %}>Forgot Password</a>
                     </span>
                     -->
-                    <!-- we show this span when there is a user logged in -->
-                    <!--                     <span id="valid-user-span"{% if "user" not in g %} style="display: none"{% endif %}>
+        <!-- we show this span when there is a user logged in -->
+        <!--                     <span id="valid-user-span"{% if "user" not in g %} style="display: none"{% endif %}>
                     Welcome <span id="user-name">{% if "user" in g %}{{ g.user.first_name|e }}{% endif %}</span>: <a href="{{ url_for('render_accountsettings')|safe }}">Account settings</a>
                     <button type='button' id="logout-button" class="btn btn-default">Logout</button>
-                    -->                        <!-- Admin page button, hides the button if the logged in user if not an admin -->
-                    <!--                         <button type='button' id="admin-button" class="btn btn-default" {% if "user" in g and g.user.is_admin == false%}style="display: none"{% endif %}>Admin Page</button>
+                    -->
+        <!-- Admin page button, hides the button if the logged in user if not an admin -->
+        <!--                         <button type='button' id="admin-button" class="btn btn-default"
+                {% if "user" in g and g.user.is_admin == false%}style="display: none"{% endif %}>Admin Page</button>
                     </span>
                 </form>
             </div>
         -->        </div>
-        <!--/.nav-collapse -->
-    </div>
+    <!--/.nav-collapse -->
+</div>
 
-    <!-- BEGIN MANDATORY SCRIPTS -->
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-1.11.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-migrate-1.2.1.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-ui/jquery-ui-1.10.4.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-mobile/jquery.mobile-1.4.2.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-dropdown/bootstrap-hover-dropdown.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-select/bootstrap-select.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/mcustom-scrollbar/jquery.mCustomScrollbar.concat.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/mmenu/js/jquery.mmenu.min.all.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/nprogress/nprogress.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-sparkline/sparkline.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/breakpoints/breakpoints.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/numerator/jquery-numerator.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-progressbar/bootstrap-progressbar.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery.cookie.min.js') }}" type="text/javascript"></script>
-    <!-- END MANDATORY SCRIPTS -->
-    <script src="{{ url_for('static', filename='pixit/admin/assets/js/application.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dynamic/jquery.dataTables.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.tableTools.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.bootstrap.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/modernizr/modernizr-2.6.2-respond-1.1.0.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/parsley/parsley.min.js') }}"></script>
+<!-- BEGIN MANDATORY SCRIPTS -->
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-1.11.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-migrate-1.2.1.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-ui/jquery-ui-1.10.4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-mobile/jquery.mobile-1.4.2.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap/bootstrap.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-dropdown/bootstrap-hover-dropdown.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-select/bootstrap-select.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/mcustom-scrollbar/jquery.mCustomScrollbar.concat.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/mmenu/js/jquery.mmenu.min.all.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/nprogress/nprogress.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-sparkline/sparkline.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/breakpoints/breakpoints.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/numerator/jquery-numerator.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-progressbar/bootstrap-progressbar.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery.cookie.min.js') }}"
+        type="text/javascript"></script>
+<!-- END MANDATORY SCRIPTS -->
+<script src="{{ url_for('static', filename='pixit/admin/assets/js/application.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dynamic/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.tableTools.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/datatables/dataTables.bootstrap.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/modernizr/modernizr-2.6.2-respond-1.1.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/parsley/parsley.min.js') }}"></script>
 
-    <div class="container">
+<div class="container">

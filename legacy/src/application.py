@@ -758,6 +758,21 @@ def render_help():
 def render_about():
     return flask.render_template('about.html')
 
+@app.route('/funding')
+def render_funding():
+    return flask.render_template('funding.html')
+
+@app.route('/datasharing')
+def render_datasharing():
+    return flask.render_template('datasharing.html')
+
+@app.route('/privacy')
+def render_privacy():
+    return flask.render_template('privacy.html')
+
+@app.route('/usage')
+def render_usage():
+    return flask.render_template('usage.html')
 
 @app.route('/register.html', methods=['GET', 'POST'])
 def render_register():

@@ -1,38 +1,39 @@
 {% include 'header.html' %}
- <script>
-$(function() {
+<script>
+    $(function () {
 //Get the search suggestions from the server
 
-var suggestedSearchTermsData = (function () {
-    var terms = null;
-    $.ajax({
-        'async': false,
-        'global': false,
-        'url': "/searchsuggestionterms.json",
-        'dataType': "json",
-        'success': function (data) {
-            terms = data;
-        }
-    });
-    return terms;
-})(); 
+        var suggestedSearchTermsData = (function () {
+            var terms = null;
+            $.ajax({
+                'async': false,
+                'global': false,
+                'url': "/searchsuggestionterms.json",
+                'dataType': "json",
+                'success': function (data) {
+                    terms = data;
+                }
+            });
+            return terms;
+        })();
 
-$( "#searchbar" ).autocomplete({
-    source: suggestedSearchTermsData
+        $("#searchbar").autocomplete({
+            source: suggestedSearchTermsData
+        });
     });
-});
 
 </script>
 <div class="jumbotron" style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px">
-    <h1><img src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="GeneWeaver Logo">GeneWeaver</h1>
+    <h1><img src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="GeneWeaver Logo" style="vertical-align: top">GeneWeaver</h1>
+
     <p class="lead">
         A system for the integration of functional genomics experiments.
         <br/>
         {% if "user" not in g %}
-        You can <a href="{{url_for('render_login')|safe}}">sign in</a>,
-        <a href="{{url_for('render_register')|safe}}">create an account</a> if you don't yet have
-        one, or continue to use GeneWeaver anonymously.
-        <br/>
+            You can <a href="{{ url_for('render_login')|safe }}">sign in</a>,
+            <a href="{{ url_for('render_register')|safe }}">create an account</a> if you don't yet have
+            one, or continue to use GeneWeaver anonymously.
+            <br/>
         {% endif %}
         <!--
         If you would like <a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Documentation">help</a> getting started with GeneWeaver you can consult our
@@ -47,7 +48,7 @@ $( "#searchbar" ).autocomplete({
         {% include'search/search_bar.html' %}
     </form>
 </div>
-<br />
+<br/>
 
 
 <div class="row">
@@ -79,8 +80,8 @@ $( "#searchbar" ).autocomplete({
         <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
             <img src="{{ url_for('static', filename='images/GW2-help.png')|safe }}" style="width:50%"/>
             <br/>
-            <strong> 
-            Help
+            <strong>
+                Help
             </strong>
         </div>
     </a>
@@ -92,7 +93,7 @@ $( "#searchbar" ).autocomplete({
 
 <!-- all news items -->
 {% for key, value in newsArray %}
-    <div >
+    <div>
         <p><strong>{{ key|safe }}:</strong><br/>{{ value|safe }}</p>
     </div>
 {% endfor %}

@@ -1,64 +1,91 @@
 {% include 'header.html' %}
 
 <br>
-	<div class="panel panel-default panel-heading bg-gray-light">
-		<h3 class="panel-title"><strong>About Us </strong></h3>
-	</div>
+<div class="panel panel-default panel-heading bg-gray-light">
+    <h3 class="panel-title"><strong>About Us </strong></h3>
+</div>
 
-	<div class="panel panel-default">
-		<div class="row">
-			<div class="panel-body">
-				<blockquote>
-					<p><i>"Making sense of genomics is risky, <br>
-						But with database builders so frisky <br>
-						Gene expression in brains <br>
-						May one day explain <br>
-						A mouse's obsession with whiskey" <br>
-					</i></p>
+<div class="panel panel-default">
+    <div class="row">
+        <div class="panel-body">
+            <blockquote>
+                <p><i>"Making sense of genomics is risky, <br>
+                    But with database builders so frisky <br>
+                    Gene expression in brains <br>
+                    May one day explain <br>
+                    A mouse's obsession with whiskey" <br>
+                </i></p>
 
 
-					<footer>Poet Laureate of the Neuroscience Program, <br>
-						University of Illinois at Urbana-Champaign, <br>
-						November 27, 2006
-					</footer>
-				</blockquote>
-			</div>
-		</div>
+                <footer>Poet Laureate of the Neuroscience Program, <br>
+                    University of Illinois at Urbana-Champaign, <br>
+                    November 27, 2006
+                </footer>
+            </blockquote>
+        </div>
+    </div>
 
-		<div class="row">
-			<div class="panel-body">
-				<p><strong>Citing GeneWeaver</strong></p>
-                <p>
-					Erich J. Baker, Jeremy J. Jay, Jason A. Bubier, Michael A. Langston, and Elissa J. Chesler.
-					<a href="http://nar.oxfordjournals.org/content/40/D1/D1067.full">Geneweaver: a web-based system for
-						integrative functional genomics.</a>
-					Nucl. Acids Res. (2012) 40(D1): D1067-D1076
-				</p>
-			</div>
-		</div>
+    <div class="row">
+        <div class="panel-body">
+            <p><strong>Citing GeneWeaver</strong></p>
 
-		<div class="row">
-			<div class="panel-body">
-                <p><strong>Many thanks to many people</strong></p>
-				<p>There are many people who have contributed to this project over the years. We would especially
-					like to thank the following: </p>
-				<ul class="fa-ul">
-					<li><i class="fa-li fa fa-circle"></i>Jeremy Jay, Lead Developer</li>
-                    <li><i class="fa-li fa fa-circle"></i>Charles Phillips, Algorithm Developer</li>
-					<li><i class="fa-li fa fa-circle"></i>Zuopan Li, Web Programmer</li>
-					<li><i class="fa-li fa fa-circle"></i>Michael A. Langston, Graph Algorithms Team Leader</li>
-					<li><i class="fa-li fa fa-circle"></i>Yun Zhang, Graph Algorithms</li>
-					<li><i class="fa-li fa fa-circle"></i>Erich J. Baker, Database Design Leader</li>
-					<li><i class="fa-li fa fa-circle"></i>Roumyana Kirova, Statistics and Data Mining</li>
-					<li><i class="fa-li fa fa-circle"></i>Vivek Philip, Visualization</li>
-					<li><i class="fa-li fa fa-circle"></i>True Price, Searching</li>
-					<li><i class="fa-li fa fa-circle"></i>Charles Stokes, Flask development, Searching</li>
-					<li><i class="fa-li fa fa-circle"></i>Elissa J. Chesler, Fearless Leader</li>
-				</ul>
-				<br>
-			</div>
-		</div>
-	</div>
+            <p>
+                Erich J. Baker, Jeremy J. Jay, Jason A. Bubier, Michael A. Langston, and Elissa J. Chesler.
+                <a href="http://nar.oxfordjournals.org/content/40/D1/D1067.full">Geneweaver: a web-based system for
+                    integrative functional genomics.</a>
+                Nucl. Acids Res. (2012) 40(D1): D1067-D1076
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="panel-body">
+            <p><strong>Contact Us</strong></p>
+
+            <p>For questions or comments about this website or collaboration opportunities please contact <a
+                    href="mailto:Erich_Baker@baylor.edu">Erich Baker</a>
+                or <a href="mailto:Elissa.Chesler@jax.org">Elissa Chesler</a>.</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="panel-body">
+            <p><strong>Many thanks to many people</strong></p>
+
+            <p>There are many people who have contributed to this project over the years. We would especially
+                like to thank the following: </p>
+            <ul class="fa-ul">
+                <li><i class="fa-li fa fa-circle"></i>Jeremy Jay, Lead Developer</li>
+                <li><i class="fa-li fa fa-circle"></i>Keith Sheppard, Flask Developer</li>
+                <li><i class="fa-li fa fa-circle"></i>Charles Phillips, Algorithm Developer</li>
+                <li><i class="fa-li fa fa-circle"></i>Zuopan Li, Web Programmer</li>
+                <li><i class="fa-li fa fa-circle"></i>Michael A. Langston, Graph Algorithms Team Leader</li>
+                <li><i class="fa-li fa fa-circle"></i>Yun Zhang, Graph Algorithms</li>
+                <li><i class="fa-li fa fa-circle"></i>Erich J. Baker, Database Design Leader</li>
+                <li><i class="fa-li fa fa-circle"></i>Roumyana Kirova, Statistics and Data Mining</li>
+                <li><i class="fa-li fa fa-circle"></i>Vivek Philip, Visualization</li>
+                <li><i class="fa-li fa fa-circle"></i>True Price, Searching</li>
+                <li><i class="fa-li fa fa-circle"></i>Charles Stokes, Flask development, Searching</li>
+                <li><i class="fa-li fa fa-circle"></i>Elissa J. Chesler, Fearless Leader</li>
+            </ul>
+            <br>
+        </div>
+    </div>
+    <div class="row">
+        <div class="panel-body">
+            <a href="http://www.neuinfo.org/" style="padding:10px;">
+                <img src="{{ url_for('static', filename='images/registered_with_nif_button.jpg') }}"
+                     alt="Registered with NIF"
+                     style="border:none; margin-bottom:10px;  margin-left: 25px; margin-right: 25px;"></a>
+            </a>
+            <a href="http://www.jax.org/" style="margin-bottom: 10px;"><img width="200" height="85"
+                                                                            src="/static/images/jax.gif" alt="JAX"
+                                                                            style="margin-bottom: 10px;  border:1px solid #021a40">
+            </a>
+        </div>
+    </div>
+
+</div>
 
 
 {% include 'footer.html' %}
