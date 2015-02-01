@@ -31,8 +31,7 @@
         <br/>
         {% if "user" not in g %}
             You can <a href="{{ url_for('render_login')|safe }}">sign in</a>,
-            <a href="{{ url_for('render_register')|safe }}">create an account</a> if you don't yet have
-            one, or continue to use GeneWeaver anonymously.
+            <a href="{{ url_for('render_register')|safe }}">create an account</a>, or continue to use GeneWeaver anonymously.
             <br/>
         {% endif %}
         <!--
