@@ -524,7 +524,77 @@ def edit_results_by_runhash(rargs):
         return
 
 
+def get_server_side_genesets(rargs):
+    user_id = rargs.get('user_id', type=int)
+
+    select_columns = ['sp_id', 'gs_count', 'gs_id', 'gs_name']
+    select_clause = "SELECT gs_status, sp_id, gs_count, gs_id, gs_name FROM geneset WHERE usr_id=48"
+    source_columns = ['cast(sp_id as text)', 'cast(gs_count as text)', 'cast(gs_id as text)', 'cast(gs_name as text)']
+
+    # Paging
+    iDisplayStart = rargs.get('start', type=int)
+    iDisplayLength = rargs.get('length', type=int)
+    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
+        if (iDisplayStart is not None and iDisplayLength != -1) \
+        else ''
+
+    # searching
+    search_value = rargs.get('search[value]')
+    search_clauses = []
+    if search_value:
+        for i in range(len(source_columns)):
+            search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
+        search_clause = 'OR '.join(search_clauses)
+    else:
+        search_clause = ''
+
+    # Sorting
+    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+    sorting_direction = rargs.get('order[0][dir]', type=str)
+    sort_dir = 'ASC NULLS LAST' \
+        if sorting_direction == 'asc' \
+        else 'DESC NULLS LAST'
+    order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
+
+    # joins all clauses together as a query
+    where_clause = ' AND %s' % search_clause if search_clause else ''
+    # print where_clause
+    sql = ' '.join([select_clause,
+                    where_clause,
+                    order_clause,
+                    limit_clause]) + ';'
+    print sql
+
+    with PooledCursor() as cursor:
+        # cursor.execute(sql, ac_patterns + pc_patterns)
+        cursor.execute(sql)
+        things = cursor.fetchall()
+
+        sEcho = rargs.get('sEcho', type=int)
+
+        # Count of all values in table
+        cursor.execute('SELECT COUNT(*) FROM result WHERE usr_id = %d' % user_id)
+        iTotalRecords = cursor.fetchone()[0]
+
+        # Count of all values that satisfy WHERE clause
+        iTotalDisplayRecords = iTotalRecords
+        if where_clause:
+            sql = ' '.join([select_clause, where_clause]) + ';'
+            # cursor.execute(sql, ac_patterns + pc_patterns)
+            cursor.execute(sql)
+            iTotalDisplayRecords = cursor.rowcount
+
+        response = {'sEcho': sEcho,
+                    'iTotalRecords': iTotalRecords,
+                    'iTotalDisplayRecords': iTotalDisplayRecords,
+                    'aaData': things
+        }
+
+        return response
+
+
 def get_server_side_results(rargs):
+
     user_id = rargs.get('user_id', type=int)
 
     select_columns = ['temp', 'res_name', 'res_created', 'res_description', 'res_id', 'res_runhash', 'res_duration']

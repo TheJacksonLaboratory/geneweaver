@@ -26,7 +26,7 @@
 	 var headerCols = {{headerCols | safe}};
 	 var table = $('#resultsViewer').dataTable( {
         	"dom": 'T<"clear">lfrtip',
-        	"tableTools": { "sSwfPath": "copy_csv_xls_pdf.swf" },
+        	"tableTools": { "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf" },
             "processing": true,
             "serverSide": true,
             "ajax": {
@@ -211,7 +211,7 @@
 				</div>
 				<div class="modal-body">
 					<h4>Are you sure that you want to delete this result?
-					This will permently remove all history of this experimental result.</h4>
+					This will permanently remove all history of this experimental result.</h4>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

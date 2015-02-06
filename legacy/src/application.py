@@ -331,15 +331,30 @@ def render_viewgeneset(gs_id):
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids)
 
 
-@app.route('/mygenesets.html')
-def render_viewgenesets():
-    # get the genesets belonging to the user
-    user_id = flask.session.get('user_id')
-    if user_id:
-        genesets = geneweaverdb.get_genesets_by_user_id(user_id)
+# @app.route('/mygenesets.html')
+# def render_viewgenesets():
+#     # get the genesets belonging to the user
+#     user_id = flask.session.get('user_id')
+#     if user_id:
+#         genesets = geneweaverdb.get_genesets_by_user_id(user_id)
+#     else:
+#         genesets = None
+#     return flask.render_template('mygenesets.html', genesets=genesets)
+
+@app.route('/mygenesets')
+def render_user_genesets():
+    table = 'production.geneset'
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        columns = []
+        columns.append({'name': 'sp_id'})
+        columns.append({'name': 'gs_count'})
+        columns.append({'name': 'gs_id'})
+        columns.append({'name': 'gs_name'})
+        headerCols = ["-1", "Species", "Count", "ID", "Name", "+1"]
     else:
-        genesets = None
-    return flask.render_template('mygenesets.html', genesets=genesets)
+        headerCols, user_id, columns = None, 0, None
+    return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
 
 
 @app.route('/emphasis.html', methods=['GET', 'POST'])
@@ -684,6 +699,10 @@ def get_db_results_data():
     results = geneweaverdb.get_server_side_results(request.args)
     return json.dumps(results)
 
+@app.route('/getServersideGenesetsdb')
+def get_db_genesets_data():
+    results = geneweaverdb.get_server_side_genesets(request.args)
+    return json.dumps(results)
 
 def str_handler(obj):
     return str(obj)
@@ -706,18 +725,6 @@ def render_share_projects():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
-
-@app.route('/results.html')
-def render_user_results():
-    user_id = None
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-
-        tool_stats = geneweaverdb.tool_stats_by_user(user_id)
-        return flask.render_template('results.html', tool_stats=tool_stats)
-
-    return flask.render_template('results.html')
-
 @app.route('/deleteResults')
 def delete_result():
     if 'user_id' in flask.session:
@@ -731,8 +738,8 @@ def edit_result():
         results = geneweaverdb.edit_results_by_runhash(request.args)
         return json.dumps(results)
 
-@app.route('/results2')
-def render_user_result_datatable():
+@app.route('/results')
+def render_user_results():
     table = 'production.result'
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
