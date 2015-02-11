@@ -3,12 +3,21 @@
 {% import 'macros.html' as macros %}
 
 <style type="text/css">
-td.details-control {
-    background: url('/static/images/purpledot.png') no-repeat center center;
+td.details-control:before {
+    position: relative;
+    background-image: none !important;
+    display: inline-block;
+    font-family: FontAwesome;
+    content: "\f067";
     cursor: pointer;
+    vertical-align: middle;
+    horiz-align: center;
 }
-tr.shown td.details-control {
-    background: url('/static/images/plus2.gif') no-repeat center center;
+tr.shown td.details-control:before {
+    content: "\f068";
+}
+.datatablerowhighlight {
+    background-color: #ECFFB3;
 }
 </style>
 
@@ -25,20 +34,18 @@ tr.shown td.details-control {
             <script>
                 function format(d) {
                     // `d` is the original data object for the row
-                    return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">' +
+                    return '<tr><td colspan=7><table class="table">' +
                             '<tr>' +
-                            '<td>'+ d.gs_id+'</td>' +
-                            '<td>What\'s in a name anyway</td>' +
+                            '<td align=right width=25%><strong>GeneSet Label:</strong> </td>'+
+                            '<td><p>'+d[5]+'</p></td></tr>'+
+                            '<tr><td align=right width=25%><strong>Desscription:</strong> </td>'+
+                            '<td><p>'+d[6]+'</p></td></tr>'+
+                            '<tr><td align=right width=25%><strong>Date Created:</strong> </td>'+
+                            '<td><p>'+d[7]+'</p></td></tr>'+
+                            '<tr><td align=right width=25%><strong>Last Updated:</strong> </td>'+
+                            '<td><p>'+d[8]+'</p></td>'+
                             '</tr>' +
-                            '<tr>' +
-                            '<td>Extension number:</td>' +
-                            '<td>no comment</td>' +
-                            '</tr>' +
-                            '<tr>' +
-                            '<td>Extra info:</td>' +
-                            '<td>And any further details here (images etc)...</td>' +
-                            '</tr>' +
-                            '</table>';
+                            '</table></td></tr>';
                 }
 
 
@@ -70,10 +77,25 @@ tr.shown td.details-control {
                                 "className": 'details-control',
                                 "orderable": false,
                                 "data": null,
-                                "defaultContent": ''
+                                "defaultContent": '',
+                                "width": "5%"
                             },
-                            {"name": "sp_id"},
-                            {"name": "gs_count"},
+                            {
+                                "name": "sp_id",
+                                "width": "5%"
+                            },
+                            {
+                                "name": "cur_id",
+                                "width": "5%"
+                            },
+                            {
+                                "name": "gs_attribution",
+                                "width": "5%"
+                            },
+                            {
+                                "name": "gs_count",
+                                "width": "5%"
+                            },
                             {"name": "gs_id"},
                             {"name": "gs_name"},
                             {
@@ -83,9 +105,15 @@ tr.shown td.details-control {
                             }
                         ],
 
+
+
                         //"columns": columns,
                         "aoColumnDefs": [
 
+                            {
+                                "aTargets": [0],
+                                "bSortable": false
+                            },
                             {
                                 "aTargets": [1],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
@@ -112,9 +140,56 @@ tr.shown td.details-control {
                                     }
                                 }
                             },
-
-                            {
+                                                            {
                                 "aTargets": [2],
+                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                                    var curID = sData;
+                                    $(nTd).empty();
+                                    switch (curID) {
+                                        case 1:
+                                            $(nTd).append('<span class="tier1">Tier I</span>');
+                                            break;
+                                        case 2:
+                                            $(nTd).append('<span class="tier2">Tier II</span>');
+                                            break;
+                                        case 3:
+                                            $(nTd).append('<span class="tier3">Tier III</span>');
+                                            break;
+                                        case 4:
+                                            $(nTd).append('<span class="tier4">Tier IV</span>');
+                                            break;
+                                        case 5:
+                                            $(nTd).append('<span class="tier5">Tier V</span>');
+                                            break;
+                                    }
+                                }
+                            },
+                                                            {
+                                "aTargets": [3],
+                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                                    var gsAttribution = sData;
+                                    $(nTd).empty();
+                                    switch (gsAttribution) {
+                                        case 2:
+                                            $(nTd).append('<span class="ctd">CTD</span>');
+                                            break;
+                                        case 7:
+                                            $(nTd).append('<span class="drg">DRG</span>');
+                                            break;
+                                        case 8:
+                                            $(nTd).append('<span class="go">GO</span>');
+                                            break;
+                                        case 9:
+                                            $(nTd).append('<span class="mp">MP</span>');
+                                            break;
+                                        case 11:
+                                            $(nTd).append('<span class="mesh">MeSH</span>');
+                                            break;
+                                    }
+                                }
+                            },
+                            {
+                                "aTargets": [4],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                                     var gsSize = sData;
                                     $(nTd).empty();
@@ -123,7 +198,7 @@ tr.shown td.details-control {
                             },
 
                             {
-                                "aTargets": [3],
+                                "aTargets": [5],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                                     var gsID = sData;
                                     $(nTd).empty();
@@ -132,15 +207,15 @@ tr.shown td.details-control {
                             },
 
                             {
-                                "aTargets": [4],
+                                "aTargets": [6],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                                     $(nTd).empty();
-                                    $(nTd).append('<p><a href=\"/viewgenesetdetails/' + oData[3] + '\">' + sData + '</a></p>');
+                                    $(nTd).append('<p><a href=\"/viewgenesetdetails/' + oData[5] + '\">' + sData + '</a></p>');
                                 }
                             },
 
                             {
-                                "aTargets": [5],
+                                "aTargets": [7],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
 
                                     /* Delete Button */
@@ -192,54 +267,30 @@ tr.shown td.details-control {
 
                     });
 
-                    //$("tr").click(function() {
-                    $('#mygenesetsViewer tbody').on('click', 'td.details-control', function () {
-                       //if ($(this).find("td:first").length > 0) {
-                           trindex++;
-                        var tr = $(this).closest('tr');
-                        var row = table.aoOpenRows(tr);
-                        alert(row);
-                        if (tr.child.isShown){
-                            alert('top');
-                            tr.child.hide();
-                            //tr.removeClass('shown');
-                        }
-                        else {
-                            alert('here');
-                            tr.child(format(row.data())).show();
-                            //tr.addClass('shown');
-                        }
-                        //var row= '><td>bang</td></tr>';
-
-                           //adding animation to row
-                            //var newRow = $("<tr id=tr"+ trindex + row).animate({
-                            //    height: "140px",
-                            //    opacity: 0.25
-                            //}, 500);
-                            //$(this).after(newRow);
-
-                    });
 
 
                     // Add event listener for opening and closing details
-                    //$('#mygenesetsViewer tbody').on('click', 'td.details-control', function () {
-                    //    alert('one');
-                    //    var $tr = $(this).closest('tr');
-                    //    alert($tr.html());
-                    //    var row = table.row.add($tr);
-                    //    alert(row);
-                        //if (row.child.isShown()) {
-                            // This row is already open - close it
-                        //    row.child.hide();
-                        //    tr.removeClass('shown');
-                        //}
-                        //else {
-                    //        alert('not open');
+                    $('#mygenesetsViewer tbody').on('click', 'td.details-control', function () {
+                        var tr = $(this).closest('tr');
+                        var T = table.fnGetData(tr);
+                        var row = $(this).parents(tr);
+
+                        if (tr.hasClass('shown')) {
+                            tr.next().hide();
+                            tr.removeClass('shown');
+                        }
+                        else {
                             // Open this row
-                    //        row.child(format(row.data())).show();
-                    //        tr.addClass('shown');
-                        //}
-                    //});
+                            var newRow = $(format(T)).animate({
+                                height: "100px",
+                                opacity: 0.75
+                            }, 500);
+                            tr.after(newRow);
+                            tr.addClass('shown');
+                        }
+                    });
+
+
 
                 });
 

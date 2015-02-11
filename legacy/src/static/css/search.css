@@ -307,7 +307,7 @@
 
 .tier1, .tier2, .tier3, .tier4, .tier5,
 .mouse, .human, .rat, .fly, .zebrafish, .monkey,
-.ctd, .drg, .go, .mp,
+.ctd, .drg, .go, .mp, .mesh,
 .gs_size, .gs_provisional, .gs_deprecated, .gs_deleted,
 .group_name {
     color: black;
@@ -396,6 +396,11 @@
 .mp {
     background-color: #db4d4d;
     border:1px solid black;
+}
+
+.mesh {
+    background-color: darkseagreen;
+    border: 1px solid #000000;
 }
 
 .gs_size {

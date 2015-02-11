@@ -527,9 +527,12 @@ def edit_results_by_runhash(rargs):
 def get_server_side_genesets(rargs):
     user_id = rargs.get('user_id', type=int)
 
-    select_columns = ['sp_id', 'gs_count', 'gs_id', 'gs_name']
-    select_clause = "SELECT gs_status, sp_id, gs_count, gs_id, gs_name FROM geneset WHERE usr_id=48"
-    source_columns = ['cast(sp_id as text)', 'cast(gs_count as text)', 'cast(gs_id as text)', 'cast(gs_name as text)']
+    select_columns = ['sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
+    select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
+                    to_char(gs_created, '%s'), to_char(gs_updated, '%s') FROM geneset WHERE usr_id=%s""" % \
+                    ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
+    source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)', 'cast(gs_count as text)',
+                      'cast(gs_id as text)', 'cast(gs_name as text)']
 
     # Paging
     iDisplayStart = rargs.get('start', type=int)

@@ -331,16 +331,6 @@ def render_viewgeneset(gs_id):
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids)
 
 
-# @app.route('/mygenesets.html')
-# def render_viewgenesets():
-#     # get the genesets belonging to the user
-#     user_id = flask.session.get('user_id')
-#     if user_id:
-#         genesets = geneweaverdb.get_genesets_by_user_id(user_id)
-#     else:
-#         genesets = None
-#     return flask.render_template('mygenesets.html', genesets=genesets)
-
 @app.route('/mygenesets')
 def render_user_genesets():
     table = 'production.geneset'
@@ -348,10 +338,12 @@ def render_user_genesets():
         user_id = flask.session['user_id']
         columns = []
         columns.append({'name': 'sp_id'})
+        columns.append({'name': 'cur_id'})
+        columns.append({'name': 'gs_attribution'})
         columns.append({'name': 'gs_count'})
         columns.append({'name': 'gs_id'})
         columns.append({'name': 'gs_name'})
-        headerCols = ["-1", "Species", "Count", "ID", "Name", "+1"]
+        headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
     else:
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
