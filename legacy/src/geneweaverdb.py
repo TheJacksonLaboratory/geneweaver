@@ -113,7 +113,7 @@ class Project:
 
         # TODO in the database this is column 'pj_groups'. The name suggests
         # that this field can contain multiple groups but it looks like
-        #      in practice (in the DB) it is always a single integer value. This is why
+        # in practice (in the DB) it is always a single integer value. This is why
         #      I name it singular "group_id" here, but this should be confirmed
         #      by Erich
         self.group_id = proj_dict['pj_groups']
@@ -432,6 +432,7 @@ def get_all_species():
         cursor.execute('''SELECT sp_id, sp_name FROM species  ORDER BY sp_id;''')
         return OrderedDict(cursor)
 
+
 def get_all_attributions():
     """
     returns an ordered mapping from attribution ID to attribution name for all available attributions
@@ -441,10 +442,11 @@ def get_all_attributions():
     gs_attribution set to 1. They are either NULL or 0.
     """
     with PooledCursor() as cursor:
-        #TODO resolve issue of the null at_abbrev. For now this is truncated for the search feature, but could be
+        # TODO resolve issue of the null at_abbrev. For now this is truncated for the search feature, but could be
         #enabled in the future.
         cursor.execute('''select at_id, at_abbrev from attribution WHERE at_abbrev IS NOT NULL ORDER BY at_id;''')
         return OrderedDict(cursor)
+
 
 def resolve_feature_id(sp_id, feature_id):
     """
@@ -527,12 +529,86 @@ def edit_results_by_runhash(rargs):
 def get_server_side_genesets(rargs):
     user_id = rargs.get('user_id', type=int)
 
-    select_columns = ['sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
+    select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
     select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
-                    to_char(gs_created, '%s'), to_char(gs_updated, '%s') FROM geneset WHERE usr_id=%s""" % \
+                    to_char(gs_created, '%s'), to_char(gs_updated, '%s') FROM geneset WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
-    source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)', 'cast(gs_count as text)',
+    source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
+                      'cast(gs_count as text)',
                       'cast(gs_id as text)', 'cast(gs_name as text)']
+
+    # Paging
+    iDisplayStart = rargs.get('start', type=int)
+    iDisplayLength = rargs.get('length', type=int)
+    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
+        if (iDisplayStart is not None and iDisplayLength != -1) \
+        else ''
+
+    # searching
+    search_value = rargs.get('search[value]')
+    search_clauses = []
+    if search_value:
+        for i in range(len(source_columns)):
+            search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
+        search_clause = 'OR '.join(search_clauses)
+    else:
+        search_clause = ''
+
+    # Sorting
+    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+    sorting_direction = rargs.get('order[0][dir]', type=str)
+    sort_dir = 'ASC NULLS LAST' \
+        if sorting_direction == 'asc' \
+        else 'DESC NULLS LAST'
+    order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
+
+    # joins all clauses together as a query
+    where_clause = ' AND %s' % search_clause if search_clause else ''
+    # print where_clause
+    sql = ' '.join([select_clause,
+                    where_clause,
+                    order_clause,
+                    limit_clause]) + ';'
+    print sql
+
+    with PooledCursor() as cursor:
+        # cursor.execute(sql, ac_patterns + pc_patterns)
+        cursor.execute(sql)
+        things = cursor.fetchall()
+
+        sEcho = rargs.get('sEcho', type=int)
+
+        # Count of all values in table
+        cursor.execute("SELECT COUNT(*) FROM geneset WHERE gs_status NOT LIKE 'de%%' AND usr_id = %d" % user_id)
+        iTotalRecords = cursor.fetchone()[0]
+
+        # Count of all values that satisfy WHERE clause
+        iTotalDisplayRecords = iTotalRecords
+        if where_clause:
+            sql = ' '.join([select_clause, where_clause]) + ';'
+            # cursor.execute(sql, ac_patterns + pc_patterns)
+            cursor.execute(sql)
+            iTotalDisplayRecords = cursor.rowcount
+
+        response = {'sEcho': sEcho,
+                    'iTotalRecords': iTotalRecords,
+                    'iTotalDisplayRecords': iTotalDisplayRecords,
+                    'aaData': things
+        }
+
+        return response
+
+
+def get_server_side_results(rargs):
+    user_id = rargs.get('user_id', type=int)
+
+    select_columns = ['temp', 'res_name', 'res_created', 'res_description', 'res_id', 'res_runhash', 'res_duration']
+    select_clause = """SELECT cast(to_char((select now() - res_created), 'DDD') as int) as temp, res_name,
+                    to_char(res_created, '%s') as res_created, res_description, res_id, res_runhash,
+                    to_char(age(res_completed, res_created), '%s') as res_duration FROM result
+                    WHERE usr_id=%s """ % ('YYYY-MM-DD', 'HH24:MI:SS', user_id,)
+    source_columns = ['cast(res_id as text)', 'cast(res_runhash as text)', 'cast(res_created as text)',
+                      'cast(res_name as text)', 'cast(res_description as text)']
 
     # Paging
     iDisplayStart = rargs.get('start', type=int)
@@ -596,79 +672,6 @@ def get_server_side_genesets(rargs):
         return response
 
 
-def get_server_side_results(rargs):
-
-    user_id = rargs.get('user_id', type=int)
-
-    select_columns = ['temp', 'res_name', 'res_created', 'res_description', 'res_id', 'res_runhash', 'res_duration']
-    select_clause = """SELECT cast(to_char((select now() - res_created), 'DDD') as int) as temp, res_name,
-                    to_char(res_created, '%s') as res_created, res_description, res_id, res_runhash,
-                    to_char(age(res_completed, res_created), '%s') as res_duration FROM result
-                    WHERE usr_id=%s """ % ('YYYY-MM-DD', 'HH24:MI:SS', user_id,)
-    source_columns = ['cast(res_id as text)', 'cast(res_runhash as text)', 'cast(res_created as text)', 'cast(res_name as text)', 'cast(res_description as text)']
-
-    # Paging
-    iDisplayStart = rargs.get('start', type=int)
-    iDisplayLength = rargs.get('length', type=int)
-    limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
-        if (iDisplayStart is not None and iDisplayLength != -1) \
-        else ''
-
-    # searching
-    search_value = rargs.get('search[value]')
-    search_clauses = []
-    if search_value:
-        for i in range(len(source_columns)):
-            search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
-        search_clause = 'OR '.join(search_clauses)
-    else:
-        search_clause = ''
-
-    # Sorting
-    sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
-    sorting_direction = rargs.get('order[0][dir]', type=str)
-    sort_dir = 'ASC NULLS LAST' \
-        if sorting_direction == 'asc' \
-        else 'DESC NULLS LAST'
-    order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
-
-    # joins all clauses together as a query
-    where_clause = ' AND %s' % search_clause if search_clause else ''
-    # print where_clause
-    sql = ' '.join([select_clause,
-                    where_clause,
-                    order_clause,
-                    limit_clause]) + ';'
-    print sql
-
-    with PooledCursor() as cursor:
-        # cursor.execute(sql, ac_patterns + pc_patterns)
-        cursor.execute(sql)
-        things = cursor.fetchall()
-
-        sEcho = rargs.get('sEcho', type=int)
-
-        # Count of all values in table
-        cursor.execute('SELECT COUNT(*) FROM result WHERE usr_id = %d' % user_id)
-        iTotalRecords = cursor.fetchone()[0]
-
-        # Count of all values that satisfy WHERE clause
-        iTotalDisplayRecords = iTotalRecords
-        if where_clause:
-            sql = ' '.join([select_clause, where_clause]) + ';'
-            #cursor.execute(sql, ac_patterns + pc_patterns)
-            cursor.execute(sql)
-            iTotalDisplayRecords = cursor.rowcount
-
-        response = {'sEcho': sEcho,
-                    'iTotalRecords': iTotalRecords,
-                    'iTotalDisplayRecords': iTotalDisplayRecords,
-                    'aaData': things
-        }
-
-        return response
-
-
 def get_server_side(rargs):
     source_table = rargs.get('table', type=str)
     user_id = rargs.get('user_id', type=int)
@@ -686,7 +689,7 @@ def get_server_side(rargs):
         i = i + 1
         temp = rargs.get('columns[%d][name]' % i)
 
-    #select and from clause creation
+    # select and from clause creation
     select_clause = 'SELECT %s ' % ','.join(select_columns)
     from_clause = 'FROM %s' % source_table
 
@@ -759,19 +762,21 @@ def get_server_side(rargs):
 
         return response
 
+
 def get_all_columns(table):
     sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s'AND table_schema='%s';''' % (
-    table.split(".")[1], table.split(".")[0])
+        table.split(".")[1], table.split(".")[0])
     try:
         with PooledCursor() as cursor:
             cursor.execute(sql)
             return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)
+
 
 def get_primary_keys(table):
     sql = '''SELECT pg_attribute.attname FROM pg_index, pg_class, pg_attribute WHERE pg_class.oid = '%s'::regclass AND indrelid = pg_class.oid AND pg_attribute.attrelid = pg_class.oid AND pg_attribute.attnum = any(pg_index.indkey) AND indisprimary;''' % (
-    table)
+        table)
     try:
         with PooledCursor() as cursor:
             cursor.execute(sql)
@@ -780,10 +785,10 @@ def get_primary_keys(table):
         return str(e)
 
 
-#get all columns for a table that aren't auto increment and can't be null
+# get all columns for a table that aren't auto increment and can't be null
 def get_required_columns(table):
     sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s'AND table_schema='%s' AND is_nullable='NO' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (
-    table.split(".")[1], table.split(".")[0], table.split(".")[1], "%nextval(%", table.split(".")[0])
+        table.split(".")[1], table.split(".")[0], table.split(".")[1], "%nextval(%", table.split(".")[0])
     try:
         with PooledCursor() as cursor:
             cursor.execute(sql)
@@ -795,7 +800,7 @@ def get_required_columns(table):
 #gets all columns for a table that aren't auto increment and can be null
 def get_nullable_columns(table):
     sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND table_schema='%s' AND is_nullable='YES' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (
-    table.split(".")[1], table.split(".")[0], table.split(".")[1], "%nextval(%", table.split(".")[0])
+        table.split(".")[1], table.split(".")[0], table.split(".")[1], "%nextval(%", table.split(".")[0])
     print sql
     try:
         with PooledCursor() as cursor:
@@ -1041,7 +1046,7 @@ def size_of_genesets():
 
 def avg_tool_times(keys, tool):
     sql = '''SELECT avg(res_completed - res_started) FROM production.result WHERE res_tool='%s' AND res_id=%s;''' % (
-    tool, ' OR res_id='.join(str(v) for v in keys))
+        tool, ' OR res_id='.join(str(v) for v in keys))
     #print sql
     try:
         with PooledCursor() as cursor:
