@@ -3,22 +3,29 @@
 {% import 'macros.html' as macros %}
 
 <style type="text/css">
-td.details-control:before {
-    position: relative;
-    background-image: none !important;
-    display: inline-block;
-    font-family: FontAwesome;
-    content: "\f067";
-    cursor: pointer;
-    vertical-align: middle;
-    horiz-align: center;
-}
-tr.shown td.details-control:before {
-    content: "\f068";
-}
-.datatablerowhighlight {
-    background-color: #ECFFB3;
-}
+    td.details-control:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    tr.shown td.details-control:before {
+        content: "\f068";
+    }
+
+    .datatablerowhighlight {
+        background-color: #ECFFB3;
+    }
+
+    .row_selected {
+        background-color: #000000;
+    }
+
 </style>
 
 
@@ -36,14 +43,14 @@ tr.shown td.details-control:before {
                     // `d` is the original data object for the row
                     return '<tr><td colspan=7><table class="table">' +
                             '<tr>' +
-                            '<td align=right width=25%><strong>GeneSet Label:</strong> </td>'+
-                            '<td><p>'+d[5]+'</p></td></tr>'+
-                            '<tr><td align=right width=25%><strong>Desscription:</strong> </td>'+
-                            '<td><p>'+d[6]+'</p></td></tr>'+
-                            '<tr><td align=right width=25%><strong>Date Created:</strong> </td>'+
-                            '<td><p>'+d[7]+'</p></td></tr>'+
-                            '<tr><td align=right width=25%><strong>Last Updated:</strong> </td>'+
-                            '<td><p>'+d[8]+'</p></td>'+
+                            '<td align=right width=25%><strong>GeneSet Label:</strong> </td>' +
+                            '<td><p>' + d[5] + '</p></td></tr>' +
+                            '<tr><td align=right width=25%><strong>Desscription:</strong> </td>' +
+                            '<td><p>' + d[6] + '</p></td></tr>' +
+                            '<tr><td align=right width=25%><strong>Date Created:</strong> </td>' +
+                            '<td><p>' + d[7] + '</p></td></tr>' +
+                            '<tr><td align=right width=25%><strong>Last Updated:</strong> </td>' +
+                            '<td><p>' + d[8] + '</p></td>' +
                             '</tr>' +
                             '</table></td></tr>';
                 }
@@ -56,15 +63,19 @@ tr.shown td.details-control:before {
                 var editor;
                 $(document).ready(function () {
 
-                    var trindex = 0;
+                    //var trindex = 0;
                     var dbtable = '{{table}}';
                     var user_id = '{{user_id}}';
                     var columns = {{columns | safe}};
-                    var numCols = columns.length;
+                    //var numCols = columns.length;
                     var headerCols = {{headerCols | safe}};
                     var table = $('#mygenesetsViewer').dataTable({
-                        "dom": 'T<"clear">lfrtip',
-                        "tableTools": {"sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf"},
+                        "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+                        "tableTools":
+                            {"sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+			                "sRowSelect": "multi"
+			                //"aButtons": [ "select_all", "select_none" ]
+		                    },
                         "processing": true,
                         "serverSide": true,
                         "ajax": {
@@ -106,7 +117,6 @@ tr.shown td.details-control:before {
                         ],
 
 
-
                         //"columns": columns,
                         "aoColumnDefs": [
 
@@ -140,7 +150,7 @@ tr.shown td.details-control:before {
                                     }
                                 }
                             },
-                                                            {
+                            {
                                 "aTargets": [2],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                                     var curID = sData;
@@ -164,7 +174,7 @@ tr.shown td.details-control:before {
                                     }
                                 }
                             },
-                                                            {
+                            {
                                 "aTargets": [3],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                                     var gsAttribution = sData;
@@ -268,7 +278,6 @@ tr.shown td.details-control:before {
                     });
 
 
-
                     // Add event listener for opening and closing details
                     $('#mygenesetsViewer tbody').on('click', 'td.details-control', function () {
                         var tr = $(this).closest('tr');
@@ -290,7 +299,22 @@ tr.shown td.details-control:before {
                         }
                     });
 
+                    //Add event listener for multiple row selection
+                    $('#mygenesetsViewer tbody').on( 'click', 'tr', function () {
+                        $(this).toggleClass('selected');
+                    } );
 
+                    $('#addToProject').on('click', function () {
+                        var oTT = TableTools.fnGetInstance('mygenesetsViewer');
+                        var aselectedTrs = oTT.fnGetSelectedData().length;
+                        alert(aselectedTrs);
+                    } );
+
+                    //Boo! Does not work!
+                    $('#mygenesetsViewer tbody').on('click', 'tr', function (e) {
+                        $(this).closest('tr').addClass('selected');
+                        // do other things here...
+                    });
 
                 });
 
@@ -304,6 +328,17 @@ tr.shown td.details-control:before {
             </div>
 
             <div class="panel panel-default">
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-success btn-transparent" id="addToProject">
+                            Add to Project</button>
+
+                        <button type="button" class="btn btn-warning btn-transparent" id="helpMyGenesets">
+                            Info</button>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
 
@@ -341,7 +376,8 @@ tr.shown td.details-control:before {
                     </div>
                     <div class="modal-body">
                         <h4>Are you sure that you want to delete this GeneSet?
-                            This will permanently remove this GeneSet and may produce concurrency issues in projects.</h4>
+                            This will permanently remove this GeneSet and may produce concurrency issues in
+                            projects.</h4>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
