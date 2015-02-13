@@ -309,8 +309,18 @@
 
                     $('#addToProject').on('click', function () {
                         var oTT = TableTools.fnGetInstance('mygenesetsViewer');
-                        var aselectedTrs = oTT.fnGetSelectedData().length;
-                        alert(aselectedTrs);
+                        var aselectedTrs = oTT.fnGetSelectedData();
+                        var gsid = [];
+                        for (var k in aselectedTrs){
+                            gsid.push(aselectedTrs[k][5]);
+                        }
+                        if (aselectedTrs == 0) {
+                           $("#myAlert").modal('show');
+                        }
+                        else {
+                            $("#myModalLabel").html(gsid);
+                            $("#addToProjectModal").modal('show');
+                        }
                     });
 
 
@@ -424,6 +434,63 @@
                 </div>
             </div>
         </div>
+
+        {% if g.user is defined %}
+            <div class="modal fade" id="addToProjectModal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-green">
+                            <h3 class="modal-title" style="color: #f5f5f5">Add Selected GeneSets to Projects</h3>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row"><h4>These are the GeneSets you have selected</h4></div>
+                            <div><span class="rows" id="myModalLabel"></span></div>
+                            <table class="table table-striped">
+
+                                {% for currProj in g.user.projects %}
+                                    <tr>
+                                        <td>
+                                            <input
+                                                    type="checkbox"
+                                                    {#   class="modal_checkbox_{{ gs.geneset_id }}" #}
+                                                    name="{{ currProj.project_id }}">
+                                        </td>
+                                        <td>
+                                            {{ currProj.name }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-warning" onclick="addToSelected('')"
+                                    data-dismiss="modal">Add to selected projects
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="modal fade" id="myAlert">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-green">
+                        <h3 class="modal-title" style="color: #f5f5f5">No GeneSets Selected</h3>
+                    </div>
+                    <div class="modal-body">
+                        <h4>You must select at least one GeneSet to add to your projects.</h4>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-error" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
 
 
 
