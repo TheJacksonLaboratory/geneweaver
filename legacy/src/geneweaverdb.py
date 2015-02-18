@@ -494,6 +494,57 @@ def get_microarray_types(sp_id=0):
 
 # *************************************
 
+def delete_geneset_by_gsid(rargs):
+    usr_id = rargs.get('user_id', type=int)
+    gs_id = rargs.get('gs_id', type=int)
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            UPDATE geneset
+            SET gs_status = 'deleted'
+            WHERE gs_id =%s AND usr_id =%s;
+            ''',
+            (gs_id, usr_id,)
+        )
+        cursor.connection.commit()
+        return
+
+def add_project(usr_id, pj_name):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' INSERT INTO production.project
+                (usr_id, pj_name) VALUES (%s, %s)
+                RETURNING pj_id;
+                ''', (user, pj_name,))
+        cursor.connection.commit()
+    return cursor.fetchone()
+
+def add_geneset2project(pj_id, gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' INSERT INTO geneset2project
+              (pj_id, gs_id) VALUES (%s, %s)
+              ''', (pj_id, gs_id,)
+        )
+        cursor.connection.commit()
+    return
+
+def add_genesets_to_projects(rargs):
+    usr_id = rargs.get('user_id', type=int)
+    npn = rargs.get('npn', type=str)
+    gs_ids = rargs.get('gs_id', type=str)
+    checked = json.loads(rargs.get('option', type=str))
+    if (gs_ids is not None):
+        if (npn is not None):
+            new_pj_id = add_project(usr_id, npn)
+            checked.append(new_pj_id)
+        gs_id = gs_ids.split(',')
+        for pj_id in checked:
+           for g in gs_id:
+               g = g.strip()
+               add_geneset2project(pj_id, g)
+    return
+
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir
     user_id = rargs.get('user_id', type=int)

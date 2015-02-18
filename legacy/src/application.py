@@ -717,6 +717,18 @@ def render_share_projects():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
+@app.route('/addGenesetsToProjects')
+def add_genesets_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.add_genesets_to_projects(request.args)
+        return json.dumps(results)
+
+@app.route('/deleteGeneset')
+def delete_geneset():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.delete_geneset_by_gsid(request.args)
+        return json.dumps(results)
+
 @app.route('/deleteResults')
 def delete_result():
     if 'user_id' in flask.session:

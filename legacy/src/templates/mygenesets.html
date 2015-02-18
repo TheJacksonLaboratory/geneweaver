@@ -267,6 +267,9 @@
                                                 success: function (data) {
                                                     table.fnClearTable(0);
                                                     table.fnDraw();
+                                                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                                    '</button>GeneSet successfully deleted</div>');
                                                 }
                                             });
                                         });
@@ -332,9 +335,10 @@
                         }
                     });
 
-                    //$('#addNewProject').on('click', function(){
-                    //    $("#addNewProjectModal").modal('show');
-                    //});
+                    $('#addNewProject').on('click', function () {
+                        $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+                        '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+                    });
 
                     $('#mygenesetsViewer tbody').on('click', 'tr', function () {
                         var id = this.id;
@@ -348,23 +352,32 @@
                     });
 
                     $('#addGenesetsToProjects').on('click', function (e) {
-
                         var checked = [];
                         $("input[name='options[]']:checked").each(function () {
                             checked.push(parseInt($(this).val()));
                         });
-
+                        var option = JSON.stringify(checked);
                         var g = $('#myModalValue').val();
-                        //$.ajax({
-                        //    type: "GET",
-                        //    url: "../editResults",
-                        //    data: {"runHash": cellData, "user_id": user_id, "editName": editName},
-                        //    success: function (data) {
-                        //        table.fnClearTable(0);
-                        //        table.fnDraw();
-                        //    }
-                        //});
-
+                        var npn = $('#newProjName').val();
+                        if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>No Projects Were Selected</div>');
+                        }
+                        else {
+                            $.ajax({
+                                type: "GET",
+                                url: "../addGenesetsToProjects",
+                                data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
+                                success: function (data) {
+                                    table.fnClearTable(0);
+                                    table.fnDraw();
+                                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>Genesets Successfully Added to Selected Projects</div>');
+                                }
+                            });
+                        }
                     });
 
 
@@ -374,6 +387,7 @@
 
             <p>
 
+            <div class="row" id="result"></div>
 
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>My GeneSets </strong></h3>
@@ -456,6 +470,7 @@
                                 <h3 class="modal-title" style="color: #f5f5f5">Add Selected GeneSets to Projects</h3>
                             </div>
                             <div class="modal-body">
+                                <div class="row" id="modalError"></div>
                                 <div class="row">
                                     <h4>Please select the Projects to which to add GeneSets
                                         <span class="rows" id="myModalLabel"></span>
@@ -469,27 +484,19 @@
                                         </button>
                                     </div>
                                 </div>
+                                <div class="row" id="reveal-if-active"></div>
                                 <div class="row" style="padding-top: 10px">
-                                    <table class="table table-striped">
-
-                                        {% for currProj in g.user.projects %}
-                                            <tr>
-                                                <td>
-                                                    <input
-                                                            type="checkbox"
-                                                            name="options[]"
-                                                            id="addProjects"
-                                                            value="{{ currProj.project_id }}">
-                                                    </input>
-                                                    {{ currProj.project_id }}
-                                                </td>
-                                                <td>
-                                                    {{ currProj.name }}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                        <input type="hidden" id="myModalValue" name="gs_id" value=""/>
-                                    </table>
+                                    {% for currProj in g.user.projects %}
+                                        <label for="addProjects{{ currProj.project_id }}"
+                                               class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off">
+                                            {{ currProj.name }}</label>
+                                        <input
+                                                type="checkbox"
+                                                name="options[]"
+                                                id="addProjects{{ currProj.project_id }}"
+                                                value="{{ currProj.project_id }}">
+                                    {% endfor %}
+                                    <input type="hidden" id="myModalValue" name="gs_id" value=""/>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -504,7 +511,7 @@
             </div>
         {% endif %}
 
-        
+
         <div class="modal fade" id="myAlert">
             <div class="modal-dialog">
                 <div class="modal-content">
