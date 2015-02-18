@@ -515,16 +515,18 @@ def add_project(usr_id, pj_name):
             ''' INSERT INTO production.project
                 (usr_id, pj_name) VALUES (%s, %s)
                 RETURNING pj_id;
-                ''', (user, pj_name,))
+                ''', (usr_id, pj_name,))
         cursor.connection.commit()
     return cursor.fetchone()
 
 def add_geneset2project(pj_id, gs_id):
+    gs_id = gs_id[2:]
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' INSERT INTO geneset2project
-              (pj_id, gs_id) VALUES (%s, %s)
-              ''', (pj_id, gs_id,)
+            ''' IF NOT EXISTS (SELECT pj_id, gs_id FROM project2geneset WHERE pj_id=%s AND gs_id=%s)
+                INSERT INTO project2geneset
+                (pj_id, gs_id) VALUES (%s, %s)
+              ''', (pj_id, gs_id, pj_id, gs_id)
         )
         cursor.connection.commit()
     return

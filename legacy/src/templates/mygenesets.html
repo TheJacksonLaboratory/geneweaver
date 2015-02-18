@@ -370,6 +370,7 @@
                                 url: "../addGenesetsToProjects",
                                 data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
                                 success: function (data) {
+                                    window.location.reload();
                                     table.fnClearTable(0);
                                     table.fnDraw();
                                     $("#result").html('<div class="alert alert-success fade in"> ' +
