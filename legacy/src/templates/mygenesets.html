@@ -361,8 +361,8 @@
                         var npn = $('#newProjName').val();
                         if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
                             $("#result").html('<div class="alert alert-danger fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>No Projects Were Selected</div>');
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>No Projects Were Selected</div>');
                         }
                         else {
                             $.ajax({
@@ -370,12 +370,13 @@
                                 url: "../addGenesetsToProjects",
                                 data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
                                 success: function (data) {
-                                    window.location.reload();
                                     table.fnClearTable(0);
                                     table.fnDraw();
                                     $("#result").html('<div class="alert alert-success fade in"> ' +
-                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                        '</button>Genesets Successfully Added to Selected Projects</div>');
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>Genesets Successfully Added to Selected Projects</div>');
+                                    window.location.reload();
+
                                 }
                             });
                         }
@@ -436,108 +437,21 @@
 
         </div>
 
-
-        <div class="modal fade" id="delModal">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header bg-green">
-                        <h3 class="modal-title" style="color: #f5f5f5" id="delLabel">Delete GeneSet</h3>
-                    </div>
-                    <div class="modal-body">
-                        <h4>Are you sure that you want to delete GeneSet <span class="rows"
-                                                                               id="myGenesetDeleteLabel"></span>?
-                            This will permanently remove this GeneSet and may produce concurrency issues in
-                            projects.</h4>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-warning" id="confirmDelete" data-dismiss="modal">Delete
-                            GeneSet
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        {% include 'modal/deleteGeneset.html' %}
 
         {% if g.user is defined %}
-            <div class="modal fade" id="addToProjectModal">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form id="addGenesetsToProj" name="addGenesetsToProj" method="post" action="#"
-                              class="form-horizontal" novalidate="novalidate">
 
-                            <div class="modal-header bg-green">
-                                <h3 class="modal-title" style="color: #f5f5f5">Add Selected GeneSets to Projects</h3>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row" id="modalError"></div>
-                                <div class="row">
-                                    <h4>Please select the Projects to which to add GeneSets
-                                        <span class="rows" id="myModalLabel"></span>
-                                    </h4>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <button type="button" class="btn btn-success btn-transparent"
-                                                id="addNewProject">
-                                            <i class="fa fa-plus"></i> Add to New Project
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="row" id="reveal-if-active"></div>
-                                <div class="row" style="padding-top: 10px">
-                                    {% for currProj in g.user.projects %}
-                                        <label for="addProjects{{ currProj.project_id }}"
-                                               class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off">
-                                            {{ currProj.name }}</label>
-                                        <input
-                                                type="checkbox"
-                                                name="options[]"
-                                                id="addProjects{{ currProj.project_id }}"
-                                                value="{{ currProj.project_id }}">
-                                    {% endfor %}
-                                    <input type="hidden" id="myModalValue" name="gs_id" value=""/>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-warning" data-dismiss="modal"
-                                        id="addGenesetsToProjects">Add to selected projects
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+            {% include 'modal/addGenesetsToProjects.html' %}
+
         {% endif %}
 
-
-        <div class="modal fade" id="myAlert">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header bg-green">
-                        <h3 class="modal-title" style="color: #f5f5f5">No GeneSets Selected</h3>
-                    </div>
-                    <div class="modal-body">
-                        <h4>You must select at least one GeneSet to add to your projects.</h4>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-error" data-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-
+        {% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 
     {% endblock %}
 
 
 {% endif %}
-
 
 
 

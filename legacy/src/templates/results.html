@@ -145,6 +145,14 @@
                             		var modName = sData.substring(0,15);
                             		$(nTd).append(modName);
                             		$(nTd).append('...');
+                                    $(nTd).popover({
+                                        container: 'body',
+                                        placement: 'right', // top, bottom, left or right
+                                        title : 'Result Name',
+                                        html: 'true',
+                                        content : '<div id="popOverBox">' + sData + '</div>'
+                                        });
+
                             	}
                             	else if (sData.length == 0) {
 									$(nTd).append('<span class="badge badge-info">No Name</span>');
@@ -183,14 +191,14 @@
     				<thead>
       					<tr>
 							{% for col in headerCols %}
-	    					<th style="text-align: left">{{col.capitalize()}}</th>
+	    					<th style="text-align: center">{{col.capitalize()}}</th>
 							{% endfor %}
       					</tr>
     				</thead>
     				<tfoot>
       					<tr>
 							{% for col in headerCols %}
-	    					<th style="text-align: left">{{col.capitalize()}}</th>
+	    					<th style="text-align: center">{{col.capitalize()}}</th>
 							{% endfor %}
       					</tr>
   					</tfoot>
@@ -203,45 +211,11 @@
 </div>
 
 
-	<div class="modal fade" id="delModal">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header bg-green">
-					<h3 class="modal-title" id="delLabel" style="color: #f5f5f5">Delete Result</h3>
-				</div>
-				<div class="modal-body">
-					<h4>Are you sure that you want to delete this result?
-					This will permanently remove all history of this experimental result.</h4>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-					<button type="button" class="btn btn-warning" id="confirmDelete" data-dismiss="modal">Delete Results</button>
-				</div>
-			</div>
-		</div>
-	</div>
+{% include 'modal/deleteResult.html' %}
 
-	<div class="modal fade" id="editModal">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<form id="editResultName" name="editResultName" method="post" action="#" class="form-horizontal" novalidate="novalidate">
-				<div class="modal-header bg-green">
-					<h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Result Name</h3>
-				</div>
-				<div class="modal-body">
-					<div class="form-class">
-							<label for="resultName"><h4>New Result Name:</h4></label>
-							<input class="form-control input-lg" name="resultName" id="resultName" type="text">
-                    </div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-					<button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmit">Submit</button>
-				</div>
-				</form>
-			</div>
-		</div>
-	</div>
+    {% include 'modal/editResultName.html' %}
+
+
 
 
 
