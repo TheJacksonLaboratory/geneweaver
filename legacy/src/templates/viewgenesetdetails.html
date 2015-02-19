@@ -2,94 +2,199 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-<div class="page-header" xmlns="http://www.w3.org/1999/html">
-    <h1>Geneset Details</h1>
+
+<div class="row" id="result"></div>
+
+<div class="panel panel-default panel-heading bg-gray-light">
+    <h3 class="panel-title"><strong>My GeneSets </strong></h3>
 </div>
 
+
 <div class="panel panel-default">
-<div class="panel-heading bg-blue">
-	<h3 class="panel-title">Gene Set #{{geneset.geneset_id}} - {{geneset.name}}</h3>
-</div>
-<div class="panel-body">
-<table class="table table-hover">
-<col width="100">
-  <col width="800">
-<tbody>
-	<tr class="first">
-		<th>Description:</th>
-		<td>{{ geneset.description }}</td>
-	</tr>
-	<tr>
-		<th>Uploaded:</th>
-		<td>{{ geneset.creation_date }}</td>
-	</tr>
-	<tr>
-		<th>Species:</th>
-		<td>
-	{% if geneset.sp_id == 1 %}
-		Mouse
-	{% endif %}
-	{% if geneset.sp_id == 2 %}
-		Human
-	{% endif %}
-	{% if geneset.sp_id == 3 %}
-		Rat
-	{% endif %}
-	{% if geneset.sp_id == 4 %}
-		Zebrafish
-	{% endif %}
-	{% if geneset.sp_id == 5 %}
-		Fly
-	{% endif %}
-	{% if geneset.sp_id == 6 %}
-		Monkey
-	{% endif %}
-		</td>
-	</tr>
-	{% if geneset.uri %}
-	<tr>
-        <th>URI: </th>
-	<td><a href="{{ geneset.uri }}">{{ geneset.uri }}</a></td>
-        </tr>
-        {% endif %}
-	{% if geneset.publication.author %}
-	<tr>
-		<th>Authors:</th>
-		<td>{{ geneset.publication.authors }}</td>
-	</tr>
-	{% endif %}
-	{% if geneset.publication.title %}
-	<tr>
-		<th>Title:</th>
-		<td>{{ geneset.publication.title }}</td>
-	</tr>
-	{% endif %}
-	{% if geneset.publication.journal %}
-	<tr>
-		<th>Journal:</th>
-		<td>
-		<u>{{ geneset.publication.journal }}</u>
-		{{ geneset.publication.month }} {{ geneset.publication.year }}, Vol {{ geneset.publication.volume }}, pp. {{ geneset.publication.pages }}
-		</td>
-	</tr>
-	{% endif %}
-	{% if geneset.publication.abstract %}
-	<tr>
-		<th>Abstract:</th>
-		<td>
-		{{ geneset.publication.abstract }}
-		{% if geneset.publication.pubmed_id %}
-		<a href="http://www.ncbi.nlm.nih.gov/pubmed/{{geneset.publication.pubmed_id}}">
-		<b>PUBMED: {{geneset.publication.pubmed_id}}</b>
-		</a>
-		<br>
-		<!-- TODO link this with a search for this pubmed ID -->
-		<a href="#">Find other GeneSets from this publication.</a>
-		</td>
-		{% endif %}
-	</tr>
-	{% endif %}
-	<!-- TODO Determine how to retrieve ont assoc from db. Is the Geneset object fetching these? ->
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">Gene Set #{{ geneset.geneset_id }} - {{ geneset.name }}</h3>
+    </div>
+
+    <div class="panel-body">
+        <div class="row">
+            <div class="col-xs-12 col-md-9">
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>DESCRIPTION:</strong></p>
+                    </div>
+                    <div class="col-md-8">
+                        {{ geneset.description }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>UPLOADED:</strong></p>
+                    </div>
+                    <div class="col-md-8">
+                        {{ geneset.creation_date }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>SPECIES:</strong></p>
+                    </div>
+                    <div class="col-md-8">
+                        {% if geneset.sp_id == 1 %}
+                            Mouse
+                        {% endif %}
+                        {% if geneset.sp_id == 2 %}
+                            Human
+                        {% endif %}
+                        {% if geneset.sp_id == 3 %}
+                            Rat
+                        {% endif %}
+                        {% if geneset.sp_id == 4 %}
+                            Zebrafish
+                        {% endif %}
+                        {% if geneset.sp_id == 5 %}
+                            Fly
+                        {% endif %}
+                        {% if geneset.sp_id == 6 %}
+                            Monkey
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>URI:</strong></p>
+                    </div>
+                    <div class="col-md-8">
+                        {% if geneset.uri %}
+                            <a href="{{ geneset.uri }}">{{ geneset.uri }}</a>
+                        {% else %}
+                            None
+                        {% endif %}
+                    </div>
+                </div>
+
+            
+
+            {% if geneset.publication.author %}
+                <tr>
+                    <th>Authors:</th>
+                    <td>{{ geneset.publication.authors }}</td>
+                </tr>
+            {% endif %}
+            {% if geneset.publication.title %}
+                <tr>
+                    <th>Title:</th>
+                    <td>{{ geneset.publication.title }}</td>
+                </tr>
+            {% endif %}
+            {% if geneset.publication.journal %}
+                <tr>
+                    <th>Journal:</th>
+                    <td>
+                        <u>{{ geneset.publication.journal }}</u>
+                        {{ geneset.publication.month }} {{ geneset.publication.year }},
+                        Vol {{ geneset.publication.volume }}, pp. {{ geneset.publication.pages }}
+                    </td>
+                </tr>
+            {% endif %}
+            {% if geneset.publication.abstract %}
+                <tr>
+                    <th>Abstract:</th>
+                    <td>
+                        {{ geneset.publication.abstract }}
+                        {% if geneset.publication.pubmed_id %}
+                            <a href="http://www.ncbi.nlm.nih.gov/pubmed/{{ geneset.publication.pubmed_id }}">
+                                <b>PUBMED: {{ geneset.publication.pubmed_id }}</b>
+                            </a>
+                            <br>
+                            <!-- TODO link this with a search for this pubmed ID -->
+                            <a href="#">Find other GeneSets from this publication.</a>
+                            </td>
+                        {% endif %}
+                </tr>
+            {% endif %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+            <div class="col-xs-6 col-md-3">
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
+                    <i class="fa fa-download pull-left"></i> Export Genes
+                </button>
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="viewSimilarGenesets">
+                    <i class="fa fa-eye pull-left"></i> View Similar GeneSets
+                </button>
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="addAllToEmphasis">
+                    <i class="fa fa-thumb-tack pull-left"></i> Add All to Emphasis
+                </button>
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
+                    <i class="fa fa-folder-o pull-left"></i> Add to Project
+                </button>
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
+                    <i class="fa fa-edit pull-left"></i> Edit GeneSet
+                </button>
+                <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
+                    <i class="fa fa-times pull-left"></i> Delete GeneSet
+                </button>
+            </div>
+
+        </div>
+
+
+        <table class="table table-hover">
+            <col width="100">
+            <col width="800">
+            <tbody>
+            <tr class="first">
+                <th>Description:</th>
+                <td>{{ geneset.description }}</td>
+            </tr>
+            <tr>
+                <th>Uploaded:</th>
+                <td>{{ geneset.creation_date }}</td>
+            </tr>
+            <tr>
+                <th>Species:</th>
+                <td>
+                    {% if geneset.sp_id == 1 %}
+                        Mouse
+                    {% endif %}
+                    {% if geneset.sp_id == 2 %}
+                        Human
+                    {% endif %}
+                    {% if geneset.sp_id == 3 %}
+                        Rat
+                    {% endif %}
+                    {% if geneset.sp_id == 4 %}
+                        Zebrafish
+                    {% endif %}
+                    {% if geneset.sp_id == 5 %}
+                        Fly
+                    {% endif %}
+                    {% if geneset.sp_id == 6 %}
+                        Monkey
+                    {% endif %}
+                </td>
+            </tr>
+
+            <!-- TODO Determine how to retrieve ont assoc from db. Is the Geneset object fetching these? ->
 	<!--
 	<tr>
 		<th>Ontological Associations:</th>
@@ -104,74 +209,72 @@
 		</td>
 	</tr>
 	-->
-</tbody>
-</table>
-</div>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Show the Geneset List -->
 <div class="panel panel-default">
-<div class="panel-heading bg-blue">
-	<h3 class="panel-title">Gene List</h3>
-</div>
-<div class="panel-body">
-<!-- TODO make the table sortable, show more gene details -->
-<table class="table table-hover">
-<tbody>
-<tr>
-	<th>Gene Symbol</th>
-	<th>LinkOuts</th>
-	<th>Data Value</th>
-	<th>Emphasis</th>
-</tr>
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">Gene List</h3>
+    </div>
+    <div class="panel-body">
+        <!-- TODO make the table sortable, show more gene details -->
+        <table class="table table-hover">
+            <tbody>
+            <tr>
+                <th>Gene Symbol</th>
+                <th>LinkOuts</th>
+                <th>Data Value</th>
+                <th>Emphasis</th>
+            </tr>
 
-{% for geneset_value in geneset.geneset_values %}
-<tr>
-<td>
-<!-- TODO Determine how to show gene with multiple sources listed -->
-<a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">{{ geneset_value.source_list[0] }}</a>
-</td>
-<td>
-<!-- TODO Insert outside links here -->
-{% set gene=geneset_value.source_list[0] %}
-{% include 'linkouts.html' %}
-</td>
-<td>
-{{ geneset_value.value }} 
-</td>
-<td>
-<input type="checkbox" name="g_id[]" id="{{geneset_value.ode_gene_id}}" onclick="emphasize('{{geneset_value.ode_gene_id}}');" class="table-checkbox"/>
-</td>
-</tr>
-{% endfor %}
+            {% for geneset_value in geneset.geneset_values %}
+                <tr>
+                    <td>
+                        <!-- TODO Determine how to show gene with multiple sources listed -->
+                        <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">{{ geneset_value.source_list[0] }}</a>
+                    </td>
+                    <td>
+                        <!-- TODO Insert outside links here -->
+                        {% set gene=geneset_value.source_list[0] %}
+                        {% include 'linkouts.html' %}
+                    </td>
+                    <td>
+                        {{ geneset_value.value }}
+                    </td>
+                    <td>
+                        <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
+                               onclick="emphasize('{{ geneset_value.ode_gene_id }}');" class="table-checkbox"/>
+                    </td>
+                </tr>
+            {% endfor %}
 
-</tbody>
-</table>
-</div>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 {% for gene in emphgeneids %}
-<script>
-document.getElementById("{{gene}}").checked=true;
-</script>
+    <script>
+        document.getElementById("{{gene}}").checked = true;
+    </script>
 {% endfor %}
 
 <body onload="myFunction()">
 
 <script type="text/javascript">
-function emphasize(id)
-{
-	if(document.getElementById(id).checked)
-	{
-		$.get("/emphasize/"+id+".html",function(data,status){
-  				});
-	}
-	else
-	{
-		$.get("/deemphasize/"+id+".html",function(data,status){
-  				});
-	}
-}
+    function emphasize(id) {
+        if (document.getElementById(id).checked) {
+            $.get("/emphasize/" + id + ".html", function (data, status) {
+            });
+        }
+        else {
+            $.get("/deemphasize/" + id + ".html", function (data, status) {
+            });
+        }
+    }
 
 </script>
 {% include 'footer.html' %}
