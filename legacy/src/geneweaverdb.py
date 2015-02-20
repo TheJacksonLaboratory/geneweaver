@@ -1180,7 +1180,8 @@ def delete_usr2gene_by_user_and_gene(user_id, ode_gene_id):
 def get_gene_and_species_info_by_user(user_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT gene.*, species.* FROM (extsrc.gene INNER JOIN odestatic.species USING (sp_id)) INNER JOIN usr2gene USING (ode_gene_id) WHERE gene.ode_pref and usr2gene.usr_id = (%s);''',
+            '''SELECT gene.*, species.* FROM (extsrc.gene INNER JOIN odestatic.species USING (sp_id))
+              INNER JOIN usr2gene USING (ode_gene_id) WHERE gene.ode_pref and usr2gene.usr_id = (%s);''',
             (user_id,))
     return list(dictify_cursor(cursor))
 
@@ -1189,7 +1190,8 @@ def get_gene_and_species_info_by_user(user_id):
 def get_gene_and_species_info(ode_ref_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT gene.*, species.* FROM extsrc.gene INNER JOIN odestatic.species USING (sp_id) WHERE lower(ode_ref_id)=lower(%s);''',
+            '''SELECT gene.*, species.* FROM extsrc.gene INNER JOIN odestatic.species USING (sp_id)
+              WHERE lower(ode_ref_id)=lower(%s);''',
             (ode_ref_id,))
     return list(dictify_cursor(cursor))
 
@@ -1733,6 +1735,18 @@ def get_all_userids():
         cursor.execute(
             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
+
+def export_results_by_gs_id(args):
+    gene = []
+    gs_id = args["gs_id"]
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_ref_id from gene;'''
+        )
+        for gid in cursor:
+            gene.append(gid)
+    return gene
+
 
 
 def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
