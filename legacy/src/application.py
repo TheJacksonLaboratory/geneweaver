@@ -323,12 +323,15 @@ def render_forgotpass():
 def render_viewgeneset(gs_id):
     emphgenes = {}
     emphgeneids = []
-    user_id = flask.session['user_id']
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        user_id = 0
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids)
+    return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id)
 
 
 @app.route('/mygenesets')

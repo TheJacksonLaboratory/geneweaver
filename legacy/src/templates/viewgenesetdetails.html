@@ -7,36 +7,41 @@
         style="visibility:hidden;position:absolute;display:none"></iframe>
 
 
-<div class="row" id="result"></div>
+{% if geneset.geneset_id is not defined %}
 
-<div class="panel panel-default panel-heading bg-gray-light">
-    <h3 class="panel-title"><strong>My GeneSets </strong></h3>
-</div>
+    <div class="alert alert-danger fade in">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="false">&times;</button>
+        The GeneSet that you are looking for does not exist or you do not have permission to view its properties.
+        <p>
+            {% if user_id != 0 %}
+                <p>You may also want to check your group permission settings.</p>
+                <a href="/accountsettings.html">
+                    <button type="button" class="btn btn-danger m-t-10 m-r-10" id="acount-redirect">Account Settings
+                    </button>
+                </a>
+            {% else %}
+                <a href="/login.html">
+                    <button type="button" class="btn btn-danger m-t-10 m-r-10" id="login-redirect">Login</button>
+                </a>
+                <a href="/register.html">
+                    <button type="button" class="btn btn-default m-t-10">Or Create a New Account</button>
+                </a>
+            {% endif %}
+        </p>
+    </div>
 
-<script>
-    $(document).ready(function () {
-        var gsid = {{ geneset.geneset_id }}
+{% else %}
 
-        $('#exportData').on('click', function (e) {
-            $.ajax({
-                type: "POST",
-                url: "../exportGeneList",
-                data: {"gs_id": gs_id},
-                success: function (data) {
-                    $("#tmpFrame").attr('src', 'URL-TO-EXCEL-FILE');
-                },
-                error: function (result) {
-                    alert('error');
-                }
-            });
-        });
-    });
+    <div class="row" id="result"></div>
 
-</script>
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h3 class="panel-title"><strong>My GeneSets </strong></h3>
+    </div>
 
 
 
-<div class="panel panel-default">
+
+    <div class="panel panel-default">
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
         <h3 class="panel-title">
             {% if geneset.cur_id == 1 %}
@@ -54,73 +59,97 @@
             {% if geneset.cur_id == 5 %}
                 <span class="tier5" style="vertical-align: middle">Tier V</span>
             {% endif %}
-             GS{{ geneset.geneset_id }} - {{ geneset.name }}</h3>
+            GS{{ geneset.geneset_id }} - {{ geneset.name }}</h3>
     </div>
 
-<!-- View GeneSet MetaData -->
-{% include 'viewGenesetMeta.html' %}
+    <!-- View GeneSet MetaData -->
+    {% include 'viewGenesetMeta.html' %}
 
-<!-- Show the Geneset List -->
-<div class="panel panel-default">
-    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h3 class="panel-title">Gene List</h3>
-    </div>
-    <div class="panel-body">
-        <!-- TODO make the table sortable, show more gene details -->
-        <table class="table table-hover">
-            <tbody>
-            <tr>
-                <th>Gene Symbol</th>
-                <th>LinkOuts</th>
-                <th>Data Value</th>
-                <th>Emphasis</th>
-            </tr>
-
-            {% for geneset_value in geneset.geneset_values %}
+    <!-- Show the Geneset List -->
+    <div class="panel panel-default">
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title">Gene List</h3>
+        </div>
+        <div class="panel-body">
+            <!-- TODO make the table sortable, show more gene details -->
+            <table class="table table-hover">
+                <tbody>
                 <tr>
-                    <td>
-                        <!-- TODO Determine how to show gene with multiple sources listed -->
-                        <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">{{ geneset_value.source_list[0] }}</a>
-                    </td>
-                    <td>
-                        <!-- TODO Insert outside links here -->
-                        {% set gene=geneset_value.source_list[0] %}
-                        {% include 'linkouts.html' %}
-                    </td>
-                    <td>
-                        {{ geneset_value.value }}
-                    </td>
-                    <td>
-                        <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
-                               onclick="emphasize('{{ geneset_value.ode_gene_id }}');" class="table-checkbox"/>
-                    </td>
+                    <th>Gene Symbol</th>
+                    <th>LinkOuts</th>
+                    <th>Data Value</th>
+                    <th>Emphasis</th>
                 </tr>
-            {% endfor %}
 
-            </tbody>
-        </table>
+                {% for geneset_value in geneset.geneset_values %}
+                    <tr>
+                        <td>
+                            <!-- TODO Determine how to show gene with multiple sources listed -->
+                            <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">{{ geneset_value.source_list[0] }}</a>
+                        </td>
+                        <td>
+                            <!-- TODO Insert outside links here -->
+                            {% set gene=geneset_value.source_list[0] %}
+                            {% include 'linkouts.html' %}
+                        </td>
+                        <td>
+                            {{ geneset_value.value }}
+                        </td>
+                        <td>
+                            <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
+                                   onclick="emphasize('{{ geneset_value.ode_gene_id }}');" class="table-checkbox"/>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-{% for gene in emphgeneids %}
-    <script>
-        document.getElementById("{{gene}}").checked = true;
+    {% for gene in emphgeneids %}
+        <script>
+            document.getElementById("{{gene}}").checked = true;
+        </script>
+    {% endfor %}
+
+    <body onload="myFunction()">
+
+    <script type="text/javascript">
+        function emphasize(id) {
+            if (document.getElementById(id).checked) {
+                $.get("/emphasize/" + id + ".html", function (data, status) {
+                });
+            }
+            else {
+                $.get("/deemphasize/" + id + ".html", function (data, status) {
+                });
+            }
+        }
+
+
+        //$(document).ready(function () {
+            var gsid = {{ geneset.geneset_id }}
+
+                    $('#exportData').on('click', function (e) {
+                        alert('here');
+                        $.ajax({
+                            type: "POST",
+                            url: "../exportGeneList",
+                            data: {"gs_id": gs_id},
+                            success: function (data) {
+                                $("#tmpFrame").attr('src', 'URL-TO-EXCEL-FILE');
+                            },
+                            error: function (result) {
+                                alert('error');
+                            }
+                        });
+                    });
+        //});
+
+
     </script>
-{% endfor %}
 
-<body onload="myFunction()">
+{% endif %}
 
-<script type="text/javascript">
-    function emphasize(id) {
-        if (document.getElementById(id).checked) {
-            $.get("/emphasize/" + id + ".html", function (data, status) {
-            });
-        }
-        else {
-            $.get("/deemphasize/" + id + ".html", function (data, status) {
-            });
-        }
-    }
-
-</script>
 {% include 'footer.html' %}
