@@ -2,7 +2,7 @@ import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
 from flask.ext import restful
-from flask import request
+from flask import request, send_file
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -351,12 +351,11 @@ def render_user_genesets():
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
 
-@app.route('/exportGeneList', methods=["POST"])
+@app.route('/exportGeneList')
 def render_export_genelist():
     if 'user_id' in flask.session:
         results = geneweaverdb.export_results_by_gs_id(request.args)
         return json.dumps(results)
-
 
 @app.route('/emphasis.html', methods=['GET', 'POST'])
 def render_emphasis():

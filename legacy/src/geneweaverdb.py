@@ -1738,14 +1738,21 @@ def get_all_userids():
 
 def export_results_by_gs_id(args):
     gene = []
+    status = 1
     gs_id = args["gs_id"]
+    try:
+        fh = open('static/downloads/geneset_export.txt', 'w')
+    except:
+        status = 0
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT ode_ref_id from gene;'''
+            '''SELECT gsv_source_list[1], gsv_value from geneset_value
+              WHERE gs_id=%s;''', (gs_id,)
         )
         for gid in cursor:
-            gene.append(gid)
-    return gene
+            fh.write(gid[0] + '\t' + str(gid[1]) + '\n')
+    fh.close()
+    return status
 
 
 

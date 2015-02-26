@@ -2,10 +2,6 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-{# iFrame to Export Excel TO #}
-<iframe name="tmpFrame" id="tmpFrame" width="1" height="1"
-        style="visibility:hidden;position:absolute;display:none"></iframe>
-
 
 {% if geneset.geneset_id is not defined %}
 
@@ -113,7 +109,7 @@
         </script>
     {% endfor %}
 
-    <body onload="myFunction()">
+    <!-- <body onload="myFunction()"> -->
 
     <script type="text/javascript">
         function emphasize(id) {
@@ -129,22 +125,31 @@
 
 
         //$(document).ready(function () {
-            var gsid = {{ geneset.geneset_id }}
 
-                    $('#exportData').on('click', function (e) {
-                        alert('here');
-                        $.ajax({
-                            type: "POST",
-                            url: "../exportGeneList",
-                            data: {"gs_id": gs_id},
-                            success: function (data) {
-                                $("#tmpFrame").attr('src', 'URL-TO-EXCEL-FILE');
-                            },
-                            error: function (result) {
-                                alert('error');
-                            }
-                        });
-                    });
+        $(document).ready(function () {
+            var gs_id = {{ geneset.geneset_id }};
+
+            $('#exportData').on('click', function (e) {
+                $.ajax({
+                    type: "GET",
+                    url: "../exportGeneList",
+                    data: {"gs_id": gs_id},
+                    cache: false,
+                    success: function (data) {
+                        if (data == 1) {
+                            alert('true');
+                            window.open('../export/geneset_export.txt', '_self')
+                        }
+                        else {
+                            alert('something went wrong')
+                        }
+                    },
+                    error: function (result) {
+                        alert('error');
+                    }
+                });
+            });
+            });
         //});
 
 
