@@ -2,7 +2,7 @@ import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
 from flask.ext import restful
-from flask import request, send_file
+from flask import request, send_file, Response, make_response
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -14,6 +14,10 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
     combineblueprint, abbablueprint, booleanalgebrablueprint
 import sphinxapi
 import search
+import xlwt
+import StringIO
+import mimetypes
+from werkzeug.datastructures import Headers
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -351,11 +355,17 @@ def render_user_genesets():
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
 
-@app.route('/exportGeneList')
-def render_export_genelist():
+@app.route('/exportGeneList/<int:gs_id>')
+def render_export_genelist(gs_id):
     if 'user_id' in flask.session:
-        results = geneweaverdb.export_results_by_gs_id(request.args)
-        return json.dumps(results)
+        str = ''
+        results = geneweaverdb.export_results_by_gs_id(gs_id)
+        for k in results:
+            str = str + k + ',' + results[k] + '\n'
+        response = make_response(str)
+        response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
+        return response
+
 
 @app.route('/emphasis.html', methods=['GET', 'POST'])
 def render_emphasis():

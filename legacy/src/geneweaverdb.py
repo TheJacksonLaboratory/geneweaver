@@ -10,6 +10,7 @@ from tools import toolcommon as tc
 import os
 import flask
 
+
 app = flask.Flask(__name__)
 
 RESULTS_PATH = '/var/www/html/geneweaver/results'
@@ -1736,25 +1737,22 @@ def get_all_userids():
             '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
     return list(dictify_cursor(cursor))
 
-def export_results_by_gs_id(args):
-    gene = []
-    status = 1
-    gs_id = args["gs_id"]
-    try:
-        fh = open('static/downloads/geneset_export.txt', 'w')
-    except:
-        status = 0
+
+def export_results_by_gs_id(gs_id):
+    """
+    Write a generic tab file for geneset products
+    :param args: gs_id
+    :return: status. 1 == success, 0 == failure
+    """
+    gene = {}
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT gsv_source_list[1], gsv_value from geneset_value
               WHERE gs_id=%s;''', (gs_id,)
         )
         for gid in cursor:
-            fh.write(gid[0] + '\t' + str(gid[1]) + '\n')
-    fh.close()
-    return status
-
-
+            gene[gid[0]] = str(gid[1])
+    return gene
 
 def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
     """

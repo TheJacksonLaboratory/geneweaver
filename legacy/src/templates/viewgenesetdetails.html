@@ -122,32 +122,11 @@
                 });
             }
         }
-
-
-        //$(document).ready(function () {
-
+        
         $(document).ready(function () {
             var gs_id = {{ geneset.geneset_id }};
-
             $('#exportData').on('click', function (e) {
-                $.ajax({
-                    type: "GET",
-                    url: "../exportGeneList",
-                    data: {"gs_id": gs_id},
-                    cache: false,
-                    success: function (data) {
-                        if (data == 1) {
-                            alert('true');
-                            window.open('../export/geneset_export.txt', '_self')
-                        }
-                        else {
-                            alert('something went wrong')
-                        }
-                    },
-                    error: function (result) {
-                        alert('error');
-                    }
-                });
+                window.open('../exportGeneList/' + gs_id);
             });
             });
         //});
