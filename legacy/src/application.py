@@ -14,10 +14,6 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
     combineblueprint, abbablueprint, booleanalgebrablueprint
 import sphinxapi
 import search
-import xlwt
-import StringIO
-import mimetypes
-from werkzeug.datastructures import Headers
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -354,6 +350,11 @@ def render_user_genesets():
     else:
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
+
+@app.route('/viewSimilarGenesets/<int:gs_id>')
+def render_sim_genesets(gs_id):
+    return flask.render_template('similargenesets.html')
+
 
 @app.route('/exportGeneList/<int:gs_id>')
 def render_export_genelist(gs_id):

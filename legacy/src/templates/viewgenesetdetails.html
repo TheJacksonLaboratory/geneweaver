@@ -31,7 +31,7 @@
     <div class="row" id="result"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
-        <h3 class="panel-title"><strong>My GeneSets </strong></h3>
+        <h2 class="panel-title"><strong>GeneSet Information</strong></h2>
     </div>
 
 
@@ -128,6 +128,12 @@
             $('#exportData').on('click', function (e) {
                 window.open('../exportGeneList/' + gs_id);
             });
+
+            $('#viewSimilarGenesets').on('click', function (e){
+
+                window.open('../viewSimilarGenesets/' + gs_id, "_self");
+            });
+
             });
         //});
 
