@@ -1,458 +1,194 @@
-{% set title="View Similar Genesets" %}
+{% set title="Similar Genesets" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-<style type="text/css">
-    td.details-control:before {
-        position: relative;
-        background-image: none !important;
-        display: inline-block;
-        font-family: FontAwesome;
-        content: "\f067";
-        cursor: pointer;
-        vertical-align: middle;
-        horiz-align: center;
-    }
 
-    tr.shown td.details-control:before {
-        content: "\f068";
-    }
+    <div class="row" id="result"></div>
 
-    .datatablerowhighlight {
-        background-color: #ECFFB3;
-    }
-
-    .row_selected {
-        background-color: #000000;
-    }
-
-</style>
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>View Similar Genesets</strong></h2>
+    </div>
 
 
-{% if user_id == 0 %}
-    {% include 'permissionError.html' %}
-{% else %}
 
+    <div class="panel panel-default">
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">
+            {% if geneset.cur_id == 1 %}
+                <span class="tier1" style="vertical-align: middle">Tier I</span>
+            {% endif %}
+            {% if geneset.cur_id == 2 %}
+                <span class="tier2" style="vertical-align: middle">Tier II</span>
+            {% endif %}
+            {% if geneset.cur_id == 3 %}
+                <span class="tier3" style="vertical-align: middle">Tier III</span>
+            {% endif %}
+            {% if geneset.cur_id == 4 %}
+                <span class="tier4" style="vertical-align: middle">Tier IV</span>
+            {% endif %}
+            {% if geneset.cur_id == 5 %}
+                <span class="tier5" style="vertical-align: middle">Tier V</span>
+            {% endif %}
+            GS{{ geneset.geneset_id }} - {{ geneset.name }}</h3>
+    </div>
 
-    {% block body %}
+    <div class="panel-body">
+    <div class="row">
+        <div class="col-md-5">
+            <a href="/viewgenesetdetails/{{ gs_id }}">
+            <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+        </div><br>
+        <div class="col-xs-12 col-md-9">
 
-        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
-
-            <script>
-                function format(d) {
-                    // `d` is the original data object for the row
-                    return '<tr><td colspan=7><table class="table">' +
-                            '<tr>' +
-                            '<td align=right width=25%><strong>GeneSet Label:</strong> </td>' +
-                            '<td><p>' + d[7] + '</p></td></tr>' +
-                            '<tr><td align=right width=25%><strong>Desscription:</strong> </td>' +
-                            '<td><p>' + d[8] + '</p></td></tr>' +
-                            '<tr><td align=right width=25%><strong>Date Created:</strong> </td>' +
-                            '<td><p>' + d[9] + '</p></td></tr>' +
-                            '<tr><td align=right width=25%><strong>Last Updated:</strong> </td>' +
-                            '<td><p>' + d[10] + '</p></td>' +
-                            '</tr>' +
-                            '</table></td></tr>';
-                }
-
-
-                $(function () {
-                    $("[data-toggle='tooltip']").tooltip();
-                });
-                var r = false;
-                var editor;
-                $(document).ready(function () {
-
-                    //var trindex = 0;
-                    var dbtable = '{{table}}';
-                    var user_id = '{{user_id}}';
-                    var columns = {{columns | safe}};
-                    //var numCols = columns.length;
-                    var headerCols = {{headerCols | safe}};
-                    var table = $('#mygenesetsViewer').dataTable({
-                        "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
-                        "tableTools": {
-                            "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
-                            "sRowSelect": "multi",
-                            "aButtons": [
-                                "select_all",
-                                "select_none",
-                                "copy",
-                                "print",
-                                "pdf",
-                                "xls",
-                                "csv"
-                            ]
-                        },
-                        "processing": true,
-                        "serverSide": true,
-                        "ajax": {
-                            'url': "/../getServersideGenesetsdb",
-                            'type': 'GET',
-                            "data": {"table": dbtable, "user_id": user_id}
-                        },
-                        "columns": [
-                            {
-                                "className": 'details-control',
-                                "orderable": false,
-                                "data": null,
-                                "defaultContent": '',
-                                "width": "5%"
-                            },
-                            {
-                                "name": "sp_id",
-                                "width": "5%"
-                            },
-                            {
-                                "name": "cur_id",
-                                "width": "5%"
-                            },
-                            {
-                                "name": "gs_attribution",
-                                "width": "5%"
-                            },
-                            {
-                                "name": "gs_count",
-                                "width": "5%"
-                            },
-                            {"name": "gs_id"},
-                            {"name": "gs_name"},
-                            {
-                                "orderable": false,
-                                "data": null,
-                                "defaultContent": ''
-                            }
-                        ],
-
-
-                        //"columns": columns,
-                        "aoColumnDefs": [
-
-                            {
-                                "aTargets": [0],
-                                "bSortable": false
-                            },
-                            {
-                                "aTargets": [1],
-                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                                    $(nTd).empty();
-                                    switch (sData) {
-                                        case 1:
-                                            $(nTd).append('<span class="mouse">Mouse</span>');
-                                            break;
-                                        case 2:
-                                            $(nTd).append('<span class="human">Human</span>');
-                                            break;
-                                        case 3:
-                                            $(nTd).append('<span class="rat">Rat</span>');
-                                            break;
-                                        case 4:
-                                            $(nTd).append('<span class="zebrafish">ZFish</span>');
-                                            break;
-                                        case 5:
-                                            $(nTd).append('<span class="fly">Fly</span>');
-                                            break;
-                                        case 6:
-                                            $(nTd).append('<span class="monkey">Monkey</span>');
-                                            break;
-                                    }
-                                }
-                            },
-                            {
-                                "aTargets": [2],
-                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                                    var curID = sData;
-                                    $(nTd).empty();
-                                    switch (curID) {
-                                        case 1:
-                                            $(nTd).append('<span class="tier1">Tier I</span>');
-                                            break;
-                                        case 2:
-                                            $(nTd).append('<span class="tier2">Tier II</span>');
-                                            break;
-                                        case 3:
-                                            $(nTd).append('<span class="tier3">Tier III</span>');
-                                            break;
-                                        case 4:
-                                            $(nTd).append('<span class="tier4">Tier IV</span>');
-                                            break;
-                                        case 5:
-                                            $(nTd).append('<span class="tier5">Tier V</span>');
-                                            break;
-                                    }
-                                }
-                            },
-                            {
-                                "aTargets": [3],
-                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                                    var gsAttribution = sData;
-                                    $(nTd).empty();
-                                    switch (gsAttribution) {
-                                        case 2:
-                                            $(nTd).append('<span class="ctd">CTD</span>');
-                                            break;
-                                        case 7:
-                                            $(nTd).append('<span class="drg">DRG</span>');
-                                            break;
-                                        case 8:
-                                            $(nTd).append('<span class="go">GO</span>');
-                                            break;
-                                        case 9:
-                                            $(nTd).append('<span class="mp">MP</span>');
-                                            break;
-                                        case 11:
-                                            $(nTd).append('<span class="mesh">MeSH</span>');
-                                            break;
-                                    }
-                                }
-                            },
-                            {
-                                "aTargets": [4],
-                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                                    var gsSize = sData;
-                                    $(nTd).empty();
-                                    $(nTd).append('<strong>' + gsSize + '</strong>');
-                                }
-                            },
-
-                            {
-                                "aTargets": [5],
-                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                                    var gsID = sData;
-                                    $(nTd).empty();
-                                    $(nTd).append('<strong>GS' + gsID + '</span>');
-                                }
-                            },
-
-                            {
-                                "aTargets": [6],
-                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                                    $(nTd).empty();
-                                    $(nTd).append('<p><a href=\"/viewgenesetdetails/' + oData[5] + '\">' + sData + '</a></p>');
-                                }
-                            },
-
-                            {
-                                "aTargets": [7],
-                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-
-                                    /* Delete Button */
-                                    var b = $('<button class="btn btn-danger" data-placement="top" data-toggle="tooltip" \
-                            		        data-rel="tooltip" data-original-title="Delete GeneSet" type="button" title="Delete this GeneSet"\
-                                            style="margin: 2px; padding: 0px 2px;">\
-                            		        <i class="fa fa-times"></i></button>');
-                                    /* Edit Button */
-                                    var c = $('<button class="btn btn-success" type="button" data-placement="top" \
-										    data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
-										    title="Edit Name" style="margin: 2px; padding: 0px 2px;"> \
-										    <i class="fa fa-edit"></i></button>');
-
-
-                                    b.tooltip();
-                                    b.click(function () {
-                                        var cellData = oData[5];
-                                        var gsid = 'GS' + cellData;
-                                        $("#myGenesetDeleteLabel").html(gsid);
-
-
-                                        $('#delModal').modal({
-                                            keyboard: true
-                                        });
-
-                                        $('#confirmDelete').on('click', function (e) {
-                                            $.ajax({
-                                                type: "GET",
-                                                url: "../deleteGeneset",
-                                                data: {"gs_id": cellData, "user_id": user_id},
-                                                success: function (data) {
-                                                    table.fnClearTable(0);
-                                                    table.fnDraw();
-                                                    $("#result").html('<div class="alert alert-success fade in"> ' +
-                                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                                    '</button>GeneSet successfully deleted</div>');
-                                                }
-                                            });
-                                        });
-                                    });
-
-                                    c.tooltip();
-                                    c.click(function () {
-                                        var cellData = oData[2];
-                                        alert(cellData);
-                                    });
-
-
-                                    $(nTd).empty();
-                                    $(nTd).append(b).append(c);
-                                }
-
-                            }
-                        ]
-
-                    });
-
-
-                    // Add event listener for opening and closing details
-                    $('#mygenesetsViewer tbody').on('click', 'td.details-control', function () {
-                        var tr = $(this).closest('tr');
-                        var T = table.fnGetData(tr);
-                        var row = $(this).parents(tr);
-
-                        if (tr.hasClass('shown')) {
-                            tr.next().hide();
-                            tr.removeClass('shown');
-                        }
-                        else {
-                            // Open this row
-                            var newRow = $(format(T)).animate({
-                                height: "100px",
-                                opacity: 0.75
-                            }, 500);
-                            tr.after(newRow);
-                            tr.addClass('shown');
-                        }
-                    });
-
-                    $('#addToProject').on('click', function () {
-                        var oTT = TableTools.fnGetInstance('mygenesetsViewer');
-                        var aselectedTrs = oTT.fnGetSelectedData();
-                        var gsid = [];
-                        var gs = [];
-                        for (var k in aselectedTrs) {
-                            gsid.push(aselectedTrs[k][5]);
-                            gs.push('GS' + aselectedTrs[k][5]);
-                        }
-                        if (aselectedTrs == 0) {
-                            $("#myAlert").modal('show');
-                        }
-                        else {
-                            var g = gs.join(", ");
-                            $("#myModalLabel").html(g);
-                            $("#myModalValue").val(g);
-                            $("#addToProjectModal").modal('show');
-
-
-                        }
-                    });
-
-                    $('#addNewProject').on('click', function () {
-                        $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-                        '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
-                    });
-
-                    $('#mygenesetsViewer tbody').on('click', 'tr', function () {
-                        var id = this.id;
-                        var index = $.inArray(id, selected);
-                        if (index === -1) {
-                            selected.push(id);
-                        } else {
-                            selected.splice(index, 1);
-                        }
-                        $(this).toggleClass('selected');
-                    });
-
-                    $('#addGenesetsToProjects').on('click', function (e) {
-                        var checked = [];
-                        $("input[name='options[]']:checked").each(function () {
-                            checked.push(parseInt($(this).val()));
-                        });
-                        var option = JSON.stringify(checked);
-                        var g = $('#myModalValue').val();
-                        var npn = $('#newProjName').val();
-                        if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
-                            $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>No Projects Were Selected</div>');
-                        }
-                        else {
-                            $.ajax({
-                                type: "GET",
-                                url: "../addGenesetsToProjects",
-                                data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
-                                success: function (data) {
-                                    table.fnClearTable(0);
-                                    table.fnDraw();
-                                    $("#result").html('<div class="alert alert-success fade in"> ' +
-                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                    '</button>Genesets Successfully Added to Selected Projects</div>');
-                                    window.location.reload();
-
-                                }
-                            });
-                        }
-                    });
-
-
-                });
-
-            </script>
-
-            <p>
-
-            <div class="row" id="result"></div>
-
-            <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>View Similar Genesets </strong></h3>
-            </div>
-
-            <div class="panel panel-default">
-
-                <div class="row">
-                    <div class="col-md-4">
-                        <button type="button" class="btn btn-success btn-transparent" id="addToProject">
-                            Add to Project
-                        </button>
-
-                        <button type="button" class="btn btn-warning btn-transparent" id="helpMyGenesets">
-                            Help
-                        </button>
-                    </div>
+            <div class="row">
+                <div class="col-md-2">
+                    <p class="text-right"><strong>DESCRIPTION:</strong></p>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
-
-                        <table id="mygenesetsViewer"
-                               class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
-
-                            <thead>
-                            <tr>
-                                {% for col in headerCols %}
-                                    <th style="text-align: left">{{ col.capitalize() }}</th>
-                                {% endfor %}
-                            </tr>
-                            </thead>
-                            <tfoot>
-                            <tr>
-                                {% for col in headerCols %}
-                                    <th style="text-align: left">{{ col.capitalize() }}</th>
-                                {% endfor %}
-                            </tr>
-                            </tfoot>
-                        </table>
-
-                    </div>
+                <div class="col-md-10">
+                    <p>{{ geneset.description }}</p>
                 </div>
             </div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    <p class="text-right"><strong>LABEL:</strong></p>
+                </div>
+                <div class="col-md-10">
+                    <p>{{ geneset.abbreviation }}</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    <p class="text-right"><strong>SPECIES:</strong></p>
+                </div>
+                <div class="col-md-10">
+                    {% if geneset.sp_id == 1 %}
+                        <span class="mouse">Mouse</span>
+                    {% endif %}
+                    {% if geneset.sp_id == 2 %}
+                        <span class="human">Human</span>
+                    {% endif %}
+                    {% if geneset.sp_id == 3 %}
+                        <span class="rat">Rat</span>
+                    {% endif %}
+                    {% if geneset.sp_id == 4 %}
+                        <span class="zebrafish">Zebrafish</span>
+                    {% endif %}
+                    {% if geneset.sp_id == 5 %}
+                        <span class="fly">Fly</span>
+                    {% endif %}
+                    {% if geneset.sp_id == 6 %}
+                        <span class="monkey">Monkey</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Right Side List of Buttons #}
+
+        </div>
+        <div class="col-xs-6 col-md-3">
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
+                <i class="fa fa-download pull-left"></i> Export Genes
+            </button>
+            {% if order == 'tier' %}
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="orderbySpecies">
+                <i class="fa fa-refresh pull-left"></i> Order by Species
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="orderbyTier">
+                <i class="fa fa-refresh pull-left"></i> Order by Tier
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
+                <i class="fa fa-folder-o pull-left"></i> Add to Project
+            </button>
 
         </div>
 
-        {% include 'modal/deleteGeneset.html' %}
-
-        {% if g.user is defined %}
-
-            {% include 'modal/addGenesetsToProjects.html' %}
-
-        {% endif %}
-
-        {% include 'modal/addGenesetsToProjectsAlert.html' %}
+    </div>
 
 
-    {% endblock %}
+</div>
+
+    <!-- Show the Geneset List -->
+    <div class="panel panel-default">
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title">Gene List</h3>
+        </div>
+        <div class="panel-body">
+            <!-- TODO make the table sortable, show more gene details -->
+            <table class="table table-hover">
+                <tbody>
+                <tr>
+                    <th>Gene Symbol</th>
+                    <th>LinkOuts</th>
+                    <th>Data Value</th>
+                    <th>Emphasis</th>
+                </tr>
+
+                {% for geneset_value in geneset.geneset_values %}
+                    <tr>
+                        <td>
+                            <!-- TODO Determine how to show gene with multiple sources listed -->
+                            <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">{{ geneset_value.source_list[0] }}</a>
+                        </td>
+                        <td>
+                            <!-- TODO Insert outside links here -->
+                            {% set gene=geneset_value.source_list[0] %}
+                            {% include 'linkouts.html' %}
+                        </td>
+                        <td>
+                            {{ geneset_value.value }}
+                        </td>
+                        <td>
+                            <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
+                                   onclick="emphasize('{{ geneset_value.ode_gene_id }}');" class="table-checkbox"/>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% for gene in emphgeneids %}
+        <script>
+            document.getElementById("{{gene}}").checked = true;
+        </script>
+    {% endfor %}
+
+    <!-- <body onload="myFunction()"> -->
+
+    <script type="text/javascript">
+        function emphasize(id) {
+            if (document.getElementById(id).checked) {
+                $.get("/emphasize/" + id + ".html", function (data, status) {
+                });
+            }
+            else {
+                $.get("/deemphasize/" + id + ".html", function (data, status) {
+                });
+            }
+        }
+
+        $(document).ready(function () {
+            var gs_id = {{ geneset.geneset_id }};
+            $('#exportData').on('click', function (e) {
+                window.open('../exportGeneList/' + gs_id);
+            });
+
+            $('#viewSimilarGenesets').on('click', function (e){
+
+                window.open('../viewSimilarGenesets/' + gs_id, "_self");
+            });
+
+            });
+        //});
 
 
-{% endif %}
-
+    </script>
 
 
 {% include 'footer.html' %}

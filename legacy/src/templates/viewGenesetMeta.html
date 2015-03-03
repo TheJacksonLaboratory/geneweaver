@@ -167,21 +167,12 @@
                 <i class="fa fa-edit pull-left"></i> Edit GeneSet
             </button>
             <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
-                <i class="fa fa-times pull-left"></i> Delete GeneSet
+                <i class="fa fa-trash-o pull-left"></i> Delete GeneSet
             </button>
         </div>
 
     </div>
 
 
-    <div class="row">
-        <!-- TODO Determine how to retrieve ont assoc from db. Is the Geneset object fetching these? -->
 
-        {% for ont_assoc in geneset.ontological_associations %}
-
-            {{ ont_assoc.ontology_id }} {{ ont_assoc.name }}
-
-        {% endfor %}
-
-    </div>
 </div>

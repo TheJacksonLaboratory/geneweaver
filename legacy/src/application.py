@@ -351,10 +351,15 @@ def render_user_genesets():
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
 
-@app.route('/viewSimilarGenesets/<int:gs_id>')
-def render_sim_genesets(gs_id):
-    return flask.render_template('similargenesets.html')
-
+@app.route('/viewSimilarGenesets/<int:gs_id>/<string:type>')
+def render_sim_genesets(gs_id, type):
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        user_id = 0
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    simgs = geneweaverdb.get_similar_genesets(gs_id, user_id)
+    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, type=type)
 
 @app.route('/exportGeneList/<int:gs_id>')
 def render_export_genelist(gs_id):

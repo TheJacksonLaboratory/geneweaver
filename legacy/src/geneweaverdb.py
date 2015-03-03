@@ -1456,6 +1456,43 @@ def get_geneset(geneset_id, user_id=None):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
 
+def get_similar_genesets(geneset_id, user_id):
+    """
+    Gets similar genesets if either the geneset is publicly visible or the user
+    has permission to view it.
+    :param geneset_id:  the geneset ID
+    :param user_id:     the user ID that needs permission
+    :return:            the Geneset corresponding to the given ID if the
+                        user has read permission, None otherwise
+    """
+
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    #if user_id is 0:
+    #    user_id = -1
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT * FROM
+                ((SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
+                    WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
+                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 250) UNION
+                (SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
+                    WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
+                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 250)) as tmp ORDER BY jac_value DESC;
+            ''',
+            {
+                'geneset_id': geneset_id,
+                'user_id': user_id,
+                'geneset_id': geneset_id,
+                'geneset_id': geneset_id,
+                'user_id': user_id,
+                'geneset_id': geneset_id,
+            }
+        )
+        simgc = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return simgc
+
+
 
 def get_geneset_no_user(geneset_id):
     """
