@@ -384,6 +384,7 @@ def render_sim_genesets(gs_id, type):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     simgs = geneweaverdb.get_similar_genesets(gs_id, user_id)
     topsimgs = top_twenty_simgenesets(simgs)
+    print topsimgs
     return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, type=type, topsimgs=topsimgs)
 
 @app.route('/exportGeneList/<int:gs_id>')
