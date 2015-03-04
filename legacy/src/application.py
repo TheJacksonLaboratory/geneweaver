@@ -9,7 +9,7 @@ import geneweaverdb
 import json
 import os
 import re
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
     combineblueprint, abbablueprint, booleanalgebrablueprint
 import sphinxapi
@@ -351,6 +351,30 @@ def render_user_genesets():
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
 
+
+def top_twenty_simgenesets(simgs):
+    """
+    iterates through all results and picks the top twenty genesets that do not have > 0.95 jac overlap
+    with the previous set.
+    :param simgs:
+    :return: set of top twenty
+    """
+    d = []
+    k = 0
+    j = 1
+    d.append(simgs[k])
+    while len(d) < 21:
+        gs_id = simgs[k].geneset_id
+        next_gs_id = simgs[j].geneset_id
+        if geneweaverdb.compare_geneset_jac(gs_id, next_gs_id) == 1:
+            j += 1
+        else:
+            d.append(simgs[j])
+            k = j
+            j += 1
+    return d
+
+
 @app.route('/viewSimilarGenesets/<int:gs_id>/<string:type>')
 def render_sim_genesets(gs_id, type):
     if 'user_id' in flask.session:
@@ -359,7 +383,8 @@ def render_sim_genesets(gs_id, type):
         user_id = 0
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     simgs = geneweaverdb.get_similar_genesets(gs_id, user_id)
-    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, type=type)
+    topsimgs = top_twenty_simgenesets(simgs)
+    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, type=type, topsimgs=topsimgs)
 
 @app.route('/exportGeneList/<int:gs_id>')
 def render_export_genelist(gs_id):

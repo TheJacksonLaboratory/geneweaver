@@ -1286,6 +1286,8 @@ class Geneset:
         self.gsv_qual = gs_dict['gsv_qual']
         self.attribution = gs_dict['gs_attribution']
 
+        # add two values for geneset
+
         # declare value caches for instance properties
         self.__ontological_associations = None
         self.__geneset_values = None
@@ -1302,6 +1304,11 @@ class Geneset:
             self.__geneset_values = get_geneset_values(self.geneset_id)
         return self.__geneset_values
 
+class SimGeneset(Geneset):
+    def __init__(self, gs_dict):
+        Geneset.__init__(self, gs_dict)
+        self.jac_value = gs_dict['jac_value']
+        self.gic_value = gs_dict['jac_value']
 
 class Ontology:
     def __init__(self, ont_dict):
@@ -1463,14 +1470,17 @@ def get_similar_genesets(geneset_id, user_id):
     :param geneset_id:  the geneset ID
     :param user_id:     the user ID that needs permission
     :return:            the Geneset corresponding to the given ID if the
-                        user has read permission, None otherwise
+                        user has read permission, with jac_value, None otherwise
     """
 
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
-    #if user_id is 0:
-    #    user_id = -1
+    if user_id is 0:
+        user_id = -1
 
     with PooledCursor() as cursor:
+        #This SQL is a bit sketchy. The old GW code calls for a sorted list of jac and gic values
+        #I have simplified to return the top 250 of left and right ode_gene_ids. Worst case all are from
+        #either partition of the list. I will clean up duplicates in the application.
         cursor.execute(
             '''SELECT * FROM
                 ((SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
@@ -1489,9 +1499,30 @@ def get_similar_genesets(geneset_id, user_id):
                 'geneset_id': geneset_id,
             }
         )
-        simgc = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        simgc = [SimGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return simgc
 
+def compare_geneset_jac(gs_id1, gs_id2):
+    """
+    Compares two genesets together. returns 1 if they are > .95 similar
+    :param gs_id1:
+    :param gs_id2:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT jac_value FROM geneset_jaccard
+              WHERE gs_id_left=%(gs_id1)s AND gs_id_right=%(gs_id2)s AND jac_value > 0.95;
+              ''',
+            {
+                'gs_id1': gs_id1,
+                'gs_id2': gs_id2,
+            }
+        )
+    if cursor.fetchone():
+        return 1
+    else:
+        return 0
 
 
 def get_geneset_no_user(geneset_id):
