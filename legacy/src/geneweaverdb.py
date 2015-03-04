@@ -1509,14 +1509,20 @@ def compare_geneset_jac(gs_id1, gs_id2):
     :param gs_id2:
     :return:
     """
+    if gs_id2 < gs_id1:
+        gs1 = gs_id2
+        gs2 = gs_id1
+    else:
+        gs1 = gs_id1
+        gs2 = gs_id2
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT jac_value FROM geneset_jaccard
               WHERE gs_id_left=%(gs_id1)s AND gs_id_right=%(gs_id2)s AND jac_value > 0.95;
               ''',
             {
-                'gs_id1': gs_id1,
-                'gs_id2': gs_id2,
+                'gs_id1': gs1,
+                'gs_id2': gs2,
             }
         )
     if cursor.fetchone():
