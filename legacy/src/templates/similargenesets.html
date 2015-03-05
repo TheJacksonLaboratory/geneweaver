@@ -13,11 +13,22 @@
 
 
 <style type="text/css">
+        legend {
+            overflow: hidden;
+            margin: 0;
+            font-size: 14px;
+        }
 
 		#chart {
 		    margin-left: auto;
             margin-right: auto;
+            width: 90%;
 		}
+
+        #clickableFontAwesome{
+            cursor: pointer;
+        }
+
 </style>
 
 
@@ -137,16 +148,19 @@
     <br>
 {% endfor %}
 #}
-
-    <div id="chart">
-        {# Inserts chart here #}
+    <div class="row">
+        <div id="legend"><center>
+            <div id="chart">
+                {# This is where the chart goes #}
+            </div></center>
+        </div>
     </div>
 
-    {#
     <!-- Show the Geneset List -->
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Gene List</h3>
+            <h3 class="panel-title">Top Twenty Similar Gene Sets (Compressed
+                <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span>) </h3>
         </div>
         <div class="panel-body">
             <!-- TODO make the table sortable, show more gene details -->
@@ -185,13 +199,52 @@
         </div>
     </div>
 
+
+    <!-- Show the Geneset List -->
+    <div class="panel panel-default">
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title">Top 250 Similar GeneSets</h3>
+        </div>
+        <div class="panel-body">
+            <!-- TODO make the table sortable, show more gene details -->
+            <table class="table table-hover">
+                <tbody>
+                <tr>
+                    <th>&nbsp;</th>
+                    <th>&nbsp;</th>
+                    <th>GeneSet Title</th>
+                    <th>Jaccard</th>
+                </tr>
+
+                {% for i in simgs %}
+                    <tr>
+                        <td width="15">
+                            <i class="fa fa-plus"></i>
+                        </td>
+                        <td>
+                            {{ i.cur_id }}
+                        </td>
+                        <td>
+                            <a href="/viewgenesetdetails/{{ i.geneset_id }}">{{ i.name }}</a>
+                        </td>
+                        <td align="center">
+                            <strong>{{ '%0.4f' % i.jac_value|float }}</strong>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     {% for gene in emphgeneids %}
         <script>
             document.getElementById("{{gene}}").checked = true;
         </script>
     {% endfor %}
-#}
-    <!-- <body onload="myFunction()"> -->
+
+
 
     <script type="text/javascript">
 
@@ -258,7 +311,7 @@
             h: h,
             maxValue: 1.0,
             levels: 10,
-            ExtraWidth: 300
+            ExtraWidthX: 300
         };
 
         RadarChart.draw("#chart", d, mycfg);
@@ -267,7 +320,7 @@
         /////////// Initiate legend ////////////////
         ////////////////////////////////////////////
 
-        var svg = d3.select('#body')
+        var svg = d3.select('#legend')
                 .selectAll('svg')
                 .append('svg')
                 .attr("width", w + 300)
@@ -279,9 +332,9 @@
                 .attr('transform', 'translate(90,0)')
                 .attr("x", w - 70)
                 .attr("y", 10)
-                .attr("font-size", "12px")
+                .attr("font-size", "14px")
                 .attr("fill", "#404040")
-                .text("What % of owners use a specific service in a week");
+                .text("Legend");
 
         //Initiate Legend
         var legend = svg.append("g")
@@ -344,6 +397,10 @@
             });
 
         });
+
+        $('#clickableFontAwesome').popover({title: 'Collapsing GeneSets', content: 'Duplicate genesets, defined as ' +
+        'geneests with a Jaccard score > 0.95 are removed from the radar plot. These genesets remain in the complete list below.'});
+
         //});
 
 
