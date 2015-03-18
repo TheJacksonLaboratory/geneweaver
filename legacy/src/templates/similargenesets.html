@@ -13,21 +13,44 @@
 
 
 <style type="text/css">
-        legend {
-            overflow: hidden;
-            margin: 0;
-            font-size: 14px;
-        }
+    legend {
+        overflow: hidden;
+        margin: 0;
+        font-size: 14px;
+    }
 
-		#chart {
-		    margin-left: auto;
-            margin-right: auto;
-            width: 90%;
-		}
+    #chart {
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+    }
 
-        #clickableFontAwesome{
-            cursor: pointer;
-        }
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    .plus {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    .minus {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f068";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
 
 </style>
 
@@ -156,58 +179,16 @@
         </div>
     </div>
 
-    <!-- Show the Geneset List -->
-    <div class="panel panel-default">
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Top Twenty Similar Gene Sets (Compressed
-                <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span>) </h3>
-        </div>
-        <div class="panel-body">
-            <!-- TODO make the table sortable, show more gene details -->
-            <table class="table table-hover">
-                <tbody>
-                <tr>
-                    <th>Gene Symbol</th>
-                    <th>LinkOuts</th>
-                    <th>Data Value</th>
-                    <th>Emphasis</th>
-                </tr>
-
-                {% for geneset_value in geneset.geneset_values %}
-                    <tr>
-                        <td>
-                            <!-- TODO Determine how to show gene with multiple sources listed -->
-                            <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">{{ geneset_value.source_list[0] }}</a>
-                        </td>
-                        <td>
-                            <!-- TODO Insert outside links here -->
-                            {% set gene=geneset_value.source_list[0] %}
-                            {% include 'linkouts.html' %}
-                        </td>
-                        <td>
-                            {{ geneset_value.value }}
-                        </td>
-                        <td>
-                            <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
-                                   onclick="emphasize('{{ geneset_value.ode_gene_id }}');" class="table-checkbox"/>
-                        </td>
-                    </tr>
-                {% endfor %}
-
-                </tbody>
-            </table>
-        </div>
-    </div>
-
 
     <!-- Show the Geneset List -->
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Top 250 Similar GeneSets</h3>
+            <h3 class="panel-title">Top 250 Similar GeneSets
+                <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
         </div>
         <div class="panel-body">
             <!-- TODO make the table sortable, show more gene details -->
-            <table class="table table-hover">
+            <table class="table table-hover" id="similarGenesets">
                 <tbody>
                 <tr>
                     <th>&nbsp;</th>
@@ -218,8 +199,9 @@
 
                 {% for i in simgs %}
                     <tr>
-                        <td width="15">
-                            <i class="fa fa-plus"></i>
+                        <td width="15"><a href="#" class="toggler" data-prod="1">
+                            <span class="plus">1</span>
+                            </a>
                         </td>
                         <td>
                             {{ i.cur_id }}
@@ -230,6 +212,9 @@
                         <td align="center">
                             <strong>{{ '%0.4f' % i.jac_value|float }}</strong>
                         </td>
+                    </tr>
+                    <tr class="cat1">
+                        <td colspan="4">This is a test.</td>
                     </tr>
                 {% endfor %}
 
@@ -396,10 +381,44 @@
                 window.open('../viewSimilarGenesets/' + gs_id, "_self");
             });
 
+            // Add event listener for opening and closing details
+            $(".toggler").click(function (e) {
+                e.preventDefault();
+                $(this).child().toggle();
+                //the data stored in the data-prod
+                //var prod = ($(this).attr("data-prod"));
+                //toggle the link clicked on
+                //$(".cat" + prod).toggle();
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $(this).parent().find("span").toggleClass("plus");
+                //toggle the minus class
+                $(this).toggleClass("minus");
+
+            });
+
+            /*
+            function getChildren($row) {
+                var children = [];
+                while ($row.next().hasClass('child')) {
+                    children.push($row.next());
+                    $row = $row.next();
+                }
+                return children;
+            }
+
+            $('.parent').on('click', function () {
+
+                var children = getChildren($(this));
+                $.each(children, function () {
+                    $(this).toggle();
+                })
+            });
+*/
         });
 
-        $('#clickableFontAwesome').popover({title: 'Collapsing GeneSets', content: 'Duplicate genesets, defined as ' +
-        'geneests with a Jaccard score > 0.95 are removed from the radar plot. These genesets remain in the complete list below.'});
+        $('#clickableFontAwesome').popover({title: 'Caution', content: 'Some recently added genesets may ' +
+        'not be on this list due to a lag time in calculating global Jaccard scores between all genesets in our database.'});
 
         //});
 

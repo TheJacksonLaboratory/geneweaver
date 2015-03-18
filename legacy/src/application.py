@@ -375,17 +375,15 @@ def top_twenty_simgenesets(simgs):
     return d
 
 
-@app.route('/viewSimilarGenesets/<int:gs_id>/<string:type>')
-def render_sim_genesets(gs_id, type):
+@app.route('/viewSimilarGenesets/<int:gs_id>')
+def render_sim_genesets(gs_id):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
         user_id = 0
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     simgs = geneweaverdb.get_similar_genesets(gs_id, user_id)
-    topsimgs = top_twenty_simgenesets(simgs)
-    print topsimgs
-    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, type=type, topsimgs=topsimgs)
+    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs)
 
 @app.route('/exportGeneList/<int:gs_id>')
 def render_export_genelist(gs_id):
