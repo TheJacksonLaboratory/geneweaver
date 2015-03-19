@@ -527,7 +527,7 @@ def add_geneset2project(pj_id, gs_id):
             ''' INSERT INTO project2geneset
                 (pj_id, gs_id) SELECT %s, %s
                 WHERE NOT EXISTS
-                (SELECT pj_id, gs_id FROM pr  oject2geneset WHERE pj_id=%s AND gs_id=%s)
+                (SELECT pj_id, gs_id FROM project2geneset WHERE pj_id=%s AND gs_id=%s)
               ''', (pj_id, gs_id, pj_id, gs_id)
         )
         cursor.connection.commit()
