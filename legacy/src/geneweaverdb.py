@@ -1479,16 +1479,16 @@ def get_similar_genesets(geneset_id, user_id):
 
     with PooledCursor() as cursor:
         #This SQL is a bit sketchy. The old GW code calls for a sorted list of jac and gic values
-        #I have simplified to return the top 250 of left and right ode_gene_ids. Worst case all are from
+        #I have simplified to return the top 150 of left and right ode_gene_ids. Worst case all are from
         #either partition of the list. I will clean up duplicates in the application.
         cursor.execute(
             '''SELECT * FROM
                 ((SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
                     WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
-                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 250) UNION
+                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150) UNION
                 (SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
                     WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
-                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 250)) as tmp ORDER BY jac_value DESC;
+                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150)) as tmp ORDER BY jac_value DESC;
             ''',
             {
                 'geneset_id': geneset_id,

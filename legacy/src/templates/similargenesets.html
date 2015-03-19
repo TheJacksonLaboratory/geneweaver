@@ -29,7 +29,11 @@
         cursor: pointer;
     }
 
-    .plus {
+    #genesetExpand {
+        cursor: pointer;
+    }
+
+    .plus:before {
         position: relative;
         background-image: none !important;
         display: inline-block;
@@ -40,15 +44,8 @@
         horiz-align: center;
     }
 
-    .minus {
-        position: relative;
-        background-image: none !important;
-        display: inline-block;
-        font-family: FontAwesome;
+    .minus .plus:before{
         content: "\f068";
-        cursor: pointer;
-        vertical-align: middle;
-        horiz-align: center;
     }
 
 
@@ -151,7 +148,7 @@
                     </button>
                 {% else %}
                     <button type="button" class="btn btn-lg btn-block btn-warning" id="orderbyTier">
-                        <i class="fa fa-refresh pull-left"></i> Order by Tier
+                        <i class="fa fa-bar-chart-o pull-left"></i> Distribution
                     </button>
                 {% endif %}
                 <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
@@ -183,14 +180,17 @@
     <!-- Show the Geneset List -->
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Top 250 Similar GeneSets
+            <h3 class="panel-title">Top 150 Similar GeneSets
                 <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
         </div>
         <div class="panel-body">
             <!-- TODO make the table sortable, show more gene details -->
-            <table class="table table-hover" id="similarGenesets">
+            <table class="table table-hover" id="similarGenesets" cellpadding="0">
                 <tbody>
                 <tr>
+                    <th>&nbsp;</th>
+                    <th>&nbsp;</th>
+                    <th>&nbsp;</th>
                     <th>&nbsp;</th>
                     <th>&nbsp;</th>
                     <th>GeneSet Title</th>
@@ -198,13 +198,72 @@
                 </tr>
 
                 {% for i in simgs %}
-                    <tr>
-                        <td width="15"><a href="#" class="toggler" data-prod="1">
-                            <span class="plus">1</span>
-                            </a>
+
+                    <tr class="parent">
+                        <td width="15">
+                            <span id="genesetExpand" class="toggler" data-prod="{{i.geneset_id}}">
+                                <span class="plus"></span>
+                                <span class="minus"></span>
+                            </span>
                         </td>
-                        <td>
-                            {{ i.cur_id }}
+                        <td nowrap>
+                            <!-- Label the tier - which is the curation id, Geneset.cur_id -->
+                            {% if i.cur_id == 1 %}
+                                <span class="tier1">Tier I</span>
+                            {% endif %}
+                            {% if i.cur_id == 2 %}
+                                <span class="tier2">Tier II</span>
+                            {% endif %}
+                            {% if i.cur_id == 3 %}
+                                <span class="tier3">Tier III</span>
+                            {% endif %}
+                            {% if i.cur_id == 4 %}
+                                <span class="tier4">Tier IV</span>
+                            {% endif %}
+                            {% if i.cur_id == 5 %}
+                                <span class="tier5">Tier V</span>
+                            {% endif %}
+                        </td>
+                        <td nowrap>
+                            <!-- Label the species -->
+                            {% if i.sp_id == 1 %}
+                                <span class="mouse">Mouse</span>
+                            {% endif %}
+                            {% if i.sp_id == 2 %}
+                                <span class="human">Human</span>
+                            {% endif %}
+                            {% if i.sp_id == 3 %}
+                                <span class="rat">Rat</span>
+                            {% endif %}
+                            {% if i.sp_id == 4 %}
+                                <span class="zebrafish">Zebrafish</span>
+                            {% endif %}
+                            {% if i.sp_id == 5 %}
+                                <span class="fly">Fly</span>
+                            {% endif %}
+                            {% if i.sp_id == 6 %}
+                                <span class="monkey">Monkey</span>
+                            {% endif %}
+                        </td>
+                        <td nowrap>
+                            <!-- Label the attribution -->
+                            {% if i.attribution == 2 %}
+                                <span class="ctd">CTD</span>
+                            {% endif %}
+                            {% if i.attribution == 7 %}
+                                <span class="drg">DRG</span>
+                            {% endif %}
+                            {% if i.attribution == 8 %}
+                                <span class="go">GO</span>
+                            {% endif %}
+                            {% if i.attribution == 9 %}
+                                <span class="mp">MP</span>
+                            {% endif %}
+                        </td>
+                        <td nowrap>
+                            <!-- Show the geneset size -->
+                            <span class="gs_size">{{ i.count }} Genes</span>
+
                         </td>
                         <td>
                             <a href="/viewgenesetdetails/{{ i.geneset_id }}">{{ i.name }}</a>
@@ -213,9 +272,13 @@
                             <strong>{{ '%0.4f' % i.jac_value|float }}</strong>
                         </td>
                     </tr>
-                    <tr class="cat1">
-                        <td colspan="4">This is a test.</td>
+                    <tr class="gsid{{i.geneset_id}}" style="display: none">
+                        <td colspan="5">&nbsp;</td>
+                        <td><strong>LABEL:</strong> {{ i.abbreviation }}<br>
+                            <strong>DESCRIPTION:</strong> {{ i.description }}
+                        </td>
                     </tr>
+
                 {% endfor %}
 
                 </tbody>
@@ -370,6 +433,8 @@
             }
         }
 
+        // Add event listener for opening and closing details
+
         $(document).ready(function () {
             var gs_id = {{ geneset.geneset_id }};
             $('#exportData').on('click', function (e) {
@@ -381,40 +446,21 @@
                 window.open('../viewSimilarGenesets/' + gs_id, "_self");
             });
 
-            // Add event listener for opening and closing details
             $(".toggler").click(function (e) {
                 e.preventDefault();
-                $(this).child().toggle();
                 //the data stored in the data-prod
-                //var prod = ($(this).attr("data-prod"));
+                var gid = ($(this).attr("data-prod"));
                 //toggle the link clicked on
-                //$(".cat" + prod).toggle();
+                $(".gsid" + gid).toggle();
                 //select the parent and find the span so you can
                 //toggle the "plus" class
                 $(this).parent().find("span").toggleClass("plus");
+                //$(this).parent().find("span").toggleClass("minus");
                 //toggle the minus class
+                $(this).toggleClass("plus");
                 $(this).toggleClass("minus");
-
             });
 
-            /*
-            function getChildren($row) {
-                var children = [];
-                while ($row.next().hasClass('child')) {
-                    children.push($row.next());
-                    $row = $row.next();
-                }
-                return children;
-            }
-
-            $('.parent').on('click', function () {
-
-                var children = getChildren($(this));
-                $.each(children, function () {
-                    $(this).toggle();
-                })
-            });
-*/
         });
 
         $('#clickableFontAwesome').popover({title: 'Caution', content: 'Some recently added genesets may ' +
