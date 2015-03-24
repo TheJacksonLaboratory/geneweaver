@@ -26,6 +26,7 @@
 	 var headerCols = {{headerCols | safe}};
 	 var table = $('#resultsViewer').dataTable( {
         	"dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+            "iDisplayLength": 15,
         	"tableTools": { "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf" },
             "processing": true,
             "serverSide": true,
@@ -41,27 +42,27 @@
                         "fnCreatedCell" : function(nTd, sData, oData, iRow, iCol){
                         	var cellData = oData[5];
                         	/* Delete Button */
-                            var b = $('<button class="btn btn-danger" data-placement="top" data-toggle="tooltip" \
+                            var b = $('<span data-placement="top" data-toggle="tooltip" \
                             		data-rel="tooltip" data-original-title="Delete Result" type="button" title="Delete this Result"\
                             		style="margin: 2px; padding: 0px 2px;">\
-                            		<i class="fa fa-trash-o"></i></button>');
+                            		<i class="fa fa-trash-o"></i></span>');
 							/* Re-Run Button */
-                            var d = $('<button class="btn btn-success" data-placement="top" data-toggle="tooltip" \
+                            var d = $('<span data-placement="top" data-toggle="tooltip" \
                             		data-rel="tooltip" data-original-title="Re-run Result" type="button" title="Re-Run this Result"\
                             		style="margin: 2px; padding: 0px 2px;">\
-                            		<i class="fa fa-refresh"></i></button>');
+                            		<i class="fa fa-refresh"></i></span>');
 							/* View Data if not expired */
                             if (sData >= 60) {
-                            	var e = $('<button class="btn btn-warning" data-placement="top" data-toggle="tooltip" \
+                            	var e = $('<span data-placement="top" data-toggle="tooltip" \
                             			data-rel="tooltip" data-original-title="Results Expired" type="button" \
                             			title="Stored Results Expired" style="margin: 2px; padding: 0px 2px;">\
-                            		<i class="fa fa-warning"></i></button>');
+                            		<i class="fa fa-warning"></i></span>');
                             }
                             else {
-                            	var e = $('<button class="btn btn-success" data-placement="top" data-toggle="tooltip" \
+                            	var e = $('<span data-placement="top" data-toggle="tooltip" \
                             			data-rel="tooltip" data-original-title="View Stored Results" type="button" \
                             			title="View Stored Results" style="margin: 2px; padding: 0px 2px;">\
-                            		<i class="fa fa-eye"></i></button>');
+                            		<i class="fa fa-eye"></i></span>');
                             }
                             b.tooltip();
                             b.click(function(){
@@ -112,10 +113,10 @@
                     	"aTargets": [1],
                     	"fnCreatedCell": function(nTd, sData, oData, iRow, iCol){
                     		if (sData != null) {
-                    			c = $('<button class="btn btn-success" type="button" data-placement="top" \
+                    			c = $('<span data-placement="top" \
 										data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
 										title="Edit Name" style="margin: 2px; padding: 0px 2px;"> \
-										<i class="fa fa-edit"></i></button>');
+										<i class="fa fa-edit"></i></span>');
 								c.tooltip();
 								c.click(function(){
                             		var cellData = oData[5];

@@ -26,6 +26,10 @@
         background-color: #000000;
     }
 
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
 </style>
 
 
@@ -71,6 +75,8 @@
                     var headerCols = {{headerCols | safe}};
                     var table = $('#mygenesetsViewer').dataTable({
                         "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+                        "iDisplayLength": 25,
+                        "bLengthChange": true,
                         "tableTools": {
                             "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
                             "sRowSelect": "multi",
@@ -237,15 +243,15 @@
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
 
                                     /* Delete Button */
-                                    var b = $('<button class="btn btn-danger" data-placement="top" data-toggle="tooltip" \
+                                    var b = $('<span class="pointer" data-placement="top" data-toggle="tooltip" \
                             		        data-rel="tooltip" data-original-title="Delete GeneSet" type="button" title="Delete this GeneSet"\
                                             style="margin: 2px; padding: 0px 2px;">\
-                            		        <i class="fa fa-trash-o"></i></button>');
+                            		        <i class="fa fa-trash-o"></i></span>');
                                     /* Edit Button */
-                                    var c = $('<button class="btn btn-success" type="button" data-placement="top" \
+                                    var c = $('<span class="pointer" data-placement="top" \
 										    data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
 										    title="Edit Name" style="margin: 2px; padding: 0px 2px;"> \
-										    <i class="fa fa-edit"></i></button>');
+										    <i class="fa fa-edit"></i></span>');
 
 
                                     b.tooltip();
@@ -382,6 +388,10 @@
                         }
                     });
 
+            $('#clickableFontAwesome').popover({
+                title: 'Select GeneSets', content: 'Click on multiple rows to ' +
+                'select or deselect GeneSets for addition to your projects.'
+            });
 
                 });
 
@@ -392,20 +402,19 @@
             <div class="row" id="result"></div>
 
             <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>My GeneSets </strong></h3>
+                <h3 class="panel-title"><strong>My GeneSets </strong>
+                    <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
             </div>
 
             <div class="panel panel-default">
 
                 <div class="row">
-                    <div class="col-md-4">
-                        <button type="button" class="btn btn-success btn-transparent" id="addToProject">
-                            Add to Project
+                    <div class="col-xs-6 col-md-3">
+
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add to Project
                         </button>
 
-                        <button type="button" class="btn btn-warning btn-transparent" id="helpMyGenesets">
-                            Help
-                        </button>
                     </div>
                 </div>
 
