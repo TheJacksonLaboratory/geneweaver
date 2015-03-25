@@ -3,6 +3,7 @@ from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
 from flask.ext import restful
 from flask import request, send_file, Response, make_response
+from decimal import Decimal
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -375,25 +376,29 @@ def top_twenty_simgenesets(simgs):
     return d
 
 
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
 @app.route('/viewSimilarGenesets/<int:gs_id>')
 def render_sim_genesets(gs_id):
-    from collections import defaultdict
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
         user_id = 0
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     simgs = geneweaverdb.get_similar_genesets(gs_id, user_id)
-    tier1 = defaultdict()
-    tier3 = defaultdict()
+    tier1 = []
+    tier3 = []
     d3Data = []
     for k in simgs:
         if k.cur_id == 1:
-            tier1[k.sp_id] = str(k.jac_value)
-        elif k.cur_id == 3:
-            tier3[k.sp_id] = str(k.jac_value)
+            tier1.append({'axis':k.sp_id, 'value': int(k.jac_value * 10)})
+        elif k.cur_id == 5:
+            tier3.append({'axis':k.sp_id, 'value': int(k.jac_value * 10)})
     d3Data.extend([tier1, tier3])
-    json.dumps(d3Data)
+    json.dumps(d3Data, default=decimal_default)
     return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, d3Data=d3Data)
 
 
