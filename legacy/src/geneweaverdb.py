@@ -1812,6 +1812,24 @@ def get_all_userids():
     return list(dictify_cursor(cursor))
 
 
+def get_species_name_by_id(sp_id):
+    """
+    returns the species name given a valid species id
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_name FROM species WHERE sp_id=%s;''', (sp_id,))
+        sp_name = cursor.fetchone()[0]
+    return sp_name
+
+def get_sp_id():
+    """
+    returns all species ids
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM species WHERE sp_id > 0 ORDER BY sp_id ASC;''')
+        sp_id = list(dictify_cursor(cursor))
+    return sp_id
+
 def export_results_by_gs_id(gs_id):
     """
     Write a generic tab file for geneset products

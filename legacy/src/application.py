@@ -387,19 +387,50 @@ def render_sim_genesets(gs_id):
         user_id = flask.session['user_id']
     else:
         user_id = 0
+    # Get GeneSet Info for the MetaData
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    # Returns a subClass of geneset that includes jac values
     simgs = geneweaverdb.get_similar_genesets(gs_id, user_id)
-    tier1 = []
-    tier3 = []
+    # Returns a list os all active sp_ids
+    sp_id = geneweaverdb.get_sp_id()
+    # Initiate variables
+    tier1, tier2, tier3, tier4, tier5 = ([] for i in range(5))
     d3Data = []
-    for k in simgs:
-        if k.cur_id == 1:
-            tier1.append({'axis':k.sp_id, 'value': int(k.jac_value * 10)})
-        elif k.cur_id == 5:
-            tier3.append({'axis':k.sp_id, 'value': int(k.jac_value * 10)})
-    d3Data.extend([tier1, tier3])
+    max = 0
+    # OK, OK, This is nasty. Loop through all curation tiers, then,
+    # for each curation tier, Loop through all species. Then, Loop through
+    # all cur - sp_id sets in the simgs set to find the average values and
+    # add this to the list of list(dict).
+    for i in range(1,6):
+        for l in sp_id:
+            t = 0
+            counter = 0
+            for k in simgs:
+                if k.cur_id == i and k.sp_id == l['sp_id']:
+                    t += k.jac_value
+                    counter += 1
+            # Make sure that we don't divde by zero
+            if counter > 0:
+                avg = t/counter
+            else:
+                avg = 0
+            # We need to set a max in order to ensure that the d3 graph is scaled correctly
+            if avg > max:
+                max = avg
+            if i == 1:
+                tier1.append({'axis':geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+            elif i == 2:
+                tier2.append({'axis':geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+            elif i == 3:
+                tier3.append({'axis':geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+            elif i == 4:
+                tier4.append({'axis':geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+            elif i == 5:
+                tier5.append({'axis':geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+    d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
-    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, d3Data=d3Data)
+    print d3Data
+    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, d3Data=d3Data, max=max)
 
 
 @app.route('/exportGeneList/<int:gs_id>')
@@ -412,6 +443,20 @@ def render_export_genelist(gs_id):
         response = make_response(str)
         response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
         return response
+
+@app.route('/exportJacGeneList/<int:gs_id>')
+def render_export_jac_genelist(gs_id):
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        user_id = 0
+    string = ''
+    results = geneweaverdb.get_similar_genesets(gs_id, user_id)
+    for k in results:
+        string = string + str(k.geneset_id) + ',' + k.name + ',' + k.abbreviation + ',' + str(k.count) + ',' + str(k.jac_value) + '\n'
+    response = make_response(string)
+    response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
+    return response
 
 
 @app.route('/emphasis.html', methods=['GET', 'POST'])

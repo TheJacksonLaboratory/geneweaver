@@ -159,7 +159,7 @@
                     <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
                         <i class="fa fa-download pull-left"></i> Export GeneSets
                     </button>
-                    <button type="button" class="btn btn-lg btn-block btn-warning" id="orderbyTier">
+                    <button type="button" class="btn btn-lg btn-block btn-warning" id="distribution">
                         <i class="fa fa-bar-chart-o pull-left"></i> Distribution
                     </button>
                     <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
@@ -333,60 +333,60 @@
             // variables for Radar Chart
             var w = 500, h = 500;
             var colorscale = d3.scale.category10();
-            var LegendOptions = ['Tier 1', 'Tier 2'];
+            var LegendOptions = ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'];
 
             //Data
             /*
-            var d = [
-                [
-                    {axis: "Email", value: 0.59},
-                    {axis: "Social Networks", value: 0.56},
-                    {axis: "Internet Banking", value: 0.42},
-                    {axis: "News Sportsites", value: 0.34},
-                    {axis: "Search Engine", value: 0.48},
-                    {axis: "View Shopping sites", value: 0.14},
-                    {axis: "Paying Online", value: 0.11},
-                    {axis: "Buy Online", value: 0.05},
-                    {axis: "Stream Music", value: 0.07},
-                    {axis: "Online Gaming", value: 0.12},
-                    {axis: "Navigation", value: 0.27},
-                    {axis: "App connected to TV program", value: 0.03},
-                    {axis: "Offline Gaming", value: 0.12},
-                    {axis: "Photo Video", value: 0.4},
-                    {axis: "Reading", value: 0.03},
-                    {axis: "Listen Music", value: 0.22},
-                    {axis: "Watch TV", value: 0.03},
-                    {axis: "TV Movies Streaming", value: 0.03},
-                    {axis: "Listen Radio", value: 0.07},
-                    {axis: "Sending Money", value: 0.18},
-                    {axis: "Other", value: 0.07},
-                    {axis: "Use less Once week", value: 0.08}
-                ], [
-                    {axis: "Email", value: 0.48},
-                    {axis: "Social Networks", value: 0.41},
-                    {axis: "Internet Banking", value: 0.27},
-                    {axis: "News Sportsites", value: 0.28},
-                    {axis: "Search Engine", value: 0.46},
-                    {axis: "View Shopping sites", value: 0.29},
-                    {axis: "Paying Online", value: 0.11},
-                    {axis: "Buy Online", value: 0.14},
-                    {axis: "Stream Music", value: 0.05},
-                    {axis: "Online Gaming", value: 0.19},
-                    {axis: "Navigation", value: 0.14},
-                    {axis: "App connected to TV program", value: 0.06},
-                    {axis: "Offline Gaming", value: 0.24},
-                    {axis: "Photo Video", value: 0.17},
-                    {axis: "Reading", value: 0.15},
-                    {axis: "Listen Music", value: 0.12},
-                    {axis: "Watch TV", value: 0.1},
-                    {axis: "TV Movies Streaming", value: 0.14},
-                    {axis: "Listen Radio", value: 0.06},
-                    {axis: "Sending Money", value: 0.16},
-                    {axis: "Other", value: 0.07},
-                    {axis: "Use less Once week", value: 0.17}
-                ]
-            ];
-            */
+             var d = [
+             [
+             {axis: "Email", value: 0.59},
+             {axis: "Social Networks", value: 0.56},
+             {axis: "Internet Banking", value: 0.42},
+             {axis: "News Sportsites", value: 0.34},
+             {axis: "Search Engine", value: 0.48},
+             {axis: "View Shopping sites", value: 0.14},
+             {axis: "Paying Online", value: 0.11},
+             {axis: "Buy Online", value: 0.05},
+             {axis: "Stream Music", value: 0.07},
+             {axis: "Online Gaming", value: 0.12},
+             {axis: "Navigation", value: 0.27},
+             {axis: "App connected to TV program", value: 0.03},
+             {axis: "Offline Gaming", value: 0.12},
+             {axis: "Photo Video", value: 0.4},
+             {axis: "Reading", value: 0.03},
+             {axis: "Listen Music", value: 0.22},
+             {axis: "Watch TV", value: 0.03},
+             {axis: "TV Movies Streaming", value: 0.03},
+             {axis: "Listen Radio", value: 0.07},
+             {axis: "Sending Money", value: 0.18},
+             {axis: "Other", value: 0.07},
+             {axis: "Use less Once week", value: 0.08}
+             ], [
+             {axis: "Email", value: 0.48},
+             {axis: "Social Networks", value: 0.41},
+             {axis: "Internet Banking", value: 0.27},
+             {axis: "News Sportsites", value: 0.28},
+             {axis: "Search Engine", value: 0.46},
+             {axis: "View Shopping sites", value: 0.29},
+             {axis: "Paying Online", value: 0.11},
+             {axis: "Buy Online", value: 0.14},
+             {axis: "Stream Music", value: 0.05},
+             {axis: "Online Gaming", value: 0.19},
+             {axis: "Navigation", value: 0.14},
+             {axis: "App connected to TV program", value: 0.06},
+             {axis: "Offline Gaming", value: 0.24},
+             {axis: "Photo Video", value: 0.17},
+             {axis: "Reading", value: 0.15},
+             {axis: "Listen Music", value: 0.12},
+             {axis: "Watch TV", value: 0.1},
+             {axis: "TV Movies Streaming", value: 0.14},
+             {axis: "Listen Radio", value: 0.06},
+             {axis: "Sending Money", value: 0.16},
+             {axis: "Other", value: 0.07},
+             {axis: "Use less Once week", value: 0.17}
+             ]
+             ];
+             */
 
             var d = {{ d3Data | safe }};
 
@@ -394,7 +394,7 @@
             var mycfg = {
                 w: w,
                 h: h,
-                maxValue: 10.0,
+                maxValue: {{ max }},
                 levels: 10,
                 ExtraWidthX: 300
             };
@@ -414,7 +414,7 @@
             //Create the title for the legend
             var text = svg.append("text")
                     .attr("class", "title")
-                    .attr('transform', 'translate(90,0)')
+                    .attr('transform', 'translate(150,0)')
                     .attr("x", w - 70)
                     .attr("y", 10)
                     .attr("font-size", "14px")
@@ -426,7 +426,7 @@
                             .attr("class", "legend")
                             .attr("height", 100)
                             .attr("width", 200)
-                            .attr('transform', 'translate(90,20)')
+                            .attr('transform', 'translate(150,20)')
                     ;
             //Create colour squares
             legend.selectAll('rect')
@@ -475,12 +475,20 @@
             $(document).ready(function () {
                 var gs_id = {{ geneset.geneset_id }};
                 $('#exportData').on('click', function (e) {
-                    window.open('../exportGeneList/' + gs_id);
+                    window.open('../exportJacGeneList/' + gs_id);
                 });
 
-                $('#viewSimilarGenesets').on('click', function (e) {
-
-                    window.open('../viewSimilarGenesets/' + gs_id, "_self");
+                $('#distribution').on('click', function (e) {
+                    $.ajax({
+                        type: "GET",
+                        url: "../jaccardDistribution",
+                        data: {"gs_id": gs_id},
+                        success: function (data) {
+                            if (data.success == "yes"){
+                                $("#distribution").show();
+                            }
+                        }
+                    });
                 });
 
                 $(".toggler").click(function (e) {
