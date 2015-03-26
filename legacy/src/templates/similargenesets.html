@@ -2,14 +2,10 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-<script>
-    //Add data for D3
-    src = "{{ url_for('static', filename='/d3/d3.min.js') }}";
-    src = "{{ url_for('static', filename='/d3/radar.js') }}";
-</script>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 <script src="/static/d3/radar.js" charset="utf-8"></script>
+<script src="/static/d3/BarChart.js" charset="utf-8"></script>
 
 
 <style type="text/css">
@@ -62,6 +58,26 @@
     fieldset .ui-checkbox {
         margin: 0;
     }
+
+    .axis path, .axis line {
+            fill: none;
+            stroke: #777;
+            shape-rendering: crispEdges;
+    }
+
+    .axis text {
+            font-family: 'Arial';
+            font-size: 13px;
+    }
+
+    .tick {
+            stroke-dasharray: 1, 2;
+    }
+
+    .bar {
+            fill: FireBrick;
+    }
+
 </style>
 
 {% if user_id == 0 %}
@@ -173,12 +189,15 @@
 
         </div>
 
-        {#
-{% for i in topsimgs %}
-{{ i.description }}
-    <br>
-{% endfor %}
-#}
+        <!-- Bar Chart for frequency -->
+        <div id="barChart" hidden="" style="padding-bottom: 20pt">
+            <center>
+                {# This is where the bar chart goes #}
+                <svg id="visualisation" width="1000" height="300"></svg>
+            </center>
+        </div>
+
+        <!-- Radar Chart -->
         <div class="row">
             <div id="legend">
                 <center>
@@ -297,7 +316,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr class="gsid{{ i.geneset_id }}" style="display: none">
+                            <tr class="gsid{{ i.geneset_id }}" id="gsid{{ i.geneset_id }}"style="display: none">
                                 <td colspan="5">&nbsp;</td>
                                 <td><strong>LABEL:</strong> {{ i.abbreviation }}<br>
                                     <strong>DESCRIPTION:</strong> {{ i.description }}
@@ -336,60 +355,12 @@
             var LegendOptions = ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5'];
 
             //Data
-            /*
-             var d = [
-             [
-             {axis: "Email", value: 0.59},
-             {axis: "Social Networks", value: 0.56},
-             {axis: "Internet Banking", value: 0.42},
-             {axis: "News Sportsites", value: 0.34},
-             {axis: "Search Engine", value: 0.48},
-             {axis: "View Shopping sites", value: 0.14},
-             {axis: "Paying Online", value: 0.11},
-             {axis: "Buy Online", value: 0.05},
-             {axis: "Stream Music", value: 0.07},
-             {axis: "Online Gaming", value: 0.12},
-             {axis: "Navigation", value: 0.27},
-             {axis: "App connected to TV program", value: 0.03},
-             {axis: "Offline Gaming", value: 0.12},
-             {axis: "Photo Video", value: 0.4},
-             {axis: "Reading", value: 0.03},
-             {axis: "Listen Music", value: 0.22},
-             {axis: "Watch TV", value: 0.03},
-             {axis: "TV Movies Streaming", value: 0.03},
-             {axis: "Listen Radio", value: 0.07},
-             {axis: "Sending Money", value: 0.18},
-             {axis: "Other", value: 0.07},
-             {axis: "Use less Once week", value: 0.08}
-             ], [
-             {axis: "Email", value: 0.48},
-             {axis: "Social Networks", value: 0.41},
-             {axis: "Internet Banking", value: 0.27},
-             {axis: "News Sportsites", value: 0.28},
-             {axis: "Search Engine", value: 0.46},
-             {axis: "View Shopping sites", value: 0.29},
-             {axis: "Paying Online", value: 0.11},
-             {axis: "Buy Online", value: 0.14},
-             {axis: "Stream Music", value: 0.05},
-             {axis: "Online Gaming", value: 0.19},
-             {axis: "Navigation", value: 0.14},
-             {axis: "App connected to TV program", value: 0.06},
-             {axis: "Offline Gaming", value: 0.24},
-             {axis: "Photo Video", value: 0.17},
-             {axis: "Reading", value: 0.15},
-             {axis: "Listen Music", value: 0.12},
-             {axis: "Watch TV", value: 0.1},
-             {axis: "TV Movies Streaming", value: 0.14},
-             {axis: "Listen Radio", value: 0.06},
-             {axis: "Sending Money", value: 0.16},
-             {axis: "Other", value: 0.07},
-             {axis: "Use less Once week", value: 0.17}
-             ]
-             ];
-             */
 
             var d = {{ d3Data | safe }};
+            var b = {{ d3BarChart | safe }};
 
+            //Call the barchart
+            InitChart.draw(b);
 
             var mycfg = {
                 w: w,
@@ -479,16 +450,7 @@
                 });
 
                 $('#distribution').on('click', function (e) {
-                    $.ajax({
-                        type: "GET",
-                        url: "../jaccardDistribution",
-                        data: {"gs_id": gs_id},
-                        success: function (data) {
-                            if (data.success == "yes"){
-                                $("#distribution").show();
-                            }
-                        }
-                    });
+                    $("#barChart").toggle();
                 });
 
                 $(".toggler").click(function (e) {

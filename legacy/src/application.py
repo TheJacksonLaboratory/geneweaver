@@ -396,6 +396,7 @@ def render_sim_genesets(gs_id):
     # Initiate variables
     tier1, tier2, tier3, tier4, tier5 = ([] for i in range(5))
     d3Data = []
+    d3BarChart = []
     max = 0
     # OK, OK, This is nasty. Loop through all curation tiers, then,
     # for each curation tier, Loop through all species. Then, Loop through
@@ -427,10 +428,16 @@ def render_sim_genesets(gs_id):
                 tier4.append({'axis':geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
             elif i == 5:
                 tier5.append({'axis':geneweaverdb.get_species_name_by_id(l['sp_id']), 'value': float(avg)})
+    # This is the bit for the bar chart
+    i = 1
+    for k in simgs:
+        d3BarChart.append({'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': str(k.abbreviation)})
+        i += 1
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
-    print d3Data
-    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs, d3Data=d3Data, max=max)
+    json.dumps(d3BarChart, default=decimal_default)
+    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs,
+                                 d3Data=d3Data, max=max, d3BarChart=d3BarChart)
 
 
 @app.route('/exportGeneList/<int:gs_id>')
