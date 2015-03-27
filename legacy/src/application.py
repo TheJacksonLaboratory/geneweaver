@@ -319,6 +319,13 @@ def render_login_error():
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
 
+# @app.route('/viewStoredResults')
+# def viewStroedResults_by_runhash():
+#     if 'user_id' in flask.session:
+#         results = geneweaverdb.get_result_type_by_runhash(request.args)
+#         return json.dumps(results)
+#     
+#
 
 @app.route('/viewgenesetdetails/<int:gs_id>')
 def render_viewgeneset(gs_id):

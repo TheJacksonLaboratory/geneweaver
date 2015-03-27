@@ -3,224 +3,240 @@
 {% import 'macros.html' as macros %}
 
 {% if user_id == 0 %}
-	{% include 'permissionError.html' %}
+    {% include 'permissionError.html' %}
 {% else %}
 
 
 
-{% block body %}
+    {% block body %}
 
 
-<div id="maindiv" xmlns="http://www.w3.org/1999/html">
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
 
-	<script>
-	$(function () {$("[data-toggle='tooltip']").tooltip(); });
-	var r = false;
-	var editor;
-    $(document).ready(function()  {
+            <script>
+                $(function () {
+                    $("[data-toggle='tooltip']").tooltip();
+                });
+                var r = false;
+                var editor;
+                $(document).ready(function () {
 
- 	 var table = '{{table}}';
- 	 var user_id = '{{user_id}}';
-	 var columns = {{columns | safe}};
-	 var numCols = columns.length;
-	 var headerCols = {{headerCols | safe}};
-	 var table = $('#resultsViewer').dataTable( {
-        	"dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
-            "iDisplayLength": 15,
-        	"tableTools": { "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf" },
-            "processing": true,
-            "serverSide": true,
-            "ajax": {
-                    'url': "/../getServersideResultsdb",
-                    'type': 'GET',
-		    		"data": {"table": table, "user_id": user_id}
-                },
-	    	"columns": columns,
-	    	"aoColumnDefs" :[
-					{
-                        "aTargets": [0],
-                        "fnCreatedCell" : function(nTd, sData, oData, iRow, iCol){
-                        	var cellData = oData[5];
-                        	/* Delete Button */
-                            var b = $('<span data-placement="top" data-toggle="tooltip" \
+                    var table = '{{table}}';
+                    var user_id = '{{user_id}}';
+                    var columns = {{columns | safe}};
+                    var numCols = columns.length;
+                    var headerCols = {{headerCols | safe}};
+                    var table = $('#resultsViewer').dataTable({
+                        "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+                        "iDisplayLength": 15,
+                        "tableTools": {"sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf"},
+                        "processing": true,
+                        "serverSide": true,
+                        "ajax": {
+                            'url': "/../getServersideResultsdb",
+                            'type': 'GET',
+                            "data": {"table": table, "user_id": user_id}
+                        },
+                        "columns": columns,
+                        "aoColumnDefs": [
+                            {
+                                "aTargets": [0],
+                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                                    var cellData = oData[5];
+                                    /* Delete Button */
+                                    var b = $('<span data-placement="top" data-toggle="tooltip" \
                             		data-rel="tooltip" data-original-title="Delete Result" type="button" title="Delete this Result"\
                             		style="margin: 2px; padding: 0px 2px;">\
                             		<i class="fa fa-trash-o"></i></span>');
-							/* Re-Run Button */
-                            var d = $('<span data-placement="top" data-toggle="tooltip" \
+                                    /* Re-Run Button */
+                                    var d = $('<span data-placement="top" data-toggle="tooltip" \
                             		data-rel="tooltip" data-original-title="Re-run Result" type="button" title="Re-Run this Result"\
                             		style="margin: 2px; padding: 0px 2px;">\
                             		<i class="fa fa-refresh"></i></span>');
-							/* View Data if not expired */
-                            if (sData >= 60) {
-                            	var e = $('<span data-placement="top" data-toggle="tooltip" \
+                                    /* View Data if not expired */
+                                    if (sData >= 60) {
+                                        var e = $('<span data-placement="top" data-toggle="tooltip" \
                             			data-rel="tooltip" data-original-title="Results Expired" type="button" \
                             			title="Stored Results Expired" style="margin: 2px; padding: 0px 2px;">\
                             		<i class="fa fa-warning"></i></span>');
-                            }
-                            else {
-                            	var e = $('<span data-placement="top" data-toggle="tooltip" \
+                                    }
+                                    else {
+                                        var e = $('<span data-placement="top" data-toggle="tooltip" \
                             			data-rel="tooltip" data-original-title="View Stored Results" type="button" \
                             			title="View Stored Results" style="margin: 2px; padding: 0px 2px;">\
                             		<i class="fa fa-eye"></i></span>');
-                            }
-                            b.tooltip();
-                            b.click(function(){
-                            	var cellData = oData[5];
+                                    }
+                                    b.tooltip();
+                                    b.click(function () {
+                                        var cellData = oData[5];
 
-                            	$('#delModal').modal({
-                            		keyboard: true
-                            	});
+                                        $('#delModal').modal({
+                                            keyboard: true
+                                        });
 
-								$('#confirmDelete').on('click', function(e){
-									$.ajax({
-										type: "GET",
-										url: "../deleteResults",
-										data: {"runHash": cellData, "user_id": user_id},
-										success: function(data)
-											{
-											table.fnClearTable(0);
-											table.fnDraw();
-											}
-									});
-            					});
-                            });
-							d.tooltip();
-                            d.click(function(){
-                            	var cellData = oData[5];
-                                alert(cellData);
-                            });
-                            e.tooltip();
-                            e.click(function(){
-                                document.location.href = "http://www.cnn.com";
-                                return false;
-                            });
+                                        $('#confirmDelete').on('click', function (e) {
+                                            $.ajax({
+                                                type: "GET",
+                                                url: "../deleteResults",
+                                                data: {"runHash": cellData, "user_id": user_id},
+                                                success: function (data) {
+                                                    table.fnClearTable(0);
+                                                    table.fnDraw();
+                                                }
+                                            });
+                                        });
+                                    });
+                                    d.tooltip();
+                                    d.click(function () {
+                                        var cellData = oData[5];
+                                        alert(cellData);
+                                    });
+                                    e.tooltip();
+                                    e.click(function () {
+                                        var runhash = oData[5];
+                                        $.ajax({
+                                            type: "GET",
+                                            url: "../viewStoredResults",
+                                            data: {"runHash": runhash, "user_id": user_id},
+                                            success: function (data) {
+                                                window.location();
+                                            }
+                                        });
+                                        document.location.href = "http://www.cnn.com";
+                                        return false;
+                                    });
 
-                            $(nTd).empty();
-                            $(nTd).append(b).append(d).append(e);
-                        }
-                    },
-                    {
-                    	"aTargets": [6],
-                    	"fnCreatedCell": function(nTd, sData, oData, iRow, iCol){
-                    		if (sData == '') {
-                    			$(nTd).empty();
-                    			$(nTd).append('<span class="badge badge-danger">No Results</span>');
-                    		}
-                    	}
-					},
-					 {
-                    	"aTargets": [1],
-                    	"fnCreatedCell": function(nTd, sData, oData, iRow, iCol){
-                    		if (sData != null) {
-                    			c = $('<span data-placement="top" \
+                                    $(nTd).empty();
+                                    $(nTd).append(b).append(d).append(e);
+                                }
+                            },
+                            {
+                                "aTargets": [6],
+                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                                    if (sData == '') {
+                                        $(nTd).empty();
+                                        $(nTd).append('<span class="badge badge-danger">No Results</span>');
+                                    }
+                                }
+                            },
+                            {
+                                "aTargets": [1],
+                                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                                    if (sData != null) {
+                                        c = $('<span data-placement="top" \
 										data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
 										title="Edit Name" style="margin: 2px; padding: 0px 2px;"> \
 										<i class="fa fa-edit"></i></span>');
-								c.tooltip();
-								c.click(function(){
-                            		var cellData = oData[5];
+                                        c.tooltip();
+                                        c.click(function () {
+                                            var cellData = oData[5];
 
-                            		$('#editModal').modal({
-                            			keyboard: true
-                            		});
-									$('#editSubmit').on('click', function(e){
+                                            $('#editModal').modal({
+                                                keyboard: true
+                                            });
+                                            $('#editSubmit').on('click', function (e) {
 
-											var editName = $('#resultName').val();
-											$.ajax({
-												type: "GET",
-												url: "../editResults",
-												data: {"runHash": cellData, "user_id": user_id, "editName": editName},
-												success: function(data)
-													{
-													table.fnClearTable(0);
-													table.fnDraw();
-													}
-											});
+                                                var editName = $('#resultName').val();
+                                                $.ajax({
+                                                    type: "GET",
+                                                    url: "../editResults",
+                                                    data: {
+                                                        "runHash": cellData,
+                                                        "user_id": user_id,
+                                                        "editName": editName
+                                                    },
+                                                    success: function (data) {
+                                                        table.fnClearTable(0);
+                                                        table.fnDraw();
+                                                    }
+                                                });
 
-            						});
-                            	});
-                            	$(nTd).empty();
-								$(nTd).append(c);
-                            	if (sData.length > 15) {
-                            		var modName = sData.substring(0,15);
-                            		$(nTd).append(modName);
-                            		$(nTd).append('...');
-                                    $(nTd).popover({
-                                        container: 'body',
-                                        placement: 'right', // top, bottom, left or right
-                                        title : 'Result Name',
-                                        html: 'true',
-                                        content : '<div id="popOverBox">' + sData + '</div>'
+                                            });
                                         });
+                                        $(nTd).empty();
+                                        $(nTd).append(c);
+                                        if (sData.length > 15) {
+                                            var modName = sData.substring(0, 15);
+                                            d = $('<span data-placement="top" \
+										data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
+										title="' + sData + '" style="margin: 2px; padding: 0px 2px;"> \
+										' + modName + '</span>');
+                                            d.tooltip();
+                                            $(nTd).append(d);
+                                            $(nTd).append('...');
+                                            //$(nTd).popover({
+                                            //    container: 'body',
+                                            //    placement: 'right', // top, bottom, left or right
+                                            //    title : 'Result Name',
+                                            //    html: 'true',
+                                            //    content : '<div id="popOverBox">' + sData + '</div>'
+                                            //    });
 
-                            	}
-                            	else if (sData.length == 0) {
-									$(nTd).append('<span class="badge badge-info">No Name</span>');
-                            	}
-                            	else {
-                            		$(nTd).append(sData);
-                            	}
+                                        }
+                                        else if (sData.length == 0) {
+                                            $(nTd).append('<span class="badge badge-info">No Name</span>');
+                                        }
+                                        else {
+                                            $(nTd).append(sData);
+                                        }
 
-                    		}
-                    	}
-                    }]
+                                    }
+                                }
+                            }]
 
-        });
-
-
-
-
-    });
-
-	</script>
-
-	<p>
-
-
-
-	<div class="panel panel-default panel-heading bg-gray-light">
-		<h3 class="panel-title"><strong>Results </strong> management</h3>
-	</div>
-
-	<div class="panel panel-default">
-		<div class="row">
-			<div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
-
-				<table id="resultsViewer" class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
-
-    				<thead>
-      					<tr>
-							{% for col in headerCols %}
-	    					<th style="text-align: center">{{col.capitalize()}}</th>
-							{% endfor %}
-      					</tr>
-    				</thead>
-    				<tfoot>
-      					<tr>
-							{% for col in headerCols %}
-	    					<th style="text-align: center">{{col.capitalize()}}</th>
-							{% endfor %}
-      					</tr>
-  					</tfoot>
-  				</table>
-
-			</div>
-		</div>
-	</div>
-
-</div>
+                    });
 
 
-{% include 'modal/deleteResult.html' %}
+                });
 
-    {% include 'modal/editResultName.html' %}
+            </script>
+
+            <p>
+
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>Results </strong> management</h3>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="row">
+                    <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
+
+                        <table id="resultsViewer"
+                               class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
+
+                            <thead>
+                            <tr>
+                                {% for col in headerCols %}
+                                    <th style="text-align: center">{{ col.capitalize() }}</th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                            <tfoot>
+                            <tr>
+                                {% for col in headerCols %}
+                                    <th style="text-align: center">{{ col.capitalize() }}</th>
+                                {% endfor %}
+                            </tr>
+                            </tfoot>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+        {% include 'modal/deleteResult.html' %}
+
+        {% include 'modal/editResultName.html' %}
 
 
 
 
 
-{% endblock %}
+    {% endblock %}
 
 
 {% endif %}

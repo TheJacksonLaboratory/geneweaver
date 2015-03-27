@@ -233,6 +233,7 @@
                         </tr>
 
                         {% for i in simgs %}
+                            <a name="gsid{{ i.geneset_id }}"></a>
 
                             <tr>
                                 <td width="15" style="vertical-align: middle">
@@ -316,7 +317,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr class="gsid{{ i.geneset_id }}" id="gsid{{ i.geneset_id }}"style="display: none">
+                            <tr class="gsid{{ i.geneset_id }}" style="display: none">
                                 <td colspan="5">&nbsp;</td>
                                 <td><strong>LABEL:</strong> {{ i.abbreviation }}<br>
                                     <strong>DESCRIPTION:</strong> {{ i.description }}
