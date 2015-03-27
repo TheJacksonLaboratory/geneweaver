@@ -2,6 +2,14 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+<style type="text/css">
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+</style>
 
 {% if geneset.geneset_id is not defined %}
 
@@ -90,6 +98,18 @@
                         </td>
                         <td>
                             {{ geneset_value.value }}
+                            <div class="geneBox" style="background-color: #58D87E;"></div>
+                            <div class="geneBox" style="background-color: #588C7E;"></div>
+                            <div class="geneBox" style="background-color: #F2E394;"></div>
+                            <div class="geneBox" style="background-color: #1F77B4;"></div>
+                            <div class="geneBox" style="background-color: #F2AE72;"></div>
+                            <div class="geneBox" style="background-color: #F2AF28;"></div>
+                            <div class="geneBox" style="background-color: #D96459;"></div>
+                            <div class="geneBox" style="background-color: #D93459;"></div>
+                            <div class="geneBox" style="background-color: #8C4646;"></div>
+                            <div class="geneBox"></div>
+
+
                         </td>
                         <td>
                             <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
