@@ -324,7 +324,7 @@ def render_forgotpass():
 #     if 'user_id' in flask.session:
 #         results = geneweaverdb.get_result_type_by_runhash(request.args)
 #         return json.dumps(results)
-#     
+#
 #
 
 @app.route('/viewgenesetdetails/<int:gs_id>')
