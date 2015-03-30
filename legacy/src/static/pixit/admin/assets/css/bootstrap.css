@@ -1792,10 +1792,10 @@ input[type="date"] {
 .radio,
 .checkbox {
   display: block;
-  min-height: 20px;
-  padding-left: 20px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  min-height: 10px;
+  padding-left: 0px;
+  margin-top: 0px;
+  margin-bottom: 0px;
 }
 .radio label,
 .checkbox label {
@@ -2012,13 +2012,13 @@ select[multiple].input-lg {
 .form-horizontal .checkbox,
 .form-horizontal .radio-inline,
 .form-horizontal .checkbox-inline {
-  padding-top: 7px;
+  padding-top: 0px;
   margin-top: 0;
   margin-bottom: 0;
 }
 .form-horizontal .radio,
 .form-horizontal .checkbox {
-  min-height: 27px;
+  min-height: 0px;
 }
 .form-horizontal .form-group {
   margin-right: -15px;

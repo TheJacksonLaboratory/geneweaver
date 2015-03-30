@@ -339,6 +339,7 @@ def render_viewgeneset(gs_id):
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    print geneset.geneset_values[0].ode_gene_id
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id)
 
 

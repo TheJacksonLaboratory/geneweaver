@@ -75,83 +75,99 @@
             <h3 class="panel-title">Gene List</h3>
         </div>
         <div class="panel-body">
-            <div class="col-xs-6 col-md-3" style="padding-bottom: 10px;">
-                <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
-                    <i class="fa fa-folder-o pull-left"></i> Add to Project
-                </button>
+
+            <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    <div class="row">
+                    </div>
+                </div>
+                <div class="col-xs-6 col-md-3">
+                    <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject" style="margin-bottom: 10px;">
+                        <i class="fa fa-folder-o pull-left"></i> Add to Project
+                    </button>
+                </div>
             </div>
-            <!-- TODO make the table sortable, show more gene details -->
-            <table class="table table-hover">
-                <tbody>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Alt Gene</th>
-                    <th>Homology</th>
-                    <th>Value</th>
-                    <th>Priority <i class="fa fa-info"></i></th>
-                    <th>LinkOuts</th>
-                    <th>Emphasis</th>
-                    <th>&nbsp;</th>
-                </tr>
 
-                {% for geneset_value in geneset.geneset_values %}
+            <div class="row">
+                <!-- TODO make the table sortable, show more gene details -->
+                <table class="table table-hover">
+                    <tbody>
                     <tr>
-                        <td>
-                            <strong>
-                                <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
-                                    {{ geneset_value.source_list[0] }}
-                                </a>
-                            </strong>
-                        </td>
-                        <td>
-                            Alt Gene
-                        </td>
-                        <td>
-                            <div class="geneBox" style="background-color: #58D87E;"></div>
-                            <div class="geneBox" style="background-color: #588C7E;"></div>
-                            <div class="geneBox" style="background-color: #F2E394;"></div>
-                            <div class="geneBox" style="background-color: #1F77B4;"></div>
-                            <div class="geneBox" style="background-color: #F2AE72;"></div>
-                            <div class="geneBox" style="background-color: #F2AF28;"></div>
-                            <div class="geneBox" style="background-color: #D96459;"></div>
-                            <div class="geneBox" style="background-color: #D93459;"></div>
-                            <div class="geneBox" style="background-color: #8C4646;"></div>
-                            <div class="geneBox"></div>
-                        </td>
-                        <td>
-                            {{ geneset_value.value }}
-                        </td>
-                        <td>
-                            <div class="progress">
-                                <div class="progress-bar progress-bar-success" data-aria-valuetransitiongoal="75" aria-valuenow="75" style="width: 75%;">75%</div>
-                            </div>
-                        </td>
-                        <td>
-                            <!-- TODO Insert outside links here -->
-                            {% set gene=geneset_value.source_list[0] %}
-                            {% include 'linkouts.html' %}
-                        </td>
-
-                        <td nowrap>
-                            <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
-                                   onchange="emphasize('{{ geneset_value.ode_gene_id }}');"
-                                   class="switch" data-size="mini"
-                                   style="padding: 0px; vertical-align: middle;">
-
-                        </td>
-                        <td>
-                            <div class="ui-checkbox" style="padding: 0; border: 0;">
-                                <label for="addGeneset{{ geneset_value.source_list[0] }}">
-                                    <input type="checkbox" name="gsoptions[]" id="addGeneset{{ geneset_value.source_list[0] }}"
-                                           value="{{ geneset_value.source_list[0] }}" />
-                                </label>
-                            </div>
-                        </td>
+                        <th>Symbol</th>
+                        <th>Gene ID <i class="fa fa-gear"></i></th>
+                        <th>Homology <i class="fa fa-info-circle"></i></th>
+                        <th>Value</th>
+                        <th>Priority <i class="fa fa-info-circle"></i></th>
+                        <th>LinkOuts</th>
+                        <th>Emphasis</th>
+                        <th>&nbsp;</th>
                     </tr>
-                {% endfor %}
 
-                </tbody>
-            </table>
+                    {% for geneset_value in geneset.geneset_values %}
+                        <tr>
+                            <td>
+                                <strong>
+                                    <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
+                                        {{ geneset_value.source_list[0] }}
+                                    </a>
+                                </strong>
+                            </td>
+                            <td>
+                                Alt Gene
+                            </td>
+                            <td>
+                                <div class="geneBox" style="background-color: #58D87E;"></div>
+                                <div class="geneBox" style="background-color: #588C7E;"></div>
+                                <div class="geneBox" style="background-color: #F2E394;"></div>
+                                <div class="geneBox" style="background-color: #1F77B4;"></div>
+                                <div class="geneBox" style="background-color: #F2AE72;"></div>
+                                <div class="geneBox" style="background-color: #F2AF28;"></div>
+                                <div class="geneBox" style="background-color: #D96459;"></div>
+                                <div class="geneBox" style="background-color: #D93459;"></div>
+                                <div class="geneBox" style="background-color: #8C4646;"></div>
+                                <div class="geneBox"></div>
+                            </td>
+                            <td align="center">
+                                <strong>
+                                    {{ geneset_value.value }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-success" data-aria-valuetransitiongoal="75"
+                                         aria-valuenow="75" style="width: 75%;">75%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <!-- TODO Insert outside links here -->
+                                {% set gene=geneset_value.source_list[0] %}
+                                {% include 'linkouts.html' %}
+                            </td>
+
+                            <td nowrap>
+                                <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
+                                       onchange="emphasize('{{ geneset_value.ode_gene_id }}');"
+                                       class="switch" data-size="mini"
+                                       style="padding: 0px; vertical-align: middle;">
+
+                            </td>
+                            <td>
+                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                    <label for="addGeneset{{ geneset_value.source_list[0] }}"
+                                           style="margin: -6px; padding-right: 0;">
+                                        <input type="checkbox" name="gsoptions[]"
+                                               id="addGeneset{{ geneset_value.source_list[0] }}"
+                                               value="{{ geneset_value.source_list[0] }}"/>
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
