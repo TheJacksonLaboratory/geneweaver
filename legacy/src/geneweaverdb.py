@@ -1675,6 +1675,7 @@ class GenesetValue:
         self.is_in_threshold = gsv_dict['gsv_in_threshold']
         self.date = gsv_dict['gsv_date']
         self.hom = list(set(gsv_dict['hom'])) #had to remove duplicates from list
+        self.gene_rank = ((float(gsv_dict['gene_rank'])/0.15)*100)
 
 
 def get_geneset_values(geneset_id):
@@ -1687,13 +1688,13 @@ def get_geneset_values(geneset_id):
     with PooledCursor() as cursor:
         #cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         cursor.execute('''SELECT a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-          a.gsv_in_threshold, a.gsv_date, a.hom
+          a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank
           FROM
-            (SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id) AS hom
-            FROM homology h, homology i, geneset_value gsv
-            WHERE i.hom_id=h.hom_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.gs_id=%s)
-            AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-              a.gsv_in_threshold, a.gsv_date, a.hom;''', (geneset_id,))
+            (SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id) AS hom, gi.gene_rank
+              FROM homology h, homology i, geneset_value gsv, gene_info gi
+              WHERE i.hom_id=h.hom_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id AND gsv.gs_id=%s)
+              AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
+                a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 

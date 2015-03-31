@@ -9,6 +9,15 @@
         border: 1px solid #000;
         vertical-align: middle;
     }
+
+        #clickableHomology {
+        cursor: pointer;
+    }
+
+        #clickablePriority {
+        cursor: pointer;
+    }
+
 </style>
 
 {% if geneset.geneset_id is not defined %}
@@ -82,8 +91,8 @@
                     </div>
                 </div>
                 <div class="col-xs-6 col-md-3">
-                    <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject" style="margin-bottom: 10px;">
-                        <i class="fa fa-folder-o pull-left"></i> Add to Project
+                    <button type="button" class="btn btn-lg btn-block btn-warning" id="addToNewGeneset" style="margin-bottom: 10px;">
+                        <i class="fa fa-star pull-left"></i> Add to New GeneSet
                     </button>
                 </div>
             </div>
@@ -93,11 +102,11 @@
                 <table class="table table-hover">
                     <tbody>
                     <tr>
-                        <th>Symbol</th>
-                        <th>Gene ID <i class="fa fa-gear"></i></th>
-                        <th>Homology <i class="fa fa-info-circle"></i></th>
-                        <th>Value</th>
-                        <th>Priority <i class="fa fa-info-circle"></i></th>
+                        <th><i class="fa fa-sort"></i> Symbol</th>
+                        <th><i class="fa fa-sort"></i> Gene ID <i class="fa fa-gear"></i></th>
+                        <th>Homology <span id="clickableHomology"><i class="fa fa-info-circle"></i></span></th>
+                        <th><i class="fa fa-sort"></i> Value</th>
+                        <th><i class="fa fa-sort"></i> Priority <span id="clickablePriority"><i class="fa fa-info-circle"></i></span></th>
                         <th>LinkOuts</th>
                         <th>Emphasis</th>
                         <th>&nbsp;</th>
@@ -117,30 +126,34 @@
                             </td>
                             <td>
                                 {# Make boxes for homology blocks #}
-                                {% set colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28',
-                                        'D96459', 'D93459', '8C4646'] %}
                                 {% for i in range(1,10) %}
+                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
+                                          title="{{ tt[(i-1)] }}">
                                     {% set exists = ['1'] %}
                                     {% for h in geneset_value.hom|sort %}
                                         {% if h == i %}
-                                            <div class="geneBox" style="background-color: {{ colors[i] }};"></div>
+                                            <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
                                             {% if exists.append('1') %}{% endif %}
                                         {% endif %}
                                     {% endfor %}
                                     {% if exists|length == 1 %}
                                         <div class="geneBox"></div>
                                     {% endif %}
+                                    </span>
                                 {% endfor %}
                             </td>
-                            <td align="center">
+                            <td>
                                 <strong>
-                                    {{ geneset_value.value }}
+                                    {{ '%0.4f' % geneset_value.value|float }}
                                 </strong>
                             </td>
                             <td>
                                 <div class="progress">
-                                    <div class="progress-bar progress-bar-success" data-aria-valuetransitiongoal="75"
-                                         aria-valuenow="75" style="width: 75%;">75%
+                                    <div class="progress-bar progress-bar-success progress-bar-striped"
+                                         data-aria-valuetransitiongoal="{{ '%.0f' % geneset_value.gene_rank|float }}"
+                                         aria-valuenow="{{ '%.0f' % geneset_value.gene_rank|float }}"
+                                         style="width: {{ '%.0f' % geneset_value.gene_rank|float }}%;">
+                                        {{ '%.0f' % geneset_value.gene_rank|float }}
                                     </div>
                                 </div>
                             </td>
@@ -187,6 +200,22 @@
     <script type="text/javascript">
         $("[name='g_id[]']").bootstrapSwitch();
 
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        $('#clickableHomology').popover({
+                title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
+                'within GeneWeaver. Mouseover the boxes to reveal species names.'
+        });
+
+        $('#clickablePriority').popover({
+                title: 'Percentile Priority Rank', content: 'All genes within GeneWeaver are ranked according to global ' +
+                'graph centrality. A full description can be found <a href="http://www.geneweaver.org/wiki">here</a>.',
+                html: 'true'
+        });
+
         function emphasize(id) {
             if (document.getElementById(id).checked) {
                 $.get("/emphasize/" + id + ".html", function (data, status) {
@@ -200,6 +229,7 @@
 
         $(document).ready(function () {
             var gs_id = {{ geneset.geneset_id }};
+
             $('#exportData').on('click', function (e) {
                 window.open('../exportGeneList/' + gs_id);
             });

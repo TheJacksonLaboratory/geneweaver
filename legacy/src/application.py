@@ -84,7 +84,10 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 #*************************************
 
 RESULTS_PATH = '/var/www/html/geneweaver/results'
-
+HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', 'D96459',
+                       'D93459', '8C4646']
+SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
+                 'Macaca mulatta', 'Caenorhabditis elegans', 'Saccharomyces cerevisiaw', 'Gallus gallus']
 
 @app.route('/results/<path:filename>')
 def static_results(filename):
@@ -340,7 +343,8 @@ def render_viewgeneset(gs_id):
         emphgeneids.append(str(row['ode_gene_id']))
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     print geneset.geneset_values[0].ode_gene_id
-    return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id)
+    return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES)
 
 
 @app.route('/mygenesets')
