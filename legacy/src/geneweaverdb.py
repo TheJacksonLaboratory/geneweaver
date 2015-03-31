@@ -1674,11 +1674,26 @@ class GenesetValue:
         self.value_list = gsv_dict['gsv_value_list']
         self.is_in_threshold = gsv_dict['gsv_in_threshold']
         self.date = gsv_dict['gsv_date']
+        self.hom = list(set(gsv_dict['hom'])) #had to remove duplicates from list
 
 
 def get_geneset_values(geneset_id):
+    """
+    This geneset value query has been augmented to return a list of sp_ids that can be used
+    on the geneset information page.
+    :param geneset_id:
+    :returns to geneset class.
+    """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
+        #cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
+        cursor.execute('''SELECT a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
+          a.gsv_in_threshold, a.gsv_date, a.hom
+          FROM
+            (SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id) AS hom
+            FROM homology h, homology i, geneset_value gsv
+            WHERE i.hom_id=h.hom_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.gs_id=%s)
+            AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
+              a.gsv_in_threshold, a.gsv_date, a.hom;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
