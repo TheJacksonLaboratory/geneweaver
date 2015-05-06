@@ -1692,7 +1692,7 @@ def get_geneset_values(geneset_id):
           FROM
             (SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id) AS hom, gi.gene_rank
               FROM homology h, homology i, geneset_value gsv, gene_info gi
-              WHERE i.hom_id=h.hom_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id AND gsv.gs_id=%s)
+              WHERE i.hom_source_id=h.hom_source_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id AND gsv.gs_id=%s)
               AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
                 a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank;''', (geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
