@@ -2,7 +2,7 @@ import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
 from flask.ext import restful
-from flask import request, send_file, Response, make_response
+from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 import adminviews
 import genesetblueprint
@@ -330,8 +330,23 @@ def render_forgotpass():
 #
 #
 
-@app.route('/viewgenesetdetails/<int:gs_id>')
+@app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
+    # get values for sorting result columns
+    # i'm saving these to a session variable
+    # probably not the correct format
+    if flask.request.method == 'GET':
+        args = flask.request.args
+        if 'sort' in args:
+            session['sort'] = args['sort']
+            if 'dir' in session:
+                if session['dir'] != 'DESC':
+                    session['dir'] = 'DESC'
+                else:
+                    session['dir'] = 'ASC'
+            else:
+                session['dir'] = 'ASC'
+
     emphgenes = {}
     emphgeneids = []
     if 'user_id' in flask.session:
@@ -342,7 +357,6 @@ def render_viewgeneset(gs_id):
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    print geneset.geneset_values[0].ode_gene_id
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES)
 

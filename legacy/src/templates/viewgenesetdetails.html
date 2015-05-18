@@ -102,85 +102,88 @@
                 <table class="table table-hover">
                     <tbody>
                     <tr>
-                        <th><i class="fa fa-sort"></i> Symbol</th>
-                        <th><i class="fa fa-sort"></i> Gene ID <i class="fa fa-gear"></i></th>
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=symbol"><i class="fa fa-sort"></i></a> Symbol</th>
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt"><i class="fa fa-sort"></i></a> Gene ID <i class="fa fa-gear"></i></th>
                         <th>Homology <span id="clickableHomology"><i class="fa fa-info-circle"></i></span></th>
-                        <th><i class="fa fa-sort"></i> Value</th>
-                        <th><i class="fa fa-sort"></i> Priority <span id="clickablePriority"><i class="fa fa-info-circle"></i></span></th>
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Value</th>
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority"><i class="fa fa-sort"></i></a> Priority <span id="clickablePriority"><i class="fa fa-info-circle"></i></span></th>
                         <th>LinkOuts</th>
                         <th>Emphasis</th>
                         <th>&nbsp;</th>
                     </tr>
 
                     {% for geneset_value in geneset.geneset_values %}
-                        <tr>
-                            <td>
-                                <strong>
-                                    <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
-                                        {{ geneset_value.source_list[0] }}
-                                    </a>
-                                </strong>
-                            </td>
-                            <td>
-                                Alt Gene
-                            </td>
-                            <td>
-                                {# Make boxes for homology blocks #}
-                                {% for i in range(1,10) %}
-                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
-                                          title="{{ tt[(i-1)] }}">
-                                    {% set exists = ['1'] %}
-                                    {% for h in geneset_value.hom|sort %}
-                                        {% if h == i %}
-                                            <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
-                                            {% if exists.append('1') %}{% endif %}
+                            <tr>
+                                <td>
+                                    <strong>
+                                        <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
+                                            {{ geneset_value.source_list[0] }}
+                                        </a>
+                                    </strong>
+                                </td>
+                                <td>
+                                    <strong>
+                                        {{ geneset_value.ode_ref[0] }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    {# Make boxes for homology blocks #}
+                                    {% for i in range(1,10) %}
+                                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
+                                              title="{{ tt[(i-1)] }}">
+                                        {% set exists = ['1'] %}
+                                        {% for h in geneset_value.hom|sort %}
+                                            {% if h == i %}
+                                                <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
+                                                {% if exists.append('1') %}{% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if exists|length == 1 %}
+                                            <div class="geneBox"></div>
                                         {% endif %}
+                                        </span>
                                     {% endfor %}
-                                    {% if exists|length == 1 %}
-                                        <div class="geneBox"></div>
-                                    {% endif %}
-                                    </span>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <strong>
-                                    {{ '%0.4f' % geneset_value.value|float }}
-                                </strong>
-                            </td>
-                            <td>
-                                <div class="progress">
-                                    <div class="progress-bar progress-bar-success progress-bar-striped"
-                                         data-aria-valuetransitiongoal="{{ '%.0f' % geneset_value.gene_rank|float }}"
-                                         aria-valuenow="{{ '%.0f' % geneset_value.gene_rank|float }}"
-                                         style="width: {{ '%.0f' % geneset_value.gene_rank|float }}%;">
-                                        {{ '%.0f' % geneset_value.gene_rank|float }}
+                                </td>
+                                <td>
+                                    <strong>
+                                        {{ '%0.4f' % geneset_value.value|float }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-success progress-bar-striped"
+                                             data-aria-valuetransitiongoal="{{ '%.0f' % geneset_value.gene_rank|float }}"
+                                             aria-valuenow="{{ '%.0f' % geneset_value.gene_rank|float }}"
+                                             style="width: {{ '%.0f' % geneset_value.gene_rank|float }}%;">
+                                            {{ '%.0f' % geneset_value.gene_rank|float }}
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <!-- TODO Insert outside links here -->
-                                {% set gene=geneset_value.source_list[0] %}
-                                {% include 'linkouts.html' %}
-                            </td>
+                                </td>
+                                <td>
+                                    <!-- TODO Insert outside links here -->
+                                    {% set gene=geneset_value.source_list[0] %}
+                                    {% include 'linkouts.html' %}
+                                </td>
 
-                            <td nowrap>
-                                <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
-                                       onchange="emphasize('{{ geneset_value.ode_gene_id }}');"
-                                       class="switch" data-size="mini"
-                                       style="padding: 0px; vertical-align: middle;">
+                                <td nowrap>
+                                    <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
+                                           onchange="emphasize('{{ geneset_value.ode_gene_id }}');"
+                                           class="switch" data-size="mini"
+                                           style="padding: 0px; vertical-align: middle;">
 
-                            </td>
-                            <td>
-                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                    <label for="addGeneset{{ geneset_value.source_list[0] }}"
-                                           style="margin: -6px; padding-right: 0;">
-                                        <input type="checkbox" name="gsoptions[]"
-                                               id="addGeneset{{ geneset_value.source_list[0] }}"
-                                               value="{{ geneset_value.source_list[0] }}"/>
-                                    </label>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                                <td>
+                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                        <label for="addGeneset{{ geneset_value.source_list[0] }}"
+                                               style="margin: -6px; padding-right: 0;">
+                                            <input type="checkbox" name="gsoptions[]"
+                                                   id="addGeneset{{ geneset_value.source_list[0] }}"
+                                                   value="{{ geneset_value.source_list[0] }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+
                     {% endfor %}
 
                     </tbody>

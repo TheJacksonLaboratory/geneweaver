@@ -9,6 +9,7 @@ from distutils.util import strtobool
 from tools import toolcommon as tc
 import os
 import flask
+from flask import session
 
 
 app = flask.Flask(__name__)
@@ -1676,25 +1677,48 @@ class GenesetValue:
         self.date = gsv_dict['gsv_date']
         self.hom = list(set(gsv_dict['hom'])) #had to remove duplicates from list
         self.gene_rank = ((float(gsv_dict['gene_rank'])/0.15)*100)
+        self.ode_ref = gsv_dict['ode_ref']
+        self.gdb_id = gsv_dict['gdb_id']
 
 
 def get_geneset_values(geneset_id):
     """
     This geneset value query has been augmented to return a list of sp_ids that can be used
     on the geneset information page.
+    Also, augmented to add a session call for sorting
     :param geneset_id:
     :returns to geneset class.
     """
+    s = ' ORDER BY a.gs_id ASC'
+    if 'sort' in session:
+        d = session['dir']
+        if session['sort'] == 'value':
+            s = ' ORDER BY a.gsv_value '+d
+        elif session['sort'] == 'priority':
+            s = ' ORDER BY a.gene_rank '+d
+        elif session['sort'] == 'symbol':
+            s = ' ORDER BY a.gsv_source_list '+d
+        elif session['sort'] == 'alt':
+            s = ' ORDER BY a.ode_ref '+d
+
+    ode_ref = '1'
+    if 'extsrc' in session:
+        ode_ref = session['extsrc']
+
     with PooledCursor() as cursor:
         #cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
         cursor.execute('''SELECT a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-          a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank
+          a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id
           FROM
-            (SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id) AS hom, gi.gene_rank
-              FROM homology h, homology i, geneset_value gsv, gene_info gi
-              WHERE i.hom_source_id=h.hom_source_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id AND gsv.gs_id=%s)
+            (SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id, g.gdb_id) AS hom, gi.gene_rank,
+              array_agg(g.ode_ref_id) OVER (partition BY g.ode_gene_id) AS ode_ref,
+              array_agg(g.gdb_id) OVER (partition BY g.ode_gene_id) AS gdb_id
+              FROM homology h, homology i, geneset_value gsv, gene_info gi, gene g
+              WHERE i.hom_source_id=h.hom_source_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id
+              AND gsv.ode_gene_id=g.ode_gene_id
+              AND (g.gdb_id=%s OR (g.gdb_id=7 AND g.ode_pref='t')) AND gsv.gs_id=%s)
               AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-                a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank;''', (geneset_id,))
+                a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id'''+s, (ode_ref, geneset_id,))
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
