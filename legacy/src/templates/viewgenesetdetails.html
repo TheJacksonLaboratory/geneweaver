@@ -76,7 +76,7 @@
             {% if geneset.cur_id == 5 %}
                 <span class="tier5" style="vertical-align: middle">Tier V</span>
             {% endif %}
-            GS{{ geneset.geneset_id }} - {{ geneset.name }}</h3>
+            GS{{ geneset.geneset_id }} &bull; {{ geneset.name }}</h3>
     </div>
 
     <!-- View GeneSet MetaData -->
@@ -85,7 +85,7 @@
     <!-- Show the Geneset List -->
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Gene List</h3>
+            <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
         </div>
         <div class="panel-body">
 
@@ -106,8 +106,8 @@
                 <table class="table table-hover">
                     <tbody>
                     <tr>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=symbol"><i class="fa fa-sort"></i></a> Symbol</th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt"><i class="fa fa-sort"></i></a> Gene ID
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=symbol"><i class="fa fa-sort"></i></a> Default</th>
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt"><i class="fa fa-sort"></i></a> {{ altGeneSymbol }}
                             <span id="clickableGeneSymbol"><i class="fa fa-gear"></i></span></th>
                         <th>Homology <span id="clickableHomology"><i class="fa fa-info-circle"></i></span></th>
                         <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Value</th>
@@ -128,9 +128,22 @@
                                     </strong>
                                 </td>
                                 <td>
-                                    <strong>
-                                        {{ geneset_value.ode_ref[0] }}
-                                    </strong>
+                                    {# I needed to do some fancy array mapping to determine null values
+                                     if the first and last value of the array are the same, then the value exists;
+                                     otherwise, if they are the same AND altGeneSymbol==Symbol, then it exists. #}
+                                    {% if geneset_value.ode_ref | first == geneset_value.ode_ref | last %}
+                                        {% if altGeneSymbol == 'Symbol' %}
+                                            <strong>
+                                                {{ geneset_value.ode_ref[0] }}
+                                            </strong>
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    {% else %}
+                                        <strong>
+                                            {{ geneset_value.ode_ref[0] }}
+                                        </strong>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {# Make boxes for homology blocks #}
@@ -229,6 +242,8 @@
                 $("#selectGeneDisplayType").modal('show');
         });
 
+
+
         function emphasize(id) {
             if (document.getElementById(id).checked) {
                 $.get("/emphasize/" + id + ".html", function (data, status) {
@@ -251,13 +266,43 @@
                 window.open('../viewSimilarGenesets/' + gs_id, "_self");
             });
 
+
+            $('#selectGeneType').on('click', function (e) {
+                var val = $('.dropdown-menu li a').parents('.btn-group').find('[data-bind="label"]' ).text().replace(/[\n\s\xA0]+/g, '');
+
+                $.trim(val);
+
+                $.ajax({
+                    type: "GET",
+                    url: "../updateAltGeneSymbol",
+                    data: {"altSymbol": val},
+                    success: function (data) {
+                        location.reload();
+                    }
+                })
+
+            });
+
         });
+
+        $( document.body ).on( 'click', '#geneSymbol li', function( event ) {
+            //WARNING: This function previously interfered with the dropdown menu
+            //at the top of the page. I added IDs instead of classes. Seems to
+            // work now
+            $(this).parents('#geneSymbol').find( '.newName').text($(this).text())
+                    .end()
+                    .children( '.dropdown-toggle').dropdown( 'toggle');
+            return false;
+        });
+
+
         //});
 
 
     </script>
 
 {% endif %}
+
 
 {% include 'modal/selectGeneDisplayType.html' %}
 

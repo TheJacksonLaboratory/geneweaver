@@ -2,7 +2,7 @@
 
 <div class="modal fade" id="selectGeneDisplayType">
     <div class="modal-dialog">
-        <div class="modal-content" style="overflow: auto">
+        <div class="modal-content" style="overflow-y: visible; max-height: 540px;">
             <form id="selectGeneDisplayType" name="selectGeneDisplayType" method="post" action="#"
                   class="form-horizontal" novalidate="novalidate">
 
@@ -13,14 +13,14 @@
 
                     <div class="row" style="padding-top: 10px">
                         <div class="col-md-12">
-                            <div class="btn-group bootstrap-select form-control">
+                            <div id="geneSymbol" class="btn-group bootstrap-select form-control">
                                 <button type="button" class="btn dropdown-toggle selectpicker input-lg btn-default"
-                                        data-toggle="dropdown" title="geneSymbol">
-                                    <span class="filter-option pull-left">None</span>&nbsp;
+                                        data-toggle="dropdown">
+                                    <span data-bind="label" class="newName">Select Alternate Gene ID</span>&nbsp;
                                     <span class="caret"></span>
                                 </button>
-                                <div class="dropdown-menu open" style="max-height: 413.5px; overflow: hidden; min-height: 0px;">
-                                    <ul class="dropdown-menu inner selectpicker" role="menu" style="max-height: 401.5px;
+                                <div id="altGeneSymbol" class="dropdown-menu open" style="max-height: 413.5px; overflow: hidden; min-height: 0px;">
+                                    <ul id="geneSymbol" class="dropdown-menu inner selectpicker" role="menu" style="max-height: 401.5px;
                                         overflow-y: auto; min-height: 0px;">
                                         <li rel="0"><a tabindex="0" class="" style="">
                                             <span class="text">Gene Symbol</span>
@@ -30,6 +30,21 @@
                                             <i class="fa fa-check icon-ok check-mark"></i></a></li>
                                         <li rel="2" class="selected"><a tabindex="0" class="" style="">
                                             <span class="text">Ensembl ID</span>
+                                            <i class="fa fa-check icon-ok check-mark"></i></a></li>
+                                        <li rel="2" class="selected"><a tabindex="0" class="" style="">
+                                            <span class="text">MGI ID</span>
+                                            <i class="fa fa-check icon-ok check-mark"></i></a></li>
+                                        <li rel="2" class="selected"><a tabindex="0" class="" style="">
+                                            <span class="text">FlyBase ID</span>
+                                            <i class="fa fa-check icon-ok check-mark"></i></a></li>
+                                        <li rel="2" class="selected"><a tabindex="0" class="" style="">
+                                            <span class="text">WormBase ID</span>
+                                            <i class="fa fa-check icon-ok check-mark"></i></a></li>
+                                        <li rel="2" class="selected"><a tabindex="0" class="" style="">
+                                            <span class="text">RGD ID</span>
+                                            <i class="fa fa-check icon-ok check-mark"></i></a></li>
+                                        <li rel="2" class="selected"><a tabindex="0" class="" style="">
+                                            <span class="text">ZFin ID</span>
                                             <i class="fa fa-check icon-ok check-mark"></i></a></li>
                                     </ul>
                                 </div>

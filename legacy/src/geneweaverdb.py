@@ -1704,6 +1704,8 @@ def get_geneset_values(geneset_id):
     ode_ref = '1'
     if 'extsrc' in session:
         ode_ref = session['extsrc']
+        print session['extsrc']
+
 
     with PooledCursor() as cursor:
         #cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))

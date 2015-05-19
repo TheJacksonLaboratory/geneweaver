@@ -346,6 +346,26 @@ def render_viewgeneset(gs_id):
                     session['dir'] = 'ASC'
             else:
                 session['dir'] = 'ASC'
+    # get value for the alt-gene-id column
+    if 'extsrc' in session:
+        if session['extsrc'] == 2:
+            altGeneSymbol = 'Ensembl'
+        elif session['extsrc'] == 7:
+            altGeneSymbol = 'Symbol'
+        elif session['extsrc'] == 10:
+            altGeneSymbol = 'MGD'
+        elif session['extsrc'] == 12:
+            altGeneSymbol = 'RGD'
+        elif session['extsrc'] == 13:
+            altGeneSymbol = 'ZFin'
+        elif session['extsrc'] == 14:
+            altGeneSymbol = 'FlyBase'
+        elif session['extsrc'] == 15:
+            altGeneSymbol = 'WormBase'
+        else:
+            altGeneSymbol = 'Entrez'
+    else:
+        altGeneSymbol = 'Entrez'
 
     emphgenes = {}
     emphgeneids = []
@@ -358,7 +378,7 @@ def render_viewgeneset(gs_id):
         emphgeneids.append(str(row['ode_gene_id']))
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES)
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol)
 
 
 @app.route('/mygenesets')
@@ -902,6 +922,28 @@ def render_user_results():
     else:
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('results.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
+
+@app.route('/updateAltGeneSymbol')
+def update_alternate_gene_symbol():
+    if 'user_id' in flask.session:
+        val = request.args['altSymbol']
+        if val == 'EntrezID':
+            session['extsrc'] = 1
+        elif val == 'EnsemblID':
+            session['extsrc'] = 2
+        elif val == 'GeneSymbol':
+            session['extsrc'] = 7
+        elif val == 'MGIID':
+            session['extsrc'] = 10
+        elif val == 'FlyBaseID':
+            session['extsrc'] = 14
+        elif val == 'WormBaseID':
+            session['extsrc'] = 15
+        elif val == 'RGDID':
+            session['extsrc'] = 12
+        elif val == 'ZFinID':
+            session['extsrc'] = 13
+        return json.dumps(request.args)
 
 @app.route('/help.html')
 def render_help():
