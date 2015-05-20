@@ -294,8 +294,9 @@ def render_analyze_new_project(pj_name):
     return flask.render_template('analyze.html', active_tools=active_tools)
 
 
-@app.route('/editgenesets.html')
-def render_editgenesets():
+@app.route('/editgeneset/<int:gs_id>')
+def render_editgenesets(gs_id):
+    print gs_id
     return flask.render_template('editgenesets.html')
 
 
