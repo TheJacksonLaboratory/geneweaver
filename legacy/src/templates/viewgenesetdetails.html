@@ -46,26 +46,7 @@
 
 {% if geneset.geneset_id is not defined %}
 
-    <div class="alert alert-danger fade in">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="false">&times;</button>
-        The GeneSet that you are looking for does not exist or you do not have permission to view its properties.
-        <p>
-            {% if user_id != 0 %}
-                <p>You may also want to check your group permission settings.</p>
-                <a href="/accountsettings.html">
-                    <button type="button" class="btn btn-danger m-t-10 m-r-10" id="acount-redirect">Account Settings
-                    </button>
-                </a>
-            {% else %}
-                <a href="/login.html">
-                    <button type="button" class="btn btn-danger m-t-10 m-r-10" id="login-redirect">Login</button>
-                </a>
-                <a href="/register.html">
-                    <button type="button" class="btn btn-default m-t-10">Or Create a New Account</button>
-                </a>
-            {% endif %}
-        </p>
-    </div>
+    {% include 'htmlfragments/genesetNotFound.html' %}
 
 {% else %}
 
@@ -295,6 +276,11 @@
                 var gsid = {{ geneset.geneset_id }};
                 $("#myGenesetDeleteLabel").html(gsid);
                 $("#delModal").modal('show');
+            });
+
+            $('#editGeneset').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../editgeneset/'+gsid;
             });
 
             $('#confirmDelete').on('click', function (e) {

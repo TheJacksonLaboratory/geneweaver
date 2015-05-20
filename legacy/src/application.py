@@ -296,8 +296,12 @@ def render_analyze_new_project(pj_name):
 
 @app.route('/editgeneset/<int:gs_id>')
 def render_editgenesets(gs_id):
-    print gs_id
-    return flask.render_template('editgenesets.html')
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        user_id = 0
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id)
 
 
 @app.route('/accountsettings.html')
