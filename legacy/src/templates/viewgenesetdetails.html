@@ -20,7 +20,27 @@
 
     #clickableGeneSymbol {
         cursor: pointer;
-        }
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=40);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+    }
 
 </style>
 
@@ -48,6 +68,8 @@
     </div>
 
 {% else %}
+
+    <div class="loader"></div>
 
     <div class="row" id="result"></div>
 
@@ -96,7 +118,7 @@
                 </div>
                 <div class="col-xs-6 col-md-3">
                     <button type="button" class="btn btn-lg btn-block btn-warning" id="addToNewGeneset" style="margin-bottom: 10px;">
-                        <i class="fa fa-star pull-left"></i> Add to New GeneSet
+                        <i class="fa fa-list-ul pull-left"></i> Add to New GeneSet
                     </button>
                 </div>
             </div>
@@ -222,6 +244,9 @@
     <script type="text/javascript">
         $("[name='g_id[]']").bootstrapSwitch();
 
+        $(window).load(function() {
+	        $(".loader").fadeOut("slow");
+        });
 
         $(function () {
             $("[data-toggle='tooltip']").tooltip();
@@ -266,6 +291,25 @@
                 window.open('../viewSimilarGenesets/' + gs_id, "_self");
             });
 
+            $('#deleteGeneset').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                $("#myGenesetDeleteLabel").html(gsid);
+                $("#delModal").modal('show');
+            });
+
+            $('#confirmDelete').on('click', function (e) {
+                $.ajax({
+                    type: "GET",
+                    url: "../deleteGeneset",
+                    data: {"gs_id": {{ geneset.geneset_id }}, "user_id": {{ user_id }} },
+                    success: function (data) {
+                        window.setTimeout($("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>GeneSet successfully deleted</div>'), 5000);
+                        window.location.href = '../mygenesets';
+                    }
+                });
+            });
 
             $('#selectGeneType').on('click', function (e) {
                 var val = $('.dropdown-menu li a').parents('.btn-group').find('[data-bind="label"]' ).text().replace(/[\n\s\xA0]+/g, '');
@@ -306,5 +350,6 @@
 
 {% include 'modal/selectGeneDisplayType.html' %}
 
+{% include 'modal/deleteGeneset.html' %}
 
 {% include 'footer.html' %}
