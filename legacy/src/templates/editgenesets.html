@@ -7,6 +7,14 @@
         $(".loader").fadeOut("slow");
     });
 
+    function formFocus($e){
+        $e.style.backgroundColor = "yellow";
+    };
+
+    function noFormFocus($e){
+        $e.style.backgroundColor = '';
+    };
+
     $(document).ready(function()  {
 
         $('#upload-geneset-form').submit(function(event) {
@@ -137,21 +145,24 @@
             <p>
                 Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
             </p>
+            <br>
             <div class="row">
                 <div class="col-md-2">
                     GeneSet Name <strong>*</strong>:
                 </div>
                 <div class="col-md-8">
-                    <input type="text" name="gs_name" value="{{ geneset.geneset_name }}" size="50" style="color: #808080;" required>
+                    <input id="genesetName" type="text" name="gs_name" value="{{ geneset.name }}" size="50"
+                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
                 </div>
             </div>
             <br>
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-2">
                     GeneSet Figure Label <strong>*</strong>:
                 </div>
-                <div class="col-md-4">
-                    <input type="text" name="gs_abbreviation" required>
+                <div class="col-md-8">
+                    <input id="genesetLabel" type="text" name="gs_abbreviation" value="{{ geneset.abbreviation }}" size="50"
+                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
                 </div>
             </div>
             <br>
