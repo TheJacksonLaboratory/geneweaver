@@ -10,6 +10,7 @@ import geneweaverdb
 import json
 import os
 import re
+import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
     combineblueprint, abbablueprint, booleanalgebrablueprint
@@ -490,6 +491,79 @@ def render_sim_genesets(gs_id):
     return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs,
                                  d3Data=d3Data, max=max, d3BarChart=d3BarChart)
 
+
+@app.route('/getPubmed', methods=['GET', 'POST'])
+def get_pubmed_data():
+    http = urllib3.PoolManager()
+    if flask.request.method == 'GET':
+        args = flask.request.args
+        if 'pmid' in args:
+            pmid = args['pmid']
+            PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
+            #response = http.urlopen('GET', PM_DATA % (','.join([str(x) for x in pmid]),)).read()
+            response = http.urlopen('GET', PM_DATA % (pmid),).read()
+
+
+            for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
+                article_ids = {}
+                abstract = ''
+                fulltext_link = None
+
+                article = match.group(1)
+                articleid_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>', article, re.S)
+                abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>', article, re.S)
+                articletitle = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>', article, re.S).group(1).strip()
+
+                for amatch in articleid_matches:
+                    article_ids[amatch.group(1).strip()] = amatch.group(2).strip()
+                for amatch in abstract_matches:
+                    abstract += amatch.group(2).strip() + ' '
+
+                if 'pmc' in article_ids:
+                    fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
+                elif 'doi' in article_ids:
+                    fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
+                pmid = article_ids['pubmed'].strip()
+
+                author_matches = re.finditer('<Author [^>]*>(.*?)</Author>', article, re.S)
+                authors = []
+                for match in author_matches:
+                    name = ''
+                    try:
+                        name = re.search('<LastName>([^<]*)</LastName>', match.group(1), re.S).group(1).strip()
+                        name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', match.group(1), re.S).group(1).strip()
+                    except:
+                        pass
+                    authors.append(name)
+
+                authors = ', '.join(authors)
+
+                pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
+                journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
+                # year month journal
+                tomonthname = {
+                    '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
+                    '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
+                }
+                pm = pubdate.group(2).strip()
+                if pm in tomonthname:
+                    pm = tomonthname[pm]
+
+                pubinfo = '%s %s %s' % (pubdate.group(1).strip(), pm, journal)
+
+                print articletitle
+                print authors
+                print journal
+
+                print pm
+                print abstract
+
+
+        else:
+            response = 'false'
+    else:
+        response = 'false'
+    return json.dumps(response)
 
 @app.route('/exportGeneList/<int:gs_id>')
 def render_export_genelist(gs_id):

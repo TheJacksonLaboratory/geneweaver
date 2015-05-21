@@ -15,6 +15,13 @@
         $e.style.backgroundColor = '';
     };
 
+    function myFunction(genes) {
+	genes1 = genes.split("_");
+	genes1 = genes1.join("\t1\n");
+	genes1 = genes1.concat("\t1");
+	document.getElementById("genesetValues").value= genes1;
+    };
+
     $(document).ready(function()  {
 
         $('#upload-geneset-form').submit(function(event) {
@@ -57,6 +64,38 @@
                 data[name] = ev.target.result;
             };
         }
+
+        //Get Pubmed Data for ID
+        $('#clickablePubmed').click(function() {
+            var pmid = $("#pub_pubmed").val();
+            if (!$.isNumeric(pmid)) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must enter a valid Pubmed ID.",
+                        'priority': 'warning'
+                    }
+                ]);
+            }
+            else {
+                $.ajax({
+                    type: "GET",
+                    url: "../getPubmed",
+                    data: {"pmid": pmid},
+                    success: function(data)
+                    {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "PubMed ID " + pmid + " successfully loaded",
+                                'priority': 'success'
+                            }
+                        ]);
+                        $("#pubmed_manual").toggle();
+                    }
+                });
+            };
+
+        });
+
         $("#pubmed_manual_button").click(function() {
             $("#pubmed_manual").toggle();
 
@@ -90,6 +129,10 @@
 </script>
 
 <style type="text/css">
+
+    #clickablePubmed {
+        cursor: pointer;
+    }
 
     .loader {
         /* IE 8 */
@@ -134,6 +177,7 @@
 
     <form id="upload-geneset-form"  enctype="multipart/form-data" method="POST" >
 
+        {# Geneset Metadata #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h2 class="panel-title">
                 GeneSet Metadata &bull; GS{{ geneset.geneset_id }}
@@ -172,11 +216,21 @@
                 </div>
                 <div class="col-md-8">
                     <textarea id="genesetDescription" rows="10" cols="50" name="gs_description"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
-                        {{ geneset.description }}
+                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>{{ geneset.description }}
                     </textarea>
                 </div>
             </div>
+        </div>
+
+        {# Permissions #}
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Access Permissions
+            </h2>
+        </div>
+
+        <div style="margin-left: 1em;">
+            <br>
             <br>
             <div class="row">
                 <div class="col-md-2">
@@ -199,7 +253,6 @@
         </div>
         <br>
 
-
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h2 class="panel-title">
                 Reference Information
@@ -207,15 +260,19 @@
         </div>
         <div style="margin-left: 1em;">
         <br>
+
         <p>
             If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
         </p>
+
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="3000"></div>
+
         <div class="row">
             <div class="col-md-2">
                 PubMed ID:
             </div>
             <div class="col-md-4">
-                <input id="pub_pubmed" type="text" name="pub_pubmed" size="10">
+                <input id="pub_pubmed" type="text" name="pub_pubmed" size="10">&nbsp;<i id="clickablePubmed" class="fa fa-refresh"></i>
             </div><br><br>
             <div id="pubmed_manual" style="display:none">
                 <div class="col-md-2">Title:</div>
@@ -311,10 +368,7 @@
 
 
                     <textarea id="genesetValues" rows="10" cols="50" name="genesetValues"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
-                        {% for geneset_value in geneset.geneset_values %}
-                            {{ geneset_value.source_list[0] }}\t{{ geneset_value.value_list[0] }}
-                        {% endfor %}
+                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>{% for geneset_value in geneset.geneset_values %}{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}\t{{ geneset_value.value_list[0] | trim }}\n{% endfor %}
                     </textarea>
 
             </div>
@@ -324,6 +378,8 @@
         <br>
         <input id="upload-geneset-button" class="btn btn-primary" type="submit" value="Upload Geneset"></input>
     </form>
+
+    {{ gidts }}
 
     <body onload="myFunction('{{gidts}}')">
 
