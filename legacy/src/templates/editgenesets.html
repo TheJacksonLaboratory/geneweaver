@@ -128,7 +128,7 @@
     </div>
 
     <p>
-        Use this page to upload a geneset. (<strong>*</strong>) = mandatory.
+        (<strong>*</strong>) = mandatory.
     </p>
 
 
@@ -167,28 +167,46 @@
             </div>
             <br>
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-2">
                     GeneSet Description <strong>*</strong>:
                 </div>
-                <div class="col-md-4">
-                    <input type="text" name="gs_description" required>
+                <div class="col-md-8">
+                    <textarea id="genesetDescription" rows="10" cols="50" name="gs_description"
+                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
+                        {{ geneset.description }}
+                    </textarea>
                 </div>
             </div>
             <br>
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-2">
                     Access Restrictions <strong>*</strong>:
                 </div>
-                <div class="col-xs-4">
+                <div class="col-xs-2">
+
                     <select name="permissions" class="form-control" required>
-                        <option value="private">Private</option>
-                        <option value="public">Public</option>
+                        {% if geneset.group_ids == '-1' %}
+                            <option value="private" selected>Private</option>
+                            <option value="public">Public</option>
+                        {% else %}
+                            <option value="private">Private</option>
+                            <option value="public" selected>Public</option>
+                        {% endif %}
                     </select>
+
                 </div>
             </div>
         </div>
         <br>
-        <h2>Reference Info</h2>
+
+
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Reference Information
+            </h2>
+        </div>
+        <div style="margin-left: 1em;">
+        <br>
         <p>
             If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
         </p>
@@ -236,7 +254,16 @@
         </div>
         <br>
         <button id="pubmed_manual_button" type="button" class="button">Manual Entry</button><br><br>
-        <h2>Gene List</h2>
+        </div>
+
+
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Gene List
+            </h2>
+        </div>
+        <div style="margin-left: 1em;">
+        <br>
         <p>
             Provide a list of genes to associate with the descriptive info from above.
         </p>
@@ -279,21 +306,20 @@
             <div class="col-md-2">
                 Input Gene List*:
             </div>
-            <div id="paste_uploader" class="col-md-4" style="display: block">
-                <button class="button" type="button" onclick="toggle_pasting()">Click here to upload a file</button>
-                <br>Manually Enter Genes one per line.<br>Format (tab separated): gene	genescore<br>
-                {% if genes %}
-                    <textarea id="file_text" rows="15" cols="40" name="file_text">{{genes}}</textarea>
-                {% else %}
-                    <textarea id="file_text" rows="15" cols="40" name="file_text" placeholder="gene1    0.92" required ></textarea>
-                {% endif %}
+            <div class="col-md-8">
+                Manually Enter Genes one per line.<br>Format: gene (tab) value<br>
+
+
+                    <textarea id="genesetValues" rows="10" cols="50" name="genesetValues"
+                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
+                        {% for geneset_value in geneset.geneset_values %}
+                            {{ geneset_value.source_list[0] }}\t{{ geneset_value.value_list[0] }}
+                        {% endfor %}
+                    </textarea>
 
             </div>
-            <div id="file_uploader" class="col-md-4" style="display: none">
-                <button class="button" type="button" onclick="toggle_pasting()" >Click here to manually enter data</button><br><br>
-                Select a Tab-separated Plain Text…
-                <input id="file_data" type="file" name="selected_file" disabled required></input>
-            </div>
+
+        </div>
         </div>
         <br>
         <input id="upload-geneset-button" class="btn btn-primary" type="submit" value="Upload Geneset"></input>
