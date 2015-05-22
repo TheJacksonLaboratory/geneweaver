@@ -494,6 +494,7 @@ def render_sim_genesets(gs_id):
 
 @app.route('/getPubmed', methods=['GET', 'POST'])
 def get_pubmed_data():
+    pubmedValues = []
     http = urllib3.PoolManager()
     if flask.request.method == 'GET':
         args = flask.request.args
@@ -502,7 +503,6 @@ def get_pubmed_data():
             PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
             #response = http.urlopen('GET', PM_DATA % (','.join([str(x) for x in pmid]),)).read()
             response = http.urlopen('GET', PM_DATA % (pmid),).read()
-
 
             for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
                 article_ids = {}
@@ -537,8 +537,12 @@ def get_pubmed_data():
                     authors.append(name)
 
                 authors = ', '.join(authors)
-
+                v = re.search('<Volume>([^<]*)</Volume>', article, re.S)
+                vol = v.group(1).strip()
+                p = re.search('<MedlinePgn>([^<]*)</MedlinePgn>', article, re.S)
+                pages = p.group(1).strip()
                 pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
+                year = pubdate.group(1).strip()
                 journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
                 # year month journal
                 tomonthname = {
@@ -549,21 +553,13 @@ def get_pubmed_data():
                 if pm in tomonthname:
                     pm = tomonthname[pm]
 
-                pubinfo = '%s %s %s' % (pubdate.group(1).strip(), pm, journal)
-
-                print articletitle
-                print authors
-                print journal
-
-                print pm
-                print abstract
-
+                pubmedValues.extend((articletitle, authors, journal, vol, pages, year, pm, abstract))
 
         else:
             response = 'false'
     else:
         response = 'false'
-    return json.dumps(response)
+    return json.dumps(pubmedValues)
 
 @app.route('/exportGeneList/<int:gs_id>')
 def render_export_genelist(gs_id):
