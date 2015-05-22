@@ -302,7 +302,8 @@ def render_editgenesets(gs_id):
     else:
         user_id = 0
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id)
+    species = geneweaverdb.get_all_species()
+    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species)
 
 
 @app.route('/accountsettings.html')

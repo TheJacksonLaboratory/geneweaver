@@ -96,7 +96,7 @@
                         if ($('#pubmed_button_div').is(":visible")) {
                             $('#pubmed_button_div').toggle();
                         };
-                        
+
                         var parseData = JSON.parse(data);
                         $('#pub_title').val(parseData[0]);
                         $('#pub_authors').val(parseData[1]);
@@ -106,7 +106,6 @@
                         $('#pub_year').val(parseData[5]);
                         $('#pub_month').val(parseData[6]);
                         $('#pub_abstract').val(parseData[7]);
-
 
                     }
                 });
@@ -353,14 +352,16 @@
         <p>
             Provide a list of genes to associate with the descriptive info from above.
         </p>
+
+
         <div class="row">
             <div class="col-md-2">
                 Species*:
             </div>
             <div class="col-xs-6 col-sm-4">
                 <select name="species" class="form-control" name="sp_id">
-                    {% for spec in all_species %}
-                        <option label="{{all_species[spec]}}" value="{{spec}}">{{all_species[spec]}}</option>
+                    {% for spec in species %}
+                        <option label="{{species[spec]}}" value="{{spec}}">{{species[spec]}}</option>
                     {% endfor %}
                 </select>
             </div>
