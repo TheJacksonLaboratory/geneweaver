@@ -303,6 +303,15 @@ def render_editgenesets(gs_id):
         user_id = 0
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
+    platform = geneweaverdb.get_microarray_types()
+    ####################################
+    # Build dictionary of all possible
+    # menus options
+    gidts = {}
+    for sp in species:
+        if len(species[sp]) > 0:
+            gidts[species[sp]] = species[sp]
+            print gidts
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species)
 
 
