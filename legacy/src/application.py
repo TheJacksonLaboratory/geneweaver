@@ -86,9 +86,9 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 RESULTS_PATH = '/var/www/html/geneweaver/results'
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
-                       '#D93459', '#5E228B']
+                       '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
-                 'Macaca mulatta', 'Caenorhabditis elegans', 'Saccharomyces cerevisiaw', 'Gallus gallus', 'Canis familiaris']
+                 'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiaw', 'Gallus gallus', 'Canis familiaris']
 
 @app.route('/results/<path:filename>')
 def static_results(filename):

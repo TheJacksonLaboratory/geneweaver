@@ -150,20 +150,24 @@
                                 </td>
                                 <td>
                                     {# Make boxes for homology blocks #}
-                                    {% for i in range(1,11) %}
-                                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
-                                              title="{{ tt[(i-1)] }}">
-                                        {% set exists = ['1'] %}
-                                        {% for h in geneset_value.hom|sort %}
-                                            {% if h == i %}
-                                                <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
-                                                {% if exists.append('1') %}{% endif %}
+                                    {# see application.py for the list of species and colors #}
+                                    {% for i in range(1,12) %}
+                                        {# skip elements that are empty #}
+                                        {% if tt[(i-1)] != 'empty' %}
+                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
+                                                  title="{{ tt[(i-1)] }}">
+                                            {% set exists = ['1'] %}
+                                            {% for h in geneset_value.hom|sort %}
+                                                {% if h == i %}
+                                                    <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
+                                                    {% if exists.append('1') %}{% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if exists|length == 1 %}
+                                                <div class="geneBox"></div>
                                             {% endif %}
-                                        {% endfor %}
-                                        {% if exists|length == 1 %}
-                                            <div class="geneBox"></div>
+                                            </span>
                                         {% endif %}
-                                        </span>
                                     {% endfor %}
                                 </td>
                                 <td>
