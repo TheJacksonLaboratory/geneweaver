@@ -244,17 +244,26 @@
                 <div class="col-xs-6 col-sm-4">
                     <select name="gene_identifier" class="form-control">
                         <option value="0"></option>
-                        {% for id in gidts %}
-                            {% if id[0] != "MicroArrays" %}
-                                <option label="{{id[1]}}" value="{{id[0]}}">{{id[1]}}</option>
-                            {% else %}
-                                <optgroup label="MicroArrays">
-                                    {% for val in id[1] %}
-                                        <option label="{{val[1]}}" value="{{val[0]}}">{{val[1]}}</option>
-                                    {% endfor %}
-                                </optgroup>
+                        {% for key in gidts %}
+                            {% if geneset.gene_id_type < 0 %}
+                                {% if key == -1 * geneset.gene_id_type %}
+                                    <option label="{{ gidts[key] }}" value="{{ key }}" selected>{{ gidts[key] }}</option>
+                                {% else %}
+                                    <option label="{{ gidts[key] }}" value="{{ key }}">{{ gidts[key] }}</option>
+                                {% endif %}
                             {% endif %}
                         {% endfor %}
+                            <optgroup label="MicroArrays">
+                                {% for val in pidts %}
+                                    {% if geneset.gene_id_type > 0 %}
+                                        {% if val == geneset.gene_id_type %}
+                                            <option label="{{pidts[val]}}" value="{{val}}" selected>{{pidts[val]}}</option>
+                                        {% else %}
+                                            <option label="{{pidts[val]}}" value="{{val}}">{{pidts[val]}}</option>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </optgroup>
                     </select>
                 </div>
             </div>
@@ -265,14 +274,40 @@
                 <div class="col-md-2">
                     Input Gene List*:
                 </div>
-                <div class="col-md-8">
-                    Manually Enter Genes one per line.<br>Format: gene (tab) value<br>
+                <div class="col-md-6">
+                    <table class="table table-hover">
+                        <tbody>
+                            <tr>
+                                <th>Identifier</th>
+                                <th>Value</th>
+                                <th>&nbsp;</th>
+                            </tr>
+                            {% for geneset_value in geneset.geneset_values %}
+                                <tr>
+                                    <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
+                                    <td>{{ geneset_value.value_list[0] | trim }}</td>
+                                    <td><span data-placement="top" data-toggle="tooltip"
+                                              data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
+                                              style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+                                            <span href="#editGenesetValueByID" data-toggle="modal"
+                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}">
+										            <i class="fa fa-edit"></i>
+                                            </span>
+                                        </span>
+                                        <span data-placement="top" data-toggle="tooltip"
+                                              data-rel="tooltip" data-original-title="Delete" title="Delete Identifier"
+                                              style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+                                            <span href="#deleteGenesetValueByID" data-toggle="modal"
+                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}">
+                                                    <i class="fa fa-trash-o"></i>
+                                            </span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
 
-                        <textarea id="genesetValues" rows="10" cols="50" name="genesetValues"
-                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
-                                value="{% for geneset_value in geneset.geneset_values %}{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}\t{{ geneset_value.value_list[0] | trim }}\n{% endfor %}"
-                                required>
-                        </textarea>
                 </div>
             </div>
         </div>
@@ -292,7 +327,6 @@
         <input id="upload-geneset-button" class="btn btn-primary" type="submit" value="Upload Geneset"/>
     </form>
 
-    {{ gidts }}
 
     <body onload="myFunction('{{gidts}}')">
 
@@ -311,6 +345,15 @@
     $(window).load(function() {
         $(".loader").fadeOut("slow");
     });
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+
+
+
+
 
     $('#clickableGenes').popover({
         title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
@@ -335,6 +378,18 @@
     };
 
     $(document).ready(function()  {
+
+        //triggered when modal is about to be shown
+        $('#deleteGenesetValueByID').on('shown.bs.modal', function(e) {
+            var geneID = $(e.relatedTarget).data('gene-id');
+            var value = $(e.relatedTarget).data('gene-value');
+            $(e.currentTarget).find('span.gene-element').text(geneID);
+        });
+
+        $('#processDeleteGenesetValueByID').on('click', function(e){
+            var id = $(e.relatedTarget).data('gene-id');
+            alert(id);
+        });
 
         $('#upload-geneset-form').submit(function(event) {
             event.preventDefault();
@@ -457,5 +512,8 @@
 
 </script>
 
+{% include 'modal/deleteGenesetValue.html' %}
+
+{% include 'modal/editGenesetValue.html' %}
 
 {% include 'footer.html' %}

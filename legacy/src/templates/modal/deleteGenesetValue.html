@@ -1,0 +1,21 @@
+{# Modal to delete identifier and value from geneset value #}
+
+<div class="modal fade" id="deleteGenesetValueByID">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-green">
+                <h3 class="modal-title" style="color: #f5f5f5" id="delLabel">Delete Identifier and Value</h3>
+            </div>
+            <div class="modal-body">
+                <h4>Are you sure that you want to delete identifier <span class="gene-element" style="font-weight: bold;"></span>?
+                    This will permanently remove this identifier and its value. The operation and will be unrecoverable.</h4>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-warning" id="processDeleteGenesetValueByID" data-dismiss="modal">Delete
+                    Record
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

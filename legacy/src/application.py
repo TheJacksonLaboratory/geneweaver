@@ -304,15 +304,19 @@ def render_editgenesets(gs_id):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
+    idTypes = geneweaverdb.get_gene_id_types()
+
     ####################################
     # Build dictionary of all possible
     # menus options
     gidts = {}
-    for sp in species:
-        if len(species[sp]) > 0:
-            gidts[species[sp]] = species[sp]
-            print gidts
-    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species)
+    pidts = {}
+    for id in idTypes:
+        gidts[id['gdb_id']] = id['gdb_shortname']
+    for p in platform:
+        pidts[p['pf_shortname']] = p['pf_name']
+
+    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, gidts=gidts, pidts=pidts)
 
 
 @app.route('/accountsettings.html')
