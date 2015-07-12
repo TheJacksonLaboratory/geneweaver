@@ -207,16 +207,130 @@
             </div>
         </div>
 
+
+        {# Gene List Information #}
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Gene List <span id="clickableGenes"><i class="fa fa-info-circle"></i></span>
+            </h2>
+        </div>
+        <div style="margin-left: 1em;">
+
+            <br>
+
+            <div class="row">
+                <div class="col-md-2">
+                    Species*:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select name="species" class="form-control">
+                        {% for spec in species %}
+                            {% if spec == geneset.sp_id %}
+                                <option label="{{species[spec]}}" value="{{spec}}" selected>{{species[spec]}}</option>
+                            {% else %}
+                                <option label="{{species[spec]}}" value="{{spec}}">{{species[spec]}}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <br>
+            <div class="row" id="result"></div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    Gene Identifiers*:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select name="gene_identifier" class="form-control">
+                        <option value="0"></option>
+                        {% for key in gidts %}
+                            {% if geneset.gene_id_type < 0 %}
+                                {% if key == -1 * geneset.gene_id_type %}
+                                    <option label="{{ gidts[key] }}" value="{{ key }}" selected>{{ gidts[key] }}</option>
+                                {% else %}
+                                    <option label="{{ gidts[key] }}" value="{{ key }}">{{ gidts[key] }}</option>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                            <optgroup label="MicroArrays">
+                                {% for val in pidts %}
+                                    {% if geneset.gene_id_type > 0 %}
+                                        {% if val == geneset.gene_id_type %}
+                                            <option label="{{pidts[val]}}" value="{{val}}" selected>{{pidts[val]}}</option>
+                                        {% else %}
+                                            <option label="{{pidts[val]}}" value="{{val}}">{{pidts[val]}}</option>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </optgroup>
+                    </select>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="row">
+                <div class="col-md-2">
+                    Input Gene List*:
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-hover">
+                        <tbody>
+                            <tr>
+                                <th>Identifier</th>
+                                <th>Value</th>
+                                <th>&nbsp;</th>
+                            </tr>
+                            {% for geneset_value in geneset.geneset_values %}
+                                <tr>
+                                    <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
+                                    <td>{{ geneset_value.value_list[0] | trim }}</td>
+                                    <td><span data-placement="top" data-toggle="tooltip"
+                                              data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
+                                              style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+                                            <span href="#editGenesetValueByID" data-toggle="modal"
+                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}">
+										            <i class="fa fa-edit"></i>
+                                            </span>
+                                        </span>
+                                        <span data-placement="top" data-toggle="tooltip"
+                                              data-rel="tooltip" data-original-title="Delete" title="Delete Identifier"
+                                              style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+                                            <span href="#deleteGenesetValueByID" data-toggle="modal"
+                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}"
+                                                  data-gene-value="{{ geneset_value.value_list[0] | trim }}"
+                                                    data-gene-gsid="{{ geneset.geneset_id }}">
+                                                    <i class="fa fa-trash-o"></i>
+                                            </span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+
+        <br>
+
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
+
         <br>
 
         <div class="row pull-right">
-            <button type="submit" class="btn btn-lg btn-block btn-warning" id="upload-geneset-button">
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="upload-geneset-button">
                 <i class="fa fa-fast-forward pull-right"></i> Edit Genes
             </button>
         </div>
 
     </form>
 
+
+    <body onload="myFunction('{{gidts}}')">
 
 
 {% endif %}
@@ -231,7 +345,7 @@
         genes1 = genes1.join("\t1\n");
         genes1 = genes1.concat("\t1");
         document.getElementById("file_text").value= genes1;
-    };
+    }
 
     $(window).load(function() {
         $(".loader").fadeOut("slow");
@@ -251,11 +365,11 @@
 
     function formFocus($e){
         $e.style.backgroundColor = "yellow";
-    }
+    };
 
     function noFormFocus($e){
         $e.style.backgroundColor = '';
-    }
+    };
 
     function myFunction(genes) {
 	genes1 = genes.split("_");
@@ -264,25 +378,67 @@
 	document.getElementById("genesetValues").value= genes1;
     };
 
+    $(document).ready(function()  {
+
+        //triggered when modal is about to be shown
+        $('#deleteGenesetValueByID').on('shown.bs.modal', function(e) {
+            var geneID = $(e.relatedTarget).data('gene-id');
+            var value = $(e.relatedTarget).data('gene-value');
+            var gsid = $(e.relatedTarget).data('gene-gsid');
+            $(e.currentTarget).find('input[name=gene-id]').val(geneID);
+            $(e.currentTarget).find('input[name=gene-value]').val(value);
+            $(e.currentTarget).find('input[name=gene-gsid]').val(gsid);
+            $(e.currentTarget).find('span.gene-element').text(geneID);
+        });
+
+        $('#processDeleteGenesetValueByID').on('click', function(e){
+            var user_id = {{ user_id }};
+            var id = $("#gene-id").val();
+            var gsid = $("#gene-gsid").val();
+            $.ajax({
+                type: "POST",
+                url: "/deleteGenesetValueByID",
+                data: {"gsid": gsid, "user_id": user_id, "id": id},
+                success: function (data) {
+                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>GeneSet Identifier and Value successfully deleted</div>');
+                }
+            });
+        });
+
         $('#upload-geneset-form').submit(function(event) {
             event.preventDefault();
-            $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') });
+            $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') })
+
+            var data = new FormData($(this)[0]);
+
+            var fileSelect = document.getElementById('file_data');
+            var reader = new FileReader();
+            if( !fileSelect.disabled )
+            {
+                var file = fileSelect.files;
+                //formData.append('selected_file', file[0], file[0].name);
+                reader.onload = createReaderHandler(file[0].name);
+                reader.readAsText(file[0]);
+
+            }
 
             var data = $("#upload-geneset-form").serialize();
-            alert(data);
+            //alert(reader.result);
 
-            //$.ajax({
-            //    type: "POST",
-            //    url: "../updategeneset",
-            //    data: data,
+            $.ajax({
+                type: "POST",
+                url: "../creategeneset.html",
+                data: data,
                 //processData: false,
                 //contentType: false,
-            //    success: function(data)
-            //    {
-            //        alert(data);
-            //        $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') })
-            //    }
-            //});
+                success: function(data)
+                {
+                    alert(data);
+                    $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') })
+                }
+            });
 
         });
 
@@ -356,6 +512,10 @@
         });
 
 
+
+
+    });
+
     //toggles between the file or paste uploaders and toggle's enable/disable on inputs
     function toggle_pasting() {
 
@@ -368,5 +528,8 @@
 
 </script>
 
+{% include 'modal/deleteGenesetValue.html' %}
+
+{% include 'modal/editGenesetValue.html' %}
 
 {% include 'footer.html' %}

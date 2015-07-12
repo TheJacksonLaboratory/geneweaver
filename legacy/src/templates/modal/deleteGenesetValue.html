@@ -9,6 +9,10 @@
             <div class="modal-body">
                 <h4>Are you sure that you want to delete identifier <span class="gene-element" style="font-weight: bold;"></span>?
                     This will permanently remove this identifier and its value. The operation and will be unrecoverable.</h4>
+                <form id="deleteGenesetValue-form" action="" method="post">
+                    <input id="gene-id" type="hidden" name="gene-id" value=""/>
+                    <input id="gene-gsid" type="hidden" name="gene-gsid" value=""/>
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

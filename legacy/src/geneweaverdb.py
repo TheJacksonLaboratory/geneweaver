@@ -511,6 +511,21 @@ def delete_geneset_by_gsid(rargs):
         cursor.connection.commit()
         return
 
+def delete_geneset_value_by_id(rargs):
+    #gs_id = rargs.get('gsid', type=int)
+    #gene_id = rargs.get('id', type=str)
+    # sql = ''' DELETE FROM geneset_value gv, gene g WHERE gv.gs_id=%s AND gv.ode_gene_id=g.ode_gene_id AND LOWER(g.ode_ref_id)=%s;''', (gs_id, gene_id)
+    # try:
+    #     with PooledCursor() as cursor:
+    #         print sql
+    #         cursor.execute(sql)
+    #         cursor.connection.commit()
+    #         return 'true'
+    # except Exception, e:
+    #     return str(e)
+    print rargs
+    return 'true'
+
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
         cursor.execute(

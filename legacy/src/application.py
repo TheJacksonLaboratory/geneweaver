@@ -303,20 +303,33 @@ def render_editgenesets(gs_id):
         user_id = 0
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
-    platform = geneweaverdb.get_microarray_types()
-    idTypes = geneweaverdb.get_gene_id_types()
+    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species)
 
-    ####################################
-    # Build dictionary of all possible
-    # menus options
-    gidts = {}
-    pidts = {}
-    for id in idTypes:
-        gidts[id['gdb_id']] = id['gdb_shortname']
-    for p in platform:
-        pidts[p['pf_shortname']] = p['pf_name']
+#@app.route('/updategeneset', methods=['POST'])
+#def update_geneset():
 
-    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, gidts=gidts, pidts=pidts)
+
+# @app.route('/editgenesetsgenes/<int:gs_id>')
+# def render_editgenesetsgenes(gs_id):
+#     if 'user_id' in flask.session:
+#         user_id = flask.session['user_id']
+#     else:
+#         user_id = 0
+#     geneset = geneweaverdb.get_geneset(gs_id, user_id)
+#     species = geneweaverdb.get_all_species()
+#     platform = geneweaverdb.get_microarray_types()
+#     idTypes = geneweaverdb.get_gene_id_types()
+#
+#     ####################################
+#     # Build dictionary of all possible
+#     # menus options
+#     gidts = {}
+#     pidts = {}
+#     for id in idTypes:
+#         gidts[id['gdb_id']] = id['gdb_shortname']
+#     for p in platform:
+#         pidts[p['pf_shortname']] = p['pf_name']
+#     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species, gidts=gidts, pidts=pidts)
 
 
 @app.route('/accountsettings.html')
@@ -979,6 +992,12 @@ def add_genesets_projects():
 def delete_geneset():
     if 'user_id' in flask.session:
         results = geneweaverdb.delete_geneset_by_gsid(request.args)
+        return json.dumps(results)
+
+@app.route('/deleteGenesetValueByID', methods=['GET', 'POST'])
+def delete_geneset_value():
+    if 'usr_id' in flask.session:
+        results = geneweaverdb.delete_geneset_value_by_id(request.args)
         return json.dumps(results)
 
 @app.route('/deleteResults')
