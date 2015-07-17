@@ -552,33 +552,47 @@ def updategeneset(usr_id, form):
     pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
     pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
 
-    for v in form:
-        print v
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, form["gs_id"]) != 1:
         return 'You do not have permission to update this geneset'
     if form["gs_abbreviation"] is None or form["gs_description"] is None or form["gs_name"] is None:
         return 'Required Field is not provided'
-    if form["pub_pubmed"] is not None:
+    if pub_pubmed is not None:
         with PooledCursor() as cursor:
-            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year, pub_pubmed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) WHERE NOT EXISTS (SELECT 1 FROM publication WHERE pub_pubmed=%s)''' % (pub_authors, pub_title,
-                                                                                                      pub_abstract, pub_journal,
-                                                                                                      pub_volume, pub_pages,
-                                                                                                      pub_month, pub_year,
-                                                                                                      pub_pubmed, pub_pubmed,))
-            cursor.commit()
+            sql = cursor.mogrify('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal,
+                                    pub_volume, pub_pages, pub_month, pub_year, pub_pubmed)
+                                    SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
+                                    WHERE NOT EXISTS
+                                    (SELECT 1 FROM publication WHERE pub_pubmed=%s)''', (pub_authors, pub_title,
+                                    pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year, pub_pubmed, pub_pubmed,))
+            print sql
+            cursor.execute(sql)
+            cursor.connection.commit()
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''' % (form["pub_pubmed"],))
+            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pub_pubmed,))
             pmid = cursor.fetchone()[0]
+            print pmid
+    elif pub_authors is None and pub_title is None and pub_abstract is None and pub_journal is None and pub_volume is None and pub_pages is None and pub_month is None and pub_year is None:
+        pmid = None
     else:
+        #########
+        # if pmid exists
+        ###############
+
+
+
+        ################
+        # else
+        ################
         with PooledCursor() as cursor:
-            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume,
-                              pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);''' %
-                                (form["pub_authors"], form["pub_title"], form["pub_abstract"], form["pub_journal"],
-                                 form["pub_volume"], form["pub_pages"], form["pub_month"], form["pub_year"],))
-            cursor.commit()
+            sql = cursor.mogrify('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
+                                (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
+            print sql
+            cursor.execute(sql)
+            cursor.connection.commit()
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT currval('publication_id_seq''')
+            cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
             pmid = cursor.fetchone()[0]
+            print pmid
     # with PooledCursor() as cursor:
     #     cursor.execute(
     #         '''UPDATE geneset SET gs_abbreviation=%s AND gs_description=%s AND gs_name=%s AND gs_updated=now() WHERE
