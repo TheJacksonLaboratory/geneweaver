@@ -289,7 +289,7 @@
                         $("html, body").animate({ scrollTop: 0 }, "slow");
                         $("#result").html('<div class="alert alert-danger fade in"> ' +
                                 '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Oops. An ERROR occured while updating the database. Please contact the GeneWeaver team.</div>');
+                                '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
                     }
                 },
                 error: function(r)

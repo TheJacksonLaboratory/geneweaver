@@ -526,16 +526,50 @@ def delete_geneset_by_gsid(rargs):
 #     print rargs
 #     return 'true'
 
+
+def user_is_owner(usr_id, gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''' % (usr_id, gs_id))
+        return cursor.fetchone()[0]
+
 def updategeneset(usr_id, form):
-    if flask.session["user_id"] != usr_id:
-        return 'False'
-    if form["gs_abbreviation"] or form["gs_description"] or form["gs_name"] is None:
-        return 'False'
+    '''
+    This function updates both some of the metadata in the geneset table and the publication table. If geneset metadata
+    is not null, it will update everything. If the pub_pubmed is not null, it will insert all publication information if
+    it does not exist. If pub_pubmed is null, and any other pubmed record is populated it will update those records. This
+    function does not check a mismatch between pubmed info and pub_pubmed id. Both are done in an explicit transaction.
+    :param usr_id:
+    :param form:
+    :return: success is 'True' or 'Error Msg'
+    '''
+    for v in form:
+        print v
+    if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, form["gs_id"]) != 1:
+        return 'You do not have permission to update this geneset'
+    if form["gs_abbreviation"] is None or form["gs_description"] is None or form["gs_name"] is None:
+        return 'Required Field is not provided'
     if form["pub_pubmed"] is not None:
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT pub_pubmed FROM publication WHERE pub_pubmed=%s''' % (form["pub_pubmed"]))
-            res = cursor.fetchone()
-        print res
+            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume,
+                              pub_pages, pub_month, pub_year, pub_pubmed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                              WHERE NOT EXISTS (SELECT 1 FROM publication WHERE pub_pubmed=%s)''' %
+                                (form["pub_authors"], form["pub_title"], form["pub_abstract"], form["pub_journal"],
+                                 form["pub_volume"], form["pub_pages"], form["pub_month"], form["pub_year"],
+                                 form["pub_pubmed"], form["pub_pubmed"],))
+            cursor.commit()
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''' % (form["pub_pubmed"],))
+            pmid = cursor.fetchone()[0]
+    else:
+        with PooledCursor() as cursor:
+            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume,
+                              pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''' %
+                                (form["pub_authors"], form["pub_title"], form["pub_abstract"], form["pub_journal"],
+                                 form["pub_volume"], form["pub_pages"], form["pub_month"], form["pub_year"],))
+            cursor.commit()
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT currval('publication_id_seq''')
+            pmid = cursor.fetchone()[0]
     # with PooledCursor() as cursor:
     #     cursor.execute(
     #         '''UPDATE geneset SET gs_abbreviation=%s AND gs_description=%s AND gs_name=%s AND gs_updated=now() WHERE
