@@ -511,20 +511,38 @@ def delete_geneset_by_gsid(rargs):
         cursor.connection.commit()
         return
 
-def delete_geneset_value_by_id(rargs):
-    #gs_id = rargs.get('gsid', type=int)
-    #gene_id = rargs.get('id', type=str)
-    # sql = ''' DELETE FROM geneset_value gv, gene g WHERE gv.gs_id=%s AND gv.ode_gene_id=g.ode_gene_id AND LOWER(g.ode_ref_id)=%s;''', (gs_id, gene_id)
-    # try:
-    #     with PooledCursor() as cursor:
-    #         print sql
-    #         cursor.execute(sql)
-    #         cursor.connection.commit()
-    #         return 'true'
-    # except Exception, e:
-    #     return str(e)
-    print rargs
-    return 'true'
+# def delete_geneset_value_by_id(rargs):
+#     #gs_id = rargs.get('gsid', type=int)
+#     #gene_id = rargs.get('id', type=str)
+#     # sql = ''' DELETE FROM geneset_value gv, gene g WHERE gv.gs_id=%s AND gv.ode_gene_id=g.ode_gene_id AND LOWER(g.ode_ref_id)=%s;''', (gs_id, gene_id)
+#     # try:
+#     #     with PooledCursor() as cursor:
+#     #         print sql
+#     #         cursor.execute(sql)
+#     #         cursor.connection.commit()
+#     #         return 'true'
+#     # except Exception, e:
+#     #     return str(e)
+#     print rargs
+#     return 'true'
+
+def updategeneset(usr_id, form):
+    if flask.session["user_id"] != usr_id:
+        return 'False'
+    if form["gs_abbreviation"] or form["gs_description"] or form["gs_name"] is None:
+        return 'False'
+    if form["pub_pubmed"] is not None:
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT pub_pubmed FROM publication WHERE pub_pubmed=%s''' % (form["pub_pubmed"]))
+            res = cursor.fetchone()
+        print res
+    # with PooledCursor() as cursor:
+    #     cursor.execute(
+    #         '''UPDATE geneset SET gs_abbreviation=%s AND gs_description=%s AND gs_name=%s AND gs_updated=now() WHERE
+    #             gs_id=%s AND usr_id=%s''' % (form["gs_abbreviation"], form["gs_description"], form["gs_name"], form["gs_id"],
+    #                                          usr_id,)
+    #     )
+    return 'True'
 
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
