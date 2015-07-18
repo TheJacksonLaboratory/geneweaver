@@ -303,7 +303,8 @@ def render_editgenesets(gs_id):
         user_id = 0
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
-    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species)
+    pubs = geneweaverdb.get_all_publications(gs_id)
+    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs)
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():

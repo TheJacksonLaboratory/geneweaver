@@ -72,6 +72,7 @@
             </p>
             <br>
             <input type="hidden" name="gs_id" value="{{ geneset.geneset_id }}"/>
+            <input type="hidden" name="pmid" value="{{ geneset.pub_id }}" />
             <div class="row">
                 <div class="col-md-2">
                     GeneSet Name <strong>*</strong>:
@@ -156,48 +157,49 @@
                 PubMed ID:
             </div>
             <div class="col-md-4">
-                <input id="pub_pubmed" type="text" name="pub_pubmed" size="10">&nbsp;<i id="clickablePubmed" class="fa fa-refresh"></i>
+                <input id="pub_pubmed" type="text" name="pub_pubmed" size="10" value="{{ pubs.pubmed_id }}">&nbsp;
+                    <i id="clickablePubmed" class="fa fa-refresh"></i>
             </div><br><br>
             <div id="pubmed_manual" style="display:none">
                 <div class="col-md-2">Title:</div>
                 <div class="col-md-8">
-                    <input type="text" name="pub_title" id="pub_title" value size="50"
+                    <input type="text" name="pub_title" id="pub_title" value="{{ pubs.title }}" size="50"
                             style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
                 </div><br><br>
                 <div class="col-md-2">Authors:</div>
                 <div class="col-md-8">
-                    <input type="text" name="pub_authors" id="pub_authors" value size="50"
+                    <input type="text" name="pub_authors" id="pub_authors" value="{{ pubs.authors }}" size="50"
                             style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
                 </div><br><br>
                 <div class="col-md-2">Journal:</div>
                 <div class="col-md-8">
-                    <input type="text" name="pub_journal" id="pub_journal" value size="50"
+                    <input type="text" name="pub_journal" id="pub_journal" value="{{ pubs.journal }}" size="50"
                             style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
                 </div><br><br>
                 <div class="col-md-2">Volume:</div>
                 <div class="col-md-2">
-                    <input type="text" name="pub_volume" id="pub_volume" value size="10" maxlength="10"
+                    <input type="text" name="pub_volume" id="pub_volume" value="{{ pubs.volume }}" size="10" maxlength="10"
                             style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
                 </div><br><br>
                 <div class="col-md-2">Pages:</div>
                 <div class="col-md-2">
-                    <input type="text" name="pub_pages" id="pub_pages" value size="15" maxlength="15"
+                    <input type="text" name="pub_pages" id="pub_pages" value="{{ pubs.pages }}" size="15" maxlength="15"
                             style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
                 </div><br><br>
                 <div class="col-md-2">Month:</div>
                 <div class="col-md-2">
-                    <input type="text" name="pub_month" id="pub_month" value size="3" maxlength="3"
+                    <input type="text" name="pub_month" id="pub_month" value="{{ pubs.month }}" size="3" maxlength="3"
                             style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
                 </div><br><br>
                 <div class="col-md-2">Year:</div>
                 <div  class="col-md-2">
-                    <input type="text" name="pub_year" id="pub_year" value size="4" maxlength="4"
+                    <input type="text" name="pub_year" id="pub_year" value="{{ pubs.year }}" size="4" maxlength="4"
                             style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
                 </div><br><br>
                 <div class="col-md-2">Abstract:</div>
                 <div  class="col-md-4">
                     <textarea name="pub_abstract" id="pub_abstract" cols="50" rows="10"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" ></textarea>
+                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >{{ pubs.abstract }}</textarea>
                 </div><br><br>
             </div>
         </div>

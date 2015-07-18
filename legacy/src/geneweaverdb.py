@@ -434,6 +434,15 @@ def get_all_species():
         cursor.execute('''SELECT sp_id, sp_name FROM species  ORDER BY sp_id;''')
         return OrderedDict(cursor)
 
+def get_all_publications(gs_id):
+    """
+    :param gs_id:
+    :return: All information in the publication table if pub_id is attached to publication table
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM publication p, geneset g WHERE p.pub_id=g.pub_id AND g.gs_id=%s''', (gs_id,))
+        publications = [Publication(row_dict) for row_dict in dictify_cursor(cursor)]
+        return publications[0] if len(publications) == 1 else None
 
 def get_all_attributions():
     """
@@ -551,54 +560,48 @@ def updategeneset(usr_id, form):
     pub_month = (form["pub_month"]).strip() if form["pub_month"] else None
     pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
     pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
+    pub_id = (form["pmid"]).strip() if form["pmid"] else None
 
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, form["gs_id"]) != 1:
         return 'You do not have permission to update this geneset'
     if form["gs_abbreviation"] is None or form["gs_description"] is None or form["gs_name"] is None:
         return 'Required Field is not provided'
-    if pub_pubmed is not None:
+    if pub_id is not None:
         with PooledCursor() as cursor:
-            sql = cursor.mogrify('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal,
-                                    pub_volume, pub_pages, pub_month, pub_year, pub_pubmed)
-                                    SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
-                                    WHERE NOT EXISTS
-                                    (SELECT 1 FROM publication WHERE pub_pubmed=%s)''', (pub_authors, pub_title,
-                                    pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year, pub_pubmed, pub_pubmed,))
-            print sql
-            cursor.execute(sql)
-            cursor.connection.commit()
-        with PooledCursor() as cursor:
-            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pub_pubmed,))
-            pmid = cursor.fetchone()[0]
-            print pmid
-    elif pub_authors is None and pub_title is None and pub_abstract is None and pub_journal is None and pub_volume is None and pub_pages is None and pub_month is None and pub_year is None:
-        pmid = None
+            cursor.execute('''UPDATE publication SET pub_title=%s AND pub_abstract=%s AND pub_journal=%s AND pub_volume=%s
+                              AND pub_pages=%s AND pub_month=%s AND pub_year=%s WHERE publication.pub_id=geneset.pub_id AND
+                              geneset.gs_id=%s''', (pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month,
+                                                    pub_year,))
+        pass
     else:
-        #########
-        # if pmid exists
-        ###############
-
-
-
-        ################
-        # else
-        ################
-        with PooledCursor() as cursor:
-            sql = cursor.mogrify('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                                (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
-            print sql
-            cursor.execute(sql)
-            cursor.connection.commit()
-        with PooledCursor() as cursor:
-            cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
-            pmid = cursor.fetchone()[0]
-            print pmid
-    # with PooledCursor() as cursor:
-    #     cursor.execute(
-    #         '''UPDATE geneset SET gs_abbreviation=%s AND gs_description=%s AND gs_name=%s AND gs_updated=now() WHERE
-    #             gs_id=%s AND usr_id=%s''' % (form["gs_abbreviation"], form["gs_description"], form["gs_name"], form["gs_id"],
-    #                                          usr_id,)
-    #     )
+        if pub_pubmed is not None:
+            with PooledCursor() as cursor:
+                sql = cursor.mogrify('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal,
+                                        pub_volume, pub_pages, pub_month, pub_year, pub_pubmed)
+                                        SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
+                                        WHERE NOT EXISTS
+                                        (SELECT 1 FROM publication WHERE pub_pubmed=%s)''', (pub_authors, pub_title,
+                                        pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year, pub_pubmed, pub_pubmed,))
+                print sql
+                cursor.execute(sql)
+                cursor.connection.commit()
+            with PooledCursor() as cursor:
+                cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pub_pubmed,))
+                pmid = cursor.fetchone()[0]
+                print pmid
+        elif pub_authors is None and pub_title is None and pub_abstract is None and pub_journal is None and pub_volume is None and pub_pages is None and pub_month is None and pub_year is None:
+            pmid = None
+        else:
+            with PooledCursor() as cursor:
+                sql = cursor.mogrify('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
+                                    (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
+                print sql
+                cursor.execute(sql)
+                cursor.connection.commit()
+            with PooledCursor() as cursor:
+                cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
+                pmid = cursor.fetchone()[0]
+                print pmid
     return 'True'
 
 def add_project(usr_id, pj_name):
