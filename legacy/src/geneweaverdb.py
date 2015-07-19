@@ -551,7 +551,7 @@ def updategeneset(usr_id, form):
     :param form:
     :return: success is 'True' or 'Error Msg'
     '''
-    gs_id = (form["gs_id"]).strip() if form["gs_id"] else None
+    gs_id = int((form["gs_id"]).strip()) if form["gs_id"] else None
     gs_abbreviation = (form["gs_abbreviation"]).strip() if form["gs_abbreviation"] else None
     gs_description = (form["gs_description"]).strip() if form["gs_description"] else None
     gs_name = (form["gs_name"]).strip() if form["gs_name"] else None
@@ -565,8 +565,6 @@ def updategeneset(usr_id, form):
     pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
     pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
     pub_id = (form["pmid"]).strip() if form["pmid"] else None
-    if pub_id == 0:
-        pub_id = None
     pmid = None
 
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, gs_id) != 1:
@@ -611,10 +609,9 @@ def updategeneset(usr_id, form):
                 cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
                 pmid = cursor.fetchone()[0]
     # update geneset with changes
-    pmid = 0 if pmid is None else pmid
     with PooledCursor() as cursor:
-        sql = cursor.mogrify('''UPDATE geneset SET pub_id=%s AND gs_name=%s AND gs_description=%s AND gs_abbreviation=%s
-                                AND gs_updated=now() WHERE gs_id=%s''', (pmid, gs_name, gs_description, gs_abbreviation, gs_id,))
+        sql = cursor.mogrify('''UPDATE geneset SET pub_id=%s, gs_name=(%s), gs_abbreviation=(%s), gs_description=(%s)
+                                WHERE gs_id=%s''', (pmid, gs_name, gs_abbreviation, gs_description, gs_id,))
         print sql
         cursor.execute(sql)
         cursor.connection.commit()
