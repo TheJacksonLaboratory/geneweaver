@@ -1,0 +1,52 @@
+           <div class="row">
+                <div class="col-md-2">
+                    Species*:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select name="species" class="form-control">
+                        {% for spec in species %}
+                            {% if spec == geneset.sp_id %}
+                                <option label="{{species[spec]}}" value="{{spec}}" selected>{{species[spec]}}</option>
+                            {% else %}
+                                <option label="{{species[spec]}}" value="{{spec}}">{{species[spec]}}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <br>
+
+
+            <div class="row">
+                <div class="col-md-2">
+                    Gene Identifiers*:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select name="gene_identifier" class="form-control">
+                        <option value="0"></option>
+                        {% for key in gidts %}
+                            {% if geneset.gene_id_type < 0 %}
+                                {% if key == -1 * geneset.gene_id_type %}
+                                    <option label="{{ gidts[key] }}" value="{{ key }}" selected>{{ gidts[key] }}</option>
+                                {% else %}
+                                    <option label="{{ gidts[key] }}" value="{{ key }}">{{ gidts[key] }}</option>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                            <optgroup label="MicroArrays">
+                                {% for val in pidts %}
+                                    {% if geneset.gene_id_type > 0 %}
+                                        {% if val == geneset.gene_id_type %}
+                                            <option label="{{pidts[val]}}" value="{{val}}" selected>{{pidts[val]}}</option>
+                                        {% else %}
+                                            <option label="{{pidts[val]}}" value="{{val}}">{{pidts[val]}}</option>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </optgroup>
+                    </select>
+                </div>
+            </div>
+
+            <br>

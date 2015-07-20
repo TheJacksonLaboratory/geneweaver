@@ -12,6 +12,10 @@
         cursor: pointer;
     }
 
+    #editSpecies, #editIdentifier {
+        cursor: pointer;
+        color: #0090D9;
+    }
     .loader {
         /* IE 8 */
         -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
@@ -61,23 +65,18 @@
 
         <div class="col-xs-6 col-md-3">
 
-            <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
-                <i class="fa fa-download pull-left"></i> Export Genes
-            </button>
-            <button type="button" class="btn btn-lg btn-block btn-warning" id="viewSimilarGenesets">
-                <i class="fa fa-eye pull-left"></i> Similar GeneSets
-            </button>
             <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
-                <i class="fa fa-edit pull-left"></i> Edit GeneSet
+                <i class="fa fa-step-backward pull-left"></i> Back to Edit
             </button>
-            <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
-                <i class="fa fa-trash-o pull-left"></i> Delete GeneSet
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
+                <i class="fa fa-eye pull-left"></i> GeneSets Details
+            </button>
+            <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit">
+                <i class="fa fa-times pull-left"></i> Cancel Edit
             </button>
         </div>
 
     </div>
-
-
 
 </div>
 
@@ -87,69 +86,39 @@
                 Gene List <span id="clickableGenes"><i class="fa fa-info-circle"></i></span>
             </h2>
         </div>
-        <div style="margin-left: 1em;">
 
+    <div class="row" id="result"></div>
+
+    <div class="row">
+        <div class="col-xs-12 col-md-9">
             <br>
 
             <div class="row">
                 <div class="col-md-2">
-                    Species*:
+                    <p class="text-right"><strong>SPECIES:</strong></p>
                 </div>
-                <div class="col-xs-6 col-sm-4">
-                    <select name="species" class="form-control">
-                        {% for spec in species %}
-                            {% if spec == geneset.sp_id %}
-                                <option label="{{species[spec]}}" value="{{spec}}" selected>{{species[spec]}}</option>
-                            {% else %}
-                                <option label="{{species[spec]}}" value="{{spec}}">{{species[spec]}}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
+                <div class="col-md-10">
+                    <span id="editSpecies"><p><b>{{ species[geneset.sp_id] }} <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                          data-original-title="Species" title="Edit Species" style="margin: 2px; padding: 0px 2px;"><i class="fa fa-edit"></i></span></b></p></span>
                 </div>
             </div>
 
-            <br>
-            <div class="row" id="result"></div>
-
             <div class="row">
                 <div class="col-md-2">
-                    Gene Identifiers*:
+                    <p class="text-right"><strong>IDENTIFIER:</strong></p>
                 </div>
-                <div class="col-xs-6 col-sm-4">
-                    <select name="gene_identifier" class="form-control">
-                        <option value="0"></option>
-                        {% for key in gidts %}
-                            {% if geneset.gene_id_type < 0 %}
-                                {% if key == -1 * geneset.gene_id_type %}
-                                    <option label="{{ gidts[key] }}" value="{{ key }}" selected>{{ gidts[key] }}</option>
-                                {% else %}
-                                    <option label="{{ gidts[key] }}" value="{{ key }}">{{ gidts[key] }}</option>
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                            <optgroup label="MicroArrays">
-                                {% for val in pidts %}
-                                    {% if geneset.gene_id_type > 0 %}
-                                        {% if val == geneset.gene_id_type %}
-                                            <option label="{{pidts[val]}}" value="{{val}}" selected>{{pidts[val]}}</option>
-                                        {% else %}
-                                            <option label="{{pidts[val]}}" value="{{val}}">{{pidts[val]}}</option>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </optgroup>
-                    </select>
+                <div class="col-md-10">
+                    <span id="editIdentifier"><p><b>{{ pidts[geneset.gene_id_type] }} <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                          data-original-title="Identifier" title="Edit Identifier" style="margin: 2px; padding: 0px 2px;"><i class="fa fa-edit"></i></span></b></p></span>
                 </div>
             </div>
 
-            <br>
-
             <div class="row">
                 <div class="col-md-2">
-                    Input Gene List*:
+                    <p class="text-right"><strong>GENE LIST:</strong></p>
                 </div>
-                <div class="col-md-6">
-                    <table class="table table-hover">
+                <div class="col-md-10">
+                <table class="table table-hover">
                         <tbody>
                             <tr>
                                 <th>Identifier</th>
@@ -186,21 +155,15 @@
 
                 </div>
             </div>
-        </div>
 
-        <br>
+
 
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
 
         <br>
 
-        <div class="row pull-right">
-            <button type="button" class="btn btn-lg btn-block btn-warning" id="upload-geneset-button">
-                <i class="fa fa-fast-forward pull-right"></i> Edit Genes
-            </button>
-        </div>
 
-    </form>
+
 
 
     <body onload="myFunction('{{gidts}}')">
