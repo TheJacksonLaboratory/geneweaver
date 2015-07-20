@@ -566,7 +566,6 @@ def updategeneset(usr_id, form):
     pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
     pub_id = (form["pmid"]).strip() if form["pmid"] else None
     pmid = None
-
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, gs_id) != 1:
         return 'You do not have permission to update this geneset'
     if gs_abbreviation is None or gs_description is None or gs_name is None:
@@ -593,10 +592,10 @@ def updategeneset(usr_id, form):
     else:
         if pub_id is not None:
             with PooledCursor() as cursor:
-                cursor.execute('''UPDATE publication SET pub_title=%s AND pub_abstract=%s AND pub_journal=%s AND pub_volume=%s
-                                  AND pub_pages=%s AND pub_month=%s AND pub_year=%s WHERE publication.pub_id=geneset.pub_id AND
+                cursor.execute('''UPDATE publication SET pub_title=%s, pub_abstract=%s, pub_journal=%s, pub_volume=%s,
+                                  pub_pages=%s, pub_month=%s, pub_year=%s, pub_pubmed=%s FROM geneset WHERE publication.pub_id=geneset.pub_id AND
                                   geneset.gs_id=%s''', (pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month,
-                                                        pub_year,))
+                                                        pub_year, pub_pubmed, gs_id,))
                 cursor.connection.commit()
             pmid = pub_id
         # if there is no pmid associated, we need to add it and return the pub_id
@@ -615,7 +614,6 @@ def updategeneset(usr_id, form):
         print sql
         cursor.execute(sql)
         cursor.connection.commit()
-    print pmid
     return 'True'
 
 def add_project(usr_id, pj_name):

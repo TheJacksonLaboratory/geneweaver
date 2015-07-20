@@ -319,6 +319,7 @@ def update_geneset():
 
 @app.route('/editgenesetgenes/<int:gs_id>')
 def render_editgeneset_genes(gs_id):
+    print gs_id
     if 'uesr_id' in flask.session:
         user_id = flask.session['user_id']
     else:

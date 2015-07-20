@@ -12,6 +12,11 @@
         cursor: pointer;
     }
 
+    #pubmed_button_div, #pubmed_button_div_minus {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
     .loader {
         /* IE 8 */
         -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
@@ -51,9 +56,16 @@
         <h2 class="panel-title"><strong>Edit GeneSet Information</strong></h2>
     </div>
 
-    <p>
-        (<strong>*</strong>) = mandatory.
-    </p>
+    {# Right Side List of Buttons #}
+    <div class="row">
+        <div class="col-md-4 pull-left">
+            <p>(<strong>*</strong>) = mandatory.</p>
+        </div>
+        <div class="col-md-4 pull-right">
+            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
+            <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+        </div>
+    </div>
 
 
     <form id="upload-geneset-form"  enctype="multipart/form-data" method="POST" >
@@ -205,17 +217,30 @@
         </div>
         <br>
             <div id="pubmed_button_div">
-                <button id="pubmed_manual_button" type="button" class="button">Manual Entry</button><br><br>
+                <span id="pubmed_manual_button"><b>Manual Entry <i class="fa fa-angle-down"></i></b></span><br>
+            </div>
+            <div id="pubmed_button_div_minus" style="display: none;">
+                <span id="pubmed_manual_button_minus"><b>Less <i class="fa fa-angle-up"></i></b></span><br>
             </div>
         </div>
 
         <br>
 
-        <div class="row pull-right">
-            <button type="submit" class="btn btn-lg btn-block btn-warning" id="upload-geneset-button">
-                <i class="fa fa-fast-forward pull-right"></i> Edit Genes
-            </button>
-        </div>
+
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
+
+        <div class="panel-heading">
+            <div class="pull-left">
+                <button type="submit" class="btn btn-lg btn-block btn-danger btn-transparent" id="cancel-geneset-button">
+                    <i class="fa fa-times pull-right"></i> Cancel Update
+                </button>
+                </div>
+                <div class="pull-right">
+                <button type="submit" class="btn btn-lg btn-block btn-warning" id="upload-geneset-button">
+                    <i class="fa fa-fast-forward pull-right"></i> Edit Genes
+                </button>
+            </div>
+            </div>
 
     </form>
 
@@ -265,6 +290,10 @@
 	genes1 = genes1.concat("\t1");
 	document.getElementById("genesetValues").value= genes1;
     };
+
+    $('#cancel-geneset-button').click(function(){
+        history.go(-1);
+    });
 
         $('#upload-geneset-form').submit(function(event) {
             event.preventDefault();
@@ -367,6 +396,26 @@
 
             if(isHidden) {
                 $("#pubmed_manual :input").attr("disabled", true);
+
+            }
+            else {
+                $("#pubmed_manual :input").attr("disabled", false);
+                $("#pubmed_button_div_minus").show();
+                $("#pubmed_button_div").hide();
+            }
+        });
+
+        $("#pubmed_manual_button_minus").click(function() {
+            $("#pubmed_manual").toggle();
+
+            //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+
+            var isHidden = $("#pubmed_manual").is(':hidden');
+
+            if(isHidden) {
+                $("#pubmed_manual :input").attr("disabled", true);
+                $("#pubmed_button_div_minus").hide();
+                $("#pubmed_button_div").show();
             }
             else {
                 $("#pubmed_manual :input").attr("disabled", false);
