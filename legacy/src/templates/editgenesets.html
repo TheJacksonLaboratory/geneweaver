@@ -63,7 +63,7 @@
         </div>
         <div class="col-md-4 pull-right">
             <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
-            <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+            <b>Go to Geneset Details <i class="fa fa-step-forward"></i></b></a>
         </div>
     </div>
 
@@ -226,6 +226,26 @@
 
         <br>
 
+        {# Annotation Information #}
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h2 class="panel-title">
+                Annotation Information
+            </h2>
+        </div>
+        <div style="margin-left: 1em;">
+        <br>
+        {% if onts %}
+
+        {% else %}
+
+            <div class="row">
+                <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
+            </div>
+
+        {% endif %}
+
+        </div>
+
 
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
 
@@ -240,7 +260,7 @@
                     <i class="fa fa-fast-forward pull-right"></i> Edit Genes
                 </button>
             </div>
-            </div>
+        </div>
 
     </form>
 

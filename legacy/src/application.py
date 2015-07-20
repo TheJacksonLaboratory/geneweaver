@@ -304,7 +304,9 @@ def render_editgenesets(gs_id):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
-    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs)
+    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    onts = None
+    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs, onts=onts)
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
@@ -316,18 +318,15 @@ def update_geneset():
         data.update({'usr_id': user_id})
         return json.dumps(data)
 
-
 @app.route('/editgenesetgenes/<int:gs_id>')
 def render_editgeneset_genes(gs_id):
-    print gs_id
-    if 'uesr_id' in flask.session:
-        user_id = flask.session['user_id']
-    else:
-        user_id = 0
+    user_id = flask.session['user_id']
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
+    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    onts = None
 
     ####################################
     # Build dictionary of all possible
@@ -338,11 +337,12 @@ def render_editgeneset_genes(gs_id):
         gidts[id['gdb_id']] = id['gdb_shortname']
     for p in platform:
         pidts[p['pf_shortname']] = p['pf_name']
-    return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species, gidts=gidts, pidts=pidts)
+    return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
+                                 gidts=gidts, pidts=pidts, onts=onts)
 
 
-# @app.route('/editgenesetsgenes/<int:gs_id>')
-# def render_editgenesetsgenes(gs_id):
+# @app.route('/editgenesetgenes2/<int:gs_id>')
+# def render_editgenesets_genes_2(gs_id):
 #     if 'user_id' in flask.session:
 #         user_id = flask.session['user_id']
 #     else:
