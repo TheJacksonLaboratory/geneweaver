@@ -2276,7 +2276,7 @@ def get_projects_by_user(apikey):
                                         FROM production.usr
                                         WHERE apikey = %s)
                     ) row; ''', (apikey,))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_probes_by_gene(apikey, ode_ref_id):
@@ -2291,7 +2291,7 @@ def get_probes_by_gene(apikey, ode_ref_id):
                                                                     FROM extsrc.gene
                                                                     WHERE ode_ref_id = %s))
                     ) row; ''', (ode_ref_id,))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_platform_by_id(apikey, pf_id):

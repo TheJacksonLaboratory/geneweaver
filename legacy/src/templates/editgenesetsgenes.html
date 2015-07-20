@@ -33,7 +33,6 @@
     }
 
 </style>
-{{ geneset.geneset_id }}
 
 {% if geneset.geneset_id is not defined %}
 
@@ -46,15 +45,9 @@
     <div class="row" id="result"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
-        <h2 class="panel-title"><strong>Edit GeneSet Information</strong></h2>
+        <h2 class="panel-title"><strong>Edit GeneSet Gene Information</strong></h2>
     </div>
 
-    <p>
-        (<strong>*</strong>) = mandatory.
-    </p>
-
-
-    <form id="upload-geneset-form"  enctype="multipart/form-data" method="POST" >
 
         {# Geneset Metadata #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -63,148 +56,30 @@
             </h2>
         </div>
 
-        <div style="margin-left: 1em;">
-            <br>
-            <p>
-                Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
-            </p>
-            <br>
-            <div class="row">
-                <div class="col-md-2">
-                    GeneSet Name <strong>*</strong>:
-                </div>
-                <div class="col-md-8">
-                    <input id="genesetName" type="text" name="gs_name" value="{{ geneset.name }}" size="50"
-                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
-                </div>
-            </div>
-            <br>
-            <div class="row">
-                <div class="col-md-2">
-                    GeneSet Figure Label <strong>*</strong>:
-                </div>
-                <div class="col-md-8">
-                    <input id="genesetLabel" type="text" name="gs_abbreviation" value="{{ geneset.abbreviation }}" size="50"
-                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>
-                </div>
-            </div>
-            <br>
-            <div class="row">
-                <div class="col-md-2">
-                    GeneSet Description <strong>*</strong>:
-                </div>
-                <div class="col-md-8">
-                    <textarea id="genesetDescription" rows="10" cols="50" name="gs_description"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" required>{{ geneset.description }}
-                    </textarea>
-                </div>
-            </div>
+        {% include 'genesetMeta.html' %}
+                {# Right Side List of Buttons #}
+
+        <div class="col-xs-6 col-md-3">
+
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
+                <i class="fa fa-download pull-left"></i> Export Genes
+            </button>
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="viewSimilarGenesets">
+                <i class="fa fa-eye pull-left"></i> Similar GeneSets
+            </button>
+            <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
+                <i class="fa fa-edit pull-left"></i> Edit GeneSet
+            </button>
+            <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
+                <i class="fa fa-trash-o pull-left"></i> Delete GeneSet
+            </button>
         </div>
 
-        {# Permissions #}
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h2 class="panel-title">
-                Access Permissions
-            </h2>
-        </div>
-
-        <div style="margin-left: 1em;">
-            <br>
-            <br>
-            <div class="row">
-                <div class="col-md-2">
-                    Access Restrictions <strong>*</strong>:
-                </div>
-                <div class="col-xs-2">
-
-                    <select name="permissions" class="form-control" required>
-                        {% if geneset.group_ids == '-1' %}
-                            <option value="private" selected>Private</option>
-                            <option value="public">Public</option>
-                        {% else %}
-                            <option value="private">Private</option>
-                            <option value="public" selected>Public</option>
-                        {% endif %}
-                    </select>
-
-                </div>
-            </div>
-        </div>
-        <br>
+    </div>
 
 
-        {# Reference Information #}
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h2 class="panel-title">
-                Reference Information
-            </h2>
-        </div>
-        <div style="margin-left: 1em;">
-        <br>
 
-        <p>
-            If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
-        </p>
-
-            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="3000"></div>
-
-        <div class="row">
-            <div class="col-md-2">
-                PubMed ID:
-            </div>
-            <div class="col-md-4">
-                <input id="pub_pubmed" type="text" name="pub_pubmed" size="10">&nbsp;<i id="clickablePubmed" class="fa fa-refresh"></i>
-            </div><br><br>
-            <div id="pubmed_manual" style="display:none">
-                <div class="col-md-2">Title:</div>
-                <div class="col-md-8">
-                    <input type="text" name="pub_title" id="pub_title" value size="50"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Authors:</div>
-                <div class="col-md-8">
-                    <input type="text" name="pub_authors" id="pub_authors" value size="50"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Journal:</div>
-                <div class="col-md-8">
-                    <input type="text" name="pub_journal" id="pub_journal" value size="50"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Volume:</div>
-                <div class="col-md-2">
-                    <input type="text" name="pub_volume" id="pub_volume" value size="10" maxlength="10"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Pages:</div>
-                <div class="col-md-2">
-                    <input type="text" name="pub_pages" id="pub_pages" value size="15" maxlength="15"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Month:</div>
-                <div class="col-md-2">
-                    <input type="text" name="pub_month" id="pub_month" value size="3" maxlength="3"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Year:</div>
-                <div  class="col-md-2">
-                    <input type="text" name="pub_year" id="pub_year" value size="4" maxlength="4"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Abstract:</div>
-                <div  class="col-md-4">
-                    <textarea name="pub_abstract" id="pub_abstract" cols="50" rows="10"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                    </textarea>
-                </div><br><br>
-            </div>
-        </div>
-        <br>
-            <div id="pubmed_button_div">
-                <button id="pubmed_manual_button" type="button" class="button">Manual Entry</button><br><br>
-            </div>
-        </div>
-
+</div>
 
         {# Gene List Information #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
