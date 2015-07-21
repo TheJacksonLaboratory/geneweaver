@@ -287,6 +287,11 @@
                 window.location.href = '../editgeneset/'+gsid;
             });
 
+            $('#editGenesetGenes').on('click', function (e) {
+               var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../editgenesetgenes/' +gsid;
+            });
+
             $('#confirmDelete').on('click', function (e) {
                 $.ajax({
                     type: "GET",

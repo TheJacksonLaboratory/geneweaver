@@ -16,6 +16,7 @@
         cursor: pointer;
         color: #0090D9;
     }
+
     .loader {
         /* IE 8 */
         -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
@@ -33,7 +34,7 @@
         width: 100%;
         height: 100%;
         z-index: 9999;
-        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249, 249, 249);
     }
 
 </style>
@@ -53,85 +54,97 @@
     </div>
 
 
-        {# Geneset Metadata #}
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h2 class="panel-title">
-                GeneSet Metadata &bull; GS{{ geneset.geneset_id }}
-            </h2>
-        </div>
+    {# Geneset Metadata #}
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h2 class="panel-title">
+            GeneSet Metadata &bull; GS{{ geneset.geneset_id }}
+        </h2>
+    </div>
 
-        {% include 'genesetMeta.html' %}
-                {# Right Side List of Buttons #}
+    {% include 'genesetMeta.html' %}
+    {# Right Side List of Buttons #}
 
-        <div class="col-xs-6 col-md-3">
+    <div class="col-xs-6 col-md-3">
 
-            <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
-                <i class="fa fa-step-backward pull-left"></i> Back to Edit
-            </button>
-            <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
-                <i class="fa fa-eye pull-left"></i> GeneSets Details
-            </button>
-            <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit">
-                <i class="fa fa-times pull-left"></i> Cancel Edit
-            </button>
-        </div>
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
+            <i class="fa fa-edit pull-left"></i> Edit MetaData
+        </button>
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
+            <i class="fa fa-eye pull-left"></i> GeneSets Details
+        </button>
+        <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit">
+            <i class="fa fa-times pull-left"></i> Cancel Edit
+        </button>
+    </div>
 
     </div>
 
-</div>
+    </div>
 
-        {# Gene List Information #}
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h2 class="panel-title">
-                Gene List <span id="clickableGenes"><i class="fa fa-info-circle"></i></span>
-            </h2>
-        </div>
+    {# Gene List Information #}
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h2 class="panel-title">
+            Gene List <span id="clickableGenes"><i class="fa fa-info-circle"></i></span>
+        </h2>
+    </div>
 
     <div class="row" id="result"></div>
 
     <div class="row">
-        <div class="col-xs-12 col-md-9">
-            <br>
+    <div class="col-xs-12 col-md-9">
+    <br>
 
-            <div class="row">
-                <div class="col-md-2">
-                    <p class="text-right"><strong>SPECIES:</strong></p>
-                </div>
-                <div class="col-md-10">
-                    <span id="editSpecies"><p><b>{{ species[geneset.sp_id] }} <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                          data-original-title="Species" title="Edit Species" style="margin: 2px; padding: 0px 2px;"><i class="fa fa-edit"></i></span></b></p></span>
-                </div>
-            </div>
+    <div class="row">
+        <div class="col-md-2">
+            <p class="text-right"><strong>SPECIES:</strong></p>
+        </div>
+        <div class="col-md-10">
+                    <span id="editSpecies"><p><b>{{ species[geneset.sp_id] }} <span data-placement="top"
+                                                                                    data-toggle="tooltip"
+                                                                                    data-rel="tooltip"
+                                                                                    data-original-title="Species"
+                                                                                    title="Edit Species"
+                                                                                    style="margin: 2px; padding: 0px 2px;"><i
+                            class="fa fa-edit"></i></span></b></p></span>
+        </div>
+    </div>
 
-            <div class="row">
-                <div class="col-md-2">
-                    <p class="text-right"><strong>IDENTIFIER:</strong></p>
-                </div>
-                <div class="col-md-10">
-                    <span id="editIdentifier"><p><b>{{ pidts[geneset.gene_id_type] }} <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                          data-original-title="Identifier" title="Edit Identifier" style="margin: 2px; padding: 0px 2px;"><i class="fa fa-edit"></i></span></b></p></span>
-                </div>
-            </div>
+    <div class="row">
+        <div class="col-md-2">
+            <p class="text-right"><strong>IDENTIFIER:</strong></p>
+        </div>
+        <div class="col-md-10">
+                    <span id="editIdentifier"><p><b>
+                        {% if geneset.gene_id_type < 0 %}
+                            {{ gidts[-1 * geneset.gene_id_type] }}
+                        {% else %}
+                            {{ pidts[geneset.gene_id_type] }}
+                        {% endif %}
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Identifier" title="Edit Identifier"
+                              style="margin: 2px; padding: 0px 2px;"><i class="fa fa-edit"></i></span></b></p></span>
+        </div>
+    </div>
 
-            <div class="row">
-                <div class="col-md-2">
-                    <p class="text-right"><strong>GENE LIST:</strong></p>
-                </div>
-                <div class="col-md-10">
-                <table class="table table-hover">
-                        <tbody>
-                            <tr>
-                                <th>Identifier</th>
-                                <th>Value</th>
-                                <th>&nbsp;</th>
-                            </tr>
-                            {% for geneset_value in geneset.geneset_values %}
-                                <tr>
-                                    <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
-                                    <td>{{ geneset_value.value_list[0] | trim }}</td>
-                                    <td><span data-placement="top" data-toggle="tooltip"
-                                              data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
-                                              style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+    <div class="row">
+        <div class="col-md-2">
+            <p class="text-right"><strong>GENE LIST:</strong></p>
+        </div>
+        <div class="col-md-10">
+            <table class="table table-hover">
+                <tbody>
+                <tr>
+                    <th>Identifier</th>
+                    <th>Value</th>
+                    <th>&nbsp;</th>
+                </tr>
+                {% for geneset_value in geneset.geneset_values %}
+                    <tr>
+                        <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
+                        <td>{{ geneset_value.value_list[0] | trim }}</td>
+                        <td><span data-placement="top" data-toggle="tooltip"
+                                  data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
+                                  style="margin: 2px; padding: 0px 2px; cursor: pointer;">
                                             <span href="#editGenesetValueByID" data-toggle="modal"
                                                   data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}">
 										            <i class="fa fa-edit"></i>
@@ -143,30 +156,40 @@
                                             <span href="#deleteGenesetValueByID" data-toggle="modal"
                                                   data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}"
                                                   data-gene-value="{{ geneset_value.value_list[0] | trim }}"
-                                                    data-gene-gsid="{{ geneset.geneset_id }}">
+                                                  data-gene-gsid="{{ geneset.geneset_id }}">
                                                     <i class="fa fa-trash-o"></i>
                                             </span>
                                         </span>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-                </div>
-            </div>
+    <div class="col-xs-6 col-md-3">
+
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
+            <i class="fa fa-edit pull-left"></i> Edit MetaData
+        </button>
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
+            <i class="fa fa-eye pull-left"></i> GeneSets Details
+        </button>
+        <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit">
+            <i class="fa fa-times pull-left"></i> Cancel Edit
+        </button>
+    </div>
+
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
+
+    <br>
 
 
 
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
-
-        <br>
 
 
-
-
-
-    <body onload="myFunction('{{gidts}}')">
+    <body onload="myFunction('{{ gidts }}')">
 
 
 {% endif %}
@@ -175,15 +198,14 @@
 
     var user_id = {{ user_id }}
 
-    function myFunction(genes)
-    {
-        genes1 = genes.split("_");
-        genes1 = genes1.join("\t1\n");
-        genes1 = genes1.concat("\t1");
-        document.getElementById("file_text").value= genes1;
-    }
+            function myFunction(genes) {
+                genes1 = genes.split("_");
+                genes1 = genes1.join("\t1\n");
+                genes1 = genes1.concat("\t1");
+                document.getElementById("file_text").value = genes1;
+            }
 
-    $(window).load(function() {
+    $(window).load(function () {
         $(".loader").fadeOut("slow");
     });
 
@@ -194,30 +216,33 @@
 
     $('#clickableGenes').popover({
         title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
-                'A full description of the gene set format can be found ' +
-                '<a href="http://www.geneweaver.org/wiki/index.php?title=Upload#Single_Gene_Sets">here</a>.',
+        'A full description of the gene set format can be found ' +
+        '<a href="http://www.geneweaver.org/wiki/index.php?title=Upload#Single_Gene_Sets">here</a>.',
         html: 'true'
     });
 
-    function formFocus($e){
+    function formFocus($e) {
         $e.style.backgroundColor = "yellow";
-    };
+    }
+    ;
 
-    function noFormFocus($e){
+    function noFormFocus($e) {
         $e.style.backgroundColor = '';
-    };
+    }
+    ;
 
     function myFunction(genes) {
-	genes1 = genes.split("_");
-	genes1 = genes1.join("\t1\n");
-	genes1 = genes1.concat("\t1");
-	document.getElementById("genesetValues").value= genes1;
-    };
+        genes1 = genes.split("_");
+        genes1 = genes1.join("\t1\n");
+        genes1 = genes1.concat("\t1");
+        document.getElementById("genesetValues").value = genes1;
+    }
+    ;
 
-    $(document).ready(function()  {
+    $(document).ready(function () {
 
         //triggered when modal is about to be shown
-        $('#deleteGenesetValueByID').on('shown.bs.modal', function(e) {
+        $('#deleteGenesetValueByID').on('shown.bs.modal', function (e) {
             var geneID = $(e.relatedTarget).data('gene-id');
             var value = $(e.relatedTarget).data('gene-value');
             var gsid = $(e.relatedTarget).data('gene-gsid');
@@ -227,7 +252,7 @@
             $(e.currentTarget).find('span.gene-element').text(geneID);
         });
 
-        $('#processDeleteGenesetValueByID').on('click', function(e){
+        $('#processDeleteGenesetValueByID').on('click', function (e) {
             var user_id = {{ user_id }};
             var id = $("#gene-id").val();
             var gsid = $("#gene-gsid").val();
@@ -243,16 +268,17 @@
             });
         });
 
-        $('#upload-geneset-form').submit(function(event) {
+        $('#upload-geneset-form').submit(function (event) {
             event.preventDefault();
-            $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') })
+            $('#upload-geneset-button').prop('disabled', function () {
+                return !$(this).prop('disabled')
+            })
 
             var data = new FormData($(this)[0]);
 
             var fileSelect = document.getElementById('file_data');
             var reader = new FileReader();
-            if( !fileSelect.disabled )
-            {
+            if (!fileSelect.disabled) {
                 var file = fileSelect.files;
                 //formData.append('selected_file', file[0], file[0].name);
                 reader.onload = createReaderHandler(file[0].name);
@@ -269,23 +295,24 @@
                 data: data,
                 //processData: false,
                 //contentType: false,
-                success: function(data)
-                {
+                success: function (data) {
                     alert(data);
-                    $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') })
+                    $('#upload-geneset-button').prop('disabled', function () {
+                        return !$(this).prop('disabled')
+                    })
                 }
             });
 
         });
 
         function createReaderHandler(name) {
-            return function(ev) {
+            return function (ev) {
                 data[name] = ev.target.result;
             };
         }
 
         //Get Pubmed Data for ID
-        $('#clickablePubmed').click(function() {
+        $('#clickablePubmed').click(function () {
             var pmid = $("#pub_pubmed").val();
             if (!$.isNumeric(pmid)) {
                 $(document).trigger("add-alerts", [
@@ -300,8 +327,7 @@
                     type: "GET",
                     url: "../getPubmed",
                     data: {"pmid": pmid},
-                    success: function(data)
-                    {
+                    success: function (data) {
                         $(document).trigger("add-alerts", [
                             {
                                 'message': "PubMed ID " + pmid + " successfully loaded",
@@ -310,11 +336,13 @@
                         ]);
                         if ($('#pubmed_manual').is(":hidden")) {
                             $("#pubmed_manual").toggle();
-                        };
+                        }
+                        ;
 
                         if ($('#pubmed_button_div').is(":visible")) {
                             $('#pubmed_button_div').toggle();
-                        };
+                        }
+                        ;
 
                         var parseData = JSON.parse(data);
                         $('#pub_title').val(parseData[0]);
@@ -328,26 +356,25 @@
 
                     }
                 });
-            };
+            }
+            ;
 
         });
 
-        $("#pubmed_manual_button").click(function() {
+        $("#pubmed_manual_button").click(function () {
             $("#pubmed_manual").toggle();
 
             //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
 
             var isHidden = $("#pubmed_manual").is(':hidden');
 
-            if(isHidden) {
+            if (isHidden) {
                 $("#pubmed_manual :input").attr("disabled", true);
             }
             else {
                 $("#pubmed_manual :input").attr("disabled", false);
             }
         });
-
-
 
 
     });
@@ -358,8 +385,12 @@
         $("#file_uploader").toggle();
         $("#paste_uploader").toggle();
 
-        $('#file_text').prop('disabled',function() { return !$(this).prop('disabled') })
-        $('#file_data').prop('disabled',function() { return !$(this).prop('disabled') })
+        $('#file_text').prop('disabled', function () {
+            return !$(this).prop('disabled')
+        })
+        $('#file_data').prop('disabled', function () {
+            return !$(this).prop('disabled')
+        })
     }
 
 </script>
