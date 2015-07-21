@@ -1,0 +1,30 @@
+{# This modal allows you to edit the identifier and value #}
+
+<div class="modal fade" id="editSpeciesByGSID">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editSpeciesName" name="editSpeciesName" method="post" action="#" class="form-horizontal"
+                  novalidate="novalidate">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Species</h3>
+                </div>
+                <div class="modal-body">
+                    <div id="species" class="btn-group bootstrap-select form-control">
+                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="selected">{{ species[geneset.sp_id] }}</span> <span class="caret"></span></button>
+                            <ul class="dropdown-menu option" role="menu">
+                            {% for spec in species %}
+                                <li id="{{ spec }}"><a href="#">{{ species[spec] }}</a></li>
+                            {% endfor %}
+                            </ul>
+
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmit">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

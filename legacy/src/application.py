@@ -306,7 +306,10 @@ def render_editgenesets(gs_id):
     pubs = geneweaverdb.get_all_publications(gs_id)
     #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
     user_info = geneweaverdb.get_user(user_id)
-    view = 'True' if user_info.is_admin or user_info.is_curator or user_info.geneset.user_id == user_id else None
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or user_info.geneset.user_id == user_id else None
+    else:
+        view = None
 
     onts = None
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
@@ -324,13 +327,18 @@ def update_geneset():
 
 @app.route('/editgenesetgenes/<int:gs_id>')
 def render_editgeneset_genes(gs_id):
-    user_id = flask.session['user_id']
+    user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
+    user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
     #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
     onts = None
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or user_info.geneset.user_id == user_id else None
+    else:
+        view = None
 
     ####################################
     # Build dictionary of all possible
@@ -342,7 +350,7 @@ def render_editgeneset_genes(gs_id):
     for p in platform:
         pidts[p['pf_shortname']] = p['pf_name']
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
-                                 gidts=gidts, pidts=pidts, onts=onts)
+                                 gidts=gidts, pidts=pidts, onts=onts, view=view)
 
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')
@@ -438,16 +446,24 @@ def render_viewgeneset(gs_id):
 
     emphgenes = {}
     emphgeneids = []
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
+
+    if 'user_id' in session:
+        user_id = session['user_id']
     else:
         user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or user_info.geneset.user_id == user_id else None
+    else:
+        view = None
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol)
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
 
 
 @app.route('/mygenesets')

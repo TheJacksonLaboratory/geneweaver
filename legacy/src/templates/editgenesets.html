@@ -42,7 +42,7 @@
 
 
 
-{% if geneset.geneset_id is not defined %}
+{% if geneset.geneset_id is not defined or view != 'True' %}
 
     {% include 'htmlfragments/genesetNotFound.html' %}
 

@@ -21,7 +21,7 @@
         /* IE 8 */
         -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
         /* IE 5-7 */
-        filter: alpha(opacity=40);
+        filter: alpha(opacity=60);
         /* Netscape */
         -moz-opacity: 0.4;
         /* Safari 1.x */
@@ -39,7 +39,7 @@
 
 </style>
 
-{% if geneset.geneset_id is not defined %}
+{% if geneset.geneset_id is not defined or view != 'True' %}
 
     {% include 'htmlfragments/genesetNotFound.html' %}
 
@@ -168,23 +168,22 @@
         </div>
     </div>
 
-    <div class="col-xs-6 col-md-3">
-
-        <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
-            <i class="fa fa-edit pull-left"></i> Edit MetaData
-        </button>
-        <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
-            <i class="fa fa-eye pull-left"></i> GeneSets Details
-        </button>
-        <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit">
-            <i class="fa fa-times pull-left"></i> Cancel Edit
-        </button>
-    </div>
-
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
 
     <br>
+    </div>
 
+    <div class="col-xs-6 col-md-3">
+
+        <br>
+
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
+            <i class="fa fa-plus pull-left"></i> Add Gene
+        </button>
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
+            <i class="fa fa-signal pull-left"></i> Set Threshold
+        </button>
+    </div>
 
 
 
@@ -198,13 +197,6 @@
 
     var user_id = {{ user_id }}
 
-            function myFunction(genes) {
-                genes1 = genes.split("_");
-                genes1 = genes1.join("\t1\n");
-                genes1 = genes1.concat("\t1");
-                document.getElementById("file_text").value = genes1;
-            }
-
     $(window).load(function () {
         $(".loader").fadeOut("slow");
     });
@@ -213,23 +205,12 @@
         $("[data-toggle='tooltip']").tooltip();
     });
 
-
     $('#clickableGenes').popover({
         title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
         'A full description of the gene set format can be found ' +
         '<a href="http://www.geneweaver.org/wiki/index.php?title=Upload#Single_Gene_Sets">here</a>.',
         html: 'true'
     });
-
-    function formFocus($e) {
-        $e.style.backgroundColor = "yellow";
-    }
-    ;
-
-    function noFormFocus($e) {
-        $e.style.backgroundColor = '';
-    }
-    ;
 
     function myFunction(genes) {
         genes1 = genes.split("_");
@@ -268,135 +249,19 @@
             });
         });
 
-        $('#upload-geneset-form').submit(function (event) {
-            event.preventDefault();
-            $('#upload-geneset-button').prop('disabled', function () {
-                return !$(this).prop('disabled')
-            })
-
-            var data = new FormData($(this)[0]);
-
-            var fileSelect = document.getElementById('file_data');
-            var reader = new FileReader();
-            if (!fileSelect.disabled) {
-                var file = fileSelect.files;
-                //formData.append('selected_file', file[0], file[0].name);
-                reader.onload = createReaderHandler(file[0].name);
-                reader.readAsText(file[0]);
-
-            }
-
-            var data = $("#upload-geneset-form").serialize();
-            //alert(reader.result);
-
-            $.ajax({
-                type: "POST",
-                url: "../creategeneset.html",
-                data: data,
-                //processData: false,
-                //contentType: false,
-                success: function (data) {
-                    alert(data);
-                    $('#upload-geneset-button').prop('disabled', function () {
-                        return !$(this).prop('disabled')
-                    })
-                }
-            });
-
+        $('#editSpecies').on('click', function (e) {
+                $("#editSpeciesByGSID").modal('show');
         });
-
-        function createReaderHandler(name) {
-            return function (ev) {
-                data[name] = ev.target.result;
-            };
-        }
-
-        //Get Pubmed Data for ID
-        $('#clickablePubmed').click(function () {
-            var pmid = $("#pub_pubmed").val();
-            if (!$.isNumeric(pmid)) {
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "You must enter a valid Pubmed ID.",
-                        'priority': 'warning'
-                    }
-                ]);
-            }
-            else {
-                $.ajax({
-                    type: "GET",
-                    url: "../getPubmed",
-                    data: {"pmid": pmid},
-                    success: function (data) {
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "PubMed ID " + pmid + " successfully loaded",
-                                'priority': 'success'
-                            }
-                        ]);
-                        if ($('#pubmed_manual').is(":hidden")) {
-                            $("#pubmed_manual").toggle();
-                        }
-                        ;
-
-                        if ($('#pubmed_button_div').is(":visible")) {
-                            $('#pubmed_button_div').toggle();
-                        }
-                        ;
-
-                        var parseData = JSON.parse(data);
-                        $('#pub_title').val(parseData[0]);
-                        $('#pub_authors').val(parseData[1]);
-                        $('#pub_journal').val(parseData[2]);
-                        $('#pub_volume').val(parseData[3]);
-                        $('#pub_pages').val(parseData[4]);
-                        $('#pub_year').val(parseData[5]);
-                        $('#pub_month').val(parseData[6]);
-                        $('#pub_abstract').val(parseData[7]);
-
-                    }
-                });
-            }
-            ;
-
-        });
-
-        $("#pubmed_manual_button").click(function () {
-            $("#pubmed_manual").toggle();
-
-            //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
-
-            var isHidden = $("#pubmed_manual").is(':hidden');
-
-            if (isHidden) {
-                $("#pubmed_manual :input").attr("disabled", true);
-            }
-            else {
-                $("#pubmed_manual :input").attr("disabled", false);
-            }
-        });
-
 
     });
 
-    //toggles between the file or paste uploaders and toggle's enable/disable on inputs
-    function toggle_pasting() {
-
-        $("#file_uploader").toggle();
-        $("#paste_uploader").toggle();
-
-        $('#file_text').prop('disabled', function () {
-            return !$(this).prop('disabled')
-        })
-        $('#file_data').prop('disabled', function () {
-            return !$(this).prop('disabled')
-        })
-    }
 
 </script>
 
 {% include 'modal/deleteGenesetValue.html' %}
 
 {% include 'modal/editGenesetValue.html' %}
+
+{% include 'modal/editSpecies.html' %}
 
 {% include 'footer.html' %}
