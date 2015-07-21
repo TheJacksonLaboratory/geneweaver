@@ -126,25 +126,27 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-2">
-            <p class="text-right"><strong>GENE LIST:</strong></p>
-        </div>
-        <div class="col-md-10">
-            <table class="table table-hover">
-                <tbody>
-                <tr>
-                    <th>Identifier</th>
-                    <th>Value</th>
-                    <th>&nbsp;</th>
-                </tr>
-                {% for geneset_value in geneset.geneset_values %}
-                    <tr>
-                        <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
-                        <td>{{ geneset_value.value_list[0] | trim }}</td>
-                        <td><span data-placement="top" data-toggle="tooltip"
-                                  data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
-                                  style="margin: 2px; padding: 0px 2px; cursor: pointer;">
+        <div class="row">
+            {% if geneset.geneset_values %}
+
+                <div class="col-md-2">
+                    <p class="text-right"><strong>GENE LIST:</strong></p>
+                </div>
+                <div class="col-md-10">
+                    <table class="table table-hover">
+                        <tbody>
+                        <tr>
+                            <th>Identifier</th>
+                            <th>Value</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                        {% for geneset_value in geneset.geneset_values %}
+                            <tr>
+                                <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
+                                <td>{{ geneset_value.value_list[0] | trim }}</td>
+                                <td><span data-placement="top" data-toggle="tooltip"
+                                          data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
+                                          style="margin: 2px; padding: 0px 2px; cursor: pointer;">
                                             <span href="#editGenesetValueByID" data-toggle="modal"
                                                   data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}">
 										            <i class="fa fa-edit"></i>
@@ -160,13 +162,18 @@
                                                     <i class="fa fa-trash-o"></i>
                                             </span>
                                         </span>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="row">
+                    <div class="alert bg-gray-light">No Genes are Associated with this GeneSet</div>
+                </div>
+            {% endif %}
         </div>
-    </div>
 
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
 
@@ -253,6 +260,30 @@
                 $("#editSpeciesByGSID").modal('show');
         });
 
+        $('#editIdentifier').on('click', function (e) {
+                $("#editIdentifierByGSID").modal('show');
+        });
+
+        $('#editGeneset').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../editgeneset/'+gsid;
+        });
+
+        $('#viewGenesetDetails').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../viewgenesetdetails/'+gsid;
+        });
+
+        $('#cancelEdit').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../viewgenesetdetails/'+gsid;
+        });
+
+        $(".dropdown-menu li a").click(function(){
+            $(this).parents(".input-group-btn").find('.btn').text($(this).text());
+            $(this).parents(".input-group-btn").find('.btn').val($(this).text());
+        });
+
     });
 
 
@@ -263,5 +294,7 @@
 {% include 'modal/editGenesetValue.html' %}
 
 {% include 'modal/editSpecies.html' %}
+
+{% include 'modal/editGeneIdentifier.html' %}
 
 {% include 'footer.html' %}
