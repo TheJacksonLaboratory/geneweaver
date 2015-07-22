@@ -23,11 +23,23 @@ An example form tag that works with current routes is below:
 <!-- TODO make this JS not inline-->
 <script>
     /*
-     This script will dynamically add up to three search bars and options
+     This script will dynamically add and remove up to three search bars 
+     and options
      */
     $(document).ready(function () {
-        $("#addSearchBar1").click(function () {
-            $("#searchFormGroup").clone().appendTo("#searchFormContainer");
+
+        // Delegate is used instead of a selector + click, otherwise 
+        // dynamically added DOM elements won't register and call js functions
+        $('#searchFormContainer').delegate('#addSearchBar1', 'click', function() {
+            // Only three search bars are allowed
+            if ($("#searchFormContainer").children().length < 3)
+                $("#searchFormGroup").clone().appendTo("#searchFormContainer");
+        });
+
+        $('#searchFormContainer').delegate('#removeSearchBar', 'click', function() {
+            // Must always be at least one search bar
+            if ($("#searchFormContainer").children().length > 1)
+                $("#searchFormContainer").children().last().remove();
         });
     });
 </script>
@@ -54,11 +66,11 @@ An example form tag that works with current routes is below:
                         <!-- Submit button to perform search -->
                         <input type="submit" class="btn btn-primary" value="Search" align="right"
                                style="vertical-align:15%">
-                        <!-- Button for adding a search bar -->
-                        <button class="btn btn-sm" type="button" style="vertical-align: 15%">
+                        <!-- Button for removing a search bar -->
+                        <button id="removeSearchBar" class="btn btn-sm" type="button" style="vertical-align: 15%">
                             <i class="fa fa-minus"></i>
                         </button>
-                        <!-- Button for removing a search bar -->
+                        <!-- Button for adding a search bar -->
                         <button id="addSearchBar1" class="btn btn-sm" type="button" style="vertical-align: 15%">
                             <i class="fa fa-plus"></i>
                         </button>
