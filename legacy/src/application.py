@@ -7,6 +7,7 @@ from decimal import Decimal
 import adminviews
 import genesetblueprint
 import geneweaverdb
+import uploadfiles
 import json
 import os
 import re
