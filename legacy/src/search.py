@@ -366,8 +366,36 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
         buildFilterSelectStatementSetFilters(userFilters, client)
     #Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)
+
     #TODO remove diagnostic query
-    print query
+    print 'debug query: ' + query
+
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+
+    ## Get user groups
+    user_grps = geneweaverdb.get_user_groups(user_id)
+
+    ## Default user group is zero
+    if not user_grps:
+        user_grps = [0]
+
+    ## Always filter out genesets the user can't access
+    access_filter = '*'
+
+    ## If the user is an administrator, we don't have to do any filtering
+    if not user_info.is_admin:
+        access_filter += ', (usr_id=' + str(user_id)
+        access_filter += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
+        access_filter += ')) AS isReadable'
+
+        client.SetSelect(access_filter)
+        client.SetFilter('isReadable', [1])
+
     #Run the actual query
     results = client.Query(query)
     #Check if the query had an error
