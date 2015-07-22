@@ -256,6 +256,12 @@
             });
         });
 
+        $('#editSubmitSpecies').on('click', function(e){
+            var val = $('#species').children('#selectedSpecies').text();
+            $.trim(val);
+            alert(val);
+            });
+
         $('#editSpecies').on('click', function (e) {
                 $("#editSpeciesByGSID").modal('show');
         });
