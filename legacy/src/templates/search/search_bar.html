@@ -61,7 +61,8 @@ An example form tag that works with current routes is below:
                     <div class="col-md-12" style="display: inline-block">
                         <!-- Search bar -->
                         <input id="searchbar" name="searchbar" class="input-lg" style="width:75%" type="text"
-                               value="{% if paginationValues %}{{paginationValues.search_term}}{% endif %}">
+                               value="{% if paginationValues
+							   %}{{paginationValues.search_term[0]}}{% endif %}">
 
                         <!-- Submit button to perform search -->
                         <input type="submit" class="btn btn-primary" value="Search" align="right"
@@ -142,7 +143,7 @@ An example form tag that works with current routes is below:
 
 
                 </div>
-            </div>
+			</div> <!-- end of searchFormGroup? -->
         </div>
     </div>
 </div>

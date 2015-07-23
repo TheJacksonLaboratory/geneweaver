@@ -742,8 +742,8 @@ def new_search():
 @app.route('/search/')
 def render_searchFromHome():
     form = flask.request.form
-    #Search term is given from the searchbar in the form
-    search_term = request.args.get('searchbar')
+    ## Terms from the search bar, as a list since there can be <= 3 terms
+    terms = request.args.getlist('searchbar')
     #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
     pagination_page = int(request.args.get('pagination_page'))
     #Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
@@ -767,7 +767,7 @@ def render_searchFromHome():
     search_fields.append('gs_id,gsid_prefixed,species,taxid')
     search_fields = ','.join(search_fields)
     #Perform a search
-    search_values = search.keyword_paginated_search(search_term, pagination_page, search_fields)
+    search_values = search.keyword_paginated_search(terms, pagination_page, search_fields)
     #If there is an error render a blank search page
     if (search_values['STATUS'] == 'ERROR'):
         return flask.render_template('search.html', paginationValues=None)

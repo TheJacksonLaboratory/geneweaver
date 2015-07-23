@@ -320,7 +320,7 @@ search.html and associated files in templates/search/
  a set of search fields understood by sphinx.conf as attributes of which to search. These are built in accordance with the checkboxes under the search bar
  and a dict userFilters, as defined in getUserFiltersFromApplicationRequest which is optional. If supplied, this will limit the search
 '''
-def keyword_paginated_search(search_term, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
+def keyword_paginated_search(terms, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
     '''
     Set up initial search connection and build queries
     TODO make this work with multiple query boxes (Will have to do multiple queries and combine results)
@@ -331,10 +331,19 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #Set the number of GS results to fetch per page
     resultsPerPage = 25
     #Calculate the paginated offset into the results to start from
-    offset=resultsPerPage*(pagination_page - 1)
+    offset = resultsPerPage*(pagination_page - 1)
     limit = resultsPerPage
-    #Combine the search fields and search term into a Sphinx query
-    query = '@('+search_fields+') '+search_term
+    queries = []
+
+    ## For each search term, build them into sphinx queries
+    for t in terms:
+        query = '@(' + search_fields + ') ' + t
+        queries.append(query)
+
+    ## List converted to space separated strings
+    query = ' '.join(queries)
+
+    #query = '@('+search_fields+') '+search_term
     #Set the user ID TODO update this to limit tiers to start, then set filter appropriately
     #userId = -1
     #if flask.session.get('user_id'):
@@ -422,7 +431,9 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     if end_page_number > numPages:
         end_page_number = numPages
     #Create a dict to send to the template for dispay
-    paginationValues = {'numResults': numResults,'totalFound':totalFound, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
+    paginationValues = {'numResults': numResults,'totalFound':totalFound,
+            'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage':
+            resultsPerPage, 'search_term': terms, 'end_page_number': end_page_number};
     '''
     Perform the second search that gets the total filter counts for display in search_filters_panel.html
     '''
