@@ -260,8 +260,19 @@
             var val = $('#species').children('#selectedSpecies').text();
             $.trim(val);
             //update genset_value for the sp_id
-            //return
-            alert(val);
+            $.ajax({
+                    type: "GET",
+                    url: "../updateGenesetSpecies",
+                    data: {"altSpecies": val, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                    success: function (data) {
+                        location.reload();
+                    },
+                    error: function(){
+                        $("#result").html('<div class="alert alert-success fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>An error occured while updating the db</div>');
+                    }
+                });
             });
 
         $('#editSpecies').on('click', function (e) {
