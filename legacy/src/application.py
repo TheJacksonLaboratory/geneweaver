@@ -746,6 +746,18 @@ def render_searchFromHome():
     ## Terms from the search bar, as a list since there can be <= 3 terms
     terms = request.args.getlist('searchbar')
     print 'debug search from home'
+    if flask.request.method == 'GET':
+        args = flask.request.args
+        print 'debug args'
+        #if 'sort' in args:
+        #    session['sort'] = args['sort']
+        #    if 'dir' in session:
+        #        if session['dir'] != 'DESC':
+        #            session['dir'] = 'DESC'
+        #        else:
+        #            session['dir'] = 'ASC'
+        #    else:
+        #        session['dir'] = 'ASC'
     #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
     pagination_page = int(request.args.get('pagination_page'))
     #Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
@@ -773,6 +785,7 @@ def render_searchFromHome():
     #If there is an error render a blank search page
     if (search_values['STATUS'] == 'ERROR'):
         return flask.render_template('search.html', paginationValues=None)
+    print 'debug genesets: ' + str(search_values['genesets'][0])
     #render the template if there is no error, passing in data used in display
     return flask.render_template('search.html', searchresults=search_values['searchresults'],
                                  genesets=search_values['genesets'], paginationValues=search_values['paginationValues'],
@@ -784,6 +797,13 @@ def render_searchFromHome():
 #This route will take as an argument, search parameters for a filtered search
 def render_search_json():
     print 'debug search from who the fuck knows where'
+    if flask.request.method == 'GET':
+        args = flask.request.args
+        print 'debug get args from nowhere'
+    if flask.request.method == 'POST':
+        args = flask.request.args
+        print 'debug post args from nowhere'
+        print 'debug args: ' + str(args.keys())
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     ## quick fix for now, this needs properly handle multiple terms

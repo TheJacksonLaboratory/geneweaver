@@ -26,8 +26,14 @@
 	}
 	</script>
 
-	<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')"><span class="fa fa-chevron-down"></span></a>
 
+		<td>
+	<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
+		<span class="fa fa-chevron-down"></span>
+	</a>
+		</td>
+
+	<td>
 	<!-- Label the tier - which is the curation id, Geneset.cur_id -->
 	{% if gs.cur_id == 1 %}
                     <span class="tier1">Tier I</span>
@@ -44,7 +50,9 @@
         {%if gs.cur_id == 5 %}
                     <span class="tier5">Tier V</span>
         {% endif %}
+	</td>
 
+	<td>
 	<!-- Label the species -->
 	{% if gs.sp_id == 1 %}
 		<span class="mouse">Mouse</span>
@@ -64,7 +72,14 @@
 	{% if gs.sp_id == 6 %}
 		<span class="monkey">Monkey</span>
 	{% endif %}
+	</td>
+
+	<td>
+	<!-- Show the geneset size -->
+	<span class="gs_size">{{gs.count}} Genes</span>
+	</td>
 	
+	<td>
 	<!-- Label the attribution -->
 	{% if gs.attribution == 2 %}
 		<span class="ctd">CTD</span>
@@ -79,12 +94,13 @@
 		<span class="mp">MP</span>
 	{% endif %}
 	
-	<!-- Show the geneset size -->
-	<span class="gs_size">{{gs.count}} Genes</span>
 	<!-- need status for if not normal -->
 	{% if gs.status != "normal" %}
 	<span class="gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
 	{% endif %}
+	</td>
+
+	<td>
  	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a>
 	<br>
 
@@ -118,6 +134,9 @@
 		{% endif %}
             </table>
 	</div>
+
+
+
 	{% if g.user is defined %}
 	<div class="modal fade" id="addModal_{{gs.geneset_id}}">
 		<div class="modal-dialog">
@@ -150,3 +169,5 @@
 		</div>
 	</div>
 	{% endif %}
+
+	</td>

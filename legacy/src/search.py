@@ -332,9 +332,6 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     geneCountMin = int(userFilters['geneCounts']['geneCountMin'])
     geneCountMax = int(userFilters['geneCounts']['geneCountMax'])
     client.SetFilterRange('gs_count', geneCountMin, geneCountMax)
-    '''
-    Filter by GS Status
-    '''
 
     return None
 

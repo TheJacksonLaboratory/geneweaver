@@ -29,17 +29,27 @@
 	<div class="panel-body">
 
 		<table class="table table-hover">
-		<thead>
-		<tr>
-		<th>Result</th>
-		</tr>
-		</thead>
+			<thead>
+				<tr>
+					<th></th>
+					<!--<th>
+						<a href="#?sort=result"><i class="fa fa-sort">
+						</i></a>
+						Result
+					</th>-->
+					<th>Tier</th>
+					<th>Species</th>
+					<th>Size</th>
+					<th>Attributes</th>
+					<th>Geneset</th>
+				</tr>
+			</thead>
 		<tbody>
 		{% for gs in genesets %}
 		<tr>
-		<td>
+		<!--<td> -->
 		{% include 'viewGenesetSummaryPartial.html' %}
-		</td>
+		<!--</td> -->
 		</tr>
 		<!-- TODO create a selector for adding genesets to projects, link will go here -->
 		{% endfor %}
