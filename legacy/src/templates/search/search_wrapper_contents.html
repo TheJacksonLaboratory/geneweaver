@@ -1,4 +1,32 @@
 
+<script type="text/javascript">
+
+	//$(document).ready(function() {
+	var onSort = function(s) {
+	//function onSort() {
+
+		// everything after gw.org/search/
+		var path = window.location.search;
+		var url = '/search/' + path;
+		var sort = 'sortBy=' + s;
+		console.log(url);
+		console.log(sort);
+		console.log($(this));
+
+		$.ajax({
+			type: 'GET',
+			url: url,
+			data: sort,
+			dataType: 'string'
+		});
+	};
+
+	$(document).ready(function() {
+		$('#tier').click(function() {
+			onSort($(this).attr('id'));
+		});
+	});
+</script>
 {% if paginationValues != None %}
 <div class="row">
 
@@ -28,23 +56,30 @@
 	<!-- Show the geneset table with geneset results -->
 	<div class="panel-body">
 
-		<table class="table table-hover">
-			<thead>
+		<table id="results" class="table table-hover">
+		<tbody>
 				<tr>
 					<th></th>
-					<!--<th>
-						<a href="#?sort=result"><i class="fa fa-sort">
-						</i></a>
-						Result
-					</th>-->
-					<th>Tier</th>
-					<th>Species</th>
-					<th>Size</th>
-					<th>Attributes</th>
-					<th>Geneset</th>
+					<th><nobr>
+						<a id="tier" href="#" ><i id="tier" class="fa fa-sort"></i></a>
+						Tier
+					</nobr></th>
+					<th><nobr>
+						<a href="#?sort=species"><i class="fa fa-sort"></i></a>
+						Species
+					</nobr></th>
+					<th><nobr>
+						<a href="#?sort=size"><i class="fa fa-sort"></i></a>
+						Size
+					</nobr></th>
+					<th><nobr>
+						Attributes
+					</nobr></th>
+					<th><nobr>
+						<a href="#?sort=geneset"><i class="fa fa-sort"></i></a>
+						Geneset
+					</nobr></th>
 				</tr>
-			</thead>
-		<tbody>
 		{% for gs in genesets %}
 		<tr>
 		<!--<td> -->

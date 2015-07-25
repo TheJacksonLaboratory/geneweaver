@@ -748,16 +748,7 @@ def render_searchFromHome():
     print 'debug search from home'
     if flask.request.method == 'GET':
         args = flask.request.args
-        print 'debug args'
-        #if 'sort' in args:
-        #    session['sort'] = args['sort']
-        #    if 'dir' in session:
-        #        if session['dir'] != 'DESC':
-        #            session['dir'] = 'DESC'
-        #        else:
-        #            session['dir'] = 'ASC'
-        #    else:
-        #        session['dir'] = 'ASC'
+        print 'debug args: ' + str(args)
     #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
     pagination_page = int(request.args.get('pagination_page'))
     #Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
@@ -807,6 +798,7 @@ def render_search_json():
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     ## quick fix for now, this needs properly handle multiple terms
+    print 'debug term: ' + userValues['search_term']
     userValues['search_term'] = [userValues['search_term']]
     #Get a sphinx search
     #First, print some diangostic information
