@@ -237,8 +237,44 @@ appropriate filters to the client connection.
 def buildFilterSelectStatementSetFilters(userFilters, client):
     #Given a set of filters established by the user (this is a list of what is selected on the filter side bar) -
     #update the sphinxQL select statement, and set appropriate filters on the Sphinx client
-    sphinxSelect = '* '
-    client.SetSelect(sphinxSelect)
+    sphinx_select = '*'
+
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        user_id = 0
+
+    ## User info and groups for geneset access
+    user_info = geneweaverdb.get_user(user_id)
+    user_grps = geneweaverdb.get_user_groups(user_id)
+
+    ## Empty user group
+    if not user_grps:
+        user_grps = [0]
+
+    ## Begin applying various filters to the search results
+    ## Always filter out genesets the user can't access
+    access_filter = '*'
+
+    ## If the user is an administrator, we don't have to do this filtering
+    if not user_info.is_admin:
+        access_filter += ', (usr_id=' + str(user_id)
+        access_filter += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
+        access_filter += ')) AS isReadable'
+
+        client.SetSelect(access_filter)
+        client.SetFilter('isReadable', [1])
+
+    excludes = []
+
+    ## Filter by provisional/deprecated
+    if(userFilters['statusList']['provisional'] != 'yes'):
+        excludes.append(1)
+    if(userFilters['statusList']['deprecated'] != 'yes'):
+        excludes.append(2)
+    if excludes:
+        client.SetFilter('gs_status', excludes, True)
+    
     '''
     Set the filters for selected Tiers
     
@@ -299,15 +335,7 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     '''
     Filter by GS Status
     '''
-    #TODO make this work properly there seems to be an error
-    statusFilterList = list()
-    #Always allow at least normal
-    statusFilterList.append(0)
-    if(userFilters['statusList']['provisional'] == 'yes'):
-        statusFilterList.append(1)
-    if(userFilters['statusList']['deprecated'] == 'yes'):
-        statusFilterList.append(2)
-    client.SetFilter('gs_status', statusFilterList, False)
+
     return None
 
 
@@ -320,7 +348,7 @@ search.html and associated files in templates/search/
  a set of search fields understood by sphinx.conf as attributes of which to search. These are built in accordance with the checkboxes under the search bar
  and a dict userFilters, as defined in getUserFiltersFromApplicationRequest which is optional. If supplied, this will limit the search
 '''
-def keyword_paginated_search(search_term, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
+def keyword_paginated_search(terms, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
     '''
     Set up initial search connection and build queries
     TODO make this work with multiple query boxes (Will have to do multiple queries and combine results)
@@ -328,21 +356,31 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #Connect to the sphinx indexed search server
     client = sphinxapi.SphinxClient()
     client.SetServer(sphinx_server, sphinx_port)
+    client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     #Set the number of GS results to fetch per page
     resultsPerPage = 25
     #Calculate the paginated offset into the results to start from
-    offset=resultsPerPage*(pagination_page - 1)
+    offset = resultsPerPage*(pagination_page - 1)
     limit = resultsPerPage
-    #Combine the search fields and search term into a Sphinx query
-    query = '@('+search_fields+') '+search_term
+    queries = []
+
+    ## For each search term, build them into sphinx queries
+    for t in terms:
+        query = '@(' + search_fields + ') ' + t
+        query = query.replace(' OR ', ' | ')
+        query = query.replace(' NOT ', ' -')
+        queries.append(query)
+
+    ## The query list converted to space separated strings
+    query = ' '.join(queries)
+
+    #query = '@('+search_fields+') '+search_term
     #Set the user ID TODO update this to limit tiers to start, then set filter appropriately
     #userId = -1
     #if flask.session.get('user_id'):
     #    userId = flask.session.get('user_id')
 
-    #Set the appropriate matching mode for the sphinx server
-    #Note that this uses extended syntax http://sphinxsearch.com/docs/current.html#extended-syntax
-    client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
+
 
     '''
     We will have to perform three sphinx searches -
@@ -370,32 +408,6 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     #TODO remove diagnostic query
     print 'debug query: ' + query
 
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-    else:
-        user_id = 0
-
-    user_info = geneweaverdb.get_user(user_id)
-
-    ## Get user groups
-    user_grps = geneweaverdb.get_user_groups(user_id)
-
-    ## Default user group is zero
-    if not user_grps:
-        user_grps = [0]
-
-    ## Always filter out genesets the user can't access
-    access_filter = '*'
-
-    ## If the user is an administrator, we don't have to do any filtering
-    if not user_info.is_admin:
-        access_filter += ', (usr_id=' + str(user_id)
-        access_filter += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
-        access_filter += ')) AS isReadable'
-
-        client.SetSelect(access_filter)
-        client.SetFilter('isReadable', [1])
-
     #Run the actual query
     results = client.Query(query)
     #Check if the query had an error
@@ -422,7 +434,9 @@ def keyword_paginated_search(search_term, pagination_page, search_fields='name,d
     if end_page_number > numPages:
         end_page_number = numPages
     #Create a dict to send to the template for dispay
-    paginationValues = {'numResults': numResults,'totalFound':totalFound, 'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage': resultsPerPage, 'search_term': search_term, 'end_page_number': end_page_number};
+    paginationValues = {'numResults': numResults,'totalFound':totalFound,
+            'numPages': numPages, 'currentPage': currentPage, 'resultsPerPage':
+            resultsPerPage, 'search_term': terms, 'end_page_number': end_page_number};
     '''
     Perform the second search that gets the total filter counts for display in search_filters_panel.html
     '''

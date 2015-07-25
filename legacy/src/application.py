@@ -734,6 +734,7 @@ def deemphasize(rm_gene):
 
 @app.route('/search.html')
 def new_search():
+    print 'debug new_search'
     paginationValues = {'numResults': 0, 'numPages': 1, 'currentPage':
         1, 'resultsPerPage': 10, 'search_term': '', 'end_page_number': 1}
     return flask.render_template('search.html', paginationValues=None)
@@ -742,8 +743,9 @@ def new_search():
 @app.route('/search/')
 def render_searchFromHome():
     form = flask.request.form
-    #Search term is given from the searchbar in the form
-    search_term = request.args.get('searchbar')
+    ## Terms from the search bar, as a list since there can be <= 3 terms
+    terms = request.args.getlist('searchbar')
+    print 'debug search from home'
     #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
     pagination_page = int(request.args.get('pagination_page'))
     #Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
@@ -767,7 +769,7 @@ def render_searchFromHome():
     search_fields.append('gs_id,gsid_prefixed,species,taxid')
     search_fields = ','.join(search_fields)
     #Perform a search
-    search_values = search.keyword_paginated_search(search_term, pagination_page, search_fields)
+    search_values = search.keyword_paginated_search(terms, pagination_page, search_fields)
     #If there is an error render a blank search page
     if (search_values['STATUS'] == 'ERROR'):
         return flask.render_template('search.html', paginationValues=None)
@@ -781,8 +783,11 @@ def render_searchFromHome():
 @app.route('/searchFilter.json', methods=['POST'])
 #This route will take as an argument, search parameters for a filtered search
 def render_search_json():
+    print 'debug search from who the fuck knows where'
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
+    ## quick fix for now, this needs properly handle multiple terms
+    userValues['search_term'] = [userValues['search_term']]
     #Get a sphinx search
     #First, print some diangostic information
     search_values = search.keyword_paginated_search(userValues['search_term'], userValues['pagination_page'],
