@@ -6,6 +6,7 @@ create temp tables that hold upload data and map it back to geneweaver
 '''
 
 import re
+from geneweaverdb import PooledCursor
 
 def create_temp_geneset():
     '''

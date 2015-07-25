@@ -396,7 +396,6 @@ def toggle_group_active(group_id, user_id):
         cursor.connection.commit()
         return
 
-
 # Be Careful with this fucntion
 # Only let owners of groups call this function
 def delete_group(group_name, owner_id):
@@ -670,6 +669,20 @@ def delete_results_by_runhash(rargs):
         cursor.connection.commit()
         return
 
+def update_species_by_gsid(rargs):
+    user_id = rargs['user_id']
+    gs_id = rargs['gs_id']
+    altSpecies = rargs['altSpecies']
+    u = get_user(user_id)
+    g = get_geneset(gs_id, user_id)
+    if u.is_admin or u.is_curator or g:
+        with PooledCursor() as cursor:
+            cursor.execute('''UPDATE geneset SET sp_id=species.sp_id FROM species WHERE species.sp_name=%s
+                              AND geneset.gs_id=%s''', (altSpecies, gs_id,))
+            cursor.connection.commit()
+        return 'Ture'
+    else:
+        return 'You do not have permission to update this geneset'
 
 def edit_results_by_runhash(rargs):
     user_id = rargs.get('user_id', type=int)

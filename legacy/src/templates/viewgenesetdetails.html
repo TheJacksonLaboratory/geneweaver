@@ -314,7 +314,7 @@
                 $.ajax({
                     type: "GET",
                     url: "../updateAltGeneSymbol",
-                    data: {"altSymbol": val},
+                    data: {"altSymbol": val, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
                     success: function (data) {
                         location.reload();
                     }
