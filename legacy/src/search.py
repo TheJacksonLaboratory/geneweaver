@@ -336,6 +336,25 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     return None
 
 
+#### sortSearchResults
+##
+#### Sorts the set of search results using user given criteria. Results can be
+#### sorted by tier, species, geneset size, or relevance (default). 
+##
+def sortSearchResults(results, sortby):
+    if sortby == None:
+        return results
+
+    matches = results['matches']
+
+    if sortby == 'tier':
+        print 'sort'
+        sorted(matches, key=lambda x: x['attrs']['cur_id'])
+
+    results['matches'] = matches
+
+    return results
+
 '''
 keyword_paginated_search is the main way to do a search. It returns a dict object of search data for use in the search template files
 search.html and associated files in templates/search/
@@ -345,7 +364,9 @@ search.html and associated files in templates/search/
  a set of search fields understood by sphinx.conf as attributes of which to search. These are built in accordance with the checkboxes under the search bar
  and a dict userFilters, as defined in getUserFiltersFromApplicationRequest which is optional. If supplied, this will limit the search
 '''
-def keyword_paginated_search(terms, pagination_page, search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid', userFilters=None):
+def keyword_paginated_search(terms, pagination_page,
+        search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid',
+        userFilters=None, sortby=None):
     '''
     Set up initial search connection and build queries
     TODO make this work with multiple query boxes (Will have to do multiple queries and combine results)
@@ -410,6 +431,10 @@ def keyword_paginated_search(terms, pagination_page, search_fields='name,descrip
     #Check if the query had an error
     if (results == None):
         return {'STATUS': 'ERROR'}
+
+    ## Sort the results based on user input
+    print 'debug results: ' + str(results['matches'])
+
     #Transform the genesets into geneset objects for Jinga display
     #This is done by creating a list of genesets from the database.
     #TODO make this use only indexed data???
@@ -417,6 +442,11 @@ def keyword_paginated_search(terms, pagination_page, search_fields='name,descrip
     for match in results['matches']:
         genesetID = match['id']
         genesets.append(geneweaverdb.get_geneset_no_user(genesetID))
+
+
+    if sortby:
+        print 'debug sort: ' + sortby
+        results = sortSearchResults(results, sortby)
     '''
     Calculate pagination information for display
     '''

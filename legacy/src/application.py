@@ -745,6 +745,7 @@ def render_searchFromHome():
     form = flask.request.form
     ## Terms from the search bar, as a list since there can be <= 3 terms
     terms = request.args.getlist('searchbar')
+    sortby = request.args.get('sortBy')
     print 'debug search from home'
     if flask.request.method == 'GET':
         args = flask.request.args
@@ -772,11 +773,12 @@ def render_searchFromHome():
     search_fields.append('gs_id,gsid_prefixed,species,taxid')
     search_fields = ','.join(search_fields)
     #Perform a search
-    search_values = search.keyword_paginated_search(terms, pagination_page, search_fields)
+    search_values = search.keyword_paginated_search(terms, pagination_page,
+            search_fields)
     #If there is an error render a blank search page
     if (search_values['STATUS'] == 'ERROR'):
         return flask.render_template('search.html', paginationValues=None)
-    print 'debug genesets: ' + str(search_values['genesets'][0])
+    #print 'debug genesets: ' + str(search_values['genesets'][0])
     #render the template if there is no error, passing in data used in display
     return flask.render_template('search.html', searchresults=search_values['searchresults'],
                                  genesets=search_values['genesets'], paginationValues=search_values['paginationValues'],
@@ -794,11 +796,11 @@ def render_search_json():
     if flask.request.method == 'POST':
         args = flask.request.args
         print 'debug post args from nowhere'
-        print 'debug args: ' + str(args.keys())
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     ## quick fix for now, this needs properly handle multiple terms
     print 'debug term: ' + userValues['search_term']
+    print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     #Get a sphinx search
     #First, print some diangostic information

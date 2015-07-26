@@ -2,29 +2,50 @@
 <script type="text/javascript">
 
 	//$(document).ready(function() {
-	var onSort = function(s) {
-	//function onSort() {
+	//var onSort = function(s) {
+	////function onSort() {
 
-		// everything after gw.org/search/
-		var path = window.location.search;
-		var url = '/search/' + path;
-		var sort = 'sortBy=' + s;
-		console.log(url);
-		console.log(sort);
-		console.log($(this));
+	//	// everything after gw.org/search/
+	//	var path = window.location.search;
+	//	var url = '/search/' + path;
+	//	var sort = 'sortBy=' + s;
+	//	console.log(url);
+	//	console.log(sort);
+	//	console.log($(this));
 
-		$.ajax({
-			type: 'GET',
-			url: url,
-			data: sort,
-			dataType: 'string'
-		});
-	};
+	//	$.ajax({
+	//		type: 'GET',
+	//		url: url,
+	//		data: sort,
+	//		dataType: 'string'
+	//	});
+	//};
 
 	$(document).ready(function() {
-		$('#tier').click(function() {
-			onSort($(this).attr('id'));
+
+		$('#tier').on('click', function(event) {
+
+			event.preventDefault();
+
+			var $form = $('#filterForm');
+			var url = '/searchFilter.json';
+
+			// Gotta grab filter and search data prior to sending our sort data
+			var data = $('#filterForm').serialize() + '&';
+			data += $('#searchBarForm').serialize() + '&';
+			data += 'sortBy=tier';
+
+			var posting = $.post(url, data);
+
+			posting.done(function(data) {
+
+				$('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
+			});
 		});
+		//$('#tier').click(function() {
+		//	onSort($(this).attr('id'));
+		//});
+
 	});
 </script>
 {% if paginationValues != None %}
