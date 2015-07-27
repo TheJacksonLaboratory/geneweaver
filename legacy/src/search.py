@@ -351,6 +351,7 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
 #### sorted by tier, species, geneset size, or relevance (default). 
 ##
 def sortSearchResults(client, sortby):
+    print 'dbg sort: ' + sortby
     if sortby == 'tier':
         client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'cur_id')
     elif sortby == 'species':

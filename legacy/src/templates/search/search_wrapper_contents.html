@@ -1,4 +1,3 @@
-
 <script type="text/javascript">
 
 	var url = '/searchFilter.json';
@@ -27,18 +26,26 @@
 
 			event.preventDefault();
 
-			// Get the ID of the sort arrows, this tells us how to sort
+			// Sort arrow ID; this tells us how to sort
 			var sortby = $(this).attr('id');
 			// Gotta grab filter and search data prior to sending our sort data
 			var data = serializeForms(sortby);
 
 			$.post(url, data).done(function(data) {
+
 				$('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
+				// Hidden form value has to be changed too so when other
+				// filters are applied, we don't lose our ordering
+				$('#sortBy').val(sortby);
 			});
 		});
 	});
 
 </script>
+
+<!-- Used to preserve sort ordering when the user applies other filters -->
+<input type="hidden" id="sortBy" value="geneset" />
+
 {% if paginationValues != None %}
 <div class="row">
 

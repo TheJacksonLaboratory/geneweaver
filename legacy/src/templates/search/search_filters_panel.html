@@ -61,13 +61,10 @@ $( "#filterForm" ).on( "change", function( event ) {
 	// Send the data using post
 	var $form = $( this ),
 	url = $form.attr( "action" );
-	console.log($form);
-	console.log(url);
-		// TODO: apply sort data
-        //The data to send is both the parameters from the filters and the search bar
-        var data = $( "#filterForm" ).serialize() +"&"+$( "#searchBarForm").serialize();
-			console.log(data);
-        //alert(data)
+	//The data to send is both the parameters from the filters and the search bar
+	var data = $( "#filterForm" ).serialize() + "&"+$( "#searchBarForm").serialize();
+	data += '&sortBy=' + $('#sortBy').val();
+
 	var posting = $.post( url, data );
 	// Put the results in a div
 	posting.done(function( data ) {
