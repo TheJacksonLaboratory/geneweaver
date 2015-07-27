@@ -265,7 +265,7 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     ## Always filter out genesets the user can't access
     access_filter = '*'
 
-    ## If the user is an administrator, we don't have to do this filtering
+    ## Admins don't get filtered results
     if not user_info.is_admin:
         access_filter += ', (usr_id=' + str(user_id)
         access_filter += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
@@ -277,12 +277,13 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     excludes = []
 
     ## Filter by provisional/deprecated
-    if(userFilters['statusList']['provisional'] != 'yes'):
-        excludes.append(1)
-    if(userFilters['statusList']['deprecated'] != 'yes'):
-        excludes.append(2)
-    if excludes:
-        client.SetFilter('gs_status', excludes, True)
+    if 'statusList' in userFilters:
+        if(userFilters['statusList']['provisional'] != 'yes'):
+            excludes.append(1)
+        if(userFilters['statusList']['deprecated'] != 'yes'):
+            excludes.append(2)
+        if excludes:
+            client.SetFilter('gs_status', excludes, True)
     
     '''
     Set the filters for selected Tiers
@@ -290,19 +291,22 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     Build a list of all allowable tier levels, filter the results to match those levels
     '''
     curationLevels = list()
-    if (userFilters['tierList']['noTier'] == 'yes'):
-        curationLevels.append(0)
-    if (userFilters['tierList']['tier1'] == 'yes'):
-        curationLevels.append(1)
-    if (userFilters['tierList']['tier2'] == 'yes'):
-        curationLevels.append(2)
-    if (userFilters['tierList']['tier3'] == 'yes'):
-        curationLevels.append(3)
-    if (userFilters['tierList']['tier4'] == 'yes'):
-        curationLevels.append(4)
-    if (userFilters['tierList']['tier5'] == 'yes'):
-        curationLevels.append(5)
-    client.SetFilter('cur_id', curationLevels)
+
+    if 'tierList' in userFilters:
+        if (userFilters['tierList']['noTier'] == 'yes'):
+            curationLevels.append(0)
+        if (userFilters['tierList']['tier1'] == 'yes'):
+            curationLevels.append(1)
+        if (userFilters['tierList']['tier2'] == 'yes'):
+            curationLevels.append(2)
+        if (userFilters['tierList']['tier3'] == 'yes'):
+            curationLevels.append(3)
+        if (userFilters['tierList']['tier4'] == 'yes'):
+            curationLevels.append(4)
+        if (userFilters['tierList']['tier5'] == 'yes'):
+            curationLevels.append(5)
+
+        client.SetFilter('cur_id', curationLevels)
     '''
     Set the filters for the selected species ID's
 
@@ -312,11 +316,12 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     #For all species in the user's filter that has 'yes' as a value, add the ID to a list
     speciesListFromDB = geneweaverdb.get_all_species()
 
-    for sp_id,sp_name in speciesListFromDB.items():
-        if (userFilters['speciesList']['sp'+str(sp_id)] == 'yes'):
-            speciesIDs.append(sp_id)
+    if 'speciesList' in userFilters:
+        for sp_id,sp_name in speciesListFromDB.items():
+            if (userFilters['speciesList']['sp'+str(sp_id)] == 'yes'):
+                speciesIDs.append(sp_id)
 
-    client.SetFilter('sp_id', speciesIDs)
+        client.SetFilter('sp_id', speciesIDs)
 
     '''
     Set the filters for the selected attribution ID's
@@ -327,20 +332,22 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     #For all attributions in the user's filter that has 'yes' as a value, add the ID to a list
     attributionListFromDB = geneweaverdb.get_all_attributions()
 
-    for at_id,at_name in attributionListFromDB.items():
-        if (userFilters['attributionsList']['at'+str(at_id)] == 'yes'):
-            attributionIDs.append(at_id)
-    #TODO remove this after updating the DB
-    if(userFilters['attributionsList']['at0'] == 'yes'):
-        attributionIDs.append(0)
-    client.SetFilter('attribution', attributionIDs)
+    if 'attributionsList' in userFilters:
+        for at_id,at_name in attributionListFromDB.items():
+            if (userFilters['attributionsList']['at'+str(at_id)] == 'yes'):
+                attributionIDs.append(at_id)
+        #TODO remove this after updating the DB
+        if(userFilters['attributionsList']['at0'] == 'yes'):
+            attributionIDs.append(0)
+        client.SetFilter('attribution', attributionIDs)
 
     '''
     Set the filters for geneset size
     '''
-    geneCountMin = int(userFilters['geneCounts']['geneCountMin'])
-    geneCountMax = int(userFilters['geneCounts']['geneCountMax'])
-    client.SetFilterRange('gs_count', geneCountMin, geneCountMax)
+    if 'geneCounts' in userFilters:
+        geneCountMin = int(userFilters['geneCounts']['geneCountMin'])
+        geneCountMax = int(userFilters['geneCounts']['geneCountMax'])
+        client.SetFilterRange('gs_count', geneCountMin, geneCountMax)
 
     return None
 
@@ -372,7 +379,7 @@ search.html and associated files in templates/search/
 '''
 def keyword_paginated_search(terms, pagination_page,
         search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid',
-        userFilters=None, sortby=None):
+        userFilters={}, sortby=None):
     '''
     Set up initial search connection and build queries
     TODO make this work with multiple query boxes (Will have to do multiple queries and combine results)
@@ -428,9 +435,9 @@ def keyword_paginated_search(terms, pagination_page,
         sortSearchResults(client, sortby)
 
     #Check to see if the user has applied any filters (ie if this is not a search from the home page or initial search)
-    if(userFilters):
+    #if(userFilters):
         #If there are filters to apply, set the select statement and filters appropiately based on form data
-        buildFilterSelectStatementSetFilters(userFilters, client)
+    buildFilterSelectStatementSetFilters(userFilters, client)
 
     #Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)

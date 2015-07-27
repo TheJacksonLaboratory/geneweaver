@@ -774,7 +774,7 @@ def render_searchFromHome():
     search_fields = ','.join(search_fields)
     #Perform a search
     search_values = search.keyword_paginated_search(terms, pagination_page,
-            search_fields, None, sortby)
+            search_fields, {}, sortby)
     #If there is an error render a blank search page
     if (search_values['STATUS'] == 'ERROR'):
         return flask.render_template('search.html', paginationValues=None)
