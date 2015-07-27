@@ -13,19 +13,17 @@ function goToPage(pageNum) {
 	var sortby = $('#sortBy').val();
     //The data to send is both the parameters from the filters and the search bar
     var data = $( "#filterForm" ).serialize() +"&"+$( "#searchBarForm" ).serialize();
-	data += '&sortBy=' + $('#sortBy').val();
+	//data += '&sortBy=' + $('#sortBy').val();
 
-	console.log('page');
-	console.log(data);
 	var posting = $.post( url, data );
+
 	// Put the results in a div
 	posting.done(function( data ) {
-		//Update the searchwrapper with the results
+		// Update the searchwrapper with the results
 		$( "#replaceConentsOnUpdatedSeach" ).html( data ).trigger("create");
 		// Continue to save our ordering
-		$('#sortBy').val(sortby);
+		//$('#sortBy').val(sortby);
 	});
-
 }
 </script>
 

@@ -799,7 +799,7 @@ def render_search_json():
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     ## quick fix for now, this needs properly handle multiple terms
-    print 'debug term: ' + userValues['search_term']
+    print 'debug uv: ' + str(userValues)
     #print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     #Get a sphinx search
@@ -808,10 +808,15 @@ def render_search_json():
             userValues['pagination_page'], userValues['search_fields'],
             userValues['userFilters'], userValues['sort_by'])
 
-    return flask.render_template('search/search_wrapper_contents.html', searchresults=search_values['searchresults'],
-                                 genesets=search_values['genesets'], paginationValues=search_values['paginationValues'],
-                                 field_list=userValues['field_list'], searchFilters=search_values['searchFilters'],
-                                 userFilters=userValues['userFilters'], filterLabels=search_values['filterLabels'])
+    return flask.render_template('search/search_wrapper_contents.html', 
+            searchresults = search_values['searchresults'],
+            genesets = search_values['genesets'], 
+            paginationValues = search_values['paginationValues'],
+            field_list = userValues['field_list'], 
+            searchFilters = search_values['searchFilters'],
+            userFilters = userValues['userFilters'],
+            filterLabels = search_values['filterLabels'], 
+            sort_by = userValues['sort_by'])
 
 
 @app.route('/searchsuggestionterms.json')

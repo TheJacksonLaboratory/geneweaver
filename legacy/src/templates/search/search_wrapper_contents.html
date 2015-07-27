@@ -13,8 +13,8 @@
 		var data = $('#filterForm').serialize() + '&';
 		data += $('#searchBarForm').serialize();
 
-		if (sortby !== undefined)
-			data += '&sortBy=' + sortby;
+		//if (sortby !== undefined)
+		//	data += '&sortBy=' + sortby;
 
 		return data;
 	};
@@ -28,23 +28,24 @@
 
 			// Sort arrow ID; this tells us how to sort
 			var sortby = $(this).attr('id');
+			$('#sortBy').val(sortby);
 			// Gotta grab filter and search data prior to sending our sort data
 			var data = serializeForms(sortby);
+			//console.log('sorts');
+			//console.log(data);
 
 			$.post(url, data).done(function(data) {
 
 				$('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
 				// Hidden form value has to be changed too so when other
 				// filters are applied, we don't lose our ordering
-				$('#sortBy').val(sortby);
+				//$('#sortBy').val(sortby);
 			});
 		});
 	});
 
 </script>
 
-<!-- Used to preserve sort ordering when the user applies other filters -->
-<input type="hidden" id="sortBy" value="geneset" />
 
 {% if paginationValues != None %}
 <div class="row">

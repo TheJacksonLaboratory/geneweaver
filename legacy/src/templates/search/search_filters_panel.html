@@ -64,7 +64,7 @@ $( "#filterForm" ).on( "change", function( event ) {
 	var sortby = $('#sortBy').val();
 	//The data to send is both the parameters from the filters and the search bar
 	var data = $( "#filterForm" ).serialize() + "&"+$( "#searchBarForm").serialize();
-	data += '&sortBy=' + sortby;
+	//data += '&sortBy=' + sortby;
 
 	console.log('filts');
 	console.log(data);
@@ -75,7 +75,7 @@ $( "#filterForm" ).on( "change", function( event ) {
 		//Update the searchwrapper with the results
 		$( "#replaceConentsOnUpdatedSeach" ).html( data ).trigger("create");
 		// Continue to save our ordering
-		$('#sortBy').val(sortby);
+		//$('#sortBy').val(sortby);
 	});
 	
 	
@@ -145,6 +145,16 @@ Filter results
 		<!-- Expects the jinja dict variable userFilters to determine which items are checked or unchecked.-->
 		<!-- If the variable does not exist, default behavior is for all items possible to be checked-->
 		<form action="/searchFilter.json" id="filterForm">
+
+		<!-- Used to preserve sort ordering when the user applies other 
+		filters -->
+		<input type="hidden" name="sortBy" id="sortBy" 
+		{% if sort_by is not defined %}
+		value="geneset" />
+		{% else %}
+		value="{{sort_by}}" />
+		{% endif %}
+
 		Global Filters <br /><br />
 		<div id="genesetCountLabel"></div> <br />
 		<input type="hidden" name="geneCountMin" id="geneCountMin">
