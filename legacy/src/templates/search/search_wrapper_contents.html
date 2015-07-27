@@ -1,25 +1,6 @@
 
 <script type="text/javascript">
 
-	//$(document).ready(function() {
-	//var onSort = function(s) {
-	////function onSort() {
-
-	//	// everything after gw.org/search/
-	//	var path = window.location.search;
-	//	var url = '/search/' + path;
-	//	var sort = 'sortBy=' + s;
-	//	console.log(url);
-	//	console.log(sort);
-	//	console.log($(this));
-
-	//	$.ajax({
-	//		type: 'GET',
-	//		url: url,
-	//		data: sort,
-	//		dataType: 'string'
-	//	});
-	//};
 	var url = '/searchFilter.json';
 
 	//// serializeForms
@@ -56,6 +37,7 @@
 			});
 		});
 	});
+
 </script>
 {% if paginationValues != None %}
 <div class="row">

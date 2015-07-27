@@ -351,22 +351,14 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
 #### sorted by tier, species, geneset size, or relevance (default). 
 ##
 def sortSearchResults(client, sortby):
-    if sortby == None:
-        return
     if sortby == 'tier':
+        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'cur_id')
+    elif sortby == 'species':
+        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'sp_id')
+    elif sortby == 'size':
         client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'gs_count')
-
-    #matches = results['matches']
-
-    #print 'dbg matches: ' + str(matches)
-    #if sortby == 'tier':
-    #    print 'sort'
-    #    sorted(matches, key=lambda x: x['attrs']['cur_id'])
-
-    #print 'dbg matches 2: ' + str(matches)
-    #results['matches'] = matches
-
-    #return results
+    else:
+        client.SetSortMode(sphinxapi.SPH_SORT_RELEVANCE)
 
 '''
 keyword_paginated_search is the main way to do a search. It returns a dict object of search data for use in the search template files
