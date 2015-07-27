@@ -20,32 +20,41 @@
 	//		dataType: 'string'
 	//	});
 	//};
+	var url = '/searchFilter.json';
+
+	//// serializeForms
+	//
+	//// Serializes all of the search form related data. If the user requests
+	//// sorting then the sortby argument is filled with the sort parameter
+	//// (e.g. tier, size, species, etc.).
+	//
+	var serializeForms = function(sortby) {
+
+		var data = $('#filterForm').serialize() + '&';
+		data += $('#searchBarForm').serialize();
+
+		if (sortby !== undefined)
+			data += '&sortBy=' + sortby;
+
+		return data;
+	};
 
 	$(document).ready(function() {
 
-		$('#tier').on('click', function(event) {
+		// Sort by...
+		$('.fa-sort').on('click', function(event) {
 
 			event.preventDefault();
 
-			var $form = $('#filterForm');
-			var url = '/searchFilter.json';
-
+			// Get the ID of the sort arrows, this tells us how to sort
+			var sortby = $(this).attr('id');
 			// Gotta grab filter and search data prior to sending our sort data
-			var data = $('#filterForm').serialize() + '&';
-			data += $('#searchBarForm').serialize() + '&';
-			data += 'sortBy=tier';
+			var data = serializeForms(sortby);
 
-			var posting = $.post(url, data);
-
-			posting.done(function(data) {
-
+			$.post(url, data).done(function(data) {
 				$('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
 			});
 		});
-		//$('#tier').click(function() {
-		//	onSort($(this).attr('id'));
-		//});
-
 	});
 </script>
 {% if paginationValues != None %}
@@ -81,25 +90,43 @@
 		<tbody>
 				<tr>
 					<th></th>
-					<th><nobr>
-						<a id="tier" href="#" ><i id="tier" class="fa fa-sort"></i></a>
-						Tier
-					</nobr></th>
-					<th><nobr>
-						<a href="#?sort=species"><i class="fa fa-sort"></i></a>
-						Species
-					</nobr></th>
-					<th><nobr>
-						<a href="#?sort=size"><i class="fa fa-sort"></i></a>
-						Size
-					</nobr></th>
-					<th><nobr>
-						Attributes
-					</nobr></th>
-					<th><nobr>
-						<a href="#?sort=geneset"><i class="fa fa-sort"></i></a>
-						Geneset
-					</nobr></th>
+					<th>
+						<nobr>
+							<a id="tier" href="#" >
+								<i id="tier" class="fa fa-sort"></i>
+							</a>
+							Tier
+						</nobr>
+					</th>
+					<th>
+						<nobr>
+							<a id="species" href="#" >
+								<i id="species" class="fa fa-sort"></i>
+							</a>
+							Species
+						</nobr>
+					</th>
+					<th>
+						<nobr>
+							<a id="size" href="#" >
+								<i id="size" class="fa fa-sort"></i>
+							</a>
+							Size
+						</nobr>
+					</th>
+					<th>
+						<nobr>
+							Attributes
+						</nobr>
+					</th>
+					<th>
+						<nobr>
+							<a id="geneset" href="#" >
+								<i id="geneset" class="fa fa-sort"></i>
+							</a>
+							Geneset
+						</nobr>
+					</th>
 				</tr>
 		{% for gs in genesets %}
 		<tr>
