@@ -9,13 +9,21 @@ function goToPage(pageNum) {
 	var url = $( "#filterForm" ).attr( "action" );
 	//Set the value of the hidden field in the search form that indicates pagination
 	$("#searchbar_pagination_page").val(pageNum);
+
+	var sortby = $('#sortBy').val();
     //The data to send is both the parameters from the filters and the search bar
     var data = $( "#filterForm" ).serialize() +"&"+$( "#searchBarForm" ).serialize();
+	data += '&sortBy=' + $('#sortBy').val();
+
+	console.log('page');
+	console.log(data);
 	var posting = $.post( url, data );
 	// Put the results in a div
 	posting.done(function( data ) {
 		//Update the searchwrapper with the results
 		$( "#replaceConentsOnUpdatedSeach" ).html( data ).trigger("create");
+		// Continue to save our ordering
+		$('#sortBy').val(sortby);
 	});
 
 }
