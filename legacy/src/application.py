@@ -774,7 +774,7 @@ def render_searchFromHome():
     search_fields = ','.join(search_fields)
     #Perform a search
     search_values = search.keyword_paginated_search(terms, pagination_page,
-            search_fields)
+            search_fields, None, sortby)
     #If there is an error render a blank search page
     if (search_values['STATUS'] == 'ERROR'):
         return flask.render_template('search.html', paginationValues=None)
@@ -795,17 +795,18 @@ def render_search_json():
         print 'debug get args from nowhere'
     if flask.request.method == 'POST':
         args = flask.request.args
-        print 'debug post args from nowhere'
+        print 'debug post args from nowhere: ' + str(args)
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     ## quick fix for now, this needs properly handle multiple terms
     print 'debug term: ' + userValues['search_term']
-    print 'debug vals: ' + str(userValues)
+    #print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     #Get a sphinx search
     #First, print some diangostic information
-    search_values = search.keyword_paginated_search(userValues['search_term'], userValues['pagination_page'],
-                                                    userValues['search_fields'], userValues['userFilters'])
+    search_values = search.keyword_paginated_search(userValues['search_term'], 
+            userValues['pagination_page'], userValues['search_fields'],
+            userValues['userFilters'], userValues['sort_by'])
 
     return flask.render_template('search/search_wrapper_contents.html', searchresults=search_values['searchresults'],
                                  genesets=search_values['genesets'], paginationValues=search_values['paginationValues'],

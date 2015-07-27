@@ -129,7 +129,16 @@ def getUserFiltersFromApplicationRequest(form):
     #Add the default case, at least be able to search these values for all searches
     search_fields.append('gs_id,gsid_prefixed,species,taxid')
     search_fields =  ','.join(search_fields)
-    return {'userFilters': userFilters, 'search_term': search_term, 'pagination_page': pagination_page, 'search_fields': search_fields, 'field_list': field_list}
+
+    ## Check to see if the user wants to sort search results
+    if (form.get('sortBy')):
+        sort_by = form.get('sortBy')
+    else:
+        sort_by = None
+
+    return {'userFilters': userFilters, 'search_term': search_term,
+            'pagination_page': pagination_page, 'search_fields': search_fields,
+            'field_list': field_list, 'sort_by': sort_by}
 
 '''
 Given a sphinx query, this function will return a list of counts of various filters, intended to be displayed as filter
@@ -341,19 +350,23 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
 #### Sorts the set of search results using user given criteria. Results can be
 #### sorted by tier, species, geneset size, or relevance (default). 
 ##
-def sortSearchResults(results, sortby):
+def sortSearchResults(client, sortby):
     if sortby == None:
-        return results
-
-    matches = results['matches']
-
+        return
     if sortby == 'tier':
-        print 'sort'
-        sorted(matches, key=lambda x: x['attrs']['cur_id'])
+        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'gs_count')
 
-    results['matches'] = matches
+    #matches = results['matches']
 
-    return results
+    #print 'dbg matches: ' + str(matches)
+    #if sortby == 'tier':
+    #    print 'sort'
+    #    sorted(matches, key=lambda x: x['attrs']['cur_id'])
+
+    #print 'dbg matches 2: ' + str(matches)
+    #results['matches'] = matches
+
+    #return results
 
 '''
 keyword_paginated_search is the main way to do a search. It returns a dict object of search data for use in the search template files
@@ -416,24 +429,33 @@ def keyword_paginated_search(terms, pagination_page,
     ie species exist, regardless of the filters applied. This data is used for labeling the filter checkbox counts, etc.
 
     '''
+
+    if sortby:
+        print 'debug sort: ' + sortby
+        sortSearchResults(client, sortby)
+
     #Check to see if the user has applied any filters (ie if this is not a search from the home page or initial search)
     if(userFilters):
         #If there are filters to apply, set the select statement and filters appropiately based on form data
         buildFilterSelectStatementSetFilters(userFilters, client)
+
     #Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)
+
 
     #TODO remove diagnostic query
     print 'debug query: ' + query
 
     #Run the actual query
     results = client.Query(query)
+
+    ## Sort the results based on user input
+    print 'debug results: ' + str(results)
+
     #Check if the query had an error
     if (results == None):
         return {'STATUS': 'ERROR'}
 
-    ## Sort the results based on user input
-    print 'debug results: ' + str(results['matches'])
 
     #Transform the genesets into geneset objects for Jinga display
     #This is done by creating a list of genesets from the database.
@@ -444,9 +466,7 @@ def keyword_paginated_search(terms, pagination_page,
         genesets.append(geneweaverdb.get_geneset_no_user(genesetID))
 
 
-    if sortby:
-        print 'debug sort: ' + sortby
-        results = sortSearchResults(results, sortby)
+
     '''
     Calculate pagination information for display
     '''
