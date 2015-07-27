@@ -355,7 +355,7 @@ def sortSearchResults(client, sortby):
     if sortby == 'tier':
         client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'cur_id')
     elif sortby == 'species':
-        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'sp_id')
+        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'common_name')
     elif sortby == 'size':
         client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'gs_count')
     else:
