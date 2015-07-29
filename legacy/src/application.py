@@ -808,6 +808,10 @@ def render_search_json():
             userValues['pagination_page'], userValues['search_fields'],
             userValues['userFilters'], userValues['sort_by'])
 
+    print 'dbg fieldlist: ' + str(userValues['field_list'])
+    print 'dbg searchfilters: ' + str(search_values['searchFilters'])
+    print 'dbg userFilters: ' + str(userValues['userFilters'])
+    print 'dbg filterLabels: ' + str(search_values['filterLabels'])
     return flask.render_template('search/search_wrapper_contents.html', 
             searchresults = search_values['searchresults'],
             genesets = search_values['genesets'], 
