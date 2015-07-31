@@ -53,7 +53,8 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).sli
 //On filter form change, update the page, performing a new search.
 //This script calls a new paginated search anytime a filter option is changed in the filter panel. The resulting HTML view of the results are put inside the search wrapper div.
 
-$( "#filterForm" ).on( "change", function( event ) {
+//$( "#filterForm" ).on( "change", function( event ) {
+$( ".fff" ).on( "change", function( event ) {
 	
 	// Stop form from submitting normally
 	event.preventDefault();
@@ -63,12 +64,11 @@ $( "#filterForm" ).on( "change", function( event ) {
 	url = $form.attr( "action" );
 	var sortby = $('#sortBy').val();
 	//The data to send is both the parameters from the filters and the search bar
-	var data = $( "#filterForm" ).serialize() + "&"+$( "#searchBarForm").serialize();
+	//var data = $( "#filterForm" ).serialize() + "&"+$( "#searchBarForm").serialize();
+	var data = $( ".fff" ).serialize() + "&"+$( "#searchBarForm").serialize();
 	//data += '&sortBy=' + sortby;
 
-	console.log('filts');
 	console.log(data);
-
 	var posting = $.post( url, data );
 	// Put the results in a div
 	posting.done(function( data ) {
@@ -77,9 +77,6 @@ $( "#filterForm" ).on( "change", function( event ) {
 		// Continue to save our ordering
 		//$('#sortBy').val(sortby);
 	});
-	
-	
-
 });
 });
 </script>
@@ -108,6 +105,14 @@ $( "#filterForm" ).on( "change", function( event ) {
     margin: -9px 2px 0;
     width: 14px;
 }
+	.filter-title {
+
+		border-bottom: 4px solid #006400;
+		font-family: "Open Sans", verdana, arial;
+		font-size: 14px;
+		font-weight: bold;
+		text-transform: uppercase;
+	}
 </style>
 
 <div class="panel bd-0 bd-l-blue">
@@ -144,7 +149,7 @@ Filter results
 		<!-- Expects the jinja dict variable searchFilters as created by getSearchFilterValues() in search.py to determine which values to give ie there are 100 tier5 genes in the results-->
 		<!-- Expects the jinja dict variable userFilters to determine which items are checked or unchecked.-->
 		<!-- If the variable does not exist, default behavior is for all items possible to be checked-->
-		<form action="/searchFilter.json" id="filterForm">
+		<form class="fff" action="/searchFilter.json" id="filterForm">
 
 		<!-- Used to preserve sort ordering when the user applies other 
 		filters -->
@@ -155,13 +160,8 @@ Filter results
 		value="{{sort_by}}" />
 		{% endif %}
 
-		Global Filters <br /><br />
-		<div id="genesetCountLabel"></div> <br />
-		<input type="hidden" name="geneCountMin" id="geneCountMin">
-		 
-		<input type="hidden" name="geneCountMax" id="geneCountMax">
-		
-		<div id="slider-range"></div> <br />
+		<div class="filter-title">Global Filters</div> 
+		<br />
 
 		<input type="checkbox"
 		{% if userFilters is not defined or userFilters.statusList.provisional == "yes" %} 
@@ -178,8 +178,19 @@ Filter results
 
 		{% endif %}
 		name="deprecated" id="deprecatedCheckbox">  <label class = "filter-checkbox" for="deprecatedCheckbox">Include <span class="gs_deprecated"> Deprecated </span> ({{searchFilters.statusList.deprecated}}) </label>
+
+		<div id="genesetCountLabel"></div> <br />
+		<input type="hidden" name="geneCountMin" id="geneCountMin">
+		 
+		<input type="hidden" name="geneCountMax" id="geneCountMax">
 		
-		Tiers
+		<div id="slider-range"></div> <br />
+
+		
+		<br />
+		<div class="filter-title">Tiers</div>
+		<br />
+
 		<input type="checkbox"
 		{% if userFilters is not defined or userFilters.tierList.noTier == "yes" %} 
 		checked="checked" 
@@ -224,7 +235,10 @@ Filter results
 		name="tier5" id="tier5Checkbox">  <label class = "filter-checkbox" for="tier5Checkbox"> Tier 5 ({{searchFilters.tierList.tier5}}) </label>
 		<!-- Species Filters -->
 
-		Species <br>
+		<br />
+		<div class="filter-title">Species</div> 
+		<br />
+
         {% for spID, spName in filterLabels.speciesList.iteritems()| sort %}
             {% if searchFilters.speciesList[spID] >0 %}
             <input type="checkbox"
@@ -244,7 +258,9 @@ Filter results
         {% endfor %}
 
         <!-- Attribution Filters -->
-        Attribution <br>
+		<br />
+		<div class="filter-title">Attribution</div> 
+		<br />
 
         {% for atID, atName in filterLabels.attributionsList.iteritems()| sort %}
             {% if searchFilters.attributionsList[atID] > 0 %}
@@ -264,17 +280,17 @@ Filter results
         {% endfor %}
 
 
-
-
 		</form>
-		
 		
 		
 	</div>
 	
+	{% include 'search/filter_tab2.html' %}
+	<!--
 	<div id="tab1_2" class="tab-pane">
 		Tiers
 	</div>
+	-->
 	<div id="tab1_3" class="tab-pane">
 		Species
 	</div>

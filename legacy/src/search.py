@@ -358,7 +358,6 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
 #### sorted by tier, species, geneset size, or relevance (default). 
 ##
 def sortSearchResults(client, sortby):
-    print 'dbg sort: ' + sortby
     if sortby == 'tier':
         client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'cur_id')
     elif sortby == 'species':
@@ -430,9 +429,8 @@ def keyword_paginated_search(terms, pagination_page,
 
     '''
 
-    if sortby:
-        print 'debug sort: ' + sortby
-        sortSearchResults(client, sortby)
+    ## Default sort (sortby = None) uses relevance
+    sortSearchResults(client, sortby)
 
     #Check to see if the user has applied any filters (ie if this is not a search from the home page or initial search)
     #if(userFilters):

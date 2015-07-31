@@ -792,16 +792,9 @@ def render_searchFromHome():
 #This route will take as an argument, search parameters for a filtered search
 def render_search_json():
     print 'debug search from who the fuck knows where'
-    if flask.request.method == 'GET':
-        args = flask.request.args
-        print 'debug get args from nowhere'
-    if flask.request.method == 'POST':
-        args = flask.request.args
-        print 'debug post args from nowhere: ' + str(args)
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     ## quick fix for now, this needs properly handle multiple terms
-    print 'debug uv: ' + str(userValues)
     #print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     #Get a sphinx search
