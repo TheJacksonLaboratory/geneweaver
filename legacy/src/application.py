@@ -330,7 +330,9 @@ def update_geneset():
 def render_editgeneset_genes(gs_id):
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
     user_info = geneweaverdb.get_user(user_id)
-    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    uploadfiles.create_temp_geneset_from_value(gs_id)
+    geneset = geneweaverdb.get_geneset(gs_id, user_id, temp='temp')
+    #print geneset.geneset_values
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
