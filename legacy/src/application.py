@@ -1069,7 +1069,7 @@ def delete_geneset():
 
 @app.route('/deleteGenesetValueByID', methods=['GET', 'POST'])
 def delete_geneset_value():
-    if 'usr_id' in flask.session:
+    if 'user_id' in flask.session:
         results = geneweaverdb.delete_geneset_value_by_id(request.args)
         return json.dumps(results)
 
