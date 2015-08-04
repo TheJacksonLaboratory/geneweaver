@@ -47,8 +47,6 @@
 
     <div class="loader"></div>
 
-    <div class="row" id="result"></div>
-
     <div class="panel panel-default panel-heading bg-gray-light">
         <h2 class="panel-title"><strong>Edit GeneSet Gene Information</strong></h2>
     </div>
@@ -110,6 +108,9 @@
     </div>
 
     <div class="row">
+
+        <div class="row" id="result"></div>
+
         <div class="col-md-2">
             <p class="text-right"><strong>IDENTIFIER:</strong></p>
         </div>
@@ -132,7 +133,7 @@
                 <div class="col-md-2">
                     <p class="text-right"><strong>GENE LIST:</strong></p>
                 </div>
-                <div class="col-md-10">
+                <div class="col-md-10" id="genesetgenes">
                     <table class="table table-hover">
                         <tbody>
                         <tr>
@@ -140,7 +141,9 @@
                             <th>Value</th>
                             <th>&nbsp;</th>
                         </tr>
-                        {% for geneset_value in geneset.geneset_values %}
+
+
+                        {% for geneset_value in geneset.temp_geneset_values %}
                             <tr>
                                 <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
                                 <td>{{ geneset_value.value_list[0] | trim }}</td>
@@ -190,6 +193,15 @@
         <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
             <i class="fa fa-signal pull-left"></i> Set Threshold
         </button>
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="saveGenesetDetails">
+            <i class="fa fa-save pull-left"></i> Save Genes
+        </button>
+
+    <div class="alert alert-warning" style="display: inline-block; width: 100%">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+        <strong>Warning:</strong> Updates are not permanent until saved.
+    </div>
+
     </div>
 
 
@@ -241,17 +253,17 @@
         });
 
         $('#processDeleteGenesetValueByID').on('click', function (e) {
-            var user_id = {{ user_id }};
             var id = $("#gene-id").val();
             var gsid = $("#gene-gsid").val();
             $.ajax({
-                type: "POST",
+                type: "GET",
                 url: "/deleteGenesetValueByID",
-                data: {"gsid": gsid, "user_id": user_id, "id": id},
+                data: {"gsid": gsid, "user_id": {{ user_id }}, "id": id},
                 success: function (data) {
                     $("#result").html('<div class="alert alert-success fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                             '</button>GeneSet Identifier and Value successfully deleted</div>');
+                    $('#genesetgenes').load(location.href+" #genesetgenes>*","");
                 }
             });
         });

@@ -519,20 +519,14 @@ def delete_geneset_by_gsid(rargs):
         cursor.connection.commit()
         return
 
-# def delete_geneset_value_by_id(rargs):
-#     #gs_id = rargs.get('gsid', type=int)
-#     #gene_id = rargs.get('id', type=str)
-#     # sql = ''' DELETE FROM geneset_value gv, gene g WHERE gv.gs_id=%s AND gv.ode_gene_id=g.ode_gene_id AND LOWER(g.ode_ref_id)=%s;''', (gs_id, gene_id)
-#     # try:
-#     #     with PooledCursor() as cursor:
-#     #         print sql
-#     #         cursor.execute(sql)
-#     #         cursor.connection.commit()
-#     #         return 'true'
-#     # except Exception, e:
-#     #     return str(e)
-#     print rargs
-#     return 'true'
+def delete_geneset_value_by_id(rargs):
+    gs_id = rargs.get('gsid', type=int)
+    gene_id = rargs.get('id', type=str)
+    with PooledCursor() as cursor:
+        cursor.execute('''DELETE from temp_geneset_value WHERE gs_id=%s AND src_id =%s''', (gs_id, gene_id,))
+        print cursor.statusmessage
+        cursor.connection.commit()
+        return
 
 
 def user_is_owner(usr_id, gs_id):
@@ -674,7 +668,7 @@ def update_species_by_gsid(rargs):
     gs_id = rargs['gs_id']
     altSpecies = rargs['altSpecies']
     u = get_user(user_id)
-    g = get_geneset(gs_id, user_id)
+    g = get_geneset(gs_id, user_id, temp=None)
     if u.is_admin or u.is_curator or g:
         with PooledCursor() as cursor:
             cursor.execute('''UPDATE geneset SET sp_id=species.sp_id FROM species WHERE species.sp_name=%s
@@ -1358,7 +1352,6 @@ class Publication:
         self.year = pub_dict['pub_year']
         self.pubmed_id = pub_dict['pub_pubmed']
 
-
 class Geneset:
     def __init__(self, gs_dict):
         self.geneset_id = gs_dict['gs_id']
@@ -1422,6 +1415,18 @@ class Geneset:
         if self.__geneset_values is None:
             self.__geneset_values = get_geneset_values(self.geneset_id)
         return self.__geneset_values
+
+class TempGeneset(Geneset):
+    def __init__(self, gs_dict):
+        Geneset.__init__(self, gs_dict)
+        self.__temp_geneset_values = None
+
+    @property
+    def temp_geneset_values(self):
+        if self.__temp_geneset_values is None:
+            #self.__geneset_values = get_geneset_values(self.geneset_id)
+            self.__temp_geneset_values = get_temp_geneset_values(self.geneset_id)
+        return self.__temp_geneset_values
 
 class SimGeneset(Geneset):
     def __init__(self, gs_dict):
@@ -1553,7 +1558,7 @@ def change_password(user_id, new_password):
     return
 
 
-def get_geneset(geneset_id, user_id=None):
+def get_geneset(geneset_id, user_id=None, temp=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user
     has permission to view it.
@@ -1579,7 +1584,11 @@ def get_geneset(geneset_id, user_id=None):
                 'user_id': user_id,
             }
         )
-        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        if temp is None:
+            genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        elif temp == 'temp':
+            #genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+            genesets = [TempGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
 
 def get_similar_genesets(geneset_id, user_id):
@@ -1798,6 +1807,32 @@ class GenesetValue:
         self.ode_ref = gsv_dict['ode_ref']
         self.gdb_id = gsv_dict['gdb_id']
 
+class TempGenesetValue:
+    def __init__(self, gsv_dict):
+        self.gs_id = gsv_dict['gs_id']
+        self.ode_gene_id = gsv_dict['ode_gene_id']
+        self.value = gsv_dict['gsv_value']
+        self.hits = gsv_dict['gsv_hits']
+        self.source_list = gsv_dict['gsv_source_list']
+        self.value_list = gsv_dict['gsv_value_list']
+        self.is_in_threshold = gsv_dict['gsv_in_threshold']
+        self.date = gsv_dict['gsv_date']
+
+def get_temp_geneset_values(geneset_id):
+    """
+    This geneset value query has been augmented to return a list of sp_ids that can be used
+    on the geneset information page.
+    Also, augmented to add a session call for sorting
+    :param geneset_id:
+    :returns to geneset class.
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT gs_id, ode_gene_id, avg(src_value) as gsv_value,
+                                           count(ode_gene_id) as gsv_hits, array_accum(src_id) as gsv_source_list,
+                                           array_accum(src_value) as gsv_value_list,'t' as gsv_in_threshold, now() as gsv_date
+                                           FROM production.temp_geneset_value
+                                           WHERE gs_id=%s GROUP BY gs_id, ode_gene_id ORDER BY ode_gene_id;''' % (geneset_id,))
+        return [TempGenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 def get_geneset_values(geneset_id):
     """

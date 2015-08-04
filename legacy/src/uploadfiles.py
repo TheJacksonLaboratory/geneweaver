@@ -17,11 +17,23 @@ def create_temp_geneset():
     try:
         with PooledCursor() as cursor:
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_value (gs_id bigint, ode_gene_id bigint,
-                              src_value numeric, src_id varchar''')
+                              src_value numeric, src_id varchar)''')
             cursor.connection.commit()
         return 'True'
     except:
         return 'False'
+
+def create_temp_geneset_from_value(gsid):
+    create_temp_geneset()
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
+        if cursor.rowcount == 0:
+            with PooledCursor() as cursor:
+                cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
+                cursor.execute('''INSERT INTO temp_geneset_value (SELECT gs_id, ode_gene_id, gsv_value_list[1], gsv_source_list[1]
+                                FROM geneset_value WHERE gs_id=%s)''', (gsid,))
+                cursor.connection.commit()
+    return
 
 def get_file_contents_by_gsid(gsid):
     '''

@@ -330,7 +330,8 @@ def update_geneset():
 def render_editgeneset_genes(gs_id):
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
     user_info = geneweaverdb.get_user(user_id)
-    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    uploadfiles.create_temp_geneset_from_value(gs_id)
+    geneset = geneweaverdb.get_geneset(gs_id, user_id, temp='temp')
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
@@ -1067,7 +1068,7 @@ def delete_geneset():
 
 @app.route('/deleteGenesetValueByID', methods=['GET', 'POST'])
 def delete_geneset_value():
-    if 'usr_id' in flask.session:
+    if 'user_id' in flask.session:
         results = geneweaverdb.delete_geneset_value_by_id(request.args)
         return json.dumps(results)
 
