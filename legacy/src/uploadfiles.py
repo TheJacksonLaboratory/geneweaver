@@ -26,10 +26,13 @@ def create_temp_geneset():
 def create_temp_geneset_from_value(gsid):
     create_temp_geneset()
     with PooledCursor() as cursor:
-        cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
-        cursor.execute('''INSERT INTO temp_geneset_value (SELECT gs_id, ode_gene_id, gsv_value_list[1], gsv_source_list[1]
-                        FROM geneset_value WHERE gs_id=%s)''', (gsid,))
-        cursor.connection.commit()
+        cursor.execute('''SELECT * FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
+        if cursor.rowcount == 0:
+            with PooledCursor() as cursor:
+                cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
+                cursor.execute('''INSERT INTO temp_geneset_value (SELECT gs_id, ode_gene_id, gsv_value_list[1], gsv_source_list[1]
+                                FROM geneset_value WHERE gs_id=%s)''', (gsid,))
+                cursor.connection.commit()
     return
 
 def get_file_contents_by_gsid(gsid):

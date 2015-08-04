@@ -522,10 +522,9 @@ def delete_geneset_by_gsid(rargs):
 def delete_geneset_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
     gene_id = rargs.get('id', type=str)
-    print gs_id
-    print gene_id
     with PooledCursor() as cursor:
-        cursor.execute('''DELETE from temp_geneset_value WHERE gs_id=%s AND ode_gene_id=%s''', (gs_id, gene_id,))
+        cursor.execute('''DELETE from temp_geneset_value WHERE gs_id=%s AND src_id =%s''', (gs_id, gene_id,))
+        print cursor.statusmessage
         cursor.connection.commit()
         return
 
@@ -1404,7 +1403,6 @@ class Geneset:
         # declare value caches for instance properties
         self.__ontological_associations = None
         self.__geneset_values = None
-        self.__temp_geneset_values = None
 
     @property
     def ontological_associations(self):
@@ -1421,12 +1419,15 @@ class Geneset:
 class TempGeneset(Geneset):
     def __init__(self, gs_dict):
         Geneset.__init__(self, gs_dict)
+        self.__temp_geneset_values = None
+        print self.__temp_geneset_values
 
     @property
     def temp_geneset_values(self):
         if self.__temp_geneset_values is None:
             #self.__geneset_values = get_geneset_values(self.geneset_id)
             self.__temp_geneset_values = get_temp_geneset_values(self.geneset_id)
+            print self.__temp_geneset_values
         return self.__temp_geneset_values
 
 class SimGeneset(Geneset):
@@ -1808,6 +1809,17 @@ class GenesetValue:
         self.ode_ref = gsv_dict['ode_ref']
         self.gdb_id = gsv_dict['gdb_id']
 
+class TempGenesetValue:
+    def __init__(self, gsv_dict):
+        self.gs_id = gsv_dict['gs_id']
+        self.ode_gene_id = gsv_dict['ode_gene_id']
+        self.value = gsv_dict['gsv_value']
+        self.hits = gsv_dict['gsv_hits']
+        self.source_list = gsv_dict['gsv_source_list']
+        self.value_list = gsv_dict['gsv_value_list']
+        self.is_in_threshold = gsv_dict['gsv_in_threshold']
+        self.date = gsv_dict['gsv_date']
+
 def get_temp_geneset_values(geneset_id):
     """
     This geneset value query has been augmented to return a list of sp_ids that can be used
@@ -1816,14 +1828,13 @@ def get_temp_geneset_values(geneset_id):
     :param geneset_id:
     :returns to geneset class.
     """
-
     with PooledCursor() as cursor:
         cursor.execute('''SELECT gs_id, ode_gene_id, avg(src_value) as gsv_value,
                                            count(ode_gene_id) as gsv_hits, array_accum(src_id) as gsv_source_list,
                                            array_accum(src_value) as gsv_value_list,'t' as gsv_in_threshold, now() as gsv_date
                                            FROM production.temp_geneset_value
                                            WHERE gs_id=%s GROUP BY gs_id, ode_gene_id ORDER BY ode_gene_id;''' % (geneset_id,))
-        return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+        return [TempGenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 def get_geneset_values(geneset_id):
     """
