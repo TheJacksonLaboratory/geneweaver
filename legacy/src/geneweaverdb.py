@@ -1420,14 +1420,12 @@ class TempGeneset(Geneset):
     def __init__(self, gs_dict):
         Geneset.__init__(self, gs_dict)
         self.__temp_geneset_values = None
-        print self.__temp_geneset_values
 
     @property
     def temp_geneset_values(self):
         if self.__temp_geneset_values is None:
             #self.__geneset_values = get_geneset_values(self.geneset_id)
             self.__temp_geneset_values = get_temp_geneset_values(self.geneset_id)
-            print self.__temp_geneset_values
         return self.__temp_geneset_values
 
 class SimGeneset(Geneset):

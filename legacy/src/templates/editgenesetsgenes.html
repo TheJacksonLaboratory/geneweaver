@@ -133,7 +133,7 @@
                 <div class="col-md-2">
                     <p class="text-right"><strong>GENE LIST:</strong></p>
                 </div>
-                <div class="col-md-10">
+                <div class="col-md-10" id="genesetgenes">
                     <table class="table table-hover">
                         <tbody>
                         <tr>
@@ -263,7 +263,7 @@
                     $("#result").html('<div class="alert alert-success fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                             '</button>GeneSet Identifier and Value successfully deleted</div>');
-                    location.reload();
+                    $('#genesetgenes').load(location.href+" #genesetgenes>*","");
                 }
             });
         });
