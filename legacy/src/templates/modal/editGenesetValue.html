@@ -3,20 +3,24 @@
 <div class="modal fade" id="editGenesetValueByID">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editResultName" name="editResultName" method="post" action="#" class="form-horizontal"
+            <form id="editGeneValue" name="editGeneValue" method="post" action="#" class="form-horizontal"
                   novalidate="novalidate">
                 <div class="modal-header bg-green">
-                    <h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Result Name</h3>
+                    <h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Identifier and Value</h3>
                 </div>
                 <div class="modal-body">
                     <div class="form-class">
-                        <label for="resultName"><h4>New Result Name:</h4></label>
-                        <input class="form-control input-lg" name="resultName" id="resultName" type="text">
+                        <label for="gene-refid"><h4>New Identifier:</h4></label>
+                        <input class="form-control input-lg" name="gene-refid" id="gene-refid" type="text" value=""/>
+                        <label for="gene-value"><h4>New Value:</h4></label>
+                        <input class="form-control input-lg" name="gene-value" id="gene-value" type="text" value=""/>
+                        <input id="gene-refgsid" type="hidden" name="gene-refgsid" value=""/>
+                        <input id="gene-refid-old" type="hidden" name="gene-refid-old" value=""/>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmit">Submit</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="processIdentifierValue">Submit</button>
                 </div>
             </form>
         </div>

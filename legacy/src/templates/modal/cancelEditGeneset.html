@@ -1,0 +1,20 @@
+{# Modal to delete geneset from usr_id #}
+
+<div class="modal fade" id="cancelEditByGSID">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-green">
+                <h3 class="modal-title" style="color: #f5f5f5" id="cancelEdit">Cancel Edit</h3>
+            </div>
+            <div class="modal-body">
+                <h4>Are you sure that you want to discard unsaved edits to the gene list?
+                    This will permanently remove all changes since last geneset save.</h4>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="processCancelEdit" data-dismiss="modal">Cancel Edits
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

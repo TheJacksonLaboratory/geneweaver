@@ -528,11 +528,32 @@ def delete_geneset_value_by_id(rargs):
         cursor.connection.commit()
         return
 
-
 def user_is_owner(usr_id, gs_id):
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''' % (usr_id, gs_id))
+        cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''', (usr_id, gs_id))
         return cursor.fetchone()[0]
+
+def edit_geneset_id_value_by_id(rargs):
+    gs_id = rargs.get('gsid', type=int)
+    gene_id = rargs.get('id', type=str)
+    gene_old = rargs.get('idold', type=str)
+    value = rargs.get('value', type=float)
+    user_id = flask.session['user_id']
+    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id, gs_id) != 0:
+        with PooledCursor() as cursor:
+            cursor.execute('''UPDATE temp_geneset_value SET src_id=%s, src_value=%s WHERE gs_id=%s AND src_id=%s''',
+                           (gene_id, value, gs_id, gene_old,))
+            cursor.connection.commit()
+            return
+
+def cancel_geneset_edit_by_id(rargs):
+    gs_id = rargs.get('gsid', type=int)
+    user_id = rargs.get('user_id', type=int)
+    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id, gs_id) != 0:
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
+            cursor.connection.commit()
+            return gs_id
 
 def updategeneset(usr_id, form):
     '''

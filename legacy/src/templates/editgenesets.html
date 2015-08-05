@@ -250,12 +250,7 @@
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
 
         <div class="panel-heading">
-            <div class="pull-left">
-                <button type="submit" class="btn btn-lg btn-block btn-danger btn-transparent" id="cancel-geneset-button">
-                    <i class="fa fa-times pull-right"></i> Cancel Update
-                </button>
-                </div>
-                <div class="pull-right">
+            <div class="pull-right">
                 <button type="submit" class="btn btn-lg btn-block btn-warning" id="upload-geneset-button">
                     <i class="fa fa-fast-forward pull-right"></i> Edit Genes
                 </button>
@@ -311,9 +306,6 @@
 	document.getElementById("genesetValues").value= genes1;
     };
 
-    $('#cancel-geneset-button').click(function(){
-        history.go(-1);
-    });
 
         $('#upload-geneset-form').submit(function(event) {
             event.preventDefault();

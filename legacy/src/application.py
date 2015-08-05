@@ -1072,6 +1072,18 @@ def delete_geneset_value():
         results = geneweaverdb.delete_geneset_value_by_id(request.args)
         return json.dumps(results)
 
+@app.route('/editGenesetIdValue', methods=['GET'])
+def edit_geneset_id_value():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.edit_geneset_id_value_by_id(request.args)
+        return json.dumps(results)
+
+@app.route('/cancelEditByID', methods=['GET'])
+def cancel_edit_by_id():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.cancel_geneset_edit_by_id(request.args)
+        return json.dumps(results)
+
 @app.route('/deleteResults')
 def delete_result():
     if 'user_id' in flask.session:

@@ -70,7 +70,7 @@
         <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
             <i class="fa fa-eye pull-left"></i> GeneSets Details
         </button>
-        <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit">
+        <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit1">
             <i class="fa fa-times pull-left"></i> Cancel Edit
         </button>
     </div>
@@ -151,7 +151,9 @@
                                           data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
                                           style="margin: 2px; padding: 0px 2px; cursor: pointer;">
                                             <span href="#editGenesetValueByID" data-toggle="modal"
-                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}">
+                                                  data-gene-id="{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}"
+                                                  data-gene-value="{{ geneset_value.value_list[0] | trim }}"
+                                                  data-gene-gsid="{{ geneset.geneset_id }}">
 										            <i class="fa fa-edit"></i>
                                             </span>
                                         </span>
@@ -194,7 +196,10 @@
             <i class="fa fa-signal pull-left"></i> Set Threshold
         </button>
         <button type="button" class="btn btn-lg btn-block btn-warning" id="saveGenesetDetails">
-            <i class="fa fa-save pull-left"></i> Save Genes
+            <i class="fa fa-save pull-left"></i> Save Updates
+        </button>
+        <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit2">
+            <i class="fa fa-times pull-left"></i> Cancel Edit
         </button>
 
     <div class="alert alert-warning" style="display: inline-block; width: 100%">
@@ -252,6 +257,16 @@
             $(e.currentTarget).find('span.gene-element').text(geneID);
         });
 
+        $('#editGenesetValueByID').on('shown.bs.modal', function (e) {
+            var geneID = $(e.relatedTarget).data('gene-id');
+            var value = $(e.relatedTarget).data('gene-value');
+            var gsid = $(e.relatedTarget).data('gene-gsid');
+            $(e.currentTarget).find('input[name=gene-refid]').val(geneID);
+            $(e.currentTarget).find('input[name=gene-value]').val(value);
+            $(e.currentTarget).find('input[name=gene-refgsid]').val(gsid);
+            $(e.currentTarget).find('input[name=gene-refid-old]').val(geneID);
+        });
+
         $('#processDeleteGenesetValueByID').on('click', function (e) {
             var id = $("#gene-id").val();
             var gsid = $("#gene-gsid").val();
@@ -260,10 +275,28 @@
                 url: "/deleteGenesetValueByID",
                 data: {"gsid": gsid, "user_id": {{ user_id }}, "id": id},
                 success: function (data) {
+                    $('#genesetgenes').load(location.href+" #genesetgenes>*","");
                     $("#result").html('<div class="alert alert-success fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                             '</button>GeneSet Identifier and Value successfully deleted</div>');
+                }
+            });
+        });
+
+        $('#processIdentifierValue').on('click', function (e) {
+            var id = $("#gene-refid").val();
+            var gsid = $("#gene-refgsid").val();
+            var value = $("#gene-value").val();
+            var idold = $("#gene-refid-old").val();
+            $.ajax({
+                type: "GET",
+                url: "/editGenesetIdValue",
+                data: {"gsid": gsid, "id": id, "value": value, "idold": idold},
+                success: function (data) {
                     $('#genesetgenes').load(location.href+" #genesetgenes>*","");
+                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>GeneSet Identifier and Value successfully updated</div>');
                 }
             });
         });
@@ -305,9 +338,23 @@
                 window.location.href = '../viewgenesetdetails/'+gsid;
         });
 
-        $('#cancelEdit').on('click', function (e) {
-                var gsid = {{ geneset.geneset_id }};
-                window.location.href = '../viewgenesetdetails/'+gsid;
+        $('#cancelEdit1').on('click', function (e) {
+                $("#cancelEditByGSID").modal('show');
+        });
+
+        $('#cancelEdit2').on('click', function (e) {
+                $("#cancelEditByGSID").modal('show');
+        });
+
+        $('#processCancelEdit').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "/cancelEditByID",
+                data: {"gsid": {{ geneset.geneset_id }}, "user_id": {{ user_id }}},
+                success: function (data) {
+                    window.location.href = '../viewgenesetdetails/'+{{ geneset.geneset_id }};
+                }
+            });
         });
 
         $(".dropdown-menu li a").click(function(){
@@ -327,5 +374,7 @@
 {% include 'modal/editSpecies.html' %}
 
 {% include 'modal/editGeneIdentifier.html' %}
+
+{% include 'modal/cancelEditGeneset.html' %}
 
 {% include 'footer.html' %}
