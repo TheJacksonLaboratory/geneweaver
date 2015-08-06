@@ -1078,6 +1078,17 @@ def edit_geneset_id_value():
         results = geneweaverdb.edit_geneset_id_value_by_id(request.args)
         return json.dumps(results)
 
+@app.route('/addGenesetGene', methods=['GET'])
+def add_geneset_gene():
+    if 'user_id' in flask.session:
+        try:
+            float(str(request.args['value']))
+        except ValueError:
+            results = {'error': 'The value you entered (' + str(request.args['value']) + ') must be a number'}
+            return json.dumps(results)
+        results = geneweaverdb.add_geneset_gene_to_temp(request.args)
+        return json.dumps(results)
+
 @app.route('/cancelEditByID', methods=['GET'])
 def cancel_edit_by_id():
     if 'user_id' in flask.session:

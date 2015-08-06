@@ -1,0 +1,27 @@
+{# This modal allows you to add the identifier and value #}
+
+<div class="modal fade" id="addGenesetGene">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addGenesetGeneValue" name="addGenesetGeneValue" method="post" action="#" class="form-horizontal"
+                  novalidate="novalidate">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" id="newLabel" style="color: #f5f5f5">Add New Identifier and Value</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="form-class">
+                        <label for="gene-refid"><h4>New Identifier:</h4></label>
+                        <input class="form-control input-lg" name="gene-newid" id="gene-newid" type="text" value=""/>
+                        <label for="gene-value"><h4>New Value:</h4></label>
+                        <input class="form-control input-lg" name="gene-newvalue" id="gene-newvalue" type="text" value=""/>
+                        <input id="gene-newgsid" type="hidden" name="gene-newgsid" value=""/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="processAddGenesetGene">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

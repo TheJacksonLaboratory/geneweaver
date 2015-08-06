@@ -546,6 +546,30 @@ def edit_geneset_id_value_by_id(rargs):
             cursor.connection.commit()
             return
 
+def add_geneset_gene_to_temp(rargs):
+    gs_id = rargs.get('gsid', type=int)
+    gene_id = rargs.get('id', type=str)
+    value = rargs.get('value', type=float)
+    user_id = flask.session['user_id']
+    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id, gs_id) != 0:
+        with PooledCursor() as cursor:
+            ##Check to see if ode_gene_id exists
+            cursor.execute('''SELECT g.ode_gene_id FROM gene g, geneset gs WHERE gs.gs_id=%s AND gs.sp_id=g.sp_id AND
+                              g.ode_ref_id=%s''', (gs_id, gene_id,))
+            if cursor.rowcount == 0:
+                return {'error': 'Identifier Not Found'}
+            else:
+                ode_gene_id = cursor.fetchone()[0]
+            ##Check to see if the src_id already exists
+            cursor.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id=%s''', (gs_id, gene_id,))
+            if cursor.rowcount != 0:
+                return {'error': 'The Source Identifier already exists for this geneset'}
+            ##Insert into temp table
+            cursor.execute('''INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id)
+                              VALUES (%s, %s, %s, %s)''', (gs_id, ode_gene_id, value, gene_id,))
+            cursor.connection.commit()
+            return {'error': 'None'}
+
 def cancel_geneset_edit_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
     user_id = rargs.get('user_id', type=int)

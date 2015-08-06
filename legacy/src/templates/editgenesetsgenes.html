@@ -189,7 +189,7 @@
 
         <br>
 
-        <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="addGenesetGeneValue">
             <i class="fa fa-plus pull-left"></i> Add Gene
         </button>
         <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
@@ -267,6 +267,11 @@
             $(e.currentTarget).find('input[name=gene-refid-old]').val(geneID);
         });
 
+        $('#addGenesetGene').on('shown.bs.modal', function (e) {
+            var gsid = {{ geneset.geneset_id }}
+            $(e.currentTarget).find('input[name=gene-newgsid]').val(gsid);
+        });
+
         $('#processDeleteGenesetValueByID').on('click', function (e) {
             var id = $("#gene-id").val();
             var gsid = $("#gene-gsid").val();
@@ -301,6 +306,36 @@
             });
         });
 
+        $('#processAddGenesetGene').on('click', function (e) {
+            var id = $("#gene-newid").val();
+            var gsid = $("#gene-newgsid").val();
+            var value = $("#gene-newvalue").val();
+            $.ajax({
+                type: "GET",
+                url: "/addGenesetGene",
+                data: {"gsid": gsid, "id": id, "value": value},
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $('#genesetgenes').load(location.href + " #genesetgenes>*", "");
+                        $("#result").html('<div class="alert alert-success fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>Gene Identifier and Value successfully added</div>');
+                    }
+                    else {
+                        $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An ERROR occured. ' + v["error"] + '</div>');
+                    }
+                },
+                error: function (data) {
+                    $("#result").html('<div class="alert alert-danger fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>An Error occured while adding you identifier and value.</div>');
+                }
+            });
+        });
+
         $('#editSubmitSpecies').on('click', function(e){
             var val = $('#species').children('#selectedSpecies').text();
             $.trim(val);
@@ -326,6 +361,10 @@
 
         $('#editIdentifier').on('click', function (e) {
                 $("#editIdentifierByGSID").modal('show');
+        });
+
+        $('#addGenesetGeneValue').on('click', function (e) {
+                $("#addGenesetGene").modal('show');
         });
 
         $('#editGeneset').on('click', function (e) {
@@ -376,5 +415,7 @@
 {% include 'modal/editGeneIdentifier.html' %}
 
 {% include 'modal/cancelEditGeneset.html' %}
+
+{% include 'modal/addGenesetGene.html' %}
 
 {% include 'footer.html' %}
