@@ -885,7 +885,6 @@ def get_server_side_results(rargs):
                     'aaData': things
         }
 
-        print 'dbg ' + str(things)
         return response
 
 
