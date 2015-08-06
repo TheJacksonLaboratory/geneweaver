@@ -11,6 +11,17 @@
     {% block body %}
 
 
+	<style>
+
+		/* 	for some retarded reason data tables wasn't centering text
+			properly, so this is here instead.
+		*/
+		td {
+			text-align: center;
+		}
+
+	</style>
+
         <div id="maindiv" xmlns="http://www.w3.org/1999/html">
 
             <script>
@@ -39,6 +50,10 @@
                         },
                         "columns": columns,
                         "aoColumnDefs": [
+							{
+							'targets': '_all',
+							'className': 'dt-body-center'
+							},
                             {
                                 "aTargets": [0],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
@@ -111,7 +126,7 @@
                                 }
                             },
                             {
-                                "aTargets": [6],
+                                "aTargets": [5],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                                     if (sData == '') {
                                         $(nTd).empty();
