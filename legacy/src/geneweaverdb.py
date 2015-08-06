@@ -2031,13 +2031,23 @@ def get_run_status(run_hash):
 
 def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_api='f'):
     with PooledCursor() as cursor:
+        ## res_api isn't part of the database (at least on crick), rather than
+        ## screw up table structure, res_api is commented out for now
+        #cursor.execute(
+        #    '''
+        #    INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started, res_api)
+        #    VALUES (%s, %s, %s, %s, %s, %s, %s, now(), %s)
+        #    RETURNING res_id;
+        #    ''',
+        #    (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status, res_api)
+        #)
         cursor.execute(
             '''
-            INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started, res_api)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, now(), %s)
+            INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, now())
             RETURNING res_id;
             ''',
-            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status, res_api)
+            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
         )
         cursor.connection.commit()
 
