@@ -25,6 +25,23 @@
         <div id="maindiv" xmlns="http://www.w3.org/1999/html">
 
             <script>
+				var checkTool = function(tool) {
+					//if (tool === 'Jaccard Similarity')
+					//	return '
+
+				};
+
+				// jquery extend function
+				$.extend({
+					redirectPost: function(location, args) {
+						var form = '';
+						$.each( args, function( key, value ) {
+							form += '<input type="hidden" name="'+key+'" value="'+value+'">';
+						});
+						$('<form action="'+location+'" method="POST">'+form+'</form>').appendTo('body').submit();
+					}
+				});
+
                 $(function () {
                     $("[data-toggle='tooltip']").tooltip();
                 });
@@ -50,10 +67,6 @@
                         },
                         "columns": columns,
                         "aoColumnDefs": [
-							{
-							'targets': '_all',
-							'className': 'dt-body-center'
-							},
                             {
                                 "aTargets": [0],
                                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
@@ -108,17 +121,51 @@
                                     });
                                     e.tooltip();
                                     e.click(function () {
-                                        var runhash = oData[5];
-                                        $.ajax({
-                                            type: "GET",
-                                            url: "../viewStoredResults",
-                                            data: {"runHash": runhash, "user_id": user_id},
-                                            success: function (data) {
-                                                window.location();
-                                            }
-                                        });
-                                        document.location.href = "http://www.cnn.com";
-                                        return false;
+                                        var runhash = oData[4];
+										var serial = 'runHash=' + runhash;
+										serial += '&user_id=' + user_id;
+										var url = 'http://127.0.0.1/viewStoredResults';
+
+										$.redirectPost('/viewStoredResults', 
+											{'runHash': runhash, 
+											 'user_id': user_id});
+										// This is fucking hackish, but I
+										// couldn't find a better way...
+										// Create a hidden form with our user/
+										// runhash data and submit that to the
+										// viewStoredResults endpoint so the 
+										// page changes and users can see their
+										// old results.
+										var hform = $('<form action="' + url +
+											'" method="post">' +
+											'<input type="text" name="runHash"'
+											+ ' value="' + runhash + 
+											'" />' + 
+											'<input type="text" name="user_id"'
+											+ ' value="' + user_id + 
+											'" />' + '</form>');
+										$('body').append(hform).submit();
+										console.log('fuck');
+                                        //$.ajax({
+										//$.get('../viewStoredResults',
+										//	  {'runHash': runhash,
+										//	  'user_id':user_id});
+                                            //type: "GET",
+                                            //url: "../viewStoredResults",
+                                            //data: {"runHash": runhash, "user_id": user_id}
+                                            //success: function (data) {
+												//console.log(data);
+												//window.location();
+											//var data2 = {};
+											//data2[data['res_tool']] = true;
+											//data2['res_data'] = data['res_data'];
+											//console.log(data2);
+											//$.post('../viewStoredResults',data2);
+                                            //}
+                                        //});
+                                        //document.location.href = "http://www.cnn.com";
+                                        //return false;
+                                        return true;
                                     });
 
                                     $(nTd).empty();

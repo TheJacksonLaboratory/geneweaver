@@ -1519,6 +1519,16 @@ def authenticate_user(email, password):
             users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
             return users[0] if len(users) == 1 else None
 
+## There's a similarly titled get_result_by_runhash, but it's API function.
+def get_results_by_runhash(runhash):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT row_to_json(row, true)
+                FROM(	SELECT *
+                        FROM production.result
+                        WHERE res_runhash = %s
+                    ) row; ''', (runhash,))
+    return cursor.fetchall();
 
 def get_user(user_id):
     """

@@ -401,13 +401,24 @@ def render_login_error():
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
 
-# @app.route('/viewStoredResults')
-# def viewStroedResults_by_runhash():
-#     if 'user_id' in flask.session:
-#         results = geneweaverdb.get_result_type_by_runhash(request.args)
-#         return json.dumps(results)
-#
-#
+@app.route('/viewStoredResults', methods=['GET', 'POST'])
+def viewStoredResults_by_runhash():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        if request.method == 'POST':
+            form = flask.request.form
+            results = geneweaverdb.get_results_by_runhash(form['runHash'])
+            #results =  json.dumps(results[0][0])
+            results = results[0][0]
+            #headers = {'Content-Type': 'text/html'}
+
+            if results['res_tool'] == 'Jaccard Similarity':
+                return flask.render_template(
+                    'tool/JaccardSimilarity_result.html',
+                    async_result = json.loads(results['res_data']),
+                    tool = geneweaverdb.get_tool('JaccardSimilarity'),
+                    list = geneweaverdb.get_all_projects(user_id))
+
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
@@ -790,7 +801,6 @@ def render_searchFromHome():
 @app.route('/searchFilter.json', methods=['POST'])
 #This route will take as an argument, search parameters for a filtered search
 def render_search_json():
-    print 'debug search from who the fuck knows where'
     #Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     ## quick fix for now, this needs properly handle multiple terms
