@@ -2,6 +2,7 @@
 var param_strings1 = location.pathname.substr(19);
 var param_strings = param_strings1.replace(".html", "")
 
+console.log(location);
 var graph_url = '/results/' + param_strings + '.graphml';
 var xml = '';
 $.get(graph_url, function(data) { xml=data; load_cytoscape(); });

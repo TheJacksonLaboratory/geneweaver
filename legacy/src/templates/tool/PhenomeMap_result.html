@@ -15,6 +15,22 @@
 	<h1>{{ title }}</h1>
 </div>
 
+{# 	
+	Checks to see if runhash is defined. If it is, that means we're
+	viewing a stored result and PhenomeMap.js won't work properly without
+	the extra $.get() call below.
+#}
+{% if runhash %}
+	<script type="text/javascript">
+
+		var graph_url = '/results/' + '{{async_result.result_image}}';
+		var xml = '';
+		$.get(graph_url, function(data) { xml=data; load_cytoscape(); });
+
+	</script>
+{% endif %}
+
+
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">

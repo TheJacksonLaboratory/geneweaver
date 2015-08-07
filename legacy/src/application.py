@@ -401,43 +401,49 @@ def render_login_error():
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
 
+#### viewStoredResults
+##
+#### Only called by an ajax request when the user wants to view a saved
+#### tool result from the results page. The result run hash and user ID
+#### are passed via a POST request, then the function retrieves the result
+#### data from the DB and chooses the correct result template to display.
+##
 @app.route('/viewStoredResults', methods=['POST'])
 def viewStoredResults_by_runhash():
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
+    if request.method == 'POST':
+        form = flask.request.form
+        user_id = form['user_id']
+        results = geneweaverdb.get_results_by_runhash(form['runHash'])
+        results = results[0][0]
 
-        if request.method == 'POST':
-            form = flask.request.form
-            results = geneweaverdb.get_results_by_runhash(form['runHash'])
-            results = results[0][0]
+        if results['res_tool'] == 'Jaccard Similarity':
+            return flask.render_template(
+                'tool/JaccardSimilarity_result.html',
+                async_result = json.loads(results['res_data']),
+                tool = geneweaverdb.get_tool('JaccardSimilarity'),
+                list = geneweaverdb.get_all_projects(user_id))
 
-            if results['res_tool'] == 'Jaccard Similarity':
-                return flask.render_template(
-                    'tool/JaccardSimilarity_result.html',
-                    async_result = json.loads(results['res_data']),
-                    tool = geneweaverdb.get_tool('JaccardSimilarity'),
-                    list = geneweaverdb.get_all_projects(user_id))
+        elif results['res_tool'] == 'HiSim Graph':
+            print str(json.loads(results['res_data']))
+            return flask.render_template(
+                'tool/PhenomeMap_result.html',
+                async_result = json.loads(results['res_data']),
+                tool = geneweaverdb.get_tool('PhenomeMap'),
+                runhash = form['runHash'])
 
-            if results['res_tool'] == 'HiSim Graph':
-                return flask.render_template(
-                    'tool/PhenomeMap_result.html',
-                    async_result = json.loads(results['res_data']),
-                    tool = geneweaverdb.get_tool('PhenomeMap'),
-                    list = geneweaverdb.get_all_projects(user_id))
+        elif results['res_tool'] == 'GeneSet Graph':
+            return flask.render_template(
+                'tool/GeneSetViewer_result.html',
+                async_result = json.loads(results['res_data']),
+                tool = geneweaverdb.get_tool('GeneSetViewer'),
+                list = geneweaverdb.get_all_projects(user_id))
 
-            if results['res_tool'] == 'GeneSet Graph':
-                return flask.render_template(
-                    'tool/GeneSetViewer_result.html',
-                    async_result = json.loads(results['res_data']),
-                    tool = geneweaverdb.get_tool('GeneSetViewer'),
-                    list = geneweaverdb.get_all_projects(user_id))
-
-            if results['res_tool'] == 'Clustering':
-                return flask.render_template(
-                    'tool/GeneSetViewer_result.html',
-                    async_result = json.loads(results['res_data']),
-                    tool = geneweaverdb.get_tool('JaccardClustering'),
-                    list = geneweaverdb.get_all_projects(user_id))
+        elif results['res_tool'] == 'Clustering':
+            return flask.render_template(
+                'tool/GeneSetViewer_result.html',
+                async_result = json.loads(results['res_data']),
+                tool = geneweaverdb.get_tool('JaccardClustering'),
+                list = geneweaverdb.get_all_projects(user_id))
 
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
