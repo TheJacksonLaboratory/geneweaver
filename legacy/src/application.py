@@ -401,22 +401,42 @@ def render_login_error():
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
 
-@app.route('/viewStoredResults', methods=['GET', 'POST'])
+@app.route('/viewStoredResults', methods=['POST'])
 def viewStoredResults_by_runhash():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
+
         if request.method == 'POST':
             form = flask.request.form
             results = geneweaverdb.get_results_by_runhash(form['runHash'])
-            #results =  json.dumps(results[0][0])
             results = results[0][0]
-            #headers = {'Content-Type': 'text/html'}
 
             if results['res_tool'] == 'Jaccard Similarity':
                 return flask.render_template(
                     'tool/JaccardSimilarity_result.html',
                     async_result = json.loads(results['res_data']),
                     tool = geneweaverdb.get_tool('JaccardSimilarity'),
+                    list = geneweaverdb.get_all_projects(user_id))
+
+            if results['res_tool'] == 'HiSim Graph':
+                return flask.render_template(
+                    'tool/PhenomeMap_result.html',
+                    async_result = json.loads(results['res_data']),
+                    tool = geneweaverdb.get_tool('PhenomeMap'),
+                    list = geneweaverdb.get_all_projects(user_id))
+
+            if results['res_tool'] == 'GeneSet Graph':
+                return flask.render_template(
+                    'tool/GeneSetViewer_result.html',
+                    async_result = json.loads(results['res_data']),
+                    tool = geneweaverdb.get_tool('GeneSetViewer'),
+                    list = geneweaverdb.get_all_projects(user_id))
+
+            if results['res_tool'] == 'Clustering':
+                return flask.render_template(
+                    'tool/GeneSetViewer_result.html',
+                    async_result = json.loads(results['res_data']),
+                    tool = geneweaverdb.get_tool('JaccardClustering'),
                     list = geneweaverdb.get_all_projects(user_id))
 
 
