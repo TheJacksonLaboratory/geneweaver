@@ -96,7 +96,24 @@
 	
 	<!-- need status for if not normal -->
 	{% if gs.status != "normal" %}
-	<span class="gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
+	<span class="gs_status gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
+
+		<script>
+			// This fixes the deprecated tags which weren't rendering properly
+			// due to the gs_ids attached at the end.
+			$('.gs_status').each(function(index) {
+
+				var dep = '{{gs.status}}';
+
+				if (dep.slice(0, 3) === 'dep') {
+
+					$(this).attr('class', 'gs_deprecated');
+					$(this).attr('title', 'This geneset has been marked ' +
+										  'as deprecated.');
+					$(this).html('Deprecated');
+				}
+			});
+		</script>
 	{% endif %}
 	</td>
 
