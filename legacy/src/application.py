@@ -833,14 +833,14 @@ def render_search_json():
     #print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     #Get a sphinx search
-    #First, print some diangostic information
     search_values = search.keyword_paginated_search(userValues['search_term'], 
             userValues['pagination_page'], userValues['search_fields'],
             userValues['userFilters'], userValues['sort_by'])
 
     return flask.render_template('search/search_wrapper_contents.html', 
             searchresults = search_values['searchresults'],
-            genesets = search_values['genesets'], 
+            #genesets = search_values['genesets'], 
+            genesets = search_values['genesets'],
             paginationValues = search_values['paginationValues'],
             field_list = userValues['field_list'], 
             searchFilters = search_values['searchFilters'],

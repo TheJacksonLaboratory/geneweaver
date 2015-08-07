@@ -1,14 +1,15 @@
 	<!-- Script for hiding or displaying geneset details -->
 	<script type="text/javascript">function toggleDetails(id) {
 		var element = document.getElementById(id);
+
 		if(element.style.display == "none")
-		{
-			element.style.display="block";
-		}
+			element.style.display = "block";
+
+		else if (element.style.display == "")
+			element.style.display = "block";
+
 		else
-		{
-			element.style.display="none";
-		}
+			element.style.display = "none";
 	}
 	</script>
 
@@ -105,7 +106,7 @@
 
 				var dep = '{{gs.status}}';
 
-				if (dep.slice(0, 3) === 'dep') {
+				if (dep.slice(0, 2) === 'de') {
 
 					$(this).attr('class', 'gs_deprecated');
 					$(this).attr('title', 'This geneset has been marked ' +
