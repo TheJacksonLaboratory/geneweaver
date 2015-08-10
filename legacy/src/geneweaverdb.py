@@ -817,14 +817,12 @@ def get_server_side_results(rargs):
 
     select_columns = ['temp', 'res_name', 'res_created', 'res_description', 'res_id', 'res_runhash', 'res_duration']
     ## res_name doesn't exist in the result table...
-    #select_clause = """SELECT cast(to_char((select now() - res_created), 'DDD') as int) as temp, res_name,
-    select_clause = """SELECT cast(to_char((select now() - res_created), 'DDD') as int) as temp,
+    select_clause = """SELECT cast(to_char((select now() - res_created), 'DDD') as int) as temp, res_name,
                     to_char(res_created, '%s') as res_created, res_description, res_id, res_runhash,
                     to_char(age(res_completed, res_created), '%s') as res_duration FROM result
                     WHERE usr_id=%s """ % ('YYYY-MM-DD', 'HH24:MI:SS', user_id,)
     source_columns = ['cast(res_id as text)', 'cast(res_runhash as text)', 'cast(res_created as text)',
-                      #'cast(res_name as text)', 'cast(res_description as text)']
-                      'cast(res_description as text)']
+                      'cast(res_name as text)', 'cast(res_description as text)']
 
     # Paging
     iDisplayStart = rargs.get('start', type=int)
