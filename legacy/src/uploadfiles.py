@@ -63,6 +63,17 @@ def get_file_contents_by_gsid(gsid):
             results = cursor.fetchall()
         return results
 
+def get_temp_geneset_gsid(gsid):
+    '''
+    Get geneset value from temp_geneset_meta if it exists
+    :param gsid:
+    :return:
+    '''
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM temp_geneset_meta WHERE gs_id=%s''', (gsid,))
+        results = cursor.fetchone()[0] if cursor.rowcount != 0 else 0
+        return results
+
 def update_species_by_gsid(rargs):
     '''
     (1) convert sp_name into id, (2) insert gs_id if it doesn't exist, (3) update temp_geneset_meta table with sp_id,

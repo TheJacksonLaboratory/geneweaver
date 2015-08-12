@@ -331,6 +331,7 @@ def render_editgeneset_genes(gs_id):
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
     user_info = geneweaverdb.get_user(user_id)
     uploadfiles.create_temp_geneset_from_value(gs_id)
+    meta = uploadfiles.get_temp_geneset_gsid(gs_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id, temp='temp')
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
@@ -352,7 +353,7 @@ def render_editgeneset_genes(gs_id):
     for p in platform:
         pidts[p['pf_shortname']] = p['pf_name']
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
-                                 gidts=gidts, pidts=pidts, onts=onts, view=view)
+                                 gidts=gidts, pidts=pidts, onts=onts, view=view, meta=meta)
 
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')

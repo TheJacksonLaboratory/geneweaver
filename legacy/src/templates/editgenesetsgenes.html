@@ -102,8 +102,13 @@
             <p class="text-right"><span id="clickableSpecies"><i class="fa fa-exclamation-circle"></i></span>
                 <strong>SPECIES:</strong></p>
         </div>
-        <div class="col-md-10">
-            <span id="editSpecies"><p><b>{{ species[geneset.sp_id] }}
+        <div class="col-md-10" id="altSpecies">
+            <span id="editSpecies"><p><b>
+                {% if meta != 0 %}
+                    {{ species[meta] }}
+                {% else %}
+                    {{ species[geneset.sp_id] }}
+                {% endif %}
                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="Species"
                       title="Edit Species" style="margin: 2px; padding: 0px 2px;">
                     <i class="fa fa-edit"></i>
@@ -361,10 +366,11 @@
                     success: function (data) {
                         var v = JSON.parse(data);
                         if (v["error"] == 'None') {
-                            $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                            //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
                             $("#result").html('<div class="alert alert-success fade in"> ' +
                                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                                     '</button>Species successfully changed to ' + val + '</div>');
+                            location.reload();
                         }
                         else {
                             $("#result").html('<div class="alert alert-danger fade in"> ' +
