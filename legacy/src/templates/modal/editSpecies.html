@@ -11,7 +11,11 @@
                 <div class="modal-body">
                     <div class="input-group-btn select">
                         <div id="species" class="btn-group bootstrap-select form-control">
-                                <button id='selectedSpecies' type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><span class="selected">{{ species[geneset.sp_id] }}</span> <span class="caret"></span></button>
+                                <button id='selectedSpecies' type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown" aria-expanded="false">
+                                    <span class="selected">{{ species[geneset.sp_id] }}</span>
+                                    <span class="caret"></span>
+                                </button>
                                 <ul class="dropdown-menu option" role="menu">
                                 {% for spec in species %}
                                     <li id="{{ spec }}"><a href="#">{{ species[spec] }}</a></li>

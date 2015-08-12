@@ -576,6 +576,7 @@ def cancel_geneset_edit_by_id(rargs):
     if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id, gs_id) != 0:
         with PooledCursor() as cursor:
             cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
+            cursor.execute('''DELETE FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
             return gs_id
 
@@ -707,21 +708,6 @@ def delete_results_by_runhash(rargs):
         )
         cursor.connection.commit()
         return
-
-def update_species_by_gsid(rargs):
-    user_id = rargs['user_id']
-    gs_id = rargs['gs_id']
-    altSpecies = rargs['altSpecies']
-    u = get_user(user_id)
-    g = get_geneset(gs_id, user_id, temp=None)
-    if u.is_admin or u.is_curator or g:
-        with PooledCursor() as cursor:
-            cursor.execute('''UPDATE geneset SET sp_id=species.sp_id FROM species WHERE species.sp_name=%s
-                              AND geneset.gs_id=%s''', (altSpecies, gs_id,))
-            cursor.connection.commit()
-        return 'Ture'
-    else:
-        return 'You do not have permission to update this geneset'
 
 def edit_results_by_runhash(rargs):
     user_id = rargs.get('user_id', type=int)
@@ -1195,6 +1181,12 @@ def get_species_name():
     except Exception, e:
         return str(e)
 
+def get_species_id_by_name(sp_name):
+    sp_name = sp_name.strip()
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM species WHERE sp_name=%s''', (sp_name,))
+        results = cursor.fetchone()[0]
+        return results
 
 def monthly_tool_stats():
     tools = [];

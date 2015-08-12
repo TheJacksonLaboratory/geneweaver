@@ -6,7 +6,7 @@ create temp tables that hold upload data and map it back to geneweaver
 '''
 
 import re
-from geneweaverdb import PooledCursor
+from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor
 
 def create_temp_geneset():
     '''
@@ -18,16 +18,25 @@ def create_temp_geneset():
         with PooledCursor() as cursor:
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_value (gs_id bigint, ode_gene_id bigint,
                               src_value numeric, src_id varchar)''')
+            cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_meta (gs_id bigint, sp_id int, gdb_id int)''')
             cursor.connection.commit()
         return 'True'
     except:
         return 'False'
 
 def create_temp_geneset_from_value(gsid):
+    '''
+    This function creates a temp_geneset_value record for a gs_id if it exists
+    :param gsid:
+    :return: null
+    '''
     create_temp_geneset()
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
-        if cursor.rowcount == 0:
+        cursor.execute('''SELECT gs_id FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
+        is_geneset_value = cursor.rowcount
+        cursor.execute('''SELECT gs_id FROM temp_geneset_meta WHERE gs_id=%s''', (gsid,))
+        is_geneset_meta = cursor.rowcount
+        if is_geneset_value == 0 and is_geneset_meta == 0:
             with PooledCursor() as cursor:
                 cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
                 cursor.execute('''INSERT INTO temp_geneset_value (SELECT gs_id, ode_gene_id, gsv_value_list[1], gsv_source_list[1]
@@ -54,8 +63,34 @@ def get_file_contents_by_gsid(gsid):
             results = cursor.fetchall()
         return results
 
+def update_species_by_gsid(rargs):
+    '''
+    (1) convert sp_name into id, (2) insert gs_id if it doesn't exist, (3) update temp_geneset_meta table with sp_id,
+    (4) rebuild temp_geneset_value table with new species
+    :param rargs: user_id, gs_id, altSpecies
+    :return:
+    '''
+    user_id = rargs['user_id']
+    gs_id = rargs['gs_id']
+    altSpecies = rargs['altSpecies']
+    u = get_user(user_id)
+    g = get_geneset(gs_id, user_id, temp=None)
+    if u.is_admin or u.is_curator or g:
+        create_temp_geneset()
+        with PooledCursor() as cursor:
+            sp_id = get_species_id_by_name(altSpecies)
+            cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
+                              temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
+            cursor.execute('''UPDATE temp_geneset_meta SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id,))
+            cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
+            cursor.connection.commit()
+            reparse_file_contents_simple(gs_id, sp_id)
+            cursor.connection.commit()
+            return {'error': 'None'}
+    else:
+        return {'error': 'You do not have permission to alter this table'}
 
-def reparse_file_contents_simple(gs_id):
+def reparse_file_contents_simple(gs_id, species=None, gdb=None):
     '''
     This is a simple parser. It does not take into consideration MicroArray data. Or any funky arrangement of tabs and
     newline characters in the file_contents attribute.
@@ -68,12 +103,13 @@ def reparse_file_contents_simple(gs_id):
     else:
         for r in file_contents:
             ## set variables
-            species = r[1]
-            gdb = r[2]
+            species = r[1] if species is None else species
+            gdb = r[2] if gdb is None else gdb
             newlines = r[0].split('\n')
             if len(newlines) == 1:
                 newlines = r[0].split('\r')
             if gdb < 0:
+                gdb = -1 * int(gdb)
                 if len(newlines) < 1:
                     return 'Error: No File Contents after loading.'
                 else:
@@ -107,17 +143,15 @@ def reparse_file_contents_simple(gs_id):
                             if gene != '' and isinstance(v, float):
                                 gene = str(gene.strip('\n\r '))
                                 g = gene.lower()
-                                gdb = -1 * int(gdb)
-                                s = None
                                 with PooledCursor() as cursor:
                                     cursor.execute('SELECT ode_gene_id FROM gene WHERE LOWER(ode_ref_id) LIKE LOWER(%s) '
                                                    'AND sp_id=%s AND gdb_id=%s', (g, species, gdb,))
                                     s = cursor.fetchall()
-                                if s is not None:
+                                if len(s) != 0:
                                     for i in s:
                                         with PooledCursor() as cursor:
-                                            cursor.execute('INSERT INTO production.temp_geneset_value '
-                                                       'VALUES (%s, %s, %s, %s)' , (gs_id, i[0], v, gene,))
+                                            cursor.execute('''INSERT INTO production.temp_geneset_value
+                                                              VALUES (%s, %s, %s, %s)''', (gs_id, i[0], v, gene,))
                                             cursor.connection.commit()
                     return 'True'
 

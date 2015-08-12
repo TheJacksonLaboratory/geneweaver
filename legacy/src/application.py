@@ -1189,15 +1189,9 @@ def update_alternate_gene_symbol():
 @app.route('/updateGenesetSpecies', methods=['GET'])
 def update_geneset_species():
     args = flask.request.args
-    if flask.session['user_id'] == args['user_id']:
-        ## Update species attached to geneset
-        s = geneweaverdb.update_species_by_gsid(args)
-        if s != 'True':
-            return s
-        else:
-            print 'hello'
-
-
+    if int(flask.session['user_id']) == int(args['user_id']):
+        results = uploadfiles.update_species_by_gsid(args)
+        return json.dumps(results)
 
 @app.route('/help.html')
 def render_help():

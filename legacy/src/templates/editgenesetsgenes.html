@@ -12,6 +12,11 @@
         cursor: pointer;
     }
 
+    #clickableSpecies, #clickableIdentifier {
+        cursor: pointer;
+        color: #ff0000;
+      }
+
     #editSpecies, #editIdentifier {
         cursor: pointer;
         color: #0090D9;
@@ -94,16 +99,16 @@
 
     <div class="row">
         <div class="col-md-2">
-            <p class="text-right"><strong>SPECIES:</strong></p>
+            <p class="text-right"><span id="clickableSpecies"><i class="fa fa-exclamation-circle"></i></span>
+                <strong>SPECIES:</strong></p>
         </div>
         <div class="col-md-10">
-                    <span id="editSpecies"><p><b>{{ species[geneset.sp_id] }} <span data-placement="top"
-                                                                                    data-toggle="tooltip"
-                                                                                    data-rel="tooltip"
-                                                                                    data-original-title="Species"
-                                                                                    title="Edit Species"
-                                                                                    style="margin: 2px; padding: 0px 2px;"><i
-                            class="fa fa-edit"></i></span></b></p></span>
+            <span id="editSpecies"><p><b>{{ species[geneset.sp_id] }}
+                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="Species"
+                      title="Edit Species" style="margin: 2px; padding: 0px 2px;">
+                    <i class="fa fa-edit"></i>
+                </span></b></p>
+            </span>
         </div>
     </div>
 
@@ -112,7 +117,8 @@
         <div class="row" id="result"></div>
 
         <div class="col-md-2">
-            <p class="text-right"><strong>IDENTIFIER:</strong></p>
+            <p class="text-right"><span id="clickableIdentifier"><i class="fa fa-exclamation-circle"></i></span>
+                <strong>IDENTIFIER:</strong></p>
         </div>
         <div class="col-md-10">
                     <span id="editIdentifier"><p><b>
@@ -127,8 +133,8 @@
         </div>
     </div>
 
-        <div class="row">
-            {% if geneset.geneset_values %}
+        <div class="row" id="allgenesetgenes">
+            {% if geneset.temp_geneset_values|length > 0 %}
 
                 <div class="col-md-2">
                     <p class="text-right"><strong>GENE LIST:</strong></p>
@@ -236,6 +242,14 @@
         html: 'true'
     });
 
+    $('#clickableSpecies').popover({
+       title: 'Warning', content: 'Changing species will effect latest saved changes only.'
+    });
+
+    $('#clickableIdentifier').popover({
+       title: 'Warning', content: 'Changing id type will effect latest saved changes only.'
+    });
+
     function myFunction(genes) {
         genes1 = genes.split("_");
         genes1 = genes1.join("\t1\n");
@@ -280,7 +294,7 @@
                 url: "/deleteGenesetValueByID",
                 data: {"gsid": gsid, "user_id": {{ user_id }}, "id": id},
                 success: function (data) {
-                    $('#genesetgenes').load(location.href+" #genesetgenes>*","");
+                    $('#allgenesetgenes').load(location.href+" #allgenesetgenes>*","");
                     $("#result").html('<div class="alert alert-success fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                             '</button>GeneSet Identifier and Value successfully deleted</div>');
@@ -298,7 +312,7 @@
                 url: "/editGenesetIdValue",
                 data: {"gsid": gsid, "id": id, "value": value, "idold": idold},
                 success: function (data) {
-                    $('#genesetgenes').load(location.href+" #genesetgenes>*","");
+                    $('#allgenesetgenes').load(location.href+" #allgenesetgenes>*","");
                     $("#result").html('<div class="alert alert-success fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                             '</button>GeneSet Identifier and Value successfully updated</div>');
@@ -317,7 +331,7 @@
                 success: function (data) {
                     var v = JSON.parse(data);
                     if (v["error"] == 'None') {
-                        $('#genesetgenes').load(location.href + " #genesetgenes>*", "");
+                        $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
                         $("#result").html('<div class="alert alert-success fade in"> ' +
                                 '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                                 '</button>Gene Identifier and Value successfully added</div>');
@@ -345,13 +359,24 @@
                     url: "../updateGenesetSpecies",
                     data: {"altSpecies": val, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
                     success: function (data) {
-                        location.reload();
-                    },
-                    error: function(){
-                        $("#result").html('<div class="alert alert-success fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>An error occured while updating the db</div>');
-                    }
+                        var v = JSON.parse(data);
+                        if (v["error"] == 'None') {
+                            $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                            $("#result").html('<div class="alert alert-success fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>Species successfully changed to ' + val + '</div>');
+                        }
+                        else {
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>An ERROR occured. ' + v["error"] + '</div>');
+                        }
+                        },
+                        error: function(){
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An error occured while updating the Species</div>');
+                        }
                 });
             });
 
