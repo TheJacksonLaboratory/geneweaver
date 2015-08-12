@@ -1224,6 +1224,13 @@ def monthly_tool_stats():
         return str(e)
 
 
+def get_bimodal_threshold(gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT gsv_value FROM geneset_value WHERE gs_id=%s GROUP BY gsv_value''', (gs_id,))
+        bi_modal = 'True' if cursor.rowcount == 1 else 'False'
+        return bi_modal
+
+
 def user_tool_stats():
     try:
         with PooledCursor() as cursor:
@@ -1897,6 +1904,17 @@ def get_temp_geneset_values(geneset_id):
                                            FROM production.temp_geneset_value
                                            WHERE gs_id=%s GROUP BY gs_id, ode_gene_id ORDER BY ode_gene_id;''' % (geneset_id,))
         return [TempGenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+def get_all_geneset_values(gs_id):
+    '''
+    Generic function to get all geneset values geneset_value.gs_values
+    :param geneset_id:
+    :return:
+    '''
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT gsv_value FROM geneset_value WHERE gs_id=%s''', (gs_id,))
+        results = dictify_cursor(cursor)
+        return results if cursor.rowcount != 0 else None
 
 def get_geneset_values(geneset_id):
     """

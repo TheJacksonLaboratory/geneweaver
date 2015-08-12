@@ -308,7 +308,7 @@ def render_editgenesets(gs_id):
     #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
-        view = 'True' if user_info.is_admin or user_info.is_curator or user_info.geneset.user_id == user_id else None
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
 
@@ -339,7 +339,7 @@ def render_editgeneset_genes(gs_id):
     #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
     onts = None
     if user_id != 0:
-        view = 'True' if user_info.is_admin or user_info.is_curator or user_info.geneset.user_id == user_id else None
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
 
@@ -354,6 +354,28 @@ def render_editgeneset_genes(gs_id):
         pidts[p['pf_shortname']] = p['pf_name']
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
                                  gidts=gidts, pidts=pidts, onts=onts, view=view, meta=meta)
+
+@app.route('/setthreshold/<int:gs_id>')
+def render_set_threshold(gs_id):
+    d3BarChart = []
+    user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
+    user_info = geneweaverdb.get_user(user_id)
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+    else:
+        view = None
+    ## Determine if this is bi-modal, we won't display these
+    is_bimodal = geneweaverdb.get_bimodal_threshold(gs_id)
+    gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
+    i = 1
+    if gsv_values is not None:
+        for k in gsv_values:
+            d3BarChart.append({'x': i, 'y': float(k.values()[0]), 'gsid': int(gs_id), 'abr': 'test'})
+            i += 1
+    json.dumps(d3BarChart, default=decimal_default)
+    return flask.render_template('viewThreshold.html', geneset=geneset, user_id=user_id, view=view, is_bimodal=is_bimodal,
+                                 d3BarChart=d3BarChart)
 
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')

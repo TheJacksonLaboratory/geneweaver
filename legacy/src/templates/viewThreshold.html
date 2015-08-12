@@ -1,0 +1,138 @@
+{% set title="Set Geneset Threshold" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+<script src="/static/d3/BarChartThreshold.js" charset="utf-8"></script>
+
+<style type="text/css">
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=40);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249, 249, 249);
+    }
+
+</style>
+
+{% if geneset.geneset_id is not defined or view is not defined %}
+
+    {% include 'htmlfragments/genesetNotFound.html' %}
+
+{% else %}
+
+    <div class="loader"></div>
+
+    <div class="row" id="result"></div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Set Geneset Threshold</strong></h2>
+    </div>
+
+    <div class="panel panel-default">
+    {% include 'htmlfragments/curIDBoxes.html' %}
+
+    <div class="panel-body">
+        <div class="row">
+            {# left side stuff #}
+            <div class="col-xs-12 col-md-9">
+
+                {% if is_bimodal == 'True' %}
+
+                    <div class="row">
+                        <div class="alert bg-gray-light">This Geneset only contains one uniform value.
+                            Set threshold cannot be performed.
+                        </div>
+                    </div>
+
+                {% else %}
+
+                    <!-- Bar Chart for frequency -->
+                    <div id="barChart" hidden="" style="padding-bottom: 20pt">
+                        <center>
+                            {# This is where the bar chart goes #}
+                            <svg id="threshold" width="1000" height="300"></svg>
+                        </center>
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+            {#  right side menu #}
+            <div class="col-xs-6 col-md-3">
+
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
+                    <i class="fa fa-arrow-left pull-left"></i> Back to Geneset
+                </button>
+                {% if view == 'True' %}
+                    <button type="button" class="btn btn-lg btn-block btn-warning" id="viewSimilarGenesets">
+                        <i class="fa fa-save pull-left"></i> Save Threshold
+                    </button>
+                    <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
+                        <i class="fa fa-times pull-left"></i> Cancel Threshold
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- <body onload="myFunction()"> -->
+
+    <script type="text/javascript">
+        var b = {{ d3BarChart | safe }};
+
+        //Call the barchart
+        InitChart.draw(b);
+
+        $("[name='g_id[]']").bootstrapSwitch();
+
+        $(window).load(function () {
+            $(".loader").fadeOut("slow");
+        });
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        $('#clickableHomology').popover({
+            title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
+            'within GeneWeaver. Mouseover the boxes to reveal species names.'
+        });
+
+
+        $(document).ready(function () {
+
+        });
+
+
+    </script>
+
+{% endif %}
+
+
+
+{% include 'footer.html' %}
