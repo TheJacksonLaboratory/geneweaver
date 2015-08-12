@@ -1194,6 +1194,13 @@ def update_geneset_species():
         results = uploadfiles.update_species_by_gsid(args)
         return json.dumps(results)
 
+@app.route('/updateGenesetIdentifier', methods=['GET'])
+def update_geneset_identifier():
+    args = flask.request.args
+    if int(flask.session['user_id']) == int(args['user_id']):
+        results = uploadfiles.update_identifier_by_gsid(args)
+        return json.dumps(results)
+
 @app.route('/help.html')
 def render_help():
     return flask.render_template('help.html')

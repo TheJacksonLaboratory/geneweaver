@@ -6,7 +6,7 @@ create temp tables that hold upload data and map it back to geneweaver
 '''
 
 import re
-from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor
+from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 
 def create_temp_geneset():
     '''
@@ -63,6 +63,7 @@ def get_file_contents_by_gsid(gsid):
             results = cursor.fetchall()
         return results
 
+
 def get_temp_geneset_gsid(gsid):
     '''
     Get geneset value from temp_geneset_meta if it exists
@@ -70,9 +71,16 @@ def get_temp_geneset_gsid(gsid):
     :return:
     '''
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT sp_id FROM temp_geneset_meta WHERE gs_id=%s''', (gsid,))
-        results = cursor.fetchone()[0] if cursor.rowcount != 0 else 0
-        return results
+        cursor.execute('''SELECT sp_id, gdb_id FROM temp_geneset_meta WHERE gs_id=%s''', (gsid,))
+        if cursor.rowcount != 0:
+            results = cursor.fetchall()
+            meta_sp = results[0][0] if results[0][0] is not None else 0
+            meta_gdb = results[0][1] if results[0][1] is not None else 0
+            meta = [meta_sp, meta_gdb]
+        else:
+            meta = [0, 0]
+        return meta
+
 
 def update_species_by_gsid(rargs):
     '''
@@ -90,16 +98,49 @@ def update_species_by_gsid(rargs):
         create_temp_geneset()
         with PooledCursor() as cursor:
             sp_id = get_species_id_by_name(altSpecies)
+            cursor.execute('''SELECT gdb_id FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
+            gdb_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
             cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
                               temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
             cursor.execute('''UPDATE temp_geneset_meta SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id,))
             cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
-            reparse_file_contents_simple(gs_id, sp_id)
+            reparse_file_contents_simple(gs_id, sp_id, gdb_id)
             cursor.connection.commit()
             return {'error': 'None'}
     else:
         return {'error': 'You do not have permission to alter this table'}
+
+
+def update_identifier_by_gsid(rargs):
+    '''
+    (1) convert altId into id, (2) insert gs_id if it doesn't exist, (3) update temp_geneset_meta table with gdb_id,
+    (4) rebuild temp_geneset_value table with new species
+    :param rargs: user_id, gs_id, altSpecies
+    :return:
+    '''
+    user_id = rargs['user_id']
+    gs_id = rargs['gs_id']
+    altId = rargs['altId']
+    u = get_user(user_id)
+    g = get_geneset(gs_id, user_id, temp=None)
+    if u.is_admin or u.is_curator or g:
+        create_temp_geneset()
+        with PooledCursor() as cursor:
+            gdb_id = get_gdb_id_by_name(altId)
+            cursor.execute('''SELECT sp_id FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
+            sp_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
+            cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
+                              temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
+            cursor.execute('''UPDATE temp_geneset_meta SET gdb_id=%s WHERE gs_id=%s''', (gdb_id, gs_id,))
+            cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
+            cursor.connection.commit()
+            reparse_file_contents_simple(gs_id, sp_id, gdb_id)
+            cursor.connection.commit()
+            return {'error': 'None'}
+    else:
+        return {'error': 'You do not have permission to alter this table'}
+
 
 def reparse_file_contents_simple(gs_id, species=None, gdb=None):
     '''

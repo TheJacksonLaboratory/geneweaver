@@ -11,7 +11,8 @@
                 <div class="modal-body">
                     <div class="input-group-btn">
                         <div id="identifier" class="btn-group bootstrap-select form-control">
-                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                <button id="selectedIdentifier" type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown" aria-expanded="false">
                                     <span class="selected">
                                         {% if geneset.gene_id_type < 0 %}
                                             {{ gidts[-1 * geneset.gene_id_type] }}
@@ -36,7 +37,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmit">Submit</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmitIdentifier">Submit</button>
                 </div>
             </form>
         </div>

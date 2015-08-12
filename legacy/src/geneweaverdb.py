@@ -1181,12 +1181,28 @@ def get_species_name():
     except Exception, e:
         return str(e)
 
+
 def get_species_id_by_name(sp_name):
     sp_name = sp_name.strip()
     with PooledCursor() as cursor:
         cursor.execute('''SELECT sp_id FROM species WHERE sp_name=%s''', (sp_name,))
         results = cursor.fetchone()[0]
         return results
+
+
+def get_gdb_id_by_name(gdb_name):
+    gdb_name = gdb_name.strip()
+    print gdb_name
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT gdb_id FROM genedb WHERE gdb_shortname=%s''', (gdb_name,))
+        if cursor.rowcount != 0:
+            results = cursor.fetchone()[0]
+            return -1 * results
+        else:
+            cursor.execute('''SELECT pf_id FROM platform WHERE pf_shortname=%s''', (gdb_name,))
+            results = cursor.fetchone()[0]
+            return results
+
 
 def monthly_tool_stats():
     tools = [];

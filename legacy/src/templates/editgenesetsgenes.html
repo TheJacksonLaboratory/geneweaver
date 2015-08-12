@@ -104,8 +104,8 @@
         </div>
         <div class="col-md-10" id="altSpecies">
             <span id="editSpecies"><p><b>
-                {% if meta != 0 %}
-                    {{ species[meta] }}
+                {% if meta[0] != 0 %}
+                    {{ species[meta[0]] }}
                 {% else %}
                     {{ species[geneset.sp_id] }}
                 {% endif %}
@@ -127,10 +127,23 @@
         </div>
         <div class="col-md-10">
                     <span id="editIdentifier"><p><b>
-                        {% if geneset.gene_id_type < 0 %}
-                            {{ gidts[-1 * geneset.gene_id_type] }}
+
+                        {% if meta[1] != 0 %}
+
+                            {% if meta[1] < 0 %}
+                                {{ gidts[-1 * meta[1]] }}
+                            {% else %}
+                                {{ pidts[meta[1]] }}
+                            {% endif %}
+
                         {% else %}
-                            {{ pidts[geneset.gene_id_type] }}
+
+                            {% if geneset.gene_id_type < 0 %}
+                                {{ gidts[-1 * geneset.gene_id_type] }}
+                            {% else %}
+                                {{ pidts[geneset.gene_id_type] }}
+                            {% endif %}
+
                         {% endif %}
                         <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                               data-original-title="Identifier" title="Edit Identifier"
@@ -382,6 +395,37 @@
                             $("#result").html('<div class="alert alert-danger fade in"> ' +
                                 '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                                 '</button>An error occured while updating the Species</div>');
+                        }
+                });
+            });
+
+        $('#editSubmitIdentifier').on('click', function(e){
+            var val = $('#identifier').children('#selectedIdentifier').text();
+            $.trim(val);
+            //update genset_value for the sp_id
+            $.ajax({
+                    type: "GET",
+                    url: "../updateGenesetIdentifier",
+                    data: {"altId": val, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                    success: function (data) {
+                        var v = JSON.parse(data);
+                        if (v["error"] == 'None') {
+                            //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                            $("#result").html('<div class="alert alert-success fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>Identifier successfully changed to ' + val + '</div>');
+                            location.reload();
+                        }
+                        else {
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>An ERROR occured. ' + v["error"] + '</div>');
+                        }
+                        },
+                        error: function(){
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An error occured while updating the Identifier</div>');
                         }
                 });
             });
