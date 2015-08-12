@@ -1190,13 +1190,11 @@ def render_user_results():
         columns.append({'name': 'res_id'})
         columns.append({'name': 'res_runhash'})
         columns.append({'name': 'res_duration'})
-        #columns.append({'name': 'res_name'})
+        columns.append({'name': 'res_name'})
         columns.append({'name': 'res_created'})
         columns.append({'name': 'res_description'})
         columns.append({'name': 'res_tool'})
-        #headerCols = ["", "Name", "Created", "Description", "ID", "RunHash", "Duration"]
-        headerCols = ["", "Created", "Description", "ID", "RunHash", "Duration"]
-        #headerCols = ["", "Description", "Created", "ID", "RunHash", "Duration"]
+        headerCols = ["", "Name", "Created", "Description", "ID", "RunHash", "Duration"]
     else:
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('results.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)
