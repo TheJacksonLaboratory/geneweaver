@@ -250,6 +250,7 @@ def json_login():
 
 @app.route('/analyze.html')
 def render_analyze():
+    print 'dbg analyze'
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
@@ -289,6 +290,7 @@ def render_shareprojects():
 
 @app.route('/analyze_new_project/<string:pj_name>.html')
 def render_analyze_new_project(pj_name):
+    print 'dbg analyze proj'
     args = flask.request.args
     active_tools = geneweaverdb.get_active_tools()
     user = geneweaverdb.get_user(flask.session.get('user_id'))
@@ -875,6 +877,18 @@ def render_search_json():
 @app.route('/searchsuggestionterms.json')
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
+
+@app.route('/projectGenesets.json', methods=['GET'])
+def render_project_genesets():
+    uid = flask.session.get('user_id')
+    ## Project (ID) that the user wants to view
+    pid = flask.request.args['project']
+    genesets = geneweaverdb.get_genesets_for_project(pid, uid)
+
+    return flask.render_template('singleProject.html', 
+                                 genesets = genesets,
+                                 proj = {'project_id': pid} )
+
 
 
 #****** ADMIN ROUTES ******************************************************************
