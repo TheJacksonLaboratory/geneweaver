@@ -10,11 +10,11 @@ var InitChart = {
         var barData = b;
 
         var vis = d3.select('#threshold'),
-            WIDTH = 1000,
+            WIDTH = 800,
             HEIGHT = 300,
             MARGINS = {
                 top: 20,
-                right: 20,
+                right: 10,
                 bottom: 20,
                 left: 50
             },
@@ -65,7 +65,7 @@ var InitChart = {
             .attr('height', function (d) {
                 return ((HEIGHT - MARGINS.bottom) - yRange(d.y));
             })
-            .attr('fill', '#1F77B4')
+            .attr('fill', '#D3D3D3')
             .on('mouseover',function(d){
 
                 newX =  parseFloat(d3.select(this).attr('x')) - 10;
@@ -88,7 +88,7 @@ var InitChart = {
                     .transition(200)
                     .style('opacity', 0);
                 d3.select(this)
-                    .attr('fill','#1F77B4');
+                    .attr('fill','#D3D3D3');
             })
             .on('click', function(d){
                 window.location.href = '#gsid'+ d.gsid;

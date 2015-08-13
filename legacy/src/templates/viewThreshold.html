@@ -33,6 +33,38 @@
         background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249, 249, 249);
     }
 
+    .axis path, .axis line {
+            fill: none;
+            stroke: #777;
+            shape-rendering: crispEdges;
+    }
+
+    .axis text {
+            font-family: 'Arial';
+            font-size: 13px;
+    }
+
+    .tick {
+            stroke-dasharray: 1, 2;
+    }
+
+    .bar {
+            fill: FireBrick;
+    }
+
+    .legend {
+        overflow: hidden;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    #chart {
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+    }
+
+
 </style>
 
 {% if geneset.geneset_id is not defined or view is not defined %}
@@ -68,7 +100,7 @@
                 {% else %}
 
                     <!-- Bar Chart for frequency -->
-                    <div id="barChart" hidden="" style="padding-bottom: 20pt">
+                    <div id="barChart" style="padding-bottom: 20pt">
                         <center>
                             {# This is where the bar chart goes #}
                             <svg id="threshold" width="1000" height="300"></svg>

@@ -1912,7 +1912,7 @@ def get_all_geneset_values(gs_id):
     :return:
     '''
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT gsv_value FROM geneset_value WHERE gs_id=%s''', (gs_id,))
+        cursor.execute('''SELECT gsv_value FROM geneset_value WHERE gs_id=%s ORDER BY gsv_value ASC''', (gs_id,))
         results = dictify_cursor(cursor)
         return results if cursor.rowcount != 0 else None
 
