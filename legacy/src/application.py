@@ -413,7 +413,7 @@ def render_set_threshold(gs_id):
 #     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species, gidts=gidts, pidts=pidts)
 
 
-@app.route('/accountsettings.html')
+@app.route('/accountsettings')
 def render_accountsettings():
     user = geneweaverdb.get_user(flask.session.get('user_id'))
     groupsMemberOf = geneweaverdb.get_all_member_groups(flask.session.get('user_id'))
