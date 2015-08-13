@@ -24,7 +24,8 @@
 		// Can now call redirectPost via $
 		$.extend({
 			// Forces a page redirect (using a hidden form) while passing data
-			// through a POST request.
+			// through a POST request. This is used to redirect the user to
+			// their old results.
 			redirectPost: function(location, args) {
 				var form = '';
 
@@ -93,6 +94,9 @@
 							title="View Stored Results" style="margin: 2px; padding: 0px 2px;">\
 						<i class="fa fa-eye"></i></span>');
 						}
+
+						//// DELETE RESULT ////
+						//
 						b.tooltip();
 						b.click(function () {
 							var cellData = oData[5];
@@ -113,40 +117,49 @@
 								});
 							});
 						});
+
+						//// RE-RUN RESULTS ////
+						//
 						d.tooltip();
 						d.click(function () {
-							var cellData = oData[5];
-							alert(cellData);
+							var runhash = oData[5];
+							var url = '../reruntool.json';
+							var data = {
+								'runHash': runhash, 
+								'user_id': user_id
+							};
+
+							$.get(url, data).done(function(data) {
+
+								data = JSON.parse(data);
+								// Alter the data a bit so it can be handled by
+								// the tool routes without additional
+								// modifications to the server code
+								var form = data['parameters'];
+								var genesets = data['gs_ids'].join(' ');
+								form['genesets'] = genesets;
+
+								if (data['tool'] === 'HiSim Graph') {
+
+									$.redirectPost('/run-phenome-map.html', form);
+								}
+									
+							});
 						});
+
+						//// VIEW STORED RESULTS ////
+						//
 						e.tooltip();
 						e.click(function () {
 							var runhash = oData[5];
 							var serial = 'runHash=' + runhash;
 							serial += '&user_id=' + user_id;
-							var url = 'http://127.0.0.1/viewStoredResults';
 
-							$.redirectPost('/viewStoredResults', 
-								{'runHash': runhash, 
-								 'user_id': user_id});
-							//$.ajax({
-							//$.get('../viewStoredResults',
-							//	  {'runHash': runhash,
-							//	  'user_id':user_id});
-								//type: "GET",
-								//url: "../viewStoredResults",
-								//data: {"runHash": runhash, "user_id": user_id}
-								//success: function (data) {
-									//console.log(data);
-									//window.location();
-								//var data2 = {};
-								//data2[data['res_tool']] = true;
-								//data2['res_data'] = data['res_data'];
-								//console.log(data2);
-								//$.post('../viewStoredResults',data2);
-								//}
-							//});
-							//document.location.href = "http://www.cnn.com";
-							//return false;
+							$.redirectPost('/viewStoredResults', {
+								'runHash': runhash,
+								'user_id': user_id
+							});
+
 							return true;
 						});
 

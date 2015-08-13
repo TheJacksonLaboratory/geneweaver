@@ -250,7 +250,6 @@ def json_login():
 
 @app.route('/analyze.html')
 def render_analyze():
-    print 'dbg analyze'
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
@@ -459,7 +458,6 @@ def viewStoredResults_by_runhash():
                 list = geneweaverdb.get_all_projects(user_id))
 
         elif results['res_tool'] == 'HiSim Graph':
-            print str(json.loads(results['res_data']))
             return flask.render_template(
                 'tool/PhenomeMap_result.html',
                 async_result = json.loads(results['res_data']),
@@ -480,6 +478,22 @@ def viewStoredResults_by_runhash():
                 tool = geneweaverdb.get_tool('JaccardClustering'),
                 list = geneweaverdb.get_all_projects(user_id))
 
+@app.route('/reruntool.json', methods=['POST', 'GET'])
+def rerun_tool():
+    print 'dbg rerun'
+    #form = flask.request.form
+    args = flask.request.args
+    #user_id = form['user_id']
+    user_id = args['user_id']
+    #results = geneweaverdb.get_results_by_runhash(form['runHash'])
+    results = geneweaverdb.get_results_by_runhash(args['runHash'])
+    results = results[0][0]
+    data = json.loads(results['res_data'])
+    tool = results['res_tool']
+    params = data['parameters']
+    gs_ids = data['gs_ids']
+
+    return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
