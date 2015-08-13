@@ -107,6 +107,13 @@
                         </center>
                     </div>
 
+                    <p>
+                    <label for="amount">Price range:</label>
+                    <input type="text" id="amount" readonly style="border:0; color:#f6931f; font-weight:bold;">
+                    </p>
+
+                    <div id="slider-range"></div>
+
                 {% endif %}
 
             </div>
@@ -136,9 +143,27 @@
 
     <script type="text/javascript">
         var b = {{ d3BarChart | safe }};
+        var t = {{ threshold[0] | string | safe }};
+        var m = {{ threshold[1] | string | safe }};
 
         //Call the barchart
-        InitChart.draw(b);
+        InitChart.draw(b,t,m);
+
+
+$(function() {
+    $( "#slider-range" ).slider({
+      range: true,
+      min: 0,
+      max: 500,
+      values: [ 75, 300 ],
+      slide: function( event, ui ) {
+        $( "#amount" ).val( "$" + ui.values[ 0 ] + " - $" + ui.values[ 1 ] );
+      }
+    });
+    $( "#amount" ).val( "$" + $( "#slider-range" ).slider( "values", 0 ) +
+      " - $" + $( "#slider-range" ).slider( "values", 1 ) );
+  });
+
 
         $("[name='g_id[]']").bootstrapSwitch();
 

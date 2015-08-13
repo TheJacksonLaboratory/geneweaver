@@ -370,14 +370,16 @@ def render_set_threshold(gs_id):
     ## Determine if this is bi-modal, we won't display these
     is_bimodal = geneweaverdb.get_bimodal_threshold(gs_id)
     gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
+    threshold = str(geneset.threshold)
+    thresh = threshold.split(',')
     i = 1
     if gsv_values is not None:
         for k in gsv_values:
-            d3BarChart.append({'x': i, 'y': float(k.values()[0]), 'gsid': int(gs_id), 'abr': 'test'})
+            d3BarChart.append({'x': i, 'y': float(k.values()[0]), 'gsid': str(k.values()[1]), 'abr': str(k.values()[0])})
             i += 1
     json.dumps(d3BarChart, default=decimal_default)
     return flask.render_template('viewThreshold.html', geneset=geneset, user_id=user_id, view=view, is_bimodal=is_bimodal,
-                                 d3BarChart=d3BarChart)
+                                 d3BarChart=d3BarChart, threshold=thresh)
 
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')

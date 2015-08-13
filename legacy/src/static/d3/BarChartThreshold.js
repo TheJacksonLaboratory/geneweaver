@@ -6,7 +6,9 @@
 // genesets for thresholds
 
 var InitChart = {
-    draw: function (b) {
+    draw: function (b,t,m) {
+        var threshold1 = t.toString();
+        var threshold2 = m.toString();
         var barData = b;
 
         var vis = d3.select('#threshold'),
@@ -65,7 +67,21 @@ var InitChart = {
             .attr('height', function (d) {
                 return ((HEIGHT - MARGINS.bottom) - yRange(d.y));
             })
-            .attr('fill', '#D3D3D3')
+
+            .attr('fill', function (d) {
+                var topy = d3.max(barData, function (d) {
+                    return d.y;
+                });
+
+                maxrangey = threshold2 != null ? threshold2 : topy;
+
+                if (d.y > threshold1 && d.y < maxrangey) {
+                    return '#00CC00'
+                }
+                else {
+                    return '#D3D3D3'
+                }
+            })
             .on('mouseover',function(d){
 
                 newX =  parseFloat(d3.select(this).attr('x')) - 10;
@@ -74,7 +90,7 @@ var InitChart = {
 					tooltip
 						.attr('x', newX)
 						.attr('y', newY)
-						.text('GS'+d.gsid+': '+ d.abr)
+						.text(d.gsid+': '+ d.abr)
 						.transition(200)
 						.style('opacity', 1);
 
@@ -88,11 +104,22 @@ var InitChart = {
                     .transition(200)
                     .style('opacity', 0);
                 d3.select(this)
-                    .attr('fill','#D3D3D3');
-            })
-            .on('click', function(d){
-                window.location.href = '#gsid'+ d.gsid;
+                    .attr('fill', function (d) {
+                        var topy = d3.max(barData, function (d) {
+                            return d.y;
+                        });
+
+                        maxrangey = threshold2 != null ? threshold2 : topy;
+
+                        if (d.y > threshold1 && d.y < maxrangey) {
+                            return '#00CC00'
+                        }
+                        else {
+                            return '#D3D3D3'
+                        }
+                    });
             });
+
 
 
         //Tooltip

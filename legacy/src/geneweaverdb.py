@@ -1911,8 +1911,17 @@ def get_all_geneset_values(gs_id):
     :param geneset_id:
     :return:
     '''
+    user_id = flask.session['user_id']
+    geneset = get_geneset(gs_id, user_id)
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT gsv_value FROM geneset_value WHERE gs_id=%s ORDER BY gsv_value ASC''', (gs_id,))
+        if geneset.gene_id_type < 0:
+            cursor.execute('''SELECT gv.gsv_value, g.ode_ref_id FROM geneset_value gv, gene g, geneset gs WHERE
+                              gv.gs_id=%s AND gs.gs_id=gv.gs_id AND gs.sp_id=g.sp_id AND gv.ode_gene_id=g.ode_gene_id AND
+                              gs.gs_gene_id_type=g.gdb_id ORDER BY gv.gsv_value ASC''', (gs_id,))
+        else:
+             cursor.execute('''SELECT gv.gsv_value, g.ode_ref_id FROM geneset_value gv, gene g, geneset gs WHERE
+                              gv.gs_id=%s AND gs.gs_id=gv.gs_id AND gs.sp_id=g.sp_id AND gv.ode_gene_id=g.ode_gene_id AND
+                              g.ode_pref='t' ORDER BY gv.gsv_value ASC''', (gs_id,))
         results = dictify_cursor(cursor)
         return results if cursor.rowcount != 0 else None
 
