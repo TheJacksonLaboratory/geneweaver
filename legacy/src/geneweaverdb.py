@@ -1915,15 +1915,15 @@ def get_all_geneset_values(gs_id):
     geneset = get_geneset(gs_id, user_id)
     with PooledCursor() as cursor:
         if geneset.gene_id_type < 0:
-            cursor.execute('''SELECT gv.gsv_value, g.ode_ref_id FROM geneset_value gv, gene g, geneset gs WHERE
-                              gv.gs_id=%s AND gs.gs_id=gv.gs_id AND gs.sp_id=g.sp_id AND gv.ode_gene_id=g.ode_gene_id AND
-                              gs.gs_gene_id_type=g.gdb_id ORDER BY gv.gsv_value ASC''', (gs_id,))
+            cursor.execute('''SELECT gv.gsv_value as gsv, g.ode_ref_id as ref FROM geneset_value gv, gene g, geneset gs WHERE
+                              g.ode_pref='t' AND gv.gs_id=%s AND gs.gs_id=gv.gs_id AND gs.sp_id=g.sp_id AND
+                              gv.ode_gene_id=g.ode_gene_id ORDER BY gv.gsv_value ASC''', (gs_id,))
         else:
              cursor.execute('''SELECT gv.gsv_value, g.ode_ref_id FROM geneset_value gv, gene g, geneset gs WHERE
                               gv.gs_id=%s AND gs.gs_id=gv.gs_id AND gs.sp_id=g.sp_id AND gv.ode_gene_id=g.ode_gene_id AND
                               g.ode_pref='t' ORDER BY gv.gsv_value ASC''', (gs_id,))
-        results = dictify_cursor(cursor)
-        return results if cursor.rowcount != 0 else None
+        return list(dictify_cursor(cursor)) if cursor.rowcount != 0 else None
+
 
 def get_geneset_values(geneset_id):
     """

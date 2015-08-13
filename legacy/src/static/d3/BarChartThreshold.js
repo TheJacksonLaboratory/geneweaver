@@ -6,10 +6,11 @@
 // genesets for thresholds
 
 var InitChart = {
-    draw: function (b,t,m) {
-        var threshold1 = t.toString();
-        var threshold2 = m.toString();
+    draw: function (b,t,m,a) {
+        var threshold1 = t;
+        var threshold2 = m;
         var barData = b;
+        var amts = a;
 
         var vis = d3.select('#threshold'),
             WIDTH = 800,
@@ -48,10 +49,12 @@ var InitChart = {
         //    .attr('transform', 'translate(0,' + (HEIGHT - MARGINS.bottom) + ')')
         //    .call(xAxis);
 
+
         vis.append('svg:g')
             .attr('class', 'y axis')
             .attr('transform', 'translate(' + (MARGINS.left) + ',0)')
             .call(yAxis);
+
 
         vis.selectAll('rect')
             .data(barData)
@@ -69,21 +72,22 @@ var InitChart = {
             })
 
             .attr('fill', function (d) {
+
                 var topy = d3.max(barData, function (d) {
                     return d.y;
                 });
 
-                maxrangey = threshold2 != null ? threshold2 : topy;
+                maxrangey = threshold2 != 0 ? threshold2 : topy;
 
-                if (d.y > threshold1 && d.y < maxrangey) {
+                if (d.y >= threshold1 && d.y <= maxrangey) {
                     return '#00CC00'
                 }
                 else {
                     return '#D3D3D3'
                 }
             })
-            .on('mouseover',function(d){
 
+            .on('mouseover',function(d){
                 newX =  parseFloat(d3.select(this).attr('x')) - 10;
 				newY =  parseFloat(d3.select(this).attr('y')) - 5;
 
@@ -109,9 +113,9 @@ var InitChart = {
                             return d.y;
                         });
 
-                        maxrangey = threshold2 != null ? threshold2 : topy;
+                        maxrangey = threshold2 != 0 ? threshold2 : topy;
 
-                        if (d.y > threshold1 && d.y < maxrangey) {
+                        if (d.y >= threshold1 && d.y <= maxrangey) {
                             return '#00CC00'
                         }
                         else {
@@ -128,6 +132,18 @@ var InitChart = {
             .style('font-family', 'sans-serif')
             .style('font-weight', 'bold')
             .style('font-size', '13px');
+
+        $("#slider").on("slide", function(e) {
+            var m = (amts[e.value[0]]);
+            vis.append("rect")
+                .attr('x', 0)
+                .attr('y', 120)
+                .attr('width', 20)
+                .attr('height', 200)
+                .attr("stroke", "#OOOOOO")
+
+        });
+
 
     }
 };

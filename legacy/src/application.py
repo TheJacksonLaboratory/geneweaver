@@ -372,14 +372,22 @@ def render_set_threshold(gs_id):
     gsv_values = geneweaverdb.get_all_geneset_values(gs_id)
     threshold = str(geneset.threshold)
     thresh = threshold.split(',')
+    if len(thresh) == 1:
+        thresh.append(str(0))
     i = 1
+    minVal = float(thresh[0])
+    maxVal = float(thresh[1])
+    valArray = []
     if gsv_values is not None:
         for k in gsv_values:
+            valArray.append(float(k.values()[0]))
+            maxVal = float(k.values()[0]) if float(k.values()[0]) > maxVal else maxVal
+            minVal = float(k.values()[0]) if float(k.values()[0]) < minVal else minVal
             d3BarChart.append({'x': i, 'y': float(k.values()[0]), 'gsid': str(k.values()[1]), 'abr': str(k.values()[0])})
             i += 1
     json.dumps(d3BarChart, default=decimal_default)
     return flask.render_template('viewThreshold.html', geneset=geneset, user_id=user_id, view=view, is_bimodal=is_bimodal,
-                                 d3BarChart=d3BarChart, threshold=thresh)
+                                 d3BarChart=d3BarChart, threshold=thresh, minVal=minVal, maxVal=maxVal, valArray=valArray)
 
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')

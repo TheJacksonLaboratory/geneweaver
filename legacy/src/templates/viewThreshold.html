@@ -58,6 +58,10 @@
         font-size: 14px;
     }
 
+    #sliderMin, #sliderMax {
+        color: #ff4500;
+    }
+
     #chart {
         margin-left: auto;
         margin-right: auto;
@@ -98,6 +102,14 @@
                     </div>
 
                 {% else %}
+                    <div class="row">
+                        <div><p><strong><i class="fa fa-info-circle"></i> Geneset Threshold Values</strong> allow
+                                    you to select a portion of
+                                    a geneset to include for analysis. The value for a gene is indicated on the y-axis, the
+                                    gene name is on the a-axis, sorted by value. Green bars indicate
+                                    genes within the currently set threshold. Us the slider to set new thresholds.</p>
+                        </div>
+                    </div>
 
                     <!-- Bar Chart for frequency -->
                     <div id="barChart" style="padding-bottom: 20pt">
@@ -107,12 +119,26 @@
                         </center>
                     </div>
 
-                    <p>
-                    <label for="amount">Price range:</label>
-                    <input type="text" id="amount" readonly style="border:0; color:#f6931f; font-weight:bold;">
-                    </p>
+                    <div class="row">
+                        <div><p><strong>Current Threshold Values:</strong> {{ threshold[0] }} <i class="fa fa-arrows-h"></i>
+                                {% if threshold[1] == '0' %}
+                                    {{ maxVal }}
+                                {% else %}
+                                    {{ threshold[1] }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
 
-                    <div id="slider-range"></div>
+                    <div class="row">
+                        <p><strong><label for="slider">Set New Threshold Values: </label>
+                            <span id="sliderMin"></span>
+                                <i class="fa fa-arrows-h"></i>
+                            <span id="sliderMax"></span>
+                            </strong>
+                            <input id="slider" type="text" value="" />
+                        </p>
+                    </div>
 
                 {% endif %}
 
@@ -145,24 +171,30 @@
         var b = {{ d3BarChart | safe }};
         var t = {{ threshold[0] | string | safe }};
         var m = {{ threshold[1] | string | safe }};
+        var amts = {{ valArray | safe }};
+
 
         //Call the barchart
-        InitChart.draw(b,t,m);
+        InitChart.draw(b,t,m,amts);
+
+        var minVal = {{ minVal }};
 
 
-$(function() {
-    $( "#slider-range" ).slider({
-      range: true,
-      min: 0,
-      max: 500,
-      values: [ 75, 300 ],
-      slide: function( event, ui ) {
-        $( "#amount" ).val( "$" + ui.values[ 0 ] + " - $" + ui.values[ 1 ] );
-      }
-    });
-    $( "#amount" ).val( "$" + $( "#slider-range" ).slider( "values", 0 ) +
-      " - $" + $( "#slider-range" ).slider( "values", 1 ) );
-  });
+        $("#slider").slider({
+            animate: true,
+            precision: 10,
+            step: 1,
+            value: [0,amts.length-1],
+            min: 0,
+            max: amts.length-1,
+        });
+
+        $("#slider").on("slide", function(s) {
+            $("#sliderMin").text(amts[s.value[0]]);
+            $("#sliderMax").text(amts[s.value[1]]);
+            var minv = amts[s.value[0]];
+            var maxv = amts[s.value[1]];
+        });
 
 
         $("[name='g_id[]']").bootstrapSwitch();
