@@ -11,6 +11,7 @@ phenomemap_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
 @phenomemap_blueprint.route('/run-phenome-map.html', methods=['POST'])
 def run_tool():
+    print 'dbg run phenome map'
     # TODO need to check for read permissions on genesets
 
     form = flask.request.form
@@ -76,6 +77,7 @@ def run_tool():
         },
         task_id=task_id)
 
+    print 'dbg result: ' + str(async_result)
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
@@ -88,6 +90,7 @@ def run_tool():
 
 @phenomemap_blueprint.route('/run-phenome-map-api.html', methods=['POST'])
 def run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, permutations, disableBootstrap, minOverlap, nodeCutoff, geneIsNode, useFDR, hideUnEmphasized, p_Value, maxLevel, genesets):
+    print 'dbg run tool api'
     # TODO need to check for read permissions on genesets
     user_id = gwdb.get_user_id_by_apikey(apikey)
 
@@ -214,6 +217,7 @@ def view_result(task_id):
 
 @phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
+    print 'dbg tool-class-status'
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
