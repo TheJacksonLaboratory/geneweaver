@@ -250,6 +250,7 @@ def json_login():
 
 @app.route('/analyze.html')
 def render_analyze():
+    print 'dbg analyze'
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
@@ -289,6 +290,7 @@ def render_shareprojects():
 
 @app.route('/analyze_new_project/<string:pj_name>.html')
 def render_analyze_new_project(pj_name):
+    print 'dbg analyze proj'
     args = flask.request.args
     active_tools = geneweaverdb.get_active_tools()
     user = geneweaverdb.get_user(flask.session.get('user_id'))
@@ -876,6 +878,18 @@ def render_search_json():
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
 
+@app.route('/projectGenesets.json', methods=['GET'])
+def render_project_genesets():
+    uid = flask.session.get('user_id')
+    ## Project (ID) that the user wants to view
+    pid = flask.request.args['project']
+    genesets = geneweaverdb.get_genesets_for_project(pid, uid)
+
+    return flask.render_template('singleProject.html', 
+                                 genesets = genesets,
+                                 proj = {'project_id': pid} )
+
+
 
 #****** ADMIN ROUTES ******************************************************************
 
@@ -1176,13 +1190,11 @@ def render_user_results():
         columns.append({'name': 'res_id'})
         columns.append({'name': 'res_runhash'})
         columns.append({'name': 'res_duration'})
-        #columns.append({'name': 'res_name'})
+        columns.append({'name': 'res_name'})
         columns.append({'name': 'res_created'})
         columns.append({'name': 'res_description'})
         columns.append({'name': 'res_tool'})
-        #headerCols = ["", "Name", "Created", "Description", "ID", "RunHash", "Duration"]
-        headerCols = ["", "Created", "Description", "ID", "RunHash", "Duration"]
-        #headerCols = ["", "Description", "Created", "ID", "RunHash", "Duration"]
+        headerCols = ["", "Name", "Created", "Description", "ID", "RunHash", "Duration"]
     else:
         headerCols, user_id, columns = None, 0, None
     return flask.render_template('results.html', headerCols=headerCols, user_id=user_id, columns=columns, table=table)

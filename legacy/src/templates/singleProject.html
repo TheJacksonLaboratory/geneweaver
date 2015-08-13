@@ -1,0 +1,66 @@
+
+{% for gs in genesets %}
+	<tr>
+		<td>
+			<input
+						data-parentproject="{{ proj.project_id }}"
+						type="checkbox"
+						name="geneset_{{ gs.geneset_id }}"
+						class="table-checkbox"
+						>
+		</td>
+		<span></span>
+		<td>
+			{% include 'viewGenesetSummaryPartial.html' %}
+		</td>
+	</tr>
+{% endfor %}
+
+<script type="text/javascript">
+    function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
+        var allChecked = true;
+        genesetCheckboxes.each(function(i, gsCheckbox) {
+            gsCheckbox = $(gsCheckbox);
+            if(!gsCheckbox.prop('checked')) {
+                allChecked = false;
+                return false;
+            }
+        });
+
+        projCheckbox.prop('checked', allChecked);
+    }
+
+    function projectCheckboxChanged(projCheckbox, genesetCheckboxes) {
+        var projChecked = projCheckbox.prop('checked');
+        genesetCheckboxes.each(function(i, gsCheckbox) {
+            gsCheckbox = $(gsCheckbox);
+            gsCheckbox.prop('checked', projChecked);
+        });
+    }
+
+    $(function() {
+        $('.proj-checkbox').each(function(i, projCheckbox) {
+            projCheckbox = $(projCheckbox);
+            var projID = projCheckbox.attr('data-project');
+            var genesetCheckboxes = $('[data-parentproject=\'' + projID + '\']');
+
+            projCheckbox.change(function() {
+                console.log('proj change happended');
+                projectCheckboxChanged(projCheckbox, genesetCheckboxes);
+            });
+
+            console.log('the proj is: ' + projID);
+
+            genesetCheckboxes.each(function(i, gsCheckbox) {
+                gsCheckbox = $(gsCheckbox);
+                console.log('registering');
+                console.log(gsCheckbox);
+                gsCheckbox.change(function() {
+                    console.log('gs change happended');
+                    genesetCheckboxChanged(projCheckbox, genesetCheckboxes);
+                });
+            });
+        });
+    });
+
+</script>
