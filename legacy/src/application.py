@@ -819,10 +819,14 @@ def render_searchFromHome():
     ## Terms from the search bar, as a list since there can be <= 3 terms
     terms = request.args.getlist('searchbar')
     sortby = request.args.get('sortBy')
-    print 'debug search from home'
+
+    ## If terms is empty, we can assume a) the user submitted a blank search,
+    ## or b) the user clicked on the search link. Both are handled the same way
+    if not terms or (len(terms) == 1 and not terms[0]):
+        return flask.render_template('search.html', paginationValues = None)
+
     if flask.request.method == 'GET':
         args = flask.request.args
-        print 'debug args: ' + str(args)
     #pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
     pagination_page = int(request.args.get('pagination_page'))
     #Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
