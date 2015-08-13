@@ -23,6 +23,7 @@
 {% if runhash %}
 	<script type="text/javascript">
 
+		console.log('wtf');
 		var graph_url = '/results/' + '{{async_result.result_image}}';
 		var xml = '';
 		$.get(graph_url, function(data) { xml=data; load_cytoscape(); });
@@ -111,6 +112,12 @@
     </div>
 </form>
 
+{# 	
+	A fucking hack, since for some reason the tools return SUCCESS even when
+	they fail. Checks to see if the results have a key, 'failed', which
+	contains the error message for the failure.
+#}
+{% if not async_result.failed %}
 <div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
     <br/>
     <br/>
@@ -134,6 +141,14 @@
         <tr><td><b>Panning mode:</b></td><td> drag background</br></td></tr>
     </table>
 </div>
+{% else %}
+	<div class="panel-body bg-red p-15" style="text-align:center">
+		<strong>
+			No bicliques were found during the analysis. Try running the
+			tool again using different parameters.
+		</strong>
+	</div>
+{% endif %}
 
 <script type="text/javascript">
     function loadStats() {
