@@ -123,7 +123,7 @@
 						d.tooltip();
 						d.click(function () {
 							var runhash = oData[5];
-							var url = '../reruntool.json';
+							var url = '/reruntool.json';
 							var data = {
 								'runHash': runhash, 
 								'user_id': user_id
@@ -139,11 +139,19 @@
 								var genesets = data['gs_ids'].join(' ');
 								form['genesets'] = genesets;
 
-								if (data['tool'] === 'HiSim Graph') {
-
+								// This is ugly but easy...
+								if (data['tool'] === 'ABBA Gene-Centered Search')
+									$.redirectPost('/run-abba.html', form);
+								if (data['tool'] === 'Combine')
+									$.redirectPost('/run-combine.html', form);
+								if (data['tool'] === 'Clustering')
+									$.redirectPost('/JaccardClustering.html', form);
+								if (data['tool'] === 'GeneSet Graph')
+									$.redirectPost('/run-geneset-viewer.html', form);
+								if (data['tool'] === 'HiSim Graph')
 									$.redirectPost('/run-phenome-map.html', form);
-								}
-									
+								if (data['tool'] === 'Jaccard Similarity')
+									$.redirectPost('/run-jaccard-similarity.html', form);
 							});
 						});
 

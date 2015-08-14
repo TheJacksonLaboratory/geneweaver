@@ -480,18 +480,21 @@ def viewStoredResults_by_runhash():
 
 @app.route('/reruntool.json', methods=['POST', 'GET'])
 def rerun_tool():
-    print 'dbg rerun'
-    #form = flask.request.form
     args = flask.request.args
-    #user_id = form['user_id']
     user_id = args['user_id']
-    #results = geneweaverdb.get_results_by_runhash(form['runHash'])
     results = geneweaverdb.get_results_by_runhash(args['runHash'])
     results = results[0][0]
     data = json.loads(results['res_data'])
     tool = results['res_tool']
     params = data['parameters']
-    gs_ids = data['gs_ids']
+
+    ## fucking inconsistent naming conventions
+    if data.get('gs_ids', None) and data['gs_ids']:
+        gs_ids = data['gs_ids']
+    elif data.get('genesets', None) and data['genesets']:
+        gs_ids = data['genesets']
+    else:
+        gs_ids = []
 
     return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 

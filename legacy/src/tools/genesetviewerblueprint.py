@@ -9,7 +9,7 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'GeneSetViewer'
 geneset_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@geneset_viewer_blueprint.route('/run-genesest-viewer.html', methods=['POST'])
+@geneset_viewer_blueprint.route('/run-geneset-viewer.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
