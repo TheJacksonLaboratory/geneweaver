@@ -100,7 +100,7 @@ var InitChart = {
 
 
                 d3.select(this)
-                    .attr('fill','red');
+                    .attr('fill','#0000ff');
 
             })
             .on('mouseout',function(d){
@@ -124,6 +124,56 @@ var InitChart = {
                     });
             });
 
+                $("#slider").on("slide", function(d) {
+                    var a = d.value[0];
+                    var m = d.value[1];
+                    var e = amts[a];
+                    var n = amts[m];
+                    vis.selectAll('rect')
+                        .attr('x', function (d) {
+                            return xRange(d.x);
+                        })
+                        .attr('y', function (d) {
+                            return yRange(d.y);
+                        })
+                        .attr('width', xRange.rangeBand())
+                        .attr('height', function (d) {
+                            return ((HEIGHT-MARGINS.bottom) - yRange(d.y));
+                        })
+                        .attr('fill', function(d) {
+
+                            var topy = d3.max(barData, function (d) {
+                                return d.y;
+                            });
+
+                            maxrangey = threshold2 != 0 ? threshold2 : topy;
+
+                            if (d.y == e || d.y == n) {
+                               return '#ff4500';
+                            }
+                            else if (d.y >= threshold1 && d.y <= maxrangey) {
+                                return '#00CC00'
+                            }
+                            else {
+                                return '#D3D3D3'
+                            }
+
+                        });
+
+					//tooltip
+					//	.attr('x', function(d) {
+                    //        return xRange(d.x)
+                    //    })
+					//	.attr('y', HEIGHT-MARGINS.bottom+20)
+					//	.text('Min')
+					//	.transition(200)
+                    //    .style('fill', '#ff4500')
+					//	.style('opacity', 1);
+
+        });
+
+
+
 
 
         //Tooltip
@@ -133,23 +183,7 @@ var InitChart = {
             .style('font-weight', 'bold')
             .style('font-size', '13px');
 
-        $("#slider").on("slide", function(e) {
-            var m = e.value[0];
-            vis.append("rect")
-                .attr('x', function () {
-                    //alert(vis.xRange(d.z));
-                    return m + MARGINS.left;
-                })
-                .attr('y', function () {
-                    return MARGINS.bottom;
-                })
-                .attr('width', xRange.rangeBand())
-                .attr('height', function () {
-                    return HEIGHT-MARGINS.bottom;
-                })
-                .attr('fill', "#OOOOOO")
 
-        });
 
 
     }

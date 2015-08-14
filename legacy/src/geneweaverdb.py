@@ -724,6 +724,18 @@ def edit_results_by_runhash(rargs):
         cursor.connection.commit()
         return
 
+def update_threshold_values(rargs):
+    user_id = rargs.get('user_id', type=int)
+    min = rargs.get('min', type=float)
+    max = rargs.get('max', type=float)
+    gs_id = rargs.get('gs_id', type=int)
+    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id, gs_id) != 0:
+        minmax = str(min)+','+str(max)
+        with PooledCursor() as cursor:
+            cursor.execute('''UPDATE geneset SET gs_threshold_type=5, gs_threshold=%s WHERE gs_id=%s''', (minmax, gs_id,))
+            cursor.connection.commit
+            return
+
 
 def get_server_side_genesets(rargs):
     user_id = rargs.get('user_id', type=int)

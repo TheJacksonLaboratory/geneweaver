@@ -132,9 +132,9 @@
 
                     <div class="row">
                         <p><strong><label for="slider">Set New Threshold Values: </label>
-                            <span id="sliderMin"></span>
+                            <span id="sliderMin">{{ minVal }}</span>
                                 <i class="fa fa-arrows-h"></i>
-                            <span id="sliderMax"></span>
+                            <span id="sliderMax">{{ maxVal }}</span>
                             </strong>
                             <input id="slider" type="text" value="" />
                         </p>
@@ -147,14 +147,14 @@
             {#  right side menu #}
             <div class="col-xs-6 col-md-3">
 
-                <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
                     <i class="fa fa-arrow-left pull-left"></i> Back to Geneset
                 </button>
                 {% if view == 'True' %}
-                    <button type="button" class="btn btn-lg btn-block btn-warning" id="viewSimilarGenesets">
+                    <button type="button" class="btn btn-lg btn-block btn-warning" id="saveThreshold">
                         <i class="fa fa-save pull-left"></i> Save Threshold
                     </button>
-                    <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
+                    <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelThreshold">
                         <i class="fa fa-times pull-left"></i> Cancel Threshold
                     </button>
                 {% endif %}
@@ -214,6 +214,47 @@
 
 
         $(document).ready(function () {
+            $('#viewGenesetDetails').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../viewgenesetdetails/'+gsid;
+            });
+            $('#cancelThreshold').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                window.location.href = '../viewgenesetdetails/'+gsid;
+            });
+            $('#saveThreshold').on('click', function (e) {
+                var min = $('#sliderMin').text();
+                var max = $('#sliderMax').text();
+                $.trim(min);
+                $.trim(max);
+                //update geneset_value for the sp_id
+                $.ajax({
+                        type: "GET",
+                        url: "../saveThresholdValues",
+                        data: {"min": min, "max": max, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                        success: function (data) {
+                            var v = JSON.parse(data);
+                            if (v["error"] == 'None') {
+                                location.reload();
+                                //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                                $("#result").html('<div class="alert alert-success fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>Geneset Thresholds Successfully Reset</div>');
+                            }
+                            else {
+                                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>An ERROR occured. ' + v["error"] + '</div>');
+                            }
+                            },
+                            error: function(){
+                                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>An error occured while updating thresholds.</div>');
+                            }
+                    });
+
+            });
 
         });
 

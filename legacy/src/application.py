@@ -389,6 +389,19 @@ def render_set_threshold(gs_id):
                                  d3BarChart=d3BarChart, threshold=thresh, minVal=minVal, maxVal=maxVal, valArray=valArray)
 
 
+@app.route('/saveThresholdValues', methods=['GET'])
+def save_threshold_values():
+    if 'user_id' in flask.session:
+        try:
+            float(str(request.args['min']))
+            float(str(request.args['max']))
+        except ValueError:
+            results = {'error': 'No Threshold values were selected'}
+            return json.dumps(results)
+    results = geneweaverdb.update_threshold_values(request.args)
+    return json.dumps(results)
+
+
 # @app.route('/editgenesetgenes2/<int:gs_id>')
 # def render_editgenesets_genes_2(gs_id):
 #     if 'user_id' in flask.session:
@@ -488,7 +501,7 @@ def rerun_tool():
     tool = results['res_tool']
     params = data['parameters']
 
-    ## fucking inconsistent naming conventions
+    ## inconsistent naming conventions
     if data.get('gs_ids', None) and data['gs_ids']:
         gs_ids = data['gs_ids']
     elif data.get('genesets', None) and data['genesets']:
