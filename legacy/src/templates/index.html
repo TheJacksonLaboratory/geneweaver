@@ -1,4 +1,25 @@
 {% include 'header.html' %}
+<style>
+
+	/* Autocomplete theming */
+	.ui-autocomplete {
+
+		position: relative;
+		background-color: white;
+		opacity: 1.0;
+		z-index: 666;
+		border: 1px solid #000;
+		width: 50%;
+		text-align: left;
+	}
+
+	.ui-helper-hidden-accessible {
+		position: relative;
+		visibility: hidden;
+		display: hidden;
+	}
+
+</style>
 <script>
     $(function () {
 //Get the search suggestions from the server
@@ -18,7 +39,13 @@
         })();
 
         $("#searchbar").autocomplete({
-            source: suggestedSearchTermsData
+            source: suggestedSearchTermsData,
+			response: function(event, ui) {
+				
+				// this shit looks ugly and kept messing up the layout
+				if (ui.content.length === 0)
+					$('.ui-helper-hidden-accessible').remove();
+			}
         });
     });
 

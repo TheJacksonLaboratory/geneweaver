@@ -11,7 +11,6 @@ phenomemap_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
 @phenomemap_blueprint.route('/run-phenome-map.html', methods=['POST'])
 def run_tool():
-    print 'dbg run phenome map'
     # TODO need to check for read permissions on genesets
 
     form = flask.request.form
@@ -77,7 +76,6 @@ def run_tool():
         },
         task_id=task_id)
 
-    print 'dbg result: ' + str(async_result)
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
