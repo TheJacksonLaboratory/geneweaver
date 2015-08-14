@@ -3,83 +3,84 @@
 
 {% if searchFilters is defined %}
 <script>
-$(document).ready(function() {
 
+	$(document).ready(function() {
 
 //Set up the slider for gene count values, and change value on slider update
- $( "#slider-range" ).slider({
-range: true,
-//Establish the range of slider values
-min: {{searchFilters.geneCounts.geneCountMin}},
-max: {{searchFilters.geneCounts.geneCountMax}},
-//Set the initial values
-values: [ 
-{% if userFilters is defined %}
-{{userFilters.geneCounts.geneCountMin}} 
-{% else%}
-{{searchFilters.geneCounts.geneCountMin}}
-{% endif %}
-, {% if userFilters is defined %}
-{{userFilters.geneCounts.geneCountMax}} 
-{% else%}
-{{searchFilters.geneCounts.geneCountMax}}
-{% endif %} 
-],
-//Update the form on each slide event
-slide: function( event, ui ) {
-$( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
-$( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
-//Update the label
-$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).slider( "values", 0 )+" to " + $( "#slider-range" ).slider( "values", 1 ));
-},
-start: function (event, ui) {
-this.previous_low = ui.values[0];
-this.previous_high = ui.values[1];
-},
-stop: function (event, ui) {
-if (ui.values[0] != this.previous_low ||
-ui.values[1] != this.previous_high) {
-$( "#filterForm" ).change();
-}
-}
-});
+// $( "#slider-range" ).slider({
+//range: true,
+////Establish the range of slider values
+//min: {{searchFilters.geneCounts.geneCountMin}},
+//max: {{searchFilters.geneCounts.geneCountMax}},
+////Set the initial values
+//values: [ 
+//{% if userFilters is defined %}
+//{{userFilters.geneCounts.geneCountMin}} 
+//{% else%}
+//{{searchFilters.geneCounts.geneCountMin}}
+//{% endif %}
+//, {% if userFilters is defined %}
+//{{userFilters.geneCounts.geneCountMax}} 
+//{% else%}
+//{{searchFilters.geneCounts.geneCountMax}}
+//{% endif %} 
+//],
+////Update the form on each slide event
+//slide: function( event, ui ) {
+//$( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
+//$( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
+////Update the label
+//$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).slider( "values", 0 )+" to " + $( "#slider-range" ).slider( "values", 1 ));
+//},
+//start: function (event, ui) {
+//this.previous_low = ui.values[0];
+//this.previous_high = ui.values[1];
+//},
+//stop: function (event, ui) {
+//if (ui.values[0] != this.previous_low ||
+//ui.values[1] != this.previous_high) {
+//$( "#filterForm" ).change();
+//}
+//}
+//});
 //Set initial values for minimum label
-$( "#geneCountMin" ).val( "" + $( "#slider-range" ).slider( "values", 0 ));
-//Set initial values for maximum label
-$( "#geneCountMax" ).val( "" + $( "#slider-range" ).slider( "values", 1 ));
-//Update the label
-$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).slider( "values", 0 )+" to " + $( "#slider-range" ).slider( "values", 1 ));
+//$( "#geneCountMin" ).val( "" + $( "#slider-range" ).slider( "values", 0 ));
+////Set initial values for maximum label
+//$( "#geneCountMax" ).val( "" + $( "#slider-range" ).slider( "values", 1 ));
+////Update the label
+//$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).slider( "values", 0 )+" to " + $( "#slider-range" ).slider( "values", 1 ));
 
-//On filter form change, update the page, performing a new search.
-//This script calls a new paginated search anytime a filter option is changed in the filter panel. The resulting HTML view of the results are put inside the search wrapper div.
+		// On filter form change, update the page, performing a new search.
+		// This script calls a new paginated search anytime a filter option is
+		// changed in the filter panel. The resulting HTML view of the results 
+		// are put inside the search wrapper div.
+		$( "#filterForm" ).on( "change", function( event ) {
+			
+			// Stop form from submitting normally
+			event.preventDefault();
 
-//$( "#filterForm" ).on( "change", function( event ) {
-$( ".fff" ).on( "change", function( event ) {
-	
-	// Stop form from submitting normally
-	event.preventDefault();
+			// Send the data using post
+			var $form = $( this ),
+			url = $form.attr( "action" );
+			var sortby = $('#sortBy').val();
+			//The data to send is both the parameters from the filters and the search bar
+			var data = $( "#filterForm" ).serialize() + "&"+$( "#searchBarForm").serialize();
+			//var data = $( ".fff" ).serialize() + "&"+$( "#searchBarForm").serialize();
+			//data += '&sortBy=' + sortby;
 
-	// Send the data using post
-	var $form = $( this ),
-	url = $form.attr( "action" );
-	var sortby = $('#sortBy').val();
-	//The data to send is both the parameters from the filters and the search bar
-	//var data = $( "#filterForm" ).serialize() + "&"+$( "#searchBarForm").serialize();
-	var data = $( ".fff" ).serialize() + "&"+$( "#searchBarForm").serialize();
-	//data += '&sortBy=' + sortby;
-
-	console.log(data);
-	var posting = $.post( url, data );
-	// Put the results in a div
-	posting.done(function( data ) {
-		//Update the searchwrapper with the results
-		$( "#replaceConentsOnUpdatedSeach" ).html( data ).trigger("create");
-		// Continue to save our ordering
-		//$('#sortBy').val(sortby);
+			console.log(data);
+			// Put the results in a div
+			$.post(url, data).done(function( data ) {
+				//Update the searchwrapper with the results
+				$( "#replaceConentsOnUpdatedSeach" ).html( data ).trigger("create");
+				// Continue to save our ordering
+				//$('#sortBy').val(sortby);
+			});
+		});
 	});
-});
-});
+
 </script>
+
 {% endif %}
 
 <!-- TODO remove inline CSS to something else?-->
