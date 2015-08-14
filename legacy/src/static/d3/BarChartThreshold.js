@@ -134,13 +134,20 @@ var InitChart = {
             .style('font-size', '13px');
 
         $("#slider").on("slide", function(e) {
-            var m = (amts[e.value[0]]);
+            var m = e.value[0];
             vis.append("rect")
-                .attr('x', 0)
-                .attr('y', 120)
-                .attr('width', 20)
-                .attr('height', 200)
-                .attr("stroke", "#OOOOOO")
+                .attr('x', function () {
+                    //alert(vis.xRange(d.z));
+                    return m + MARGINS.left;
+                })
+                .attr('y', function () {
+                    return MARGINS.bottom;
+                })
+                .attr('width', xRange.rangeBand())
+                .attr('height', function () {
+                    return HEIGHT-MARGINS.bottom;
+                })
+                .attr('fill', "#OOOOOO")
 
         });
 
