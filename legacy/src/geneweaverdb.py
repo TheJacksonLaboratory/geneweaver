@@ -733,8 +733,8 @@ def update_threshold_values(rargs):
         minmax = str(min)+','+str(max)
         with PooledCursor() as cursor:
             cursor.execute('''UPDATE geneset SET gs_threshold_type=5, gs_threshold=%s WHERE gs_id=%s''', (minmax, gs_id,))
-            cursor.connection.commit
-            return
+            cursor.connection.commit()
+            return {'error': 'None'}
 
 
 def get_server_side_genesets(rargs):
