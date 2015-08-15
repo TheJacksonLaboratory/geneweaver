@@ -207,6 +207,49 @@ def reparse_file_contents_simple(gs_id, species=None, gdb=None):
                                             cursor.connection.commit()
                     return 'True'
 
+
+def make_file_content_string_from_temp_geneset(gsid):
+    contents = ''
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT src_id, src_value FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
+        results = cursor.fetchall()
+        for i in results:
+            contents = contents + str(i[0]) + '\t' + str(i[1]) + '\n'
+        return contents
+
+
+def write_file_contents_to_file(gsid, contents):
+    with PooledCursor() as cursor:
+        cursor.execute('''UPDATE file SET file_contents=%s FROM geneset
+                          WHERE geneset.gs_id=%s AND geneset.file_id=file.file_id''', (contents, gsid,))
+        cursor.connection.commit()
+        return
+
+
+def update_geneset_species(gsid):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM (SELECT sp_id FROM geneset WHERE gs_id=%s UNION
+                          SELECT sp_id FROM temp_geneset_meta WHERE gs_id=%s) as a''', (gsid, gsid,))
+        if cursor.rowcount != 1:
+            cursor.execute('''UPDATE geneset gs SET sp_id=t.sp_id FROM temp_geneset_meta t
+                              WHERE gs.gs_id=t.gs_id AND t.gs_id=%s''', (gsid,))
+            return
+        else:
+            return
+
+
+def update_geneset_identifier(gsid):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM (SELECT gs_gene_id_type FROM geneset WHERE gs_id=%s UNION
+                          SELECT gdb_id FROM temp_geneset_meta WHERE gs_id=%s) as a''', (gsid, gsid,))
+        if cursor.rowcount != 1:
+            cursor.execute('''UPDATE geneset gs SET gs_gene_id_type=t.gdb_id FROM temp_geneset_meta t
+                              WHERE gs.gs_gene_id_type=t.gdb_id AND t.gs_id=%s''', (gsid,))
+            return
+        else:
+            return
+
+
 def insert_into_geneset_value_by_gsid(gsid):
     '''
     Given a gs_id, insert the rows into extsrc.geneset_value table from our temp table.
@@ -219,19 +262,26 @@ def insert_into_geneset_value_by_gsid(gsid):
         if g is not None:
             if int(g[0]) == int(gsid):
                 with PooledCursor() as cursor:
-                    cursor.execute('''DELETE FROM extsrc.geneset_value WHERE gs_id=%s;''' % (gs_id,))
+                    cursor.execute('''DELETE FROM extsrc.geneset_value WHERE gs_id=%s;''' % (gsid,))
                     cursor.execute('''INSERT INTO extsrc.geneset_value (gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list,
                                      gsv_value_list, gsv_in_threshold, gsv_date)
                                          SELECT gs_id, ode_gene_id, avg(src_value) as gsv_value,
                                            count(ode_gene_id) as gsv_hits, array_accum(src_id) as gsv_source_list,
                                            array_accum(src_value) as gsv_value_list,'t' as gsv_in_threshold, now() as gsv_date
                                            FROM production.temp_geneset_value
-                                           WHERE gs_id=%s GROUP BY gs_id,ode_gene_id ORDER BY ode_gene_id;''' % (gs_id,))
-                    cursor.execute('''DELETE FROM production.temp_geneset_value WHERE gs_id=%s;''' % (gs_id,))
+                                           WHERE gs_id=%s GROUP BY gs_id,ode_gene_id ORDER BY ode_gene_id;''' % (gsid,))
+                    ## Update geneset sp_id and identifier
+                    update_geneset_species(gsid)
+                    update_geneset_identifier(gsid)
+                    ## delete files from temp tables
+                    cursor.execute('''DELETE FROM production.temp_geneset_value WHERE gs_id=%s;''' % (gsid,))
+                    cursor.execute('''DELETE FROM production.temp_geneset_meta WHERE gs_id=%s;''' % (gsid,))
+                    ## Write contents to file_contents for permanent storage
+                    contents = make_file_content_string_from_temp_geneset(gsid)
+                    write_file_contents_to_file(gsid, contents)
                     cursor.connection.commit()
+                    return {'error': 'None'}
         else:
-            return 'Error: Temp table does not contain gs_id'
-
-
+            return {'error': 'Temp table does not contain GS' + gsid}
 
 
