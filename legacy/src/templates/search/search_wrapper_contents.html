@@ -57,11 +57,11 @@
 {% if paginationValues != None %}
 
 	<div class="row">
-		<div class="col-lg-4">
+		<div class="col-md-4">
 			{% include 'search/search_filters_panel.html' %}
 		</div>
 
-	<div class="col-lg-8">
+	<div class="col-md-8">
 <!-- Define a form used for submitting future search requests. The action and method must match what routes are expecting. -->
 <!-- Note that search_filters_panel.html javascript depends on this id being properly  set in the form below for the search bar-->
 	<form action="/search/" method="GET" id="searchBarForm">
