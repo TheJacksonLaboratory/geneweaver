@@ -72,14 +72,11 @@
 
 	{% if paginationValues.numResults == 1000 and paginationValues.totalFound > 1000 %}
 
-		<div class="panel-body bg-red p-15">
-			<strong>
-				Search results are limited to 1000 results out of 
-				{{paginationValues.totalFound}}. Try refining your search.
-			</strong>
+		<div class="alert alert-danger fade in">
+			<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+			Search results are limited to 1000 results out of {{paginationValues.totalFound}}. Try refining your search.
 		</div>
 
-		<br />
 	{% endif %}
 
 	<!-- Show the panel heading with pagination, found in the search_results_header.html partial -->
