@@ -14,7 +14,8 @@
 	</script>
 
 	<!-- Script for adding geneset to selected projects-->
-	<script type="text/javascript">function addToSelected(geneset_id) {
+	<script type="text/javascript">
+	function addToSelected(geneset_id) {
 		var selector = ".modal_checkbox_" + geneset_id;
 		$(selector).each(function() {
 			if(this.checked)
@@ -25,13 +26,48 @@
 			}
 		});
 	}
+	$(document).ready(function() {
+	
+
+		$(".rowExpand").on('click', function() {
+
+    			var childId = $(this).parents("tr").prop("id");
+			var hidden = $("#genesetdetails_" + childId).is(":visible");
+    			$("#genesetdetails_" + childId).toggle();
+			if (hidden) {
+    				$("#onGenesetChevron_" + childId).toggle();
+				$("#offGenesetChevron_" + childId).toggle();
+			}
+			else {
+				$("#offGenesetChevron_" + childId).toggle();
+				$("#onGenesetChevron_" + childId).toggle();
+			}
+		});
+	});
+
+
 	</script>
 
+	<style type="text/css">
 
+    	.rowExpand {
+        	cursor: "pointer";
+    		}
+
+	</style>
+
+
+	<tr class="genesetdetails" id="{{gs.geneset_id}}">
 		<td>
+			<!--
 			<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
 				<span class="fa fa-chevron-down"></span>
 			</a>
+			-->
+			<span class="rowExpand">
+				<span id="onGenesetChevron_{{gs.geneset_id}}" style="display: none;"><i class="fa fa-minus fa-lg"></i></span>
+				<span id="offGenesetChevron_{{gs.geneset_id}}"><i class="fa fa-plus fa-lg"></i></span>
+			</span>
 		</td>
 
 	<td>
@@ -100,6 +136,7 @@
 
 	<td>
 
+ 	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a>
 	<!-- need status for if not normal -->
 	{% if gs.status != "normal" %}
 	<span class="gs_status gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
@@ -121,16 +158,15 @@
 			});
 		</script>
 	{% endif %}
- 	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a>
-	
+</td></tr>	
 
-	<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">
+	<!--<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">-->
 	<!-- ##################### Geneset metadata #################3-->
-			
+	<tr id="genesetdetails_{{gs.geneset_id}}" style="display: none;"><td colspan="100%">		
             <table class="genesetMeta" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                     <th>Figure Label:</th>
-                    <td style="width: 30em;">{{gs.abbreviation}}</td>
+                    <td style="width: 75%;">{{gs.abbreviation}}</td>
                 </tr>
 
                 <!-- TODO account for null authors, get Publication info -->
@@ -154,7 +190,8 @@
                 </tr>
 		{% endif %}
             </table>
-	</div>
+	
+	
 
 
 
@@ -191,4 +228,4 @@
 	</div>
 	{% endif %}
 
-	</td>
+	</td></tr>
