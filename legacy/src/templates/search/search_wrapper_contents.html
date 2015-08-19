@@ -72,9 +72,12 @@
 
 	{% if paginationValues.numResults == 1000 and paginationValues.totalFound > 1000 %}
 
-		<div class="alert alert-danger fade in">
-			<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-			Search results are limited to 1000 results out of {{paginationValues.totalFound}}. Try refining your search.
+		<div class="row">
+			<div class="alert alert-danger fade in">
+				<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+				Search results are limited to 1000 results out of {{ paginationValues.totalFound }}. Try refining your
+				search.
+			</div>
 		</div>
 
 	{% endif %}
@@ -116,7 +119,7 @@
 					</th>
 					<th>
 						<nobr>
-							Attributes
+							Attr.
 						</nobr>
 					</th>
 					<th>
