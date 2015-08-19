@@ -1694,4 +1694,4 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 
 if __name__ == '__main__':
     app.debug = True
-    app.run()
+    app.run(host='10.3.4.114')

@@ -29,9 +29,9 @@
 
 
 		<td>
-	<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
-		<span class="fa fa-chevron-down"></span>
-	</a>
+			<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
+				<span class="fa fa-chevron-down"></span>
+			</a>
 		</td>
 
 	<td>
@@ -96,6 +96,10 @@
 		<span class="mp">MP</span>
 	{% endif %}
 	
+	</td>
+
+	<td>
+
 	<!-- need status for if not normal -->
 	{% if gs.status != "normal" %}
 	<span class="gs_status gs_{{gs.status}}" title="This GeneSet has been marked as {{gs.status}}">{{gs.status}}</span>
@@ -117,11 +121,8 @@
 			});
 		</script>
 	{% endif %}
-	</td>
-
-	<td>
  	<a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}} </a>
-	<br>
+	
 
 	<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">
 	<!-- ##################### Geneset metadata #################3-->
