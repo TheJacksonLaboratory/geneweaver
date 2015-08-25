@@ -17,6 +17,18 @@
         return data;
     };
 
+    // Loading spinner because some search filters/options take a few seconds
+    jQuery.ajaxSetup({
+        beforeSend: function() {
+            $('#loader').show();
+        },
+        complete: function(){
+            $('#loader').hide();
+        },
+        success: function() {}
+    });
+
+
     $(document).ready(function () {
 
         var url = '/searchFilter.json';
@@ -45,6 +57,8 @@
     });
 
 </script>
+
+<div class="loader" style="display:none"></div>
 
 {% if paginationValues == None %}
 
