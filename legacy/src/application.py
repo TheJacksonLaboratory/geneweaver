@@ -401,6 +401,15 @@ def save_threshold_values():
     results = geneweaverdb.update_threshold_values(request.args)
     return json.dumps(results)
 
+@app.route('/updateGenesetGenes', methods=['GET'])
+def update_geneset_genes():
+    if 'user_id' in flask.session:
+        user_id = request.args['user_id']
+        gs_id = request.args['gs_id']
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.get_user(user_id).is_curator != 'False' \
+                or geneweaverdb.user_is_owner(user_id, gs_id) != 0:
+            results = uploadfiles.insert_into_geneset_value_by_gsid(gs_id)
+            return json.dumps(results)
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')
 # def render_editgenesets_genes_2(gs_id):
@@ -1685,4 +1694,5 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 
 if __name__ == '__main__':
     app.debug = True
+    #app.run(host='10.3.4.114')
     app.run()

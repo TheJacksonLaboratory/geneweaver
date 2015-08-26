@@ -1,149 +1,177 @@
 <script type="text/javascript">
 
-	//// serializeForms
-	//
-	//// Serializes all of the search form related data. If the user requests
-	//// sorting then the sortby argument is filled with the sort parameter
-	//// (e.g. tier, size, species, etc.).
-	//
-	var serializeForms = function(sortby) {
+    //// serializeForms
+    //
+    //// Serializes all of the search form related data. If the user requests
+    //// sorting then the sortby argument is filled with the sort parameter
+    //// (e.g. tier, size, species, etc.).
+    //
+    var serializeForms = function (sortby) {
 
-		var data = $('#filterForm').serialize() + '&';
-		data += $('#searchBarForm').serialize();
+        var data = $('#filterForm').serialize() + '&';
+        data += $('#searchBarForm').serialize();
 
-		//if (sortby !== undefined)
-		//	data += '&sortBy=' + sortby;
+        //if (sortby !== undefined)
+        //	data += '&sortBy=' + sortby;
 
-		return data;
-	};
+        return data;
+    };
 
-	$(document).ready(function() {
+    // Loading spinner because some search filters/options take a few seconds
+    jQuery.ajaxSetup({
+        beforeSend: function() {
+            $('#loader').show();
+        },
+        complete: function(){
+            $('#loader').hide();
+        },
+        success: function() {}
+    });
 
-		var url = '/searchFilter.json';
 
-		// Sort by...
-		$('.fa-sort').on('click', function(event) {
+    $(document).ready(function () {
 
-			event.preventDefault();
+        var url = '/searchFilter.json';
 
-			// Sort arrow ID; this tells us how to sort
-			var sortby = $(this).attr('id');
-			$('#sortBy').val(sortby);
-			// Gotta grab filter and search data prior to sending our sort data
-			var data = serializeForms(sortby);
-			//console.log('sorts');
-			//console.log(data);
+        // Sort by...
+        $('.fa-sort').on('click', function (event) {
 
-			$.post(url, data).done(function(data) {
+            event.preventDefault();
 
-				$('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
-				// Hidden form value has to be changed too so when other
-				// filters are applied, we don't lose our ordering
-				//$('#sortBy').val(sortby);
-			});
-		});
-	});
+            // Sort arrow ID; this tells us how to sort
+            var sortby = $(this).attr('id');
+            $('#sortBy').val(sortby);
+            // Gotta grab filter and search data prior to sending our sort data
+            var data = serializeForms(sortby);
+            //console.log('sorts');
+            //console.log(data);
+
+            $.post(url, data).done(function (data) {
+
+                $('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
+                // Hidden form value has to be changed too so when other
+                // filters are applied, we don't lose our ordering
+                //$('#sortBy').val(sortby);
+            });
+        });
+    });
 
 </script>
 
+<div class="loader" style="display:none"></div>
+
 {% if paginationValues == None %}
 
-	<form action="/search/" method="GET" id="searchBarForm">
-		{% include'search/search_bar.html' %}
-	</form>
+    <form action="/search/" method="GET" id="searchBarForm">
+        {% include'search/search_bar.html' %}
+    </form>
 
 {% endif %}
 
 {% if paginationValues != None %}
 
-	<div class="row">
-		<div class="col-lg-4">
-			{% include 'search/search_filters_panel.html' %}
-		</div>
+    <div class="row">
+    <div class="col-md-4">
+        {% include 'search/search_filters_panel.html' %}
+    </div>
 
-	<div class="col-lg-8">
-<!-- Define a form used for submitting future search requests. The action and method must match what routes are expecting. -->
-<!-- Note that search_filters_panel.html javascript depends on this id being properly  set in the form below for the search bar-->
-	<form action="/search/" method="GET" id="searchBarForm">
-		{% include'search/search_bar.html' %}
-	</form>
+    <div class="col-md-8">
+        <!-- Define a form used for submitting future search requests. The action and method must match what routes are expecting. -->
+        <!-- Note that search_filters_panel.html javascript depends on this id being properly  set in the form below for the search bar-->
+        <form action="/search/" method="GET" id="searchBarForm">
+            {% include'search/search_bar.html' %}
+        </form>
 
-	<br />
+        <br/>
 
-	{% if paginationValues.numResults == 1000 and paginationValues.totalFound > 1000 %}
+        {% if paginationValues.totalFound == 0 %}
+            <div class="row">
+                <div class="alert alert-warning fade in">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                    Your search returned 0 results.
+                </div>
+            </div>
+        {% else %}
 
-		<div class="panel-body bg-red p-15">
-			<strong>
-				Search results are limited to 1000 results out of 
-				{{paginationValues.totalFound}}. Try refining your search.
-			</strong>
-		</div>
 
-		<br />
-	{% endif %}
+            {% if paginationValues.numResults == 1000 and paginationValues.totalFound > 1000 %}
 
-	<!-- Show the panel heading with pagination, found in the search_results_header.html partial -->
-    <!-- Show the panel heading with pagination -->
-    <div class="panel panel-default">
-	{% include 'search/search_results_header.html' %}
-	<!-- Show the geneset table with geneset results -->
-	<div class="panel-body">
+                <div class="row">
+                    <div class="alert alert-danger fade in">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                        Search results are limited to 1000 results out of {{ paginationValues.totalFound }}. Try
+                        refining your
+                        search.
+                    </div>
+                </div>
 
-		<table id="results" class="table table-hover">
-		<tbody>
-				<tr>
-					<th></th>
-					<th>
-						<nobr>
-							<a id="tier" href="#" >
-								<i id="tier" class="fa fa-sort"></i>
-							</a>
-							Tier
-						</nobr>
-					</th>
-					<th>
-						<nobr>
-							<a id="species" href="#" >
-								<i id="species" class="fa fa-sort"></i>
-							</a>
-							Species
-						</nobr>
-					</th>
-					<th>
-						<nobr>
-							<a id="size" href="#" >
-								<i id="size" class="fa fa-sort"></i>
-							</a>
-							Size
-						</nobr>
-					</th>
-					<th>
-						<nobr>
-							Attributes
-						</nobr>
-					</th>
-					<th>
-						<nobr>
-							<a id="geneset" href="#" >
-								<i id="geneset" class="fa fa-sort"></i>
-							</a>
-							Geneset
-						</nobr>
-					</th>
-				</tr>
-		{% for gs in genesets %}
-		<tr>
-		<!--<td> -->
-		{% include 'viewGenesetSummaryPartial.html' %}
-		<!--</td> -->
-		</tr>
-		<!-- TODO create a selector for adding genesets to projects, link will go here -->
-		{% endfor %}
-		</tbody>
-		</table>
-	</div>
-	</div>
-</div>
+            {% endif %}
+
+
+
+            <!-- Show the panel heading with pagination, found in the search_results_header.html partial -->
+            <!-- Show the panel heading with pagination -->
+            <div class="panel panel-default">
+                {% include 'search/search_results_header.html' %}
+                <!-- Show the geneset table with geneset results -->
+                <div class="panel-body">
+
+                    <table id="results" class="table table-hover">
+                        <tbody>
+                        <tr>
+                            <th></th>
+                            <th>
+                                <nobr>
+                                    <a id="tier" href="#">
+                                        <i id="tier" class="fa fa-sort"></i>
+                                    </a>
+                                    Tier
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="species" href="#">
+                                        <i id="species" class="fa fa-sort"></i>
+                                    </a>
+                                    Species
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="size" href="#">
+                                        <i id="size" class="fa fa-sort"></i>
+                                    </a>
+                                    Size
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    Attr.
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="geneset" href="#">
+                                        <i id="geneset" class="fa fa-sort"></i>
+                                    </a>
+                                    Geneset
+                                </nobr>
+                            </th>
+                        </tr>
+                        {% for gs in genesets %}
+                            <!--<tr>-->
+                            <!--<td> -->
+                            {% include 'viewGenesetSummaryPartial.html' %}
+                            <!--</td> -->
+                            <!--</tr> -->
+                            <!-- TODO create a selector for adding genesets to projects, link will go here -->
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </div>
 {% endif %}
 </div>
 

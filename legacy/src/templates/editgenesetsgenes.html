@@ -216,7 +216,7 @@
         <button type="button" class="btn btn-lg btn-block btn-warning" id="addGenesetGeneValue">
             <i class="fa fa-plus pull-left"></i> Add Gene
         </button>
-        <button type="button" class="btn btn-lg btn-block btn-warning" id="saveGenesetDetails">
+        <button type="button" class="btn btn-lg btn-block btn-warning" id="saveGenesetGenes">
             <i class="fa fa-save pull-left"></i> Save Updates
         </button>
         <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit2">
@@ -396,6 +396,35 @@
                 });
             });
 
+
+        $('#processGenesetGenes').on('click', function (e) {
+            $.ajax({
+                type: "GET",
+                url: "../updateGenesetGenes",
+                data: {"user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        $("#result").html('<div class="alert alert-success fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>Genes Successfully Updated</div>');
+                    }
+                    else {
+                        $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An ERROR occured. ' + v["error"] + '</div>');
+                    }
+                },
+                error: function () {
+                        $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>An error occured while updating genes.</div>');
+                    }
+            });
+        });
+
+
         $('#editSubmitIdentifier').on('click', function(e){
             var val = $('#identifier').children('#selectedIdentifier').text();
             $.trim(val);
@@ -457,6 +486,10 @@
                 $("#cancelEditByGSID").modal('show');
         });
 
+        $('#saveGenesetGenes').on('click', function (e) {
+                $("#verifyGenesetGenes").modal('show');
+        });
+
         $('#processCancelEdit').on('click', function (e) {
             $.ajax({
                 type: "GET",
@@ -489,5 +522,7 @@
 {% include 'modal/cancelEditGeneset.html' %}
 
 {% include 'modal/addGenesetGene.html' %}
+
+{% include 'modal/verifyGenesetGenesSave.html' %}
 
 {% include 'footer.html' %}
