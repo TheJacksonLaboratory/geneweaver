@@ -12,6 +12,9 @@ geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 @geneset_blueprint.route('/uploadgenesetpre/<string:genes>.html')
 def render_uploadgeneset(genes = None):
     gidts = []
+
+    user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
+
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
         gidts.append((
             'gene_{0}'.format(gene_id_type_record['gdb_id']),
@@ -35,7 +38,8 @@ def render_uploadgeneset(genes = None):
             'uploadgeneset.html',
             gs=dict(),
             all_species=geneweaverdb.get_all_species(),
-            gidts=gidts)
+            gidts=gidts,
+            user_id=user_id)
 
 @geneset_blueprint.route('/batchuploadgeneset.html/')
 def render_batchuploadgeneset(genes = None):
