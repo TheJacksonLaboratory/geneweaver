@@ -1,5 +1,3 @@
-Felix is testing this
-
 This is an early version of the README and likely contains several mistakes.
 Please feel free to modify this document with your fixes, clarifications and
 additional information as you see fit.
