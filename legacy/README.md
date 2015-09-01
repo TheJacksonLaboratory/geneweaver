@@ -1,3 +1,5 @@
+Felix is testing this
+
 This is an early version of the README and likely contains several mistakes.
 Please feel free to modify this document with your fixes, clarifications and
 additional information as you see fit.
@@ -82,4 +84,5 @@ You should see the server start up with no error messages like:
 
 You can now visit the main page of the test server by going to
 <http://localhost:5000/index.html>
+This is Felix's
 
