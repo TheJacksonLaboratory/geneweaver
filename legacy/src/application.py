@@ -1,5 +1,5 @@
 #Kelechi was here
-# So was Caylee.
+# So was Caylee
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
