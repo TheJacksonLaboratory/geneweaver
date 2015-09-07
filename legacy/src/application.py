@@ -40,7 +40,7 @@ app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5
 
 
 #*************************************
-
+# Comment
 admin = Admin(app, name='Geneweaver', index_view=adminviews.AdminHome(
     url='/admin', name='Admin'))
 
