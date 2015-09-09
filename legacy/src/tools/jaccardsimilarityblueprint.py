@@ -92,7 +92,7 @@ def run_tool():
 
     return response
 
-def run_tool_api(apikey, homology, pairwiseDeletion, genesets):
+def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -117,6 +117,10 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets):
             if homology != 'Excluded':
                 params[homology_str] = 'Included'
                 params[tool_param.name] = 'Included'
+        if tool_param.name.endswith('_' + 'p-Value'):
+            params[tool_param.name] = p_Value
+            if p_Value not in ['1.0','0.5','0.10','0.05','0.01']:
+                params[tool_param.name] = '1.0'
     
     
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
