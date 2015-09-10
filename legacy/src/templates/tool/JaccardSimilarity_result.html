@@ -26,6 +26,10 @@
 							<div class="col-md-4">
 								<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
 							</div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
+                            </div>
+                    
 							<div class="col-md-4">
 								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
 
