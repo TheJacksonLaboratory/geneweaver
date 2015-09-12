@@ -14,7 +14,7 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-# Need to change this path to Documents/geneweaver/results
+# Need to change this path to ~/Documents/geneweaver/results
 RESULTS_PATH = '~/Documents/geneweaver/results'
 
 
