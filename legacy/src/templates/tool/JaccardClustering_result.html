@@ -30,7 +30,7 @@
 
         </style>
         <script>
-            var diameter = 960;
+            var diameter = 800;
 
             var tree = d3.layout.tree()
                 .size([360, diameter / 2 - 120])
@@ -46,8 +46,12 @@
                 .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
 
             d3.json("flare.json", function(error, root) {
-              if (error) throw error;
+              if (error){
+                  d3.select("p").append("p").text("ERROR");
+                  throw error;
+              }
 
+                console.log(json);
               var nodes = tree.nodes(root),
                   links = tree.links(nodes);
 
@@ -73,7 +77,7 @@
                   .text(function(d) { return d.name; });
             });
 
-            d3.select(self.frameElement).style("height", diameter - 150 + "px");
+            d3.select(self.frameElement).style("height", diameter + "px");
         </script>
     </div>
 </div>
