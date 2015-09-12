@@ -14,7 +14,7 @@ import re
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint
+    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
 import sphinxapi
 import search
 
@@ -27,6 +27,7 @@ app.register_blueprint(phenomemapblueprint.phenomemap_blueprint)
 app.register_blueprint(jaccardclusteringblueprint.jaccardclustering_blueprint)
 app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
+app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 
 # TODO this key must be changed to something secret (ie. not committed to the repo).
 # Comment out the print message when this is done
@@ -1575,6 +1576,16 @@ class ToolJaccardSimilarityProjects(restful.Resource):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
+class ToolTricliqueViewer(restful.Resource):
+    def get(self, apikey, homology, pairwiseDeletion, genesets):
+        return triclique_viewer_blueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+
+
+class ToolTricliqueViewerProjects(restful.Resource):
+    def get(self, apikey, homology, pairwiseDeletion, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return triclique_viewer_blueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+
 
 class ToolCombine(restful.Resource):
     def get(self, apikey, homology, genesets):
@@ -1676,6 +1687,11 @@ api.add_resource(ToolJaccardSimilarity,
                  '/api/tool/jaccardsimilarity/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
 api.add_resource(ToolJaccardSimilarityProjects,
                  '/api/tool/jaccardsimilarity/byprojects/<apikey>/<homology>/<pairwiseDeletion>/<projects>/')
+
+api.add_resource(ToolTricliqueViewer,
+                 '/api/tool/tricliqueviewer/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+api.add_resource(ToolTricliqueViewerProjects,
+                 '/api/tool/tricliqueviewer/byprojects/<apikey>/<homology>/<pairwiseDeletion>/<projects>/')
 
 api.add_resource(ToolCombine, '/api/tool/combine/<apikey>/<homology>/<genesets>/')
 api.add_resource(ToolCombineProjects, '/api/tool/combine/byprojects/<apikey>/<homology>/<projects>/')
