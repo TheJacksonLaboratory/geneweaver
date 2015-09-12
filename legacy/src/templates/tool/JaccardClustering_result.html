@@ -9,75 +9,138 @@
 <p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
 <div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
-    <script> d3.select("p").append("p").text("*D3 ACTIVE*"); </script>
     <div id="cluster-tree">
-        <style>
-        .node circle {
-          fill: #fff;
-          stroke: steelblue;
-          stroke-width: 1.5px;
-        }
+        <style type="text/css">
+            circle.node {
+              cursor: pointer;
+              stroke: #000;
+              stroke-width: .5px;
+            }
 
-        .node {
-          font: 10px sans-serif;
-        }
-
-        .link {
-          fill: none;
-          stroke: #ccc;
-          stroke-width: 1.5px;
-        }
-
+            line.link {
+              fill: none;
+              stroke: #9ecae1;
+              stroke-width: 1.5px;
+            }
         </style>
-        <script>
-            var diameter = 800;
+        <script type="text/javascript" src="d3/d3.js"></script>
+        <script type="text/javascript" src="d3/d3.geom.js"></script>
+        <script type="text/javascript" src="d3/d3.layout.js"></script>
+        <script type="text/javascript">
 
-            var tree = d3.layout.tree()
-                .size([360, diameter / 2 - 120])
-                .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+            var w = 1280,
+                h = 800,
+                node,
+                link,
+                root;
 
-            var diagonal = d3.svg.diagonal.radial()
-                .projection(function(d) { return [d.y, d.x / 180 * Math.PI]; });
+            var force = d3.layout.force()
+                .on("tick", tick)
+                .charge(function(d) { return d._children ? -d.size / 100 : -30; })
+                .linkDistance(function(d) { return d.target._children ? 80 : 30; })
+                .size([w, h - 160]);
 
-            var svg = d3.select("#cluster-tree").append("svg")
-                .attr("width", diameter)
-                .attr("height", diameter - 150)
-                .append("g")
-                .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+            var vis = d3.select("#cluster-tree").append("svg:svg")
+                .attr("width", w)
+                .attr("height", h);
 
-            d3.json("flare.json", function(error, root) {
-              if (error){
-                  d3.select("p").append("p").text("ERROR");
-                  throw error;
-              }
-
-                console.log(json);
-              var nodes = tree.nodes(root),
-                  links = tree.links(nodes);
-
-              var link = svg.selectAll(".link")
-                  .data(links)
-                .enter().append("path")
-                  .attr("class", "link")
-                  .attr("d", diagonal);
-
-              var node = svg.selectAll(".node")
-                  .data(nodes)
-                .enter().append("g")
-                  .attr("class", "node")
-                  .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
-
-              node.append("circle")
-                  .attr("r", 4.5);
-
-              node.append("text")
-                  .attr("dy", ".31em")
-                  .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
-                  .attr("transform", function(d) { return d.x < 180 ? "translate(8)" : "rotate(180)translate(-8)"; })
-                  .text(function(d) { return d.name; });
+            d3.json("/static/flare.json", function(json) {
+              root = json;
+              root.fixed = true;
+              root.x = w / 2;
+              root.y = h / 2 - 80;
+              update();
             });
 
-            d3.select(self.frameElement).style("height", diameter + "px");
+            function update() {
+              var nodes = flatten(root),
+                  links = d3.layout.tree().links(nodes);
+
+              // Restart the force layout.
+              force
+                  .nodes(nodes)
+                  .links(links)
+                  .start();
+
+              // Update the links…
+              link = vis.selectAll("line.link")
+                  .data(links, function(d) { return d.target.id; });
+
+              // Enter any new links.
+              link.enter().insert("svg:line", ".node")
+                  .attr("class", "link")
+                  .attr("x1", function(d) { return d.source.x; })
+                  .attr("y1", function(d) { return d.source.y; })
+                  .attr("x2", function(d) { return d.target.x; })
+                  .attr("y2", function(d) { return d.target.y; });
+
+              // Exit any old links.
+              link.exit().remove();
+
+              // Update the nodes…
+              node = vis.selectAll("circle.node")
+                  .data(nodes, function(d) { return d.id; })
+                  .style("fill", color);
+
+              node.transition()
+                  .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; });
+
+              // Enter any new nodes.
+              node.enter().append("svg:circle")
+                  .attr("class", "node")
+                  .attr("cx", function(d) { return d.x; })
+                  .attr("cy", function(d) { return d.y; })
+                  .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; })
+                  .style("fill", color)
+                  .on("click", click)
+                  .call(force.drag);
+
+              // Exit any old nodes.
+              node.exit().remove();
+            }
+
+            function tick() {
+              link.attr("x1", function(d) { return d.source.x; })
+                  .attr("y1", function(d) { return d.source.y; })
+                  .attr("x2", function(d) { return d.target.x; })
+                  .attr("y2", function(d) { return d.target.y; });
+
+              node.attr("cx", function(d) { return d.x; })
+                  .attr("cy", function(d) { return d.y; });
+            }
+
+            // Color leaf nodes orange, and packages white or blue.
+            function color(d) {
+              return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+            }
+
+            // Toggle children on click.
+            function click(d) {
+              if (d.children) {
+                d._children = d.children;
+                d.children = null;
+              } else {
+                d.children = d._children;
+                d._children = null;
+              }
+              update();
+            }
+
+            // Returns a list of all nodes under the root.
+            function flatten(root) {
+              var nodes = [], i = 0;
+
+              function recurse(node) {
+                if (node.children) node.size = node.children.reduce(function(p, v) { return p + recurse(v); }, 0);
+                if (!node.id) node.id = ++i;
+                nodes.push(node);
+                return node.size;
+              }
+
+              root.size = recurse(root);
+              return nodes;
+            }
+
         </script>
     </div>
 </div>
