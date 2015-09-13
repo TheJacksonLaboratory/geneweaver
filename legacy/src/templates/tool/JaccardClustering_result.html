@@ -23,9 +23,6 @@
               stroke-width: 1.5px;
             }
         </style>
-        <script type="text/javascript" src="d3/d3.js"></script>
-        <script type="text/javascript" src="d3/d3.geom.js"></script>
-        <script type="text/javascript" src="d3/d3.layout.js"></script>
         <script type="text/javascript">
 
             var w = 1280,
@@ -44,6 +41,7 @@
                 .attr("width", w)
                 .attr("height", h);
 
+            //Resulting json file is loaded
             d3.json("/static/flare.json", function(json) {
               root = json;
               root.fixed = true;
