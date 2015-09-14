@@ -13,7 +13,8 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@triclique_viewer_blueprint.route('/run-triclique-viewer.html', methods=['POST'])
+# Melissa 9/14/15 Removed .html from route URI
+@triclique_viewer_blueprint.route('/run-triclique-viewer', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
