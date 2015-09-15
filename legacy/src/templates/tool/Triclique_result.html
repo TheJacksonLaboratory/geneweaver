@@ -1,0 +1,17 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+<p>This is an advanced tool that allows you to download the raw association matrix for the GeneSets you selected. This file contains tab-separated values (which can be loaded into Excel). The values in the top-left are the number of genes and number of GeneSets, respectively, followed by the Geneset IDs. The second row contains the matching GeneSet abbreviations. In following rows there is an internal ODE gene identifier and the official gene symbol. The internal ODE identifier will be a unique integer for each gene, but will not be consistent across database updates so should not be permanantly recorded. However, a negative identifier does indicate a homology cluster for the given gene. Each row will contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was not contained in that GeneSet.</p>
+
+<p>
+<a href="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" download>[DOWNLOAD LINK]</a> generated matrix, or view it below:
+</p>
+
+<iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" frameborder="0"></iframe>
+    
+{% include 'footer.html' %}
