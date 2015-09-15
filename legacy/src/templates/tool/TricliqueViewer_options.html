@@ -10,15 +10,17 @@
 	<div class="panel-heading">
 		<img src="/static/images/tool_Triclique.png">
 		<h2 class="panel-title">
-			<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-				Geneset Clustering
+			<a data-toggle="collapse" data-parent="#accordion" href="#triCollapse">
+				Triclique Viewer
 			</a>
 		</h2>
 	</div>
-	<div id="jcCollapse" class="panel-collapse collapse">
+	<div id="triCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
-			<div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+			<div class="from-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Homology']) }}</div>
+			{#
+			 <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+			 #}
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
