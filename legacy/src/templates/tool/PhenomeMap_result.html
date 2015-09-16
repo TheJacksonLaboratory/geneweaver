@@ -627,6 +627,12 @@
     node.append("svg:circle")
     .attr("r", 3.5);
 
+    //insert d3.json here? unclear where d3.json and d3.select need to be, if anywhere.
+    
+
+
+
+
     //place name attribute on left or right depending on if children exist
     node.append("svg:text")
     .attr("dx", function(d) { return d.children ? "end" : "start"; })
@@ -664,7 +670,8 @@
         }
 
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    //following line removed, appears to be a duplication?
+    <!script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"><!/script>
     <script>
 
         var margin = {top: 20, right: 120, bottom: 20, left: 120},
