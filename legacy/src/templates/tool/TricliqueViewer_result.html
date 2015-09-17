@@ -7,6 +7,8 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+<script src="/static/d3/ChordDiagram.js" charset="utf-8"></script>
+
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
@@ -120,6 +122,12 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     $('#GeneSets').click(function() {
         $(".sets").slideToggle("slow");
 });
+</script>
+
+<script type="text/javascript">
+
+    
+
 </script>
 
 <footer>
