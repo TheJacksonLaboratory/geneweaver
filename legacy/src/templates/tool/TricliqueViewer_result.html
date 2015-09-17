@@ -19,13 +19,15 @@ identifier will be a unique integer for each gene, but will not be consistent ac
 permanantly recorded. However, a negative identifier does indicate a homology cluster for the given gene. Each row will
 contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was not contained in that GeneSet.</p>
 -->
-<!--
-<p>
+{# <p>
 <a href="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" download>[DOWNLOAD LINK]</a> generated matrix, or view it below:
-</p>
--->
+</p> #}
+
+
 
 <p> This is a test! </p>
-<iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" frameborder="0"></iframe>
-    
+
+{# <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" frameborder="0"></iframe>
+ #}
+
 {% include 'footer.html' %}
