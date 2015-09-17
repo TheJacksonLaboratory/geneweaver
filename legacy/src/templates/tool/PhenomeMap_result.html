@@ -800,31 +800,31 @@ function click(d) {
     var links = tree.links(nodes);
 
     //did it work? We don't know. Now we might have an idea.
-    console.log(treeData)
-    console.log(nodes)
-    console.log(links)
+    console.log(treeData);
+    console.log(nodes);
+    console.log(links);
 
     var link = vis.selectAll("pathlink")
     .data(links)
     .enter().append("svg:path")
     .attr("class", "link")
-    .attr("d", diagonal)
+    .attr("d", diagonal);
 
     var node = vis.selectAll("g.node")
     .data(nodes)
     .enter().append("svg:g")
-    .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+    .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
     //Add a dot at every node
     node.append("svg:circle")
     .attr("r", 3.5);
-        
+
     //place name attribute on left or right depending on if children exist
     node.append("svg:text")
     .attr("dx", function(d) { return d.children ? -8 : 8; })
     .attr("dy", 3)
     .attr("text-anchor", function(d) { return d.children ? "end" : "start"; })
-    .text(function(d) { return d.name; })
+    .text(function(d) { return d.name; });
 
     </script>
 </div>
