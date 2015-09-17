@@ -19,13 +19,238 @@ identifier will be a unique integer for each gene, but will not be consistent ac
 permanantly recorded. However, a negative identifier does indicate a homology cluster for the given gene. Each row will
 contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was not contained in that GeneSet.</p>
 -->
-<!--
-<p>
+{# <p>
 <a href="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" download>[DOWNLOAD LINK]</a> generated matrix, or view it below:
-</p>
--->
+</p> #}
 
-<p> This is a test! </p>
-<iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" frameborder="0"></iframe>
-    
+{# Clarissa: Added Dr. Baker's code for the k-Partite result viewer #}
+
+<!DOCTYPE html>
+<meta charset="utf-8" xmlns="http://www.w3.org/1999/html">
+<title>k-Partite Results</title>
+<style>
+
+    @import url("style.css");
+
+    #circle circle {
+        fill: none;
+        pointer-events: all;
+    }
+
+    .group path {
+        fill-opacity: .5;
+    }
+
+    path.chord {
+        stroke: #000;
+        stroke-width: .25px;
+    }
+
+    #circle:hover path.fade {
+        display: none;
+    }
+
+</style>
+<html>
+<body>
+
+
+
+<header>
+    <div class="sets">
+        <script>
+            var today = new Date();
+            document.write(today.toLocaleDateString());
+        </script>
+    </div>
+</header>
+
+<h1>k-Partite Result Viewer</h1>
+<h2>v.0.01</h2>
+
+<div width=100%>
+    <div id="Help" style="left: 0">Help</div>
+    <div id="GeneSets" style="right: 0">GeneSets</div>
+</div>
+
+
+<aside>Mouseover to focus on genes contained within each origin set: (# of genes at the intersection of both sets)/(# of genes in that set).
+    Genes cords are defined as the percent of gene sets that contain that gene. Currently only genes appearing in > 80% of gene sets are indicated.</aside>
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
+
+
+
+<!-- include csvReader script file -->
+
+<div class="sets">
+<script>
+    function IO(U, V) {
+        var X = !window.XMLHttpRequest ? new ActiveXObject("Microsoft.XMLHTTP") : new XMLHttpRequest;
+        X.open(V ? "PUT" : "GET", U, false);
+        X.setRequestHeader("Content-Type", "text/html");
+        X.send(V ? V : "");
+        return X.responseText;
+    }
+
+    var mycells = IO('cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
+    var temp = '';
+    var t = '';
+    //document.write(mycells.join("\n")); //view the cells
+    for (i=1; i < mycells.length; ++i){
+        entry = mycells[i];
+        for (j=0; j < entry.length; ++j){
+            temp = entry[j];
+            var n = temp.split(',');
+            t = n[1].replace(/-.*/,'');
+            t = n[0] + ' ' + t + '<br>';
+            document.writeln(t.fontcolor(n[4]));
+        }
+    }
+</script>
+</div>
+
+<script>
+    $('#Help').click(function() {
+        $("aside").slideToggle("slow");
+    });
+</script>
+
+<script>
+    $('#GeneSets').click(function() {
+        $(".sets").slideToggle("slow");
+});
+</script>
+
+
+
+
+
+<!-- Everything below here is for the cord plot -->
+<script>
+
+    var width = 900,
+            height = 900,
+            outerRadius = Math.min(width, height) / 2 - 50,
+            innerRadius = outerRadius - 24;
+
+    var formatPercent = d3.format(".1%");
+
+    var arc = d3.svg.arc()
+            .innerRadius(innerRadius)
+            .outerRadius(outerRadius);
+
+    var layout = d3.layout.chord()
+            .padding(.04)
+            .sortSubgroups(d3.descending)
+            .sortChords(d3.ascending);
+
+    var path = d3.svg.chord()
+            .radius(innerRadius);
+
+    var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("id", "circle")
+            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+    svg.append("circle")
+            .attr("r", outerRadius);
+
+    d3.csv("cities.csv", function(cities) {
+        d3.json("matrix.json", function(matrix) {
+
+            // Compute the chord layout.
+            layout.matrix(matrix);
+
+            // Add a group per neighborhood.
+            var group = svg.selectAll(".group")
+                    .data(layout.groups)
+                    .enter().append("g")
+                    .attr("class", "group")
+                    .on("mouseover", mouseover);
+
+            // Add a mouseover title.
+            group.append("title").text(function(d, i) {
+                return cities[i].name + ": " + formatPercent(d.value) + " of origins";
+            });
+
+            // Add the group arc.
+            var groupPath = group.append("path")
+                    .attr("id", function(d, i) { return "group" + i; })
+                    .attr("d", arc)
+                    .style("fill", function(d, i) { return cities[i].color; });
+
+            // Add a text label.
+            var groupText = group.append("text")
+                    .attr("x", 0)
+                    .attr("dy", 0)
+			.attr("transform", function(d) {
+			    var c = arc.centroid(d),
+			    	x = c[0],
+			    	y = c[1],
+			        // pythagorean theorem for hypotenuse
+			        h = Math.sqrt(x*x + y*y);
+				    return "translate(" + (x/h * 400) +  ',' +
+				       (y/h * 400) +  ")";
+				})
+			.attr("text-anchor", function(d) {
+    				// are we past the center?
+    					return (d.endAngle + d.startAngle)/2 > Math.PI ?
+        				"end" : "start";
+				})
+			.text(function(d,i) { return cities[i].name; });
+
+//            groupText.append("textPath")
+//                    .attr("xlink:href", function(d, i) { return "#group" + i; })
+//                    //.attr("transform","rotate(-180)")
+//                    .text(function(d, i) { return cities[i].name; });
+
+            // Remove the labels that don't fit. :(
+//            groupText.filter(function(d, i) { return groupPath[0][i].getTotalLength() / 2 - 16 < this.getComputedTextLength(); })
+//                    .remove();
+
+            // Add the chords.
+            var chord = svg.selectAll(".chord")
+                    .data(layout.chords)
+                    .enter().append("path")
+                    .attr("class", "chord")
+                    .style("fill", function(d) { return cities[d.source.index].color; })
+                    .attr("d", path);
+
+            // Add an elaborate mouseover title for each chord.
+            chord.append("title").text(function(d) {
+                return cities[d.source.index].name
+                        + " → " + cities[d.target.index].name
+                        + ": " + formatPercent(d.source.value)
+                        + "\n" + cities[d.target.index].name
+                        + " → " + cities[d.source.index].name
+                        + ": " + formatPercent(d.target.value);
+            });
+
+            function mouseover(d, i) {
+                chord.classed("fade", function(p) {
+                    return p.source.index != i
+                            && p.target.index != i;
+                });
+            }
+        });
+    });
+
+</script>
+
+<footer>
+    This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
+</footer>
+
+
+
+</body>
+</html>
+
+
+{# <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" frameborder="0"></iframe>
+ #}
+
 {% include 'footer.html' %}
