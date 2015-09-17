@@ -16,7 +16,8 @@ triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 # Melissa 9/14/15 Removed .html from route URI
 @triclique_viewer_blueprint.route('/run-triclique-viewer', methods=['POST'])
 def run_tool():
-    # TODO need to check for read permissions on genesets
+
+      # TODO need to check for read permissions on genesets
 
     form = flask.request.form
 
@@ -41,6 +42,7 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
+
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     # insert result for this run
@@ -53,6 +55,7 @@ def run_tool():
 
     # Gather emphasis gene ids and put them in paramters
     emphgeneids = []
+    user_id = flask.session['user_id']
     emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
@@ -88,8 +91,11 @@ def run_tool():
 
     return response
 
+
 @triclique_viewer_blueprint.route('/run-triclique-viewer-api.html', methods=['POST'])
 def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
+
+    '''
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -148,10 +154,16 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
         task_id=task_id)
 
     return task_id
+    '''
+
+    task_id = str(uuid.uuid4())
+    return task_id
 
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
+
+    '''
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -168,7 +180,14 @@ def view_result(task_id):
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
+    '''
 
+    # Clarissa: just checking the routing and testing if we can render our results page
+
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    async_result = tc.celery_app.AsyncResult(task_id)
+    return flask.render_template('tool/TricliqueViewer_result.html',
+                                 tool=tool)
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
