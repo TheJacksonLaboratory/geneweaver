@@ -356,12 +356,18 @@
 
                     <br><br>
                     <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
-                        <input id="file_data" type="file" name="selected_file" disabled required />
+                        <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
                     </span>
 
-
                 </div>
+
+
             </div>
+                <div class="row">
+                    <div class="col-md-2"></div>
+                    <div id="fileDisplayArea" class="col-md-4" style="color: grey; padding-top: 2em;"></div>
+                </div>
+
         </div>
         <br>
 
@@ -385,6 +391,7 @@
 <script>
     $(document).ready(function () {
 
+        // Function to allow tabs in the textarea
         $("textarea").keydown(function (e) {
             if (e.keyCode === 9) { // tab was pressed
                 // get caret position/selection
@@ -406,35 +413,67 @@
             }
         });
 
+        //Display uploaded file to page
+        var fileInput = document.getElementById('file_data');
+		var fileDisplayArea = document.getElementById('fileDisplayArea');
+
+		fileInput.addEventListener('change', function(e) {
+			var file = fileInput.files[0];
+			var textType = /text.*/;
+
+			if (file.type.match(textType)) {
+				var reader = new FileReader();
+
+				reader.onload = function(e) {
+					fileDisplayArea.innerText = reader.result;
+				}
+
+				reader.readAsText(file);
+			} else {
+				fileDisplayArea.innerText = "File not supported!"
+			}
+		});
+
+        //Function to upload genesets
         $('#upload-geneset-form').submit(function (event) {
             event.preventDefault();
             $('#upload-geneset-button').prop('disabled', function () {
                 return !$(this).prop('disabled')
-            })
+            });
 
             var data = new FormData($(this)[0]);
+            var fileDisplayArea = document.getElementById('fileDisplayArea');
 
             var fileSelect = document.getElementById('file_data');
             var reader = new FileReader();
             if (!fileSelect.disabled) {
-                var file = fileSelect.files;
-                //formData.append('selected_file', file[0], file[0].name);
-                reader.onload = createReaderHandler(file[0].name);
-                reader.readAsText(file[0]);
+                //var file = fileSelect.files;
+                data['selected_file'] = fileDisplayArea.innerHTML;
+                //data.append('selected_file', file[0], file[0].name);
+                //reader.onload = createReaderHandler(file[0].name);
+                //reader.readAsText(file[0]);
+                alert(data['selected_file']);
 
             }
 
             var data = $("#upload-geneset-form").serialize();
             //alert(reader.result);
+            //alert(data);
 
             $.ajax({
                 type: "POST",
-                url: "../creategeneset.html",
+                url: "../createtempgeneset",
                 data: data,
                 //processData: false,
                 //contentType: false,
                 success: function (data) {
-                    alert(data);
+                    $(document).trigger("add-alerts", [
+                            {
+                                'message': "Geneset successfully loaded",
+                                'priority': 'success'
+                            }
+                    ]);
+
                     $('#upload-geneset-button').prop('disabled', function () {
                         return !$(this).prop('disabled')
                     })
@@ -454,14 +493,12 @@
 
     var user_id = {{ user_id }}
 
-    function myFunction(genes)
-    {
-        genes1 = genes.split("_");
-        genes1 = genes1.join("\t1\n");
-        genes1 = genes1.concat("\t1");
-        document.getElementById("file_text").value= genes1;
-    };
-
+            function myFunction(genes) {
+                genes1 = genes.split("_");
+                genes1 = genes1.join("\t1\n");
+                genes1 = genes1.concat("\t1");
+                document.getElementById("file_text").value = genes1;
+            };
 
 
     $(function () {
@@ -471,154 +508,105 @@
 
     $('#clickableGenes').popover({
         title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
-                'A full description of the gene set format can be found ' +
-                '<a href="http://www.geneweaver.org/wiki/index.php?title=Upload#Single_Gene_Sets" target="_blank">' +
+        'A full description of the gene set format can be found ' +
+        '<a href="http://www.geneweaver.org/wiki/index.php?title=Upload#Single_Gene_Sets" target="_blank">' +
         '       <strong>here</strong></a>.',
         html: 'true'
     });
 
-    function formFocus($e){
+    function formFocus($e) {
         $e.style.backgroundColor = "yellow";
     }
 
-    function noFormFocus($e){
+    function noFormFocus($e) {
         $e.style.backgroundColor = '';
     }
 
-    function myFunction(genes) {
-	genes1 = genes.split("_");
-	genes1 = genes1.join("\t1\n");
-	genes1 = genes1.concat("\t1");
-	document.getElementById("genesetValues").value= genes1;
-    };
 
-
-        $('#upload-geneset-form').submit(function(event) {
-            event.preventDefault();
-            $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') });
-
-            var data = $("#upload-geneset-form").serialize();
-            //alert(data);
-
+    //Get Pubmed Data for ID
+    $('#clickablePubmed').click(function () {
+        var pmid = $("#pub_pubmed").val();
+        if (!$.isNumeric(pmid)) {
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "You must enter a valid Pubmed ID.",
+                    'priority': 'warning'
+                }
+            ]);
+        }
+        else {
             $.ajax({
-                type: "POST",
-                url: "../updategeneset",
-                data: data,
-                //processData: false,
-                //contentType: false,
-                success: function(r)
-                {
-                    var v = JSON.parse(r);
-                    if (v["success"] == 'True') {
+                type: "GET",
+                url: "../getPubmed",
+                data: {"pmid": pmid},
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "PubMed ID " + pmid + " successfully loaded",
+                            'priority': 'success'
+                        }
+                    ]);
+                    if ($('#pubmed_manual').is(":hidden")) {
+                        $("#pubmed_manual").toggle();
+                    }
+                    ;
 
-                        window.location = '../editgenesetgenes/' + gs_id;
+                    if ($('#pubmed_button_div').is(":visible")) {
+                        $('#pubmed_button_div').toggle();
                     }
-                    else {
-                        $("html, body").animate({ scrollTop: 0 }, "slow");
-                        $("#result").html('<div class="alert alert-danger fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
-                    }
-                },
-                error: function(r)
-                {
-                    $("html, body").animate({ scrollTop: 0 }, "slow");
-                    $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
+                    ;
+
+                    var parseData = JSON.parse(data);
+                    $('#pub_title').val(parseData[0]);
+                    $('#pub_authors').val(parseData[1]);
+                    $('#pub_journal').val(parseData[2]);
+                    $('#pub_volume').val(parseData[3]);
+                    $('#pub_pages').val(parseData[4]);
+                    $('#pub_year').val(parseData[5]);
+                    $('#pub_month').val(parseData[6]);
+                    $('#pub_abstract').val(parseData[7]);
+
                 }
             });
-
-        });
-
-        function createReaderHandler(name) {
-            return function(ev) {
-                data[name] = ev.target.result;
-            };
         }
+        ;
 
-        //Get Pubmed Data for ID
-        $('#clickablePubmed').click(function() {
-            var pmid = $("#pub_pubmed").val();
-            if (!$.isNumeric(pmid)) {
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "You must enter a valid Pubmed ID.",
-                        'priority': 'warning'
-                    }
-                ]);
-            }
-            else {
-                $.ajax({
-                    type: "GET",
-                    url: "../getPubmed",
-                    data: {"pmid": pmid},
-                    success: function(data)
-                    {
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "PubMed ID " + pmid + " successfully loaded",
-                                'priority': 'success'
-                            }
-                        ]);
-                        if ($('#pubmed_manual').is(":hidden")) {
-                            $("#pubmed_manual").toggle();
-                        };
+    });
 
-                        if ($('#pubmed_button_div').is(":visible")) {
-                            $('#pubmed_button_div').toggle();
-                        };
+    $("#pubmed_manual_button").click(function () {
+        $("#pubmed_manual").toggle();
 
-                        var parseData = JSON.parse(data);
-                        $('#pub_title').val(parseData[0]);
-                        $('#pub_authors').val(parseData[1]);
-                        $('#pub_journal').val(parseData[2]);
-                        $('#pub_volume').val(parseData[3]);
-                        $('#pub_pages').val(parseData[4]);
-                        $('#pub_year').val(parseData[5]);
-                        $('#pub_month').val(parseData[6]);
-                        $('#pub_abstract').val(parseData[7]);
+        //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
 
-                    }
-                });
-            };
+        var isHidden = $("#pubmed_manual").is(':hidden');
 
-        });
+        if (isHidden) {
+            $("#pubmed_manual :input").attr("disabled", true);
 
-        $("#pubmed_manual_button").click(function() {
-            $("#pubmed_manual").toggle();
+        }
+        else {
+            $("#pubmed_manual :input").attr("disabled", false);
+            $("#pubmed_button_div_minus").show();
+            $("#pubmed_button_div").hide();
+        }
+    });
 
-            //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
+    $("#pubmed_manual_button_minus").click(function () {
+        $("#pubmed_manual").toggle();
 
-            var isHidden = $("#pubmed_manual").is(':hidden');
+        //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
 
-            if(isHidden) {
-                $("#pubmed_manual :input").attr("disabled", true);
+        var isHidden = $("#pubmed_manual").is(':hidden');
 
-            }
-            else {
-                $("#pubmed_manual :input").attr("disabled", false);
-                $("#pubmed_button_div_minus").show();
-                $("#pubmed_button_div").hide();
-            }
-        });
-
-        $("#pubmed_manual_button_minus").click(function() {
-            $("#pubmed_manual").toggle();
-
-            //$('#pub_pubmed').prop('disabled',function() { return !$(this).prop('disabled') })
-
-            var isHidden = $("#pubmed_manual").is(':hidden');
-
-            if(isHidden) {
-                $("#pubmed_manual :input").attr("disabled", true);
-                $("#pubmed_button_div_minus").hide();
-                $("#pubmed_button_div").show();
-            }
-            else {
-                $("#pubmed_manual :input").attr("disabled", false);
-            }
-        });
+        if (isHidden) {
+            $("#pubmed_manual :input").attr("disabled", true);
+            $("#pubmed_button_div_minus").hide();
+            $("#pubmed_button_div").show();
+        }
+        else {
+            $("#pubmed_manual :input").attr("disabled", false);
+        }
+    });
 
 
     //toggles between the file or paste uploaders and toggle's enable/disable on inputs
@@ -627,8 +615,12 @@
         $("#file_uploader").toggle();
         $("#paste_uploader").toggle();
 
-        $('#file_text').prop('disabled',function() { return !$(this).prop('disabled') })
-        $('#file_data').prop('disabled',function() { return !$(this).prop('disabled') })
+        $('#file_text').prop('disabled', function () {
+            return !$(this).prop('disabled')
+        })
+        $('#file_data').prop('disabled', function () {
+            return !$(this).prop('disabled')
+        })
     }
 
 </script>
