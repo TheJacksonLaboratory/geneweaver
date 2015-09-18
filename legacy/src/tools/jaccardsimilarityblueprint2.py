@@ -1,3 +1,12 @@
+#   file: jaccardsimilarityblueprint2.py
+#   author: Matthew Santiago
+#   co-author: Felix Herrera
+#   description: development file to insert our tools for celery async
+#
+#   date modified:
+#       9/18/2015
+#           - File Created
+
 import celery.states as states
 import flask
 import json
@@ -28,8 +37,8 @@ def run_tool():
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-        
-        
+
+
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least 2 gene sets!")
         return flask.redirect('analyze.html')
@@ -62,7 +71,7 @@ def run_tool():
         emphgeneids.append(str(row['ode_gene_id']))
     params['EmphasisGenes'] = emphgeneids
 
-   
+
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
@@ -100,7 +109,7 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
-    
+
     # pull out the selected geneset IDs
     selected_geneset_ids = genesets.split(':')
     if len(selected_geneset_ids) < 2:
@@ -125,8 +134,8 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
             params[tool_param.name] = p_Value
             if p_Value not in ['1.0','0.5','0.10','0.05','0.01']:
                 params[tool_param.name] = '1.0'
-    
-    
+
+
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
 
