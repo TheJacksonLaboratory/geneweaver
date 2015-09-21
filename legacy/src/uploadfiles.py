@@ -8,6 +8,8 @@ create temp tables that hold upload data and map it back to geneweaver
 import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 
+
+
 def create_temp_geneset():
     '''
     creates a temp table to hold values for geneset_values
@@ -19,10 +21,20 @@ def create_temp_geneset():
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_value (gs_id bigint, ode_gene_id bigint,
                               src_value numeric, src_id varchar)''')
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_meta (gs_id bigint, sp_id int, gdb_id int)''')
+            cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset (gs_id_temp bigint serial, gs_name varchar,
+                              gs_abbreviation VARCHAR, gs_description text, sp_id int, gdb_id int''')
             cursor.connection.commit()
         return 'True'
     except:
         return 'False'
+
+def create_full_temp_geneset(args):
+    '''
+    This function creates the tables nec to hold temporary genesets for geneset upload
+    :param args: this contains meta data and file_data
+    :return: a results dictionary where {'error': 'None'} is success.
+    '''
+    return {'error': 'None'}
 
 def create_temp_geneset_from_value(gsid):
     '''

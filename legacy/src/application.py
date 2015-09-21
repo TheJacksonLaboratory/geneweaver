@@ -520,6 +520,19 @@ def rerun_tool():
 
     return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 
+@app.route('/createtempgeneset', methods=['POST'])
+def create_geneset_first():
+    print 'something'
+    if 'usr_id' in flask.session:
+        print flask.request.args
+        if request.args['data'] == 0:
+            print 'here'
+            return json.dumps({'error': 'You must select a species.'})
+        results = uploadfiles.create_full_temp_geneset(request.args)
+    else:
+        results = {'error': 'You must be logged in to create a geneset'}
+    return json.dumps(results)
+
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
     # get values for sorting result columns
@@ -577,6 +590,8 @@ def render_viewgeneset(gs_id):
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
+
+
 
 
 @app.route('/mygenesets')
