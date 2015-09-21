@@ -1,9 +1,9 @@
 /*
  *      Created by Melissa 9/17/15
+ *      Modifed by Kevin 9/20/15
  */
 
 <!-- Everything below here is for the cord plot -->
-<script>
 
     var width = 900,
             height = 900,
@@ -34,8 +34,8 @@
     svg.append("circle")
             .attr("r", outerRadius);
 
-    d3.csv("cities.csv", function(cities) {
-        d3.json("matrix.json", function(matrix) {
+    d3.csv("../../static/cities.csv", function(cities) {
+        d3.json("../../static/matrix.json", function(matrix) {
 
             // Compute the chord layout.
             layout.matrix(matrix);
@@ -113,5 +113,3 @@
             }
         });
     });
-
-</script>
