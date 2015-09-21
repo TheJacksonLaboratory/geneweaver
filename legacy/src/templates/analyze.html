@@ -37,6 +37,18 @@
 			$.get(url, data).done(function(data) {
 
 				$(pbid).append(data);
+
+				var allclass = '#proj-' + pid + '-allcheck';
+				var chkclass = '.proj-' + pid + '-check';
+
+				// Now start checking to see if we need to mark the checkboxes
+				// under this particular project
+				if ($(allclass).attr('checked')) {
+
+					$(chkclass).each(function(index) {
+						$(this).attr('checked', true);
+					});
+				}
 			});
 		});
 	});
@@ -79,10 +91,7 @@
         <div class="col-md-8">
             <div class="page-header"><h2>Projects</h2></div>
             <div class="panel-group" id="projAccordion">
-            {#
-            TODO this should be changed to use JSON to fetch data for project panels when they are expanded
-            (for users with many projects the current version is too slow)
-            #}
+
             {% if "user" in g %}
 				<div id="new project" class="panel panel-info">
                         <div class="panel-heading">
@@ -116,6 +125,7 @@
                                         
                                         <input
                                                 class="proj-checkbox"
+												id="proj-{{ proj.project_id }}-allcheck"
                                                 data-project="{{ proj.project_id }}"
                                                 type="checkbox">
                                         
