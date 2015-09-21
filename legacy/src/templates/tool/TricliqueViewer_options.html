@@ -1,0 +1,27 @@
+<!--
+    file created by Melissa 9/15/15
+    file needs to be altered to perform specific functions for triclique tool
+-->
+
+{% import 'macros.html' as macros %}
+
+
+<div class="panel panel-info">
+	<div class="panel-heading">
+		<img src="/static/images/tool_Triclique.png">
+		<h2 class="panel-title">
+			<a data-toggle="collapse" data-parent="#accordion" href="#triCollapse">
+				Triclique Viewer
+			</a>
+		</h2>
+	</div>
+	<div id="triCollapse" class="panel-collapse collapse">
+		<div class="panel-body">
+			<div class="from-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Homology']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['TricliqueViewer_ExactGeneOverlap']) }}</div>
+			<div class="form-group">{{ macros.tool_param_select(tool.params['TricliqueViewer_Jaccard']) }}</div>
+
+			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+		</div>
+	</div>
+</div>
