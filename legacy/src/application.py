@@ -4,6 +4,7 @@ from flask.ext.admin.base import MenuLink
 from flask.ext import restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
+from urlparse import parse_qs, urlparse
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -520,18 +521,19 @@ def rerun_tool():
 
     return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 
-@app.route('/createtempgeneset', methods=['POST'])
-def create_geneset_first():
-    print 'something'
-    if 'usr_id' in flask.session:
-        print flask.request.args
-        if request.args['data'] == 0:
-            print 'here'
+@app.route('/createtempgeneset', methods=["POST", "GET"])
+def create_geneset_meta():
+    if 'user_id' in flask.session:
+        if int(request.args['sp_id']) == 0:
             return json.dumps({'error': 'You must select a species.'})
-        results = uploadfiles.create_full_temp_geneset(request.args)
+        if str(request.args['gdb_id']) == '0':
+            return json.dumps({'error': 'You must select an identifier.'})
+        ## Create the geneset in upload genesets. The new geneset is set to 'delayed'
+        ## and will be updated whenever the editgenesetgenes are verified.
+        results = uploadfiles.create_new_geneset(request.args)
+        return json.dumps(results)
     else:
-        results = {'error': 'You must be logged in to create a geneset'}
-    return json.dumps(results)
+        return json.dumps({'error': 'You must be logged in to create a geneset'})
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):

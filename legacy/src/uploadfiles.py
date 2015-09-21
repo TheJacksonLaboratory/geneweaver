@@ -7,6 +7,8 @@ create temp tables that hold upload data and map it back to geneweaver
 
 import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
+from urlparse import parse_qs, urlparse
+from flask import session
 
 
 
@@ -21,19 +23,84 @@ def create_temp_geneset():
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_value (gs_id bigint, ode_gene_id bigint,
                               src_value numeric, src_id varchar)''')
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_meta (gs_id bigint, sp_id int, gdb_id int)''')
-            cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset (gs_id_temp bigint serial, gs_name varchar,
-                              gs_abbreviation VARCHAR, gs_description text, sp_id int, gdb_id int''')
             cursor.connection.commit()
         return 'True'
     except:
         return 'False'
 
-def create_full_temp_geneset(args):
+def get_identifier_from_form(ident):
+    '''
+    This function returns a negative int for a gene db and a positive int for a microarray-based string
+    :param identifier: gene_*** or ma_***
+    :return: either positive or negative int
+    '''
+    tmpString = ident.split('_')
+    if tmpString[0] == 'ma':
+        return int(tmpString[1])
+    else:
+        return int(tmpString[1]) * -1
+
+def insertPublication(pubDict):
+    '''
+    Insert publication data where it does not exist, or return ID where it does.
+    :param pubDict: dictionary
+    :return: pub_id
+    '''
+    ## Get pub_id from publication if a pmid exists
+    if pubDict['pub_pubmed'] is not None:
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pubDict['pub_pubmed'],))
+            pub_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
+            if pub_id is not None:
+                return pub_id
+    ## Insert new values otherwise and return id to pub_id
+    else:
+        with PooledCursor() as cursor:
+            cursor.execute('''INSERT INTO publication VALUES (DEFAULT, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id''',
+                           (pubDict['pub_authors'], pubDict['pub_title'], pubDict['pub_abstract'], pubDict['pub_journal'],
+                            pubDict['pub_volume'], pubDict['pub_pages'], pubDict['pub_month'], pubDict['pub_year'],
+                            pubDict['pub_pubmed'],))
+            pub_id = cursor.fetchone()[0]
+            return pub_id
+
+def create_new_geneset(args):
     '''
     This function creates the tables nec to hold temporary genesets for geneset upload
     :param args: this contains meta data and file_data
     :return: a results dictionary where {'error': 'None'} is success.
     '''
+    urlString = '/?' + args['formData']
+    formData = parse_qs(urlparse(urlString).query, keep_blank_values=True)
+    user_id = session['user_id']
+    ##Create publication dictionary
+    pubDict = {}
+    pubDict["pub_year"] = formData['pub_year'][0]
+    pubDict["pub_title"] = formData['pub_title'][0]
+    pubDict["pub_pages"] = formData['pub_pages'][0]
+    pubDict["pub_authors"] = formData['pub_authors'][0]
+    pubDict["pub_volume"] = formData['pub_volume'][0]
+    pubDict["pub_abstract"] = formData['pub_abstract'][0]
+    pubDict["pub_pubmed"] = formData['pub_pubmed'][0]
+    pubDict["pub_month"] = formData['pub_month'][0]
+    pubDict["pub_journal"] = formData['pub_journal'][0]
+    pub_id = insertPublication(pubDict)
+    
+    file_text = formData['file_text']
+    permissions = formData['permissions']
+    gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
+
+    file_id = 1
+
+    gs_count = 30
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
+                              gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
+                              VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING id''',
+                           (user_id, file_id, formData['gs_name'][0], formData['gs_abbreviation'][0], pub_id, 5,
+                            formData['gs_description'][0], formData['sp_id'][0], gs_count, gene_identifier, 'delayed',))
+    except:
+        return {'error': 'Database insert error for new gene set meta data'}
     return {'error': 'None'}
 
 def create_temp_geneset_from_value(gsid):

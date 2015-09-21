@@ -67,7 +67,8 @@
         <h2 class="panel-title"><strong>Upload GeneSet</strong></h2>
     </div>
 
-    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="3000"></div>
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
 
     <div class="row">
         <div class="col-md-4 pull-left">
@@ -181,8 +182,7 @@
                 here directly from PubMed, and streamline our curation efforts.
             </p>
 
-            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid"
-                 data-fade="3000"></div>
+
 
             <div class="row">
                 <div class="col-md-2">
@@ -300,7 +300,7 @@
                     Species <strong>*</strong>:
                 </div>
                 <div class="col-xs-6 col-sm-4">
-                    <select name="species" class="form-control" name="sp_id" required>
+                    <select class="form-control" name="sp_id" required>
                         {% for spec in all_species %}
                             <option label="{{ all_species[spec] }}" value="{{ spec }}">{{ all_species[spec] }}</option>
                         {% endfor %}
@@ -427,7 +427,7 @@
 
 				reader.onload = function(e) {
 					fileDisplayArea.innerText = reader.result;
-				}
+				};
 
 				reader.readAsText(file);
 			} else {
@@ -436,17 +436,13 @@
 		});
 
         //Function to upload genesets
+        //Ths AJAX POST loading is not working...leaving me perplexed. I stripped the text from the
+        //div and passed it to application via get
         $('#upload-geneset-form').submit(function (event) {
             event.preventDefault();
-            $('#upload-geneset-button').prop('disabled', function () {
-                return !$(this).prop('disabled')
-            });
-
-            //var data = new FormData($(this)[0]);
             var fileDisplayArea = document.getElementById('fileDisplayArea');
-
             var fileSelect = document.getElementById('file_data');
-            var reader = new FileReader();
+            //var reader = new FileReader();
             if (!fileSelect.disabled) {
                 //var file = fileSelect.files;
                 var fileData = {'selected_file': fileDisplayArea.textContent};
@@ -456,45 +452,47 @@
                 //alert(data['selected_file']);
             }
 
-            var data = $("#upload-geneset-form").serialize();
+            var d = $("#upload-geneset-form").serialize();
+            var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
+            var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
 
             $.ajax({
-                type: "POST",
+                type: "GET",
                 url: "../createtempgeneset",
-                data: {data: data, fileData: fileData},
-                //processData: false,
-                //contentType: false,
+                data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
                 success: function (data) {
                     var v = JSON.parse(data);
                     if (v["error"] == 'None') {
-
+                        window.location.href = '../mygenesets';
                     }
                     else {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
                         $(document).trigger("add-alerts", [
                             {
-                                'message': "An Error Occured. " + v["error"],
+                                'message': "An Error Occurred. " + v["error"],
                                 'priority': 'danger'
                             }
                         ]);
                     }
                     },
                 error: function(){
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "We could not upload your geneset at this time. Please contact GeneWeaver.",
-                                'priority': 'danger'
-                            }
-                        ]);
+                    $('html, body').animate({ scrollTop: 0 }, 'slow');
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "We could not upload your geneset at this time. Please contact GeneWeaver.",
+                            'priority': 'danger'
+                        }
+                    ]);
                 }
             });
 
         });
 
-        function createReaderHandler(name) {
-            return function (ev) {
-                data[name] = ev.target.result;
-            };
-        }
+        //function createReaderHandler(name) {
+        //    return function (ev) {
+        //        data[name] = ev.target.result;
+        //    };
+        //}
 
     });
 
