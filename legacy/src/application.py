@@ -4,6 +4,7 @@ from flask.ext.admin.base import MenuLink
 from flask.ext import restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
+from urlparse import parse_qs, urlparse
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -522,6 +523,20 @@ def rerun_tool():
 
     return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 
+@app.route('/createtempgeneset', methods=["POST", "GET"])
+def create_geneset_meta():
+    if 'user_id' in flask.session:
+        if int(request.args['sp_id']) == 0:
+            return json.dumps({'error': 'You must select a species.'})
+        if str(request.args['gdb_id']) == '0':
+            return json.dumps({'error': 'You must select an identifier.'})
+        ## Create the geneset in upload genesets. The new geneset is set to 'delayed'
+        ## and will be updated whenever the editgenesetgenes are verified.
+        results = uploadfiles.create_new_geneset(request.args)
+        return json.dumps(results)
+    else:
+        return json.dumps({'error': 'You must be logged in to create a geneset'})
+
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
     # get values for sorting result columns
@@ -579,6 +594,8 @@ def render_viewgeneset(gs_id):
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
+
+
 
 
 @app.route('/mygenesets')
