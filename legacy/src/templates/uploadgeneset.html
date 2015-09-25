@@ -445,7 +445,7 @@
             //var reader = new FileReader();
             if (!fileSelect.disabled) {
                 //var file = fileSelect.files;
-                var fileData = {'selected_file': fileDisplayArea.textContent};
+                var fileData = fileDisplayArea.innerText;
                 //data.append('selected_file', file[0], file[0].name);
                 //reader.onload = createReaderHandler(file[0].name);
                 //reader.readAsText(file[0]);
@@ -463,7 +463,7 @@
                 success: function (data) {
                     var v = JSON.parse(data);
                     if (v["error"] == 'None') {
-                        window.location.href = '../mygenesets';
+                        window.location.href = '../editgenesetgenes/' + v["gs_id"];
                     }
                     else {
                         $('html, body').animate({ scrollTop: 0 }, 'slow');

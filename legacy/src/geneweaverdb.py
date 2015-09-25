@@ -1534,15 +1534,18 @@ def authenticate_user(email, password):
         with PooledCursor() as cursor:
             password_md5 = md5()
             password_md5.update(password)
-            cursor.execute(
-                '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',
-                {
-                    'email': email,
-                    'password_md5': password_md5.hexdigest(),
-                }
-            )
-            users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
-            return users[0] if len(users) == 1 else None
+            try:
+                cursor.execute(
+                    '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',
+                    {
+                        'email': email,
+                        'password_md5': password_md5.hexdigest(),
+                    }
+                )
+                users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
+                return users[0] if len(users) == 1 else None
+            except:
+                return None
 
 ## There's a similarly titled get_result_by_runhash, but it's API function.
 def get_results_by_runhash(runhash):
