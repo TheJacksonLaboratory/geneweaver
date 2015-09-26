@@ -153,25 +153,22 @@ def applyUserRestrictions(client):
     else:
         user_id = 0
 
-    ## User info and groups for geneset access
     user_info = geneweaverdb.get_user(user_id)
     user_grps = geneweaverdb.get_user_groups(user_id)
 
-    ## Empty user group
+    ## Not everyone has a user group
     if not user_grps:
         user_grps = [0]
 
-    ## Begin applying various filters to the search results
-    ## Always filter out genesets the user can't access
-    access_filter = '*'
+    access = '*'
 
     ## Admins don't get filtered results
     if not user_info.is_admin:
-        access_filter += ', (usr_id=' + str(user_id)
-        access_filter += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
-        access_filter += ')) AS isReadable'
+        access += ', (usr_id=' + str(user_id)
+        access += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
+        access += ')) AS isReadable'
 
-        client.SetSelect(access_filter)
+        client.SetSelect(access)
         client.SetFilter('isReadable', [1])
 
 '''
@@ -288,31 +285,8 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     #update the sphinxQL select statement, and set appropriate filters on the Sphinx client
     sphinx_select = '*'
 
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-    else:
-        user_id = 0
-
-    ## User info and groups for geneset access
-    user_info = geneweaverdb.get_user(user_id)
-    user_grps = geneweaverdb.get_user_groups(user_id)
-
-    ## Empty user group
-    if not user_grps:
-        user_grps = [0]
-
-    ## Begin applying various filters to the search results
-    ## Always filter out genesets the user can't access
-    access_filter = '*'
-
-    ## Admins don't get filtered results
-    if not user_info.is_admin:
-        access_filter += ', (usr_id=' + str(user_id)
-        access_filter += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
-        access_filter += ')) AS isReadable'
-
-        client.SetSelect(access_filter)
-        client.SetFilter('isReadable', [1])
+	## There are some things users shouldn't see...
+    applyUserRestrictions(client)
 
     excludes = []
 
