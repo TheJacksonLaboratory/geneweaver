@@ -45,6 +45,14 @@
 			$("[data-toggle='tooltip']").tooltip();
 		});
 
+		// This hides the 'cached result error' alert when it's close button
+		// is clicked.
+		$(function () {
+			$('[data-hide]').on('click', function() {
+				$('.' + $(this).attr('data-hide')).hide();
+			});
+		});
+
 		var r = false;
 		var editor;
 
@@ -183,7 +191,14 @@
 
 								} else {
 
-									$('#lolno-result').show();
+									console.log($('#lolno-result'));
+									$('#lolno-result')
+										.removeClass('fade out')
+										.addClass('fade in')
+										.show();
+									$('#lolno-button')
+										.attr('aria-hidden', 'false')
+										.show();
 								}
 							});
 
@@ -279,12 +294,15 @@
 			<div class="alert alert-danger fade in" id="lolno-result"
 				 style="display: none;">
 
-				<button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+				<button type="button" class="close" id="lolno-button"
+						data-hide="alert" aria-hidden="true">
 					x
 				</button>
+
 				Looks like the cached copy of your results no longer exists.
 				Try re-running the result.
 			</div>
+
             <p>
 
             <div class="panel panel-default panel-heading bg-gray-light">
