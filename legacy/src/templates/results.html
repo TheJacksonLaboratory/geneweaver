@@ -45,7 +45,7 @@
 			$("[data-toggle='tooltip']").tooltip();
 		});
 
-		// This hides the 'cached result error' alert when it's close button
+		// This hides the 'cached result error' alert when its close button
 		// is clicked.
 		$(function () {
 			$('[data-hide]').on('click', function() {
@@ -191,14 +191,8 @@
 
 								} else {
 
-									console.log($('#lolno-result'));
-									$('#lolno-result')
-										.removeClass('fade out')
-										.addClass('fade in')
-										.show();
-									$('#lolno-button')
-										.attr('aria-hidden', 'false')
-										.show();
+									$('#lolno-result').show();
+									$('#lolno-button').show();
 								}
 							});
 
