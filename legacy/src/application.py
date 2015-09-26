@@ -1241,6 +1241,32 @@ def cancel_edit_by_id():
 		results = geneweaverdb.cancel_geneset_edit_by_id(request.args)
 		return json.dumps(results)
 
+#### check_results
+##
+#### Checks to see if a given runhash exists within the results directory.
+#### Returns a JSON object with an attribute named 'exists,' which will be
+#### set to true if the results are present in the directory.
+#### This is used in the results template to make sure we don't view
+#### nonexistant/null results.
+##
+@app.route('/checkResults.json', methods=['GET'])
+def check_results():
+	if 'user_id' in flask.session:
+		runhash = request.args.get('runHash', type=str)
+
+		files = os.listdir(RESULTS_PATH)
+		files = filter(lambda f: path.isfile(path.join(RESULTS_PATH, f)), files)
+		found = False
+
+		for f in files:
+			rh = f.split('.')[0]
+
+			if rh == runhash:
+				found = True
+				break
+
+		return json.dumps({'exists': found})
+
 @app.route('/deleteResults')
 def delete_result():
 	if 'user_id' in flask.session:
