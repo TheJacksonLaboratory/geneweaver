@@ -35,6 +35,8 @@
 
     svg.append("circle")
             .attr("r", outerRadius);
+            .attr("x", 100)
+            .attr("y", 100)
 
     d3.csv("../../static/cities.csv", function(cities) {
         d3.json("../../static/matrix.json", function(matrix) {
