@@ -5,6 +5,7 @@
 
 <!-- Everything below here is for the cord plot -->
 
+    <script>
     var width = 900,
             height = 900,
             outerRadius = Math.min(width, height) / 2 - 10,
@@ -113,3 +114,4 @@
             }
         });
     });
+    </script>
