@@ -5,9 +5,8 @@
 
 <!-- Everything below here is for the cord plot -->
 
-    var margin = {top: 50, right: 20, bottom: 50, left: 200};
-    var width = 900 - margin.left - margin.right,
-            height = 900 - margin.top - margin.bottom,
+    var width = 900,
+            height = 900,
             outerRadius = Math.min(width, height) / 2 - 50,
             innerRadius = outerRadius - 24;
 
@@ -26,17 +25,14 @@
             .radius(innerRadius);
 
     var svg = d3.select("body").append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
+            .attr("width", width)
+            .attr("height", height)
             .append("g")
             .attr("id", "circle")
-            //.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
     svg.append("circle")
             .attr("r", outerRadius);
-            .attr("x", 100)
-            .attr("y", 100)
 
     d3.csv("../../static/cities.csv", function(cities) {
         d3.json("../../static/matrix.json", function(matrix) {
