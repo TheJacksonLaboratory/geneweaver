@@ -5,7 +5,7 @@
 
 <!-- Everything below here is for the cord plot -->
 
-    var margin = {top: 50, right: 20, bottom: 50, left: 50};
+    var margin = {top: 50, right: 20, bottom: 50, left: 200};
     var width = 900 - margin.left - margin.right,
             height = 900 - margin.top - margin.bottom,
             outerRadius = Math.min(width, height) / 2 - 50,
