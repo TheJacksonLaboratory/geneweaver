@@ -26,11 +26,12 @@
             .radius(innerRadius);
 
     var svg = d3.select("body").append("svg")
-            .attr("width", width)
-            .attr("height", height)
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
             .append("g")
             .attr("id", "circle")
-            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+            //.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     svg.append("circle")
             .attr("r", outerRadius);
