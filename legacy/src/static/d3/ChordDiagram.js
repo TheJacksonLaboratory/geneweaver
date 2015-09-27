@@ -7,7 +7,7 @@
 
     var width = 900,
             height = 900,
-            outerRadius = Math.min(width, height) / 2 - 50,
+            outerRadius = Math.min(width, height) / 2 - 10,
             innerRadius = outerRadius - 24;
 
     var formatPercent = d3.format(".1%");
