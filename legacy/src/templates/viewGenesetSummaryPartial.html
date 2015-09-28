@@ -270,18 +270,20 @@
         });
 
         $(".rExpand").on('click', function () {
-            alert($(this).parent().index());
-            //var childId = $(this).parents("tr").prop("id");
-            //alert(childId);
-            //var hidden = $("#genesetdetails_" + childId).is(":visible");
-            //$("#genesetdetails_" + childId).toggle();
+            //var child = $(this).parent().parent().find(".genesetdetails").;
+            var child = $(this).closest("tr").find('.genesetdetails').prop('id');
+            //var arr = childId.split('_');
+            //var child = arr[1];
+            alert(child);
+            //var hidden = $("#genesetdetails_" + child).is(":visible");
+            $("#genesetdetails_" + child).hide();
             //if (hidden) {
-            //    $("#onGenesetChevron_" + childId).toggle();
-            //    $("#offGenesetChevron_" + childId).toggle();
+            //    $("#onGenesetMinus_" + child).toggle();
+            //    $("#offGenesetPlus_" + child).toggle();
             //}
             //else {
-            //    $("#offGenesetChevron_" + childId).toggle();
-            //    $("#onGenesetChevron_" + childId).toggle();
+            //    $("#offGenesetPlus_" + child).toggle();
+            //    $("#onGenesetMinus_" + child).toggle();
             //}
         });
 
