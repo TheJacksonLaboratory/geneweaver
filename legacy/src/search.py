@@ -140,6 +140,37 @@ def getUserFiltersFromApplicationRequest(form):
             'pagination_page': pagination_page, 'search_fields': search_fields,
             'field_list': field_list, 'sort_by': sort_by}
 
+
+#### applyUserRestrictions
+##
+#### Applies user and group restrictions to a sphinx query. This way users
+#### can't access data that doesn't belong to them.
+##
+def applyUserRestrictions(client):
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+    else:
+        user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+    user_grps = geneweaverdb.get_user_groups(user_id)
+
+    ## Not everyone has a user group
+    if not user_grps:
+        user_grps = [0]
+
+    access = '*'
+
+    ## Admins don't get filtered results
+    if not user_info.is_admin:
+        access += ', (usr_id=' + str(user_id)
+        access += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
+        access += ')) AS isReadable'
+
+        client.SetSelect(access)
+        client.SetFilter('isReadable', [1])
+
 '''
 Given a sphinx query, this function will return a list of counts of various filters, intended to be displayed as filter
 counts, ie how many of each species, in search_filters_panel.html
@@ -179,6 +210,12 @@ def getSearchFilterValues(query):
     #Query for tier counts
     sphinxSelect = '*'
     client.SetSelect(sphinxSelect)
+
+	## Filter results based on user/group access, same as in buildFilterSel...
+	## Function needs to be called here, not before the SetSelect() call above
+	## otherwise you'll get a seg fault.
+    applyUserRestrictions(client)
+
     client.SetGroupBy('cur_id', sphinxapi.SPH_GROUPBY_ATTR);
     results = client.Query(query)
     if (results == None):
@@ -248,31 +285,8 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     #update the sphinxQL select statement, and set appropriate filters on the Sphinx client
     sphinx_select = '*'
 
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-    else:
-        user_id = 0
-
-    ## User info and groups for geneset access
-    user_info = geneweaverdb.get_user(user_id)
-    user_grps = geneweaverdb.get_user_groups(user_id)
-
-    ## Empty user group
-    if not user_grps:
-        user_grps = [0]
-
-    ## Begin applying various filters to the search results
-    ## Always filter out genesets the user can't access
-    access_filter = '*'
-
-    ## Admins don't get filtered results
-    if not user_info.is_admin:
-        access_filter += ', (usr_id=' + str(user_id)
-        access_filter += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
-        access_filter += ')) AS isReadable'
-
-        client.SetSelect(access_filter)
-        client.SetFilter('isReadable', [1])
+	## There are some things users shouldn't see...
+    applyUserRestrictions(client)
 
     excludes = []
 
