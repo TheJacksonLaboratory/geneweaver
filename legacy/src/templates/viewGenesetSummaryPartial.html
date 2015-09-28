@@ -1,6 +1,6 @@
 <style type="text/css">
 
-    .rowExpand {
+    .rowExpand, .rExpand {
         cursor: pointer;
     }
 
@@ -115,16 +115,16 @@
     </td>
 
 
-
-
-            {% if g.user is defined %}
-                    <td>&nbsp;&nbsp;
-                        <span id="add-{{ gs.geneset_id }}-button" data-toggle="modal"
-                              data-target="#addModal_{{ gs.geneset_id }}" style="cursor: pointer; color: #808080">
-                            <i class="fa fa-folder-o"></i> Add to projects
-                        </span>
-                    </td>
-            {% endif %}
+    {% if g.user is defined %}
+        {% if proj is defined %}
+            <td>&nbsp;&nbsp;
+                <span id="add-{{ gs.geneset_id }}-button" data-toggle="modal"
+                      data-target="#addModal_{{ gs.geneset_id }}" style="cursor: pointer; color: #808080">
+                    <i class="fa fa-folder-o"></i> Add to projects
+                </span>
+            </td>
+        {% endif %}
+    {% endif %}
 
     <td>
         <!--
@@ -132,38 +132,50 @@
 				<span class="fa fa-chevron-down"></span>
 			</a>
 			-->
-			<span class="rowExpand">&nbsp;&nbsp;
-				<span id="onGenesetChevron_{{ gs.geneset_id }}" style="display: none; color: #808080;"><i
-                        class="fa fa-minus"></i></span>
-				<span id="offGenesetChevron_{{ gs.geneset_id }}" style="color: #808080;"><i
-                        class="fa fa-plus"></i> more...</span>
+        {% if proj is defined %}
+
+            <span class="rExpand">
+				<span id="onGenesetMinus_{{ gs.geneset_id }}" style="display: none; color: #808080;">&nbsp;&nbsp;
+                    <i class="fa fa-minus"></i> less...</span>
+				<span id="offGenesetPlus_{{ gs.geneset_id }}" style="color: #808080;">&nbsp;&nbsp;
+                    <i class="fa fa-plus"></i> more...</span>
 			</span>
+
+        {% else %}
+
+            <span class="rowExpand">
+				<span id="onGenesetChevron_{{ gs.geneset_id }}" style="display: none; color: #808080;">
+                    <i class="fa fa-minus"></i></span>
+				<span id="offGenesetChevron_{{ gs.geneset_id }}" style="color: #808080;">
+                    <i class="fa fa-plus"></i></span>
+			</span>
+
+        {% endif %}
     </td>
 
 
 </tr>
 
-<!--<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">-->
 <!-- ##################### Geneset metadata #################3-->
 <tr id="genesetdetails_{{ gs.geneset_id }}" style="display: none;">
     <td colspan="100%">
 
-        <table class="table-hover genesetMeta">
+        <table class="table-hover genesetMeta" id="nestedTable">
 
             <tr>
-                <th>Figure Label:</th>
+                <th style="width: 25%;">Figure Label:</th>
                 <td style="width: 75%;">{{ gs.abbreviation }}</td>
-            </tr>
-
-            <!-- TODO account for null authors, get Publication info -->
-            <tr>
-                <th>Authors:</th>
-                <td><i>{{ gs.publication.authors }}</i></td>
             </tr>
 
             <tr>
                 <th>Description:</th>
                 <td>{{ gs.description }}</td>
+            </tr>
+
+            <!-- TODO account for null authors, get Publication info -->
+            <tr>
+                <th>Authors:</th>
+                <td><i>{% if gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
             </tr>
 
         </table>
@@ -256,6 +268,24 @@
                 $("#onGenesetChevron_" + childId).toggle();
             }
         });
+
+        $(".rExpand").on('click', function () {
+            alert($(this).parent().index());
+            //var childId = $(this).parents("tr").prop("id");
+            //alert(childId);
+            //var hidden = $("#genesetdetails_" + childId).is(":visible");
+            //$("#genesetdetails_" + childId).toggle();
+            //if (hidden) {
+            //    $("#onGenesetChevron_" + childId).toggle();
+            //    $("#offGenesetChevron_" + childId).toggle();
+            //}
+            //else {
+            //    $("#offGenesetChevron_" + childId).toggle();
+            //    $("#onGenesetChevron_" + childId).toggle();
+            //}
+        });
+
+
     });
 
 
