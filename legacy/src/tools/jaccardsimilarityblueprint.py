@@ -166,9 +166,12 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif r.async_result.state in states.READY_STATES:
+        data = r.async_result.result
+        json.dumps(data, indent=4)
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
+            data = data,
             async_result=json.loads(r.async_result.result),
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
