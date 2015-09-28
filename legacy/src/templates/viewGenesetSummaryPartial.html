@@ -58,7 +58,7 @@
 
 <tr class="genesetdetails" id="{{ gs.geneset_id }}">
 
-    {% if proj.project_id %}
+    {% if proj is defined %}
         <td>
 			<input
 				data-parentproject="{{ proj.project_id }}"
