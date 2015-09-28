@@ -15,7 +15,7 @@ import os.path as path
 import re
 import urllib3
 from collections import OrderedDict, defaultdict
-from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint2, phenomemapblueprint, \
+from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
     combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
 import sphinxapi
 import search
@@ -27,7 +27,7 @@ app.register_blueprint(genesetblueprint.geneset_blueprint)
 app.register_blueprint(genesetviewerblueprint.geneset_viewer_blueprint)
 app.register_blueprint(phenomemapblueprint.phenomemap_blueprint)
 app.register_blueprint(jaccardclusteringblueprint.jaccardclustering_blueprint)
-app.register_blueprint(jaccardsimilarityblueprint2.jaccardsimilarity_blueprint)
+app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 
@@ -1624,13 +1624,13 @@ class ToolGenesetViewerProjects(restful.Resource):
 
 class ToolJaccardSimilarity(restful.Resource):
     def get(self, apikey, homology, pairwiseDeletion, genesets):
-        return jaccardsimilarityblueprint2.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+        return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
 
 class ToolJaccardSimilarityProjects(restful.Resource):
     def get(self, apikey, homology, pairwiseDeletion, projects):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
-        return jaccardsimilarityblueprint2.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+        return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
 class ToolTricliqueViewer(restful.Resource):
 	def get(self, apikey, homology, pairwiseDeletion, genesets):
