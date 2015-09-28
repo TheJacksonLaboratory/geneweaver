@@ -1,18 +1,10 @@
 
 {% for gs in genesets %}
-	<tr>
-		<td>
-			<input
-				data-parentproject="{{ proj.project_id }}"
-				type="checkbox"
-				name="geneset_{{ gs.geneset_id }}"
-				class="table-checkbox proj-{{ proj.project_id }}-check">
-		</td>
-		<span></span>
-		<td>
+
+    {# Moved the data-parentproject to the viewGenesetSummaryPartial #}
+
 			{% include 'viewGenesetSummaryPartial.html' %}
-		</td>
-	</tr>
+
 {% endfor %}
 
 <script type="text/javascript">
