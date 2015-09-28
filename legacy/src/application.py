@@ -15,13 +15,8 @@ import os.path as path
 import re
 import urllib3
 from collections import OrderedDict, defaultdict
-<<<<<<< HEAD
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint2, phenomemapblueprint, \
     combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
-=======
-from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-	combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
->>>>>>> TeamJaccard
 import sphinxapi
 import search
 
@@ -94,11 +89,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 #*************************************
 
 # changed this path 9/3
-<<<<<<< HEAD
 RESULTS_PATH = '/Users/group10admin/geneweaver/results'
-=======
-RESULTS_PATH = '/var/www/html/dev-geneweaver/results'
->>>>>>> TeamJaccard
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
 					   '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -967,15 +958,9 @@ def render_project_genesets():
 	pid = flask.request.args['project']
 	genesets = geneweaverdb.get_genesets_for_project(pid, uid)
 
-<<<<<<< HEAD
-    return flask.render_template('singleProject.html',
-                                 genesets = genesets,
-                                 proj = {'project_id': pid} )
-=======
 	return flask.render_template('singleProject.html',
 								 genesets = genesets,
 								 proj = {'project_id': pid} )
->>>>>>> TeamJaccard
 
 
 
@@ -1638,7 +1623,6 @@ class ToolGenesetViewerProjects(restful.Resource):
 
 
 class ToolJaccardSimilarity(restful.Resource):
-<<<<<<< HEAD
     def get(self, apikey, homology, pairwiseDeletion, genesets):
         return jaccardsimilarityblueprint2.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
@@ -1647,16 +1631,6 @@ class ToolJaccardSimilarityProjects(restful.Resource):
     def get(self, apikey, homology, pairwiseDeletion, projects):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return jaccardsimilarityblueprint2.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
-=======
-	def get(self, apikey, homology, pairwiseDeletion, genesets):
-		return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
-
-
-class ToolJaccardSimilarityProjects(restful.Resource):
-	def get(self, apikey, homology, pairwiseDeletion, projects):
-		genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
-		return jaccardsimilarityblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
->>>>>>> TeamJaccard
 
 class ToolTricliqueViewer(restful.Resource):
 	def get(self, apikey, homology, pairwiseDeletion, genesets):
