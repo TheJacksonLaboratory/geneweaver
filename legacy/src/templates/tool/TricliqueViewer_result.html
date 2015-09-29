@@ -1,13 +1,14 @@
 <!--
     file created by Melissa 9/15/15
     file needs to be altered to perform specific functions for triclique tool
+    modified by Kevin 9/20/15
 -->
 
 {% set title=tool.name + " Triclique Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-<script src="/static/d3/ChordDiagram.js" charset="utf-8"></script>
+
 
 <div class="page-header">
     <h1>{{ title }}</h1>
@@ -32,7 +33,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 <title>k-Partite Results</title>
 <style>
 
-    @import url("style.css");
+    {#@import url("../../static/style.css");#}
 
     #circle circle {
         fill: none;
@@ -80,7 +81,12 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     Genes cords are defined as the percent of gene sets that contain that gene. Currently only genes appearing in > 80% of gene sets are indicated.</aside>
 <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
 <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
-
+<script>$.support.cors = true;</script> {# Both the local browser and the remote server must support CORS. Internet Explorer < 10 doesn't support it.
+Opera only began support a couple of months ago. Some mobile browers might not support it yet. Setting $.support.cors to true won't make it work with
+such browsers and servers. CORS is allows HTTP requests from different domain than the domain of the resource making the request. or instance, a
+resource loaded from Domain A (http://domaina.example) such as an HTML web page, makes a request for a resource on Domain B (http://domainb.foo),
+such as an image, using the img element (http://domainb.foo/image.jpg).  This occurs very commonly on the web today — pages load a number of resources
+in a cross-site manner, including CSS stylesheets, images and scripts, and other resources.#}
 
 
 <!-- include csvReader script file -->
@@ -95,7 +101,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
         return X.responseText;
     }
 
-    var mycells = IO('cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
+    var mycells = IO('../static/cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
     var temp = '';
     var t = '';
     //document.write(mycells.join("\n")); //view the cells
@@ -123,12 +129,8 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
         $(".sets").slideToggle("slow");
 });
 </script>
-
-<script type="text/javascript">
-
-
-
-</script>
+<script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
+<script type="text/javascript"></script>
 
 <footer>
     This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
