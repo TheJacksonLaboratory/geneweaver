@@ -1,8 +1,3 @@
-{#
-<table class="table table-hover">
-	<tbody id="project-body-{{ proj.project_id }}">
-#}
-
 {# 	This page is injected into analyze.html--really it's included in
 	singleProject.html, which is rendered by flask and then injected. Anyway,
 	it seems like the beginning element on this page MUST be a row (<tr>), 
@@ -226,11 +221,6 @@
     </td>
 </tr>
 
-{#
-	</tbody>
-</table>
-#}
-
 <!-- Script for hiding or displaying geneset details -->
 <script type="text/javascript">function toggleDetails(id) {
     var element = document.getElementById(id);
@@ -253,17 +243,6 @@
     }
 
 </style>
-
-
-<div id="random_fucking_div">
-</div>
-<tr id="random_fucking_row">
-</tr>
-<tr id="why_isnt_this">
-	<td id="fucking_working">
-	</td>
-</tr>
-
 
 <!-- Script for adding geneset to selected projects-->
 <script type="text/javascript">
@@ -328,6 +307,5 @@
         });
 
     });
-
 
 </script>
