@@ -17,17 +17,24 @@ triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 @triclique_viewer_blueprint.route('/run-triclique-viewer', methods=['POST'])
 def run_tool():
 
-      # TODO need to check for read permissions on genesets
+    # TODO need to check for read permissions on genesets
 
     form = flask.request.form
 
     # pull out the selected geneset IDs
+    selected_project_ids = tc.selected_project_ids(form)
     selected_geneset_ids = tc.selected_geneset_ids(form)
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
+
+    if 'projects' in form:
+        add_projects = form['projects'].split(' ')
+        edited_add_projects = [pj[2:] for pj in add_projects]
+        selected_project_ids = selected_project_ids + edited_add_projects
+
 
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least 2 genes!")
