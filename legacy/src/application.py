@@ -932,6 +932,7 @@ def render_search_json():
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
 
+# Note: this function does not return valid data
 @app.route('/projectGenesets.json', methods=['GET'])
 def render_project_genesets():
     uid = flask.session.get('user_id')
@@ -942,8 +943,6 @@ def render_project_genesets():
     return flask.render_template('singleProject.html', 
                                  genesets = genesets,
                                  proj = {'project_id': pid} )
-
-
 
 #****** ADMIN ROUTES ******************************************************************
 
