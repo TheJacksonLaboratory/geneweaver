@@ -7,6 +7,10 @@ create temp tables that hold upload data and map it back to geneweaver
 
 import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
+from urlparse import parse_qs, urlparse
+from flask import session
+
+
 
 def create_temp_geneset():
     '''
@@ -23,6 +27,129 @@ def create_temp_geneset():
         return 'True'
     except:
         return 'False'
+
+def get_identifier_from_form(ident):
+    '''
+    This function returns a negative int for a gene db and a positive int for a microarray-based string
+    :param identifier: gene_*** or ma_***
+    :return: either positive or negative int
+    '''
+    tmpString = ident.split('_')
+    if tmpString[0] == 'ma':
+        return int(tmpString[1])
+    else:
+        return int(tmpString[1]) * -1
+
+def insertPublication(pubDict):
+    '''
+    Insert publication data where it does not exist, or return ID where it does.
+    :param pubDict: dictionary
+    :return: pub_id
+    '''
+    ## Get pub_id from publication if a pmid exists
+    if pubDict['pub_pubmed'] != '':
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pubDict['pub_pubmed'],))
+            pub_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
+            if pub_id is not None:
+                print 'Old Pub_id: ' + str(pub_id)
+                return pub_id
+    ## Insert new values otherwise and return id to pub_id
+    else:
+        with PooledCursor() as cursor:
+            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume,
+                              pub_pages, pub_month, pub_year, pub_pubmed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                              RETURNING pub_id''',
+                           (pubDict['pub_authors'], pubDict['pub_title'], pubDict['pub_abstract'], pubDict['pub_journal'],
+                            pubDict['pub_volume'], pubDict['pub_pages'], pubDict['pub_month'], pubDict['pub_year'],
+                            pubDict['pub_pubmed'],))
+            pub_id = cursor.fetchone()[0]
+            cursor.connection.commit()
+            print 'New Pub_id: ' + str(pub_id)
+            return pub_id
+
+def insert_new_contents_to_file(contents):
+    with PooledCursor() as cursor:
+        cursor.execute('''INSERT INTO file (file_contents, file_comments, file_created) VALUES (%s, %s, now())
+                          RETURNING file_id''', (contents, 'uploaded from website',))
+        file_id = cursor.fetchone()[0]
+        cursor.connection.commit()
+        print 'New File_id: ' + str(file_id)
+        return file_id
+
+def create_new_geneset(args):
+    '''
+    This function creates new geneset metadata with new data, including publication, and file data
+    It also puts the gs_status='delayed', which can be updated later.
+    :param args: this contains meta data and file_data
+    :return: a results dictionary where {'error': 'None'} is success. Also, return gs_id to be used to make temp file
+    '''
+    urlString = '/?' + args['formData']
+    formData = parse_qs(urlparse(urlString).query, keep_blank_values=True)
+    user_id = session['user_id']
+
+    ##Create publication dictionary
+    ## Insert into publication and return id
+    pubDict = {}
+    pubDict["pub_year"] = formData['pub_year'][0]
+    pubDict["pub_title"] = formData['pub_title'][0]
+    pubDict["pub_pages"] = formData['pub_pages'][0]
+    pubDict["pub_authors"] = formData['pub_authors'][0]
+    pubDict["pub_volume"] = formData['pub_volume'][0]
+    pubDict["pub_abstract"] = formData['pub_abstract'][0]
+    pubDict["pub_pubmed"] = formData['pub_pubmed'][0]
+    pubDict["pub_month"] = formData['pub_month'][0]
+    pubDict["pub_journal"] = formData['pub_journal'][0]
+
+    # Test to see if all values in publication are null
+    if all(v == '' for v in pubDict.values()) is True:
+        pub_id = None
+    else:
+        pub_id = insertPublication(pubDict)
+
+    ##insert into file and return file_id
+    if 'file_text' in formData:
+        if formData['file_text'][0] is not None:
+            form_text = formData['file_text'][0].strip('\r')
+    elif args['fileData'] is not None:
+        form_text = args['fileData']
+    else:
+        return {'error': 'File upload text is empty'}
+
+    try:
+        if form_text is not None:
+            file_id = insert_new_contents_to_file(form_text)
+    except:
+        return {'error': 'File upload text is empty'}
+
+    ## Set permissions and cur id
+    permissions = formData['permissions'][0]
+    if permissions == 'private':
+        cur_id = 5
+        gs_groups = '-1'
+    else:
+        cur_id = 4
+        gs_groups = '0'
+
+    ## get gs count
+    gs_count = len(form_text.split('\n'))
+
+    gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
+
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
+                              gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
+                              VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
+                           (user_id, file_id, formData['gs_name'][0], formData['gs_abbreviation'][0], pub_id, cur_id,
+                            formData['gs_description'][0], formData['sp_id'][0], gs_count, gs_groups, gene_identifier,
+                            'delayed',))
+            gs_id = cursor.fetchone()[0]
+            cursor.connection.commit()
+            print 'Inserted gs_id: ' + str(gs_id)
+    except psycopg2.Error as e:
+        return {'error': e}
+    return {'error': 'None', 'gs_id': gs_id}
 
 def create_temp_geneset_from_value(gsid):
     '''
@@ -192,7 +319,7 @@ def reparse_file_contents_simple(gs_id, species=None, gdb=None):
                                     pass
                             ##
                             ## Get ode_gene_ids
-                            if gene != '' and isinstance(v, float):
+                            if gene != '' and isinstance(v, float) and gene is not None:
                                 gene = str(gene.strip('\n\r '))
                                 g = gene.lower()
                                 with PooledCursor() as cursor:
@@ -279,6 +406,8 @@ def insert_into_geneset_value_by_gsid(gsid):
                     ## Write contents to file_contents for permanent storage
                     contents = make_file_content_string_from_temp_geneset(gsid)
                     write_file_contents_to_file(gsid, contents)
+                    ## Update 'delayed' values to 'normal'
+                    cursor.execute('''UPDATE geneset SET gs_status='normal' WHERE gs_id=%s;''', (gsid,))
                     cursor.connection.commit()
                     return {'error': 'None'}
         else:

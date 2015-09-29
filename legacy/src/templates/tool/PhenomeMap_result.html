@@ -19,13 +19,12 @@
 
 {#
 	Checks to see if runhash is defined. If it is, that means we're
-	viewing a stored result and PhenomeMap.js won't work properly without
-	the extra $.get() call below.
+	viewing a stored result (not running the tool) and PhenomeMap.js 
+	won't work properly without the extra $.get() call below.
 #}
 {% if runhash %}
 	<script type="text/javascript">
 
-		console.log('wtf');
 		var graph_url = '/results/' + '{{async_result.result_image}}';
 		var xml = '';
 		$.get(graph_url, function(data) { xml=data; load_cytoscape(); });
