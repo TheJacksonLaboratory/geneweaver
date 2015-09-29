@@ -59,6 +59,26 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
         display: none;
     }
 
+    aside {
+        width: 500px;
+        left: 100px;
+    }
+
+    .sets {
+        width: 280px;
+        right: 0;
+        text-align: right;
+    }
+
+    html {
+        min-width: 1040px;
+    }
+
+    footer {
+        font-size: small;
+        margin-top: 8em;
+    }
+
 </style>
 <html>
 <body>
@@ -141,9 +161,9 @@ in a cross-site manner, including CSS stylesheets, images and scripts, and other
 <script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
 <script type="text/javascript"></script>
 
-<footer>
+<div id="footer">
     This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
-</footer>
+</div>
 
 
 
