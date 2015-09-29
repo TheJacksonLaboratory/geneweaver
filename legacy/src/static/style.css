@@ -1,5 +1,5 @@
 
-@import url(http://fonts.googleapis.com/css?family=PT+Serif|PT+Serif:b|PT+Serif:i|PT+Sans|PT+Sans:b);
+/*@import url(http://fonts.googleapis.com/css?family=PT+Serif|PT+Serif:b|PT+Serif:i|PT+Sans|PT+Sans:b); */
 
 html {
     min-width: 1040px;
@@ -104,7 +104,7 @@ blockquote q {
     display: block;
     font-style: oblique;
 }
-
+/*
 li {
     width: 680px;
 }
@@ -116,6 +116,7 @@ a {
 a:not(:hover) {
     text-decoration: none;
 }
+*/
 
 pre, code, textarea {
     font-family: "Menlo", monospace;
@@ -192,4 +193,9 @@ blockquote:before {
 
 blockquote:after {
     position: absolute;
+}
+
+footer {
+    font-size: small;
+    margin-top: 8em;
 }
