@@ -70,15 +70,16 @@ footer aside {
 aside, .sets{
     font-size: small;
     position: absolute;
-    width: 280px;
     display: none;
 }
 
 aside {
-    left: 0;
+    width: 500px;
+    left: 100px;
 }
 
 .sets {
+    width: 280px;
     right: 0;
     text-align: right;
 }
