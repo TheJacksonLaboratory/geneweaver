@@ -65,7 +65,7 @@ footer aside {
     color: #636363;
     text-align: right;
 }
-*/
+
 
 aside, .sets{
     font-size: small;
@@ -105,7 +105,7 @@ blockquote q {
     display: block;
     font-style: oblique;
 }
-/*
+
 li {
     width: 680px;
 }
@@ -117,7 +117,7 @@ a {
 a:not(:hover) {
     text-decoration: none;
 }
-*/
+
 
 pre, code, textarea {
     font-family: "Menlo", monospace;
@@ -186,6 +186,8 @@ q:before {
 q:after {
     content: "â€";
 }
+
+*/
 
 blockquote:before {
     position: absolute;
