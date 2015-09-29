@@ -8,12 +8,23 @@
 <tr class="genesetdetails" id="{{ gs.geneset_id }}">
 
     {% if proj is defined %}
-        <td>
+        <td width="40px">
+            <div class="ui-checkbox" style="padding: 0; border: 0;">
+                <label for="geneset_{{ gs.geneset_id }}">
+                    <input type="checkbox" name="geneset_{{ gs.geneset_id }}" data-project="{{ proj.project_id }}"
+                           data-parentproject="{{ proj.project_id }}"
+                           class="proj-{{ proj.project_id }}-check"
+                           id="geneset_{{ gs.geneset_id }}"/>
+                </label>
+            </div>
+            {#
             <input
                     data-parentproject="{{ proj.project_id }}"
                     type="checkbox"
                     name="geneset_{{ gs.geneset_id }}"
-                    class="table-checkbox proj-{{ proj.project_id }}-check">
+                    class="table-checkbox proj-{{ proj.project_id }}-check"
+                    style="margin: 2px; padding: 0px 2px;">
+            #}
         </td>
     {% endif %}
 
@@ -85,7 +96,7 @@
 
 
 
-    <td>
+    <td width="50%">
 
         <a href="/viewgenesetdetails/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}: {{ gs.name }} </a>
         <!-- need status for if not normal -->
@@ -115,11 +126,16 @@
 
     {% if g.user is defined %}
         {% if proj is defined %}
-            <td>&nbsp;&nbsp;
+            <td>
                 <span id="add-{{ gs.geneset_id }}-button" data-toggle="modal"
-                      data-target="#addModal_{{ gs.geneset_id }}" style="cursor: pointer; color: #808080">
-                    <i class="fa fa-folder-o"></i> Add to projects
+                      data-target="#addModal_{{ gs.geneset_id }}"
+                      style="cursor: pointer; color: #808080; margin: 2px; padding: 0px 2px;">
+                    <i class="fa fa-folder-o"></i>
                 </span>
+
+                {% include 'modal/addGenesetsToProjectsFromAnalysis.html' %}
+
+
             </td>
         {% endif %}
     {% endif %}
@@ -132,11 +148,13 @@
 			-->
         {% if proj is defined %}
 
-            <span class="rExpand">
-				<span id="onGenesetMinus_{{ gs.geneset_id }}" style="display: none; color: #808080;">&nbsp;&nbsp;
-                    <i class="fa fa-minus"></i> less...</span>
-				<span id="offGenesetPlus_{{ gs.geneset_id }}" style="color: #808080;">&nbsp;&nbsp;
-                    <i class="fa fa-plus"></i> more...</span>
+            <span class="rExpand" data-placement="top" data-toggle="tooltip"
+							data-rel="tooltip" data-original-title="View More Information"
+							title="More Information" style="margin: 2px; padding: 0px 2px;">
+				<span id="onGenesetMinus_{{ gs.geneset_id }}" style="display: none; color: #808080;">
+                    <i class="fa fa-minus"></i></span>
+				<span id="offGenesetPlus_{{ gs.geneset_id }}" style="color: #808080;">
+                    <i class="fa fa-plus"></i></span>
 			</span>
 
         {% else %}
@@ -158,7 +176,7 @@
 <tr id="genesetdetails_{{ gs.geneset_id }}" style="display: none;">
     <td colspan="100%">
 
-        <table class="table-hover genesetMeta" id="nestedTable">
+        <table class="table table-hover table-striped" id="nestedTable">
 
             <tr>
                 <th style="width: 25%;">Figure Label:</th>
@@ -177,49 +195,13 @@
             </tr>
 
         </table>
-
-
-
-
-
-        {% if g.user is defined %}
-            <div class="modal fade" id="addModal_{{ gs.geneset_id }}">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h4 class="modal-title" id="myModalLabel">Select projects to which you want to add
-                                GS{{ gs.geneset_id }}</h4>
-                        </div>
-                        <div class="modal-body">
-                            <table class="table table-striped table-hover">
-                                {% for currProj in g.user.projects %}
-                                    <tr>
-                                        <td>
-                                            <input
-                                                    type="checkbox"
-                                                    class="modal_checkbox_{{ gs.geneset_id }}"
-                                                    name="{{ currProj.project_id }}">
-                                        </td>
-                                        <td>
-                                            {{ currProj.name }}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </table>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" onclick="addToSelected('{{ gs.geneset_id }}')"
-                                    data-dismiss="modal">Add to selected projects
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
     </td>
 </tr>
+<!-- ###################### End ##########################-->
+
+
+
+
 
 <!-- Script for hiding or displaying geneset details -->
 <script type="text/javascript">function toggleDetails(id) {
@@ -256,6 +238,10 @@
             }
         });
     }
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
 
     $(document).ready(function () {
 

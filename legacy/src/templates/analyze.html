@@ -5,7 +5,16 @@
 
 <style>
 
-
+    a:link {
+        #color: darkgreen;
+    }
+    a:hover {
+        #color: green;
+        text-decoration: none;
+    }
+    a:visited {
+        text-decoration: none;
+    }
 
     .panel .panel-header .panel-info .panel-heading {
         background-color: #F0F0F0;
@@ -65,9 +74,9 @@
             <!-- the Analysis tools column -->
             <div class="col-md-4">
                 <div class="page-header">
-                    <h2>Analysis Tools</h2></div>
+                    <h2>Analysis Tools</h2>
+                </div>
                 <div class="panel-group" id="accordion">
-
                     {% for tool in active_tools %}
                         {% include 'tool/' + tool.classname + '_options.html' %}
                     {% endfor %}
@@ -80,49 +89,34 @@
                 <div class="panel-group" id="projAccordion">
 
                     {% if "user" in g %}
-                        {#
-                        <div id="new project" class="panel panel-info">
-                            <div class="panel-heading">
-                                <h2 class="panel-title">
-                                    <div class="row">
-                                        <div class="col-xs-10">
-                                            {% set blah="blah" %}
-                                            <a href='#' onclick='getProjName()'>
-                                                <script>
-                                                    function getProjName() {
-                                                        var pjname = prompt("Enter the name of your new project: ");
-                                                        if (pjname != null) {
-                                                            window.location = "/analyze_new_project/" + pjname + ".html";
-                                                        }
-                                                    }
-                                                </script>
-                                                <span class="fa fa-folder-o"></span>
-                                                Create New Empty Project
-                                            </a>
-                                        </div>
-                                    </div>
-                                </h2>
-                            </div>
-                        </div>
-                        #}
+
                         {% for proj in g.user.projects %}
                             <div id="project-{{ proj.project_id }}" class="panel">
                                 <div class="panel-heading">
                                     <h2 class="panel-title">
                                         <div class="row">
                                             <div class="col-xs-2">
+                                                <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
+                                                    <label for="proj-{{ proj.project_id }}-allcheck">
+                                                        <input type="checkbox" data-project="{{ proj.project_id }}"
+                                                               id="proj-{{ proj.project_id }}-allcheck"/>
+                                                    </label>
+                                                </div>
 
+                                                {#
                                                 <input
                                                         class="proj-checkbox"
                                                         id="proj-{{ proj.project_id }}-allcheck"
                                                         data-project="{{ proj.project_id }}"
                                                         type="checkbox">
-
+                                                #}
                                             </div>
-                                            <div class="col-xs-10">
-                                                <a class="project-link" data-toggle="collapse" right
+                                            <div class="col-xs-10" style="vertical-align: bottom;">
+                                                <a class="project-link" data-toggle="collapse"
                                                    data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
-                                                    <span class="fa fa-chevron-down"></span>
+                                                    <span id="project-closed-{{ proj.project_id }}"><i class="fa fa-caret-right"></i> </span>
+                                                    <span id="project-open-{{ proj.project_id }}" style="display: none;">
+                                                        <i class="fa fa-caret-down"></i> </span>
                                                     {{ proj.name }}
                                                 </a>
 
@@ -210,6 +204,19 @@
                     });
                 }
             });
+
+            //Change the span for fa caret-down
+            var open = '#project-closed-' + pid;
+            var closed = '#project-open-' + pid;
+            if ($(open).is(":visible")) {
+                $(open).hide();
+                $(closed).show();
+            }
+            else {
+                $(open).show();
+                $(closed).hide();
+            }
+
         });
 
         $('#clickableFontAwesome').popover({
