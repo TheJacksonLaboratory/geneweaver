@@ -67,17 +67,38 @@
                 <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
         </div>
 
-        {% if geneset is not defined %}
+        {% if geneset is not defined or geneset | length < 2 %}
 
-            <div class="alert alert-danger fade in"><button type="button" class="close" data-dismiss="alert"
+            <div class="alert alert-warning fade in"><button type="button" class="close" data-dismiss="alert"
                                                             aria-hidden="true">x</button>
-                No Projects Were Selected
+                There are no other gene sets annotated to the same publication as GS{{ gs_id }}.
             </div>
 
         {% else %}
 
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-3 pull-left">
+                        <a href="/viewgenesetdetails/{{ gs_id }}">
+                        <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+                    </div>
+
+                    <div class="col-md-6"></div>
+
+                    <div class="col-md-3 pull-right">
+
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add to Project
+                        </button>
+
+                    </div>
+
+
+                </div>
+            </div>
 
             <div class="panel-body">
+
                 <form id="addSimGenesetsToProj" name="addSimGenesetsToProj" method="post" action="#"
                       class="form-horizontal form-inline" novalidate="novalidate">
                     <!-- TODO make the table sortable, show more gene details -->
@@ -228,10 +249,21 @@
 
         $(document).ready(function () {
             var gs_id = {{ gs_id }};
-            $('#exportData').on('click', function (e) {
-                window.open('../exportJacGeneList/' + gs_id);
-            });
 
+            $(".toggler").click(function (e) {
+                e.preventDefault();
+                //the data stored in the data-prod
+                var gid = ($(this).attr("data-prod"));
+                //toggle the link clicked on
+                $(".gsid" + gid).toggle();
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $(this).parent().find("span").toggleClass("plus");
+                //$(this).parent().find("span").toggleClass("minus");
+                //toggle the minus class
+                $(this).toggleClass("plus");
+                $(this).toggleClass("minus");
+            });
 
             $('#addToProject').on('click', function () {
                 var gsid = [];
@@ -289,8 +321,8 @@
         });
 
         $('#clickableFontAwesome').popover({
-            title: 'Publications', content: 'These gene sets are associated with your gene set based on a stored ' +
-            'publication id and may be in error.'
+            title: 'Publications', content: 'Gene set duplications may occur when more than one gene set is annotated with ' +
+                'to the same publication. Please contact our curatorial team to remove duplications.'
         });
 
         //});
