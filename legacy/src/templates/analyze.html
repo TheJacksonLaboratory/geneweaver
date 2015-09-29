@@ -26,7 +26,7 @@
 			// Get the project ID from the link href, but gotta strip out
 			// '#genesets-' first
 			var pid = $(this).attr('href').slice('#genesets-'.length);
-            // console.log(pid);
+            console.log(pid);
 
 			var pbid = '#project-body-' + pid;
 			var data = {'project': pid};
