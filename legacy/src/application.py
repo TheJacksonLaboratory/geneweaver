@@ -940,7 +940,7 @@ def render_project_genesets():
     pid = flask.request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
 
-    return flask.render_template('singleProject.html', 
+    return flask.render_template('singleProject.html',
                                  genesets = genesets,
                                  proj = {'project_id': pid} )
 
