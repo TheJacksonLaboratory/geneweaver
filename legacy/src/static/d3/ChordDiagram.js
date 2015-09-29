@@ -32,7 +32,7 @@
             .attr("transform", "translate(500,500)");
 
     svg.append("circle")
-            .attr("r", outerRadius);
+            .attr("r", outerRadius)
             .attr("transform,", "translate(" + width / 2 + ", " + height / 2 + ")");
 
     d3.csv("../../static/cities.csv", function(cities) {
