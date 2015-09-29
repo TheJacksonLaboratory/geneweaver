@@ -57,6 +57,16 @@
 
 
 <tr class="genesetdetails" id="{{ gs.geneset_id }}">
+
+    {% if proj is defined %}
+        <td>
+			<input
+				data-parentproject="{{ proj.project_id }}"
+				type="checkbox"
+				name="geneset_{{ gs.geneset_id }}"
+				class="table-checkbox proj-{{ proj.project_id }}-check">
+		</td>
+    {% endif %}
     <td>
         <!--
 			<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
