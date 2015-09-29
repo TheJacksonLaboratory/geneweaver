@@ -29,7 +29,7 @@
             .attr("height", height)
             .append("g")
             .attr("id", "circle")
-            .attr("transform", "translate(" + width + "," + height + ")");
+            .attr("transform", "translate(500,500)");
 
     svg.append("circle")
             .attr("r", outerRadius);
