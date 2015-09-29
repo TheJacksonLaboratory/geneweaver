@@ -27,7 +27,7 @@ def run_tool():
 	
     if len(selected_geneset_ids) < 3:
         flask.flash("Warning: You need at least 3 genes!")
-        return flask.redirect('analyze.html')
+        return flask.redirect('analyze')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -50,7 +50,7 @@ def run_tool():
         user_id = flask.session['user_id']
     else:
         flask.flash("Internal error: user ID missing")
-        return flask.redirect('analyze.html')
+        return flask.redirect('analyze')
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
