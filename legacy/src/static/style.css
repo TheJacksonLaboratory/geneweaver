@@ -4,7 +4,7 @@
 html {
     min-width: 1040px;
 }
-
+/*
 body {
     background: #fcfcfa;
     color: #333;
@@ -13,6 +13,7 @@ body {
     position: relative;
     width: 1040px;
 }
+*/
 
 header,
 footer,
