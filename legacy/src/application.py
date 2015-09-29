@@ -817,6 +817,16 @@ def render_export_jac_genelist(gs_id):
     return response
 
 
+@app.route('/findPublications/<int:gs_id>')
+def render_view_same_publications(gs_id):
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+    else:
+        user_id = 0
+    results = geneweaverdb.get_similar_genesets_by_publication(gs_id, user_id)
+    return flask.render_template('viewsamepublications.html', user_id=user_id, gs_id=gs_id, geneset=results)
+
+
 @app.route('/emphasis.html', methods=['GET', 'POST'])
 def render_emphasis():
     '''
