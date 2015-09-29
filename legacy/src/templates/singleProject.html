@@ -1,19 +1,10 @@
 
 {% for gs in genesets %}
-	<tr>
-		<td>
-			<input
-						data-parentproject="{{ proj.project_id }}"
-						type="checkbox"
-						name="geneset_{{ gs.geneset_id }}"
-						class="table-checkbox"
-						>
-		</td>
-		<span></span>
-		<td>
+
+    {# Moved the data-parentproject to the viewGenesetSummaryPartial #}
+
 			{% include 'viewGenesetSummaryPartial.html' %}
-		</td>
-	</tr>
+
 {% endfor %}
 
 <script type="text/javascript">
@@ -45,18 +36,18 @@
             var genesetCheckboxes = $('[data-parentproject=\'' + projID + '\']');
 
             projCheckbox.change(function() {
-                console.log('proj change happended');
+                //console.log('proj change happended');
                 projectCheckboxChanged(projCheckbox, genesetCheckboxes);
             });
 
-            console.log('the proj is: ' + projID);
+            //console.log('the proj is: ' + projID);
 
             genesetCheckboxes.each(function(i, gsCheckbox) {
                 gsCheckbox = $(gsCheckbox);
-                console.log('registering');
-                console.log(gsCheckbox);
+                //console.log('registering');
+                //console.log(gsCheckbox);
                 gsCheckbox.change(function() {
-                    console.log('gs change happended');
+                    //console.log('gs change happended');
                     genesetCheckboxChanged(projCheckbox, genesetCheckboxes);
                 });
             });
