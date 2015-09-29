@@ -71,7 +71,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
         text-align: right;
     }
 
-    footer {
+    #footer {
         font-size: small;
         margin-top: 8em;
         position: absolute;
@@ -138,8 +138,11 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
             $(".sets").slideToggle("slow");
     });
     </script>
-<script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
-<script type="text/javascript"></script>
+
+    <div id="chord">
+        <script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
+        <script type="text/javascript"></script>
+    </div>
 
 <div id="footer">
     This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
