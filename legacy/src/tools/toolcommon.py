@@ -50,6 +50,7 @@ def selected_project_ids(form):
         for id_with_prefix in form.iterkeys()
         if id_with_prefix.startswith(project_html_id_prefix)
     ]
+
 def fully_qualified_name(tool_class_name):
     """
     Takes the given tool classname and returns the fully-qualified
