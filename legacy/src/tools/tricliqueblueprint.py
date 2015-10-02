@@ -36,17 +36,6 @@ def run_tool():
     #    edited_add_projects = [pj[2:] for pj in add_projects]
     #    selected_project_ids = selected_project_ids + edited_add_projects
 
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        if tool_param.name.endswith('_ExactGeneOverlap'):
-            if len(selected_project_ids) != 2:
-                flask.flash("Warning: You must select 2 projects!")
-                return flask.redirect('analyze')
-        elif tool_param.name.endswith('_Jaccard'):
-            if len(selected_project_ids) < 3:
-                flask.flash("Warning: You need at least 3 projects!")
-                return flask.redirect('analyze')
-
-
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
@@ -56,6 +45,23 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
+
+
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        if tool_param.name.endswith('_ExactGeneOverlap'):
+            if params[tool_param.name] != 'Enabled':
+                params[tool_param.name] = 'Disabled'
+            else:
+                if len(selected_project_ids) != 2:
+                    flask.flash("Warning: You must select 2 projects!")
+                    return flask.redirect('analyze')
+        elif tool_param.name.endswith('_Jaccard'):
+            if params[tool_param.name] != 'Enabled':
+                params[tool_param.name] = 'Disabled'
+            else:
+                if len(selected_project_ids) < 3:
+                    flask.flash("Warning: You need at least 3 projects!")
+                    return flask.redirect('analyze')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
