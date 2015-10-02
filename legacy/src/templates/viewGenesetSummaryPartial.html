@@ -260,9 +260,7 @@
             }
         });
 
-        //$(".rExpand").on('click', function () {
         $(".rExpand").on('click', function (event) {
-        //$(".rExpand").click(function (event) {
 
 			// Because this page is injected into analyze.html, this script 
 			// will get written to that page multiple times, resulting in
@@ -270,27 +268,11 @@
 			// events otherwise bad things happen.
 			event.stopImmediatePropagation();
 
-            //var child = $(this).parent().parent().find(".genesetdetails").;
-            var child = $(this).closest("tr").find('.genesetdetails').prop('id');
-            var childId = $(this).parents("tr").prop("id");
-            //var arr = childId.split('_');
-            //var child = arr[1];
-            //alert(child);
-            var hidden = $("#genesetdetails_" + childId).is(":visible");
-			$("#genesetdetails_" + childId).toggle();
-			$("#offGenesetPlus_" + childId).toggle();
-			$("#onGenesetMinus_" + childId).toggle();
+            var child = $(this).parents("tr").prop("id");
 
-            //if (hidden) {
-			//	$("#genesetdetails_" + childId).hide();
-            //    $("#offGenesetPlus_" + childId).toggle();
-            //    $("#onGenesetMinus_" + childId).toggle();
-            //}
-            //else {
-			//	$("#genesetdetails_" + childId).show();
-            //    $("#offGenesetPlus_" + childId).toggle();
-            //    $("#onGenesetMinus_" + childId).toggle();
-            //}
+			$("#genesetdetails_" + child).toggle();
+			$("#offGenesetPlus_" + child).toggle();
+			$("#onGenesetMinus_" + child).toggle();
         });
 
     });

@@ -102,23 +102,10 @@
                                                                id="proj-{{ proj.project_id }}-allcheck"/>
                                                     </label>
                                                 </div>
-
-                                                {#
-                                                <input
-                                                        class="proj-checkbox"
-                                                        id="proj-{{ proj.project_id }}-allcheck"
-                                                        data-project="{{ proj.project_id }}"
-                                                        type="checkbox">
-                                                #}
                                             </div>
                                             <div class="col-xs-10" style="vertical-align: bottom;">
                                                 <a class="project-link" data-toggle="collapse"
                                                    data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
-													{#
-                                                    <span id="project-closed-{{ proj.project_id }}"><i class="fa fa-caret-right"></i> </span>
-                                                    <span id="project-open-{{ proj.project_id }}" style="display: none;">
-                                                        <i class="fa fa-caret-down"></i> </span>
-													#}
 													<i class="fa fa-caret-right"></i> </span>
                                                     {{ proj.name }}
                                                 </a>
@@ -129,17 +116,7 @@
                                 </div>
                                 <div id="genesets-{{ proj.project_id }}" class="panel-collapse collapse">
                                     <div class="panel-body">
-										{#
-                                        <table class="table table-hover">
-                                            <tbody id="project-body-{{ proj.project_id }}">
-                                            </tbody>
-                                        </table>
-										#}
                                         <table id="project-body-{{ proj.project_id }}" class="table table-hover">
-											{#
-                                            <tbody>
-                                            </tbody>
-											#}
                                         </table>
                                     </div>
                                 </div>
