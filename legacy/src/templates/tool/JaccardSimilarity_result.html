@@ -169,7 +169,7 @@ Download As:
 {#        <iframe id = "javascript" style="width:90%; height:95%; min-height: 550px;" src = "loc" id="javascript" frameborder="0"></iframe>#}
 {#    </div>#}
 {#</div>#}
-
+{{data|safe}}
 {#<iframe id = "content-frame" style="width:90%; height:95%; min-height: 1000px">#}
 {#<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>#}
 <script type="text/javascript">
@@ -184,6 +184,7 @@ var count_text= 0;
 var venn_d = [];
 var text_d = [];
 var gene_lab_coor = [];
+var circleData = [];
  for (i = 0; i<count; i++) {
      venn_d.push([d.venn_diagrams[i].c2x,
          d.venn_diagrams[i].c2y,
@@ -191,21 +192,55 @@ var gene_lab_coor = [];
          d.venn_diagrams[i].c1y,
          d.venn_diagrams[i].r2,
          d.venn_diagrams[i].r1]);
-             {#        alert(d.venn_diagrams[0].text[1].text);#}
-{#             alert("i: " + i);#}
+     {#        alert(d.venn_diagrams[0].text[1].text);#}
+     {#             alert("i: " + i);#}
      gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty])
-     count_text= 0;
+     count_text = 0;
      for (var key in d.venn_diagrams[i].text) {
-{#             alert("key; " + key);#}
-         if (d.venn_diagrams[i].text.hasOwnProperty(key)){
-             ++count_text;}
+         {#             alert("key; " + key);#}
+         if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
+             ++count_text;
+         }
      }
-    // alert("count: " + count_text);
-     for(k=0; k <count_text; k++){
-        text_d.push([d.venn_diagrams[i].text[k].text,
-            d.venn_diagrams[i].text[k].tx,
-            d.venn_diagrams[i].text[k].ty]);
+     // alert("count: " + count_text);
+     for (k = 0; k < count_text; k++) {
+         text_d.push([d.venn_diagrams[i].text[k].text,
+             d.venn_diagrams[i].text[k].tx,
+             d.venn_diagrams[i].text[k].ty]);
+
      }
+     if (d.venn_diagrams[i].c1x == d.venn_diagrams[i].c2x) {
+         circleData.push({
+             "cx": d.venn_diagrams[i].c2x,
+             "cy": d.venn_diagrams[i].c2y,
+             "radius": d.venn_diagrams[i].r2,
+             "fill": "#66FFFF",
+             "opacity": ".5",
+             "cxshift": 700+(i*10),
+             "cyshift": 100
+         });
+     }
+     else{
+         circleData.push({
+             "cx": d.venn_diagrams[i].c2x,
+             "cy": d.venn_diagrams[i].c2y,
+             "radius": d.venn_diagrams[i].r2,
+             "fill": "#0000FF",
+             "opacity": ".5",
+             "cxshift": 850,
+             "cyshift": i*100
+         });
+         circleData.push({
+             "cx": d.venn_diagrams[i].c1x,
+             "cy": d.venn_diagrams[i].c1y,
+             "radius": d.venn_diagrams[i].r1,
+             "fill": "#FF8000",
+             "opacity": ".5",
+             "cxshift": 850+(i*10),
+             "cyshift": (i*100)
+         });
+     }
+
  }
 
  var gene_sets = [];
@@ -218,16 +253,17 @@ var bordercolor = 'black';
 padding: {
 right: 100
 }
-
-var circleData = [
-                    { "cx": venn_d[0][0], "cy": venn_d[0][1], "radius": venn_d[0][4], "fill" : "#66FFFF", "opacity": ".5", "cxshift" : 700, "cyshift" : 0, "label": text_d[0][0], "txshift" : text_d[0][1], "tyshift" : text_d[0][2],
-                    "jval" : text_d[1][0], "jxshift" : text_d[1][1], "jyshift" : text_d[1][2], "pval" : text_d[2][0],    "pxshift" : text_d[2][1], "pyshift" : text_d[2][2], "gene_id" : gene_sets[0], "tx" : gene_lab_coor[0][0], "ty" : gene_lab_coor[0][1]},
-                    { "cx": venn_d[1][0], "cy": venn_d[1][1], "radius": venn_d[1][4], "fill" : "#0000FF", "opacity": ".5", "cxshift" : 850, "cyshift" : 0, "label": text_d[3][0], "txshift" : text_d[3][1], "tyshift" : text_d[3][2]},
-                    { "cx": venn_d[1][2], "cy": venn_d[1][3], "radius": venn_d[1][5], "fill" : "#FF8000", "opacity": ".5", "cxshift" : 850, "cyshift" : 0, "label": text_d[4][0], "txshift" : text_d[4][1], "tyshift" : text_d[4][2]},
-                    { "cx": venn_d[2][0], "cy": venn_d[2][1], "radius": venn_d[2][4], "fill" : "#0000FF", "opacity": ".5", "cxshift" : 700, "cyshift" : 100, "label": text_d[5][0], "txshift" : text_d[5][1], "tyshift" : text_d[5][2]},
-                    { "cx": venn_d[2][2], "cy": venn_d[2][3], "radius": venn_d[2][5], "fill" : "#FF8000", "opacity": ".5", "cxshift" : 700, "cyshift" : 100, "label": text_d[6][0], "txshift" : text_d[6][1], "tyshift" : text_d[6][2]},
-                    { "cx": venn_d[3][0], "cy": venn_d[3][1], "radius": venn_d[3][4], "fill" : "#66FFFF", "opacity": ".5", "cxshift" : 850, "cyshift" : 100, "label": text_d[7][0], "txshift" : text_d[7][1], "tyshift" : text_d[7][2],
-                     "jval" : text_d[8][0], "jxshift" : text_d[8][1], "jyshift" : text_d[8][2], "pval" : text_d[9][0],    "pxshift" : text_d[9][1], "pyshift" : text_d[9][2], "gene_id" : gene_sets[1], "tx" : gene_lab_coor[1][0], "ty" : gene_lab_coor[1][1]}] ;
+alert(count);
+alert(circleData.length)
+{#var circleData = [#}
+{#                    { "cx": venn_d[0][0], "cy": venn_d[0][1], "radius": venn_d[0][4], "fill" : "#66FFFF", "opacity": ".5", "cxshift" : 700, "cyshift" : 0, "label": text_d[0][0], "txshift" : text_d[0][1], "tyshift" : text_d[0][2],#}
+{#                    "jval" : text_d[1][0], "jxshift" : text_d[1][1], "jyshift" : text_d[1][2], "pval" : text_d[2][0],    "pxshift" : text_d[2][1], "pyshift" : text_d[2][2], "gene_id" : gene_sets[0], "tx" : gene_lab_coor[0][0], "ty" : gene_lab_coor[0][1]},#}
+{#                    { "cx": venn_d[1][0], "cy": venn_d[1][1], "radius": venn_d[1][4], "fill" : "#0000FF", "opacity": ".5", "cxshift" : 850, "cyshift" : 0, "label": text_d[3][0], "txshift" : text_d[3][1], "tyshift" : text_d[3][2]},#}
+{#                    { "cx": venn_d[1][2], "cy": venn_d[1][3], "radius": venn_d[1][5], "fill" : "#FF8000", "opacity": ".5", "cxshift" : 850, "cyshift" : 0, "label": text_d[4][0], "txshift" : text_d[4][1], "tyshift" : text_d[4][2]},#}
+{#                    { "cx": venn_d[2][0], "cy": venn_d[2][1], "radius": venn_d[2][4], "fill" : "#0000FF", "opacity": ".5", "cxshift" : 700, "cyshift" : 100, "label": text_d[5][0], "txshift" : text_d[5][1], "tyshift" : text_d[5][2]},#}
+{#                    { "cx": venn_d[2][2], "cy": venn_d[2][3], "radius": venn_d[2][5], "fill" : "#FF8000", "opacity": ".5", "cxshift" : 700, "cyshift" : 100, "label": text_d[6][0], "txshift" : text_d[6][1], "tyshift" : text_d[6][2]},#}
+{#                    { "cx": venn_d[3][0], "cy": venn_d[3][1], "radius": venn_d[3][4], "fill" : "#66FFFF", "opacity": ".5", "cxshift" : 850, "cyshift" : 100, "label": text_d[7][0], "txshift" : text_d[7][1], "tyshift" : text_d[7][2],#}
+{#                     "jval" : text_d[8][0], "jxshift" : text_d[8][1], "jyshift" : text_d[8][2], "pval" : text_d[9][0],    "pxshift" : text_d[9][1], "pyshift" : text_d[9][2], "gene_id" : gene_sets[1], "tx" : gene_lab_coor[1][0], "ty" : gene_lab_coor[1][1]}] ;#}
 
  //Create the SVG Viewport
  var svgContainer = d3.select("body").append("svg")
