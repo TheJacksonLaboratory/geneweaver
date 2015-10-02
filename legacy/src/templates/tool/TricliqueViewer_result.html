@@ -101,7 +101,7 @@ in a cross-site manner, including CSS stylesheets, images and scripts, and other
         return X.responseText;
     }
 
-    var mycells = IO('../static/cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
+    var mycells = IO('../../static/cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
     var temp = '';
     var t = '';
     //document.write(mycells.join("\n")); //view the cells
