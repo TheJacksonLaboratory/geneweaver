@@ -151,6 +151,18 @@
 
         var url = '/projectGenesets.json';
 
+		// Ensures the plus icon is next to each tool under the
+		// analysis tools sidebar. Here so I don't have to change 
+		// this piece of HTML in each of the tool option templates.
+		$('.panel-title').each(function(index, elem) {
+
+			var child = $(elem).children('a');
+			var href = $(child).attr('data-parent');
+
+			if (href == '#accordion')
+				$(child).addClass('collapsed');
+		});
+
 		// All selector checkbox
 		$('.proj-checkbox').on('click', function(event) {
 
