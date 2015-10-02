@@ -41,7 +41,7 @@ def run_tool():
         flask.flash("Warning: You need at least 2 projects!")
         return flask.redirect('analyze')
     else:
-        if (len(selected_project_ids) + len(selected_geneset_ids)) < 3:
+        if (len(selected_geneset_ids) + len(selected_geneset_ids)) < 3:
             flask.flash("Warning: You need a geneset.")
 
     # gather the params into a dictionary
