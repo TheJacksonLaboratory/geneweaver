@@ -26,7 +26,7 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
 
     #print(selected_geneset_ids)
-    print(selected_project_ids)
+    #print(selected_project_ids)
 
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
@@ -40,8 +40,8 @@ def run_tool():
     #    selected_project_ids = selected_project_ids + edited_add_projects
 
 
-    if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 genes!")
+    if len(selected_project_ids) < 2:
+        flask.flash("Warning: You need at least 2 projects!")
         return flask.redirect('analyze')
 
     # gather the params into a dictionary
