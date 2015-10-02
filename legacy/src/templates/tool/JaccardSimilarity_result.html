@@ -169,18 +169,19 @@ Download As:
 {#        <iframe id = "javascript" style="width:90%; height:95%; min-height: 550px;" src = "loc" id="javascript" frameborder="0"></iframe>#}
 {#    </div>#}
 {#</div>#}
-{{data|safe}}
 {#<iframe id = "content-frame" style="width:90%; height:95%; min-height: 1000px">#}
 {#<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>#}
+ {{ data | safe }};
 <script type="text/javascript">
 {#   document.getElementById('javascript').setAttribute ('src', loc);#}
 
-var d = {{ data | safe }}
+var d = {{ data | safe }};
 var count = 0;
 for(var key in d.venn_diagrams)
     if(d.venn_diagrams.hasOwnProperty(key))
         count++;
 var count_text= 0;
+var check = 0;
 var venn_d = [];
 var text_d = [];
 var gene_lab_coor = [];
@@ -188,6 +189,8 @@ var circleData = [];
 var num_sets = Math.sqrt(count);
 var x_coord =0;
 var y_coord = 0;
+ var gene_sets = [];
+gene_sets = d.genesets;
  for (i = 0; i<count; i++) {
      if(i%num_sets === 0){
          x_coord = 1000;
@@ -196,14 +199,7 @@ var y_coord = 0;
      else{
          x_coord += 200;
      }
-{#     venn_d.push([d.venn_diagrams[i].c2x,#}
-{#         d.venn_diagrams[i].c2y,#}
-{#         d.venn_diagrams[i].c1x,#}
-{#         d.venn_diagrams[i].c1y,#}
-{#         d.venn_diagrams[i].r2,#}
-{#         d.venn_diagrams[i].r1]);#}
-     {#        alert(d.venn_diagrams[0].text[1].text);#}
-     {#             alert("i: " + i);#}
+
      gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
      count_text = 0;
      for (var key in d.venn_diagrams[i].text) {
@@ -227,11 +223,26 @@ var y_coord = 0;
                  "opacity": ".5",
                  "cxshift": x_coord,
                  "cyshift": y_coord,
+                 "label": gene_sets[check]});
+
+             if (k ===0) {
+                  circleData.push({
                  "gene_id": d.venn_diagrams[i].text[k].text,
-                 "txshift" : x_coord + d.venn_diagrams[i].text[k].tx +20,
-                 "tyshift" : y_coord + d.venn_diagrams[i].text[k].ty +20
+                 "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
+                 "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
+
 
              });
+             check+=1;
+                 console.log("Check", check);
+             }
+             else{
+                 circleData.push({
+                 "gene_id": d.venn_diagrams[i].text[k].text,
+                 "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 18,
+                 "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 24 });
+             }
+
          }
          else {
              circleData.push({
@@ -243,8 +254,8 @@ var y_coord = 0;
                  "cxshift": x_coord,
                  "cyshift": y_coord,
                  "gene_id": d.venn_diagrams[i].text[k].text,
-                 "txshift" : x_coord + d.venn_diagrams[i].text[k].tx ,
-                 "tyshift" : y_coord + d.venn_diagrams[i].text[k].ty
+                 "txshift" : x_coord + d.venn_diagrams[i].text[k].tx + 20+ (k* 3),
+                 "tyshift" : y_coord + d.venn_diagrams[i].text[k].ty + 30 + (k *3)
 
              });
              circleData.push({
@@ -261,9 +272,8 @@ var y_coord = 0;
 
  }
 
- var gene_sets = [];
- gene_sets = d.genesets;
 
+alert(d.genesets)
 
 var border = 1;
 var bordercolor = 'black';
@@ -303,7 +313,7 @@ var circleAttributes = circles
         .attr("r", function (d) { return d.radius; })
         .style("fill", function (d) { return d.fill; })
         .style("fill-opacity", function (d) { return d.opacity })
-        .attr("cxshift", function (d) { return d.cyshift;})
+        .attr("cxshift", function (d) { return d.cxshift;})
         .attr("cyshift", function (d) { return d.cyshift;})
         .attr("label", function (d) { return d.label;})
         .style("stroke", bordercolor)
@@ -324,26 +334,21 @@ var text = svgContainer.selectAll("text")
         .enter();
 
     text.append("text")
-        .text(function(d){ return d.pval})
-        .attr("x", function(d) { return d.cxshift + d.pxshift + 20; })
-        .attr("y", function(d) { return d.cyshift+ d.pyshift + 14; });
-
-
-    text.append("text")
-        .text(function(d){ return d.jval})
-        .attr("x", function(d) { return d.cxshift + d.jxshift + 16; })
-        .attr("y", function(d) { return d.cyshift + d.jyshift + 20; });
-
+        .text( function (d) { return d.label; })
+        .attr("x", function(d) { return d.cxshift +100; })
+        .attr("y", function(d) { return 100; })
+        .style("font-weight", "bold");
     text.append("text")
         .text( function (d) { return d.label; })
-        .attr("x", function(d) { return d.cxshift + d.txshift + 27; })
-        .attr("y", function(d) { return d.cyshift+ d.tyshift + 42; });
+        .attr("x", function(d) { return 100; })
+        .attr("y", function(d) { return d.cyshift +100; })
+        .style("font-weight", "bold");
 
     text.append("text")
         .text( function (d) { return d.gene_id; })
         .attr("x", function(d) { return d.txshift; })
-        .attr("y", function(d) { return  d.tyshift; })
-        .style("font-weight", "bold");
+        .attr("y", function(d) { return  d.tyshift; });
+
 
 
 //Add SVG Text Element Attributes
