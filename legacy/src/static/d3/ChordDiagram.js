@@ -29,11 +29,10 @@
             .attr("height", height)
             .append("g")
             .attr("id", "circle")
-            .attr("transform", "translate(500,500)");
+            .attr("transform,", "translate(" + width / 2 + ", " + height / 2 + ")");
 
     svg.append("circle")
-            .attr("r", outerRadius)
-            .attr("transform,", "translate(" + width / 2 + ", " + height / 2 + ")");
+            .attr("r", outerRadius);
 
     d3.csv("../../static/cities.csv", function(cities) {
         d3.json("../../static/matrix.json", function(matrix) {
