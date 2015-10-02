@@ -36,13 +36,14 @@ def run_tool():
     #    edited_add_projects = [pj[2:] for pj in add_projects]
     #    selected_project_ids = selected_project_ids + edited_add_projects
 
-
-    if len(selected_project_ids) < 2:
-        flask.flash("Warning: You need at least 2 projects!")
-        return flask.redirect('analyze')
-    else:
-        if (len(selected_geneset_ids) + len(selected_geneset_ids)) < 3:
-            flask.flash("Warning: You need a geneset.")
+     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        if tool_param.name.endswith('_ExactGeneOverlap'):
+            if len(selected_project_ids) != 2:
+                flask.flash("Warning: You must select 2 projects!")
+                return flask.redirect('analyze')
+        elif tool_param.name.endswith('_Jaccard'):
+            if len(selected_project_ids) < 3:
+                flask.flash("Warning: You need at least 3 projects!")
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -105,12 +106,10 @@ def run_tool():
 
 @triclique_viewer_blueprint.route('/run-triclique-viewer-api.html', methods=['POST'])
 def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
-
     '''
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
-
 
     # gather the params into a dictionary
     homology_str = 'Homology'
