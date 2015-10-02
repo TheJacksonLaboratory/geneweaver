@@ -44,6 +44,7 @@ def run_tool():
         elif tool_param.name.endswith('_Jaccard'):
             if len(selected_project_ids) < 3:
                 flask.flash("Warning: You need at least 3 projects!")
+                return flask.redirect('analyze')
 
 
     # gather the params into a dictionary
