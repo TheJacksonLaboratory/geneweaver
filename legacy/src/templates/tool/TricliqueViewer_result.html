@@ -55,28 +55,6 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
         display: none;
     }
 
-    aside, .sets{
-        font-size: small;
-        position: absolute;
-        display: none;
-    }
-
-    aside {
-        width: 280px;
-    }
-
-    .sets {
-        width: 280px;
-        right: 0;
-        text-align: right;
-    }
-
-    #footer {
-        font-size: small;
-        position: absolute;
-        bottom: -200px;
-    }
-
 </style>
 <html>
 <body>
@@ -99,48 +77,47 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 
 <!-- include csvReader script file -->
 
-    <div class="sets">
-    <script>
-        function IO(U, V) {
-            var X = !window.XMLHttpRequest ? new ActiveXObject("Microsoft.XMLHTTP") : new XMLHttpRequest;
-            X.open(V ? "PUT" : "GET", U, false);
-            X.setRequestHeader("Content-Type", "text/html");
-            X.send(V ? V : "");
-            return X.responseText;
+<div class="sets">
+<script>
+    function IO(U, V) {
+        var X = !window.XMLHttpRequest ? new ActiveXObject("Microsoft.XMLHTTP") : new XMLHttpRequest;
+        X.open(V ? "PUT" : "GET", U, false);
+        X.setRequestHeader("Content-Type", "text/html");
+        X.send(V ? V : "");
+        return X.responseText;
+    }
+
+    var mycells = IO('../../static/cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
+    var temp = '';
+    var t = '';
+    //document.write(mycells.join("\n")); //view the cells
+    for (i=1; i < mycells.length; ++i){
+        entry = mycells[i];
+        for (j=0; j < entry.length; ++j){
+            temp = entry[j];
+            var n = temp.split(',');
+            t = n[1].replace(/-.*/,'');
+            t = n[0] + ' ' + t + '<br>';
+            document.writeln(t.fontcolor(n[4]));
         }
+    }
+</script>
+</div>
 
-        var mycells = IO('../static/cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
-        var temp = '';
-        var t = '';
-        //document.write(mycells.join("\n")); //view the cells
-        for (i=1; i < mycells.length; ++i){
-            entry = mycells[i];
-            for (j=0; j < entry.length; ++j){
-                temp = entry[j];
-                var n = temp.split(',');
-                t = n[1].replace(/-.*/,'');
-                t = n[0] + ' ' + t + '<br>';
-                document.writeln(t.fontcolor(n[4]));
-            }
-        }
-    </script>
-    </div>
-
-    <script>
-        $('#Help').click(function() {
-            $("aside").slideToggle("slow");
-        });
-    </script>
-
-    <script>
-        $('#GeneSets').click(function() {
-            $(".sets").slideToggle("slow");
+<script>
+    $('#Help').click(function() {
+        $("aside").slideToggle("slow");
     });
-    </script>
+</script>
 
-        <p>Hello world</p>
-        <script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
-        <script type="text/javascript"></script>
+<script>
+    $('#GeneSets').click(function() {
+        $(".sets").slideToggle("slow");
+});
+</script>
+
+    <script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
+    <script type="text/javascript"></script>
 
     <div id="footer">
         This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
