@@ -23,8 +23,8 @@ def run_tool():
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-		
-	
+
+
     if len(selected_geneset_ids) < 3:
         flask.flash("Warning: You need at least 3 genes!")
         return flask.redirect('analyze.html')
@@ -38,8 +38,8 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
-        
-  
+
+
 
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
@@ -145,6 +145,7 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
 @jaccardclustering_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
+    # really debug here
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 

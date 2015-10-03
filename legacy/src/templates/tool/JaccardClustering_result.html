@@ -42,6 +42,7 @@
                 .attr("height", h);
 
             //Resulting json file is loaded
+            var data = {{ data|safe }}
             d3.json("/static/flare.json", function(json) {
               root = json;
               root.fixed = true;
