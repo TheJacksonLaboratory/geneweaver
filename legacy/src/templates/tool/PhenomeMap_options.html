@@ -2,38 +2,42 @@
 
 <style>
 
-	.panel .panel-header .panel-info .panel-heading {
+    .panel .panel-header .panel-info .panel-heading {
 
-		background-color: #F0F0F0;
-	}
+        background-color: #F0F0F0;
+    }
+
+
+
 
 </style>
 
-<div class="panel panel-info">
-	<div class="panel-heading">
-		<img src="/static/images/tool_PhenomeMap.png">
-		<h2 class="panel-title">
-			<a data-toggle="collapse" data-parent="#accordion" href="#pmCollapse">
-				HiSim Graph
-			</a>
-		</h2>
-	</div>
-	<div id="pmCollapse" class="panel-collapse collapse">
-		<div class="panel-body">
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
-			<div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
-			<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
-			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
-		</div>
-	</div>
+<div class="panel">
+    <div class="panel-heading">
+        <img src="/static/images/GW2-hisim.png" width=50 height=50>
+
+        <h2 class="panel-title">
+            <a data-toggle="collapse" data-parent="#accordion" href="#pmCollapse">
+                HiSim Graph
+            </a>
+        </h2>
+    </div>
+    <div id="pmCollapse" class="panel-collapse collapse">
+        <div class="panel-body">
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
+            <div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
+            <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+        </div>
+    </div>
 </div>
