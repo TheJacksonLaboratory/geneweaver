@@ -170,7 +170,11 @@ Download As:
 {#</div>#}
 {#<iframe id = "content-frame" style="width:90%; height:95%; min-height: 1000px">#}
 {#<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>#}
+<<<<<<< HEAD
 {# {{ data | safe }};#}
+=======
+ {{ data | safe }};
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
 <script type="text/javascript">
 {#   document.getElementById('javascript').setAttribute ('src', loc);#}
 
@@ -192,11 +196,16 @@ var y_coord = 0;
 gene_sets = d.genesets;
  for (i = 0; i<count; i++) {
      if(i%num_sets === 0){
+<<<<<<< HEAD
          x_coord = 150;
          y_coord += 150;
          if(i ===0) {
              y_coord = 50;
          }
+=======
+         x_coord = 1000;
+         y_coord += 200;
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
      }
      else{
          x_coord += 200;
@@ -209,10 +218,21 @@ gene_sets = d.genesets;
              ++count_text;
          }
      }
+<<<<<<< HEAD
      for (k = 0; k < count_text; k++) {
 
 
          if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
+=======
+     // alert("count: " + count_text);
+     for (k = 0; k < count_text; k++) {
+{#         text_d.push([d.venn_diagrams[i].text[k].text,#}
+{#             d.venn_diagrams[i].text[k].tx,#}
+{#             d.venn_diagrams[i].text[k].ty]);#}
+
+
+         if (d.venn_diagrams[i].c1x == d.venn_diagrams[i].c2x) {
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
              circleData.push({
                  "cx": d.venn_diagrams[i].c2x,
                  "cy": d.venn_diagrams[i].c2y,
@@ -220,15 +240,23 @@ gene_sets = d.genesets;
                  "fill": "#66FFFF",
                  "opacity": ".5",
                  "cxshift": x_coord,
+<<<<<<< HEAD
                  "cyshift": y_coord
                  });
 
 
              if (k === 0) {
+=======
+                 "cyshift": y_coord,
+                 "label": gene_sets[check]});
+
+             if (k ===0) {
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
                   circleData.push({
                  "gene_id": d.venn_diagrams[i].text[k].text,
                  "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                  "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
+<<<<<<< HEAD
                  "label": gene_sets[check],
                  "labelx" : x_coord,
                  "labely" : y_coord
@@ -237,6 +265,13 @@ gene_sets = d.genesets;
 
              check+=1;
 {#                 console.log("Check", check);#}
+=======
+
+
+             });
+             check+=1;
+                 console.log("Check", check);
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
              }
              else{
                  circleData.push({
@@ -275,7 +310,11 @@ gene_sets = d.genesets;
  }
 
 
+<<<<<<< HEAD
 {#alert(d.genesets);#}
+=======
+alert(d.genesets)
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
 
 var border = 1;
 var bordercolor = 'black';
@@ -301,7 +340,11 @@ var circleAttributes = circles
         .attr("cy", function (d) { return d.cy + d.cyshift + 50; })
         .attr("r", function (d) { return d.radius; })
         .style("fill", function (d) { return d.fill; })
+<<<<<<< HEAD
         .style("fill-opacity", function (d) { return d.opacity - .2 })
+=======
+        .style("fill-opacity", function (d) { return d.opacity })
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
         .attr("cxshift", function (d) { return d.cxshift;})
         .attr("cyshift", function (d) { return d.cyshift;})
         .attr("label", function (d) { return d.label;})
@@ -324,6 +367,7 @@ var text = svgContainer.selectAll("text")
 
     text.append("text")
         .text( function (d) { return d.label; })
+<<<<<<< HEAD
         .attr("x", function(d) { return d.labelx +70; })
         .attr("y", function(d) { return 50; })
         .style("font-weight", "bold");
@@ -331,6 +375,15 @@ var text = svgContainer.selectAll("text")
         .text( function (d) { return d.label; })
         .attr("x", function(d) { return 50; })
         .attr("y", function(d) { return d.labely +100; })
+=======
+        .attr("x", function(d) { return d.cxshift +100; })
+        .attr("y", function(d) { return 100; })
+        .style("font-weight", "bold");
+    text.append("text")
+        .text( function (d) { return d.label; })
+        .attr("x", function(d) { return 100; })
+        .attr("y", function(d) { return d.cyshift +100; })
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
         .style("font-weight", "bold");
 
     text.append("text")
@@ -381,7 +434,14 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 </script>
 
+<<<<<<< HEAD
 {#</iframe>#}
+=======
+<<<<<<< HEAD
+{#</iframe>#}
+=======
+
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025
 
 
 
@@ -525,5 +585,8 @@ function type(d) {
 </script>
 
 {% include 'footer.html' %}
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> b4e30dc859e57ca7879af19b5d740380908e2025

@@ -1,0 +1,162 @@
+<!--
+    file created by Melissa 9/15/15
+    file needs to be altered to perform specific functions for triclique tool
+    modified by Kevin 9/20/15
+-->
+
+{% set title=tool.name + " Triclique Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+
+<!DOCTYPE html>
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+<!--
+<p>This is an advanced tool that allows you to download the raw association matrix for the GeneSets you selected.
+This file contains tab-separated values (which can be loaded into Excel). The values in the top-left are the number of
+genes and number of GeneSets, respectively, followed by the Geneset IDs. The second row contains the matching GeneSet
+abbreviations. In following rows there is an internal ODE gene identifier and the official gene symbol. The internal ODE
+identifier will be a unique integer for each gene, but will not be consistent across database updates so should not be
+permanantly recorded. However, a negative identifier does indicate a homology cluster for the given gene. Each row will
+contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was not contained in that GeneSet.</p>
+-->
+{# <p>
+<a href="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" download>[DOWNLOAD LINK]</a> generated matrix, or view it below:
+</p> #}
+
+{# Clarissa: Added Dr. Baker's code for the k-Partite result viewer #}
+<meta charset="utf-8" xmlns="http://www.w3.org/1999/html">
+<!-- <title>k-Partite Results</title> -->
+<style>
+
+    {# @import url("../../static/style.css"); #}
+    @import url(style.css);
+
+    html {
+        min-width: 1040px;
+    }
+
+    #circle circle {
+        fill: none;
+        pointer-events: all;
+    }
+
+    .group path {
+        fill-opacity: .5;
+    }
+
+    path.chord {
+        stroke: #000;
+        stroke-width: .25px;
+    }
+
+    #circle:hover path.fade {
+        display: none;
+    }
+
+    aside, .sets{
+        font-size: small;
+        position: absolute;
+        display: none;
+    }
+
+    aside {
+        width: 280px;
+    }
+
+    .sets {
+        width: 280px;
+        right: 0;
+        text-align: right;
+    }
+
+    #chordcode {
+        margin-left: 100px;
+    }
+
+    #footer {
+        font-size: small;
+        position: absolute;
+        bottom: -200px;
+    }
+
+</style>
+<html>
+<body>
+    <div width=100%>
+        <div id="Help" style="left: 0">Help</div>
+        <div id="GeneSets" style="right: 0">GeneSets</div>
+    </div>
+
+    <aside>Mouseover to focus on genes contained within each origin set: (# of genes at the intersection of both sets)/(# of genes in that set).
+        Genes cords are defined as the percent of gene sets that contain that gene. Currently only genes appearing in > 80% of gene sets are indicated.</aside>
+    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+    <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
+    <script>$.support.cors = true;</script> {# Both the local browser and the remote server must support CORS. Internet Explorer < 10 doesn't support it.
+    Opera only began support a couple of months ago. Some mobile browers might not support it yet. Setting $.support.cors to true won't make it work with
+    such browsers and servers. CORS is allows HTTP requests from different domain than the domain of the resource making the request. or instance, a
+    resource loaded from Domain A (http://domaina.example) such as an HTML web page, makes a request for a resource on Domain B (http://domainb.foo),
+    such as an image, using the img element (http://domainb.foo/image.jpg).  This occurs very commonly on the web today — pages load a number of resources
+    in a cross-site manner, including CSS stylesheets, images and scripts, and other resources.#}
+
+
+<!-- include csvReader script file -->
+
+    <div class="sets">
+    <script>
+        function IO(U, V) {
+            var X = !window.XMLHttpRequest ? new ActiveXObject("Microsoft.XMLHTTP") : new XMLHttpRequest;
+            X.open(V ? "PUT" : "GET", U, false);
+            X.setRequestHeader("Content-Type", "text/html");
+            X.send(V ? V : "");
+            return X.responseText;
+        }
+
+        var mycells = IO('../static/cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
+        var temp = '';
+        var t = '';
+        //document.write(mycells.join("\n")); //view the cells
+        for (i=1; i < mycells.length; ++i){
+            entry = mycells[i];
+            for (j=0; j < entry.length; ++j){
+                temp = entry[j];
+                var n = temp.split(',');
+                t = n[1].replace(/-.*/,'');
+                t = n[0] + ' ' + t + '<br>';
+                document.writeln(t.fontcolor(n[4]));
+            }
+        }
+    </script>
+    </div>
+
+    <script>
+        $('#Help').click(function() {
+            $("aside").slideToggle("slow");
+        });
+    </script>
+
+    <script>
+        $('#GeneSets').click(function() {
+            $(".sets").slideToggle("slow");
+    });
+    </script>
+
+    <div id="chordcode">
+        <script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
+        <script type="text/javascript"></script>
+    </div>
+
+    <div id="footer">
+        This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
+    </div>
+
+</body>
+</html>
+
+
+{# <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.task_id + '.odemat') }}" frameborder="0"></iframe>
+ #}
+
+{% include 'footer.html' %}
