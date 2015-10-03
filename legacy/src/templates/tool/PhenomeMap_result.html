@@ -203,7 +203,7 @@
 
   </head>
 
-  <div id="viz2">
+  <div id="viz">
 
 <!-- load the d3.js library -->
 <script type="text/javascript" src="../../static/d3/d3.min.js"></script>
@@ -661,7 +661,7 @@ $(function () {
 //    fill = d3.scale.category20();
 
     //Create a sized SVG surface within viz:
-    var svg = d3.select("#viz2")
+    var svg = d3.select("#viz")
         .append("svg")
         .attr("width", width)
         .attr("height", height);
@@ -765,7 +765,10 @@ function update() {
     //All nodes, do the following:
     g.node.select("circle")
         .style("fill", color); //calls delegate
+
     //-------------------
+
+
 }
 
 
@@ -850,19 +853,32 @@ function color(d) {
     else
         color = "fd8d3c";
 */
+    if (d.name == "flare"){
+        return "#FF0000";
+    }
+
     return d._children ? "#3182bd" // collapsed package
     :
     d.children.length > 0 ? "#c6dbef" // expanded package
     :
         "#fd8d3c"; // leaf node
 
+
 //   return color;
+}
+
+function emphasisColor(d) {
+    if (d.name == "flare"){
+        return "#FF0000";
+    } else{
+        return "null"
+    }
 }
 
 // Toggle children on click by switching around values on _children and children.
 function click(d) {
     if (d3.event.defaultPrevented) return; // ignore drag
-    if (d.children) {
+    if (d.children.length > 0) {
         d._children = d.children;
         d.children = null;
     } else {
