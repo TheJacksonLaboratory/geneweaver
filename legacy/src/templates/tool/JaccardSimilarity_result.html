@@ -15,40 +15,40 @@
     <div class="row">
         <div class="col-md-12">
                 <div class="panel panel-info">
-				<div class="panel-heading">
-					<h2 class="panel-title">
-						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-							Rerun Tool Options
-						</a>
-					</h2>
-				</div>
-				<div id="jcCollapse" class="panel-collapse collapse">
-					<div class="panel-body">
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
-							</div>
+            <div class="panel-heading">
+               <h2 class="panel-title">
+                  <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+                     Rerun Tool Options
+                  </a>
+               </h2>
+            </div>
+            <div id="jcCollapse" class="panel-collapse collapse">
+               <div class="panel-body">
+                  <div class="row">
+                     <div class="col-md-4">
+                        <div class="form-group">{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
+                     </div>
+                     <div class="col-md-4">
+                        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
+                     </div>
                             <div class="col-md-4">
                                 <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
                             </div>
-                    
-							<div class="col-md-4">
-								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
 
-								<button class="btn btn-primary" 
-									type='submit'
-									value='run'
-									onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
-									Run
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
+                     <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+
+                        <button class="btn btn-primary"
+                           type='submit'
+                           value='run'
+                           onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
+                           Run
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
         </div>
     </div>
 </form>
@@ -72,19 +72,19 @@
 <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
 <a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
     {% for jac in item.entries %}
-	<td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
+   <td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
     {% if jac.url == "0" %}
         <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
     {% elif jac.url == "1" %}
         <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
     {% elif jac.url %}
-	   <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
+      <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
     {% else %}
-	   <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
+      <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
     {% endif %}
     </td>
     {% set i = i + 1 %}
-	{% endfor %}
+   {% endfor %}
     {%set j = j + 1 %}
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
@@ -100,10 +100,10 @@
         {% endfor %}
         <option value="-2">+ Create new project...</option></select></p>
 </div>
-	<script type="text/javascript">
-		function handleSelect(elm)
-		{
-			var genesets = []
+   <script type="text/javascript">
+      function handleSelect(elm)
+      {
+         var genesets = [];
             if (elm.value != "-1") {
                 if (elm.value == "-2") {
                     var name = prompt("Enter a name for the new project:");
@@ -136,11 +136,11 @@
                         }
                     }
                     else {
-                        window.alert("Please select gene set(s) to add first!")
+                         window.alert("Please select gene set(s) to add first!")
                     }
                 }
             }
-		}
+      }
 </script>
 </td></tr>
 </table>
@@ -148,20 +148,19 @@
 <br /><br /><h4>Venn Diagram view:</h4>
 
 
-{#{{ data }}#}
 <br>
 View As:</br>
 <form>
-	<label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
-	<label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
+   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
+   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
 </form>
 
 Download As:
 <select name="downloadType" id="downloadType">
-	<option value="null">Select file type...</option>
-	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
-	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
-	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
+   <option value="null">Select file type...</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
 </select>
 
 {#  <div class="row">#}
@@ -169,72 +168,126 @@ Download As:
 {#        <iframe id = "javascript" style="width:90%; height:95%; min-height: 550px;" src = "loc" id="javascript" frameborder="0"></iframe>#}
 {#    </div>#}
 {#</div>#}
-
 {#<iframe id = "content-frame" style="width:90%; height:95%; min-height: 1000px">#}
 {#<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>#}
+{# {{ data | safe }};#}
 <script type="text/javascript">
 {#   document.getElementById('javascript').setAttribute ('src', loc);#}
 
-var d = {{ data | safe }}
+var d = {{ data | safe }};
 var count = 0;
 for(var key in d.venn_diagrams)
     if(d.venn_diagrams.hasOwnProperty(key))
         count++;
 var count_text= 0;
+var check = 0;
 var venn_d = [];
 var text_d = [];
 var gene_lab_coor = [];
+var circleData = [];
+var num_sets = Math.sqrt(count);
+var x_coord =0;
+var y_coord = 0;
+ var gene_sets = [];
+gene_sets = d.genesets;
  for (i = 0; i<count; i++) {
-     venn_d.push([d.venn_diagrams[i].c2x,
-         d.venn_diagrams[i].c2y,
-         d.venn_diagrams[i].c1x,
-         d.venn_diagrams[i].c1y,
-         d.venn_diagrams[i].r2,
-         d.venn_diagrams[i].r1]);
-             {#        alert(d.venn_diagrams[0].text[1].text);#}
-{#             alert("i: " + i);#}
-     gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty])
-     count_text= 0;
+     if(i%num_sets === 0){
+         x_coord = 150;
+         y_coord += 150;
+         if(i ===0) {
+             y_coord = 50;
+         }
+     }
+     else{
+         x_coord += 200;
+     }
+
+     gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
+     count_text = 0;
      for (var key in d.venn_diagrams[i].text) {
-{#             alert("key; " + key);#}
-         if (d.venn_diagrams[i].text.hasOwnProperty(key)){
-             ++count_text;}
+         if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
+             ++count_text;
+         }
      }
-    // alert("count: " + count_text);
-     for(k=0; k <count_text; k++){
-        text_d.push([d.venn_diagrams[i].text[k].text,
-            d.venn_diagrams[i].text[k].tx,
-            d.venn_diagrams[i].text[k].ty]);
+     for (k = 0; k < count_text; k++) {
+
+
+         if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
+             circleData.push({
+                 "cx": d.venn_diagrams[i].c2x,
+                 "cy": d.venn_diagrams[i].c2y,
+                 "radius": d.venn_diagrams[i].r2,
+                 "fill": "#66FFFF",
+                 "opacity": ".5",
+                 "cxshift": x_coord,
+                 "cyshift": y_coord
+                 });
+
+
+             if (k === 0) {
+                  circleData.push({
+                 "gene_id": d.venn_diagrams[i].text[k].text,
+                 "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
+                 "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
+                 "label": gene_sets[check],
+                 "labelx" : x_coord,
+                 "labely" : y_coord
+
+             });
+
+             check+=1;
+{#                 console.log("Check", check);#}
+             }
+             else{
+                 circleData.push({
+                 "gene_id": d.venn_diagrams[i].text[k].text,
+                 "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 18,
+                 "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 24 });
+             }
+
+         }
+         else {
+             circleData.push({
+                 "cx": d.venn_diagrams[i].c2x,
+                 "cy": d.venn_diagrams[i].c2y,
+                 "radius": d.venn_diagrams[i].r2,
+                 "fill": "#0000FF",
+                 "opacity": ".5",
+                 "cxshift": x_coord,
+                 "cyshift": y_coord,
+                 "gene_id": d.venn_diagrams[i].text[k].text,
+                 "txshift" : x_coord + d.venn_diagrams[i].text[k].tx + 20+ (k* 3),
+                 "tyshift" : y_coord + d.venn_diagrams[i].text[k].ty + 30 + (k *3)
+
+             });
+             circleData.push({
+                 "cx": d.venn_diagrams[i].c1x,
+                 "cy": d.venn_diagrams[i].c1y,
+                 "radius": d.venn_diagrams[i].r1,
+                 "fill": "#FF8000",
+                 "opacity": ".5",
+                 "cxshift": x_coord,
+                 "cyshift": y_coord
+             });
+         }
      }
+
  }
 
- var gene_sets = [];
- gene_sets = d.genesets;
 
+{#alert(d.genesets);#}
 
 var border = 1;
 var bordercolor = 'black';
 
 padding: {
-right: 100
+left: 100
 }
-
-var circleData = [
-                    { "cx": venn_d[0][0], "cy": venn_d[0][1], "radius": venn_d[0][4], "fill" : "#66FFFF", "opacity": ".5", "cxshift" : 700, "cyshift" : 0, "label": text_d[0][0], "txshift" : text_d[0][1], "tyshift" : text_d[0][2],
-                    "jval" : text_d[1][0], "jxshift" : text_d[1][1], "jyshift" : text_d[1][2], "pval" : text_d[2][0],    "pxshift" : text_d[2][1], "pyshift" : text_d[2][2],
-                     "gene_id" : gene_sets[0], "tx" : gene_lab_coor[0][0], "ty" : gene_lab_coor[0][1]},
-                    { "cx": venn_d[1][0], "cy": venn_d[1][1], "radius": venn_d[1][4], "fill" : "#0000FF", "opacity": ".5", "cxshift" : 850, "cyshift" : 0, "label": text_d[3][0], "txshift" : text_d[3][1], "tyshift" : text_d[3][2]},
-                    { "cx": venn_d[1][2], "cy": venn_d[1][3], "radius": venn_d[1][5], "fill" : "#FF8000", "opacity": ".5", "cxshift" : 850, "cyshift" : 0, "label": text_d[4][0], "txshift" : text_d[4][1], "tyshift" : text_d[4][2]},
-                    { "cx": venn_d[2][0], "cy": venn_d[2][1], "radius": venn_d[2][4], "fill" : "#0000FF", "opacity": ".5", "cxshift" : 700, "cyshift" : 100, "label": text_d[5][0], "txshift" : text_d[5][1], "tyshift" : text_d[5][2]},
-                    { "cx": venn_d[2][2], "cy": venn_d[2][3], "radius": venn_d[2][5], "fill" : "#FF8000", "opacity": ".5", "cxshift" : 700, "cyshift" : 100, "label": text_d[6][0], "txshift" : text_d[6][1], "tyshift" : text_d[6][2]},
-                    { "cx": venn_d[3][0], "cy": venn_d[3][1], "radius": venn_d[3][4], "fill" : "#66FFFF", "opacity": ".5", "cxshift" : 850, "cyshift" : 100, "label": text_d[7][0], "txshift" : text_d[7][1], "tyshift" : text_d[7][2],
-                     "jval" : text_d[8][0], "jxshift" : text_d[8][1], "jyshift" : text_d[8][2], "pval" : text_d[9][0],  "pxshift" : text_d[9][1], "pyshift" : text_d[9][2],
-                      "gene_id" : gene_sets[1], "tx" : gene_lab_coor[1][0], "ty" : gene_lab_coor[1][1]}] ;
 
  //Create the SVG Viewport
  var svgContainer = d3.select("body").append("svg")
-        .attr("width",1300)
-        .attr("height",1300);
+        .attr("width",2000)
+        .attr("height",2000);
 
 //Add circles to the svgContainer
 var circles = svgContainer.selectAll("circle")
@@ -248,8 +301,8 @@ var circleAttributes = circles
         .attr("cy", function (d) { return d.cy + d.cyshift + 50; })
         .attr("r", function (d) { return d.radius; })
         .style("fill", function (d) { return d.fill; })
-        .style("fill-opacity", function (d) { return d.opacity })
-        .attr("cxshift", function (d) { return d.cyshift;})
+        .style("fill-opacity", function (d) { return d.opacity - .2 })
+        .attr("cxshift", function (d) { return d.cxshift;})
         .attr("cyshift", function (d) { return d.cyshift;})
         .attr("label", function (d) { return d.label;})
         .style("stroke", bordercolor)
@@ -270,32 +323,22 @@ var text = svgContainer.selectAll("text")
         .enter();
 
     text.append("text")
-        .text(function(d){ return d.pval})
-        .attr("x", function(d) { return d.cxshift + d.pxshift + 20; })
-        .attr("y", function(d) { return d.cyshift+ d.pyshift + 14; });
-
-
-    text.append("text")
-        .text(function(d){ return d.jval})
-        .attr("x", function(d) { return d.cxshift + d.jxshift + 16; })
-        .attr("y", function(d) { return d.cyshift + d.jyshift + 20; });
-
+        .text( function (d) { return d.label; })
+        .attr("x", function(d) { return d.labelx +70; })
+        .attr("y", function(d) { return 50; })
+        .style("font-weight", "bold");
     text.append("text")
         .text( function (d) { return d.label; })
-        .attr("x", function(d) { return d.cxshift + d.txshift + 27; })
-        .attr("y", function(d) { return d.cyshift+ d.tyshift + 42; });
-
-    text.append("text")
-        .text( function (d) { return d.gene_id; })
-        .attr("x", function(d) { return d.tx + d.txshift + 410; })
-        .attr("y", function(d) { return  d.ty + d.tyshift -230; })
+        .attr("x", function(d) { return 50; })
+        .attr("y", function(d) { return d.labely +100; })
         .style("font-weight", "bold");
 
     text.append("text")
         .text( function (d) { return d.gene_id; })
-        .attr("x", function(d) { return d.ty + d.tyshift + 400; })
-        .attr("y", function(d) { return  d.tx + d.txshift -280; })
-        .style("font-weight", "bold");
+        .attr("x", function(d) { return d.txshift; })
+        .attr("y", function(d) { return  d.tyshift; });
+
+
 
 //Add SVG Text Element Attributes
 var textLabels = text
@@ -338,7 +381,7 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 </script>
 
-
+{#</iframe>#}
 
 
 
@@ -481,13 +524,6 @@ function type(d) {
 
 </script>
 
-
-
-
-
-
-
-
-
-
 {% include 'footer.html' %}
+
+
