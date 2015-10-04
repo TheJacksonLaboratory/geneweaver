@@ -64,6 +64,7 @@ def run_tool():
                     return flask.redirect('analyze')
         else:
             flask.flash("You must enable either Exact Gene Overlap or Jaccard")
+            return flask.redirect('analyze')
         #else:
         #    if params[tool_param.name] != 'Enabled' and params[tool_param.name] != 'Enabled':
         #        flask.flash("You must enable either Exact Gene Overlap or Jaccard")
