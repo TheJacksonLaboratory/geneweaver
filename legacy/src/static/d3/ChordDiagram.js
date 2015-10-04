@@ -1,16 +1,4 @@
 
-var w=960,h=500,
-svg=d3.select("#chart")
-.append("svg")
-.attr("width",w)
-.attr("height",h);
-
-var text=svg
-.append("text")
-.text("hello world")
-.attr("y",50);
-
-/*
     var width = 900,
         height = 900,
         outerRadius = Math.min(width, height) / 2 - 10,
@@ -40,8 +28,8 @@ var text=svg
     svg.append("circle")
             .attr("r", outerRadius);
 
-    d3.csv("cities.csv", function(cities) {
-        d3.json("matrix.json", function(matrix) {
+    d3.csv("../../static/cities.csv", function(cities) {
+        d3.json("../../static/matrix.json", function(matrix) {
 
             // Compute the chord layout.
             layout.matrix(matrix);
@@ -120,4 +108,3 @@ var text=svg
         });
     });
 
-    */
