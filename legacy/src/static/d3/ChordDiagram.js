@@ -22,6 +22,8 @@
     var svg = d3.select("body").append("svg")
             .attr("width", width)
             .attr("height", height)
+            .append("text")
+            .text("Hello World")
             .append("g")
             .attr("id", "circle")
             .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
