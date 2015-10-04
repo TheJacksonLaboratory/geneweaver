@@ -1,5 +1,16 @@
-    document.write(5 + 6);
 
+var w=960,h=500,
+svg=d3.select("#chart")
+.append("svg")
+.attr("width",w)
+.attr("height",h);
+
+var text=svg
+.append("text")
+.text("hello world")
+.attr("y",50);
+
+/*
     var width = 900,
         height = 900,
         outerRadius = Math.min(width, height) / 2 - 10,
@@ -22,8 +33,6 @@
     var svg = d3.select("body").append("svg")
             .attr("width", width)
             .attr("height", height)
-            .append("text")
-            .text("Hello World")
             .append("g")
             .attr("id", "circle")
             .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
@@ -110,3 +119,5 @@
             }
         });
     });
+
+    */
