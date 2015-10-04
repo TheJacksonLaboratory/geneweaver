@@ -171,8 +171,8 @@ var svg = d3.select("body").append("svg")
 svg.append("circle")
         .attr("r", outerRadius);
 
-d3.csv("cities.csv", function(cities) {
-    d3.json("matrix.json", function(matrix) {
+d3.csv("../../static/cities.csv", function(cities) {
+    d3.json("../../static/matrix.json", function(matrix) {
 
         // Compute the chord layout.
         layout.matrix(matrix);
