@@ -62,6 +62,8 @@ def run_tool():
                 if len(selected_project_ids) < 3:
                     flask.flash("Warning: You need at least 3 projects!")
                     return flask.redirect('analyze')
+        else:
+            flask.flash("You must enable either Exact Gene Overlap or Jaccard")
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
