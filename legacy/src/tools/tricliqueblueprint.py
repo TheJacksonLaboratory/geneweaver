@@ -64,6 +64,7 @@ def run_tool():
                     return flask.redirect('analyze')
         else:
             flask.flash("You must enable either Exact Gene Overlap or Jaccard")
+            return flask.redirect('analyze')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
