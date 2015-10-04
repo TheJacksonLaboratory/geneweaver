@@ -113,10 +113,13 @@
                                             <div class="col-xs-2">
 
                                                 <input
+                                                        type="checkbox"
                                                         class="proj-checkbox"
                                                         id="proj-{{ proj.project_id }}-allcheck"
+                                                        name="project_{{ proj.project_id }}"
+                                                        #console.log(name)
                                                         data-project="{{ proj.project_id }}"
-                                                        type="checkbox">
+                                                        >
 
                                             </div>
                                             <div class="col-xs-10">
