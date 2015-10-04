@@ -40,7 +40,8 @@
 
             // Compute the chord layout.
             layout.matrix(matrix);
-
+            console.log("test");
+            
             // Add a group per neighborhood.
             var group = svg.selectAll(".group")
                     .data(layout.groups)
