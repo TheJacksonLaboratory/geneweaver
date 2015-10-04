@@ -148,6 +148,8 @@ def view_result(task_id):
     # really debug here
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
+    #path_to_result = '/results/TEST'+task_id+'.json'
+    path_to_result = '/static/flare.json'
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
@@ -157,7 +159,8 @@ def view_result(task_id):
         return flask.render_template(
             'tool/JaccardClustering_result.html',
             async_result=json.loads(async_result.result),
-            tool=tool)
+            tool=tool,
+            cluster_data=path_to_result)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)

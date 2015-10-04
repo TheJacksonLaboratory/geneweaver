@@ -43,7 +43,7 @@
 
             //Resulting json file is loaded
             var data = {{ data|safe }}
-            d3.json("/static/flare.json", function(json) {
+            d3.json("{{cluster_data}}", function(json) {
               root = json;
               root.fixed = true;
               root.x = w / 2;
