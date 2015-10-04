@@ -1,3 +1,4 @@
+    window.alert(5 + 6);
 
     var width = 900,
         height = 900,
