@@ -51,6 +51,7 @@ def run_tool():
         if tool_param.name.endswith('_ExactGeneOverlap'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
+                break
             else:
                 if len(selected_project_ids) != 2:
                     flask.flash("Warning: You must select 2 projects!")
@@ -58,6 +59,7 @@ def run_tool():
         elif tool_param.name.endswith('_Jaccard'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
+                break
             else:
                 if len(selected_project_ids) < 3:
                     flask.flash("Warning: You need at least 3 projects!")
