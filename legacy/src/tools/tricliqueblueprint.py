@@ -58,7 +58,7 @@ def run_tool():
         elif len(selected_project_ids) < 3 and n < 2:
             flask.flash("Warning: You need at least 3 projects!")
             return flask.redirect('analyze')
-    elif not n:
+    elif n < 0:
         flask.flash("You must enable either Exact Gene Overlap or Jaccard")
         return flask.redirect('analyze')
     elif n > 1:
