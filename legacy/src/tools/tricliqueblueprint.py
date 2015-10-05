@@ -52,17 +52,17 @@ def run_tool():
                     flask.flash("Warning: You must select 2 projects!")
                     return flask.redirect('analyze')
         elif tool_param.name.endswith('_Jaccard'):
-            if not n:
-                    flask.flash("You can run either Jaccard or Exact Gene Overlap. Select one.")
-                    return flask.redirect('analyze')
-            elif params[tool_param.name] != 'Enabled':
+            if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
                 if n:
                     flask.flash("You must enable either Exact Gene Overlap or Jaccard")
                     return flask.redirect('analyze')
 
             else:
-                if len(selected_project_ids) < 3:
+                if not n:
+                    flask.flash("You can run either Jaccard or Exact Gene Overlap. Select one.")
+                    return flask.redirect('analyze')
+                elif len(selected_project_ids) < 3:
                     flask.flash("Warning: You need at least 3 projects!")
                     return flask.redirect('analyze')
 
