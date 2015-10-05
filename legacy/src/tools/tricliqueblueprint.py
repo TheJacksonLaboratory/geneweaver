@@ -51,7 +51,7 @@ def run_tool():
         elif len(selected_project_ids) != 2 and not n:
             flask.flash("Warning: You must select 2 projects!")
             return flask.redirect('analyze')
-        else: m = 1
+        elif not n: m = 1
     if tool_param.name.endswith('_Jaccard'):
         if params[tool_param.name] != 'Enabled':
             params[tool_param.name] = 'Disabled'
