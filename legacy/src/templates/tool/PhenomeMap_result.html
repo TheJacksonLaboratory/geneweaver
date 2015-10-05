@@ -389,8 +389,10 @@ function update() {
     //All nodes, do the following:
     g.node.select("circle")
         .style("fill", color) //calls delegate
-        .style("stroke", outerRingColor)
+        .style("stroke", outerRingColor);
     //-------------------
+
+    g.node.fontcolor(textColor)
 }
 
 
@@ -489,6 +491,13 @@ function color(d) {
 function outerRingColor(d) {
     if (d.name == "flare"){
         return "#33AD33";
+    }
+    else return "default";
+}
+
+function textColor(d) {
+    if (d.name == "flare"){
+        return "#CC0000";
     }
     else return "default";
 }
