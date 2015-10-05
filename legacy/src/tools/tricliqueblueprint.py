@@ -31,11 +31,6 @@ def run_tool():
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
-    #if 'projects' in form:
-    #    add_projects = form['projects'].split(' ')
-    #    edited_add_projects = [pj[2:] for pj in add_projects]
-    #    selected_project_ids = selected_project_ids + edited_add_projects
-
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
