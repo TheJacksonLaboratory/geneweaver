@@ -58,12 +58,12 @@ def run_tool():
         elif not n and not m:
             flask.flash("You can run either Jaccard or Exact Gene Overlap. Select one.")
             return flask.redirect('analyze')
-    #elif n and not m and len(selected_project_ids) < 3:
-    #    flask.flash("Warning: You need at least 3 projects!")
-    #    return flask.redirect('analyze')
-    #elif m and not n and len(selected_project_ids) != 2:
-    #    flask.flash("Warning: You must select 2 projects!")
-    #    return flask.redirect('analyze')
+        elif n and not m and len(selected_project_ids) < 3:
+            flask.flash("Warning: You need at least 3 projects!")
+            return flask.redirect('analyze')
+        elif m and not n and len(selected_project_ids) != 2:
+            flask.flash("Warning: You must select 2 projects!")
+            return flask.redirect('analyze')
 
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
