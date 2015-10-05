@@ -48,28 +48,24 @@ def run_tool():
         if params[tool_param.name] != 'Enabled':
             params[tool_param.name] = 'Disabled'
             n = 1
-        elif len(selected_project_ids) != 2:
-            flask.flash("Warning: You must select 2 projects!")
-            return flask.redirect('analyze')
-        elif not n: m = 1
-    print m
-    '''
     if tool_param.name.endswith('_Jaccard'):
         if params[tool_param.name] != 'Enabled':
             params[tool_param.name] = 'Disabled'
-            n = 2
-        elif len(selected_project_ids) < 3 and n < 2:
-            flask.flash("Warning: You need at least 3 projects!")
-            return flask.redirect('analyze')
-        else: m = 1
-    if n > 1 and not m:
+            m = 1
+    if not n and not m:
         flask.flash("You must enable either Exact Gene Overlap or Jaccard")
         return flask.redirect('analyze')
-    if not n and not m:
-            flask.flash("You can run either Jaccard or Exact Gene Overlap. Select one.")
-            return flask.redirect('analyze')
-    '''
+    elif n and m:
+        flask.flash("You can run either Jaccard or Exact Gene Overlap. Select one.")
+        return flask.redirect('analyze')
+    elif n and len(selected_project_ids) < 3:
+        flask.flash("Warning: You need at least 3 projects!")
+        return flask.redirect('analyze')
+    elif m and len(selected_project_ids) != 2 and n:
+        flask.flash("Warning: You must select 2 projects!")
+        return flask.redirect('analyze')
 
+    
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     # insert result for this run
