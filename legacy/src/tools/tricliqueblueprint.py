@@ -41,10 +41,9 @@ def run_tool():
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
-    n = -1
+    n = 0
     #for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
     if tool_param.name.endswith('_ExactGeneOverlap'):
-        n = 0
         if params[tool_param.name] != 'Enabled':
             params[tool_param.name] = 'Disabled'
             n = 1
@@ -58,7 +57,7 @@ def run_tool():
         elif len(selected_project_ids) < 3 and n < 2:
             flask.flash("Warning: You need at least 3 projects!")
             return flask.redirect('analyze')
-    elif n < 0:
+    elif not n:
         flask.flash("You must enable either Exact Gene Overlap or Jaccard")
         return flask.redirect('analyze')
     elif n > 1:
