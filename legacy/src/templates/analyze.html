@@ -96,7 +96,7 @@
                                     <h2 class="panel-title">
                                         <div class="row">
                                             <div class="col-xs-2">
-
+                                                {#
                                                 <input
                                                         type="checkbox"
                                                         class="proj-checkbox"
@@ -104,15 +104,16 @@
                                                         name="project_{{ proj.project_id }}"
                                                         data-project="{{ proj.project_id }}"
                                                         >
+                                                        #}
 
-												{#
+
                                                 <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
                                                     <label for="proj-{{ proj.project_id }}-allcheck">
                                                         <input type="checkbox" data-project="{{ proj.project_id }}"
                                                                id="proj-{{ proj.project_id }}-allcheck"/>
                                                     </label>
                                                 </div>
-												#}
+
                                             </div>
                                             <div class="col-xs-10" style="vertical-align: bottom;">
                                                 <a class="project-link" data-toggle="collapse"
