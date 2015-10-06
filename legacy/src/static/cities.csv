@@ -1,0 +1,29 @@
+name,gs_name,something,something,color
+GS127939,Thalamus - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127935,Striatum dorsal region - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127930,Midbrain - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127929,Medulla - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127934,Retrohippocampal region - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127932,Pallidum - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127931,Olfactory bulb - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127925,Hippocampal formation - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127924,Cerebral cortex - Allen Mouse Brain Atlas,0,0,#6699FF
+GS127927,Hypothalamus - Allen Mouse Brain Atlas,0,0,#6699FF
+GS34560,Neocortex Gene expression correlates of Novel environment locomotion (activity beam breaks) 45-60 min in the periphery  [Cocaine] in Males BXD,0,0,#996633
+GS34521,Neocortex Gene expression correlates of Novel environment locomotion (activity beam breaks) 30-45 min in the periphery  [Cocaine] in Males BXD,0,0,#996633
+GS111767,MP:0002084 abnormal developmental patterning,0,0,#FFCC00
+GS113892,MP:0004921 decreased placenta weight,0,0,#FFCC00
+GS108421,MP:0005194 abnormal anterior uvea morphology,0,0,#FFCC00
+GS111484,MP:0005274 abnormal viscerocranium morphology,0,0,#FFCC00
+GS110985,MP:0002021 increased incidence of induced tumors,0,0,#FFCC00
+GS114254,MP:0006036 abnormal mitochondrial physiology,0,0,#FFCC00
+GS110313,MP:0005438 abnormal glycogen homeostasis,0,0,#FFCC00
+GS113719,MP:0005524 abnormal renal plasma flow rate,0,0,#FFCC00
+GS110076,MP:0002183 gliosis,0,0,#FFCC00
+GS110827,MP:0005595 abnormal vascular smooth muscle physiology,0,0,#FFCC00
+gPten,Pten,0,0,#FF0000
+gApc,Apc,0,0,#FF0000
+gHdac3,Hdac3,0,0,#FF0000
+gAtf4,Atf4,0,0,#FF0000
+gZeb1,Zeb1,0,0,#FF0000
+gDag1,Dag1,0,0,#FF0000
