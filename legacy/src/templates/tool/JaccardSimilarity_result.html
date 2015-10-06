@@ -148,7 +148,7 @@
 
 
 <br>
-View As:</br>
+View As:</r>
 <form>
    <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
    <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
@@ -162,20 +162,41 @@ Download As:
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
 </select>
-
+<br><br><br>
 {#  <div class="row">#}
 {#    <div class="col-md-12 link-panel" style="text-align: center;">#}
-{#        <iframe id = "javascript" style="width:90%; height:95%; min-height: 550px;" src = "loc" id="javascript" frameborder="0"></iframe>#}
+{#        <iframe id="resultFrame" style="height:1000px; width:2200px;"></iframe>#}
+{##}
 {#    </div>#}
 {#</div>#}
-{#<iframe id = "content-frame" style="width:90%; height:95%; min-height: 1000px">#}
-<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
- {{ data | safe }};
 
+
+<div id="jaccard"></div>
+
+
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<link rel="stylesheet" href="/resources/demos/style.css">
 <script type="text/javascript">
-{#   document.getElementById('javascript').setAttribute ('src', loc);#}
-function drawChart(newWindowRoot) {
-    var sampleSVG = newWindowRoot;
+
+
+
+ $(function() {
+    $( "#slider" ).slider({
+      value: 0.5,
+      min: 0.00,
+      max: 1.0,
+      step: 0.05,
+      slide: function( event, ui ) {
+        $( "#amount" ).val( ui.value );
+      }
+    });
+    $( "#amount" ).val( $( "#slider" ).slider( "value" ) );
+  });
+
+
+
     var d = {{ data | safe }};
     var count = 0;
     for (var key in d.venn_diagrams)
@@ -221,7 +242,7 @@ function drawChart(newWindowRoot) {
                     "opacity": ".5",
                     "cxshift": x_coord,
                     "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
+                    "des": d.venn_diagrams[i].desc1
 
                 });
 
@@ -278,89 +299,60 @@ function drawChart(newWindowRoot) {
 
     }
 
-    {#alert(d.genesets);#}
-
     var border = 1;
     var bordercolor = 'black';
 
-    padding: {
-        left: 100
-    }
+	var tooltip = d3.selectAll("#jaccard")
+        .data(circleData)
+        .append("div")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden");
 
-
-
-
+    tooltip. append("tooltip")
+        .text(function (d) { return d.des;})
+        .attr("font-size", "6px");
 
     //Create the SVG Viewport
-    var svgContainer = d3.select("body").append("svg")
-            .attr("width", x_coord + 500)
-            .attr("height", y_coord + 500);
+    var svgContainer = d3.select("#jaccard").append("svg")
+            .attr("width", x_coord + 250)
+            .attr("height", y_coord + 250)
+            .attr("border",border);
 
 //Add circles to the svgContainer
     var circles = svgContainer.selectAll("circle")
             .data(circleData)
             .enter()
-            .append("circle");
-{#                        .style("position", "absolute")#}
-{#	.style("z-index", "10")#}
-{#	.style("visibility", "hidden")#}
-{#	.text("a simple tooltip");#}
+            .append("circle")
+            .on("mouseover", function(){return tooltip.style("visibility", "visible");})
+	        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+	        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
-{#    var tooltip = circles#}
-{#        .append("circles")#}
-{#        .style("position", "absolute")#}
-{#        .style("z-index", "10")#}
-{#        .style("visibility", "hidden")#}
-{#        .text("a simple tooltip");#}
-{##}
-{#    d3.select(circles)#}
-{#        .on("mouseover", function(){return tooltip.style("visibility", "visible");})#}
-{#        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})#}
-{#        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});#}
+
+
+
+ 	var borderPath = svgContainer.append("rect")
+       			.attr("x", 0)
+       			.attr("y", 0)
+       			.attr("height", y_coord + 200 )
+       			.attr("width", x_coord + 200)
+       			.style("stroke", bordercolor)
+       			.style("fill", "none")
+       			.style("stroke-width", border);
 
 //Add the circle attributes
     var circleAttributes = circles
-
-
-            .attr("cx", function (d) {
-                return d.cx + d.cxshift + 50;
-            })
-            .attr("cy", function (d) {
-                return d.cy + d.cyshift + 50;
-            })
-            .attr("r", function (d) {
-                return d.radius;
-            })
-            .style("fill", function (d) {
-                return d.fill;
-            })
-            .style("fill-opacity", function (d) {
-                return d.opacity - .3
-            })
-            .attr("cxshift", function (d) {
-                return d.cxshift;
-            })
-            .attr("cyshift", function (d) {
-                return d.cyshift;
-            })
-            .attr("label", function (d) {
-                return d.label;
-            })
+            .attr("cx", function (d) { return d.cx + d.cxshift + 50; })
+            .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
+            .attr("r", function (d) {return d.radius; })
+            .style("fill", function (d) { return d.fill; })
+            .style("fill-opacity", function (d) {return d.opacity - .3})
+            .attr("cxshift", function (d) {   return d.cxshift; })
+            .attr("cyshift", function (d) {  return d.cyshift; })
+            .attr("label", function (d) { return d.label; })
             .style("stroke", bordercolor)
             .attr("border", border);
-{#    .on("mouseover", function(){return d.style("visibility", "visible");})#}
-{#	.on("mousemove", function(){return d.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})#}
-{#	.on("mouseout", function(){return d.style("visibility", "hidden");});#}
 
-
-    {#       var borderPath = svgContainer.append("rect")#}
-    {#           .attr("x", 450)#}
-    {#           .attr("y", 0)#}
-    {#           .attr("height", 300)#}
-    {#           .attr("width", 550)#}
-    {#           .style("stroke", bordercolor)#}
-    {#           .style("fill", "none")#}
-    {#           .style("stroke-width", border);#}
 
 //Add the SVG Text Element to the svgContainer
     var text = svgContainer.selectAll("text")
@@ -368,61 +360,35 @@ function drawChart(newWindowRoot) {
             .enter();
 
     text.append("text")
-            .text(function (d) {
-                return d.label;
-            })
-            .attr("x", function (d) {
-                return d.labelx + 70;
-            })
-            .attr("y", function (d) {
-                return 50;
-            })
+            .text(function (d) {return d.label;})
+            .attr("x", function (d) {return d.labelx + 70; })
+            .attr("y", function (d) {return 50; })
             .style("font-weight", "bold");
 
     text.append("text")
-            .text(function (d) {
-                return d.label;
-            })
-            .attr("x", function (d) {
-                return 50;
-            })
-            .attr("y", function (d) {
-                return d.labely + 100;
-            })
+            .text(function (d) {return d.label;})
+            .attr("x", function (d) {return 50;})
+            .attr("y", function (d) {return d.labely + 100;})
             .style("font-weight", "bold");
 
-
     text.append("text")
-            .text(function (d) {
-                return d.gene_id;
-            })
-            .attr("x", function (d) {
-                return d.txshift;
-            })
-            .attr("y", function (d) {
-                return d.tyshift;
-            })
+            .text(function (d) { return d.gene_id;})
+            .attr("x", function (d) { return d.txshift; })
+            .attr("y", function (d) { return d.tyshift;  })
             .attr("font-size", "11px");
 
 {#    text.append("text")#}
-{#            .text(function (d) {#}
-{#                return d.des;#}
-{#            })#}
-{#            .attr("x", function (d) {#}
-{#                return d.txshift -10;#}
-{#            })#}
-{#            .attr("y", function (d) {#}
-{#                return d.tyshift - 10;#}
-{#            })#}
-{#            .attr("font-size", "11px");#}
-
+{#            .text(function (d) { return d.des;})#}
+{#            .attr("x", function (d) { return d.cxshift + (d.radius/2); })#}
+{#            .attr("y", function (d) { return d.cyshift + (d.radius/2) + 10;  })#}
+{#            .attr("font-size", "6px");#}
 
 //Add SVG Text Element Attributes
     var textLabels = text
             .attr("font-family", "sans-serif")
             .attr("font-size", "12px")
             .attr("fill", "black");
-}
+
 
 var urlMenu = document.getElementById("downloadType");
 urlMenu.onchange = function () {
@@ -430,30 +396,6 @@ urlMenu.onchange = function () {
         window.open(this.options[this.selectedIndex].value, '_blank');
     }
 }
-drawChart();
-
-var button = d3.select("body").append("button")
-            .attr("class", "button")
-            .attr("id", "myButton")
-            .text("Visualize");
-
-function createNewPage(){
-
-
-    document.getElementById("myButton").onclick = function () {
-
-        var newWindow = window.open('');
-        newWindowRoot = d3.select(newWindow.document.body)
-            .attr("width","1060px")
-            .attr("margin","50px auto");
-
-        drawChart(newWindowRoot);
-
-    }
-
-}
-
-createNewPage();
 
 function changeImg(sel, dl) {
 
@@ -482,63 +424,19 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 }
 
 
-{#var radius = d3.scale.linear()#}
-{#    .domain([0, 9])#}
-{#    .range([120, 240]);#}
-{##}
-{#var fill = d3.scale.linear()#}
-{#    .domain([0, 1])#}
-{#    .range(["orange", "steelblue"]);#}
-{##}
-{#var svg = d3.select("body").append("svg:svg")#}
-{#    .attr("width", 500)#}
-{#    .attr("height", 500)#}
-{#  .append("svg:g")#}
-{#    .attr("transform", "translate(480, 250)");#}
-
-{#var g = svg.selectAll("g")#}
-{#    .data(d3.range(0, 360, 2))#}
-{#  .enter().append("svg:g")#}
-{#    .attr("transform", function(d) { return "rotate(" + d + ")"; });#}
-{##}
-{#var path = g.selectAll("path")#}
-{#    .data(function(p) {#}
-{#      return d3.range(10).map(function(d) {#}
-{#        return {#}
-{#          x: p, // outer dimension (angle)#}
-{#          y: d, // inner dimension (radius)#}
-{#          z: Math.random()#}
-{#        };#}
-{#      });#}
-{#    })#}
-{#  .enter().append("svg:path")#}
-{#    .attr("d", d3.svg.arc()#}
-{#    .innerRadius(function(d) { return radius(d.y); })#}
-{#    .outerRadius(function(d) { return radius(d.y + 1); })#}
-{#    .startAngle(0)#}
-{#    .endAngle(Math.PI / 90))#}
-{#    .attr("fill", function(d) { return fill(d.z); })#}
-{#    .attr("fill-opacity", 1e-6)#}
-{#  .transition()#}
-{#    .delay(function(d) { return d.z * 1500; })#}
-{#    .attr("fill-opacity", 1);#}
-
-    </script>
-    <br>
-    <input type="range" min="0" max="1" step=".05">
-{#    <script type="text/javascript">#}
-
-{#d3.select("input").on("change", function() {#}
-{#  var value = this.value;#}
-{#  d3.selectAll("path")#}
-{#      .attr("fill-opacity", function(d) {#}
-{#        return Math.max(0, 1 - Math.sqrt(Math.abs(d.x - value) / 80));#}
-{#      });#}
-{#});#}
+ </script>
 
 
 
-{#</script>#}
+<p><br></p>
+
+<p>
+  <label for="amount"  style="font-size:18px;font-weight:bold;" > Jaccard Threshold (0.05 increments):</label>
+  <input type="text" id="amount" readonly style="border:0; color:#660839; font-weight:bold; font-size:18px;">
+</p>
+<div id="slider"></div>
+<br><br><br>
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
 
 
 
