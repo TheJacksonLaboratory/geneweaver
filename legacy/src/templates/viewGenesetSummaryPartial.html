@@ -1,83 +1,33 @@
-<!-- Script for hiding or displaying geneset details -->
-<script type="text/javascript">function toggleDetails(id) {
-    var element = document.getElementById(id);
-
-    if (element.style.display == "none")
-        element.style.display = "block";
-
-    else if (element.style.display == "")
-        element.style.display = "block";
-
-    else
-        element.style.display = "none";
-}
-</script>
-
-<!-- Script for adding geneset to selected projects-->
-<script type="text/javascript">
-    function addToSelected(geneset_id) {
-        var selector = ".modal_checkbox_" + geneset_id;
-        $(selector).each(function () {
-            if (this.checked) {
-                var route = "/add_geneset_to_project/" + this.name + "/" + geneset_id + ".html";
-                $.get(route, function (data, status) {
-                });
-            }
-        });
-    }
-    $(document).ready(function () {
-
-
-        $(".rowExpand").on('click', function () {
-
-            var childId = $(this).parents("tr").prop("id");
-            var hidden = $("#genesetdetails_" + childId).is(":visible");
-            $("#genesetdetails_" + childId).toggle();
-            if (hidden) {
-                $("#onGenesetChevron_" + childId).toggle();
-                $("#offGenesetChevron_" + childId).toggle();
-            }
-            else {
-                $("#offGenesetChevron_" + childId).toggle();
-                $("#onGenesetChevron_" + childId).toggle();
-            }
-        });
-    });
-
-
-</script>
-
-<style type="text/css">
-
-    .rowExpand {
-        cursor: "pointer";
-    }
-
-</style>
-
+{# 	This page is injected into analyze.html--really it's included in
+	singleProject.html, which is rendered by flask and then injected. Anyway,
+	it seems like the beginning element on this page MUST be a row (<tr>), 
+	otherwise jQuery will discard all rows and cells when this page is appended
+	to a table in analyze.html.
+#}
 
 <tr class="genesetdetails" id="{{ gs.geneset_id }}">
 
     {% if proj is defined %}
-        <td>
-			<input
-				data-parentproject="{{ proj.project_id }}"
-				type="checkbox"
-				name="geneset_{{ gs.geneset_id }}"
-				class="table-checkbox proj-{{ proj.project_id }}-check">
-		</td>
+        <td width="40px">
+            <div class="ui-checkbox" style="padding: 0; border: 0;">
+                <label for="geneset_{{ gs.geneset_id }}">
+                    <input type="checkbox" name="geneset_{{ gs.geneset_id }}" data-project="{{ proj.project_id }}"
+                           data-parentproject="{{ proj.project_id }}"
+                           class="proj-{{ proj.project_id }}-check"
+                           id="geneset_{{ gs.geneset_id }}"/>
+                </label>
+            </div>
+            {#
+            <input
+                    data-parentproject="{{ proj.project_id }}"
+                    type="checkbox"
+                    name="geneset_{{ gs.geneset_id }}"
+                    class="table-checkbox proj-{{ proj.project_id }}-check"
+                    style="margin: 2px; padding: 0px 2px;">
+            #}
+        </td>
     {% endif %}
-    <td>
-        <!--
-			<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
-				<span class="fa fa-chevron-down"></span>
-			</a>
-			-->
-			<span class="rowExpand">
-				<span id="onGenesetChevron_{{ gs.geneset_id }}" style="display: none;"><i class="fa fa-minus fa-lg"></i></span>
-				<span id="offGenesetChevron_{{ gs.geneset_id }}"><i class="fa fa-plus fa-lg"></i></span>
-			</span>
-    </td>
+
 
     <td>
 
@@ -143,7 +93,10 @@
 
     </td>
 
-    <td>
+
+
+
+    <td width="50%">
 
         <a href="/viewgenesetdetails/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}: {{ gs.name }} </a>
         <!-- need status for if not normal -->
@@ -162,89 +115,166 @@
 
                         $(this).attr('class', 'gs_deprecated');
                         $(this).attr('title', 'This geneset has been marked ' +
-                                'as deprecated.');
+                        'as deprecated.');
                         $(this).html('Deprecated');
                     }
                 });
             </script>
         {% endif %}
     </td>
+
+
+    {% if g.user is defined %}
+        {% if proj is defined %}
+            <td>
+                <span id="add-{{ gs.geneset_id }}-button" data-toggle="modal"
+                      data-target="#addModal_{{ gs.geneset_id }}"
+                      style="cursor: pointer; color: #808080; margin: 2px; padding: 0px 2px;">
+                    <i class="fa fa-folder-o"></i>
+                </span>
+
+                {% include 'modal/addGenesetsToProjectsFromAnalysis.html' %}
+
+
+            </td>
+        {% endif %}
+    {% endif %}
+
+    <td>
+        <!--
+			<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
+				<span class="fa fa-chevron-down"></span>
+			</a>
+			-->
+        {% if proj is defined %}
+
+            <span class="rExpand" data-placement="top" data-toggle="tooltip"
+							data-rel="tooltip" data-original-title="View More Information"
+							title="More Information" style="margin: 2px; padding: 0px 2px;">
+				<span id="onGenesetMinus_{{ gs.geneset_id }}" style="display: none; color: #808080;">
+                    <i class="fa fa-minus"></i></span>
+				<span id="offGenesetPlus_{{ gs.geneset_id }}" style="color: #808080;">
+                    <i class="fa fa-plus"></i></span>
+			</span>
+
+        {% else %}
+
+            <span class="rowExpand">
+				<span id="onGenesetChevron_{{ gs.geneset_id }}" style="display: none; color: #808080;">
+                    <i class="fa fa-minus"></i></span>
+				<span id="offGenesetChevron_{{ gs.geneset_id }}" style="color: #808080;">
+                    <i class="fa fa-plus"></i></span>
+			</span>
+
+        {% endif %}
+    </td>
+
+
 </tr>
 
-<!--<div class ="genesetDetails" id="genesetDetails_{{gs.geneset_id}}" display="none">-->
 <!-- ##################### Geneset metadata #################3-->
 <tr id="genesetdetails_{{ gs.geneset_id }}" style="display: none;">
     <td colspan="100%">
-        <table class="genesetMeta" cellspacing="0" cellpadding="0" border="0">
-            <tr>
-                <th>Figure Label:</th>
-                <td style="width: 75%;">{{ gs.abbreviation }}</td>
-            </tr>
 
-            <!-- TODO account for null authors, get Publication info -->
+        <table class="table table-hover table-striped" id="nestedTable">
+
             <tr>
-                <th>Authors:</th>
-                <td><i>{{ gs.publication.authors }}</i></td>
+                <th style="width: 25%;">Figure Label:</th>
+                <td style="width: 75%;">{{ gs.abbreviation }}</td>
             </tr>
 
             <tr>
                 <th>Description:</th>
                 <td>{{ gs.description }}</td>
             </tr>
-            {% if g.user is defined %}
-                <tr>
-                    <td>
-                        <button
-                                id="add-{{ gs.geneset_id }}-button"
-                                type="button"
-                                class="btn bg-blue"
-                                data-toggle="modal"
-                                data-target="#addModal_{{ gs.geneset_id }}">Add to projects...
-                        </button>
-                    <td>
-                </tr>
-            {% endif %}
+
+            <!-- TODO account for null authors, get Publication info -->
+            <tr>
+                <th>Authors:</th>
+                <td><i>{% if gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
+            </tr>
+
         </table>
-
-
-
-
-
-        {% if g.user is defined %}
-            <div class="modal fade" id="addModal_{{ gs.geneset_id }}">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h4 class="modal-title" id="myModalLabel">Select projects to which you want to add
-                                GS{{ gs.geneset_id }}</h4>
-                        </div>
-                        <div class="modal-body">
-                            <table class="table table-striped">
-                                {% for currProj in g.user.projects %}
-                                    <tr>
-                                        <td>
-                                            <input
-                                                    type="checkbox"
-                                                    class="modal_checkbox_{{ gs.geneset_id }}"
-                                                    name="{{ currProj.project_id }}">
-                                        </td>
-                                        <td>
-                                            {{ currProj.name }}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </table>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" onclick="addToSelected('{{ gs.geneset_id }}')"
-                                    data-dismiss="modal">Add to selected projects
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
     </td>
 </tr>
+<!-- ###################### End ##########################-->
+
+
+
+
+
+<!-- Script for hiding or displaying geneset details -->
+<script type="text/javascript">function toggleDetails(id) {
+    var element = document.getElementById(id);
+
+    if (element.style.display == "none")
+        element.style.display = "block";
+
+    else if (element.style.display == "")
+        element.style.display = "block";
+
+    else
+        element.style.display = "none";
+}
+</script>
+
+<style type="text/css">
+
+    .rowExpand, .rExpand {
+        cursor: pointer;
+    }
+
+</style>
+
+<!-- Script for adding geneset to selected projects-->
+<script type="text/javascript">
+    function addToSelected(geneset_id) {
+        var selector = ".modal_checkbox_" + geneset_id;
+        $(selector).each(function () {
+            if (this.checked) {
+                var route = "/add_geneset_to_project/" + this.name + "/" + geneset_id + ".html";
+                $.get(route, function (data, status) {
+                });
+            }
+        });
+    }
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+    $(document).ready(function () {
+
+        $(".rowExpand").on('click', function () {
+
+            var childId = $(this).parents("tr").prop("id");
+            var hidden = $("#genesetdetails_" + childId).is(":visible");
+            $("#genesetdetails_" + childId).toggle();
+            if (hidden) {
+                $("#onGenesetChevron_" + childId).toggle();
+                $("#offGenesetChevron_" + childId).toggle();
+            }
+            else {
+                $("#offGenesetChevron_" + childId).toggle();
+                $("#onGenesetChevron_" + childId).toggle();
+            }
+        });
+
+        $(".rExpand").on('click', function (event) {
+
+			// Because this page is injected into analyze.html, this script 
+			// will get written to that page multiple times, resulting in
+			// multiple click handlers. We must stop propagation of additional
+			// events otherwise bad things happen.
+			event.stopImmediatePropagation();
+
+            var child = $(this).parents("tr").prop("id");
+
+			$("#genesetdetails_" + child).toggle();
+			$("#offGenesetPlus_" + child).toggle();
+			$("#onGenesetMinus_" + child).toggle();
+        });
+
+    });
+
+</script>
