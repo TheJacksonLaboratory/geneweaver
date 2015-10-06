@@ -611,13 +611,17 @@ function color(d) {
 //   return color;
 }
 
+//Function to color outer ring for emphasis gene
 function outerRingColor(d) {
+    //TODO: change the implementation to find variable not precise word
     if (d.name == "flare"){
         return "#33AD33";
     }
     else return "default";
 }
 
+//Invoked from update
+//Trying to highlight text color
 function textColor(d) {
     if (d.name == "flare"){
         return "#CC0000";
