@@ -192,7 +192,7 @@
         .node circle {
             cursor: pointer;
             stroke: #3182bd;
-            stroke-width: 1.5px;
+            stroke-width: 3px;
             r: 4.5;
         }
 
@@ -216,8 +216,7 @@
 
 
     <script>
-
-       //Notes:
+        //Notes:
 // Src: http://bl.ocks.org/mbostock/1093130
 //Notes:
 // * Each dom element is using
@@ -235,11 +234,12 @@
 //* It's using both a tree and a graph layout.
 
 //root
- var g = {
+var g = {
     data: null,
     force:null
 };
 
+$(function () {
 
     //use a global var for the data:
     g.data = data;
@@ -255,7 +255,7 @@
     var svg = d3.select("#viz2")
         .append("svg")
         .attr("width", width)
-        .attr("height", height).append("g");
+        .attr("height", height);
 
         g.link = svg.selectAll(".link"),
     	g.node = svg.selectAll(".node");
@@ -267,10 +267,13 @@
     	.nodes(g.data.nodes)
     	.links(g.data.links)
         .linkDistance(function(link) {
-        return ((link.target.depth - link.source.depth)*80);
+        return ((link.target.depth - link.source.depth)*40);
     	})
-        .charge(-1000)
-    	.chargeDistance(80)
+        .linkStrength(function(link) {
+            return 1/((link.target.depth - link.source.depth)*2);
+        })
+        .charge(-1200)
+    	.chargeDistance(39)
         .gravity(0.0)
         .size([width, height])
     //that invokes the tick method to draw the elements in their new location:
@@ -300,6 +303,7 @@
     update();
 
 
+});
 
 
 
@@ -312,6 +316,8 @@
 //which expands and collapses a node.
 
 function update() {
+        var width = 960,
+        height = 500;
 
     //iterate through original nested data, and get one dimension array of nodes.
     var nodes = flatten(g.data.nodes);
@@ -331,8 +337,8 @@ function update() {
     }
 
 	g.data.nodes[0].fixed = true;
-    g.data.nodes[0].x = 96;
-	g.data.nodes[0].y = 250;
+    g.data.nodes[0].x = width/10;
+	g.data.nodes[0].y = height/2;
 
     // pass both of those sets to the graph layout engine, and restart it
     g.force.nodes(nodes)
@@ -376,8 +382,11 @@ function update() {
     });
     //All nodes, do the following:
     g.node.select("circle")
-        .style("fill", color); //calls delegate
+        .style("fill", color) //calls delegate
+        .style("stroke", outerRingColor);
     //-------------------
+
+    g.node.fontcolor(textColor)
 }
 
 
@@ -580,7 +589,19 @@ function color(d) {
 }
 
 
+function outerRingColor(d) {
+    if (d.emphasis){
+        return "#33AD33";
+    }
+    else return "default";
+}
 
+function textColor(d) {
+    if (d.emphasis){
+        return "#CC0000";
+    }
+    else return "default";
+}
 
 
 // Toggle children on click by switching around values on _children and children.
@@ -603,15 +624,11 @@ function click(d) {
     update();
 }
 
-
-
-
-
 //event handler for every time the force layout engine
 //says to redraw everthing:
 function tick() {
     g.node.attr("transform", function (d) {
-        return "translate(" + (d.depth*100 + 50) + "," + d.y + ")";
+        return "translate(" + Math.max(d.depth*100 + 50, d.x) + "," + d.y + ")";
     });
     //redraw position of every link within the link set:
 
@@ -619,13 +636,13 @@ function tick() {
     //same for the nodes, using a functor:
 
     g.link.attr("x1", function (d) {
-        return (d.source.depth*100 + 50);
+        return (Math.max(d.source.depth*100 + 50, d.source.x));
     })
         .attr("y1", function (d) {
         return d.source.y;
     })
         .attr("x2", function (d) {
-        return (d.target.depth*100 + 50);
+        return (Math.max(d.target.depth*100 + 50, d.target.x));
     })
         .attr("y2", function (d) {
         return d.target.y;
@@ -635,15 +652,11 @@ function tick() {
 
 }
 
-
-
-
 var data =
-
 {
     "nodes": [
-                {"id": 0, "name": "flare", "children": [1], "depth": 0},                  //0
-                {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
+                {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
+                {"id": 1, "name": "analytics", "children": [2, 7, 13, 15], "depth": 1},              //1
                 {"id": 2, "name": "cluster", "children": [3, 4, 5, 6], "depth": 2},                //2
                 {"id": 3, "name": "AgglomerativeCluster","children": [], "depth": 3},   //3
                 {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},     //4
@@ -657,7 +670,7 @@ var data =
                 {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},           //12
                 {"id": 13, "name": "optimization", "children": [14], "depth": 2},           //13
                 {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},       //14
-        		//{"id": 15, "name": "TestLeaf", "children": [], "depth": 3}       //14
+        		{"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis":true}       //14
             ],
 
 
@@ -678,9 +691,6 @@ var data =
                 {"source": 13, "target": 14}
             ]
 };
-
-
-
 </script>
 
 
