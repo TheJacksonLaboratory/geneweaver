@@ -45,6 +45,14 @@
 			$("[data-toggle='tooltip']").tooltip();
 		});
 
+		// This hides the 'cached result error' alert when its close button
+		// is clicked.
+		$(function () {
+			$('[data-hide]').on('click', function() {
+				$('.' + $(this).attr('data-hide')).hide();
+			});
+		});
+
 		var r = false;
 		var editor;
 
@@ -160,12 +168,32 @@
 						e.tooltip();
 						e.click(function () {
 							var runhash = oData[5];
-							var serial = 'runHash=' + runhash;
-							serial += '&user_id=' + user_id;
+							var check_url = '/checkResults.json';
+							var view_url = '/viewStoredResults';
+							var data = {
+								'runHash': oData[5]
+							};
+							//var serial = 'runHash=' + runhash;
+							//serial += '&user_id=' + user_id;
 
-							$.redirectPost('/viewStoredResults', {
-								'runHash': runhash,
-								'user_id': user_id
+							// Check to see if the results exist in the results
+							// directory--we don't want to view null results
+							$.get(check_url, data).done(function(data) {
+
+								data = JSON.parse(data);
+
+								if (data.exists) {
+
+									$.redirectPost('/viewStoredResults', {
+										'runHash': runhash,
+										'user_id': user_id
+									});
+
+								} else {
+
+									$('#lolno-result').show();
+									$('#lolno-button').show();
+								}
 							});
 
 							return true;
@@ -257,9 +285,19 @@
 
         <div id="maindiv" xmlns="http://www.w3.org/1999/html">
 
+			<div class="alert alert-danger fade in" id="lolno-result"
+				 style="display: none;">
+
+				<button type="button" class="close" id="lolno-button"
+						data-hide="alert" aria-hidden="true">
+					x
+				</button>
+
+				Looks like the cached copy of your results no longer exists.
+				Try re-running the result.
+			</div>
 
             <p>
-
 
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>Results </strong> management</h3>
