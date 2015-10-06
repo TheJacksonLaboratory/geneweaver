@@ -1,0 +1,336 @@
+{% set title="Similar Genesets" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+
+<style type="text/css">
+
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    #genesetExpand {
+        cursor: pointer;
+    }
+
+    .plus:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    .minus .plus:before {
+        content: "\f068";
+    }
+
+    table#similarGenesets {
+        border-collapse: collapse;
+        border-spacing: 0;
+        padding: 0;
+    }
+
+    .ui-checkbox {
+        border: none;
+        text-shadow: none;
+    }
+
+    fieldset .ui-checkbox {
+        margin: 0;
+    }
+
+
+</style>
+
+{% if user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% else %}
+
+
+    <div class="row" id="result"></div>
+
+    <div class="panel panel-default panel-heading bg-gray-light">
+        <h2 class="panel-title"><strong>Genesets with the Same Publication</strong></h2>
+    </div>
+
+
+    <!-- Show the Geneset List -->
+    <div class="panel panel-default">
+
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title">Genesets Sharing a Publication with GS{{ gs_id }}
+                <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
+        </div>
+
+        {% if geneset is not defined or geneset | length < 2 %}
+
+            <div class="alert alert-warning fade in"><button type="button" class="close" data-dismiss="alert"
+                                                            aria-hidden="true">x</button>
+                There are no other gene sets annotated to the same publication as GS{{ gs_id }}.
+            </div>
+
+        {% else %}
+
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-3 pull-left">
+                        <a href="/viewgenesetdetails/{{ gs_id }}">
+                        <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+                    </div>
+
+                    <div class="col-md-6"></div>
+
+                    <div class="col-md-3 pull-right">
+
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add to Project
+                        </button>
+
+                    </div>
+
+
+                </div>
+            </div>
+
+            <div class="panel-body">
+
+                <form id="addSimGenesetsToProj" name="addSimGenesetsToProj" method="post" action="#"
+                      class="form-horizontal form-inline" novalidate="novalidate">
+                    <!-- TODO make the table sortable, show more gene details -->
+                    <table class="table table-hover" id="similarGenesets" cellpadding="0" cellspacing="0">
+                        <tbody>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>GeneSet Title</th>
+                            <th>&nbsp;</th>
+                        </tr>
+
+                        {% for i in geneset %}
+                            <a name="gsid{{ i.geneset_id }}"></a>
+
+                            <tr>
+                                <td width="15" style="vertical-align: middle">
+                            <span id="genesetExpand" class="toggler" data-prod="{{ i.geneset_id }}">
+                                <span class="plus"></span>
+                                <span class="minus"></span>
+                            </span>
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the tier - which is the curation id, Geneset.cur_id -->
+                                    {% if i.cur_id == 1 %}
+                                        <span class="tier1">Tier I</span>
+                                    {% endif %}
+                                    {% if i.cur_id == 2 %}
+                                        <span class="tier2">Tier II</span>
+                                    {% endif %}
+                                    {% if i.cur_id == 3 %}
+                                        <span class="tier3">Tier III</span>
+                                    {% endif %}
+                                    {% if i.cur_id == 4 %}
+                                        <span class="tier4">Tier IV</span>
+                                    {% endif %}
+                                    {% if i.cur_id == 5 %}
+                                        <span class="tier5">Tier V</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the species -->
+                                    {% if i.sp_id == 1 %}
+                                        <span class="mouse">Mouse</span>
+                                    {% endif %}
+                                    {% if i.sp_id == 2 %}
+                                        <span class="human">Human</span>
+                                    {% endif %}
+                                    {% if i.sp_id == 3 %}
+                                        <span class="rat">Rat</span>
+                                    {% endif %}
+                                    {% if i.sp_id == 4 %}
+                                        <span class="zebrafish">Zebrafish</span>
+                                    {% endif %}
+                                    {% if i.sp_id == 5 %}
+                                        <span class="fly">Fly</span>
+                                    {% endif %}
+                                    {% if i.sp_id == 6 %}
+                                        <span class="monkey">Monkey</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the attribution -->
+                                    {% if i.attribution == 2 %}
+                                        <span class="ctd">CTD</span>
+                                    {% endif %}
+                                    {% if i.attribution == 7 %}
+                                        <span class="drg">DRG</span>
+                                    {% endif %}
+                                    {% if i.attribution == 8 %}
+                                        <span class="go">GO</span>
+                                    {% endif %}
+                                    {% if i.attribution == 9 %}
+                                        <span class="mp">MP</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Show the geneset size -->
+                                    <span class="gs_size">{{ i.count }} Genes</span>
+
+                                </td>
+                                <td style="vertical-align: middle">
+                                    <a href="/viewgenesetdetails/{{ i.geneset_id }}"><strong>GS{{ i.geneset_id }}</strong>
+                                        <i class="fa fa-caret-right"></i> {{ i.name }}</a>
+                                </td>
+
+                                <td width="10px" style="vertical-align: middle">
+                                    <div class="ui-checkbox" style="padding: 0; border: 0;">
+                                        <label for="addGeneset{{ i.geneset_id }}">
+                                            <input type="checkbox" name="gsoptions[]" id="addGeneset{{ i.geneset_id }}"
+                                                   value="{{ i.geneset_id }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="gsid{{ i.geneset_id }}" style="display: none">
+                                <td colspan="5">&nbsp;</td>
+                                <td><strong>LABEL:</strong> {{ i.abbreviation }}<br>
+                                    <strong>DESCRIPTION:</strong> {{ i.description }}
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+
+        {% endif %}
+    </div>
+
+    {% for gene in emphgeneids %}
+        <script>
+            document.getElementById("{{gene}}").checked = true;
+        </script>
+    {% endfor %}
+
+    {% if g.user is defined %}
+
+        {% include 'modal/addGenesetsToProjects.html' %}
+
+    {% endif %}
+
+    {% include 'modal/addGenesetsToProjectsAlert.html' %}
+
+
+    <script type="text/javascript">
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        function emphasize(id) {
+            if (document.getElementById(id).checked) {
+                $.get("/emphasize/" + id + ".html", function (data, status) {
+                });
+            }
+            else {
+                $.get("/deemphasize/" + id + ".html", function (data, status) {
+                });
+            }
+        }
+
+        // Add event listener for opening and closing details
+
+        $(document).ready(function () {
+            var gs_id = {{ gs_id }};
+
+            $(".toggler").click(function (e) {
+                e.preventDefault();
+                //the data stored in the data-prod
+                var gid = ($(this).attr("data-prod"));
+                //toggle the link clicked on
+                $(".gsid" + gid).toggle();
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $(this).parent().find("span").toggleClass("plus");
+                //$(this).parent().find("span").toggleClass("minus");
+                //toggle the minus class
+                $(this).toggleClass("plus");
+                $(this).toggleClass("minus");
+            });
+
+            $('#addToProject').on('click', function () {
+                var gsid = [];
+                var gs = [];
+                jQuery("input[name='gsoptions[]']:checked").each(function () {
+                    var v = ($(this).val());
+                    gsid.push(v);
+                    gs.push('GS' + v);
+                });
+                if (gsid.length == 0) {
+                    $("#myAlert").modal('show');
+                }
+                else {
+                    var g = gs.join(", ");
+                    $("#myModalLabel").html(g);
+                    $("#myModalValue").val(g);
+                    $("#addToProjectModal").modal('show');
+                }
+
+            });
+
+            $('#addNewProject').on('click', function () {
+                $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+                        '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+            });
+
+            $('#addGenesetsToProjects').on('click', function (e) {
+                var checked = [];
+                $("input[name='options[]']:checked").each(function () {
+                    checked.push(parseInt($(this).val()));
+                });
+                var option = JSON.stringify(checked);
+                var g = $('#myModalValue').val();
+                var npn = $('#newProjName').val();
+                if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                    $("#result").html('<div class="alert alert-danger fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>No Projects Were Selected</div>');
+                }
+                else {
+                    $.ajax({
+                        type: "GET",
+                        url: "../addGenesetsToProjects",
+                        data: {"user_id": {{ user_id }}, "npn": npn, "gs_id": g, "option": option},
+                        success: function (data) {
+                            $("#result").html('<div class="alert alert-success fade in"> ' +
+                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                    '</button>Genesets Successfully Added to Selected Projects</div>');
+                            window.location.reload();
+                        }
+                    });
+                }
+            });
+
+        });
+
+        $('#clickableFontAwesome').popover({
+            title: 'Publications', content: 'Gene set duplications may occur when more than one gene set is annotated with ' +
+                'to the same publication. Please contact our curatorial team to remove duplications.'
+        });
+
+        //});
+
+
+    </script>
+
+
+{% endif %}
+
+{% include 'footer.html' %}
