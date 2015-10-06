@@ -281,8 +281,8 @@ $(function () {
     var width = 960,
         height = 500;
 
-//    var  r = 6,
-//    fill = d3.scale.category20();
+    var  r = 6,
+    fill = d3.scale.category20();
 
     //Create a sized SVG surface within viz:
     var svg = d3.select("#viz")
@@ -290,19 +290,21 @@ $(function () {
         .attr("width", width)
         .attr("height", height);
 
-	g.link = svg.selectAll(".link"),
+        g.link = svg.selectAll(".link"),
     g.node = svg.selectAll(".node");
 
 
 
     //Create a graph layout engine:
-    //Alyse removed these
-    // .nodes(g.data.nodes)
-    //.links(g.data.links)
     g.force = d3.layout.force()
-        .linkDistance(80)
-        .charge(-120)
-        .gravity(0.05)
+    .nodes(g.data.nodes)
+    .links(g.data.links)
+        .linkDistance(function(link) {
+        return ((link.target.depth - link.source.depth)*80);
+    })
+        .charge(-1000)
+    .chargeDistance(80)
+        .gravity(0.0)
         .size([width, height])
     //that invokes the tick method to draw the elements in their new location:
     .on("tick", tick);
@@ -320,6 +322,11 @@ $(function () {
       .style("stroke", function(d) { return d3.rgb(fill(d.group)).darker(); })
       .call(force.drag);
 */
+
+
+
+
+
     //Draw the graph:
     //Note that this method is invoked again
     //when clicking nodes:
@@ -335,22 +342,31 @@ $(function () {
 function update() {
 
     //iterate through original nested data, and get one dimension array of nodes.
-    var nodes = g.data.nodes;
-
+    var nodes = flatten(g.data.nodes);
+console.log(nodes.length + " nodes to draw");
+    for (i = 0; i < nodes.length; i++) {
+    console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
+    }
     //Each node extracted above has a children attribute.
     //from them, we can use a tree() layout function in order
     //to build a links selection.
-    var links = g.data.links;
+    //var links = g.data.links;
+    //console.log(links[0].source);
+    var links = getLinks(nodes);
+    console.log(links.length + " links to draw");
+    for (i = 0; i < links.length; i++) {
+    console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
+    }
 
-	g.data.nodes[0].fixed = true;
+g.data.nodes[0].fixed = true;
     g.data.nodes[0].x = 96;
-	g.data.nodes[0].y = 250;
+g.data.nodes[0].y = 250;
 
     // pass both of those sets to the graph layout engine, and restart it
     g.force.nodes(nodes)
         .links(links)
         .start();
-
+//g.force.linkDistance(
     //-------------------
     // create a subselection, wiring up data, using a function to define
     //how it's suppossed to know what is appended/updated/exited
@@ -400,20 +416,128 @@ function update() {
 // but that's what's needed for the force layout engine.
 // So returns a list of all nodes under the root.
 function flatten(data) {
-    var nodes = [],
-        i = 0;
+    var nodes = [];
+    /*
+    var node;
+    index = 0;
     //count only children (not _children)
     //note that it doesn't count any descendents of collapsed _children
     //rather elegant?
+    while (index < nodes.length){
+        node = nodes[index];
+        //node.id = index;
+        console.log("Checking node " + node.id);
+        if(node.children.length > 0) {
+            for(i = 0; i < node.children.length; i++) {
+                nodes.push(data[node.children[i]]);
+            }
+        }
+        //nodes[index].id = index;
+        index++;
+    }
+    */
+
     function recurse(node) {
-        if (node.children) node.children.forEach(recurse);
-        if (!node.id) node.id = ++i;
+        //console.log("recursing through node " + node.id);
+        nodes.push(node);
+        if(node.children.length>0) {
+            //console.log("checking children of node " + node.id + ": " + node.children);
+            for (var i=0, count = node.children.length; i < count; i++) {
+                //console.log("NODES IN FOR LOOP: " + nodes);
+                //console.log("i = " + i + ", count = " + count + ", node " + node.id);
+                var nextNode = getNodeByID(data, node.children[i]);
+                //if(nextNode.children.length > 0) {
+                //console.log("calling recurse on " + nextNode.name);
+                recurse(nextNode);
+                //console.log("Children array: " + node.children);
+                                //console.log("i = " + i + ", count = " + count + ", node " + node.id);
+
+                //}
+                //else {
+                //    console.log("Node " + nextNode.name + " is a leaf. Pushing...");
+                    //nodes.push(nextNode);
+                //}
+
+                //console.log("within for loop: came out of recursion for node " + nextNode.name);
+            }
+        }
+        else {
+           //console.log(
+        }
+
+        //console.log("done recursing through node " + node.name);
+        //return nodes;
+
+
+       //if (next) return next;
+    }
+
+
+
+
+
+
+    /*
+    function recurse(node) {
+        nodes.push(node);
+        childarr = [];
+        for (i = 0, count = node.children.length; i < count; i++) {
+          childarr.push(getNodeByID(data, node.children[i]));
+        }
+        if (childarr.length > 0) childarr.forEach(recurse);
+        //if (!node.id) node.id = ++i;
+
+    }*/
+    recurse(data[0]);
+
+
+
+    /*
+    function recurse(node) {
+        if (node.children.length > 0) {
+        for (i = 0; i < node.children.length; i++) {
+            recurse(data[node.children[i]]);
+            }
+        }
+        //if (!node.id) node.id = ++i;
         nodes.push(node);
     }
-    recurse(data);
+    recurse(data[0]);
+    */
 
     //Done:
     return nodes;
+}
+
+
+
+function getNodeByID(nodes, wanted_id) {
+
+    for(var i = 0; i < nodes.length; i++) {
+        if(nodes[i].id == wanted_id) {
+            return nodes[i];
+        }
+}
+}
+
+
+function getLinks(nodes) {
+
+    var links = [];
+    for ( var i = 0; i < nodes.length; i++) {
+    var n = nodes[i];
+        for (var j = 0; j < n.children.length; j++) {
+            var link = {
+        source:nodes.indexOf(n),
+        target:nodes.indexOf(getNodeByID(nodes, n.children[j]))
+    };
+            //console.log("node: " + n.id + "\n\tchildren: " + n.children[j]);
+            //console.log(link.source + "\t" + link.target);
+            links.push(link);
+        }
+    }
+
+    return links;
 }
 
 /*
@@ -501,25 +625,22 @@ function textColor(d) {
     else return "default";
 }
 
-//Tester function no loner usefull
-//Maybe for later implementation (Alyse)
-{#function emphasisColor(d) {#}
-{#    if (d.name == "flare"){#}
-{#        return "#CC0000";#}
-{#    } else{#}
-{#        return "null"#}
-{#    }#}
-
 
 // Toggle children on click by switching around values on _children and children.
 function click(d) {
     if (d3.event.defaultPrevented) return; // ignore drag
     if (d.children.length > 0) {
+        console.log("collapsing node " + d.name + " (" + d.id + ")");
         d._children = d.children;
         d.children = [];
+        console.log(d.children);
+        console.log(d._children);
     } else {
+        console.log("expanding node " + d.name + " (" + d.id + ")");
         d.children = d._children;
         d._children = null;
+        console.log(d.children);
+        console.log(d._children);
     }
     //
     update();
@@ -528,23 +649,29 @@ function click(d) {
 //event handler for every time the force layout engine
 //says to redraw everthing:
 function tick() {
+    g.node.attr("transform", function (d) {
+        return "translate(" + Math.max(d.depth*100 + 50, d.x) + "," + d.y + ")";
+    });
     //redraw position of every link within the link set:
+
+
+    //same for the nodes, using a functor:
+
     g.link.attr("x1", function (d) {
-        return d.source.x;
+        return (Math.max(d.source.depth*100 + 50, d.source.x));
     })
         .attr("y1", function (d) {
         return d.source.y;
     })
         .attr("x2", function (d) {
-        return d.target.x;
+        return (Math.max(d.target.depth*100 + 50, d.target.x));
     })
         .attr("y2", function (d) {
         return d.target.y;
     });
     //same for the nodes, using a functor:
-    g.node.attr("transform", function (d) {
-        return "translate(" + d.x + "," + d.y + ")";
-    });
+
+
 }
 
 </script>
