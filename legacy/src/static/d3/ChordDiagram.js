@@ -1,13 +1,7 @@
-/*
- *      Created by Melissa 9/17/15
- *      Modifed by Kevin 9/20/15
- */
-
-<!-- Everything below here is for the cord plot -->
 
     var width = 900,
             height = 900,
-            outerRadius = Math.min(width, height) / 2 - 50,
+            outerRadius = Math.min(width, height) / 2 - 10,
             innerRadius = outerRadius - 24;
 
     var formatPercent = d3.format(".1%");
@@ -24,7 +18,7 @@
     var path = d3.svg.chord()
             .radius(innerRadius);
 
-    var svg = d3.select("body").append("svg")
+    var svg = d3.select("#triclique").append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
@@ -39,6 +33,7 @@
 
             // Compute the chord layout.
             layout.matrix(matrix);
+            console.log("test");
 
             // Add a group per neighborhood.
             var group = svg.selectAll(".group")
@@ -113,3 +108,4 @@
             }
         });
     });
+

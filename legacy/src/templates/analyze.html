@@ -5,147 +5,246 @@
 
 <style>
 
-	.panel .panel-header .panel-info .panel-heading {
+    a:link {
+        #color: darkgreen;
+    }
+    a:hover {
+        #color: green;
+        text-decoration: none;
+    }
+    a:visited {
+        text-decoration: none;
+    }
 
-		background-color: #F0F0F0;
-		color: #F0F0F0;
-	}
+    .panel .panel-header .panel-info .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    img {
+        border-style: none;
+    }
 
 </style>
 
+
+{% if user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% else %}
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+            <p>
+
+            <div class="row" id="result"></div>
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>Analyze Gene Sets and Projects</strong>
+                    <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
+            </div>
+
+
+    {# This existing error class is different then other jquery error classes that I have used. It is legacy
+     but I am keeping it until I can refactor all of the code.#}
+    {% with errors = get_flashed_messages() %}
+        {% if errors %}
+            {%- for msg in errors %}
+                <div class="alert alert-danger fade in">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                    {{ msg }}</div>
+            {% endfor -%}
+        {% endif %}
+    {% endwith %}
+
+
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div class="row">
+
+            <!-- the Analysis tools column -->
+            <div class="col-md-4">
+                <div class="page-header">
+                    <h2>Analysis Tools</h2>
+                </div>
+                <div class="panel-group" id="accordion">
+                    {% for tool in active_tools %}
+                        {% include 'tool/' + tool.classname + '_options.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- the projects column -->
+            <div class="col-md-8">
+                <div class="page-header"><h2>Projects</h2></div>
+                <div class="panel-group" id="projAccordion">
+
+                    {% if "user" in g %}
+
+                        {% for proj in g.user.projects %}
+                            <div id="project-{{ proj.project_id }}" class="panel">
+                                <div class="panel-heading">
+                                    <h2 class="panel-title">
+                                        <div class="row">
+                                            <div class="col-xs-2">
+
+                                                <input
+                                                        type="checkbox"
+                                                        class="proj-checkbox"
+                                                        id="proj-{{ proj.project_id }}-allcheck"
+                                                        name="project_{{ proj.project_id }}"
+                                                        #console.log(name)
+                                                        data-project="{{ proj.project_id }}"
+                                                        >
+
+												{#
+                                                <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
+                                                    <label for="proj-{{ proj.project_id }}-allcheck">
+                                                        <input type="checkbox" data-project="{{ proj.project_id }}"
+                                                               id="proj-{{ proj.project_id }}-allcheck"/>
+                                                    </label>
+                                                </div>
+												#}
+                                            </div>
+                                            <div class="col-xs-10" style="vertical-align: bottom;">
+                                                <a class="project-link" data-toggle="collapse"
+                                                   data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
+													<i class="fa fa-caret-right"></i> </span>
+                                                    {{ proj.name }}
+                                                </a>
+
+                                            </div>
+                                        </div>
+                                    </h2>
+                                </div>
+                                <div id="genesets-{{ proj.project_id }}" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <table id="project-body-{{ proj.project_id }}" class="table table-hover">
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                         <div class="alert alert-warning fade in">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                            You do not have any projects.</div>
+                    {% endif %}
+                </div>
+            </div>
+    </form>
+
+    </div>
+
+        </div>
+
+    {% endblock %}
+
+{% endif %}
+
+{% include 'footer.html' %}
+
 <script type="text/javascript">
 
-	$(document).ready(function() {
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
 
-		var url = '/projectGenesets.json';
+    $(document).ready(function () {
 
-		// Project genesets are only loaded when necessary (i.e. when a user
-		// clicks on the project link. 
-		$('.project-link').on('click', function(event) {
+        var url = '/projectGenesets.json';
 
-			// Get the project ID from the link href, but gotta strip out
-			// '#genesets-' first
-			var pid = $(this).attr('href').slice('#genesets-'.length);
-			var pbid = '#project-body-' + pid;
-			var data = {'project': pid};
+		// Ensures the plus icon is next to each tool under the
+		// analysis tools sidebar. Here so I don't have to change 
+		// this piece of HTML in each of the tool option templates.
+		$('.panel-title').each(function(index, elem) {
 
-			// Check to see if we've already made an AJAX call for this project
-			if ($(pbid).children().length !== 0)
-				return;
+			var child = $(elem).children('a');
+			var href = $(child).attr('data-parent');
 
-			// Flask should return the rendered HTML, inject it into the DOM
-			$.get(url, data).done(function(data) {
-
-				$(pbid).append(data);
-			});
+			if (href == '#accordion')
+				$(child).addClass('collapsed');
 		});
-	});
-	
+
+		// All selector checkbox
+		$('.proj-checkbox').on('click', function(event) {
+
+			var check = $(this).find('input[type=checkbox]');
+			var allcheck = '#' + check.attr('id');
+			var pid = allcheck.split('-')[1];
+			var gscheck = '.proj-' + pid + '-check';
+
+			if ($(allcheck).attr('checked')) {
+
+				$(gscheck).each(function (index) {
+					$(this).attr('checked', false);
+				});
+
+			} else {
+
+				$(gscheck).each(function (index) {
+					$(this).attr('checked', true);
+				});
+			}
+		});
+
+        // Project genesets are only loaded when necessary (i.e. when a user
+        // clicks on the project link.
+        $('.project-link').on('click', function (event) {
+
+			// Change chevron when project info is displayed
+			var chev = $(this).children('.fa-caret-right').length ?
+					   $(this).children('.fa-caret-right') : 
+					   $(this).children('.fa-caret-down');
+
+			chev.toggleClass('fa-caret-down')
+			chev.toggleClass('fa-caret-right')
+
+            // Get the project ID from the link href, but gotta strip out
+            // '#genesets-' first
+            var pid = $(this).attr('href').slice('#genesets-'.length);
+            var pbid = '#project-body-' + pid;
+            var data = {'project': pid};
+
+            // Check to see if we've already made an AJAX call for this project
+            if ($(pbid).children().length !== 0)
+                return;
+
+            // Flask should return the rendered HTML, inject it into the DOM
+            $.get(url, data).done(function (data) {
+
+				var tbody = pbid + ' tbody'
+                $(pbid).append(data);
+
+                var allclass = '#proj-' + pid + '-allcheck';
+                var chkclass = '.proj-' + pid + '-check';
+
+                // Now start checking to see if we need to mark the checkboxes
+                // under this particular project
+                if ($(allclass).attr('checked')) {
+
+                    $(chkclass).each(function (index) {
+                        $(this).attr('checked', true);
+                    });
+                }
+            });
+        });
+
+        $('#clickableFontAwesome').popover({
+            title: 'Select Projects or Gene Sets', content: 'Select entire projects on the right or expand ' +
+            'to select individual gene sets within those projects. Next, select a tool from the left, including ' +
+            'the appropriate options.'
+        });
+
+    });
+
 </script>
-
-<div class="page-header">
-    <h1>{{ title }}</h1>
-</div>
-
-{% with errors = get_flashed_messages() %}
-{% if errors %}
-<div class="alert-message block-message error">
-  <a class="close" href="#">×</a>
-  <ul>
-    {%- for msg in errors %}
-    <li style="color: red; font-size: 125%">{{ msg }}</li>
-    {% endfor -%}
-  </ul>
-</div>
-{% endif %}
-{% endwith %}
-
-
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="row">
-
-        <!-- the Analysis tools column -->
-        <div class="col-md-4">
-            <div class="page-header"><h2>Analysis Tools</h2></div>
-            <div class="panel-group" id="accordion">
-
-            {% for tool in active_tools %}
-                {% include 'tool/' + tool.classname + '_options.html' %}
-            {% endfor %}
-            </div>
-        </div>
-
-        <!-- the projects column -->
-        <div class="col-md-8">
-            <div class="page-header"><h2>Projects</h2></div>
-            <div class="panel-group" id="projAccordion">
-            {#
-            TODO this should be changed to use JSON to fetch data for project panels when they are expanded
-            (for users with many projects the current version is too slow)
-            #}
-            {% if "user" in g %}
-				<div id="new project" class="panel panel-info">
-                        <div class="panel-heading">
-                            <h2 class="panel-title">
-                                <div class="row">
-                                    <div class="col-xs-10">
-										{% set blah="blah" %}
-                                        <a href='#' onclick='getProjName()'>
-										<script>
-										function getProjName(){
-											var pjname=prompt("Enter the name of your new project: ");
-											if(pjname != null){
-											  window.location="/analyze_new_project/" + pjname + ".html";
-											 }
-										}
-										</script>
-                                        <span class="fa fa-folder-o"></span>
-                                        Create New Empty Project
-                                        </a>
-                                    </div>
-                                </div>
-                            </h2>
-                        </div>
-                    </div>
-                {% for proj in g.user.projects %}
-                    <div id="project-{{ proj.project_id }}" class="panel panel-info">
-                        <div class="panel-heading">
-                            <h2 class="panel-title">
-                                <div class="row">
-                                    <div class="col-xs-2">
-                                        
-                                        <input
-                                                class="proj-checkbox"
-                                                data-project="{{ proj.project_id }}"
-                                                type="checkbox">
-                                        
-                                    </div>
-                                    <div class="col-xs-10">
-                                        <a class="project-link" data-toggle="collapse" right data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
-											<span class="fa fa-chevron-down"></span>
-                                        {{ proj.name }}
-                                        </a>
-
-                                    </div>
-                                </div>
-                            </h2>
-                        </div>
-                        <div id="genesets-{{ proj.project_id }}" class="panel-collapse collapse">
-                            <div class="panel-body">
-                                <table class="table table-striped">
-									<tbody id="project-body-{{ proj.project_id }}">
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p>You have no projects!</p>
-            {% endif %}
-        </div>
-    </div>
-</form>
-
-</div>
-{% include 'footer.html' %}
