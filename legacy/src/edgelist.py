@@ -81,7 +81,7 @@ def intersect_geneset(gsid1, gsid2, hom=True):
             cursor.execute('''SELECT DISTINCT h1.ode_gene_id FROM geneset_value gv, homology h1, homology h2
                               WHERE gv.gs_id=%s AND gv.ode_gene_id=h2.ode_gene_id AND h2.hom_id=h1.hom_id
                               INTERSECT
-                              ELECT DISTINCT h1.ode_gene_id FROM geneset_value gv, homology h1, homology h2
+                              SELECT DISTINCT h1.ode_gene_id FROM geneset_value gv, homology h1, homology h2
                               WHERE gv.gs_id=%s AND gv.ode_gene_id=h2.ode_gene_id AND h2.hom_id=h1.hom_id''', (gsid1, gsid2,))
     return True if cursor.rowcount != 0 else False
 
@@ -100,14 +100,12 @@ def edge_gene2proj(genes, projDict, partition):
         for gg in genesetGenes:
             for g in genes:
                 ## If the gene exists in the geneset
-                if gg == g:
+                if int(gg[0]['ode_gene_id']) == int(g['ode_gene_id']):
                     if partition == 1:
-                        part.append(str(gg) + '\t\t' + str(g) + '\n')
+                        part.append(str(v.geneset_id) + '\t\t' + str(g['ode_gene_id']) + '\n')
                     elif partition == 2:
-                        part.append('\t' + str(gg) + '\t' + str(g) + '\n')
-    ## Remove duplicates
-    list(set(part))
-    return part
+                        part.append('\t' + str(v.geneset_id) + '\t' + str(g['ode_gene_id']) + '\n')
+    return set(part)
 
 
 def edge_proj2proj(projDict1, projDict2):
@@ -145,11 +143,12 @@ def create_kpartite_file_from_gene_intersection(taskid, proj1, proj2, homology=T
     #usr_id = session['user_id']
     #############################################
     out = ''
+    homology = homology if homology is True else False
 
     # Get the intersecting set of genes between proj1 and proj2 as a list
     genes = get_genes_from_proj_intersection(proj1, proj2, homology)
 
-    # Get all geneset and genes in a project as a dictionary
+    # Get all geneset and genes in a project as a list[dictify(cursor)]
     projDict1 = get_genesets_for_project(proj1, usr_id)
     projDict2 = get_genesets_for_project(proj2, usr_id)
 
@@ -159,15 +158,17 @@ def create_kpartite_file_from_gene_intersection(taskid, proj1, proj2, homology=T
     # Populate the edges between the intersecting genes and projDict2, called partition2
     partition2 = edge_gene2proj(genes, projDict2, 2)
 
-    # Populate the edges between the intersectin of projDict1 and projDict2
-    partition3 = edge_proj2proj(projDict1, projDict2)
+    # Populate the edges between the intersectin of the lists of geneset ids in projDict1 and projDict2
+    partition3 = edge_proj2proj([v.geneset_id for v in projDict1], [v.geneset_id for v in projDict2])
 
     #Create the first line (1st part, 2nd part, 3rd part, total)
     firstLine = str(len(partition1) + len(partition3)) + '\t' + str(len(partition2) + len(partition3)) + '\t' + str(len(partition1) + len(partition2)) + '\t' + str(len(partition1) + len(partition2) + len(partition3)) + '\n'
 
-    file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3)
+    file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
 
-    print file
+    out = open('/Users/baker/Desktop/tricliquetest.kel', 'wb')
+    out.write(file)
+    out.close()
 
 
 
