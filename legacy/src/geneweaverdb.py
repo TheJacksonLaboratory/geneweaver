@@ -1955,6 +1955,23 @@ def get_temp_geneset_values(geneset_id):
                                            WHERE gs_id=%s GROUP BY gs_id, ode_gene_id ORDER BY ode_gene_id;''' % (geneset_id,))
         return [TempGenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
+
+def get_genes_by_gs_id(geneset_id):
+    '''
+    Returns all of the ode_gene_ids for a given gs_id. This is seperate form the geneset_value class, created specifically
+    for making edgelist files outside of the scope.
+    :param geneset_id:
+    :return: list of genes
+    '''
+    genes = []
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT ode_gene_id FROM geneset_value WHERE gs_id=%s''', (geneset_id,))
+        res = cursor.fetchall()
+        for r in res:
+            genes.append(r[0])
+    return genes
+
+
 def get_all_geneset_values(gs_id):
     '''
     Generic function to get all geneset values geneset_value.gs_values
