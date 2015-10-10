@@ -67,14 +67,6 @@ def run_tool():
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze')
 
-    # Gather emphasis gene ids and put them in paramters
-    emphgeneids = []
-    user_id = flask.session['user_id']
-    emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
-    for row in emphgenes:
-        emphgeneids.append(str(row['ode_gene_id']))
-    params['EmphasisGenes'] = emphgeneids
-
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
@@ -174,8 +166,6 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
-
-    '''
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -192,14 +182,6 @@ def view_result(task_id):
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
-    '''
-
-    # Clarissa: just checking the routing and testing if we can render our results page
-
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
-    async_result = tc.celery_app.AsyncResult(task_id)
-    return flask.render_template('tool/TricliqueViewer_result.html',
-                                 tool=tool)
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
