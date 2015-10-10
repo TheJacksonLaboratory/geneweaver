@@ -18,7 +18,7 @@
     var path = d3.svg.chord()
             .radius(innerRadius);
 
-    var svg = d3.select("body").append("svg")
+    var svg = d3.select("#triclique").append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
