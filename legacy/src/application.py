@@ -89,7 +89,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 #*************************************
 
 # changed this path 9/3
-RESULTS_PATH = '/var/www/html/dev-geneweaver/results'
+RESULTS_PATH = '/Users/group10admin/geneweaver/results'
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -974,6 +974,7 @@ def render_search_json():
                                  sort_by=userValues['sort_by'])
 
 
+
 @app.route('/searchsuggestionterms.json')
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
@@ -981,10 +982,12 @@ def render_search_suggestions():
 
 @app.route('/projectGenesets.json', methods=['GET'])
 def render_project_genesets():
+
     uid = flask.session.get('user_id')
     ## Project (ID) that the user wants to view
     pid = flask.request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
+
 
     return flask.render_template('singleProject.html',
                                  genesets=genesets,
