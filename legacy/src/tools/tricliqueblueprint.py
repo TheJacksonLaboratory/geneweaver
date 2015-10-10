@@ -160,6 +160,8 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     return task_id
     '''
 
+    # Need to also modify this function
+
     task_id = str(uuid.uuid4())
     return task_id
 
