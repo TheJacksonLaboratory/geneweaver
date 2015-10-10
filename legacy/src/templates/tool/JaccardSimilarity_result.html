@@ -1,7 +1,32 @@
+
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
+<style>
 
+    #slider {
+  margin-top: 50px;
+  margin-left: 50px;
+  margin-bottom: 50px;
+  width: x_coord px;
+  height: 8px;
+}
+
+.ui-slider-handle {
+    border-radius: 10px;
+    background: none !important;
+    background-color: #efefef !important;
+}
+
+.tooltip-inner {
+    background-color: #E74937 !important;
+    border-radius: 0px;
+}
+
+.tooltip-arrow {
+    border-top-color: #E74937 !important;
+}
+</style>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 {#<script src="/static/d3/radar.js" charset="utf-8"></script>#}
@@ -178,24 +203,8 @@ Download As:
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <link rel="stylesheet" href="/resources/demos/style.css">
+
 <script type="text/javascript">
-
-
-
- $(function() {
-    $( "#slider" ).slider({
-      value: 0.5,
-      min: 0.00,
-      max: 1.0,
-      step: 0.05,
-      slide: function( event, ui ) {
-        $( "#amount" ).val( ui.value );
-      }
-    });
-    $( "#amount" ).val( $( "#slider" ).slider( "value" ) );
-  });
-
-
 
     var d = {{ data | safe }};
     var count = 0;
@@ -210,7 +219,9 @@ Download As:
     var circleData = [];
     var num_sets = Math.sqrt(count);
     var x_coord = 0;
+
     var y_coord = 0;
+
     var gene_sets = [];
     gene_sets = d.genesets;
     for (i = 0; i < count; i++) {
@@ -239,7 +250,7 @@ Download As:
                     "cy": d.venn_diagrams[i].c2y,
                     "radius": d.venn_diagrams[i].r2,
                     "fill": "#66FFFF",
-                    "opacity": ".5",
+                    "opacity": d.venn_diagrams[i].opacity,
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1
@@ -276,7 +287,7 @@ Download As:
                     "cy": d.venn_diagrams[i].c2y,
                     "radius": d.venn_diagrams[i].r2,
                     "fill": "#0000FF",
-                    "opacity": ".5",
+                    "opacity": d.venn_diagrams[i].opacity,
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "gene_id": d.venn_diagrams[i].text[k].text,
@@ -298,7 +309,7 @@ Download As:
         }
 
     }
-
+    alert(x_coord);
     var border = 1;
     var bordercolor = 'black';
 
@@ -327,8 +338,6 @@ Download As:
             .on("mouseover", function(){return tooltip.style("visibility", "visible");})
 	        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
 	        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
-
-
 
 
  	var borderPath = svgContainer.append("rect")
@@ -431,6 +440,7 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 //     xhttp.send();
 // }
 
+
  </script>
 
 
@@ -441,7 +451,42 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
   <label for="amount"  style="font-size:18px;font-weight:bold;" > Jaccard Threshold (0.05 increments):</label>
   <input type="text" id="amount" readonly style="border:0; color:#660839; font-weight:bold; font-size:18px;">
 </p>
-<div id="slider"></div>
+<div>
+    <div id="slider"></div>
+
+<script type="text/javascript">
+    function repositionTooltip( e, ui ){
+    $("#jaccard").css("opacity",ui.value);
+    var div = $(ui.handle).data("tooltip").$tip[0];
+    var pos = $.extend({}, $(ui.handle).offset(), { width: $(ui.handle).get(0).offsetWidth,height: $(ui.handle).get(0).offsetHeight
+    });
+
+    var actualWidth = div.offsetWidth;
+
+    tp = {left: pos.left + pos.width / 2 - actualWidth / 2};
+    $(div).offset(tp);
+
+    $(div).find(".tooltip-inner").text( ui.value );
+}
+
+$("#slider").slider({
+    range: "min",
+    min: 0,
+    max: 1,
+    step: 0.01,
+    value: 0.5,
+    stop: repositionTooltip,
+    slide: function( event, ui ) {
+        $( "#amount" ).val( ui.value );
+      }
+});
+
+{#$("#slider .ui-slider-handle:first").tooltip({#}
+{#    title: $("#slider").slider("value"),#}
+{#    trigger: "manual"#}
+{#{).tooltip("show");#}
+</script>
+
 <br><br><br>
 <a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
 
