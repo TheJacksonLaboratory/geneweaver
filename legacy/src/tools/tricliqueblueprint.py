@@ -41,31 +41,21 @@ def run_tool():
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
-    n = 0
-    m = 0
-    #for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-    if tool_param.name.endswith('_ExactGeneOverlap'):
-        if params[tool_param.name] != 'Enabled':
-            params[tool_param.name] = 'Disabled'
-            n = 1
-    if tool_param.name.endswith('_Jaccard'):
-        if params[tool_param.name] != 'Enabled':
-            params[tool_param.name] = 'Disabled'
-            m = 1
-    print n
-    print m
-    if n and not m and len(selected_project_ids) < 3:
-        flask.flash("Warning: You need at least 3 projects!")
-        #return flask.redirect('analyze')
-    elif m and not n and len(selected_project_ids) != 2:
-        flask.flash("Warning: You must select 2 projects!")
-        #return flask.redirect('analyze')
-    elif not n and not m:
-        flask.flash("You must enable either Exact Gene Overlap or Jaccard")
-        #return flask.redirect('analyze')
-    elif n and m:
-        flask.flash("You can run either Jaccard or Exact Gene Overlap. Select one.")
-        return flask.redirect('analyze')
+   for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        if tool_param.name.endswith('_ExactGeneOverlap'):
+            if params[tool_param.name] != 'Enabled':
+                params[tool_param.name] = 'Disabled'
+            else:
+                if len(selected_project_ids) != 2:
+                    flask.flash("Warning: You must select 2 projects!")
+                    return flask.redirect('analyze')
+        elif tool_param.name.endswith('_Jaccard'):
+            if params[tool_param.name] != 'Enabled':
+                params[tool_param.name] = 'Disabled'
+            else:
+                if len(selected_project_ids) < 3:
+                    flask.flash("Warning: You need at least 3 projects!")
+                    return flask.redirect('analyze')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
