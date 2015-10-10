@@ -31,11 +31,6 @@ def run_tool():
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
-    #if 'projects' in form:
-    #    add_projects = form['projects'].split(' ')
-    #    edited_add_projects = [pj[2:] for pj in add_projects]
-    #    selected_project_ids = selected_project_ids + edited_add_projects
-
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
@@ -46,12 +41,10 @@ def run_tool():
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
-    n = 0
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_ExactGeneOverlap'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
-                n = 1
             else:
                 if len(selected_project_ids) != 2:
                     flask.flash("Warning: You must select 2 projects!")
@@ -59,10 +52,6 @@ def run_tool():
         elif tool_param.name.endswith('_Jaccard'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
-                if n:
-                    flask.flash("You must enable either Exact Gene Overlap or Jaccard")
-                    return flask.redirect('analyze')
-
             else:
                 if len(selected_project_ids) < 3:
                     flask.flash("Warning: You need at least 3 projects!")
