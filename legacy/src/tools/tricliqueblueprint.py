@@ -41,7 +41,7 @@ def run_tool():
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
-   for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_ExactGeneOverlap'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
