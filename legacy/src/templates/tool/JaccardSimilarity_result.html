@@ -206,6 +206,13 @@ Download As:
 
 <script type="text/javascript">
 
+     $(function(){
+    // var result = {{async_result | safe}};
+    var newPvalue = $.get("/changePvalues/7/7/0");
+    console.log(newPvalue);
+ });
+
+
     var d = {{ data | safe }};
     var count = 0;
     for (var key in d.venn_diagrams)

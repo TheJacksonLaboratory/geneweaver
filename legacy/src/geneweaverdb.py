@@ -2711,23 +2711,23 @@ def generate_api_key(user_id):
         cursor.connection.commit()
     return new_api_key
 
-# def checkJaccardResultExists(setSize1, setSize2):
-#     with PooledCursor() as cursor:
-#         cursor.execute(
-#             ''' SELECT * 
-#                 FROM jaccard_distribution_results
-#                 WHERE set_size1 = %i and set_size2 = %i;
-#             ''',(setSize1, setSize2)
-#             )
-#     return cursor
+def checkJaccardResultExists(setSize1, setSize2):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT * 
+                FROM jaccard_distribution_results
+                WHERE set_size1 = %i and set_size2 = %i;
+            ''',(setSize1, setSize2)
+            )
+    return cursor
 
-# def getPvalue(setSize1, setSize2, jaccard):
-#     with PooledCursor() as cursor:
-#         cursor.execute(
-#             ''' SELECT * 
-#                 FROM jaccard_distribution_results
-#                 WHERE set_size1 = %i and set_size2 = %i and jaccard_coef = %f;
-#             ''',(setSize1, setSize2, jaccard)
-#             )
-#     return cursor
+def getPvalue(setSize1, setSize2, jaccard):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT * 
+                FROM jaccard_distribution_results
+                WHERE set_size1 = %i and set_size2 = %i and jaccard_coef = %f;
+            ''',(setSize1, setSize2, jaccard)
+            )
+    return cursor
 

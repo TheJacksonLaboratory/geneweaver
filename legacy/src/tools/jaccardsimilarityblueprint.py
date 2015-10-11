@@ -207,14 +207,3 @@ def geneset_intersection(gsID_1, gsID_2, i):
         "geneset_intersection.html", async_result=json.loads(r.async_result.result),
         index=i, genesets=genesets, gene_sym=intersect_genes, list=list)
 
-# @jaccardsimilarity_blueprint.route('/changePvalues', methods=["GET", "POST"])
-# def changePvalues(setSize1, setSize2, jaccard):
-#     tempDict = gwdb.checkJaccardResultExists(setSize1, setSize2)
-
-#     if(len(tempDict) > 0):
-#             pValue = gwdb.getPValue(setSize1,setSize2,jaccard)
-#     else
-#         return
-
-#     return pValue
-
