@@ -8,8 +8,8 @@
   margin-top: 50px;
   margin-left: 50px;
   margin-bottom: 50px;
-  width: x_coord px;
-  height: 8px;
+  width: auto;
+  height: auto;
 }
 
 .ui-slider-handle {
@@ -169,25 +169,10 @@
 </td></tr>
 </table>
 
-<br /><br /><h4>Venn Diagram view:</h4>
+<br /><br /><h4>Venn Diagram view:</h4> <br>
 
 
-<br>
-View As:</r>
-<form>
-   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
-   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
-    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
-</form>
 
-Download As:
-<select name="downloadType" id="downloadType">
-   <option value="null">Select file type...</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
-</select>
-<br><br><br>
 {#  <div class="row">#}
 {#    <div class="col-md-12 link-panel" style="text-align: center;">#}
 {#        <iframe id="resultFrame" style="height:1000px; width:2200px;"></iframe>#}
@@ -196,8 +181,8 @@ Download As:
 {#</div>#}
 
 
-<div id="jaccard"></div>
-
+<div id="jaccard">
+</div>
 
 <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
@@ -265,19 +250,20 @@ Download As:
                 });
 
 
-                if (k === 0) {
-                    circleData.push({
-                        "gene_id": d.venn_diagrams[i].text[k].text,
-                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
-                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                        "label": gene_sets[check],
-                        "labelx": x_coord,
-                        "labely": y_coord
+                if (k === 0){
+                        circleData.push({
+                            "gene_id": d.venn_diagrams[i].text[k].text,
+                            "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
+                            "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
+                            "label": gene_sets[check],
+                            "labelx": x_coord,
+                            "labely": y_coord
 
-                    });
 
-                    check += 1;
-                    {#                 console.log("Check", check);#}
+                        });
+                        check += 1;
+                        {#                 console.log("Check", check);#}
+
                 }
                 else {
                     circleData.push({
@@ -319,8 +305,9 @@ Download As:
     var border = 1;
     var bordercolor = 'black';
 
-	var tooltip = d3.selectAll("#jaccard")
+	var tooltip = d3.select("circle")
         .data(circleData)
+            .enter()
         .append("div")
         .style("position", "absolute")
         .style("z-index", "10")
@@ -398,6 +385,11 @@ Download As:
 {#            .attr("y", function (d) { return d.cyshift + (d.radius/2) + 10;  })#}
 {#            .attr("font-size", "6px");#}
 
+     function sizeChange() {
+	    d3.select("g").attr("transform", "scale(" + svgContainer.width()/900 + ")");
+         d3.select("g").attr("transform", "scale(" + svgContainer.height()/900 + ")");
+{#	    $("svg").height(svgContainer).width()*0.618);#}
+	}
 //Add SVG Text Element Attributes
     var textLabels = text
             .attr("font-family", "sans-serif")
@@ -457,12 +449,16 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
   <label for="amount"  style="font-size:18px;font-weight:bold;" > Jaccard Threshold (0.05 increments):</label>
   <input type="text" id="amount" readonly style="border:0; color:#660839; font-weight:bold; font-size:18px;">
 </p>
-<div>
+
+<div id="jaccard">
+
     <div id="slider"></div>
+
+    </div>
 
 <script type="text/javascript">
     function repositionTooltip( e, ui ){
-    $("#jaccard").css("opacity",ui.value);
+    $svgContainer(circle).css("opacity",ui.value);
     var div = $(ui.handle).data("tooltip").$tip[0];
     var pos = $.extend({}, $(ui.handle).offset(), { width: $(ui.handle).get(0).offsetWidth,height: $(ui.handle).get(0).offsetHeight
     });
@@ -492,7 +488,22 @@ $("#slider").slider({
 {#    trigger: "manual"#}
 {#{).tooltip("show");#}
 </script>
+<br>
 
+View As:</r>
+<form>
+   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
+   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
+    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
+</form>
+<br>
+Download As:
+<select name="downloadType" id="downloadType">
+   <option value="null">Select file type...</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
+</select>
 <br><br><br>
 <a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
 
