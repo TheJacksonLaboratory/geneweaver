@@ -15,7 +15,7 @@ from flask import session
 app = flask.Flask(__name__)
 
 # Need to change this path to ~/Documents/geneweaver/results
-RESULTS_PATH = '/Users/group2admin/geneweaver/results'
+RESULTS_PATH = '$HOME/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -2712,22 +2712,27 @@ def generate_api_key(user_id):
     return new_api_key
 
 def checkJaccardResultExists(setSize1, setSize2):
-    with PooledCursor() as cursor:
-        cursor.execute(
-            ''' SELECT * 
-                FROM jaccard_distribution_results
-                WHERE set_size1 = %i and set_size2 = %i;
-            ''',(setSize1, setSize2)
-            )
-    return cursor
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT * 
+                    FROM jaccard_distribution_results
+                    WHERE set_size1 = %s and set_size2 = %s;
+                ''',(setSize1, setSize2)
+                )
+
+        return list(dictify_cursor(cursor))
+    except Exception, e:
+        return str(e)
 
 def getPvalue(setSize1, setSize2, jaccard):
     with PooledCursor() as cursor:
         cursor.execute(
             ''' SELECT * 
                 FROM jaccard_distribution_results
-                WHERE set_size1 = %i and set_size2 = %i and jaccard_coef = %f;
+                WHERE set_size1 = %s and set_size2 = %s and jaccard_coef = %s;
             ''',(setSize1, setSize2, jaccard)
             )
-    return cursor
+    pVal = dictify_cursor(cursor)
+    return cursor.fetchone()[5]
 

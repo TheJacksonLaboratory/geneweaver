@@ -190,12 +190,19 @@
 <link rel="stylesheet" href="/resources/demos/style.css">
 
 <script type="text/javascript">
+    $(function(){
+        $.get("/changePvalues/5/7/0", function(pVal){
+            console.log( "Data Loaded: " + pVal );
+        })
+    });
 
-     $(function(){
-    // var result = {{async_result | safe}};
-    var newPvalue = $.get("/changePvalues/7/7/0");
-    console.log(newPvalue);
- });
+</script>
+
+
+
+<script type="text/javascript">
+
+    
 
 
     var d = {{ data | safe }};
