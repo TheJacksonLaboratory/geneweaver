@@ -88,7 +88,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
-RESULTS_PATH = '/Users/group2admin/geneweaver/results'
+RESULTS_PATH = '$HOME/geneweaver/results'
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -992,16 +992,21 @@ def render_project_genesets():
                                  genesets=genesets,
                                  proj={'project_id': pid})
 
-@app.route('/changePvalues/<int:setSize1>/<int:setSize2>/<float:jaccard>', methods=["GET"])
+@app.route('/changePvalues/<setSize1>/<setSize2>/<jaccard>', methods=["GET"])
 def changePvalues(setSize1, setSize2, jaccard):
-    tempDict = gwdb.checkJaccardResultExists(setSize1, setSize2)
-
+    tempDict = geneweaverdb.checkJaccardResultExists(setSize1, setSize2)
+    print tempDict
+    print 
+    print 
+    print 
+    print 
+    print
     if(len(tempDict) > 0):
-            pValue = gwdb.getPValue(setSize1,setSize2,jaccard)
+            pValue = geneweaverdb.getPvalue(setSize1,setSize2,jaccard)
     else:
         return
 
-    return pValue
+    return json.dumps(pValue)
 
 
 #****** ADMIN ROUTES ******************************************************************
