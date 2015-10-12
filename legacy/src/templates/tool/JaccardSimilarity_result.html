@@ -77,7 +77,7 @@
     </div>
 </form>
 
-<br /><h4>Table view:</h4>
+<br /><h4>Table View:</h4>
 
 <br clear="all" /><div class="floatGeneList">
 <form name="listform" id="listform">
@@ -169,20 +169,32 @@
 </td></tr>
 </table>
 
+<<<<<<< HEAD
+
+<!-- {#  <div class="row">#}
+=======
 <br /><br /><h4>Venn Diagram view:</h4> <br>
 
 
 
 {#  <div class="row">#}
+>>>>>>> 354f9c3d3d817fd20d14ab0ab8695479fcc5e155
 {#    <div class="col-md-12 link-panel" style="text-align: center;">#}
 {#        <iframe id="resultFrame" style="height:1000px; width:2200px;"></iframe>#}
 {##}
 {#    </div>#}
-{#</div>#}
+{#</div>#} -->
 
+<br /><br /><h4>Venn Diagram view:</h4>
 
+<<<<<<< HEAD
+<div id="jaccard"></div>
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
+
+=======
 <div id="jaccard">
 </div>
+>>>>>>> 354f9c3d3d817fd20d14ab0ab8695479fcc5e155
 
 <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
@@ -437,14 +449,6 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
     projCheckbox.prop('checked', allChecked);
 }
 
-//  $(function() {
-//     var d = {{ data | safe }};
-//     var xhttp; 
-//     xhttp = new XMLHttpRequest();
-//     xhttp.open("GET", "getcustomer.asp?q="+str, true);
-//     xhttp.send();
-// }
-
 
  </script>
 
@@ -452,6 +456,11 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 <p><br></p>
 
+<<<<<<< HEAD
+<h4> Jaccard Threshold (0.05 increments):</h4>
+
+<div>
+=======
 <p>
   <label for="amount"  style="font-size:18px;font-weight:bold;" > Jaccard Threshold (0.05 increments):</label>
   <input type="text" id="amount" readonly style="border:0; color:#660839; font-weight:bold; font-size:18px;">
@@ -459,6 +468,7 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 <div id="jaccard">
 
+>>>>>>> 354f9c3d3d817fd20d14ab0ab8695479fcc5e155
     <div id="slider"></div>
 
     </div>
@@ -497,13 +507,24 @@ $("#slider").slider({
 </script>
 <br>
 
+<<<<<<< HEAD
+
+
+
+
+=======
+>>>>>>> 354f9c3d3d817fd20d14ab0ab8695479fcc5e155
 View As:</r>
 <form>
    <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
    <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
     <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
 </form>
+<<<<<<< HEAD
+
+=======
 <br>
+>>>>>>> 354f9c3d3d817fd20d14ab0ab8695479fcc5e155
 Download As:
 <select name="downloadType" id="downloadType">
    <option value="null">Select file type...</option>
@@ -512,7 +533,7 @@ Download As:
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
 </select>
 <br><br><br>
-<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
+
 
 
 
