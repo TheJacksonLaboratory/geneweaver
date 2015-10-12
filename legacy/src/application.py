@@ -996,15 +996,10 @@ def render_project_genesets():
 def changePvalues(setSize1, setSize2, jaccard):
     tempDict = geneweaverdb.checkJaccardResultExists(setSize1, setSize2)
     print tempDict
-    print 
-    print 
-    print 
-    print 
-    print
     if(len(tempDict) > 0):
             pValue = geneweaverdb.getPvalue(setSize1,setSize2,jaccard)
     else:
-        return
+        return json.dumps(-1)
 
     return json.dumps(pValue)
 

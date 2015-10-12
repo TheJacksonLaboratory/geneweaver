@@ -2722,17 +2722,20 @@ def checkJaccardResultExists(setSize1, setSize2):
                 )
 
         return list(dictify_cursor(cursor))
-    except Exception, e:
-        return str(e)
+    except:
+        print "In the except"
+        return []
 
 def getPvalue(setSize1, setSize2, jaccard):
-    with PooledCursor() as cursor:
-        cursor.execute(
-            ''' SELECT * 
-                FROM jaccard_distribution_results
-                WHERE set_size1 = %s and set_size2 = %s and jaccard_coef = %s;
-            ''',(setSize1, setSize2, jaccard)
-            )
-    pVal = dictify_cursor(cursor)
-    return cursor.fetchone()[5]
-
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT * 
+                    FROM jaccard_distribution_results
+                    WHERE set_size1 = %s and set_size2 = %s and jaccard_coef = %s;
+                ''',(setSize1, setSize2, jaccard)
+                )
+        pVal = dictify_cursor(cursor)
+        return cursor.fetchone()[5]
+    except:
+        return 0
