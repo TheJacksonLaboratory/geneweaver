@@ -192,14 +192,23 @@
             cursor: pointer;
             stroke: #3182bd;
             stroke-width: 3px;
-            r: 4.5;
+        }
+
+        .node rect {
+            cursor: pointer;
+            stroke: #3182bd;
+            stroke-width: 3px;
+            width: 100px;
+            height: 50px;
         }
 
         .node text {
             font: 10px sans-serif;
             pointer-events: none;
             text-anchor: middle;
+            color: black;
         }
+
 
         line.link {
             fill: none;
@@ -223,114 +232,7 @@
 </div>
 
     <script>
-{##}
-{#        //===============================================#}
-{#        function select2DataCollectName(d) {#}
-{#            if (d.children)#}
-{#                d.children.forEach(select2DataCollectName);#}
-{#            else if (d._children)#}
-{#                d._children.forEach(select2DataCollectName);#}
-{#            select2Data.push(d.name);#}
-{#        }#}
-{##}
-{#        //===============================================#}
-{#        function searchTree(d) {#}
-{#            if (d.children)#}
-{#                d.children.forEach(searchTree);#}
-{#            else if (d._children)#}
-{#                d._children.forEach(searchTree);#}
-{#            var searchFieldValue = eval(searchField);#}
-{#            if (searchFieldValue && searchFieldValue.match(searchText)) {#}
-{#                // Walk parent chain#}
-{#                var ancestors = [];#}
-{#                var parent = d;#}
-{#                while (typeof(parent) !== "undefined") {#}
-{#                    ancestors.push(parent);#}
-{#                    //console.log(parent);#}
-{#                    parent.class = "found";#}
-{#                    parent = parent.parent;#}
-{#                }#}
-{#                //console.log(ancestors);#}
-{#            }#}
-{#        }#}
-{##}
-{#        //===============================================#}
-{#        function clearAll(d) {#}
-{#            d.class = "";#}
-{#            if (d.children)#}
-{#                d.children.forEach(clearAll);#}
-{#            else if (d._children)#}
-{#                d._children.forEach(clearAll);#}
-{#        }#}
-{##}
-{#        //===============================================#}
-{#        function collapse(d) {#}
-{#            if (d.children) {#}
-{#                d._children = d.children;#}
-{#                d._children.forEach(collapse);#}
-{#                d.children = null;#}
-{#            }#}
-{#        }#}
-{##}
-{#        //===============================================#}
-{#        function collapseAllNotFound(d) {#}
-{#            if (d.children) {#}
-{#                if (d.class !== "found") {#}
-{#                    d._children = d.children;#}
-{#                    d._children.forEach(collapseAllNotFound);#}
-{#                    d.children = null;#}
-{#                } else#}
-{#                    d.children.forEach(collapseAllNotFound);#}
-{#            }#}
-{#        }#}
-{##}
-{#        //===============================================#}
-{#        function expandAll(d) {#}
-{#            if (d._children) {#}
-{#                d.children = d._children;#}
-{#                d.children.forEach(expandAll);#}
-{#                d._children = null;#}
-{#            } else if (d.children)#}
-{#                d.children.forEach(expandAll);#}
-{#        }#}
-{##}
-{#        //===============================================#}
-{#        // Toggle children on click.#}
-{#        function toggle(d) {#}
-{#            if (d.children) {#}
-{#                d._children = d.children;#}
-{#                d.children = null;#}
-{#            } else {#}
-{#                d.children = d._children;#}
-{#                d._children = null;#}
-{#            }#}
-{#            clearAll(root);#}
-{#            update(d);#}
-{#            $("#searchName").select2("val", "");#}
-{#        }#}
-{##}
-{#        //===============================================#}
-{#        $("#searchName").on("select2-selecting", function (e) {#}
-{#            clearAll(root);#}
-{#            expandAll(root);#}
-{#            update(root);#}
-{##}
-{#            searchField = "d.name";#}
-{#            searchText = e.object.text;#}
-{#            searchTree(root);#}
-{#            root.children.forEach(collapseAllNotFound);#}
-{#            update(root);#}
-{#        })#}
 
-        //Notes:
-        // Src: http://bl.ocks.org/mbostock/1093130
-        //Notes:
-        // * Each dom element is using
-        //   children to store refs to expanded children
-        //   _children to store refs to collapsed children
-        //* It's using both a tree and a graph layout.
-
-        //root
         //Notes:
         // Src: http://bl.ocks.org/mbostock/1093130
         //Notes:
@@ -345,10 +247,7 @@
             force: null
         };
 
-{#        $("#searchName").select2({#}
-{#        data: select2DataObject,#}
-{#        containerCssClass: "search"#}
-{#        });#}
+
 
         $(function () {
 
@@ -388,21 +287,6 @@
                     .size([width, height])
                 //that invokes the tick method to draw the elements in their new location:
                     .on("tick", tick);
-
-            /*
-             g.link = svg.selectAll("line")
-             .data(g.data.links)
-             .enter().append("svg:line"),
-
-             g.node = svg.selectAll("circle")
-             .data(g.data.nodes)
-             .enter().append("svg:circle")
-             .attr("r", r - .75)
-             .style("fill", function(d) { return fill(d.group); })
-             .style("stroke", function(d) { return d3.rgb(fill(d.group)).darker(); })
-             .call(force.drag);
-             */
-
 
             //Draw the graph:
             //Note that this method is invoked again
@@ -449,7 +333,7 @@
             //g.force.linkDistance(
             //-------------------
             // create a subselection, wiring up data, using a function to define
-            //how it's suppossed to know what is appended/updated/exited
+            //how it's supposed to know what is appended/updated/exited
             g.link = g.link.data(links, function (d) {
                 return d.target.id;
             });
@@ -458,41 +342,46 @@
             g.link.exit().remove();
 
             //Build new links by adding new svg lines:
-            g.link
-                    .enter()
+            g.link.enter()
                     .insert("line", ".node")
                     .attr("class", "link");
 
             // create a subselection, wiring up data, using a function to define
-            //how it's suppossed to know what is appended/updated/exited
+            //how it's supposed to know what is appended/updated/exited
             g.node = g.node.data(nodes, function (d) {
                 return d.id;
             });
             //Get rid of old nodes:
             g.node.exit().remove();
             //-------------------
-            //create new nodes by making grouped elements, that contain circls and text:
+            //create new nodes by making grouped elements, that contain circles and text:
             var nodeEnter = g.node.enter()
                     .append("g")
                     .attr("class", "node")
+                    .attr("width", 100)
+                    .attr("height", 50)
                     .on("click", click)
                     .call(g.force.drag);
             //circle within the single node group:
-            nodeEnter.append("circle")
+            nodeEnter.append("rect")
                     .attr("r", function (d) {
                         return Math.sqrt(d.size) / 10 || 4.5;
                     });
             //text within the single node group:
             nodeEnter.append("text")
-                    .attr("dy", ".35em")
+                    .attr("dy", "25px")
+                    .attr("dx", "50px")
+                    .attr("text-anchor", "middle")
                     .text(function (d) {
                         return d.name;
                     });
             //All nodes, do the following:
-            g.node.select("circle")
+            g.node.select("rect")
                     .style("fill", color) //calls delegate
                     .style("stroke", outerRingColor);
             //-------------------
+
+            //g.node.select("text").attr("fill",textColor);
         }
 
 
@@ -559,7 +448,7 @@
                     :
                     d.children.length > 0 ? "#c6dbef" // expanded package
                             :
-                            "#fd8d3c"; // leaf node
+                            "#ffffff"; // leaf node
         }
 
         function outerRingColor(d) {
@@ -595,11 +484,10 @@
             }
             //
             update();
-            //$("#searchName").select2("val", "");
         }
 
         //event handler for every time the force layout engine
-        //says to redraw everthing:
+        //says to redraw everything:
         function tick() {
             g.node.attr("transform", function (d) {
                 return "translate(" + Math.max(d.depth * 100 + 50, d.x) + "," + d.y + ")";
@@ -607,8 +495,7 @@
             //redraw position of every link within the link set:
 
 
-            //same for the nodes, using a functor:
-
+            //same for the nodes, using a function:
             g.link.attr("x1", function (d) {
                 return (Math.max(d.source.depth * 100 + 50, d.source.x));
             })
@@ -622,43 +509,7 @@
                         return d.target.y;
                     });
             //same for the nodes, using a functor:
-
-
         }
-
-{#        var optArray = [];#}
-{#        for (var i = 0; i < graph.nodes.length - 1; i++) {#}
-{#            optArray.push(graph.nodes[i].name);#}
-{#        }#}
-{##}
-{#        optArray = optArray.sort();#}
-{##}
-{#        $(function () {#}
-{#            $("#search").autocomplete({#}
-{#                source: optArray#}
-{#            });#}
-{#        });#}
-{#        function searchNode() {#}
-{##}
-{#            //find the node#}
-{##}
-{#            var selectedVal = document.getElementById('search').value;#}
-{#            var node = g.node.selectAll(".node");#}
-{##}
-{#            if (selectedVal == "none") {#}
-{#                node.style("stroke", "white").style("stroke-width", "1");#}
-{#            } else {#}
-{#                var selected = node.filter(function (d, i) {#}
-{#                    return d.name != selectedVal;#}
-{#                });#}
-{#                selected.style("opacity", "0");#}
-{#                var link = g.node.selectAll(".link")#}
-{#                link.style("opacity", "0");#}
-{#                d3.selectAll(".node, .link").transition()#}
-{#                        .duration(5000)#}
-{#                        .style("opacity", 1);#}
-{#            }#}
-{#        }#}
 
 
         var data =
@@ -680,24 +531,6 @@
                 {"id": 13, "name": "optimization", "children": [14], "depth": 2},           //13
                 {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},       //14
                 {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
-            ],
-
-
-            "links": [
-                {"source": 0, "target": 1},
-                {"source": 1, "target": 2},
-                {"source": 1, "target": 7},
-                {"source": 1, "target": 13},
-                {"source": 2, "target": 3},
-                {"source": 2, "target": 4},
-                {"source": 2, "target": 5},
-                {"source": 2, "target": 6},
-                {"source": 7, "target": 8},
-                {"source": 7, "target": 9},
-                {"source": 7, "target": 10},
-                {"source": 7, "target": 11},
-                {"source": 7, "target": 12},
-                {"source": 13, "target": 14}
             ]
         };
     </script>
