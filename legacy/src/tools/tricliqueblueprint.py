@@ -25,24 +25,11 @@ def run_tool():
     selected_project_ids = tc.selected_project_ids(form)
     selected_geneset_ids = tc.selected_geneset_ids(form)
 
-    print(selected_geneset_ids);
-    print(selected_project_ids);
-
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-
-    #if 'projects' in form:
-    #    add_projects = form['projects'].split(' ')
-    #    edited_add_projects = [pj[2:] for pj in add_projects]
-    #    selected_project_ids = selected_project_ids + edited_add_projects
-
-
-    if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 genes!")
-        return flask.redirect('analyze')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -54,6 +41,22 @@ def run_tool():
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        if tool_param.name.endswith('_ExactGeneOverlap'):
+            if params[tool_param.name] != 'Enabled':
+                params[tool_param.name] = 'Disabled'
+            else:
+                if len(selected_project_ids) != 2:
+                    flask.flash("Warning: You must select 2 projects!")
+                    return flask.redirect('analyze')
+        elif tool_param.name.endswith('_Jaccard'):
+            if params[tool_param.name] != 'Enabled':
+                params[tool_param.name] = 'Disabled'
+            else:
+                if len(selected_project_ids) < 3:
+                    flask.flash("Warning: You need at least 3 projects!")
+                    return flask.redirect('analyze')
+
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     # insert result for this run
@@ -63,14 +66,6 @@ def run_tool():
     else:
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze')
-
-    # Gather emphasis gene ids and put them in paramters
-    emphgeneids = []
-    user_id = flask.session['user_id']
-    emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
-    for row in emphgenes:
-        emphgeneids.append(str(row['ode_gene_id']))
-    params['EmphasisGenes'] = emphgeneids
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -105,12 +100,10 @@ def run_tool():
 
 @triclique_viewer_blueprint.route('/run-triclique-viewer-api.html', methods=['POST'])
 def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
-
     '''
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
-
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -167,14 +160,14 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     return task_id
     '''
 
+    # Need to also modify this function
+
     task_id = str(uuid.uuid4())
     return task_id
 
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
-
-    '''
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -191,14 +184,6 @@ def view_result(task_id):
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
-    '''
-
-    # Clarissa: just checking the routing and testing if we can render our results page
-
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
-    async_result = tc.celery_app.AsyncResult(task_id)
-    return flask.render_template('tool/TricliqueViewer_result.html',
-                                 tool=tool)
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
