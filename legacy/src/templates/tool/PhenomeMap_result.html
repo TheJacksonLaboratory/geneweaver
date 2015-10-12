@@ -201,7 +201,7 @@
             text-anchor: middle;
         }
 
-        line.link {
+        .link line {
             fill: none;
             stroke: #9ecae1;
             stroke-width: 1.5px;
@@ -263,10 +263,11 @@
             //Create a graph layout engine:
             g.force = d3.layout.force()
                     .nodes(g.data.nodes)
-                    .links(g.data.links)
+                    .links(getLinks(g.data.nodes))
                     .linkDistance(function (link) {
-                        console.log("LINK DISTANCE OUTPUT HERE: " + JSON.stringify(link));
-                        return ((link.target.depth - link.source.depth) * 40);
+                        //console.log("LINK DISTANCE OUTPUT HERE: " + JSON.stringify(link));
+                        return 50;
+                        //return ((link.target.depth - link.source.depth) * 40);
                     })
                     .linkStrength(function (link) {
                         //return 1 / ((link.target.depth - link.source.depth) * 2);
@@ -315,8 +316,8 @@
             var nodes = flatten(g.data.nodes);
             console.log(nodes.length + " nodes to draw");
             for (i = 0; i < nodes.length; i++) {
-                console.log(JSON.stringify(nodes[i]));
-                //console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
+                //console.log(JSON.stringify(nodes[i]));
+                console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
             }
             //Each node extracted above has a children attribute.
             //from them, we can use a tree() layout function in order
@@ -325,13 +326,15 @@
             //console.log(links[0].source);
             var links = getLinks(nodes);
             console.log(links.length + " links to draw");
+            console.log(JSON.stringify(g.force.links()));
             for (i = 0; i < links.length; i++) {
-                console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
+                //console.log(JSON.stringify(links[i])) + "distance: ";
+                //console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
             }
 
-            g.data.nodes[0].fixed = true;
-            g.data.nodes[0].x = width / 10;
-            g.data.nodes[0].y = height / 2;
+            //g.data.nodes[0].fixed = true;
+            //g.data.nodes[0].x = width / 10;
+            //g.data.nodes[0].y = height / 2;
 
             // pass both of those sets to the graph layout engine, and restart it
             g.force.nodes(nodes)
@@ -346,7 +349,7 @@
             });
 
             //Get rid of old links:
-            g.link.exit().remove();
+            //g.link.exit().remove();
 
             //Build new links by adding new svg lines:
             g.link
@@ -435,11 +438,11 @@
                 var n = nodes[i];
                 for (var j = 0; j < n.children.length; j++) {
                     var link = {
-                        source: n
-                        target: getNodeByID(nodes, n.children[j])
+                        //source: n
+                        //target: getNodeByID(nodes, n.children[j])
 
-                        //source: nodes.indexOf(n),
-                        //target: nodes.indexOf(getNodeByID(nodes, n.children[j]))
+                        source: nodes.indexOf(n),
+                        target: nodes.indexOf(getNodeByID(nodes, n.children[j]))
                     };
                     //console.log("node: " + n.id + "\n\tchildren: " + n.children[j]);
                     //console.log(link.source + "\t" + link.target);
@@ -542,7 +545,7 @@
                 d.children = [];
                 console.log(d.children);
                 console.log(d._children);
-            } else {
+            } else if (d._children){
                 console.log("expanding node " + d.name + " (" + d.id + ")");
                 d.children = d._children;
                 d._children = null;
@@ -556,22 +559,21 @@
         //event handler for every time the force layout engine
         //says to redraw everthing:
         function tick() {
+
             g.node.attr("transform", function (d) {
-                return ("translate(" + (d.depth * 100 + 50) + "," + d.y + ")");
+                d.x = d.depth * 100 + 50;
+                return ("translate(" + d.x + "," + d.y + ")");
             });
             //redraw position of every link within the link set:
 
-
-            //same for the nodes, using a functor:
-
             g.link.attr("x1", function (d) {
-                return ((d.source.depth * 100 + 50));
-            })
+                        return d.source.x;
+                    })
                     .attr("y1", function (d) {
                         return d.source.y;
                     })
                     .attr("x2", function (d) {
-                        return ((d.target.depth * 100 + 50));
+                        return d.target.x;
                     })
                     .attr("y2", function (d) {
                         return d.target.y;
@@ -585,39 +587,21 @@
         {
             "nodes": [
                 {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
-                {"id": 1, "name": "analytics", "children": [2, 7, 13, 15], "depth": 1},              //1
-                {"id": 2, "name": "cluster", "children": [3, 4, 5, 6, 15], "depth": 2},                //2
+                {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
+                {"id": 2, "name": "cluster", "children": [3, 4, 5, 6], "depth": 2},                //2
                 {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},   //3
                 {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},     //4
                 {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},    //5
                 {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},              //6
-                {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},                  //7
+                {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12], "depth": 2},                  //7
                 {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},  //8
                 {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},           //9
                 {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},          //10
                 {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},          //11
                 {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},           //12
-                {"id": 13, "name": "optimization", "children": [14], "depth": 2},           //13
+                {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
                 {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},       //14
                 {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
-            ],
-
-
-            "links": [
-                {"source": 0, "target": 1},
-                {"source": 1, "target": 2},
-                {"source": 1, "target": 7},
-                {"source": 1, "target": 13},
-                {"source": 2, "target": 3},
-                {"source": 2, "target": 4},
-                {"source": 2, "target": 5},
-                {"source": 2, "target": 6},
-                {"source": 7, "target": 8},
-                {"source": 7, "target": 9},
-                {"source": 7, "target": 10},
-                {"source": 7, "target": 11},
-                {"source": 7, "target": 12},
-                {"source": 13, "target": 14}
             ]
         };
     </script>
