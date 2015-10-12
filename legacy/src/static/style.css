@@ -1,10 +1,10 @@
 
-/*@import url(http://fonts.googleapis.com/css?family=PT+Serif|PT+Serif:b|PT+Serif:i|PT+Sans|PT+Sans:b); */
+@import url(http://fonts.googleapis.com/css?family=PT+Serif|PT+Serif:b|PT+Serif:i|PT+Sans|PT+Sans:b);
 
 html {
     min-width: 1040px;
 }
-/*
+
 body {
     background: #fcfcfa;
     color: #333;
@@ -13,7 +13,6 @@ body {
     position: relative;
     width: 1040px;
 }
-
 
 header,
 footer,
@@ -26,7 +25,7 @@ aside,
     color: #000;
     font-family: "PT Sans", sans-serif;
 }
-/*
+
 h1 {
     font-size: 32px;
     font-weight: 200;
@@ -66,20 +65,18 @@ footer aside {
     text-align: right;
 }
 
-
 aside, .sets{
     font-size: small;
     position: absolute;
+    width: 280px;
     display: none;
 }
 
 aside {
-    width: 500px;
-    left: 100px;
+    left: 0;
 }
 
 .sets {
-    width: 280px;
     right: 0;
     text-align: right;
 }
@@ -117,7 +114,6 @@ a {
 a:not(:hover) {
     text-decoration: none;
 }
-
 
 pre, code, textarea {
     font-family: "Menlo", monospace;
@@ -187,7 +183,6 @@ q:after {
     content: "â€";
 }
 
-
 blockquote:before {
     position: absolute;
     left: 2em;
@@ -196,11 +191,3 @@ blockquote:before {
 blockquote:after {
     position: absolute;
 }
-
-footer {
-    font-size: small;
-    margin-top: 8em;
-}
-*/
-
-
