@@ -1,14 +1,8 @@
-/*
- *      Created by Melissa 9/17/15
- *      Modifed by Kevin 9/20/15
- */
-
-<!-- Everything below here is for the cord plot -->
 
     var width = 900,
-        height = 900,
-        outerRadius = Math.min(width, height) / 2 - 10,
-        innerRadius = outerRadius - 24;
+            height = 900,
+            outerRadius = Math.min(width, height) / 2 - 10,
+            innerRadius = outerRadius - 24;
 
     var formatPercent = d3.format(".1%");
 
@@ -24,22 +18,22 @@
     var path = d3.svg.chord()
             .radius(innerRadius);
 
-    var svg = d3.select("body").append("svg")
+    var svg = d3.select("#triclique").append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
             .attr("id", "circle")
-            .attr("transform", "translate(500,500)");
+            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
     svg.append("circle")
-            .attr("r", outerRadius)
-            .attr("transform,", "translate(" + width / 2 + ", " + height / 2 + ")");
+            .attr("r", outerRadius);
 
-    d3.csv("../../static/cities.csv", function(cities) {
-        d3.json("../../static/matrix.json", function(matrix) {
+    d3.csv("../../static/cities2.csv", function(cities) {
+        d3.json("../../static/matrix2.json", function(matrix) {
 
             // Compute the chord layout.
             layout.matrix(matrix);
+            console.log("test");
 
             // Add a group per neighborhood.
             var group = svg.selectAll(".group")
@@ -114,3 +108,4 @@
             }
         });
     });
+
