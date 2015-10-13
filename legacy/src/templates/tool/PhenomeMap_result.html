@@ -222,7 +222,7 @@
 
 <div class="ui-widget">
     <input id="search">
-    <button type="button" onclick="searchNode()">Search</button>
+    <button type="button" onclick="searchNode(document.getElementById('search').value)">Search</button>
 </div>
 
 
@@ -364,9 +364,8 @@
                     .call(g.force.drag);
             //circle within the single node group:
             nodeEnter.append("rect")
-                    .attr("r", function (d) {
-                        return Math.sqrt(d.size) / 10 || 4.5;
-                    });
+                    .attr("width", "100px")
+                    .attr("height", "50px");
             //text within the single node group:
             nodeEnter.append("text")
                     .attr("dy", "25px")
@@ -381,8 +380,16 @@
                     .style("stroke", outerRingColor);
             //-------------------
 
-            //g.node.select("text").attr("fill",textColor);
+            g.node.select("text").attr("fill",textColor);
         }
+
+{#        function searchNode(search){#}
+{#            var re = new RegExp(search);#}
+{#            var comp = g.node.data;#}
+{#            if(comp){#}
+{#                g.node.select("text").attr("fill","#CC0000");#}
+{#            }#}
+{#        }#}
 
 
         // Invoked from 'update'.
