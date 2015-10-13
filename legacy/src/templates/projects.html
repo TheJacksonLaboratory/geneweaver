@@ -1,0 +1,253 @@
+{% set title="Analyze Genesets" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+
+<style>
+
+    a:link {
+        #color: darkgreen;
+    }
+
+    a:hover {
+        #color: green;
+        text-decoration: none;
+    }
+
+    a:visited {
+        text-decoration: none;
+    }
+
+    .panel .panel-header .panel-info .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    img {
+        border-style: none;
+    }
+
+</style>
+
+
+{% if user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% else %}
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+            <p>
+
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>My Projects</strong></h3>
+            </div>
+
+
+            <div class="row">
+
+
+                <!-- the projects column -->
+                <form id="todo-id" class="form-horizontal" role="form" method="post">
+
+                    <div class="col-md-8">
+                        <div class="page-header"><h2>Projects</h2></div>
+
+                        {% include 'htmlfragments/projectsList.html' %}
+
+                    </div>
+                </form>
+
+                <!-- the Analysis tools column -->
+                <div class="col-xs-6 col-md-3">
+                    <div class="page-header">
+                        <h2>Actions</h2>
+                    </div>
+                    <div class="panel-group" id="accordion">
+                        <button type="button" class="btn btn-lg btn-block btn-danger" id="callDeleteProjects">
+                            <i class="fa fa-times pull-left"></i> Delete Projects
+                        </button>
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="newBlankProject">
+                            <i class="fa fa-folder-o pull-left"></i> New Blank Project
+                        </button>
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="shareProjects">
+                            <i class="fa fa-share-alt pull-left"></i> Share Projects
+                        </button>
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="removeGeneSets">
+                            <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
+                        </button>
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="combineGeneSets">
+                            <i class="fa fa-chain pull-left"></i> Combine Gene Sets
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    {% endblock %}
+
+{% endif %}
+
+{% if g.user is defined %}
+
+    {% include 'modal/deleteProject.html' %}
+
+    {% include 'modal/addBlankProject.html' %}
+
+{% endif %}
+
+{% include 'footer.html' %}
+
+<script type="text/javascript">
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+    $(document).ready(function () {
+
+        var url = '/projectGenesets.json';
+
+        // New Blank Project
+        $('#newBlankProject').on('click', function () {
+           $("#addProjectModal").modal('show');
+        });
+
+        
+
+        // Call modal for delete of all projects
+        $('#callDeleteProjects').on('click', function () {
+            var projid = [];
+            var projname = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project-name"));
+                projname.push(v);
+            });
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project"));
+                projid.push(v);
+            });
+            if (projid.length == 0) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must select at least one project.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else{
+                var p = projid.join(",");
+                var q = projname.join(", ");
+                $("#myModalLabel").html(q);
+                $("#myModalValue").val(p);
+                $("#delProjects").modal('show');
+            }
+        });
+
+        //Process the deletion of the projects
+        $('#confirmDelete').on('click', function (e) {
+           var projids = $('#myModalValue').val();
+            $.ajax({
+                type: "GET",
+                url: "/deleteProjectByID",
+                data: {"projids": projids},
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "Projects successfully deleted.",
+                        'priority': 'success'
+                    }
+                ]);
+                    location.reload()
+                },
+                error: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while deleting projects.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
+
+
+
+        // All selector checkbox
+        $('.proj-checkbox').on('click', function (event) {
+
+            var check = $(this).find('input[type=checkbox]');
+            var allcheck = '#' + check.attr('id');
+            var pid = allcheck.split('-')[1];
+            var gscheck = '.proj-' + pid + '-check';
+
+            if ($(allcheck).attr('checked')) {
+
+                $(gscheck).each(function (index) {
+                    $(this).attr('checked', false);
+                });
+
+            } else {
+
+                $(gscheck).each(function (index) {
+                    $(this).attr('checked', true);
+                });
+            }
+        });
+
+        // Project genesets are only loaded when necessary (i.e. when a user
+        // clicks on the project link.
+        $('.project-link').on('click', function (event) {
+
+            // Change chevron when project info is displayed
+            var chev = $(this).children('.fa-caret-right').length ?
+                    $(this).children('.fa-caret-right') :
+                    $(this).children('.fa-caret-down');
+
+            chev.toggleClass('fa-caret-down')
+            chev.toggleClass('fa-caret-right')
+
+            // Get the project ID from the link href, but gotta strip out
+            // '#genesets-' first
+            var pid = $(this).attr('href').slice('#genesets-'.length);
+            var pbid = '#project-body-' + pid;
+            var data = {'project': pid};
+
+            // Check to see if we've already made an AJAX call for this project
+            if ($(pbid).children().length !== 0)
+                return;
+
+            // Flask should return the rendered HTML, inject it into the DOM
+            $.get(url, data).done(function (data) {
+
+                var tbody = pbid + ' tbody'
+                $(pbid).append(data);
+
+                var allclass = '#proj-' + pid + '-allcheck';
+                var chkclass = '.proj-' + pid + '-check';
+
+                // Now start checking to see if we need to mark the checkboxes
+                // under this particular project
+                if ($(allclass).attr('checked')) {
+
+                    $(chkclass).each(function (index) {
+                        $(this).attr('checked', true);
+                    });
+                }
+            });
+        });
+
+
+    });
+
+</script>

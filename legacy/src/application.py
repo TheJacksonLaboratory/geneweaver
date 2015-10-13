@@ -259,6 +259,9 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/projects')
+def render_projects():
+    return flask.render_template('projects.html')
 
 @app.route("/gwdb/get_group/<user_id>/")
 def get_group(user_id):
@@ -423,6 +426,12 @@ def update_geneset_genes():
                 or geneweaverdb.user_is_owner(user_id, gs_id) != 0:
             results = uploadfiles.insert_into_geneset_value_by_gsid(gs_id)
             return json.dumps(results)
+
+@app.route('/deleteProjectByID', methods=['GET'])
+def delete_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.delete_project_by_id(flask.request.args['projids'])
+        return json.dumps(results)
 
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')
