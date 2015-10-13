@@ -45,7 +45,7 @@
 
             <p>
 
-            <div class="row" id="result"></div>
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>My Projects</strong></h3>
@@ -72,7 +72,7 @@
                         <h2>Actions</h2>
                     </div>
                     <div class="panel-group" id="accordion">
-                        <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteProjects">
+                        <button type="button" class="btn btn-lg btn-block btn-danger" id="callDeleteProjects">
                             <i class="fa fa-times pull-left"></i> Delete Projects
                         </button>
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="newBlankProject">
@@ -98,6 +98,14 @@
 
 {% endif %}
 
+{% if g.user is defined %}
+
+    {% include 'modal/deleteProject.html' %}
+
+    {% include 'modal/addBlankProject.html' %}
+
+{% endif %}
+
 {% include 'footer.html' %}
 
 <script type="text/javascript">
@@ -109,6 +117,70 @@
     $(document).ready(function () {
 
         var url = '/projectGenesets.json';
+
+        // New Blank Project
+        $('#newBlankProject').on('click', function () {
+           $("#addProjectModal").modal('show');
+        });
+
+        
+
+        // Call modal for delete of all projects
+        $('#callDeleteProjects').on('click', function () {
+            var projid = [];
+            var projname = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project-name"));
+                projname.push(v);
+            });
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project"));
+                projid.push(v);
+            });
+            if (projid.length == 0) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must select at least one project.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else{
+                var p = projid.join(",");
+                var q = projname.join(", ");
+                $("#myModalLabel").html(q);
+                $("#myModalValue").val(p);
+                $("#delProjects").modal('show');
+            }
+        });
+
+        //Process the deletion of the projects
+        $('#confirmDelete').on('click', function (e) {
+           var projids = $('#myModalValue').val();
+            $.ajax({
+                type: "GET",
+                url: "/deleteProjectByID",
+                data: {"projids": projids},
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "Projects successfully deleted.",
+                        'priority': 'success'
+                    }
+                ]);
+                    location.reload()
+                },
+                error: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while deleting projects.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
+
 
 
         // All selector checkbox

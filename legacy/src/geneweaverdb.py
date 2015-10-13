@@ -520,6 +520,19 @@ def delete_geneset_by_gsid(rargs):
         cursor.connection.commit()
         return
 
+
+def delete_project_by_id(rargs):
+    projids = rargs.split(',')
+    user_id = flask.session['user_id']
+    if user_id != 0 or get_user(user_id).is_admin != False or get_user(user_id).is_curator != False:
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE from project2geneset WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
+            cursor.execute('''DELETE from project WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
+            print cursor.statusmessage
+            cursor.connection.commit()
+        return
+
+
 def delete_geneset_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
     gene_id = rargs.get('id', type=str)

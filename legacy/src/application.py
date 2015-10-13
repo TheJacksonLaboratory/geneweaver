@@ -427,6 +427,12 @@ def update_geneset_genes():
             results = uploadfiles.insert_into_geneset_value_by_gsid(gs_id)
             return json.dumps(results)
 
+@app.route('/deleteProjectByID', methods=['GET'])
+def delete_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.delete_project_by_id(flask.request.args['projids'])
+        return json.dumps(results)
+
 
 # @app.route('/editgenesetgenes2/<int:gs_id>')
 # def render_editgenesets_genes_2(gs_id):
