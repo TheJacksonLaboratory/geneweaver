@@ -40,7 +40,7 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
-
+    '''
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_ExactGeneOverlap'):
             if params[tool_param.name] != 'Enabled':
@@ -56,6 +56,7 @@ def run_tool():
                 if len(selected_project_ids) < 3:
                     flask.flash("Warning: You need at least 3 projects!")
                     return flask.redirect('analyze')
+    '''
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
