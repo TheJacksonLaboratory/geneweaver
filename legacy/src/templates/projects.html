@@ -118,12 +118,48 @@
 
         var url = '/projectGenesets.json';
 
-        // New Blank Project
+        // Call New Blank Project
         $('#newBlankProject').on('click', function () {
            $("#addProjectModal").modal('show');
         });
 
-        
+        // Update project set to new name
+        $('#projectSubmit').on('click', function () {
+           var n = $('#projectName').val();
+            $.ajax({
+                type: "GET",
+                url: "/addProjectByName",
+                data: {"name": n},
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project name added successfully.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        location.reload()
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error Occurred. " + v["error"],
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                },
+                error: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while adding new project.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
 
         // Call modal for delete of all projects
         $('#callDeleteProjects').on('click', function () {

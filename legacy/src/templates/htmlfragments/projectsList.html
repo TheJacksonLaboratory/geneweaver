@@ -1,3 +1,12 @@
+<style type="text/css">
+
+    .clickableEdit {
+        cursor: pointer;
+        color: #d3d3d3;
+    }
+
+</style>
+
 <div class="panel-group" id="projAccordion">
 
     {% if "user" in g %}
@@ -33,6 +42,9 @@
                                     <i class="fa fa-caret-right"></i> </span>
                                     {{ proj.name }}
                                 </a>
+                                <span class="clickableEdit" id="edit-{{ proj.project_id }}" data-proj-name="{{ proj.name }}"
+                                      data-proj-id="{{ proj.project_id }}">
+                                    <i class="fa fa-pencil"></i></span>
 
                             </div>
                         </div>
@@ -53,3 +65,57 @@
         </div>
     {% endif %}
 </div>
+
+{% include 'modal/editProjectName.html' %}
+
+<script type="text/javascript">
+
+    // Update project set to new name
+        $('.clickableEdit').on('click', function () {
+           var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            $("#projName").val(projName);
+            $("#projId").val(projId);
+            $("#editModal").modal('show');
+        });
+
+    // Process the project name change
+        $('#editSubmit').on('click', function () {
+           var n = $('#projName').val();
+            var i = $('#projId').val();
+            $.ajax({
+                type: "GET",
+                url: "/changeProjectNameById",
+                data: {"projid": i, "projname": n},
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project name changed successfully.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        location.reload()
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error Occurred. " + v["error"],
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                },
+                error: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while changing project name.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
+
+    </script>

@@ -524,7 +524,7 @@ def delete_geneset_by_gsid(rargs):
 def delete_project_by_id(rargs):
     projids = rargs.split(',')
     user_id = flask.session['user_id']
-    if user_id != 0 or get_user(user_id).is_admin != False or get_user(user_id).is_curator != False:
+    if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
         with PooledCursor() as cursor:
             cursor.execute('''DELETE from project2geneset WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
             cursor.execute('''DELETE from project WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
@@ -532,6 +532,39 @@ def delete_project_by_id(rargs):
             cursor.connection.commit()
         return
 
+
+def add_project_by_name(rargs):
+    name = rargs
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created) VALUES (%s, %s, now())''', (user_id,
+                                name,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
+
+
+def change_project_by_id(rargs):
+    id = rargs['projid']
+    name = rargs['projname']
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''UPDATE project SET pj_name=%s WHERE pj_id=%s''', (name, id,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
 
 def delete_geneset_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)

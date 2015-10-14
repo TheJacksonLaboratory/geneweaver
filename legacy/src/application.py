@@ -434,6 +434,19 @@ def delete_projects():
         return json.dumps(results)
 
 
+@app.route('/addProjectByName', methods=['GET'])
+def add_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.add_project_by_name(flask.request.args['name'])
+        return json.dumps(results)
+
+@app.route('/changeProjectNameById', methods=['GET'])
+def rename_project():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.change_project_by_id(flask.request.args)
+        return json.dumps(results)
+
+
 # @app.route('/editgenesetgenes2/<int:gs_id>')
 # def render_editgenesets_genes_2(gs_id):
 #	  if 'user_id' in flask.session:
