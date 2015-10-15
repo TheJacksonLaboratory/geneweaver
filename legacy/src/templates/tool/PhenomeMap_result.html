@@ -255,8 +255,8 @@
             g.data = data;
 
 
-            var width = 960,
-                    height = 500;
+            var width = 1920,
+                    height = 1080;
 
             var r = 6,
                     fill = d3.scale.category20();
@@ -281,8 +281,8 @@
                     .linkStrength(function (link) {
                         return 1 / ((link.target.depth - link.source.depth) * 2);
                     })
-                    .charge(-1200)
-                    .chargeDistance(39)
+                    .charge(-120)
+                    .chargeDistance(100)
                     .gravity(0.0)
                     .size([width, height])
                 //that invokes the tick method to draw the elements in their new location:
@@ -497,23 +497,23 @@
         //says to redraw everything:
         function tick() {
             g.node.attr("transform", function (d) {
-                return "translate(" + Math.max(d.depth * 100 + 50, d.x) + "," + d.y + ")";
+                return "translate(" + (d.depth * 200 + 50) + "," + d.y + ")";
             });
             //redraw position of every link within the link set:
 
 
             //same for the nodes, using a function:
             g.link.attr("x1", function (d) {
-                return (Math.max(d.source.depth * 100 + 50, d.source.x));
+                return (d.source.depth * 200 + 50 + 100);
             })
                     .attr("y1", function (d) {
-                        return d.source.y;
+                        return d.source.y + 25;
                     })
                     .attr("x2", function (d) {
-                        return (Math.max(d.target.depth * 100 + 50, d.target.x));
+                        return (d.target.depth * 200 + 50);
                     })
                     .attr("y2", function (d) {
-                        return d.target.y;
+                        return d.target.y +25;
                     });
             //same for the nodes, using a functor:
         }
