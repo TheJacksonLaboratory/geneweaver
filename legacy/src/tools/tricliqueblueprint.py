@@ -136,7 +136,7 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
         # TODO add nice error message about missing genesets
         raise Exception('there must be at least two genesets selected to run this tool')
 
-    '''
+
     # insert result for this run
 
     task_id = str(uuid.uuid4())
@@ -161,12 +161,12 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
         task_id=task_id)
 
     return task_id
-
+    '''
 
     # Need to also modify this function
 
-    #task_id = str(uuid.uuid4())
-    #return task_id
+    task_id = str(uuid.uuid4())
+    return task_id
 
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
