@@ -266,19 +266,34 @@
                     .links(getLinks(g.data.nodes))
                     .linkDistance(function (link) {
                         //console.log("LINK DISTANCE OUTPUT HERE: " + JSON.stringify(link));
-                        return 50;
-                        //return ((link.target.depth - link.source.depth) * 40);
+                        //return 50;
+                        return ((link.target.depth - link.source.depth) * 40);
                     })
                     .linkStrength(function (link) {
-                        //return 1 / ((link.target.depth - link.source.depth) * 2);
-                        return .5;
+                        return 1 / ((link.target.depth - link.source.depth) * 2);
                     })
-                    .charge(-120)
+                    .charge(-130)
                     .chargeDistance(80)
                     .gravity(0.0)
                     .size([width, height])
                 //that invokes the tick method to draw the elements in their new location:
                     .on("tick", tick);
+
+
+            //Initialize positions of tree elements to reduce tangling caused by random initialization
+            nodes = flatten(g.data.nodes);
+            var nextdepths = [0];
+            for (i = 0; i < nodes.length; i++) {
+                while(nodes[i].depth > nextdepths.length - 1){
+                    nextdepths.push(0);
+                }
+                //if(nodes[i].depth == 0){
+                //    nodes[i].fixed = true;
+                //}
+                nodes[i].x = nodes[i].depth * 100 + 50;
+                nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+                nextdepths[nodes[i].depth]++;
+            }
 
 
             //Draw the graph:
@@ -302,9 +317,11 @@
             var nodes = flatten(g.data.nodes);
             console.log(nodes.length + " nodes to draw");
             for (i = 0; i < nodes.length; i++) {
-                //console.log(JSON.stringify(nodes[i]));
                 console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
             }
+
+
+
 
 
             //Each node extracted above has a children attribute.
@@ -494,6 +511,19 @@
                 console.log("children: " + d.children);
                 console.log("_children:" + d._children);
             }
+            nodes = flatten(g.data.nodes);
+            var nextdepths = [0];
+            for (i = 0; i < nodes.length; i++) {
+                while(nodes[i].depth > nextdepths.length - 1){
+                    nextdepths.push(0);
+                }
+                //if(nodes[i].depth == 0){
+                //    nodes[i].fixed = true;
+                //}
+                nodes[i].py = nextdepths[nodes[i].depth] * 20 + 100;
+                nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+                nextdepths[nodes[i].depth]++;
+            }
             //
             update();
         }
@@ -530,7 +560,7 @@
             "nodes": [
                 {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
                 {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
-                {"id": 2, "name": "cluster", "children": [3, 4, 5, 6], "depth": 2},                //2
+                {"id": 2, "name": "cluster", "children": [3, 4, 5, 6, 15], "depth": 2},                //2
                 {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},   //3
                 {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},     //4
                 {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},    //5
