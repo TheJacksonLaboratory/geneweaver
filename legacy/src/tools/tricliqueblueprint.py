@@ -105,9 +105,9 @@ def run_tool():
 def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
 
     # TODO need to check for read permissions on genesets
-
-    user_id = gwdb.get_user_id_by_apikey(apikey)
     '''
+    user_id = gwdb.get_user_id_by_apikey(apikey)
+
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
