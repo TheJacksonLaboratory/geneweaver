@@ -7,8 +7,9 @@ import flask
 import json
 import uuid
 
-import geneweaverdb as gwdb
+from geneweaverdb import *
 import toolcommon as tc
+from edgelist import *
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -34,14 +35,14 @@ def run_tool():
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
         params[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
     '''
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_ExactGeneOverlap'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
@@ -69,9 +70,9 @@ def run_tool():
         return flask.redirect('analyze')
 
     task_id = str(uuid.uuid4())
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    tool = get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
-    gwdb.insert_result(
+    insert_result(
         user_id,
         task_id,
         selected_geneset_ids,
@@ -90,6 +91,7 @@ def run_tool():
         task_id=task_id)
 
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
+    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
 
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
@@ -106,13 +108,13 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     '''
     # TODO need to check for read permissions on genesets
 
-    user_id = gwdb.get_user_id_by_apikey(apikey)
+    user_id = get_user_id_by_apikey(apikey)
 
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
 
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_' + 'SupressDisconnected'):
 		    params[tool_param.name] = supressDisconnected
 		    if supressDisconnected not in ['On','Off']:
@@ -140,9 +142,9 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     # insert result for this run
 
     task_id = str(uuid.uuid4())
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    tool = get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
-    gwdb.insert_result(
+    insert_result(
         user_id,
         task_id,
         selected_geneset_ids,
@@ -173,7 +175,7 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    tool = get_tool(TOOL_CLASSNAME)
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
