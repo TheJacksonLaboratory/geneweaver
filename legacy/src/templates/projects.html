@@ -32,6 +32,15 @@
         border-style: none;
     }
 
+    #help {
+        cursor: pointer;
+        color: #808080;
+    }
+
+    #help-text {
+        color: #808080;
+    }
+
 </style>
 
 
@@ -84,9 +93,21 @@
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="removeGeneSets">
                             <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
                         </button>
-                        <button type="button" class="btn btn-lg btn-block btn-warning" id="combineGeneSets">
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="callCombineGeneSets">
                             <i class="fa fa-chain pull-left"></i> Combine Gene Sets
                         </button>
+                    </div>
+                    <div class="panel-group pull-right">
+                        <span id="help"><i class="fa fa-caret-left"></i> help</span>
+                    </div>
+                    <div id="help-text" class="panel-group" style="display: none;">
+                        <p><i class="fa fa-arrow-right"></i> Select Projects and Gene Sets from the left and appropriate
+                            actions from the list on the right. Deleting projects will permanently remove them from your
+                            account. Removing Gene Sets will only remove them from the Project, not delete them from GeneWeaver.</p>
+                        <p><i class="fa fa-arrow-right"></i> When creating an Empty New Project, you may find the project
+                            temporarily unavailable until appropriate Gene Sets are added to them.</p>
+                        <p><i class="fa fa-arrow-right"></i> Actions on Gene Sets, such as Combine or Remove, work only
+                            on individual Gene Sets and not at the project level.</p>
                     </div>
                 </div>
 
@@ -132,6 +153,7 @@
                 data: {"name": n},
                 success: function (data) {
                     var v = JSON.parse(data);
+                $("html, body").animate({ scrollTop: 0 }, "slow");
                     if (v["error"] == 'None') {
                         $(document).trigger("add-alerts", [
                             {
@@ -151,6 +173,7 @@
                     }
                 },
                 error: function (data) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
                     $(document).trigger("add-alerts", [
                     {
                         'message': "An Error occurred while adding new project.",
@@ -174,6 +197,7 @@
                 projid.push(v);
             });
             if (projid.length == 0) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
                 $(document).trigger("add-alerts", [
                     {
                         'message': "You must select at least one project.",
@@ -198,6 +222,7 @@
                 url: "/deleteProjectByID",
                 data: {"projids": projids},
                 success: function (data) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
                     $(document).trigger("add-alerts", [
                     {
                         'message': "Projects successfully deleted.",
@@ -207,6 +232,7 @@
                     location.reload()
                 },
                 error: function (data) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
                     $(document).trigger("add-alerts", [
                     {
                         'message': "An Error occurred while deleting projects.",
@@ -218,6 +244,43 @@
         });
 
 
+        // Call modal for combine all gene sets
+        $('#callCombineGeneSets').on('click', function () {
+            //var gsid = [];
+            var gsname = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("id"));
+                gsname.push(v);
+            });
+            alert(gsname);
+            //jQuery("input[type=checkbox]:checked").each(function () {
+            //    var v = ($(this).attr("data-project"));
+            //    projid.push(v);
+            //});
+            //if (projid.length == 0) {
+            //    $(document).trigger("add-alerts", [
+            //        {
+            //            'message': "You must select at least one project.",
+            //            'priority': 'danger'
+            //        }
+            //    ]);
+            //}
+            //else{
+            //    var p = projid.join(",");
+            //    var q = projname.join(", ");
+            //    $("#myModalLabel").html(q);
+            //    $("#myModalValue").val(p);
+            //    $("#delProjects").modal('show');
+            //}
+        });
+
+        //help checkbox
+        $( "#help" ).click(function() {
+            if($('#help-text:visible').length)
+                $('#help-text').hide("slide", { direction: "right" }, 1000);
+            else
+                $('#help-text').show("slide", { direction: "right" }, 1000);
+            });
 
         // All selector checkbox
         $('.proj-checkbox').on('click', function (event) {
