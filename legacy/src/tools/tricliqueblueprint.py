@@ -103,11 +103,11 @@ def run_tool():
 
 @triclique_viewer_blueprint.route('/run-triclique-viewer-api.html', methods=['POST'])
 def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
-    '''
+
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
-
+    '''
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
@@ -136,7 +136,7 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
         # TODO add nice error message about missing genesets
         raise Exception('there must be at least two genesets selected to run this tool')
 
-
+    '''
     # insert result for this run
 
     task_id = str(uuid.uuid4())
@@ -161,7 +161,7 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
         task_id=task_id)
 
     return task_id
-    '''
+
 
     # Need to also modify this function
 
