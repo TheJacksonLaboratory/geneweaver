@@ -2,10 +2,10 @@ import celery.states as states
 import flask
 import json
 import uuid
-
+import geneweaverdb
 import geneweaverdb as gwdb
 import toolcommon as tc
-
+from decimal import Decimal
 from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 
 TOOL_CLASSNAME = 'JaccardSimilarity'
@@ -32,7 +32,7 @@ def run_tool():
         
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least 2 genes!")
-        return flask.redirect('analyze')
+        return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -52,7 +52,7 @@ def run_tool():
         user_id = flask.session['user_id']
     else:
         flask.flash("Internal error: user ID missing")
-        return flask.redirect('analyze')
+        return flask.redirect('analyze.html')
 
     # Gather emphasis gene ids and put them in paramters
     emphgeneids = []
@@ -92,7 +92,7 @@ def run_tool():
 
     return response
 
-def run_tool_api(apikey, homology, pairwiseDeletion, genesets):
+def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -117,6 +117,10 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets):
             if homology != 'Excluded':
                 params[homology_str] = 'Included'
                 params[tool_param.name] = 'Included'
+        if tool_param.name.endswith('_' + 'p-Value'):
+            params[tool_param.name] = p_Value
+            if p_Value not in ['1.0','0.5','0.10','0.05','0.01']:
+                params[tool_param.name] = '1.0'
     
     
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
@@ -151,6 +155,7 @@ def view_result(task_id):
     r.async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 
+
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
@@ -158,14 +163,19 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif r.async_result.state in states.READY_STATES:
+        data = r.async_result.result
+        json.dumps(data, indent=4)
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
+            data = data,
             async_result=json.loads(r.async_result.result),
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(r.async_result, tool)
+
+
 
 
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
