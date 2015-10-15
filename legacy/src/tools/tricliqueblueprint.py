@@ -165,8 +165,8 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
 
     # Need to also modify this function
 
-    task_id = str(uuid.uuid4())
-    return task_id
+    #task_id = str(uuid.uuid4())
+    #return task_id
 
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
