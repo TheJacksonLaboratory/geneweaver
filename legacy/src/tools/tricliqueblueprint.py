@@ -89,6 +89,8 @@ def run_tool():
         },
         task_id=task_id)
 
+    # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
+
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)

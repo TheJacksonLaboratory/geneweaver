@@ -89,7 +89,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 #*************************************
 
 # changed this path 9/3
-RESULTS_PATH = '/Users/group10admin/geneweaver/results'
+RESULTS_PATH = '/Users/group5admin/geneweaver/results'
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -1688,13 +1688,13 @@ class ToolJaccardSimilarityProjects(restful.Resource):
 
 class ToolTricliqueViewer(restful.Resource):
     def get(self, apikey, homology, pairwiseDeletion, genesets):
-        return triclique_viewer_blueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+        return tricliqueblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
 
 class ToolTricliqueViewerProjects(restful.Resource):
     def get(self, apikey, homology, pairwiseDeletion, projects):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
-        return triclique_viewer_blueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+        return tricliqueblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
 
 
 class ToolCombine(restful.Resource):
