@@ -49,14 +49,14 @@ def run_tool():
             params2[method_str] = form[tool_param.name]
     if params2[method_str] != 'JaccardOverlap':
         params2[method_str] = 'ExactGeneOverlap'
+    else:
+        flask.flash("This tool is not currently available.")
+        return flask.redirect('analyze')
         # neither selected_project_ids nor selected_geneset_ids functions
         # are currently working
         #if len(selected_geneset_ids) != 2:
         #    flask.flash("Warning: You must select 2 projects!")
         #    return flask.redirect('analyze')
-    else:
-        flask.flash("This tool is not currently available.")
-        return flask.redirect('analyze')
 
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
