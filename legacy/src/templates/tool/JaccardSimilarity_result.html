@@ -170,20 +170,6 @@
 </table>
 
 
-<!-- {#  <div class="row">#}
-=======
-<br /><br /><h4>Venn Diagram view:</h4> <br>
-
-
-
-{#  <div class="row">#}
->>>>>>> 354f9c3d3d817fd20d14ab0ab8695479fcc5e155
-{#    <div class="col-md-12 link-panel" style="text-align: center;">#}
-{#        <iframe id="resultFrame" style="height:1000px; width:2200px;"></iframe>#}
-{##}
-{#    </div>#}
-{#</div>#} -->
-
 <br /><br /><h4>Venn Diagram view:</h4>
 
 <div id="jaccard"></div>
@@ -197,16 +183,16 @@
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <link rel="stylesheet" href="/resources/demos/style.css">
 
-<script type="text/javascript">
-    $(function(){
-        $.get("/changePvalues/5/7/0", function(pVal){
-            console.log( "Data Loaded: " + pVal );
-        })
-    });
+// <script type="text/javascript">
+//     $(function(){
+//         $.get("/changePvalues/5/7/0", function(pVal){
+//             console.log( "Data Loaded: " + pVal );
+//         })
+//     });
 
-</script>
+// </script>
 
-
+<!-- {{ data | safe }} -->
 
 <script type="text/javascript">
 
@@ -251,6 +237,12 @@
             }
         }
         for (k = 0; k < count_text; k++) {
+            var pvalue = 
+            $.get("/changePvalues/5/7/0", function(pVal){
+                return pVal
+            });
+            alert("outside the function"+JSON.stringify(pvalue));
+
             if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
