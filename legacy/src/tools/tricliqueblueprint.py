@@ -40,13 +40,10 @@ def run_tool():
         params1[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
             params1[homology_str] = form[tool_param.name]
+        elif tool_param.name.endswith('_' + method_str):
+            params2[method_str] = form[tool_param.name]
     if params1[homology_str] != 'Excluded':
         params1[homology_str] = 'Included'
-
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        params2[tool_param.name] = form[tool_param.name]
-        if tool_param.name.endswith('_' + method_str):
-            params2[method_str] = form[tool_param.name]
     if params2[method_str] != 'JaccardOverlap':
         params2[method_str] = 'ExactGeneOverlap'
     else:
