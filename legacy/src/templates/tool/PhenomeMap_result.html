@@ -193,7 +193,7 @@
             stroke: #3182bd;
             stroke-width: 3px;
         }
-
+        
         .node rect {
             cursor: pointer;
             stroke: #3182bd;
@@ -206,11 +206,9 @@
             font: 10px sans-serif;
             pointer-events: none;
             text-anchor: middle;
-            color: black;
         }
 
-
-        line.link {
+        line {
             fill: none;
             stroke: #9ecae1;
             stroke-width: 1.5px;
@@ -220,19 +218,19 @@
 
 </head>
 
-<div class="ui-widget">
-    <input id="search">
-    <button type="button" onclick="searchNode(document.getElementById('search').value)">Search</button>
-</div>
-
-
 <div id="viz2">
-<div id="block_container">
-   <div id="searchName"></div>
-</div>
+
 
     <script>
+        //Notes:
+        // Src: http://bl.ocks.org/mbostock/1093130
+        //Notes:
+        // * Each dom element is using
+        //   children to store refs to expanded children
+        //   _children to store refs to collapsed children
+        //* It's using both a tree and a graph layout.
 
+        //root
         //Notes:
         // Src: http://bl.ocks.org/mbostock/1093130
         //Notes:
@@ -247,16 +245,14 @@
             force: null
         };
 
-
-
         $(function () {
 
             //use a global var for the data:
             g.data = data;
 
 
-            var width = 1920,
-                    height = 1080;
+            var width = 960,
+                    height = 2000;
 
             var r = 6,
                     fill = d3.scale.category20();
@@ -274,19 +270,23 @@
             //Create a graph layout engine:
             g.force = d3.layout.force()
                     .nodes(g.data.nodes)
-                    .links(g.data.links)
+                    .links(getLinks(g.data.nodes))
                     .linkDistance(function (link) {
-                        return ((link.target.depth - link.source.depth) * 40);
+                        //console.log("LINK DISTANCE OUTPUT HERE: " + JSON.stringify(link));
+                        return 50;
+                        //return ((link.target.depth - link.source.depth) * 40);
                     })
                     .linkStrength(function (link) {
-                        return 1 / ((link.target.depth - link.source.depth) * 2);
+                        //return 1 / ((link.target.depth - link.source.depth) * 2);
+                        return .5;
                     })
                     .charge(-120)
-                    .chargeDistance(100)
+                    .chargeDistance(80)
                     .gravity(0.0)
                     .size([width, height])
                 //that invokes the tick method to draw the elements in their new location:
                     .on("tick", tick);
+
 
             //Draw the graph:
             //Note that this method is invoked again
@@ -309,52 +309,66 @@
             var nodes = flatten(g.data.nodes);
             console.log(nodes.length + " nodes to draw");
             for (i = 0; i < nodes.length; i++) {
+                //console.log(JSON.stringify(nodes[i]));
                 console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
             }
+
+
             //Each node extracted above has a children attribute.
             //from them, we can use a tree() layout function in order
             //to build a links selection.
-            //var links = g.data.links;
-            //console.log(links[0].source);
+
             var links = getLinks(nodes);
             console.log(links.length + " links to draw");
+            console.log(JSON.stringify(g.force.links()));
             for (i = 0; i < links.length; i++) {
-                console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
+                //console.log(JSON.stringify(links[i])) + "distance: ";
+                //console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
             }
-
-            g.data.nodes[0].fixed = true;
-            g.data.nodes[0].x = width / 10;
-            g.data.nodes[0].y = height / 2;
 
             // pass both of those sets to the graph layout engine, and restart it
             g.force.nodes(nodes)
                     .links(links)
                     .start();
-            //g.force.linkDistance(
             //-------------------
             // create a subselection, wiring up data, using a function to define
-            //how it's supposed to know what is appended/updated/exited
-            g.link = g.link.data(links, function (d) {
-                return d.target.id;
-            });
+            //how it's suppossed to know what is appended/updated/exited
+
+                                    //console.log("G.LINK (before): \n" + JSON.stringify(g.link));
+            /*
+            try{
+                g.link = g.link.data(links, function (d) {
+                    console.log("" + d.source.id + "\t" + d.target.id);
+                    return d.target.id;
+                })}
+            catch(err){
+                d.target.id = err.message;
+            };
+            */
+            g.link = g.link.data(links);
+
+                                                ///console.log("G.LINK (middle): \n" + JSON.stringify(g.link));
 
             //Get rid of old links:
             g.link.exit().remove();
 
+
             //Build new links by adding new svg lines:
-            g.link.enter()
+            g.link
+                    .enter()
                     .insert("line", ".node")
                     .attr("class", "link");
+                                    //console.log("G.LINK (after): \n" + JSON.stringify(g.link));
 
             // create a subselection, wiring up data, using a function to define
-            //how it's supposed to know what is appended/updated/exited
+            //how it's suppossed to know what is appended/updated/exited
             g.node = g.node.data(nodes, function (d) {
                 return d.id;
             });
             //Get rid of old nodes:
             g.node.exit().remove();
             //-------------------
-            //create new nodes by making grouped elements, that contain circles and text:
+            //create new nodes by making groupd elements, that contain circls and text:
             var nodeEnter = g.node.enter()
                     .append("g")
                     .attr("class", "node")
@@ -362,7 +376,7 @@
                     .attr("height", 50)
                     .on("click", click)
                     .call(g.force.drag);
-            //circle within the single node group:
+             //circle within the single node group:
             nodeEnter.append("rect")
                     .attr("width", "100px")
                     .attr("height", "50px");
@@ -394,30 +408,34 @@
 
         // Invoked from 'update'.
         // The original source data is not the usual nodes + edge list,
-        // but that's what's needed for the force layout engine.
+        // but rather an adjacency list of nodes and their children.
+        // We need a list of nodes + links for the force layout engine.
         // So returns a list of all nodes under the root.
         function flatten(data) {
             var nodes = [];
-
             function recurse(node) {
-                nodes.push(node);
+                if (!getNodeByID(nodes, node.id)) nodes.push(node);
                 if (node.children.length > 0) {
                     for (var i = 0, count = node.children.length; i < count; i++) {
                         var nextNode = getNodeByID(data, node.children[i]);
                         recurse(nextNode);
                     }
                 }
-                else {
-                    //console.log(
+            }
+
+            for(var i = 0, len = data.length; i < len; i++){
+                if(data[i].depth == 0) {
+                    recurse(data[i]);
                 }
             }
 
-            recurse(data[0]);
+
             return nodes;
         }
 
 
         function getNodeByID(nodes, wanted_id) {
+
             for (var i = 0; i < nodes.length; i++) {
                 if (nodes[i].id == wanted_id) {
                     return nodes[i];
@@ -427,14 +445,20 @@
 
 
         function getLinks(nodes) {
+
             var links = [];
             for (var i = 0; i < nodes.length; i++) {
                 var n = nodes[i];
                 for (var j = 0; j < n.children.length; j++) {
                     var link = {
-                        source: nodes.indexOf(n),
-                        target: nodes.indexOf(getNodeByID(nodes, n.children[j]))
+                        //source: n
+                        //target: getNodeByID(nodes, n.children[j])
+
+                        source: n,
+                        target: getNodeByID(nodes, n.children[j])
                     };
+                    //console.log("node: " + n.id + "\n\tchildren: " + n.children[j]);
+                    //console.log(link.source + "\t" + link.target);
                     links.push(link);
                 }
             }
@@ -442,8 +466,6 @@
             return links;
         }
 
-        //BEN'S COMMENTS
-        //This is the color function I was having problems with. I think the fact that all the nodes are black is symptomatic of the nodes not properly recognizing if they have children.
 
 
         //Invoked from 'update'
@@ -458,6 +480,7 @@
                             "#ffffff"; // leaf node
         }
 
+
         function outerRingColor(d) {
             if (d.emphasis) {
                 return "#33AD33";
@@ -467,27 +490,26 @@
 
         function textColor(d) {
             if (d.emphasis) {
-                return "#CC0000";
+                return '#CC0000';
             }
-            else return "default";
+            else return 'default';
         }
 
 
-        // Toggle children on click by switching around values on _children and children.
         function click(d) {
             if (d3.event.defaultPrevented) return; // ignore drag
             if (d.children.length > 0) {
                 console.log("collapsing node " + d.name + " (" + d.id + ")");
                 d._children = d.children;
                 d.children = [];
-                console.log(d.children);
-                console.log(d._children);
-            } else {
+                console.log("children: " + d.children);
+                console.log("_children:" + d._children);
+            } else if (d._children){
                 console.log("expanding node " + d.name + " (" + d.id + ")");
                 d.children = d._children;
                 d._children = null;
-                console.log(d.children);
-                console.log(d._children);
+                console.log("children: " + d.children);
+                console.log("_children:" + d._children);
             }
             //
             update();
@@ -518,24 +540,23 @@
             //same for the nodes, using a functor:
         }
 
-
         var data =
         {
             "nodes": [
                 {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
-                {"id": 1, "name": "analytics", "children": [2, 7, 13, 15], "depth": 1},              //1
+                {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
                 {"id": 2, "name": "cluster", "children": [3, 4, 5, 6], "depth": 2},                //2
                 {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},   //3
                 {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},     //4
                 {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},    //5
                 {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},              //6
-                {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12], "depth": 2},                  //7
+                {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},                  //7
                 {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},  //8
                 {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},           //9
                 {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},          //10
                 {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},          //11
                 {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},           //12
-                {"id": 13, "name": "optimization", "children": [14], "depth": 2},           //13
+                {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
                 {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},       //14
                 {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
             ]
