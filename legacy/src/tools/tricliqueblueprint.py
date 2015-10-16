@@ -49,7 +49,8 @@ def run_tool():
             params2[method_str] = form[tool_param.name]
     if params2[method_str] != 'JaccardOverlap':
         params2[method_str] = 'ExactGeneOverlap'
-        print selected_project_ids
+        print "project_ids:", selected_project_ids
+
         if len(selected_project_ids) != 2:
             flask.flash("Warning: You must select 2 projects!")
             return flask.redirect('analyze')
