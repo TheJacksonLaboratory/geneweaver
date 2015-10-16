@@ -124,7 +124,7 @@ def edge_proj2proj(projDict1, projDict2):
     return part
 
 
-def create_kpartite_file_from_gene_intersection(taskid, proj1, proj2, homology=True):
+def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology=True):
     '''
     This function takes two project ids, finds the intersection of genes and constructs
     the a task.kel file (which stands for K-clique Edge List (kel). This is a tab-delimited
@@ -141,6 +141,7 @@ def create_kpartite_file_from_gene_intersection(taskid, proj1, proj2, homology=T
     # Comment out this line when running offline
     usr_id = 48
     #usr_id = session['user_id']
+    RESULTS = results
     #############################################
     out = ''
     homology = homology if homology is True else False
@@ -161,14 +162,27 @@ def create_kpartite_file_from_gene_intersection(taskid, proj1, proj2, homology=T
     # Populate the edges between the intersectin of the lists of geneset ids in projDict1 and projDict2
     partition3 = edge_proj2proj([v.geneset_id for v in projDict1], [v.geneset_id for v in projDict2])
 
-    #Create the first line (1st part, 2nd part, 3rd part, total)
+    # Create the first line (1st part, 2nd part, 3rd part, total)
+    # and write out to RESULTS directory
     firstLine = str(len(partition1) + len(partition3)) + '\t' + str(len(partition2) + len(partition3)) + '\t' + str(len(partition1) + len(partition2)) + '\t' + str(len(partition1) + len(partition2) + len(partition3)) + '\n'
 
     file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
 
-    out = open('/Users/baker/Desktop/tricliquetest.kel', 'wb')
+    out = open(RESULTS + taskid + '.kel', 'wb')
     out.write(file)
     out.close()
+
+
+def create_json_from_triclique_output(taskid, results):
+    """
+    This function is not finished becuase I am not sure of the exact format for all possible values of k
+    :param taskid: this is prepended to .kel files
+    :param results: from the results directory
+    :return: true
+    """
+    return
+
+
 
 
 

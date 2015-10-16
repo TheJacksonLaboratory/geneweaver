@@ -15,7 +15,7 @@ from flask import session
 app = flask.Flask(__name__)
 
 # Need to change this path to ~/Documents/geneweaver/results
-RESULTS_PATH = '~/Documents/geneweaver/results'
+RESULTS_PATH = '/Users/group10admin/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -229,7 +229,12 @@ def get_all_projects(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT p.*, x.* FROM project p, (
+            (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
+                CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
+                WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
+                (SELECT p2g.pj_id FROM project2geneset p2g WHERE p2g.pj_id=p.pj_id))
+            UNION
+            (SELECT p.*, x.* FROM project p, (
                 SELECT p2g.pj_id, COUNT(gs_id), x.count AS deprecated, g.group
                 FROM
                     project2geneset p2g
@@ -247,7 +252,7 @@ def get_all_projects(usr_id):
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
-            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name;
+            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
             ''',
             {'usr_id': usr_id}
         )
@@ -524,7 +529,7 @@ def delete_geneset_by_gsid(rargs):
 def delete_project_by_id(rargs):
     projids = rargs.split(',')
     user_id = flask.session['user_id']
-    if user_id != 0 or get_user(user_id).is_admin != False or get_user(user_id).is_curator != False:
+    if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
         with PooledCursor() as cursor:
             cursor.execute('''DELETE from project2geneset WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
             cursor.execute('''DELETE from project WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
@@ -532,6 +537,39 @@ def delete_project_by_id(rargs):
             cursor.connection.commit()
         return
 
+
+def add_project_by_name(rargs):
+    name = rargs
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created) VALUES (%s, %s, now())''', (user_id,
+                                name,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
+
+
+def change_project_by_id(rargs):
+    id = rargs['projid']
+    name = rargs['projname']
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''UPDATE project SET pj_name=%s WHERE pj_id=%s''', (name, id,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
 
 def delete_geneset_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)

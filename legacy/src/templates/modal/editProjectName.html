@@ -1,0 +1,25 @@
+{# This modal allows you to edit the name for the project #}
+
+<div class="modal fade" id="editModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editProjectName" name="editProjectName" method="post" action="#" class="form-horizontal"
+                  novalidate="novalidate">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" id="editLabel" style="color: #f5f5f5">Edit Project Name</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="form-class">
+                        <label for="projName"><h4>Edit Project Name:</h4></label>
+                        <input class="form-control input-lg" name="projName" id="projName" type="text" value=""/>
+                        <input type="hidden" name="projId" id="projId" value=""/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="editSubmit">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
