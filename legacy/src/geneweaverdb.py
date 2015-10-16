@@ -229,7 +229,7 @@ def get_all_projects(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            (SELECT p.*, x.* FROM project p, (select CAST(NULL AS INTEGER) as pj_id, CAST(NULL AS BIGINT) as count,
+            (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
                 CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
                 WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
                 (SELECT p2g.pj_id FROM project2geneset p2g WHERE p2g.pj_id=p.pj_id))
