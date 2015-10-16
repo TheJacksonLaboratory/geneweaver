@@ -1439,6 +1439,7 @@ def render_reset():
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
     form = flask.request.form
+    print 'yeep'
     if not form['usr_first_name']:
         return flask.render_template('register.html', error="Please enter your first name.")
     elif not form['usr_last_name']:
