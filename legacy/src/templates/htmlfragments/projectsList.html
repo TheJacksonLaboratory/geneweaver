@@ -1,0 +1,121 @@
+<style type="text/css">
+
+    .clickableEdit {
+        cursor: pointer;
+        color: #d3d3d3;
+    }
+
+</style>
+
+<div class="panel-group" id="projAccordion">
+
+    {% if "user" in g %}
+
+        {% for proj in g.user.projects %}
+            <div id="project-{{ proj.project_id }}" class="panel">
+                <div class="panel-heading">
+                    <h2 class="panel-title">
+                        <div class="row">
+                            <div class="col-xs-2">
+                                {#
+                                                <input
+                                                        type="checkbox"
+                                                        class="proj-checkbox"
+                                                        id="proj-{{ proj.project_id }}-allcheck"
+                                                        name="project_{{ proj.project_id }}"
+                                                        data-project="{{ proj.project_id }}"
+                                                        >
+                                                        #}
+
+                                <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
+                                    <label for="proj-{{ proj.project_id }}-allcheck">
+                                        <input type="checkbox" data-project="{{ proj.project_id }}"
+                                               data-project-name="{{ proj.name }}"
+                                               id="proj-{{ proj.project_id }}-allcheck"/>
+                                    </label>
+                                </div>
+
+                            </div>
+                            <div class="col-xs-10" style="vertical-align: bottom;">
+                                <a class="project-link" data-toggle="collapse"
+                                   data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
+                                    <i class="fa fa-caret-right"></i> </span>
+                                    {{ proj.name }}
+                                </a>
+                                <span class="clickableEdit" id="edit-{{ proj.project_id }}" data-proj-name="{{ proj.name }}"
+                                      data-proj-id="{{ proj.project_id }}">
+                                    <i class="fa fa-pencil"></i></span>
+
+                            </div>
+                        </div>
+                    </h2>
+                </div>
+                <div id="genesets-{{ proj.project_id }}" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <table id="project-body-{{ proj.project_id }}" class="table table-hover">
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning fade in">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+            You do not have any projects.
+        </div>
+    {% endif %}
+</div>
+
+{% include 'modal/editProjectName.html' %}
+
+<script type="text/javascript">
+
+    // Update project set to new name
+        $('.clickableEdit').on('click', function () {
+           var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            $("#projName").val(projName);
+            $("#projId").val(projId);
+            $("#editModal").modal('show');
+        });
+
+    // Process the project name change
+        $('#editSubmit').on('click', function () {
+           var n = $('#projName').val();
+            var i = $('#projId').val();
+            $.ajax({
+                type: "GET",
+                url: "/changeProjectNameById",
+                data: {"projid": i, "projname": n},
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project name changed successfully.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        location.reload()
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error Occurred. " + v["error"],
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                },
+                error: function (data) {
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while changing project name.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
+
+    </script>

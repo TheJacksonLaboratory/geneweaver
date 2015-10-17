@@ -2,6 +2,10 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+{#<script src="/static/d3/radar.js" charset="utf-8"></script>#}
+
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
@@ -10,36 +14,40 @@
     <div class="row">
         <div class="col-md-12">
                 <div class="panel panel-info">
-				<div class="panel-heading">
-					<h2 class="panel-title">
-						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-							Rerun Tool Options
-						</a>
-					</h2>
-				</div>
-				<div id="jcCollapse" class="panel-collapse collapse">
-					<div class="panel-body">
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+            <div class="panel-heading">
+               <h2 class="panel-title">
+                  <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+                     Rerun Tool Options
+                  </a>
+               </h2>
+            </div>
+            <div id="jcCollapse" class="panel-collapse collapse">
+               <div class="panel-body">
+                  <div class="row">
+                     <div class="col-md-4">
+                        <div class="form-group">{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
+                     </div>
+                     <div class="col-md-4">
+                        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
+                     </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
+                            </div>
 
-								<button class="btn btn-primary" 
-									type='submit'
-									value='run'
-									onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
-									Run
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
+                     <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+
+                        <button class="btn btn-primary"
+                           type='submit'
+                           value='run'
+                           onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
+                           Run
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
         </div>
     </div>
 </form>
@@ -51,7 +59,7 @@
 <table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left" style=" border-bottom: thin solid #ccc;"> &nbsp;
 
 {% for item in async_result.geneset_table %}
-  </th><th style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: thin solid #ccrc; {cycle values=",background-color: #fff;"}">
+  </th><th style="border-top: 4px solid #000; border-right: 4px solid #000; border-left: 4px solid #000; border-bottom: 4px solid #000; {cycle values=",background-color: #fff;"}">
   <a href="{{ item.url }}">{{ item.gsID }}</a>
 {% endfor %}
 </th></tr>
@@ -63,19 +71,19 @@
 <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
 <a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
     {% for jac in item.entries %}
-	<td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
+   <td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
     {% if jac.url == "0" %}
         <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
     {% elif jac.url == "1" %}
         <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
     {% elif jac.url %}
-	   <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
+      <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
     {% else %}
-	   <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
+      <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
     {% endif %}
     </td>
     {% set i = i + 1 %}
-	{% endfor %}
+   {% endfor %}
     {%set j = j + 1 %}
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
@@ -91,10 +99,10 @@
         {% endfor %}
         <option value="-2">+ Create new project...</option></select></p>
 </div>
-	<script type="text/javascript">
-		function handleSelect(elm)
-		{
-			var genesets = []
+   <script type="text/javascript">
+      function handleSelect(elm)
+      {
+         var genesets = [];
             if (elm.value != "-1") {
                 if (elm.value == "-2") {
                     var name = prompt("Enter a name for the new project:");
@@ -127,70 +135,309 @@
                         }
                     }
                     else {
-                        window.alert("Please select gene set(s) to add first!")
+                         window.alert("Please select gene set(s) to add first!")
                     }
                 }
             }
-		}
+      }
 </script>
 </td></tr>
 </table>
 
 <br /><br /><h4>Venn Diagram view:</h4>
 
-View As:</br>
+
+<br>
+View As:</r>
 <form>
-	<label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
-	<label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
+   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
+   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
+    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
 </form>
 
 Download As:
 <select name="downloadType" id="downloadType">
-	<option value="null">Select file type...</option>
-	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
-	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
-	<option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
+   <option value="null">Select file type...</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
 </select>
+<br><br><br>
+{#  <div class="row">#}
+{#    <div class="col-md-12 link-panel" style="text-align: center;">#}
+{#        <iframe id="resultFrame" style="height:1000px; width:2200px;"></iframe>#}
+{##}
+{#    </div>#}
+{#</div>#}
 
-<div class="row">
-    <div class="col-md-12 link-panel" style="text-align: center;">
-        <iframe style="width:90%; height:95%; min-height: 550px;" src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}" id="svgFrame" frameborder="0"></iframe>
-    </div>
-</div>
 
-<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
+<div id="jaccard"></div>
 
+
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<link rel="stylesheet" href="/resources/demos/style.css">
 <script type="text/javascript">
-	var urlMenu = document.getElementById("downloadType");
-	urlMenu.onchange = function () {
-		if(this.value!='null'){
-			window.open(this.options[this.selectedIndex].value, '_blank');
-		}
-	}
-	
+
+
+
+ $(function() {
+    $( "#slider" ).slider({
+      value: 0.5,
+      min: 0.00,
+      max: 1.0,
+      step: 0.05,
+      slide: function( event, ui ) {
+        $( "#amount" ).val( ui.value );
+      }
+    });
+    $( "#amount" ).val( $( "#slider" ).slider( "value" ) );
+  });
+
+
+
+    var d = {{ data | safe }};
+    var count = 0;
+    for (var key in d.venn_diagrams)
+        if (d.venn_diagrams.hasOwnProperty(key))
+            count++;
+    var count_text = 0;
+    var check = 0;
+    var venn_d = [];
+    var text_d = [];
+    var gene_lab_coor = [];
+    var circleData = [];
+    var num_sets = Math.sqrt(count);
+    var x_coord = 0;
+    var y_coord = 0;
+    var gene_sets = [];
+    gene_sets = d.genesets;
+    for (i = 0; i < count; i++) {
+        if (i % num_sets === 0) {
+            x_coord = 150;
+            y_coord += 150;
+            if (i === 0) {
+                y_coord = 50;
+            }
+        }
+        else {
+            x_coord += 200;
+        }
+
+        gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
+        count_text = 0;
+        for (var key in d.venn_diagrams[i].text) {
+            if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
+                ++count_text;
+            }
+        }
+        for (k = 0; k < count_text; k++) {
+            if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
+                circleData.push({
+                    "cx": d.venn_diagrams[i].c2x,
+                    "cy": d.venn_diagrams[i].c2y,
+                    "radius": d.venn_diagrams[i].r2,
+                    "fill": "#66FFFF",
+                    "opacity": ".5",
+                    "cxshift": x_coord,
+                    "cyshift": y_coord,
+                    "des": d.venn_diagrams[i].desc1
+
+                });
+
+
+                if (k === 0) {
+                    circleData.push({
+                        "gene_id": d.venn_diagrams[i].text[k].text,
+                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
+                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
+                        "label": gene_sets[check],
+                        "labelx": x_coord,
+                        "labely": y_coord
+
+                    });
+
+                    check += 1;
+                    {#                 console.log("Check", check);#}
+                }
+                else {
+                    circleData.push({
+                        "gene_id": d.venn_diagrams[i].text[k].text,
+                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 18,
+                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 24
+                    });
+                }
+
+            }
+            else {
+                circleData.push({
+                    "cx": d.venn_diagrams[i].c2x,
+                    "cy": d.venn_diagrams[i].c2y,
+                    "radius": d.venn_diagrams[i].r2,
+                    "fill": "#0000FF",
+                    "opacity": ".5",
+                    "cxshift": x_coord,
+                    "cyshift": y_coord,
+                    "gene_id": d.venn_diagrams[i].text[k].text,
+                    "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                    "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                    "des": d.venn_diagrams[i].desc1
+
+                });
+                circleData.push({
+                    "cx": d.venn_diagrams[i].c1x,
+                    "cy": d.venn_diagrams[i].c1y,
+                    "radius": d.venn_diagrams[i].r1,
+                    "fill": "#FF8000",
+                    "opacity": ".5",
+                    "cxshift": x_coord,
+                    "cyshift": y_coord
+                });
+            }
+        }
+
+    }
+
+    var border = 1;
+    var bordercolor = 'black';
+
+	var tooltip = d3.selectAll("#jaccard")
+        .data(circleData)
+        .append("div")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden");
+
+    tooltip. append("tooltip")
+        .text(function (d) { return d.des;})
+        .attr("font-size", "6px");
+
+    //Create the SVG Viewport
+    var svgContainer = d3.select("#jaccard").append("svg")
+            .attr("width", x_coord + 250)
+            .attr("height", y_coord + 250)
+            .attr("border",border);
+
+//Add circles to the svgContainer
+    var circles = svgContainer.selectAll("circle")
+            .data(circleData)
+            .enter()
+            .append("circle")
+            .on("mouseover", function(){return tooltip.style("visibility", "visible");})
+	        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+	        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+
+
+
+ 	var borderPath = svgContainer.append("rect")
+       			.attr("x", 0)
+       			.attr("y", 0)
+       			.attr("height", y_coord + 200 )
+       			.attr("width", x_coord + 200)
+       			.style("stroke", bordercolor)
+       			.style("fill", "none")
+       			.style("stroke-width", border);
+
+//Add the circle attributes
+    var circleAttributes = circles
+            .attr("cx", function (d) { return d.cx + d.cxshift + 50; })
+            .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
+            .attr("r", function (d) {return d.radius; })
+            .style("fill", function (d) { return d.fill; })
+            .style("fill-opacity", function (d) {return d.opacity - .3})
+            .attr("cxshift", function (d) {   return d.cxshift; })
+            .attr("cyshift", function (d) {  return d.cyshift; })
+            .attr("label", function (d) { return d.label; })
+            .style("stroke", bordercolor)
+            .attr("border", border);
+
+
+//Add the SVG Text Element to the svgContainer
+    var text = svgContainer.selectAll("text")
+            .data(circleData)
+            .enter();
+
+    text.append("text")
+            .text(function (d) {return d.label;})
+            .attr("x", function (d) {return d.labelx + 70; })
+            .attr("y", function (d) {return 50; })
+            .style("font-weight", "bold");
+
+    text.append("text")
+            .text(function (d) {return d.label;})
+            .attr("x", function (d) {return 50;})
+            .attr("y", function (d) {return d.labely + 100;})
+            .style("font-weight", "bold");
+
+    text.append("text")
+            .text(function (d) { return d.gene_id;})
+            .attr("x", function (d) { return d.txshift; })
+            .attr("y", function (d) { return d.tyshift;  })
+            .attr("font-size", "11px");
+
+{#    text.append("text")#}
+{#            .text(function (d) { return d.des;})#}
+{#            .attr("x", function (d) { return d.cxshift + (d.radius/2); })#}
+{#            .attr("y", function (d) { return d.cyshift + (d.radius/2) + 10;  })#}
+{#            .attr("font-size", "6px");#}
+
+//Add SVG Text Element Attributes
+    var textLabels = text
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "12px")
+            .attr("fill", "black");
+
+
+var urlMenu = document.getElementById("downloadType");
+urlMenu.onchange = function () {
+    if (this.value != 'null') {
+        window.open(this.options[this.selectedIndex].value, '_blank');
+    }
+}
+
 function changeImg(sel, dl) {
-	
-	if(sel.value=='svg') {
-		document.getElementById("svgFrame").src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}";
-	}
-	else if(sel.value=='png') {
-		document.getElementById("svgFrame").src="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}";
-	}
+
+    if (sel.value == 'svg') {
+        document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}";
+    }
+    else if (sel.value == 'png') {
+        document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}";
+    }
+    else if (sel.value == 'pdf') {
+        document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}";
+    }
 }
 
 function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
-        var allChecked = true;
-        genesetCheckboxes.each(function(i, gsCheckbox) {
-            gsCheckbox = $(gsCheckbox);
-            if(!gsCheckbox.prop('checked')) {
-                allChecked = false;
-                return false;
-            }
-        });
+    var allChecked = true;
+    genesetCheckboxes.each(function (i, gsCheckbox) {
+        gsCheckbox = $(gsCheckbox);
+        if (!gsCheckbox.prop('checked')) {
+            allChecked = false;
+            return false;
+        }
+    });
 
-        projCheckbox.prop('checked', allChecked);
-    }
+    projCheckbox.prop('checked', allChecked);
+}
 
-</script>
+
+ </script>
+
+
+
+<p><br></p>
+
+<p>
+  <label for="amount"  style="font-size:18px;font-weight:bold;" > Jaccard Threshold (0.05 increments):</label>
+  <input type="text" id="amount" readonly style="border:0; color:#660839; font-weight:bold; font-size:18px;">
+</p>
+<div id="slider"></div>
+<br><br><br>
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
+
+
 
 {% include 'footer.html' %}

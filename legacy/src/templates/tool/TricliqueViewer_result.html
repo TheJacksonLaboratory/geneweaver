@@ -2,6 +2,7 @@
     file created by Melissa 9/15/15
     file needs to be altered to perform specific functions for triclique tool
     modified by Kevin 9/20/15
+    modifed by Clarissa on many, many days
 -->
 
 {% set title=tool.name + " Triclique Results" %}
@@ -30,9 +31,6 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 <meta charset="utf-8" xmlns="http://www.w3.org/1999/html">
 <!-- <title>k-Partite Results</title> -->
 <style>
-
-    {# @import url("../../static/style.css"); #}
-    @import url(style.css);
 
     html {
         min-width: 1040px;
@@ -71,15 +69,9 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
         right: 0;
         text-align: right;
     }
-
-    #chordcode {
-        margin-left: 100px;
-    }
-
     #footer {
-        font-size: small;
-        position: absolute;
-        bottom: -200px;
+        float: left;
+        clear: both;
     }
 
 </style>
@@ -92,6 +84,43 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 
     <aside>Mouseover to focus on genes contained within each origin set: (# of genes at the intersection of both sets)/(# of genes in that set).
         Genes cords are defined as the percent of gene sets that contain that gene. Currently only genes appearing in > 80% of gene sets are indicated.</aside>
+
+    <div id="contain" width=100%>
+            <div id="triclique" class="row" style="float:left"></div>
+            <div class="sets" style="float:right">
+                <script>
+                function IO(U, V) {
+                    var X = !window.XMLHttpRequest ? new ActiveXObject("Microsoft.XMLHTTP") : new XMLHttpRequest;
+                    X.open(V ? "PUT" : "GET", U, false);
+                    X.setRequestHeader("Content-Type", "text/html");
+                    X.send(V ? V : "");
+                    return X.responseText;
+                }
+
+                var mycells = IO('../../static/cities2.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
+                var temp = '';
+                var t = '';
+                //document.write(mycells.join("\n")); //view the cells
+                for (i=1; i < mycells.length; ++i){
+                    entry = mycells[i];
+                    for (j=0; j < entry.length; ++j){
+                        temp = entry[j];
+                        var n = temp.split(',');
+                        t = n[1].replace(/-.*/,'');
+                        t = n[0] + ' ' + t + '<br>';
+                        document.writeln(t.fontcolor(n[4]));
+                    }
+                }
+                </script>
+            </div>
+    </div>
+
+    <div id="footer">
+        This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
+    </div>
+
+<!-- include csvReader script file -->
+
     <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
     <script src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
     <script>$.support.cors = true;</script> {# Both the local browser and the remote server must support CORS. Internet Explorer < 10 doesn't support it.
@@ -100,37 +129,6 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     resource loaded from Domain A (http://domaina.example) such as an HTML web page, makes a request for a resource on Domain B (http://domainb.foo),
     such as an image, using the img element (http://domainb.foo/image.jpg).  This occurs very commonly on the web today — pages load a number of resources
     in a cross-site manner, including CSS stylesheets, images and scripts, and other resources.#}
-
-
-<!-- include csvReader script file -->
-
-    <div class="sets">
-    <script>
-        function IO(U, V) {
-            var X = !window.XMLHttpRequest ? new ActiveXObject("Microsoft.XMLHTTP") : new XMLHttpRequest;
-            X.open(V ? "PUT" : "GET", U, false);
-            X.setRequestHeader("Content-Type", "text/html");
-            X.send(V ? V : "");
-            return X.responseText;
-        }
-
-        var mycells = IO('../static/cities.csv').split(/\n/g).map(function(a){return a.split(/\t/g)} );
-        var temp = '';
-        var t = '';
-        //document.write(mycells.join("\n")); //view the cells
-        for (i=1; i < mycells.length; ++i){
-            entry = mycells[i];
-            for (j=0; j < entry.length; ++j){
-                temp = entry[j];
-                var n = temp.split(',');
-                t = n[1].replace(/-.*/,'');
-                t = n[0] + ' ' + t + '<br>';
-                document.writeln(t.fontcolor(n[4]));
-            }
-        }
-    </script>
-    </div>
-
     <script>
         $('#Help').click(function() {
             $("aside").slideToggle("slow");
@@ -143,14 +141,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     });
     </script>
 
-    <div id="chordcode">
-        <script src="../../static/d3/ChordDiagram.js" charset="utf-8"></script>
-        <script type="text/javascript"></script>
-    </div>
-
-    <div id="footer">
-        This example is built form the work by <a href="http://bost.ocks.org/mike/" rel="author">Mike Bostock</a> and <a href="http://d3js.org/">d3.js</a>.
-    </div>
+    <script src="/static/d3/ChordDiagram.js"></script>
 
 </body>
 </html>

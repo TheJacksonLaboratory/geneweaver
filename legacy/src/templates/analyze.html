@@ -5,7 +5,16 @@
 
 <style>
 
-
+    a:link {
+        #color: darkgreen;
+    }
+    a:hover {
+        #color: green;
+        text-decoration: none;
+    }
+    a:visited {
+        text-decoration: none;
+    }
 
     .panel .panel-header .panel-info .panel-heading {
         background-color: #F0F0F0;
@@ -65,9 +74,9 @@
             <!-- the Analysis tools column -->
             <div class="col-md-4">
                 <div class="page-header">
-                    <h2>Analysis Tools</h2></div>
+                    <h2>Analysis Tools</h2>
+                </div>
                 <div class="panel-group" id="accordion">
-
                     {% for tool in active_tools %}
                         {% include 'tool/' + tool.classname + '_options.html' %}
                     {% endfor %}
@@ -80,51 +89,37 @@
                 <div class="panel-group" id="projAccordion">
 
                     {% if "user" in g %}
-                        {#
-                        <div id="new project" class="panel panel-info">
-                            <div class="panel-heading">
-                                <h2 class="panel-title">
-                                    <div class="row">
-                                        <div class="col-xs-10">
-                                            {% set blah="blah" %}
-                                            <a href='#' onclick='getProjName()'>
-                                                <script>
-                                                    function getProjName() {
-                                                        var pjname = prompt("Enter the name of your new project: ");
-                                                        if (pjname != null) {
-                                                            window.location = "/analyze_new_project/" + pjname + ".html";
-                                                        }
-                                                    }
-                                                </script>
-                                                <span class="fa fa-folder-o"></span>
-                                                Create New Empty Project
-                                            </a>
-                                        </div>
-                                    </div>
-                                </h2>
-                            </div>
-                        </div>
-                        #}
+
                         {% for proj in g.user.projects %}
                             <div id="project-{{ proj.project_id }}" class="panel">
                                 <div class="panel-heading">
                                     <h2 class="panel-title">
                                         <div class="row">
                                             <div class="col-xs-2">
-
+                                                {#
                                                 <input
                                                         type="checkbox"
                                                         class="proj-checkbox"
                                                         id="proj-{{ proj.project_id }}-allcheck"
                                                         name="project_{{ proj.project_id }}"
+                                                        #console.log(name)
                                                         data-project="{{ proj.project_id }}"
                                                         >
+                                                        #}
+
+
+                                                <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
+                                                    <label for="proj-{{ proj.project_id }}-allcheck">
+                                                        <input type="checkbox" data-project="{{ proj.project_id }}"
+                                                               id="proj-{{ proj.project_id }}-allcheck"/>
+                                                    </label>
+                                                </div>
 
                                             </div>
-                                            <div class="col-xs-10">
-                                                <a class="project-link" data-toggle="collapse" right
+                                            <div class="col-xs-10" style="vertical-align: bottom;">
+                                                <a class="project-link" data-toggle="collapse"
                                                    data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
-                                                    <span class="fa fa-chevron-down"></span>
+													<i class="fa fa-caret-right"></i> </span>
                                                     {{ proj.name }}
                                                 </a>
 
@@ -134,9 +129,7 @@
                                 </div>
                                 <div id="genesets-{{ proj.project_id }}" class="panel-collapse collapse">
                                     <div class="panel-body">
-                                        <table class="table table-striped">
-                                            <tbody id="project-body-{{ proj.project_id }}">
-                                            </tbody>
+                                        <table id="project-body-{{ proj.project_id }}" class="table table-hover">
                                         </table>
                                     </div>
                                 </div>
@@ -171,9 +164,51 @@
 
         var url = '/projectGenesets.json';
 
+		// Ensures the plus icon is next to each tool under the
+		// analysis tools sidebar. Here so I don't have to change 
+		// this piece of HTML in each of the tool option templates.
+		$('.panel-title').each(function(index, elem) {
+
+			var child = $(elem).children('a');
+			var href = $(child).attr('data-parent');
+
+			if (href == '#accordion')
+				$(child).addClass('collapsed');
+		});
+
+		// All selector checkbox
+		$('.proj-checkbox').on('click', function(event) {
+
+			var check = $(this).find('input[type=checkbox]');
+			var allcheck = '#' + check.attr('id');
+			var pid = allcheck.split('-')[1];
+			var gscheck = '.proj-' + pid + '-check';
+
+			if ($(allcheck).attr('checked')) {
+
+				$(gscheck).each(function (index) {
+					$(this).attr('checked', false);
+				});
+
+			} else {
+
+				$(gscheck).each(function (index) {
+					$(this).attr('checked', true);
+				});
+			}
+		});
+
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
         $('.project-link').on('click', function (event) {
+
+			// Change chevron when project info is displayed
+			var chev = $(this).children('.fa-caret-right').length ?
+					   $(this).children('.fa-caret-right') : 
+					   $(this).children('.fa-caret-down');
+
+			chev.toggleClass('fa-caret-down')
+			chev.toggleClass('fa-caret-right')
 
             // Get the project ID from the link href, but gotta strip out
             // '#genesets-' first
@@ -188,6 +223,7 @@
             // Flask should return the rendered HTML, inject it into the DOM
             $.get(url, data).done(function (data) {
 
+				var tbody = pbid + ' tbody'
                 $(pbid).append(data);
 
                 var allclass = '#proj-' + pid + '-allcheck';
