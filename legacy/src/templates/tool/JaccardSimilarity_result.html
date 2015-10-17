@@ -4,6 +4,17 @@
 {% import 'macros.html' as macros %}
 <style>
 
+    div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 200px;
+  height: 30px;
+  padding: 2px;
+  font: 10px sans-serif;
+  background: ghostwhite;
+  pointer-events: none;
+        font-weight: bold;
+}
     #slider {
   margin-top: 50px;
   margin-left: 50px;
@@ -185,11 +196,6 @@
 
 <script type="text/javascript">
 
-//     $(function(){
-//         $.get("/changePvalues/5/7/0", function(pVal){
-//             console.log( "Data Loaded: " + pVal );
-//         })
-//     });
 
 // </script>
 
@@ -238,11 +244,6 @@
             }
         }
         for (k = 0; k < count_text; k++) {
-            // var pvalue = 
-            // $.get("/changePvalues/5/7/0", function(pVal){
-            //     return pVal
-            // });
-            // alert("outside the function"+JSON.stringify(pvalue));
 
             if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
                 circleData.push({
@@ -270,7 +271,6 @@
 
                         });
                         check += 1;
-                        {#                 console.log("Check", check);#}
 
                 }
                 else {
@@ -304,7 +304,8 @@
                     "fill": "#FF8000",
                     "opacity": ".5",
                     "cxshift": x_coord,
-                    "cyshift": y_coord
+                    "cyshift": y_coord,
+                    "des": d.venn_diagrams[i].desc1
                 });
             }
         }
@@ -313,33 +314,21 @@
     var border = 1;
     var bordercolor = 'black';
 
-	var tooltip = d3.select("circle")
-        .data(circleData)
-            .enter()
-        .append("div")
-        .style("position", "absolute")
-        .style("z-index", "10")
-        .style("visibility", "hidden");
 
-    tooltip. append("tooltip")
-        .text(function (d) { return d.des;})
-        .attr("font-size", "6px");
 
     //Create the SVG Viewport
     var svgContainer = d3.select("#jaccard").append("svg")
             .attr("width", x_coord + 250)
-            .attr("height", y_coord + 250)
-            .attr("border",border);
+            .attr("height", y_coord + 250);
 
+    var div = d3.select("#jaccard").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
 //Add circles to the svgContainer
     var circles = svgContainer.selectAll("circle")
             .data(circleData)
             .enter()
-            .append("circle")
-            .on("mouseover", function(){return tooltip.style("visibility", "visible");})
-	        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
-	        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
-
+            .append("circle");
 
 
 //Add the circle attributes
@@ -353,14 +342,25 @@
             .attr("cyshift", function (d) {  return d.cyshift; })
             .attr("label", function (d) { return d.label; })
             .style("stroke", bordercolor)
-            .attr("border", border);
-
+            .attr("border", border)
+    .on("mouseover", function(d) {
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div .html((d.des) + "<br/>")
+                .style("left", (d3.event.pageX) + "px")
+                .style("top", (d3.event.pageY) + "px");
+            })
+        .on("mouseout", function(d) {
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);   });
 
 //Add the SVG Text Element to the svgContainer
     var text = svgContainer.selectAll("text")
             .data(circleData)
             .enter();
-
+{##}
     text.append("text")
             .text(function (d) {return d.label;})
             .attr("x", function (d) {return d.labelx + 70; })
@@ -379,16 +379,9 @@
             .attr("y", function (d) { return d.tyshift;  })
             .attr("font-size", "11px");
 
-{#    text.append("text")#}
-{#            .text(function (d) { return d.des;})#}
-{#            .attr("x", function (d) { return d.cxshift + (d.radius/2); })#}
-{#            .attr("y", function (d) { return d.cyshift + (d.radius/2) + 10;  })#}
-{#            .attr("font-size", "6px");#}
-
      function sizeChange() {
 	    d3.select("g").attr("transform", "scale(" + svgContainer.width()/900 + ")");
          d3.select("g").attr("transform", "scale(" + svgContainer.height()/900 + ")");
-{#	    $("svg").height(svgContainer).width()*0.618);#}
 	}
 //Add SVG Text Element Attributes
     var textLabels = text
@@ -439,8 +432,6 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 <h4> Jaccard Threshold (0.05 increments):<input type="text" id="amount" readonly ></h4>
 
- 
-
 
 <div id="jaccard">
 
@@ -450,6 +441,7 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 <script type="text/javascript">
     function repositionTooltip( e, ui ){
+        
     $("#jaccard").css("opacity",ui.value);
     var div = $(ui.handle).data("tooltip").$tip[0];
     var pos = $.extend({}, $(ui.handle).offset(), { width: $(ui.handle).get(0).offsetWidth,height: $(ui.handle).get(0).offsetHeight
@@ -475,10 +467,6 @@ $("#slider").slider({
       }
 });
 
-{#$("#slider .ui-slider-handle:first").tooltip({#}
-{#    title: $("#slider").slider("value"),#}
-{#    trigger: "manual"#}
-{#{).tooltip("show");#}
 </script>
 <br>
 
