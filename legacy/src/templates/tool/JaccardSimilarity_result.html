@@ -194,12 +194,9 @@
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <link rel="stylesheet" href="/resources/demos/style.css">
 
-<script type="text/javascript">
+{{ data | safe }}
 
 
-// </script>
-
-<!-- {{ data | safe }} -->
 
 <script type="text/javascript">
 
@@ -207,6 +204,7 @@
 
 
     var d = {{ data | safe }};
+
     var count = 0;
     for (var key in d.venn_diagrams)
         if (d.venn_diagrams.hasOwnProperty(key))
@@ -256,6 +254,7 @@
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1
 
+
                 });
 
 
@@ -296,6 +295,7 @@
                     "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                     "des": d.venn_diagrams[i].desc1
 
+
                 });
                 circleData.push({
                     "cx": d.venn_diagrams[i].c1x,
@@ -311,6 +311,17 @@
         }
 
     }
+    urls = [];
+    entry_count= 0;
+    for (var key in d.geneset_table) {
+        if (d.geneset_table.hasOwnProperty(key))
+            entry_count++;
+    }
+
+    for (i = 0; i < entry_count; i++) {
+
+    }
+    console.log("entry count: ", entry_count);
     var border = 1;
     var bordercolor = 'black';
 
@@ -354,7 +365,11 @@
         .on("mouseout", function(d) {
             div.transition()
                 .duration(500)
-                .style("opacity", 0);   });
+                .style("opacity", 0);   })
+
+        .on("click", function(d) {
+           window.open(
+                   "http://127.0.0.1:5000/viewgenesetdetails/206538")});
 
 //Add the SVG Text Element to the svgContainer
     var text = svgContainer.selectAll("text")
@@ -441,7 +456,7 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 <script type="text/javascript">
     function repositionTooltip( e, ui ){
-        
+
     $("#jaccard").css("opacity",ui.value);
     var div = $(ui.handle).data("tooltip").$tip[0];
     var pos = $.extend({}, $(ui.handle).offset(), { width: $(ui.handle).get(0).offsetWidth,height: $(ui.handle).get(0).offsetHeight
