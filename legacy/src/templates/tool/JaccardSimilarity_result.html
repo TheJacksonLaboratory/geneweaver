@@ -194,9 +194,6 @@
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <link rel="stylesheet" href="/resources/demos/style.css">
 
-{{ data | safe }}
-
-
 
 <script type="text/javascript">
 
@@ -217,7 +214,7 @@
     var circleData = [];
     var num_sets = Math.sqrt(count);
     var x_coord = 0;
-
+    var fix = false;
     var y_coord = 0;
 
     var gene_sets = [];
@@ -265,9 +262,9 @@
 
                 });
 
-
-                if (k === 0){
-                        circleData.push({
+                 fix = true;
+                if((i === 0) && (k === 0)){
+                     circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
@@ -277,8 +274,22 @@
 
                         });
                         check += 1;
+                }
+                else if ( (k===0) && (i !== 0) && (i%(num_sets+1) ===0)){
+                        circleData.push({
+                            "gene_id": d.venn_diagrams[i].text[k].text,
+                            "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
+                            "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
+                            "label": gene_sets[check],
+                            "labelx": x_coord,
+                            "labely": y_coord
+
+                        });
+                    console.log(i, num_sets+1, i%(num_sets+1));
+                        check += 1;
 
                 }
+
                 else {
                     circleData.push({
                         "gene_id": d.venn_diagrams[i].text[k].text,
@@ -318,20 +329,11 @@
                 });
 
             }
+
         }
 
-    }
-    urls = [];
-    entry_count= 0;
-    for (var key in d.geneset_table) {
-        if (d.geneset_table.hasOwnProperty(key))
-            entry_count++;
-    }
-
-    for (i = 0; i < entry_count; i++) {
 
     }
-    console.log("entry count: ", entry_count);
     var border = 1;
     var bordercolor = 'black';
 
