@@ -7,8 +7,9 @@ import flask
 import json
 import uuid
 
-import geneweaverdb as gwdb
+from geneweaverdb import *
 import toolcommon as tc
+from edgelist import *
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -31,27 +32,20 @@ def run_tool():
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
-    #if 'projects' in form:
-    #    add_projects = form['projects'].split(' ')
-    #    edited_add_projects = [pj[2:] for pj in add_projects]
-    #    selected_project_ids = selected_project_ids + edited_add_projects
-
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
         params[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
-
-    n = 0
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    '''
+    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_ExactGeneOverlap'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
-                n = 1
             else:
                 if len(selected_project_ids) != 2:
                     flask.flash("Warning: You must select 2 projects!")
@@ -59,14 +53,11 @@ def run_tool():
         elif tool_param.name.endswith('_Jaccard'):
             if params[tool_param.name] != 'Enabled':
                 params[tool_param.name] = 'Disabled'
-                if n:
-                    flask.flash("You must enable either Exact Gene Overlap or Jaccard")
-                    return flask.redirect('analyze')
-
             else:
                 if len(selected_project_ids) < 3:
                     flask.flash("Warning: You need at least 3 projects!")
                     return flask.redirect('analyze')
+    '''
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -78,18 +69,10 @@ def run_tool():
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze')
 
-    # Gather emphasis gene ids and put them in paramters
-    emphgeneids = []
-    user_id = flask.session['user_id']
-    emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
-    for row in emphgenes:
-        emphgeneids.append(str(row['ode_gene_id']))
-    params['EmphasisGenes'] = emphgeneids
-
     task_id = str(uuid.uuid4())
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    tool = get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
-    gwdb.insert_result(
+    insert_result(
         user_id,
         task_id,
         selected_geneset_ids,
@@ -107,6 +90,9 @@ def run_tool():
         },
         task_id=task_id)
 
+    # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
+    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
@@ -122,13 +108,13 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     '''
     # TODO need to check for read permissions on genesets
 
-    user_id = gwdb.get_user_id_by_apikey(apikey)
+    user_id = get_user_id_by_apikey(apikey)
 
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
 
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_' + 'SupressDisconnected'):
 		    params[tool_param.name] = supressDisconnected
 		    if supressDisconnected not in ['On','Off']:
@@ -156,9 +142,9 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     # insert result for this run
 
     task_id = str(uuid.uuid4())
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    tool = get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
-    gwdb.insert_result(
+    insert_result(
         user_id,
         task_id,
         selected_geneset_ids,
@@ -179,17 +165,17 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     return task_id
     '''
 
+    # Need to also modify this function
+
     task_id = str(uuid.uuid4())
     return task_id
 
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
-
-    '''
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    tool = get_tool(TOOL_CLASSNAME)
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
@@ -203,14 +189,6 @@ def view_result(task_id):
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
-    '''
-
-    # Clarissa: just checking the routing and testing if we can render our results page
-
-    tool = gwdb.get_tool(TOOL_CLASSNAME)
-    async_result = tc.celery_app.AsyncResult(task_id)
-    return flask.render_template('tool/TricliqueViewer_result.html',
-                                 tool=tool)
 
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):

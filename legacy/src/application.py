@@ -89,7 +89,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 #*************************************
 
 # changed this path 9/3
-RESULTS_PATH = '/var/www/html/dev-geneweaver/results'
+RESULTS_PATH = '/Users/group5admin/geneweaver/results'
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -259,6 +259,9 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/projects')
+def render_projects():
+    return flask.render_template('projects.html')
 
 @app.route("/gwdb/get_group/<user_id>/")
 def get_group(user_id):
@@ -425,27 +428,25 @@ def update_geneset_genes():
             return json.dumps(results)
 
 
-# @app.route('/editgenesetgenes2/<int:gs_id>')
-# def render_editgenesets_genes_2(gs_id):
-#	  if 'user_id' in flask.session:
-#		  user_id = flask.session['user_id']
-#	  else:
-#		  user_id = 0
-#	  geneset = geneweaverdb.get_geneset(gs_id, user_id)
-#	  species = geneweaverdb.get_all_species()
-#	  platform = geneweaverdb.get_microarray_types()
-#	  idTypes = geneweaverdb.get_gene_id_types()
-#
-#	  ####################################
-#	  # Build dictionary of all possible
-#	  # menus options
-#	  gidts = {}
-#	  pidts = {}
-#	  for id in idTypes:
-#		  gidts[id['gdb_id']] = id['gdb_shortname']
-#	  for p in platform:
-#		  pidts[p['pf_shortname']] = p['pf_name']
-#	  return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species, gidts=gidts, pidts=pidts)
+@app.route('/deleteProjectByID', methods=['GET'])
+def delete_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.delete_project_by_id(flask.request.args['projids'])
+        return json.dumps(results)
+
+
+@app.route('/addProjectByName', methods=['GET'])
+def add_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.add_project_by_name(flask.request.args['name'])
+        return json.dumps(results)
+
+
+@app.route('/changeProjectNameById', methods=['GET'])
+def rename_project():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.change_project_by_id(flask.request.args)
+        return json.dumps(results)
 
 
 @app.route('/accountsettings')
@@ -455,7 +456,6 @@ def render_accountsettings():
     groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
     return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
                                  groupsOwnerOf=groupsOwnerOf)
-
 
 @app.route('/login.html')
 def render_login():
@@ -974,6 +974,7 @@ def render_search_json():
                                  sort_by=userValues['sort_by'])
 
 
+
 @app.route('/searchsuggestionterms.json')
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
@@ -981,10 +982,12 @@ def render_search_suggestions():
 
 @app.route('/projectGenesets.json', methods=['GET'])
 def render_project_genesets():
+
     uid = flask.session.get('user_id')
     ## Project (ID) that the user wants to view
     pid = flask.request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
+
 
     return flask.render_template('singleProject.html',
                                  genesets=genesets,
