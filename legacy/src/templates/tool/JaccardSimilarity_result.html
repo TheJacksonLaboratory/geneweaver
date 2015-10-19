@@ -183,50 +183,64 @@
 
 <br /><br /><h4>Venn Diagram view:</h4>
 
+{#Location for where the d3 is appended to in the html#}
 <div id="jaccard"></div>
+
+{# Displays output to a new window if selected #}
 <a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
 
-<div id="jaccard">
-</div>
-
-<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+{# Style sheet and calls for slider code from other websites#}
+ <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <link rel="stylesheet" href="/resources/demos/style.css">
 
-
+{# Start of script#}
 <script type="text/javascript">
 
-    
-
-
+{#  Declaration of data as d variable#}
     var d = {{ data | safe }};
 
+{# Checks number of objects venn_diagram has#}
     var count = 0;
     for (var key in d.venn_diagrams)
         if (d.venn_diagrams.hasOwnProperty(key))
             count++;
+
+{# Counts number of text objects in venn_diagrams text set#}
     var count_text = 0;
+
+{# Used to keep track of label id for gene sets that are overlapping with themselves#}
     var check = 0;
-    var venn_d = [];
-    var text_d = [];
+
+{# Array used to define the coordinates of the graph#}
     var gene_lab_coor = [];
+
+{# Array for all elements of each venn_diagram circle object#}
     var circleData = [];
+
+{# Finds the length and width of entire chart (object wise) #}
     var num_sets = Math.sqrt(count);
+
+{# Sets the graph coordinates to 0,0#}
     var x_coord = 0;
-    var fix = false;
     var y_coord = 0;
 
+{# Array to hold the value for gene_sets set in jSon data#}
     var gene_sets = [];
     gene_sets = d.genesets;
+
+{# Arrau to hold individual gene set ids (w/o the GS) to get the url#}
     var gene_ids = [];
     var gid= "";
-    for (i = 0; i < gene_sets.length; i++){
+
+{# Intializes gene_ids array for click url functionality#}
+    for (i= 0; i<gene_sets.length; i++){
         gid = gene_sets[i].substring(2);
         gene_ids[i] = gid;
     }
 
-
+{# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
     for (i = 0; i < count; i++) {
         if (i % num_sets === 0) {
             x_coord = 150;
@@ -239,15 +253,23 @@
             x_coord += 200;
         }
 
+{# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
         gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
+
+{# Resets the count_text value to 0 #}
         count_text = 0;
+
+{# Counts the number of objects in venn_diagram's text set #}
         for (var key in d.venn_diagrams[i].text) {
             if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
                 ++count_text;
             }
         }
+
+{#  Read through k times and create text labels based upon k's value  #}
         for (k = 0; k < count_text; k++) {
 
+{#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
@@ -262,7 +284,7 @@
 
                 });
 
-                 fix = true;
+                {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
                 if((i === 0) && (k === 0)){
                      circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
@@ -275,6 +297,8 @@
                         });
                         check += 1;
                 }
+
+                {# Else (FIXES OVERLAP) object is not i = 0, text k is 0, and is a diagonal then intializes jaccard, p and coordinate values#}
                 else if ( (k===0) && (i !== 0) && (i%(num_sets+1) ===0)){
                         circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
@@ -285,11 +309,10 @@
                             "labely": y_coord
 
                         });
-                    console.log(i, num_sets+1, i%(num_sets+1));
                         check += 1;
-
                 }
 
+                {# If k or i is different push the label onto the circledata array #}
                 else {
                     circleData.push({
                         "gene_id": d.venn_diagrams[i].text[k].text,
@@ -299,6 +322,8 @@
                 }
 
             }
+
+{#  Else make circles for orange and blue with appropriate json values #}
             else {
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
@@ -334,6 +359,8 @@
 
 
     }
+
+{# Intializes border for circles#}
     var border = 1;
     var bordercolor = 'black';
 
@@ -366,6 +393,8 @@
             .attr("label", function (d) { return d.label; })
             .style("stroke", bordercolor)
             .attr("border", border)
+
+     // When mouse is over object html output styling of label will display
     .on("mouseover", function(d) {
             div.transition()
                 .duration(200)
@@ -374,11 +403,13 @@
                 .style("left", (d3.event.pageX) + "px")
                 .style("top", (d3.event.pageY) + "px");
             })
+     // When mouse leaves change opacity to 0 so not displayed
         .on("mouseout", function(d) {
             div.transition()
                 .duration(500)
                 .style("opacity", 0);   })
 
+    // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("click", function(d) {
            window.open(
                    "http://127.0.0.1:5000" + d.url, console.log(d.url))});
@@ -387,36 +418,40 @@
     var text = svgContainer.selectAll("text")
             .data(circleData)
             .enter();
-{##}
+
+// X Gene_Set labels added to d3
     text.append("text")
             .text(function (d) {return d.label;})
             .attr("x", function (d) {return d.labelx + 70; })
             .attr("y", function (d) {return 50; })
             .style("font-weight", "bold");
 
+// Y Gene_Set labels added to d3
     text.append("text")
             .text(function (d) {return d.label;})
             .attr("x", function (d) {return 50;})
             .attr("y", function (d) {return d.labely + 100;})
             .style("font-weight", "bold");
 
+// Jaccard, p-value, and overlap display added to d3
     text.append("text")
             .text(function (d) { return d.gene_id;})
             .attr("x", function (d) { return d.txshift; })
             .attr("y", function (d) { return d.tyshift;  })
             .attr("font-size", "11px");
 
+// ATTEMPT TO CHANGE SIZE OF DISPLAY OUTPUT BASED ON NUMBER OF OBJECTS (scale down function being used)--- DOES NOT WORK
      function sizeChange() {
 	    d3.select("g").attr("transform", "scale(" + svgContainer.width()/900 + ")");
          d3.select("g").attr("transform", "scale(" + svgContainer.height()/900 + ")");
 	}
-//Add SVG Text Element Attributes
+// Gives attributes to the text
     var textLabels = text
             .attr("font-family", "sans-serif")
             .attr("font-size", "12px")
             .attr("fill", "black");
 
-
+// Changes on Url menu to select different download types
 var urlMenu = document.getElementById("downloadType");
 urlMenu.onchange = function () {
     if (this.value != 'null') {
@@ -424,6 +459,7 @@ urlMenu.onchange = function () {
     }
 }
 
+// Download types function and selection - not made by KRISTEN, in prior to working on
 function changeImg(sel, dl) {
 
     if (sel.value == 'svg') {
@@ -437,6 +473,7 @@ function changeImg(sel, dl) {
     }
 }
 
+// Checkbox for selecting a geneset
 function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
     var allChecked = true;
     genesetCheckboxes.each(function (i, gsCheckbox) {
@@ -456,10 +493,10 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 
 <p><br></p>
-
+{# Label for slider in html, input is text currently#}
 <h4> Jaccard Threshold (0.05 increments):<input type="text" id="amount" readonly ></h4>
 
-
+{# Placement of slider in html#}
 <div id="jaccard">
 
     <div id="slider"></div>
@@ -467,9 +504,12 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
     </div>
 
 <script type="text/javascript">
-    function repositionTooltip( e, ui ){
 
+    // Function for changing opacity of entire container
+    function repositionTooltip( e, ui ){
+    // where opacity of jaccard div changes
     $("#jaccard").css("opacity",ui.value);
+    // Functionality of moving and displaying sider vlaue to input
     var div = $(ui.handle).data("tooltip").$tip[0];
     var pos = $.extend({}, $(ui.handle).offset(), { width: $(ui.handle).get(0).offsetWidth,height: $(ui.handle).get(0).offsetHeight
     });
@@ -481,13 +521,15 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
     $(div).find(".tooltip-inner").text( ui.value );
 }
-
+// Slider defined in script
 $("#slider").slider({
     range: "min",
     min: 0,
     max: 1,
     step: 0.01,
     value: 0.5,
+
+    // Slide calls function for reposition and stop is when person stops moving slider and opacity is then displayed
     stop: repositionTooltip,
     slide: function( event, ui ) {
         $( "#amount" ).val( ui.value );
