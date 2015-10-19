@@ -25,6 +25,9 @@ def run_tool():
     selected_project_ids = tc.selected_project_ids(form)
     selected_geneset_ids = tc.selected_geneset_ids(form)
 
+    print "selected_geneset_ids", selected_geneset_ids
+    print "selected_project_ids", selected_project_ids
+
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
