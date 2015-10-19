@@ -237,9 +237,11 @@
         {% if onts %}
             <div class="row">
                 <div id="ontology_tree" class="jstree jstree-1 jstree-default-responsive" role="tree" aria-acivedescendant="j1_3"></div>
-                    <li>
-                        {{ onts }}
-                    </li>
+                        {% for ont in onts %}
+                            <li>
+                                <td>> {{ont}}</td>
+                            </li>
+                        {% endfor %}
             </div>
 
         {% else %}

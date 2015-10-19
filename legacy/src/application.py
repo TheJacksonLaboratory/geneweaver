@@ -323,7 +323,6 @@ def render_editgenesets(gs_id):
         view = None
 
     #onts = None
-    print(onts)
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, onts=onts)
 
@@ -349,8 +348,8 @@ def render_editgeneset_genes(gs_id):
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
-    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
-    onts = None
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    #onts = None
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
