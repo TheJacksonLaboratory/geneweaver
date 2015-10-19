@@ -315,14 +315,15 @@ def render_editgenesets(gs_id):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
-    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
 
-    onts = None
+    #onts = None
+    print(onts)
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, onts=onts)
 
