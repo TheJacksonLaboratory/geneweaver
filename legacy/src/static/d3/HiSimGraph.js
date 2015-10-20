@@ -1,230 +1,12 @@
-{% set title=tool.name + " Results" %}
-{% include 'header.html' %}
-{% import 'macros.html' as macros %}
+ //Notes:
+        // Src: http://bl.ocks.org/mbostock/1093130
+        //Notes:
+        // * Each dom element is using
+        //   children to store refs to expanded children
+        //   _children to store refs to collapsed children
+        //* It's using both a tree and a graph layout.
 
-
-<!-- JSON support for IE (needed to use JS API) -->
-<script type="text/javascript" src="../../static/js/cytoscape/json2.min.js"></script>
-<!-- Flash embedding utility (needed to embed Cytoscape Web) -->
-<script type="text/javascript" src="../../static/js/cytoscape/AC_OETags.min.js"></script>
-<!-- Cytoscape Web JS API (needed to reference org.cytoscapeweb.Visualization) -->
-<script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
-<!-- Cytoscape settings and graph rendering for tool output -->
-<script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
-<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
-
-<div class="page-header">
-    <h1>{{ title }}</h1>
-</div>
-
-{#
-	Checks to see if runhash is defined. If it is, that means we're
-	viewing a stored result and PhenomeMap.js won't work properly without
-	the extra $.get() call below.
-#}
-{% if runhash %}
-    <script type="text/javascript">
-
-        console.log('wtf');
-        var graph_url = '/results/' + '{{async_result.result_image}}';
-        var xml = '';
-        $.get(graph_url, function (data) {
-            xml = data;
-            load_cytoscape();
-        });
-
-    </script>
-{% endif %}
-
-
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="panel panel-info">
-                <div class="panel-heading">
-                    <h2 class="panel-title">
-                        <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-                            Rerun Tool Options
-                        </a>
-                    </h2>
-                </div>
-                <div id="jcCollapse" class="panel-collapse collapse">
-                    <div class="panel-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-5">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
-                            </div>
-                            <div class="col-md-4">
-                                <button class="btn btn-primary"
-                                        type='submit'
-                                        value='run'
-                                        onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
-                                    Run
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</form>
-
-{#
-	A fucking hack, since for some reason the tools return SUCCESS even when
-	they fail. Checks to see if the results have a key, 'failed', which
-	contains the error message for the failure.
-#}
-{#{% if not async_result.failed %}
-<div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
-    <br/>
-    <br/>
-    Loading Hierarchical Similarity Graph...<br/>
-    <br/>
-    <br/>
-</div>
-<!-- js file for heatmap color interpolations -->
- <!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
-<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a> |
-<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in Static View</a>
-
-<div id="stats" align="left" style="float: left; margin: 10px">
-    <h3>Statistics</h3>
-</div>
-<div id="shortcuts" align="left" style="float: left; margin: 10px">
-    <h3>Shortcuts</h3>
-    <table>
-        <tr><td><b>Zoom in:</b></td><td>double click background</td></tr>
-        <tr><td><b>Zoom out:</b></td><td>shift + double click background</td></tr>
-        <tr><td><b>Panning mode:</b></td><td> drag background</td></tr>
-    </table>
-</div>
-{% else %}
-	<div class="panel-body bg-red p-15" style="text-align:center">
-		<strong>
-			No bicliques were found during the analysis. Try running the
-			tool again using different parameters.
-		</strong>
-	</div>
-{% endif %}
-<script type="text/javascript">
-    function loadStats() {
-        var result = {{ async_result|tojson }};
-        var stats_url = '/results/' + result.parameters.output_prefix + '.el.profile';
-        $.get(stats_url, function(data) {
-            var lines = data.split('\n');
-            lines = lines.slice(Math.max(lines.length - 8, 1), lines.length - 2);
-            if(lines.length != 6) {
-                $('#stats').append('Not available.');
-                return;
-            }
-            values = [];
-            $.each(lines, function(i, v) { values.push(v.split(':')[1].trim()); });
-            stats_table = $('<table></table>');
-            stats_table.append(
-                '<tr><td>Number of genes:</td><td>' + values[0] + '</td></tr>'
-                + '<tr><td>Number of genesets:</td><td>' + values[1] + '</td></tr>'
-                + '<tr><td>Number of bicliques:</td><td>' + values[3] + '</td></tr>'
-                + '<tr><td>Number of edges:</td><td>' + values[2] + '</td></tr>'
-                + '<tr><td>Max edge biclique size:</td><td>' + values[4] + '</td></tr>'
-                + '<tr><td>Max vertex biclique size:</td><td>' + values[5] + '</td></tr>'
-            );
-            stats_table.find('td').css('padding', 0);
-            $('#stats').append(stats_table);
-        });
-    }
-    // load statistics from file
-    $(window).load(loadStats);
-</script>#}
-
-<head>
-    <meta charset="utf-8">
-    <style>
-
-        .node circle {
-            cursor: pointer;
-            stroke: #3182bd;
-            stroke-width: 3px;
-        }
-
-        .node text {
-            font: 12px sans-serif;
-            pointer-events: none;
-        }
-
-        line {
-            fill: none;
-            stroke: #ccc;
-            stroke-width: 1.5px;
-        }
-
-        path{
-            fill: none;
-            stroke: #ccc;
-            stroke-width: 1.5px;
-        }
-
-        .link{
-            fill: none;
-            stroke: #ccc;
-            stroke-width: 1.5px;
-        }
-
-    </style>
-
-</head>
-
-<div id="viz2">
-
-
-    <script> src="
+        //root
         //Notes:
         // Src: http://bl.ocks.org/mbostock/1093130
         //Notes:
@@ -250,9 +32,6 @@
 
             var r = 6,
                     fill = d3.scale.category20();
-
-            var diagonal = d3.svg.diagonal()
-                .projection(function(d) { return [d.y, d.x]; });
 
             //Create a sized SVG surface within viz:
             var svg = d3.select("#viz2")
@@ -324,13 +103,17 @@
                 console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
             }
 
+
+
+
+
             //Each node extracted above has a children attribute.
             //from them, we can use a tree() layout function in order
             //to build a links selection.
 
             var links = getLinks(nodes);
-            //console.log(links.length + " links to draw");
-            //console.log(JSON.stringify(g.force.links()));
+            console.log(links.length + " links to draw");
+            console.log(JSON.stringify(g.force.links()));
             for (i = 0; i < links.length; i++) {
                 //console.log(JSON.stringify(links[i])) + "distance: ";
                 //console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
@@ -363,23 +146,12 @@
             g.link.exit().remove();
 
 
-            var diagonal = d3.svg.diagonal()
-                .source(function(d) { return {"x":d.source.y, "y":d.source.x}; })
-                .target(function(d) { return {"x":d.target.y, "y":d.target.x}; })
-                .projection(function(d) { return [d.y, d.x] });
-
             //Build new links by adding new svg lines:
-{#            g.link#}
-{#                    .enter()#}
-{#                    .insert("line", ".node")#}
-{#                    .attr("class", "link");#}
-{##}
             g.link
                     .enter()
-                    .insert("path", ".node")
-                    .attr("class", "link")
-                    .attr("d", diagonal);
-            //console.log("G.LINK (after): \n" + JSON.stringify(g.link));
+                    .insert("line", ".node")
+                    .attr("class", "link");
+                                    //console.log("G.LINK (after): \n" + JSON.stringify(g.link));
 
             // create a subselection, wiring up data, using a function to define
             //how it's suppossed to know what is appended/updated/exited
@@ -395,23 +167,17 @@
                     .attr("class", "node")
                     .on("click", click)
                     .call(g.force.drag);
-             //circle within the single node group:
+            //circle within the single node group:
             nodeEnter.append("circle")
-                    .attr("r", function(d) { return Math.sqrt(d.size) / 10 || 4.5; });
+                    .attr("r", function (d) {
+                        return Math.sqrt(d.size) / 10 || 4.5;
+                    });
             //text within the single node group:
             nodeEnter.append("text")
-                    .attr("dy", "-.2em")
-                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
-                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
+                    .attr("dy", ".35em")
+                    .style('color', textColor)
                     .text(function (d) {
                         return d.name;
-                    });
-            nodeEnter.append("text")
-                    .attr("dy", "1em")
-                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
-                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
-                    .text(function (d) {
-                        return d.depth;
                     });
             //All nodes, do the following:
             g.node.select("circle")
@@ -419,16 +185,8 @@
                     .style("stroke", outerRingColor);
             //-------------------
 
-            g.node.select("text").attr("fill",textColor);
+            //g.node.fontcolor(textColor)
         }
-
-{#        function searchNode(search){#}
-{#            var re = new RegExp(search);#}
-{#            var comp = g.node.data;#}
-{#            if(comp){#}
-{#                g.node.select("text").attr("fill","#CC0000");#}
-{#            }#}
-{#        }#}
 
 
         // Invoked from 'update'.
@@ -502,7 +260,7 @@
                     :
                     d.children.length > 0 ? "#c6dbef" // expanded package
                             :
-                            "#ffffff"; // leaf node
+                            "#fd8d3c"; // leaf node
         }
 
 
@@ -554,30 +312,30 @@
         }
 
         //event handler for every time the force layout engine
-        //says to redraw everything:
+        //says to redraw everthing:
         function tick() {
+
             g.node.attr("transform", function (d) {
-                return "translate(" + (d.depth * 180 + 50) + "," + d.y + ")";
+                d.x = d.depth * 100 + 50;
+                return ("translate(" + d.x + "," + d.y + ")");
             });
             //redraw position of every link within the link set:
 
-            //same for the nodes, using a function:
             g.link.attr("x1", function (d) {
-                return (d.source.depth * 180 + 50);
-            })
+                        return d.source.x;Cap
+                    })
                     .attr("y1", function (d) {
                         return d.source.y;
                     })
                     .attr("x2", function (d) {
-                        return (d.target.depth * 180 + 50);
+                        return d.target.x;
                     })
                     .attr("y2", function (d) {
                         return d.target.y;
                     });
+            //same for the nodes, using a functor:
 
-{#             g.link#}
-{#                    .diagonal.projection(function(d) { return [d.y, d.x] });#}
-            //same for the nodes, using a function:
+
         }
 
         var data =
@@ -601,7 +359,3 @@
                 {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
             ]
         };
-    </script>
-
-
-</div>
