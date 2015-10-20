@@ -236,12 +236,28 @@
         <br>
         {% if onts %}
             <div class="row">
-                <div id="ontology_tree" class="jstree jstree-1 jstree-default-responsive" role="tree" aria-acivedescendant="j1_3"></div>
+                <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
+                    <ul class="jstree-container-ul">
                         {% for ont in onts %}
-                            <li>
-                                <td>> {{ont}}</td>
+                            {% if ont.children == 0 %}
+                            <li id="j1_1" class="jstree-node jstree-leaf" role="treeitem" aria-selected = "false">
+                                <i class="jstree-icon jstree-ocl"></i>
+                                    <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
+                                        <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
+                                        {{ ont.children }}
+                                    </a>
                             </li>
+                            {% else %}
+                                <li id="j1_1" class="jstree-node jstree-closed" role="treeitem" aria-expanded = false aria-selected = "false">
+                                <i class="jstree-icon jstree-ocl"></i>
+                                    <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
+                                        <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
+                                        {{ ont.children }}
+                                    </a>
+                            </li>
+                            {% endif %}
                         {% endfor %}
+                    </ul>
             </div>
 
         {% else %}
