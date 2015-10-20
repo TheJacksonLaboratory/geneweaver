@@ -7,13 +7,13 @@
     div.tooltip {
   position: absolute;
   text-align: center;
-  width: 200px;
-  height: 30px;
+  width: 300px;
+  height: 60px;
   padding: 2px;
   font: 10px sans-serif;
   background: ghostwhite;
   pointer-events: none;
-        font-weight: bold;
+{#        font-weight: bold;#}
 }
     #slider {
   margin-top: 50px;
@@ -194,7 +194,7 @@
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <link rel="stylesheet" href="/resources/demos/style.css">
-
+{{ data | safe }}
 {# Start of script#}
 <script type="text/javascript">
 
@@ -280,7 +280,8 @@
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                     "url":  d.venn_diagrams[i].url
+                     "url":  d.venn_diagrams[i].url,
+                    "title" : d.venn_diagrams[i].title1
 
                 });
 
@@ -337,7 +338,8 @@
                     "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                     "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                     "des": d.venn_diagrams[i].desc1,
-                    "url": "/viewgenesetdetails/" + gene_ids[check]
+                    "url": "/viewgenesetdetails/" + gene_ids[check],
+                    "title" : d.venn_diagrams[i].title1
 
 
                 });
@@ -350,7 +352,8 @@
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                    "url": "/viewgenesetdetails/" + gene_ids[check-1]
+                    "url": "/viewgenesetdetails/" + gene_ids[check-1],
+                    "title" : d.venn_diagrams[i].title1
                 });
 
             }
@@ -399,9 +402,13 @@
             div.transition()
                 .duration(200)
                 .style("opacity", .9);
-            div .html((d.des) + "<br/>")
+{#            div .html((d.title)  + "<br/>")#}
+{#                .style("left", (d3.event.pageX) + "px")#}
+{#                .style("top", (d3.event.pageY) + "px");#}
+            div .html((d.title)+ "<br/>" + (d.des))
                 .style("left", (d3.event.pageX) + "px")
                 .style("top", (d3.event.pageY) + "px");
+
             })
      // When mouse leaves change opacity to 0 so not displayed
         .on("mouseout", function(d) {
