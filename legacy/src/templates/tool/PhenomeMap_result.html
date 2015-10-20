@@ -1,8 +1,45 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
+<head>
+    <meta charset="utf-8">
+    <style>
 
+        .node circle {
+            cursor: pointer;
+            stroke: #3182bd;
+            stroke-width: 3px;
+            r: 4.5;
+        }
 
+        .node text {
+            font: 12px sans-serif;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        line {
+            fill: none;
+                  stroke: #ccc;
+            stroke-width: 1.5px;
+        }
+
+       path{
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1.5px;
+        }
+
+        .link{
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1.5px;
+         }
+
+    </style>
+
+</head>
+{#
 <!-- JSON support for IE (needed to use JS API) -->
 <script type="text/javascript" src="../../static/js/cytoscape/json2.min.js"></script>
 <!-- Flash embedding utility (needed to embed Cytoscape Web) -->
@@ -11,21 +48,31 @@
 <script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
 <!-- Cytoscape settings and graph rendering for tool output -->
 <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
+#}
 <script type="text/javascript" src="../../static/d3/d3.min.js"></script>
+<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>
+
 
 <div class="page-header">
-    <h1>{{ title }}</h1>
+    <h1>{{ title }}
+    {{ runhash }} </h1>
 </div>
 
+{{ async_result.parameters.output_prefix}}
+NEXT
+{{ runhash }}
 {#
 	Checks to see if runhash is defined. If it is, that means we're
 	viewing a stored result and PhenomeMap.js won't work properly without
 	the extra $.get() call below.
 #}
+
+{#
 {% if runhash %}
     <script type="text/javascript">
 
         console.log('wtf');
+
         var graph_url = '/results/' + '{{async_result.result_image}}';
         var xml = '';
         $.get(graph_url, function (data) {
@@ -35,7 +82,7 @@
 
     </script>
 {% endif %}
-
+#}
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
@@ -184,37 +231,13 @@
     $(window).load(loadStats);
 </script>#}
 
-<head>
-    <meta charset="utf-8">
-    <style>
 
-        .node circle {
-            cursor: pointer;
-            stroke: #3182bd;
-            stroke-width: 3px;
-            r: 4.5;
-        }
-
-        .node text {
-            font: 10px sans-serif;
-            pointer-events: none;
-            text-anchor: middle;
-        }
-
-        line {
-            fill: none;
-            stroke: #9ecae1;
-            stroke-width: 1.5px;
-        }
-
-    </style>
-
-</head>
 
 <div id="viz2">
 
 
-    <script> src="
+    {#
+    /*
         //Notes:
         // Src: http://bl.ocks.org/mbostock/1093130
         //Notes:
@@ -576,7 +599,6 @@
                 {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
             ]
         };
-    </script>
-
+#}
 
 </div>
