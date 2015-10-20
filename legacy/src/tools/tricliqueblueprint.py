@@ -26,9 +26,6 @@ def run_tool():
     selected_project_ids = tc.selected_project_ids(form)
     selected_geneset_ids = tc.selected_geneset_ids(form)
 
-    print "selected_geneset_ids", selected_geneset_ids
-    print "selected_project_ids", selected_project_ids
-
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
@@ -52,7 +49,7 @@ def run_tool():
     if params2[method_str] != 'Jaccard Overlap':
         params2[method_str] = 'ExactGeneOverlap'
         if len(selected_geneset_ids) != 2:
-            flask.flash("Warning: You must select 2 projects!")
+            flask.flash("Warning: You must select exactly 2 projects!")
             return flask.redirect('analyze')
     else:
         flask.flash("This tool is not currently available.")
