@@ -260,7 +260,7 @@
                     .attr("width", width)
                     .attr("height", height);
 
-            g.link = svg.selectAll("path.link"),
+            g.link = svg.selectAll(".link"),
                     g.node = svg.selectAll(".node");
 
 
@@ -324,10 +324,6 @@
                 console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
             }
 
-
-
-
-
             //Each node extracted above has a children attribute.
             //from them, we can use a tree() layout function in order
             //to build a links selection.
@@ -367,23 +363,22 @@
             g.link.exit().remove();
 
 
-            /*var diagonal = d3.svg.diagonal()
-                .projection(function(d) { return [d.y, d.x]; });*/
+            var diagonal = d3.svg.diagonal()
+                .source(function(d) { return {"x":d.source.y, "y":d.source.x}; })
+                .target(function(d) { return {"x":d.target.y, "y":d.target.x}; })
+                .projection(function(d) { return [d.y, d.x] });
 
             //Build new links by adding new svg lines:
+{#            g.link#}
+{#                    .enter()#}
+{#                    .insert("line", ".node")#}
+{#                    .attr("class", "link");#}
+{##}
             g.link
                     .enter()
-                    .insert("line", ".node")
-                    .attr("class", "link");
-            /*g.link
-                    .enter()
-                    .insert("path", "g")
+                    .insert("path", ".node")
                     .attr("class", "link")
-                    .attr("d", function(d) {
-                        console.log(d);
-                        var o = {x: d.source.x, y: d.source.y};
-                        return diagonal({source: o, target: o});
-                    });*/
+                    .attr("d", diagonal);
             //console.log("G.LINK (after): \n" + JSON.stringify(g.link));
 
             // create a subselection, wiring up data, using a function to define
@@ -562,25 +557,27 @@
         //says to redraw everything:
         function tick() {
             g.node.attr("transform", function (d) {
-                return "translate(" + (d.depth * 200 + 50) + "," + d.y + ")";
+                return "translate(" + (d.depth * 180 + 50) + "," + d.y + ")";
             });
             //redraw position of every link within the link set:
 
-
             //same for the nodes, using a function:
             g.link.attr("x1", function (d) {
-                return (d.source.depth * 200 + 50);
+                return (d.source.depth * 180 + 50);
             })
                     .attr("y1", function (d) {
                         return d.source.y;
                     })
                     .attr("x2", function (d) {
-                        return (d.target.depth * 200 + 50);
+                        return (d.target.depth * 180 + 50);
                     })
                     .attr("y2", function (d) {
                         return d.target.y;
                     });
-            //same for the nodes, using a functor:
+
+{#             g.link#}
+{#                    .diagonal.projection(function(d) { return [d.y, d.x] });#}
+            //same for the nodes, using a function:
         }
 
         var data =
