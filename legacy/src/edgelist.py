@@ -140,15 +140,16 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
     # Set variables
     #############################################
     # Comment out this line when running offline
-    usr_id = 48
-    #usr_id = session['user_id']
-    RESULTS = results
+    #usr_id = 48
+    usr_id = session['user_id']
+    RESULTS = results + '/'
     #############################################
     out = ''
     homology = homology if homology is True else False
 
     # Get the intersecting set of genes between proj1 and proj2 as a list
     genes = get_genes_from_proj_intersection(proj1, proj2, homology)
+    print genes
 
     # Get all geneset and genes in a project as a list[dictify(cursor)]
     projDict1 = get_genesets_for_project(proj1, usr_id)
