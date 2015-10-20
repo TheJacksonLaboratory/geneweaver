@@ -148,8 +148,8 @@ def view_result(task_id):
     # really debug here
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
-    #path_to_result = '/results/TEST'+task_id+'.json'
-    path_to_result = '/static/flare.json'
+    path_to_result = '/results/'+task_id+'.json'
+    #path_to_result = '/static/flare.json'
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
