@@ -15,7 +15,7 @@ from flask import session
 app = flask.Flask(__name__)
 
 # Need to change this path to ~/Documents/geneweaver/results
-RESULTS_PATH = '~/Documents/geneweaver/results'
+RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -519,6 +519,52 @@ def delete_geneset_by_gsid(rargs):
         )
         cursor.connection.commit()
         return
+
+
+def delete_project_by_id(rargs):
+    projids = rargs.split(',')
+    user_id = flask.session['user_id']
+    if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE from project2geneset WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
+            cursor.execute('''DELETE from project WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
+            print cursor.statusmessage
+            cursor.connection.commit()
+        return
+
+
+def add_project_by_name(rargs):
+    name = rargs
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created) VALUES (%s, %s, now())''', (user_id,
+                                name,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
+
+
+def change_project_by_id(rargs):
+    id = rargs['projid']
+    name = rargs['projname']
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''UPDATE project SET pj_name=%s WHERE pj_id=%s''', (name, id,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
 
 def delete_geneset_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
@@ -1535,15 +1581,18 @@ def authenticate_user(email, password):
         with PooledCursor() as cursor:
             password_md5 = md5()
             password_md5.update(password)
-            cursor.execute(
-                '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',
-                {
-                    'email': email,
-                    'password_md5': password_md5.hexdigest(),
-                }
-            )
-            users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
-            return users[0] if len(users) == 1 else None
+            try:
+                cursor.execute(
+                    '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',
+                    {
+                        'email': email,
+                        'password_md5': password_md5.hexdigest(),
+                    }
+                )
+                users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
+                return users[0] if len(users) == 1 else None
+            except:
+                return None
 
 ## There's a similarly titled get_result_by_runhash, but it's API function.
 def get_results_by_runhash(runhash):
@@ -1713,6 +1762,40 @@ def get_similar_genesets(geneset_id, user_id):
         )
         simgc = [SimGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return simgc
+
+def get_similar_genesets_by_publication(geneset_id, user_id):
+    """
+    Get all other genesets with the same publication id as the geneset id passed to this function
+    :param geneset_id:  the geneset ID
+    :param user_id:     the user ID that needs permission
+    :return:            the Geneset corresponding to the given publication ID if the
+                        user has read permission, with jac_value, None otherwise
+    """
+    gs_ids = []
+    gs_ids_clean = []
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    if user_id is 0:
+        user_id = -1
+    print geneset_id
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT gs_id FROM geneset WHERE pub_id IN (SELECT pub_id FROM geneset WHERE gs_id=%s)''',
+                       (geneset_id,))
+        res = cursor.fetchall()
+        for r in res:
+            gs_ids.append(r[0])
+
+        for gs_id in gs_ids:
+            cursor.execute('''SELECT geneset_is_readable(%s, %s)''', (user_id, gs_id))
+            a = cursor.fetchone()[0]
+            if a:
+                gs_ids_clean.append(gs_id)
+
+        #s = ','.join(gs_ids_clean)
+        cursor.execute(cursor.mogrify('''SELECT geneset.* FROM geneset WHERE geneset.gs_id IN (%s)''' % ",".join(str(x) for x in gs_ids)))
+
+        genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets
+
 
 def compare_geneset_jac(gs_id1, gs_id2):
     """
@@ -1917,6 +2000,23 @@ def get_temp_geneset_values(geneset_id):
                                            FROM production.temp_geneset_value
                                            WHERE gs_id=%s GROUP BY gs_id, ode_gene_id ORDER BY ode_gene_id;''' % (geneset_id,))
         return [TempGenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+
+def get_genes_by_gs_id(geneset_id):
+    '''
+    Returns all of the ode_gene_ids for a given gs_id. This is seperate form the geneset_value class, created specifically
+    for making edgelist files outside of the scope.
+    :param geneset_id:
+    :return: list of genes
+    '''
+    genes = []
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT ode_gene_id FROM geneset_value WHERE gs_id=%s''', (geneset_id,))
+        res = cursor.fetchall()
+        for r in res:
+            genes.append(r[0])
+    return genes
+
 
 def get_all_geneset_values(gs_id):
     '''

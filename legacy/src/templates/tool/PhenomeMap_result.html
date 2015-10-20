@@ -2,6 +2,7 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+
 <!-- JSON support for IE (needed to use JS API) -->
 <script type="text/javascript" src="../../static/js/cytoscape/json2.min.js"></script>
 <!-- Flash embedding utility (needed to embed Cytoscape Web) -->
@@ -10,114 +11,118 @@
 <script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
 <!-- Cytoscape settings and graph rendering for tool output -->
 <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
+<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
 
 <div class="page-header">
-	<h1>{{ title }}</h1>
+    <h1>{{ title }}</h1>
 </div>
 
-{# 	
+{#
 	Checks to see if runhash is defined. If it is, that means we're
 	viewing a stored result and PhenomeMap.js won't work properly without
 	the extra $.get() call below.
 #}
 {% if runhash %}
-	<script type="text/javascript">
+    <script type="text/javascript">
 
-		console.log('wtf');
-		var graph_url = '/results/' + '{{async_result.result_image}}';
-		var xml = '';
-		$.get(graph_url, function(data) { xml=data; load_cytoscape(); });
+        console.log('wtf');
+        var graph_url = '/results/' + '{{async_result.result_image}}';
+        var xml = '';
+        $.get(graph_url, function (data) {
+            xml = data;
+            load_cytoscape();
+        });
 
-	</script>
+    </script>
 {% endif %}
 
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">
-                <div class="panel panel-info">
-				<div class="panel-heading">
-					<h2 class="panel-title">
-						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-							Rerun Tool Options
-						</a>
-					</h2>
-				</div>
-				<div id="jcCollapse" class="panel-collapse collapse">
-					<div class="panel-body">
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
-							</div>
-						</div>
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
-							</div>
-						</div>
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
-							</div>
-						</div>
-						<div class="row">
-							<div class="col-md-5">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
-							</div>
-							<div class="col-md-3">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
-							</div>
-						</div>
-						<div class="row">
-							<div class="col-md-4">
-								<div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
-							</div>
-							<div class="col-md-4">
-								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-							</div>
-							<div class="col-md-4">
-								<button class="btn btn-primary" 
-								type='submit'
-								value='run'
-								onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
-								Run
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h2 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+                            Rerun Tool Options
+                        </a>
+                    </h2>
+                </div>
+                <div id="jcCollapse" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-primary"
+                                        type='submit'
+                                        value='run'
+                                        onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
+                                    Run
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </form>
 
-{# 	
+{#
 	A fucking hack, since for some reason the tools return SUCCESS even when
 	they fail. Checks to see if the results have a key, 'failed', which
 	contains the error message for the failure.
 #}
-{% if not async_result.failed %}
+{#{% if not async_result.failed %}
 <div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
     <br/>
     <br/>
@@ -126,8 +131,8 @@
     <br/>
 </div>
 <!-- js file for heatmap color interpolations -->
-<!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
-<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a> | 
+ <!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
+<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a> |
 <a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in Static View</a>
 
 <div id="stats" align="left" style="float: left; margin: 10px">
@@ -136,9 +141,9 @@
 <div id="shortcuts" align="left" style="float: left; margin: 10px">
     <h3>Shortcuts</h3>
     <table>
-        <tr><td><b>Zoom in:</b></td><td>double click background</br></td></tr>
-        <tr><td><b>Zoom out:</b></td><td>shift + double click background</br></td></tr>
-        <tr><td><b>Panning mode:</b></td><td> drag background</br></td></tr>
+        <tr><td><b>Zoom in:</b></td><td>double click background</td></tr>
+        <tr><td><b>Zoom out:</b></td><td>shift + double click background</td></tr>
+        <tr><td><b>Panning mode:</b></td><td> drag background</td></tr>
     </table>
 </div>
 {% else %}
@@ -149,7 +154,6 @@
 		</strong>
 	</div>
 {% endif %}
-
 <script type="text/javascript">
     function loadStats() {
         var result = {{ async_result|tojson }};
@@ -178,7 +182,371 @@
     }
     // load statistics from file
     $(window).load(loadStats);
-</script>
+</script>#}
 
-{% include 'footer.html' %}
+<head>
+    <meta charset="utf-8">
+    <style>
 
+        .node circle {
+            cursor: pointer;
+            stroke: #3182bd;
+            stroke-width: 3px;
+            r: 4.5;
+        }
+
+        .node text {
+            font: 10px sans-serif;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        line {
+            fill: none;
+            stroke: #9ecae1;
+            stroke-width: 1.5px;
+        }
+
+    </style>
+
+</head>
+
+<div id="viz2">
+
+
+    <script>
+        //Notes:
+        // Src: http://bl.ocks.org/mbostock/1093130
+        //Notes:
+        // * Each dom element is using
+        //   children to store refs to expanded children
+        //   _children to store refs to collapsed children
+        //* It's using both a tree and a graph layout.
+
+        //root
+        //Notes:
+        // Src: http://bl.ocks.org/mbostock/1093130
+        //Notes:
+        // * Each dom element is using
+        //   children to store refs to expanded children
+        //   _children to store refs to collapsed children
+        //* It's using both a tree and a graph layout.
+
+        //root
+        var g = {
+            data: null,
+            force: null
+        };
+
+        $(function () {
+
+            //use a global var for the data:
+            g.data = data;
+
+
+            var width = 960,
+                    height = 2000;
+
+            var r = 6,
+                    fill = d3.scale.category20();
+
+            //Create a sized SVG surface within viz:
+            var svg = d3.select("#viz2")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+
+            g.link = svg.selectAll(".link"),
+                    g.node = svg.selectAll(".node");
+
+
+            //Create a graph layout engine:
+            g.force = d3.layout.force()
+                    .nodes(g.data.nodes)
+                    .links(getLinks(g.data.nodes))
+                    .linkDistance(function (link) {
+                        //console.log("LINK DISTANCE OUTPUT HERE: " + JSON.stringify(link));
+                        return 50;
+                        //return ((link.target.depth - link.source.depth) * 40);
+                    })
+                    .linkStrength(function (link) {
+                        //return 1 / ((link.target.depth - link.source.depth) * 2);
+                        return .5;
+                    })
+                    .charge(-120)
+                    .chargeDistance(80)
+                    .gravity(0.0)
+                    .size([width, height])
+                //that invokes the tick method to draw the elements in their new location:
+                    .on("tick", tick);
+
+
+            //Draw the graph:
+            //Note that this method is invoked again
+            //when clicking nodes:
+            update();
+
+
+        });
+
+
+        //invoked once at the start,
+        //and again when from 'click' method
+        //which expands and collapses a node.
+
+        function update() {
+            var width = 960,
+                    height = 500;
+
+            //iterate through original nested data, and get one dimension array of nodes.
+            var nodes = flatten(g.data.nodes);
+            console.log(nodes.length + " nodes to draw");
+            for (i = 0; i < nodes.length; i++) {
+                //console.log(JSON.stringify(nodes[i]));
+                console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
+            }
+
+
+            //Each node extracted above has a children attribute.
+            //from them, we can use a tree() layout function in order
+            //to build a links selection.
+
+            var links = getLinks(nodes);
+            console.log(links.length + " links to draw");
+            console.log(JSON.stringify(g.force.links()));
+            for (i = 0; i < links.length; i++) {
+                //console.log(JSON.stringify(links[i])) + "distance: ";
+                //console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
+            }
+
+            // pass both of those sets to the graph layout engine, and restart it
+            g.force.nodes(nodes)
+                    .links(links)
+                    .start();
+            //-------------------
+            // create a subselection, wiring up data, using a function to define
+            //how it's suppossed to know what is appended/updated/exited
+
+                                    //console.log("G.LINK (before): \n" + JSON.stringify(g.link));
+            /*
+            try{
+                g.link = g.link.data(links, function (d) {
+                    console.log("" + d.source.id + "\t" + d.target.id);
+                    return d.target.id;
+                })}
+            catch(err){
+                d.target.id = err.message;
+            };
+            */
+            g.link = g.link.data(links);
+
+                                                ///console.log("G.LINK (middle): \n" + JSON.stringify(g.link));
+
+            //Get rid of old links:
+            g.link.exit().remove();
+
+
+            //Build new links by adding new svg lines:
+            g.link
+                    .enter()
+                    .insert("line", ".node")
+                    .attr("class", "link");
+                                    //console.log("G.LINK (after): \n" + JSON.stringify(g.link));
+
+            // create a subselection, wiring up data, using a function to define
+            //how it's suppossed to know what is appended/updated/exited
+            g.node = g.node.data(nodes, function (d) {
+                return d.id;
+            });
+            //Get rid of old nodes:
+            g.node.exit().remove();
+            //-------------------
+            //create new nodes by making groupd elements, that contain circls and text:
+            var nodeEnter = g.node.enter()
+                    .append("g")
+                    .attr("class", "node")
+                    .on("click", click)
+                    .call(g.force.drag);
+            //circle within the single node group:
+            nodeEnter.append("circle")
+                    .attr("r", function (d) {
+                        return Math.sqrt(d.size) / 10 || 4.5;
+                    });
+            //text within the single node group:
+            nodeEnter.append("text")
+                    .attr("dy", ".35em")
+                    .style('color', textColor)
+                    .text(function (d) {
+                        return d.name;
+                    });
+            //All nodes, do the following:
+            g.node.select("circle")
+                    .style("fill", color) //calls delegate
+                    .style("stroke", outerRingColor);
+            //-------------------
+
+            //g.node.fontcolor(textColor)
+        }
+
+
+        // Invoked from 'update'.
+        // The original source data is not the usual nodes + edge list,
+        // but rather an adjacency list of nodes and their children.
+        // We need a list of nodes + links for the force layout engine.
+        // So returns a list of all nodes under the root.
+        function flatten(data) {
+            var nodes = [];
+            function recurse(node) {
+                if (!getNodeByID(nodes, node.id)) nodes.push(node);
+                if (node.children.length > 0) {
+                    for (var i = 0, count = node.children.length; i < count; i++) {
+                        var nextNode = getNodeByID(data, node.children[i]);
+                        recurse(nextNode);
+                    }
+                }
+            }
+
+            for(var i = 0, len = data.length; i < len; i++){
+                if(data[i].depth == 0) {
+                    recurse(data[i]);
+                }
+            }
+
+
+            return nodes;
+        }
+
+
+        function getNodeByID(nodes, wanted_id) {
+
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].id == wanted_id) {
+                    return nodes[i];
+                }
+            }
+        }
+
+
+        function getLinks(nodes) {
+
+            var links = [];
+            for (var i = 0; i < nodes.length; i++) {
+                var n = nodes[i];
+                for (var j = 0; j < n.children.length; j++) {
+                    var link = {
+                        //source: n
+                        //target: getNodeByID(nodes, n.children[j])
+
+                        source: n,
+                        target: getNodeByID(nodes, n.children[j])
+                    };
+                    //console.log("node: " + n.id + "\n\tchildren: " + n.children[j]);
+                    //console.log(link.source + "\t" + link.target);
+                    links.push(link);
+                }
+            }
+
+            return links;
+        }
+
+
+
+        //Invoked from 'update'
+        //Return the color of the node
+        //based on the children value of the
+        //source data item: {name=..., children: {...}}
+        function color(d) {
+            return d._children ? "#3182bd" // collapsed package
+                    :
+                    d.children.length > 0 ? "#c6dbef" // expanded package
+                            :
+                            "#fd8d3c"; // leaf node
+        }
+
+
+        function outerRingColor(d) {
+            if (d.emphasis) {
+                return "#33AD33";
+            }
+            else return "default";
+        }
+
+        function textColor(d) {
+            if (d.emphasis) {
+                return '#CC0000';
+            }
+            else return 'default';
+        }
+
+
+        function click(d) {
+            if (d3.event.defaultPrevented) return; // ignore drag
+            if (d.children.length > 0) {
+                console.log("collapsing node " + d.name + " (" + d.id + ")");
+                d._children = d.children;
+                d.children = [];
+                console.log("children: " + d.children);
+                console.log("_children:" + d._children);
+            } else if (d._children){
+                console.log("expanding node " + d.name + " (" + d.id + ")");
+                d.children = d._children;
+                d._children = null;
+                console.log("children: " + d.children);
+                console.log("_children:" + d._children);
+            }
+            //
+            update();
+        }
+
+        //event handler for every time the force layout engine
+        //says to redraw everthing:
+        function tick() {
+
+            g.node.attr("transform", function (d) {
+                d.x = d.depth * 100 + 50;
+                return ("translate(" + d.x + "," + d.y + ")");
+            });
+            //redraw position of every link within the link set:
+
+            g.link.attr("x1", function (d) {
+                        return d.source.x;Cap
+                    })
+                    .attr("y1", function (d) {
+                        return d.source.y;
+                    })
+                    .attr("x2", function (d) {
+                        return d.target.x;
+                    })
+                    .attr("y2", function (d) {
+                        return d.target.y;
+                    });
+            //same for the nodes, using a functor:
+
+
+        }
+
+        var data =
+        {
+            "nodes": [
+                {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
+                {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
+                {"id": 2, "name": "cluster", "children": [3, 4, 5, 6], "depth": 2},                //2
+                {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},   //3
+                {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},     //4
+                {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},    //5
+                {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},              //6
+                {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},                  //7
+                {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},  //8
+                {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},           //9
+                {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},          //10
+                {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},          //11
+                {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},           //12
+                {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
+                {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},       //14
+                {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
+            ]
+        };
+    </script>
+
+
+</div>

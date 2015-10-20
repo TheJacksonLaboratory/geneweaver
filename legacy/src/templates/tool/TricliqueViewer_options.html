@@ -6,21 +6,19 @@
 {% import 'macros.html' as macros %}
 
 
-<div class="panel panel-info">
+<div class="panel">
 	<div class="panel-heading">
-		<img src="/static/images/tool_Triclique.png">
+		<img src="/static/images/GW2-kpartite.png" width="50" height="50">
 		<h2 class="panel-title">
 			<a data-toggle="collapse" data-parent="#accordion" href="#triCollapse">
-				Triclique Viewer
+				Tripartite Graph
 			</a>
 		</h2>
 	</div>
 	<div id="triCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
 			<div class="from-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Homology']) }}</div>
-			{#
-			 <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
-			 #}
+            <div class="form-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Methods']) }}</div>
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
