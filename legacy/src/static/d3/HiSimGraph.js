@@ -118,10 +118,6 @@
                 console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
             }
 
-
-
-
-
             //Each node extracted above has a children attribute.
             //from them, we can use a tree() layout function in order
             //to build a links selection.
@@ -192,12 +188,18 @@
 
             //text within the single node group:
             nodeEnter.append("text")
-                    .attr("dy", "-2em")
+                    .attr("dy", "-.2em")
                     .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
                     .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
-                    .style('color', textColor)
                     .text(function (d) {
                         return d.name;
+                    });
+            nodeEnter.append("text")
+                    .attr("dy", "1em")
+                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
+                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
+                    .text(function (d) {
+                        return d.depth;
                     });
             //All nodes, do the following:
             g.node.select("circle")
