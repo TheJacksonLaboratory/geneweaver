@@ -146,4 +146,22 @@
 
 
             {% endif %}
+
+            {# {% if geneset.onts %} #}
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>ONTOLOGY:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        {% if geneset.onts %}
+                            <a href="{{ geneset.onts }}">{{ geneset.onts }}</a>
+                        {% else %}
+                            None
+                        {% endif %}
+                    </div>
+                </div>
+            {#  {% endif %} #}
+
         </div>
+    </div>
+</div>
