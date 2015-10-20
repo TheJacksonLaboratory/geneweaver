@@ -239,12 +239,12 @@
                 <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
                     <ul class="jstree-container-ul">
                         {% for ont in onts %}
-                            {% if ont.children == 0 %}
+                            {% if ont.child == 0 %}
                             <li id="j1_1" class="jstree-node jstree-leaf" role="treeitem" aria-selected = "false">
                                 <i class="jstree-icon jstree-ocl"></i>
                                     <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
                                         <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
-                                        {{ ont.children }}
+                                        {{ ont.name }}
                                     </a>
                             </li>
                             {% else %}
@@ -252,7 +252,7 @@
                                 <i class="jstree-icon jstree-ocl"></i>
                                     <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
                                         <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
-                                        {{ ont.children }}
+                                        {{ ont.name }}
                                     </a>
                             </li>
                             {% endif %}

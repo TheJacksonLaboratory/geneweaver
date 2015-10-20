@@ -1958,6 +1958,16 @@ def get_ontologies_for_geneset(geneset_id):
             (geneset_id,))
         return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
 
+def get_all_parents_for_ontology(ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            Select left_ont_id FROM ontology NATURAL JOIN ontology_relation
+            WHERE right_ont_id=%s AND or_type=is_a;
+            ''',(ont_id,)
+        )
+    return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+
 
 class GenesetValue:
     def __init__(self, gsv_dict):
@@ -2634,23 +2644,10 @@ def get_all_ontologies_by_geneset(gs_id, temp=None):
                         FROM extsrc.ontology natural join odestatic.ontologydb
                         WHERE ont_id in (	SELECT ont_id
                                             FROM extsrc.geneset_ontology
-                                            WHERE gs_id = %s
+                                            WHERE gs_id = %s AND gso_ref_type<>'Blacklist'
                                         )
-                        or ont_id in    (	SELECT ont_children
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in (	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        )
-                        or ont_id in	(	SELECT ont_parents
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in	(	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        ) order by ont_id
-            ''', (gs_id, gs_id, gs_id)
+                        order by ont_id
+        ''', (gs_id,)
         )
         #if temp is None:
         ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]

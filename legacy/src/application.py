@@ -599,6 +599,7 @@ def render_viewgeneset(gs_id):
 
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
@@ -608,7 +609,7 @@ def render_viewgeneset(gs_id):
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, onts=onts)
 
 
 @app.route('/mygenesets')
