@@ -1,19 +1,13 @@
  //Notes:
-        // Src: http://bl.ocks.org/mbostock/1093130
+        // STILL VERY MUCH IN PROGRESS
+        // Initially borrowed from http://bl.ocks.org/mbostock/1093130
+        //      with heavy modification. Creates a DAG and displays it in a tree
+        //      shaped manner, where each child node can have multiple parents.
         //Notes:
         // * Each dom element is using
         //   children to store refs to expanded children
         //   _children to store refs to collapsed children
-        //* It's using both a tree and a graph layout.
 
-        //root
-        //Notes:
-        // Src: http://bl.ocks.org/mbostock/1093130
-        //Notes:
-        // * Each dom element is using
-        //   children to store refs to expanded children
-        //   _children to store refs to collapsed children
-        //* It's using both a tree and a graph layout.
 
         //root
         var g = {
@@ -21,17 +15,38 @@
             force: null
         };
 
+
+        //initializa
         $(function () {
 
             //use a global var for the data:
             g.data = data;
+            /*
+            var data = (function () {
+                var json = null;
+                $.ajax({
+                    "async": false,
+                    "global": false,
+                    "url": "../../../../results.TestOutput.hisim.json",
+                    "dataType": "json",
+                    "success": function (data) {
+                     json = data;
+                    }
+                });
+                return json;
+            } );
+            */
 
-
+            console.log("DATA = " + JSON.stringify(data));
             var width = 960,
-                    height = 2000;
+                    height = 1000;
 
             var r = 6,
                     fill = d3.scale.category20();
+
+            var diagonal = d3.svg.diagonal()
+                .projection(function(d) { return [d.y, d.x]; });
+
 
             //Create a sized SVG surface within viz:
             var svg = d3.select("#viz2")
@@ -39,7 +54,7 @@
                     .attr("width", width)
                     .attr("height", height);
 
-            g.link = svg.selectAll(".link"),
+            g.link = svg.selectAll("path.link"),
                     g.node = svg.selectAll(".node");
 
 
@@ -57,7 +72,7 @@
                     })
                     .charge(-130)
                     .chargeDistance(80)
-                    .gravity(0.0)
+                    .gravity(0.05)
                     .size([width, height])
                 //that invokes the tick method to draw the elements in their new location:
                     .on("tick", tick);
@@ -112,8 +127,8 @@
             //to build a links selection.
 
             var links = getLinks(nodes);
-            console.log(links.length + " links to draw");
-            console.log(JSON.stringify(g.force.links()));
+            //console.log(links.length + " links to draw");
+            //console.log(JSON.stringify(g.force.links()));
             for (i = 0; i < links.length; i++) {
                 //console.log(JSON.stringify(links[i])) + "distance: ";
                 //console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
@@ -125,19 +140,10 @@
                     .start();
             //-------------------
             // create a subselection, wiring up data, using a function to define
-            //how it's suppossed to know what is appended/updated/exited
+            //how it's supposed to know what is appended/updated/exited
 
                                     //console.log("G.LINK (before): \n" + JSON.stringify(g.link));
-            /*
-            try{
-                g.link = g.link.data(links, function (d) {
-                    console.log("" + d.source.id + "\t" + d.target.id);
-                    return d.target.id;
-                })}
-            catch(err){
-                d.target.id = err.message;
-            };
-            */
+
             g.link = g.link.data(links);
 
                                                 ///console.log("G.LINK (middle): \n" + JSON.stringify(g.link));
@@ -146,12 +152,25 @@
             g.link.exit().remove();
 
 
+             /*var diagonal = d3.svg.diagonal()
+                .projection(function(d) { return [d.y, d.x]; });*/
+
             //Build new links by adding new svg lines:
             g.link
                     .enter()
                     .insert("line", ".node")
                     .attr("class", "link");
-                                    //console.log("G.LINK (after): \n" + JSON.stringify(g.link));
+
+
+              /*g.link
+                    .enter()
+                    .insert("path", "g")
+                    .attr("class", "link")
+                    .attr("d", function(d) {
+                        console.log(d);
+                        var o = {x: d.source.x, y: d.source.y};
+                        return diagonal({source: o, target: o});
+                    });*/
 
             // create a subselection, wiring up data, using a function to define
             //how it's suppossed to know what is appended/updated/exited
@@ -169,12 +188,13 @@
                     .call(g.force.drag);
             //circle within the single node group:
             nodeEnter.append("circle")
-                    .attr("r", function (d) {
-                        return Math.sqrt(d.size) / 10 || 4.5;
-                    });
+                     .attr("r", 4.5);
+
             //text within the single node group:
             nodeEnter.append("text")
-                    .attr("dy", ".35em")
+                    .attr("dy", "-2em")
+                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
+                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
                     .style('color', textColor)
                     .text(function (d) {
                         return d.name;
@@ -186,6 +206,8 @@
             //-------------------
 
             //g.node.fontcolor(textColor)
+            g.node.select("text").attr("fill",textColor);
+
         }
 
 
@@ -260,7 +282,7 @@
                     :
                     d.children.length > 0 ? "#c6dbef" // expanded package
                             :
-                            "#fd8d3c"; // leaf node
+                            "#ffffff"; // leaf node
         }
 
 
@@ -312,11 +334,11 @@
         }
 
         //event handler for every time the force layout engine
-        //says to redraw everthing:
+        //says to redraw everything:
         function tick() {
 
             g.node.attr("transform", function (d) {
-                d.x = d.depth * 100 + 50;
+                d.x = d.depth * 200 + 50;
                 return ("translate(" + d.x + "," + d.y + ")");
             });
             //redraw position of every link within the link set:
@@ -338,8 +360,9 @@
 
         }
 
-        var data =
-        {
+
+
+        var data = {
             "nodes": [
                 {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
                 {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
