@@ -96,7 +96,7 @@
                                     <h2 class="panel-title">
                                         <div class="row">
                                             <div class="col-xs-2">
-
+                                                {#
                                                 <input
                                                         type="checkbox"
                                                         class="proj-checkbox"
@@ -105,15 +105,17 @@
                                                         #console.log(name)
                                                         data-project="{{ proj.project_id }}"
                                                         >
+                                                        #}
 
-												{#
+
                                                 <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
                                                     <label for="proj-{{ proj.project_id }}-allcheck">
                                                         <input type="checkbox" data-project="{{ proj.project_id }}"
-                                                               id="proj-{{ proj.project_id }}-allcheck"/>
+                                                               id="proj-{{ proj.project_id }}-allcheck"
+                                                                name="project_{{ proj.project_id }}"/>
                                                     </label>
                                                 </div>
-												#}
+
                                             </div>
                                             <div class="col-xs-10" style="vertical-align: bottom;">
                                                 <a class="project-link" data-toggle="collapse"
@@ -175,7 +177,9 @@
 				$(child).addClass('collapsed');
 		});
 
-		// All selector checkbox
+		// This ensures that all genesets under a project are checked when
+		// the project checkbox is checked too, even if their data hasn't been
+		// retrieved from the server
 		$('.proj-checkbox').on('click', function(event) {
 
 			var check = $(this).find('input[type=checkbox]');
@@ -190,6 +194,32 @@
 				});
 
 			} else {
+
+				var pbid = '#project-body-' + pid;
+				var data = {'project': pid};
+
+				// Load geneset data from the server if it hasn't been done yet
+				if ($(pbid).children().length === 0) {
+
+					// Flask should return the rendered HTML, inject it into the DOM
+					$.get(url, data).done(function (data) {
+
+						var tbody = pbid + ' tbody'
+						$(pbid).append(data);
+
+						var allclass = '#proj-' + pid + '-allcheck';
+						var chkclass = '.proj-' + pid + '-check';
+
+						// Now start checking to see if we need to mark the checkboxes
+						// under this particular project
+						if ($(allclass).attr('checked')) {
+
+							$(chkclass).each(function (index) {
+								$(this).attr('checked', true);
+							});
+						}
+					});
+				}
 
 				$(gscheck).each(function (index) {
 					$(this).attr('checked', true);

@@ -13,6 +13,7 @@ import json
 import os
 import os.path as path
 import re
+import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
@@ -88,7 +89,9 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
+
 RESULTS_PATH = '$HOME/geneweaver/results'
+
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -258,6 +261,9 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/projects')
+def render_projects():
+    return flask.render_template('projects.html')
 
 @app.route("/gwdb/get_group/<user_id>/")
 def get_group(user_id):
@@ -424,27 +430,25 @@ def update_geneset_genes():
             return json.dumps(results)
 
 
-# @app.route('/editgenesetgenes2/<int:gs_id>')
-# def render_editgenesets_genes_2(gs_id):
-#	  if 'user_id' in flask.session:
-#		  user_id = flask.session['user_id']
-#	  else:
-#		  user_id = 0
-#	  geneset = geneweaverdb.get_geneset(gs_id, user_id)
-#	  species = geneweaverdb.get_all_species()
-#	  platform = geneweaverdb.get_microarray_types()
-#	  idTypes = geneweaverdb.get_gene_id_types()
-#
-#	  ####################################
-#	  # Build dictionary of all possible
-#	  # menus options
-#	  gidts = {}
-#	  pidts = {}
-#	  for id in idTypes:
-#		  gidts[id['gdb_id']] = id['gdb_shortname']
-#	  for p in platform:
-#		  pidts[p['pf_shortname']] = p['pf_name']
-#	  return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species, gidts=gidts, pidts=pidts)
+@app.route('/deleteProjectByID', methods=['GET'])
+def delete_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.delete_project_by_id(flask.request.args['projids'])
+        return json.dumps(results)
+
+
+@app.route('/addProjectByName', methods=['GET'])
+def add_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.add_project_by_name(flask.request.args['name'])
+        return json.dumps(results)
+
+
+@app.route('/changeProjectNameById', methods=['GET'])
+def rename_project():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.change_project_by_id(flask.request.args)
+        return json.dumps(results)
 
 
 @app.route('/accountsettings')
@@ -454,7 +458,6 @@ def render_accountsettings():
     groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
     return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
                                  groupsOwnerOf=groupsOwnerOf)
-
 
 @app.route('/login.html')
 def render_login():
@@ -1448,7 +1451,12 @@ def render_reset():
 
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
+    ## Secret key for reCAPTCHA form
+    RECAP_SECRET = '6LeO7g4TAAAAAObZpw2KFnFjz1trc_hlpnhkECyS'
+    RECAP_URL = 'https://www.google.com/recaptcha/api/siteverify'
     form = flask.request.form
+    http = urllib3.PoolManager()
+    
     if not form['usr_first_name']:
         return flask.render_template('register.html', error="Please enter your first name.")
     elif not form['usr_last_name']:
@@ -1458,7 +1466,36 @@ def json_register_successful():
     elif not form['usr_password']:
         return flask.render_template('register.html', error="Please enter your password.")
 
+    captcha = form['g-recaptcha-response']
+
+    ## No robots
+    if not captcha:
+        return flask.render_template('register.html', 
+		error="There was a problem with your captcha input. Please try again.")
+
+    else:
+	## The only data required by reCAPTCHA is secret and response. An
+	## optional parameter, remoteip, containing the end user's IP can also
+	## be appended.
+	pdata = {'secret': RECAP_SECRET, 'response': captcha}
+	resp = http.request('POST', RECAP_URL, fields=pdata)
+
+	## 200 = OK
+	if resp.status != 200:
+	    return flask.render_template('register.html', 
+		    error=("There was a problem with the reCAPTCHA servers. "
+			   "Please try again."))
+	
+	rdata = json.loads(resp.data)
+
+	## If success is false, the dict should contain an 'error-code.' This
+	## isn't checked currently.
+	if not rdata['success']:
+	    return flask.render_template('register.html', 
+		    error="Incorrect captcha. Please try again.")
+
     user = _form_register()
+
     if user is None:
         return flask.render_template('register.html', register_not_successful=True)
     else:
