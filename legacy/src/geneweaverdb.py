@@ -15,7 +15,7 @@ from flask import session
 app = flask.Flask(__name__)
 
 # Need to change this path to ~/Documents/geneweaver/results
-RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results'
+RESULTS_PATH = '/Users/group6admin/Documents/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
