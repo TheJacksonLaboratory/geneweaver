@@ -40,7 +40,7 @@ def run_tool():
     method_str   = 'Methods'
     params1 = {homology_str: None}
     params2 = {method_str: None}
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
         params1[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
             params1[homology_str] = form[tool_param.name]
