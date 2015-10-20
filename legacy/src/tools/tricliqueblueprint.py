@@ -46,21 +46,17 @@ def run_tool():
             params1[homology_str] = form[tool_param.name]
         elif tool_param.name.endswith('_' + method_str):
             params2[method_str] = form[tool_param.name]
+
     if params1[homology_str] != 'Excluded':
         params1[homology_str] = 'Included'
-    if params2[method_str] != 'JaccardOverlap':
-        print "Using exact gene overlap"
+    if params2[method_str] != 'Jaccard Overlap':
         params2[method_str] = 'ExactGeneOverlap'
+        if len(selected_geneset_ids) != 2:
+            flask.flash("Warning: You must select 2 projects!")
+            return flask.redirect('analyze')
     else:
-        print "Trying to use jaccard"
         flask.flash("This tool is not currently available.")
         return flask.redirect('analyze')
-        # neither selected_project_ids nor selected_geneset_ids functions
-        # are currently working
-        #if len(selected_geneset_ids) != 2:
-        #    flask.flash("Warning: You must select 2 projects!")
-        #    return flask.redirect('analyze')
-
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -92,7 +88,7 @@ def run_tool():
             'params': params1,
         },
         task_id=task_id)
-    print "results path: ", RESULTS_PATH
+    # print "results path: ", RESULTS_PATH
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
     create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
 
