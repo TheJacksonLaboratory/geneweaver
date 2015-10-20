@@ -92,6 +92,8 @@ def run_tool():
 
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
     create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    print task_id
+    print "Wrote file in the results directory"
 
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
