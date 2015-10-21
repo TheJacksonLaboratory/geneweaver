@@ -29,7 +29,7 @@
         </style>
         <script type="text/javascript">
 
-            var width = 800,
+            var width = 1150,
                 height = 800,
                 root;
 
@@ -86,12 +86,13 @@
                   .attr("r", function(d) {
                           return d._children ? 5
                                   : d.children ? 5
-                                  : Math.sqrt(d.size) / 3.5;
+                                  : Math.sqrt(d.size) / 6;
                       }
               );
-
+                //test
               nodeEnter.append("text")
-                  .attr("dy", ".35em")
+                  .attr("dy", "-2em")
+                      .attr("dx","-2.5em")
                   .text(function(d) { return d._children ? ''
                               : d.children ? ''
                               : d.name;
@@ -99,6 +100,11 @@
               );
 
               node.select("circle")
+                      .attr("r", function(d) {
+                          return d._children ? 10
+                                  : d.children ? 5
+                                  : Math.sqrt(d.size) / 6;
+                      })
                   .style("fill", color);
             }
 
@@ -214,3 +220,5 @@
 </script>
 
 {% include 'footer.html' %}
+
+
