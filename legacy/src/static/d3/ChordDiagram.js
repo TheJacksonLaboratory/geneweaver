@@ -1,3 +1,5 @@
+    var task_id = {{ task_id | safe }};
+
 
     var width = 900,
             height = 900,
@@ -28,8 +30,8 @@
     svg.append("circle")
             .attr("r", outerRadius);
 
-    d3.csv("/Users/group5admin/Documents/geneweaver/results/cities2.csv", function(cities) {
-        d3.json("/Users/group5admin/Documents/geneweaver/results/matrix2.json", function(matrix) {
+    d3.csv("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".csv", function(cities) {
+        d3.json("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".json", function(matrix) {
 
             // Compute the chord layout.
             layout.matrix(matrix);
