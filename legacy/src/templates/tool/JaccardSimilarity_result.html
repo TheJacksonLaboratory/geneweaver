@@ -12,9 +12,9 @@
   padding: 2px;
   font: 10px sans-serif;
   background: ghostwhite;
-  pointer-events: none;
+  pointer-events: none;}
 {#        font-weight: bold;#}
-}
+
     #slider {
   margin-top: 50px;
   margin-left: 50px;
@@ -234,6 +234,10 @@
     var gene_ids = [];
     var gid= "";
 
+{#Create string to hold titles#}
+    var str = "";
+
+
 {# Intializes gene_ids array for click url functionality#}
     for (i= 0; i<gene_sets.length; i++){
         gid = gene_sets[i].substring(2);
@@ -271,6 +275,8 @@
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
+                str = d.venn_diagrams[i].title1;
+                str= str.substring(0,32);
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -281,7 +287,7 @@
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
                      "url":  d.venn_diagrams[i].url,
-                    "title" : d.venn_diagrams[i].title1
+                    "title" : str
 
                 });
 
@@ -326,6 +332,8 @@
 
 {#  Else make circles for orange and blue with appropriate json values #}
             else {
+                str = d.venn_diagrams[i].title1;
+                str = str.substring(0,32);
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -339,7 +347,7 @@
                     "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                     "des": d.venn_diagrams[i].desc1,
                     "url": "/viewgenesetdetails/" + gene_ids[check],
-                    "title" : d.venn_diagrams[i].title1
+                    "title" : str
 
 
                 });
@@ -353,7 +361,7 @@
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
                     "url": "/viewgenesetdetails/" + gene_ids[check-1],
-                    "title" : d.venn_diagrams[i].title1
+                    "title" : str
                 });
 
             }
@@ -402,9 +410,6 @@
             div.transition()
                 .duration(200)
                 .style("opacity", .9);
-{#            div .html((d.title)  + "<br/>")#}
-{#                .style("left", (d3.event.pageX) + "px")#}
-{#                .style("top", (d3.event.pageY) + "px");#}
             div .html((d.title)+ "<br/>" + (d.des))
                 .style("left", (d3.event.pageX) + "px")
                 .style("top", (d3.event.pageY) + "px");
