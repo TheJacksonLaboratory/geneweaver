@@ -192,20 +192,25 @@ def create_json_from_triclique_output(taskid, results):
 
     # Read in file. Only add values after the edge triclique
     start_parsing = False
-    with (results + '/' + taskid + '.kel', 'r') as fh:
-        for line in fh:
-            if start_parsing:
-                temp_line = filter(None, re.split("[\t\s ]+", line))
-                partitions.append(temp_line)
-            else:
-                matchObj = re.match('edge maximum k-clique', line)
-                if matchObj:
-                    start_parsing = True
+    #with (results + '/' + taskid + '.mkc', 'r') as fh:
+    fh = open(results + '/' + taskid + '.mkc', 'r')
+    for line in fh:
+        print line
+        if start_parsing:
+            temp_line = filter(None, re.split("[\t\s ]+", line))
+            partitions.append(temp_line)
+        else:
+            matchObj = re.match('edge maximum k-clique', line)
+            if matchObj:
+                start_parsing = True
+    fh.close()
+    print partitions
 
     # make a flattened list of unique values in partitions and then
     # create an empty matrix based on that list
     identifiers = [item for sublist in partitions for item in sublist]
     sorted(set(identifiers))
+    print identifiers
     n = len(identifiers)
     Matrix = [[0 for x in range(n)] for x in range(n)]
 
@@ -225,9 +230,11 @@ def create_json_from_triclique_output(taskid, results):
             row.append(Matrix[i][j])
         json += ','.join(row)
         json += '],'
+        print json
         row = []
     json += ']'
 
+    print "json"
     print json
 
     return Matrix

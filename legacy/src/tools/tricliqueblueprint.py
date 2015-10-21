@@ -179,6 +179,7 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
+        create_json_from_triclique_output(task_id, RESULTS_PATH)
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/TricliqueViewer_result.html',
