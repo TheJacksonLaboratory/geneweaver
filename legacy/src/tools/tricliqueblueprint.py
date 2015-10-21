@@ -77,6 +77,11 @@ def run_tool():
         desc,
         desc)
 
+    # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
+    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    print task_id
+    print "Wrote file in the results directory"
+
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
@@ -86,10 +91,6 @@ def run_tool():
         },
         task_id=task_id)
     # print "results path: ", RESULTS_PATH
-    # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
-    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
-    print task_id
-    print "Wrote file in the results directory"
 
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
@@ -180,10 +181,15 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
         create_json_from_triclique_output(task_id, RESULTS_PATH)
+        # Open files and pass via template
+        # Need json.loads
+        # Need safe
+        # Look into json floats (application.py for function)
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/TricliqueViewer_result.html',
             async_result=json.loads(async_result.result),
+            task_id=task_id,
             tool=tool)
     else:
         # render a page telling their results are pending
