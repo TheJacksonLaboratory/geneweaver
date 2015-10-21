@@ -1445,7 +1445,7 @@ def json_register_successful():
     RECAP_URL = 'https://www.google.com/recaptcha/api/siteverify'
     form = flask.request.form
     http = urllib3.PoolManager()
-
+    
     if not form['usr_first_name']:
         return flask.render_template('register.html', error="Please enter your first name.")
     elif not form['usr_last_name']:
@@ -1459,7 +1459,7 @@ def json_register_successful():
 
     ## No robots
     if not captcha:
-        return flask.render_template('register.html',
+        return flask.render_template('register.html', 
 		error="There was a problem with your captcha input. Please try again.")
 
     else:
@@ -1471,16 +1471,16 @@ def json_register_successful():
 
 	## 200 = OK
 	if resp.status != 200:
-	    return flask.render_template('register.html',
+	    return flask.render_template('register.html', 
 		    error=("There was a problem with the reCAPTCHA servers. "
 			   "Please try again."))
-
+	
 	rdata = json.loads(resp.data)
 
 	## If success is false, the dict should contain an 'error-code.' This
 	## isn't checked currently.
 	if not rdata['success']:
-	    return flask.render_template('register.html',
+	    return flask.render_template('register.html', 
 		    error="Incorrect captcha. Please try again.")
 
     user = _form_register()
