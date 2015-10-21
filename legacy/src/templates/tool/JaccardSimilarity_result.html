@@ -593,7 +593,7 @@ function updateOpacity(nRadius) {
   d3.select("#nRadius").property("value", nRadius);
     console.log(nRadius);
   // update the circle radius
-  svgContainer.selectAll("circle1")
+  svgContainer.selectAll(".circle1")
     .style("fill-opacity", nRadius);
 
 }
