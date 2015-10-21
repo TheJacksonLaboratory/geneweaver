@@ -209,8 +209,8 @@
 <div id="jaccard"></div>
 
 {# Displays output to a new window if selected #}
-<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
-{{ data | safe }}
+{#<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>#}
+{#{{ data | safe }}#}
 {# Style sheet and calls for slider code from other websites#}
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
@@ -219,9 +219,11 @@
 
 
 <p>
-  <label for="nRadius"
-         style="display: inline-block; width: 240px; text-align: right">
-        Jaccard Threshold (0.05 increments): <span id="nRadius-value">…</span>
+    </br>
+  <label for="nRadius">
+{#         style="display: inline-block; width: 240px; text-align: left">#}
+        <h5>Jaccard Threshold (0.05 increments):
+      <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
   </label>
   <input type="range" min="0" max="1" step = "0.05" id="nRadius">
 </p>
@@ -278,7 +280,7 @@
         gene_ids[i] = gid;
     }
 
-
+{# Gets URLs for click function#}
     var gene_url = [];
     var geneurl_text = "";
     gene_url = d.genesets;
@@ -371,7 +373,8 @@
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label": d.geneset_table[check].text,
+                            "label": d.geneset_table[check].text.substring(0,25),
+                            "label1": d.geneset_table[check].text.substring(25,50),
                             "labelx": x_coord,
                             "labely": y_coord
 
@@ -385,7 +388,8 @@
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label": d.geneset_table[check].text,
+                            "label": d.geneset_table[check].text.substring(0,25),
+                            "label1": d.geneset_table[check].text.substring(25,50),
                             "labelx": x_coord,
                             "labely": y_coord
 
@@ -505,19 +509,24 @@
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("click", function(d) {
            window.open(
-                   "http://127.0.0.1:5000" + d.url, console.log(d.url))})
-                   .attr("class", function(d, i) {
+                   "http://127.0.0.1:5000" + d.url)})
+        .attr("class", function(d, i) {
 {#                console.log(i);#}
               if (i < pValueCount) {
-                  if (pValues[i] === '0') {
-                      console.log("circle2, index: " + i + " " + pValues[i]);
-                      return "circle2";
-                  }
-                  else {
-                      console.log("circle1, index: " + i + " " + pValues[i]);
-                      return "circle1";
-                  }
+                  return "circle2";
+{#                  if (pValues[i] === "0") {#}
+{#                      console.log("circle2, index: " + i + " " + pValues[i]);#}
+{#                      return "circle2";#}
+{#                  }#}
+{#                  else {#}
+{#                      console.log("circle1, index: " + i + " " + pValues[i]);#}
+{#                      return "circle1";#}
+{#                  }#}
               }
+{#              else if (pValue{#}
+{#                  console.log("circle1, index: " + i + " " + pValues[i]);#}
+{#                  return "circle1";#}
+{#              }#}
 {#               }else{#}
 {#                     return "circle2";#}
 {#                   }#}
@@ -532,7 +541,7 @@
 
 // X Gene_Set labels added to d3
     text.append("text")
-            .text(function (d) {console.log(d.label); return d.label;})
+            .text(function (d) { return d.label;})
             .attr("x", function (d) {return d.labelx + 50; })
             .attr("y", function (d) {return 50; })
             .style("font-weight", "bold")
@@ -543,6 +552,22 @@
             .text(function (d) {return d.label;})
             .attr("x", function (d) {return 25;})
             .attr("y", function (d) {return d.labely + 100;})
+            .style("font-weight", "bold")
+            .attr("font-size", "10px");
+
+// X Gene_Set labels added to d3
+    text.append("text")
+            .text(function (d) { return d.label1;})
+            .attr("x", function (d) {return d.labelx + 50; })
+            .attr("y", function (d) {return 60; })
+            .style("font-weight", "bold")
+            .attr("font-size", "10px");
+
+// Y Gene_Set labels added to d3
+    text.append("text")
+            .text(function (d) {return d.label1;})
+            .attr("x", function (d) {return 25;})
+            .attr("y", function (d) {return d.labely + 110;})
             .style("font-weight", "bold")
             .attr("font-size", "10px");
 
@@ -570,11 +595,11 @@ function updateOpacity(nRadius) {
   // adjust the text on the range slider
   d3.select("#nRadius-value").text(nRadius);
   d3.select("#nRadius").property("value", nRadius);
-
+    console.log(nRadius);
   // update the circle radius
   svgContainer.selectAll(".circle2")
-
     .style("fill-opacity", nRadius);
+
 }
 
 
@@ -640,7 +665,7 @@ $(document).ready(function(){
 </script>
 
 <script>
-    var w = 950, h = 550;
+    var w =  width + margin.left + margin.right, h = height + margin.top + margin.bottom;
     var border = 0.5;
     var bordercolor = 'black';
     var d = {{ data | safe }};
@@ -655,7 +680,7 @@ $(document).ready(function(){
 
 
     var svg = d3.select("#panel").append("svg:svg")
-        .attr("width", w)
+        .attr("width",  width + margin.left + margin.right)
         .attr("height", h);
 
     var addOnX = 0;
