@@ -512,24 +512,20 @@
                    "http://127.0.0.1:5000" + d.url)})
         .attr("class", function(d, i) {
 {#                console.log(i);#}
-              if (i < pValueCount) {
+{#              if (i < pValueCount) {#}
+{#                  return "circle2";#}
+              if (pValues[i] === "0" ){
+                  console.log("circle2, index: " + i + " " + pValues[i]);
                   return "circle2";
-{#                  if (pValues[i] === "0") {#}
-{#                      console.log("circle2, index: " + i + " " + pValues[i]);#}
-{#                      return "circle2";#}
-{#                  }#}
-{#                  else {#}
-{#                      console.log("circle1, index: " + i + " " + pValues[i]);#}
-{#                      return "circle1";#}
-{#                  }#}
               }
-{#              else if (pValue{#}
-{#                  console.log("circle1, index: " + i + " " + pValues[i]);#}
-{#                  return "circle1";#}
+              else {
+                  console.log("circle1, index: " + i + " " + pValues[i]);
+                  return "circle1";
+              }
 {#              }#}
-{#               }else{#}
-{#                     return "circle2";#}
-{#                   }#}
+{#                else{#}
+{#                  return "circle2";#}
+
             });
                //    return i == 0 ? "circle1" : "circle2";});
 
@@ -597,7 +593,7 @@ function updateOpacity(nRadius) {
   d3.select("#nRadius").property("value", nRadius);
     console.log(nRadius);
   // update the circle radius
-  svgContainer.selectAll(".circle2")
+  svgContainer.selectAll("circle1")
     .style("fill-opacity", nRadius);
 
 }
