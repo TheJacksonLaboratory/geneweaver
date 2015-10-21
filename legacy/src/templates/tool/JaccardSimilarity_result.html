@@ -367,12 +367,19 @@
     var border = 1;
     var bordercolor = 'black';
 
+    var margin = {top: -5, right: -5, bottom: -5, left: -5},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
 
 
     //Create the SVG Viewport
     var svgContainer = d3.select("#jaccard").append("svg")
-            .attr("width", x_coord + 250)
-            .attr("height", y_coord + 250);
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .call(d3.behavior.zoom().on("zoom", function () {
+                svgContainer.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+              }))
+              .append("g");
 
     var div = d3.select("#jaccard").append("div")
         .attr("class", "tooltip")
@@ -458,13 +465,14 @@
             .attr("font-size", "12px")
             .attr("fill", "black");
 
-// Changes on Url menu to select different download types
-var urlMenu = document.getElementById("downloadType");
-urlMenu.onchange = function () {
-    if (this.value != 'null') {
-        window.open(this.options[this.selectedIndex].value, '_blank');
+
+    // Changes on Url menu to select different download types
+    var urlMenu = document.getElementById("downloadType");
+    urlMenu.onchange = function () {
+        if (this.value != 'null') {
+            window.open(this.options[this.selectedIndex].value, '_blank');
+        }
     }
-}
 
 // Download types function and selection - not made by KRISTEN, in prior to working on
 function changeImg(sel, dl) {
