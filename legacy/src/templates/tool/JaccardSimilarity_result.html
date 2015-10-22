@@ -117,7 +117,7 @@
 
 <br /><h4>Table View:</h4>
 
-<br clear="all" />< class="floatGeneList">
+<br clear="all"  class="floatGeneList">
 <form name="listform" id="listform">
 <table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left" style=" border-bottom: thin solid #ccc;"> &nbsp;
 
@@ -466,6 +466,7 @@
     var div = d3.select("#jaccard").append("div")
         .attr("class", "tooltip")
         .style("opacity", 0);
+
 //Add circles to the svgContainer
     var circles = svgContainer.selectAll("circle")
             .data(circleData)
@@ -652,12 +653,8 @@ $(document).ready(function(){
         $("#panel").slideToggle("slow");
     });
 });
+
 </script>
-
-
-
-
-
 
 
 
