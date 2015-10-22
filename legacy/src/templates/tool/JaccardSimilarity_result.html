@@ -42,21 +42,28 @@
 #panel, #flip {
     padding: 5px;
     text-align: center;
-    background-color: #FFFFFF;
-    border: solid 1px #26c3c0;
+{#    border: solid 1px #26c3c0;#}
     width: 1130px;
-
 }
 
 #panel {
     padding: 50px;
     height: 500px;
     display: none;
+{#    background-color: #FFFFFF;#}
 }
 
 #flip {
  height: 50px;
+ background-color: #006b00
 }
+
+
+#zoomButton{
+  margin-top: 50px;
+  margin-left: 965px;
+  margin-bottom: 50px;
+    }
 </style>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
@@ -110,7 +117,7 @@
 
 <br /><h4>Table View:</h4>
 
-<br clear="all" /><div class="floatGeneList">
+<br clear="all" />< class="floatGeneList">
 <form name="listform" id="listform">
 <table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left" style=" border-bottom: thin solid #ccc;"> &nbsp;
 
@@ -200,10 +207,15 @@
 </td></tr>
 </table>
 <br><br>
-<div id="flip" style="font-size: 1.5em">Click to slide down panel to see gene set table</div>
-<div id="panel"></div>
+<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Click to slide down panel to see gene set table</div>
+<div id="panel" ></div>
 
-<br /><br /><h4>Venn Diagram view:</h4>
+<br /><br />
+
+
+    <h4>Venn Diagram view:</h4>
+
+
 
 {#Location for where the d3 is appended to in the html#}
 <div id="jaccard"></div>
@@ -218,7 +230,9 @@
 <link rel="stylesheet" href="/resources/demos/style.css">
 
 
-<p>
+
+{##}
+{#<button type="button" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check header" onclick="myFunction()">Reset Zoom</button>#}
     </br>
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
@@ -226,7 +240,7 @@
       <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
   </label>
   <input type="range" min="0" max="1" step = "0.05" id="nRadius">
-</p>
+
 
     <script src="http://d3js.org/d3.v3.min.js"></script>
 
@@ -235,152 +249,132 @@
 {# Start of script#}
 <script type="text/javascript">
 
-{#  Declaration of data as d variable#}
-    var d = {{ data | safe }};
+   {#  Declaration of data as d variable#}
+   var d = {{ data | safe }};
 
-{# Checks number of objects venn_diagram has#}
-    var count = 0;
-    for (var key in d.venn_diagrams)
-        if (d.venn_diagrams.hasOwnProperty(key))
-            count++;
+   {# Checks number of objects venn_diagram has#}
+   var count = 0;
+   for (var key in d.venn_diagrams)
+       if (d.venn_diagrams.hasOwnProperty(key))
+           count++;
 
-{# Counts number of text objects in venn_diagrams text set#}
-    var count_text = 0;
+   var count_text = 0; {# Counts number of text objects in venn_diagrams text set#}
+   var check = 0; {# Used to keep track of label id for gene sets that are overlapping with themselves#}
+   var gene_lab_coor = []; {# Array used to define the coordinates of the graph#}
+   var circleData = []; {# Array for all elements of each venn_diagram circle object#}
+   var num_sets = Math.sqrt(count); {# Finds the length and width of entire chart (object wise) #}
+   var str = ""; {#Create string to hold titles#}
+   var x_coord = 0, y_coord = 0; {# Sets the graph coordinates to 0,0#}
 
-{# Used to keep track of label id for gene sets that are overlapping with themselves#}
-    var check = 0;
+   {# Array to hold the value for gene_sets set in jSon data#}
+   var gene_sets = [];
+   gene_sets = d.geneset_table;
 
-{# Array used to define the coordinates of the graph#}
-    var gene_lab_coor = [];
-
-{# Array for all elements of each venn_diagram circle object#}
-    var circleData = [];
-
-{# Finds the length and width of entire chart (object wise) #}
-    var num_sets = Math.sqrt(count);
-
-{# Sets the graph coordinates to 0,0#}
-    var x_coord = 0;
-    var y_coord = 0;
-
-{# Array to hold the value for gene_sets set in jSon data#}
-    var gene_sets = [];
-    gene_sets = d.geneset_table;
-
-{# Arrau to hold individual gene set ids (w/o the GS) to get the url#}
-    var gene_ids = [];
-    var gid= "";
-
-{#Create string to hold titles#}
-    var str = "";
+   {# Array to hold individual gene set ids (w/o the GS) to get the url#}
+   var gene_ids = [];
+   var gid= "";
 
 
-{# Intializes gene_ids array for click url functionality#}
-    for (i= 0; i<gene_sets.length; i++){
-        gene_ids[i] = gid;
-    }
+   {# Intializes gene_ids array for click url functionality#}
+   for (i= 0; i<gene_sets.length; i++){
+       gene_ids[i] = gid;
+   }
 
-{# Gets URLs for click function#}
-    var gene_url = [];
-    var geneurl_text = "";
-    gene_url = d.genesets;
-{# Intializes gene_ids array for click url functionality#}
-    for (i= 0; i<gene_url.length; i++){
-        geneurl_text = gene_url[i].substring(2);
-        gene_url[i] = geneurl_text;
-    }
+   {# Gets URLs for click function#}
+   var gene_url = [];
+   var geneurl_text = "";
+   gene_url = d.genesets;
 
+   {# Intializes gene_ids array for click url functionality#}
+   for (i= 0; i<gene_url.length; i++){
+       geneurl_text = gene_url[i].substring(2);
+       gene_url[i] = geneurl_text;
+   }
 
- var pValues = [];
- var pValueCount = 0;
- var isPVal = "p = ";
-  for (i = 0; i < count; i++) {
+   var pValues = [];
+   var pValueCount = 0;
+   var isPVal = "p = ";
 
-        count_text = 0;
-        for (var key in d.venn_diagrams[i].text) {
-            if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
-                ++count_text;
-            }
-        }
-      for (k = 0; k < count_text; k++) {
-          var str = d.venn_diagrams[i].text[k].text;
-          if(str.search(isPVal) != -1){
-              //alert(str.replace("p =  ",""));
-              str = str.replace("p =", "");
-              str=str.replace(/^\s+|\s+$/g,'');
-              pValues[pValueCount] =  str;
-              pValueCount += 1;
+   for (i = 0; i < count; i++) {
 
-         }
+       count_text = 0;
+       for (var key in d.venn_diagrams[i].text) {
+           if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
+               ++count_text;
+           }
+       }
+       for (k = 0; k < count_text; k++) {
+           var str = d.venn_diagrams[i].text[k].text;
+           if(str.search(isPVal) != -1){
+               str = str.replace("p =", "");
+               str=str.replace(/^\s+|\s+$/g,'');
+               pValues[pValueCount] =  str;
+               pValueCount += 1;
 
-      }
-  }
+           }
 
-{#  for (i = 0; i < pValueCount; i++) {#}
-{#      console.log(pValues[i].pVal + " in circle: " + pValues[i].circle);#}
+       }
+   }
 
+   {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
+   for (i = 0; i < count; i++) {
+       if (i % num_sets === 0) {
+           x_coord = 150;
+           y_coord += 150;
+           if (i === 0) {
+               y_coord = 50;
+           }
+       }
+       else {
+           x_coord += 200;
+       }
 
-{# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
-    for (i = 0; i < count; i++) {
-        if (i % num_sets === 0) {
-            x_coord = 150;
-            y_coord += 150;
-            if (i === 0) {
-                y_coord = 50;
-            }
-        }
-        else {
-            x_coord += 200;
-        }
+   {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
+   gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
 
-{# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
-        gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
+   {# Resets the count_text value to 0 #}
+   count_text = 0;
 
-{# Resets the count_text value to 0 #}
-        count_text = 0;
+   {# Counts the number of objects in venn_diagram's text set #}
+   for (var key in d.venn_diagrams[i].text) {
+       if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
+           ++count_text;
+       }
+   }
 
-{# Counts the number of objects in venn_diagram's text set #}
-        for (var key in d.venn_diagrams[i].text) {
-            if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
-                ++count_text;
-            }
-        }
+   {#Read through k times and create text labels based upon k's value  #}
+       for (k = 0; k < count_text; k++) {
 
-{#  Read through k times and create text labels based upon k's value  #}
-        for (k = 0; k < count_text; k++) {
+   {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
+       if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
+           str = d.venn_diagrams[i].title1;
+           str= str.substring(0,32);
+           circleData.push({
+               "cx": d.venn_diagrams[i].c2x,
+               "cy": d.venn_diagrams[i].c2y,
+               "radius": d.venn_diagrams[i].r2,
+               "fill": "#66FFFF",
+               "opacity": d.venn_diagrams[i].opacity,
+               "cxshift": x_coord,
+               "cyshift": y_coord,
+               "des": d.venn_diagrams[i].desc1,
+               "url":  d.venn_diagrams[i].url,
+               "title" : d.venn_diagrams[i].title1
+           });
 
-{#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
-            if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
-                str = d.venn_diagrams[i].title1;
-                str= str.substring(0,32);
-                circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "#66FFFF",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                     "url":  d.venn_diagrams[i].url,
-                    "title" : d.venn_diagrams[i].title1
-
-                });
-
-                {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
-                if((i === 0) && (k === 0)){
-                     circleData.push({
-                            "gene_id": d.venn_diagrams[i].text[k].text,
-                            "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
-                            "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label": d.geneset_table[check].text.substring(0,25),
-                            "label1": d.geneset_table[check].text.substring(25,50),
-                            "labelx": x_coord,
-                            "labely": y_coord
-
-                        });
-                        check += 1;
-                }
+           {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
+           if((i === 0) && (k === 0)){
+               circleData.push({
+                   "gene_id": d.venn_diagrams[i].text[k].text,
+                   "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
+                   "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
+                   "label": d.geneset_table[check].text.substring(0,25),
+                   "label1": d.geneset_table[check].text.substring(25,50),
+                   "labelx": x_coord,
+                   "labely": y_coord
+               });
+               check += 1;
+           }
 
                 {# Else (FIXES OVERLAP) object is not i = 0, text k is 0, and is a diagonal then intializes jaccard, p and coordinate values#}
                 else if ( (k===0) && (i !== 0) && (i%(num_sets+1) ===0)){
@@ -454,18 +448,20 @@
     var bordercolor = 'black';
 
     var margin = {top: -5, right: -5, bottom: -5, left: -5},
-    width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+    width = 1100 - margin.left - margin.right,
+    height = 900 - margin.top - margin.bottom;
 
 
     //Create the SVG Viewport
     var svgContainer = d3.select("#jaccard").append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
+            .attr("width", width )
+            .attr("height", height)
             .call(d3.behavior.zoom().on("zoom", function () {
                 svgContainer.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
               }))
               .append("g");
+
+
 
     var div = d3.select("#jaccard").append("div")
         .attr("class", "tooltip")
@@ -507,14 +503,14 @@
                 .style("opacity", 0);   })
 
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
-        .on("click", function(d) {
+        .on("dblclick", function(d) {
            window.open(
                    "http://127.0.0.1:5000" + d.url)})
         .attr("class", function(d, i) {
 {#                console.log(i);#}
 {#              if (i < pValueCount) {#}
 {#                  return "circle2";#}
-              if (pValues[i] === "0" ){
+              if (pValues[i] != 0 ){
                   console.log("circle2, index: " + i + " " + pValues[i]);
                   return "circle2";
               }
@@ -600,9 +596,6 @@ function updateOpacity(nRadius) {
 
 
 
-
-
-
     // Changes on Url menu to select different download types
     var urlMenu = document.getElementById("downloadType");
     urlMenu.onchange = function () {
@@ -649,7 +642,9 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 {#Script for the slider to control the jaccard similarity threshold.#}
 <script type="text/javascript">
-
+{#  $("#zoomButton").click(function(){#}
+{#        $("#jaccard").animate({height: "100px"});#}
+{#    });#}
 
 //This allows the user to view the chart or not
 $(document).ready(function(){
@@ -657,8 +652,14 @@ $(document).ready(function(){
         $("#panel").slideToggle("slow");
     });
 });
-
 </script>
+
+
+
+
+
+
+
 
 <script>
     var w =  width + margin.left + margin.right, h = height + margin.top + margin.bottom;
