@@ -237,7 +237,7 @@ def create_json_from_triclique_output(taskid, results):
     f.write(json)
     f.close()
 
-    create_csv_from_mkc(taskid, results, identifiers)
+    create_csv_from_mkc(taskid, results, identifiers, partitions)
 
     return Matrix
 
@@ -275,11 +275,15 @@ def get_matrix_value(i, j, identifiers, partitions):
         return 0.0
 
 
-def create_csv_from_mkc(taskid, results, identifiers):
+def create_csv_from_mkc(taskid, results, identifiers, partitions):
     HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
     f = open(results + '/' + taskid + '.csv', 'wb')
     f.write("name,gs_name,something,something,color\n")
     for i in range(len(identifiers)):
-        f.write(str(identifiers[i]) + ',' + str(identifiers[i]) + ',0,0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
+        for j in range(len(partitions)):
+            print identifiers[i]
+            print partitions[j]
+            if identifiers[i] in partitions[j]:
+                 f.write(str(identifiers[i]) + ',' + str(identifiers[i]) + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
     f.close()

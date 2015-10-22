@@ -10,6 +10,7 @@ import uuid
 from geneweaverdb import *
 import toolcommon as tc
 from edgelist import *
+from decimal import Decimal
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -170,6 +171,11 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     return task_id
 
 
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
@@ -201,7 +207,7 @@ def view_result(task_id):
             'tool/TricliqueViewer_result.html',
             async_result=json.loads(async_result.result),
             task_id=task_id,
-            json_results=json.loads(json_results),
+            json_results=json.dumps(json_results, default=decimal_default),
             csv_results=csv_results,
             tool=tool)
     else:

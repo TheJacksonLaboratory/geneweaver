@@ -152,7 +152,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 
     <script>
             //var task_id = "{{ task_id | safe }}";
-    var json_results = "{{ json_results | safe }}";
+    var json_results = {{ json_results | safe }};
     var csv_results = "{{ csv_results | safe }}";
 
 
@@ -185,10 +185,17 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     svg.append("circle")
             .attr("r", outerRadius);
 
+            console.log(csv_results);
+            console.log(json_results);
+
     //d3.csv("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".csv", function(cities) {
       //  d3.json("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".json", function(matrix) {
-    d3.csv.parse(csv_results, function(cities) {
-        d3.json.parse(json_results, function(matrix) {
+    csv_results = csv_results.replace(/\t/g, "\n");
+            var cities = d3.csv.parse(csv_results);
+            var matrix = JSON.parse(json_results);
+           // d3.csv.parse(csv_results, function(cities) {
+
+       // JSON.parse(json_results, function(matrix) {
             // Compute the chord layout.
             layout.matrix(matrix);
             console.log("test");
@@ -266,8 +273,8 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                             && p.target.index != i;
                 });
             }
-        });
-    });
+       // });
+   // });
 
 
     </script>
