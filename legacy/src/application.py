@@ -89,8 +89,8 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
-# changed this path 9/3
-RESULTS_PATH = '/var/www/html/geneweaver/results'
+
+RESULTS_PATH = '$HOME/geneweaver/results'
 
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
@@ -994,6 +994,17 @@ def render_project_genesets():
     return flask.render_template('singleProject.html',
                                  genesets=genesets,
                                  proj={'project_id': pid})
+
+@app.route('/changePvalues/<setSize1>/<setSize2>/<jaccard>', methods=["GET"])
+def changePvalues(setSize1, setSize2, jaccard):
+    tempDict = geneweaverdb.checkJaccardResultExists(setSize1, setSize2)
+    print tempDict
+    if(len(tempDict) > 0):
+            pValue = geneweaverdb.getPvalue(setSize1,setSize2,jaccard)
+    else:
+        return json.dumps(-1)
+
+    return json.dumps(pValue)
 
 
 #****** ADMIN ROUTES ******************************************************************
