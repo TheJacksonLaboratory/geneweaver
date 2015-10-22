@@ -276,7 +276,7 @@ def get_matrix_value(i, j, identifiers, partitions):
 
 
 def create_csv_from_mkc(taskid, results, identifiers, partitions):
-    HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', '#D96459',
+    HOMOLOGY_BOX_COLORS = ['#6699FF', '#FFCC00', '#FF0000', '#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
     f = open(results + '/' + taskid + '.csv', 'wb')
     f.write("name,gs_name,something,something,color\n")
