@@ -207,7 +207,7 @@
 </td></tr>
 </table>
 <br><br>
-<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Click to slide down panel to see gene set table</div>
+<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel</div>
 <div id="panel" ></div>
 
 <br /><br />
@@ -221,7 +221,7 @@
 <div id="jaccard"></div>
 
 {# Displays output to a new window if selected #}
-{#<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>#}
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
 {#{{ data | safe }}#}
 {# Style sheet and calls for slider code from other websites#}
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
