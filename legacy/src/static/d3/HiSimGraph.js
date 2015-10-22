@@ -15,12 +15,34 @@
             force: null
         };
 
+        g.data = {{ data | safe }};
 
-        //initializa
+
+        //initialization
         $(function () {
 
             //use a global var for the data:
-            g.data = data;
+            //g.data = data;
+
+            //g.data
+
+
+
+
+            //g.data = (function () {
+            //    var json = null;
+            //    $.ajax({
+            //        "async": false,
+            //        "global": false,
+            //        "url": "file://localhost/C:PycharmProjects/results/TestOutput.hisim.json",
+            //        "dataType": "json",
+            //        "success": function (data) {
+            //         json = data;
+            //        }
+            //    });
+            //    return json;
+            //} );
+
             /*
             var data = (function () {
                 var json = null;
@@ -37,7 +59,7 @@
             } );
             */
 
-            console.log("DATA = " + JSON.stringify(data));
+            console.log("DATA = " + JSON.stringify(g.data));
             var width = 960,
                     height = 1000;
 
@@ -57,6 +79,7 @@
             g.link = svg.selectAll("path.link"),
                     g.node = svg.selectAll(".node");
 
+            console.log(g.data.nodes);
 
             //Create a graph layout engine:
             g.force = d3.layout.force()
@@ -235,8 +258,6 @@
                     recurse(data[i]);
                 }
             }
-
-
             return nodes;
         }
 
@@ -272,8 +293,6 @@
 
             return links;
         }
-
-
 
         //Invoked from 'update'
         //Return the color of the node
@@ -346,7 +365,7 @@
             //redraw position of every link within the link set:
 
             g.link.attr("x1", function (d) {
-                        return d.source.x;Cap
+                        return d.source.x;
                     })
                     .attr("y1", function (d) {
                         return d.source.y;
@@ -362,25 +381,24 @@
 
         }
 
-
-
-        var data = {
-            "nodes": [
-                {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
-                {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
-                {"id": 2, "name": "cluster", "children": [3, 4, 5, 6, 15], "depth": 2},                //2
-                {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},   //3
-                {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},     //4
-                {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},    //5
-                {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},              //6
-                {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},                  //7
-                {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},  //8
-                {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},           //9
-                {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},          //10
-                {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},          //11
-                {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},           //12
-                {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
-                {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},       //14
-                {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
-            ]
-        };
+        //
+        //var data = {
+        //    "nodes": [
+        //        {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},      //0
+        //        {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},             //1
+        //        {"id": 2, "name": "cluster", "children": [3, 4, 5, 6, 15], "depth": 2},         //2
+        //        {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},          //3
+        //        {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},            //4
+        //        {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},           //5
+        //        {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},                     //6
+        //        {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},     //7
+        //        {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},         //8
+        //        {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},                  //9
+        //        {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},                //10
+        //        {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},                //11
+        //        {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},                 //12
+        //        {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
+        //        {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},            //14
+        //        {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}    //14
+        //    ]
+        //};

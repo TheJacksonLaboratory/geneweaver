@@ -1,7 +1,7 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-<head>
+<head xmlns="http://www.w3.org/1999/html">
     <meta charset="utf-8">
     <style>
 
@@ -49,8 +49,12 @@
 <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
 #}
 <script type="text/javascript" src="../../static/d3/d3.min.js"></script>
-<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>
-
+{#<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>#}
+{{ data | safe }}
+{#<script>#}
+{#    var d = {{  data |safe }};#}
+{#    console.log(d.nodes[0].id);#}
+{#</script>#}
 
 <div class="page-header">
     <h1>{{ title }}
@@ -168,7 +172,7 @@ NEXT
 	they fail. Checks to see if the results have a key, 'failed', which
 	contains the error message for the failure.
 #}
-{#{% if not async_result.failed %}
+{# {% if not async_result.failed %}
 <div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
     <br/>
     <br/>
@@ -228,31 +232,22 @@ NEXT
     }
     // load statistics from file
     $(window).load(loadStats);
-</script>#}
-
+</script>
+#}
 
 
 <div id="viz2">
-
-
-    {#
-    /*
-        //Notes:
-        // Src: http://bl.ocks.org/mbostock/1093130
-        //Notes:
-        // * Each dom element is using
-        //   children to store refs to expanded children
-        //   _children to store refs to collapsed children
-        //* It's using both a tree and a graph layout.
-
-        //root
-        //Notes:
-        // Src: http://bl.ocks.org/mbostock/1093130
+    <script>
+ //Notes:
+        // STILL VERY MUCH IN PROGRESS
+        // Initially borrowed from http://bl.ocks.org/mbostock/1093130
+        //      with heavy modification. Creates a DAG and displays it in a tree
+        //      shaped manner, where each child node can have multiple parents.
         //Notes:
         // * Each dom element is using
         //   children to store refs to expanded children
         //   _children to store refs to collapsed children
-        //* It's using both a tree and a graph layout.
+
 
         //root
         var g = {
@@ -260,17 +255,60 @@ NEXT
             force: null
         };
 
+        g.data = {{ data | safe }};
+
+
+        //initialization
         $(function () {
 
             //use a global var for the data:
-            g.data = data;
+            //g.data = data;
+
+            //g.data
 
 
+
+
+            //g.data = (function () {
+            //    var json = null;
+            //    $.ajax({
+            //        "async": false,
+            //        "global": false,
+            //        "url": "file://localhost/C:PycharmProjects/results/TestOutput.hisim.json",
+            //        "dataType": "json",
+            //        "success": function (data) {
+            //         json = data;
+            //        }
+            //    });
+            //    return json;
+            //} );
+
+            /*
+            var data = (function () {
+                var json = null;
+                $.ajax({
+                    "async": false,
+                    "global": false,
+                    "url": "../../../../results.TestOutput.hisim.json",
+                    "dataType": "json",
+                    "success": function (data) {
+                     json = data;
+                    }
+                });
+                return json;
+            } );
+            */
+
+            console.log("DATA = " + JSON.stringify(g.data));
             var width = 960,
-                    height = 2000;
+                    height = 1000;
 
             var r = 6,
                     fill = d3.scale.category20();
+
+            var diagonal = d3.svg.diagonal()
+                .projection(function(d) { return [d.y, d.x]; });
+
 
             //Create a sized SVG surface within viz:
             var svg = d3.select("#viz2")
@@ -278,9 +316,10 @@ NEXT
                     .attr("width", width)
                     .attr("height", height);
 
-            g.link = svg.selectAll(".link"),
+            g.link = svg.selectAll("path.link"),
                     g.node = svg.selectAll(".node");
 
+            console.log(g.data.nodes);
 
             //Create a graph layout engine:
             g.force = d3.layout.force()
@@ -296,7 +335,7 @@ NEXT
                     })
                     .charge(-130)
                     .chargeDistance(80)
-                    .gravity(0.0)
+                    .gravity(0.05)
                     .size([width, height])
                 //that invokes the tick method to draw the elements in their new location:
                     .on("tick", tick);
@@ -342,17 +381,13 @@ NEXT
                 console.log("NODE " + nodes[i].id + ": " + nodes[i].children);
             }
 
-
-
-
-
             //Each node extracted above has a children attribute.
             //from them, we can use a tree() layout function in order
             //to build a links selection.
 
             var links = getLinks(nodes);
-            console.log(links.length + " links to draw");
-            console.log(JSON.stringify(g.force.links()));
+            //console.log(links.length + " links to draw");
+            //console.log(JSON.stringify(g.force.links()));
             for (i = 0; i < links.length; i++) {
                 //console.log(JSON.stringify(links[i])) + "distance: ";
                 //console.log("LINK " + i + ": " + links[i].source + "\t" + links[i].target);
@@ -364,19 +399,10 @@ NEXT
                     .start();
             //-------------------
             // create a subselection, wiring up data, using a function to define
-            //how it's suppossed to know what is appended/updated/exited
+            //how it's supposed to know what is appended/updated/exited
 
                                     //console.log("G.LINK (before): \n" + JSON.stringify(g.link));
-            /*
-            try{
-                g.link = g.link.data(links, function (d) {
-                    console.log("" + d.source.id + "\t" + d.target.id);
-                    return d.target.id;
-                })}
-            catch(err){
-                d.target.id = err.message;
-            };
-            */
+
             g.link = g.link.data(links);
 
                                                 ///console.log("G.LINK (middle): \n" + JSON.stringify(g.link));
@@ -385,12 +411,25 @@ NEXT
             g.link.exit().remove();
 
 
+             /*var diagonal = d3.svg.diagonal()
+                .projection(function(d) { return [d.y, d.x]; });*/
+
             //Build new links by adding new svg lines:
             g.link
                     .enter()
                     .insert("line", ".node")
                     .attr("class", "link");
-                                    //console.log("G.LINK (after): \n" + JSON.stringify(g.link));
+
+
+              /*g.link
+                    .enter()
+                    .insert("path", "g")
+                    .attr("class", "link")
+                    .attr("d", function(d) {
+                        console.log(d);
+                        var o = {x: d.source.x, y: d.source.y};
+                        return diagonal({source: o, target: o});
+                    });*/
 
             // create a subselection, wiring up data, using a function to define
             //how it's suppossed to know what is appended/updated/exited
@@ -408,15 +447,22 @@ NEXT
                     .call(g.force.drag);
             //circle within the single node group:
             nodeEnter.append("circle")
-                    .attr("r", function (d) {
-                        return Math.sqrt(d.size) / 10 || 4.5;
-                    });
+                     .attr("r", 4.5);
+
             //text within the single node group:
             nodeEnter.append("text")
-                    .attr("dy", ".35em")
-                    .style('color', textColor)
+                    .attr("dy", "-.2em")
+                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
+                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
                     .text(function (d) {
                         return d.name;
+                    });
+            nodeEnter.append("text")
+                    .attr("dy", "1em")
+                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
+                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
+                    .text(function (d) {
+                        return d.depth;
                     });
             //All nodes, do the following:
             g.node.select("circle")
@@ -425,6 +471,8 @@ NEXT
             //-------------------
 
             //g.node.fontcolor(textColor)
+            g.node.select("text").attr("fill",textColor);
+
         }
 
 
@@ -450,8 +498,6 @@ NEXT
                     recurse(data[i]);
                 }
             }
-
-
             return nodes;
         }
 
@@ -488,8 +534,6 @@ NEXT
             return links;
         }
 
-
-
         //Invoked from 'update'
         //Return the color of the node
         //based on the children value of the
@@ -499,7 +543,7 @@ NEXT
                     :
                     d.children.length > 0 ? "#c6dbef" // expanded package
                             :
-                            "#fd8d3c"; // leaf node
+                            "#ffffff"; // leaf node
         }
 
 
@@ -551,17 +595,17 @@ NEXT
         }
 
         //event handler for every time the force layout engine
-        //says to redraw everthing:
+        //says to redraw everything:
         function tick() {
 
             g.node.attr("transform", function (d) {
-                d.x = d.depth * 100 + 50;
+                d.x = d.depth * 200 + 50;
                 return ("translate(" + d.x + "," + d.y + ")");
             });
             //redraw position of every link within the link set:
 
             g.link.attr("x1", function (d) {
-                        return d.source.x;Cap
+                        return d.source.x;
                     })
                     .attr("y1", function (d) {
                         return d.source.y;
@@ -577,27 +621,27 @@ NEXT
 
         }
 
-        var data =
-        {
-            "nodes": [
-                {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},                  //0
-                {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},              //1
-                {"id": 2, "name": "cluster", "children": [3, 4, 5, 6, 15], "depth": 2},                //2
-                {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},   //3
-                {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},     //4
-                {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},    //5
-                {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},              //6
-                {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},                  //7
-                {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},  //8
-                {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},           //9
-                {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},          //10
-                {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},          //11
-                {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},           //12
-                {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
-                {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},       //14
-                {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}       //14
-            ]
-        };
-#}
+        //
+        //var data = {
+        //    "nodes": [
+        //        {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},      //0
+        //        {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},             //1
+        //        {"id": 2, "name": "cluster", "children": [3, 4, 5, 6, 15], "depth": 2},         //2
+        //        {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},          //3
+        //        {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},            //4
+        //        {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},           //5
+        //        {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},                     //6
+        //        {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},     //7
+        //        {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},         //8
+        //        {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},                  //9
+        //        {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},                //10
+        //        {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},                //11
+        //        {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},                 //12
+        //        {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
+        //        {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},            //14
+        //        {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}    //14
+        //    ]
+        //};
+    </script>
 
 </div>
