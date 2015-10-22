@@ -17,26 +17,11 @@ var g = {
 };
 
 
-//initializa
+//initialization
 $(function () {
 
     //use a global var for the data:
     g.data = data;
-    /*
-     var data = (function () {
-     var json = null;
-     $.ajax({
-     "async": false,
-     "global": false,
-     "url": "../../../../results.TestOutput.hisim.json",
-     "dataType": "json",
-     "success": function (data) {
-     json = data;
-     }
-     });
-     return json;
-     } );
-     */
 
     console.log("DATA = " + JSON.stringify(data));
     var width = 1200,
@@ -45,10 +30,6 @@ $(function () {
     var r = 6,
         fill = d3.scale.category20();
 
-    var diagonal = d3.svg.diagonal()
-        .projection(function (d) {
-            return [d.y, d.x];
-        });
 
 
     //Create a sized SVG surface within viz:
@@ -65,14 +46,15 @@ $(function () {
     g.force = d3.layout.force()
         .nodes(g.data.nodes)
         .links(getLinks(g.data.nodes))
+        //linkDistance proportional to difference in depths to prevent crowding
         .linkDistance(function (link) {
-            //console.log("LINK DISTANCE OUTPUT HERE: " + JSON.stringify(link));
-            //return 50;
             return ((link.target.depth - link.source.depth) * 40);
         })
+        //linkStrength also proportional to distance
         .linkStrength(function (link) {
             return 1 / ((link.target.depth - link.source.depth) * 1.5);
         })
+        //Deeper nodes have a stronger charge because there's more jostling for space down there
         .charge(function (d) {
             return (-((d.depth+1) * 400));
         })
@@ -132,12 +114,8 @@ function update() {
     //-------------------
     // create a subselection, wiring up data, using a function to define
     //how it's supposed to know what is appended/updated/exited
-
-    //console.log("G.LINK (before): \n" + JSON.stringify(g.link));
-
     g.link = g.link.data(links);
 
-    ///console.log("G.LINK (middle): \n" + JSON.stringify(g.link));
 
     //Get rid of old links:
     g.link.exit().remove();
@@ -177,8 +155,11 @@ function update() {
             return (d.children.length > 0) ? "end" : "start";
         })
         .text(function (d) {
-            return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets..." ;
+            //return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets..." ;
+            return d.Genesets;
         });
+
+    //
     nodeEnter.append("text")
         .attr("dy", "1em")
         .attr("dx", function (d) {
@@ -188,7 +169,8 @@ function update() {
             return (d.children.length > 0) ? "end" : "start";
         })
         .text(function (d) {
-            return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes..." ;
+            //return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes..." ;
+            return d.Genes;
         });
     //All nodes, do the following:
     g.node.select("circle")
@@ -209,13 +191,14 @@ function update() {
 // So returns a list of all nodes under the root.
 function flatten(data) {
     var nodes = [];
+    //checks to see which nodes have no parents. these are the only nodes we will recurse on,
+    //to make sure we cover the entire tree with minimum redundancy. Worth a O(n) operation once
+    //to save up to n extra recursive calls, and prevents collapsed children from showing up when they
+    //shouldn't
     for (var i = 0, len = data.length; i < len; i++) {
         data[i].orphan = true;
     }
-    console.log(data.length + "HERE");
     for (var i = 0, len = data.length; i < len; i++) {
-        console.log("I = " + i);
-        console.log("len = " + len);
         if (data[i]._children) {
             for(var j = 0, jlen = data[i]._children.length; j < jlen; j++){
                 console.log(data[i]._children[j] + " IS NOT AN ORPHAN ALSO " + i + " " + j);
@@ -229,6 +212,9 @@ function flatten(data) {
              }
         }
     }
+
+    //recursively get each node's children and it's children's children. does not
+    //look at collapsed children or their children.
     function recurse(node) {
         if (!getNodeByID(nodes, node.id)) {
             nodes.push(node);
@@ -243,17 +229,17 @@ function flatten(data) {
         }
     }
 
+    //recurse on orphans only
     for (var i = 0, len = data.length; i < len; i++) {
         if (data[i].orphan) {
             recurse(data[i]);
         }
     }
-
-
     return nodes;
 }
 
-
+//nodes are identified in the children arrays by their ID, so we need
+//this function to access the nodes.
 function getNodeByID(nodes, wanted_id) {
     for (var i = 0; i < nodes.length; i++) {
         if (nodes[i].id == wanted_id) {
@@ -262,7 +248,7 @@ function getNodeByID(nodes, wanted_id) {
     }
 }
 
-
+//gets the array of link objects for the force diagram to use
 function getLinks(nodes) {
 
     var links = [];
@@ -309,6 +295,9 @@ function textColor(d) {
 }
 
 
+//Collapses nodes upon click, unless they're being dragged.
+//essentially switches the "active" children array with the
+// "hidden" _children array.
 function click(d) {
     if (d3.event.defaultPrevented) return; // ignore drag
     if (d.children.length > 0) {
@@ -341,7 +330,7 @@ function click(d) {
     update();
 }
 
-
+//NOT YET IN USE--SEARCH FUNCTIONALITY
 //basically a way to get the path to an object
 function searchTree(obj, search, path) {
     if (obj.Genesets === search) { //if search is found return, add the object to the path and return it
@@ -366,6 +355,7 @@ function searchTree(obj, search, path) {
     }
 }
 
+//NOT YET IN USE--SEARCH FUNCTIONALITY
 function extract_select2_data(node, leaves, index) {
     if (node.children) {
         for (var i = 0; i < node.children.length; i++) {
@@ -378,6 +368,7 @@ function extract_select2_data(node, leaves, index) {
     return [index, leaves];
 }
 
+//NOT YET IN USE--SEARCH FUNCTIONALITY
 function openPaths(paths) {
     for (var i = 0; i < paths.length; i++) {
         if (paths[i].id !== "1") {//i.e. not root
@@ -391,6 +382,7 @@ function openPaths(paths) {
     }
 }
 
+//NOT YET IN USE--SEARCH FUNCTIONALITY
 $("#search").on("select2-selecting", function (e) {
     var paths = searchTree(root, e.object.text, []);
     if (typeof(paths) !== "undefined") {
@@ -403,7 +395,7 @@ $("#search").on("select2-selecting", function (e) {
 
 
 //event handler for every time the force layout engine
-//says to redraw everything:
+//says to redraw everything: keeps each node in its respective column
 function tick() {
 
     g.node.attr("transform", function (d) {
@@ -427,6 +419,9 @@ function tick() {
 }
 
 
+//sample data. we can load it from a separate file and make it work, but we're
+//choosing not to for the beta demonstration, in case that causes a hiccup on a different machine.
+//
 var data = {
     "nodes": [
         {"id": 0, "Genesets": [1, 2, 3, 4, 5], "Genes": ["I"], "children": [1, 2], "depth": 0},
