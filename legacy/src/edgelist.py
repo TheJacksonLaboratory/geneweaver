@@ -30,6 +30,7 @@ y is in the third partite set, z is in the fifth partite set.
 
 from geneweaverdb import PooledCursor, dictify_cursor, get_genesets_for_project, get_genes_by_geneset_id
 from flask import session
+import os.path
 import re
 
 def get_genes_from_proj_intersection(proj1, proj2, hom=True):
@@ -193,7 +194,8 @@ def create_json_from_triclique_output(taskid, results):
     # Read in file. Only add values after the edge triclique
     start_parsing = False
     #with (results + '/' + taskid + '.mkc', 'r') as fh:
-    fh = open(results + '/' + taskid + '.mkc', 'r')
+    #fh = open(results + '/' + taskid + '.mkc', 'r')
+    fh = open(os.path.join(results, taskid + '.mkc'), 'r')
     for line in fh:
         if start_parsing:
             if not re.match("[ \n\t\r]", line):
