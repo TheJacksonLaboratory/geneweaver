@@ -182,6 +182,17 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         create_json_from_triclique_output(task_id, RESULTS_PATH)
         # Open files and pass via template
+        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
+        json_results = f.readline()
+        f.close()
+        g = open(RESULTS_PATH + '/' + task_id + '.csv', 'r')
+        csv_results = ''
+        for line in g:
+            line = line[:-1]
+            line = line + '\t'
+            csv_results += line
+            print csv_results
+        g.close()
         # Need json.loads
         # Need safe
         # Look into json floats (application.py for function)
@@ -190,6 +201,8 @@ def view_result(task_id):
             'tool/TricliqueViewer_result.html',
             async_result=json.loads(async_result.result),
             task_id=task_id,
+            json_results=json.loads(json_results),
+            csv_results=csv_results,
             tool=tool)
     else:
         # render a page telling their results are pending
