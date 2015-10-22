@@ -1,6 +1,6 @@
     //var task_id = "{{ task_id | safe }}";
-    var json_results = "{{ json_results | safe }}";
-    var csv_results = "{{ csv_results | safe }}";
+    //var json_results = "{{ json_results | safe }}";
+    //var csv_results = "{{ csv_results | safe }}";
 
 
     var width = 900,
@@ -34,8 +34,10 @@
 
     //d3.csv("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".csv", function(cities) {
       //  d3.json("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".json", function(matrix) {
-    d3.csv(csv_results, function(cities) {
-        d3.json(json_results, function(matrix) {
+    //d3.csv(csv_results, function(cities) {
+      //  d3.json(json_results, function(matrix) {
+    d3.csv("../../static/cities2.csv", function(cities) {
+        d3.json("../../static/matrix2.json", function(matrix) {
             // Compute the chord layout.
             layout.matrix(matrix);
             console.log("test");
