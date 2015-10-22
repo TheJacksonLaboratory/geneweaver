@@ -49,7 +49,8 @@ def run_tool():
         params1[homology_str] = 'Included'
     if params2[method_str] != 'Jaccard Overlap':
         params2[method_str] = 'ExactGeneOverlap'
-        if len(selected_geneset_ids) != 2:
+        #if len(selected_geneset_ids) != 2:
+        if len(selected_project_ids) != 2:
             flask.flash("Warning: You must select exactly 2 projects!")
             return flask.redirect('analyze')
     else:
