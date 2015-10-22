@@ -225,7 +225,7 @@
         <h5>Jaccard Threshold (0.05 increments):
       <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
   </label>
-  <input type="range" min="0" max="1" step = "0.05" id="nRadius">
+  <input type="range" min="0" max=".1" step = "0.005" id="nRadius">
 </p>
 
     <script src="http://d3js.org/d3.v3.min.js"></script>
@@ -290,7 +290,9 @@
         gene_url[i] = geneurl_text;
     }
 
-
+{# var compare_threshold = d.JaccardSimilarity_p-Value;#}
+{#console.log(compare_threshold);#}
+var threshold = false;
  var pValues = [];
  var pValueCount = 0;
  var isPVal = "p = ";
@@ -322,6 +324,7 @@
 
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
     for (i = 0; i < count; i++) {
+        var str = "-1";
         if (i % num_sets === 0) {
             x_coord = 150;
             y_coord += 150;
@@ -348,11 +351,24 @@
 
 {#  Read through k times and create text labels based upon k's value  #}
         for (k = 0; k < count_text; k++) {
+            var isPVal = "p = ";
+
+            if (k === 2) {
+                str = d.venn_diagrams[i].text[k].text;
+                str = str.replace("p =", "");
+                str = str.replace(/^\s+|\s+$/g, '');
+
+            }
+
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
-                str = d.venn_diagrams[i].title1;
-                str= str.substring(0,32);
+{#                str = d.venn_diagrams[i].title1;#}
+{#                str= str.substring(0,32);#}
+{#                if (str >= d.JaccardSimilarity_p-Value){#}
+{#                    threshold = true;}#}
+{#                else{#}
+{#                    threshold = false}#}
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -363,12 +379,22 @@
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
                      "url":  d.venn_diagrams[i].url,
-                    "title" : d.venn_diagrams[i].title1
+                    "title" : d.venn_diagrams[i].title1,
+                    "pvalue" : str,
+                    "show" : threshold
+
 
                 });
 
                 {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
-                if((i === 0) && (k === 0)){
+                if((i === 0) && (k === 0)) {
+{#                    if (str >= d.JaccardSimilarity_p - Value) {#}
+{##}
+{#                    threshold = true;#}
+{#                }#}
+{#                    else {#}
+{#                        threshold = false;#}
+{#                    }#}
                      circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
@@ -376,7 +402,9 @@
                             "label": d.geneset_table[check].text.substring(0,25),
                             "label1": d.geneset_table[check].text.substring(25,50),
                             "labelx": x_coord,
-                            "labely": y_coord
+                            "labely": y_coord,
+                            "pvalue" : str,
+                            "show" : threshold
 
                         });
                         check += 1;
@@ -384,6 +412,11 @@
 
                 {# Else (FIXES OVERLAP) object is not i = 0, text k is 0, and is a diagonal then intializes jaccard, p and coordinate values#}
                 else if ( (k===0) && (i !== 0) && (i%(num_sets+1) ===0)){
+{#                    if (str >= d.JaccardSimilarity_p-Value){#}
+{#                        threshold = true;}#}
+{#                    else {#}
+{#                        threshold = false;#}
+{#                    }#}
                         circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
@@ -391,7 +424,9 @@
                             "label": d.geneset_table[check].text.substring(0,25),
                             "label1": d.geneset_table[check].text.substring(25,50),
                             "labelx": x_coord,
-                            "labely": y_coord
+                            "labely": y_coord,
+                            "pvalue" : str,
+                            "show" : threshold
 
                         });
                         check += 1;
@@ -399,10 +434,16 @@
 
                 {# If k or i is different push the label onto the circledata array #}
                 else {
+{#                     if (str >= d.JaccardSimilarity_p-Value){#}
+{#                        threshold = true;}#}
+{#                    else{#}
+{#                        threshold = false;}#}
                     circleData.push({
                         "gene_id": d.venn_diagrams[i].text[k].text,
                         "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 18,
-                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 24
+                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 24,
+                        "pvalue" : str,
+                        "show" : threshold
                     });
                 }
 
@@ -410,8 +451,12 @@
 
 {#  Else make circles for orange and blue with appropriate json values #}
             else {
-                str = d.venn_diagrams[i].title1;
-                str = str.substring(0,32);
+{#                str = d.venn_diagrams[i].title1;#}
+{#                str = str.substring(0,32);#}
+{#                if (str >= d.JaccardSimilarity_p-Value){#}
+{#                        threshold = true;}#}
+{#                else{#}
+{#                        threshold = false;}#}
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -425,11 +470,14 @@
                     "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                     "des": d.venn_diagrams[i].desc1,
                     "url": "/viewgenesetdetails/" + gene_url[check],
-                    "title" : d.venn_diagrams[i].title1
+                    "title" : d.venn_diagrams[i].title1,
+                    "pvalue" : str,
+                    "show" : threshold
 
 
                 });
                 circleData.push({
+
                     "cx": d.venn_diagrams[i].c1x,
                     "cy": d.venn_diagrams[i].c1y,
                     "radius": d.venn_diagrams[i].r1,
@@ -439,7 +487,9 @@
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
                     "url": "/viewgenesetdetails/" + gene_url[check-1],
-                    "title" : d.venn_diagrams[i].title1
+                    "title" : d.venn_diagrams[i].title1,
+                    "pvalue" : str,
+                    "show" : threshold
                 });
 
             }
@@ -487,6 +537,7 @@
             .attr("cxshift", function (d) {   return d.cxshift; })
             .attr("cyshift", function (d) {  return d.cyshift; })
             .attr("label", function (d) { return d.label; })
+            .attr("pValue", function (d) { return d.pvalue; })
             .style("stroke", bordercolor)
             .attr("border", border)
 
@@ -509,18 +560,22 @@
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("click", function(d) {
            window.open(
-                   "http://127.0.0.1:5000" + d.url)})
-        .attr("class", function(d, i) {
+                   "lazlo.ecs.baylor.edu" + d.url)})
+        .attr("class", function(d, i, nRadius) {
 {#                console.log(i);#}
+{#                console.log("Pvalue=", d);#}
 {#              if (i < pValueCount) {#}
 {#                  return "circle2";#}
-              if (pValues[i] === "0" ){
-                  console.log("circle2, index: " + i + " " + pValues[i]);
-                  return "circle2";
+{#                console.log(nRadius);#}
+                console.log("pvalue " + d.pvalue, "radius " + nRadius);
+              if( (d.pvalue < nRadius) ){
+                  return "circle1";
+              }
+              else if(d.pvalue === 0){
+                  return "circle3"
               }
               else {
-                  console.log("circle1, index: " + i + " " + pValues[i]);
-                  return "circle1";
+                  return "circle2";
               }
 {#              }#}
 {#                else{#}
@@ -583,7 +638,7 @@ d3.select("#nRadius").on("input", function() {
 
 
 // Initial starting radius of the circle
-updateOpacity(.5);
+updateOpacity(.05);
 
 // update the elements
 function updateOpacity(nRadius) {
@@ -594,7 +649,10 @@ function updateOpacity(nRadius) {
     console.log(nRadius);
   // update the circle radius
   svgContainer.selectAll(".circle1")
-    .style("fill-opacity", nRadius);
+    .style("fill-opacity", nRadius*10);
+  svgContainer.selectAll(".circle3")
+    .style("fill-opacity", 0);
+
 
 }
 
