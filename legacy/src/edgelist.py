@@ -192,15 +192,18 @@ def create_json_from_triclique_output(taskid, results):
 
     # Read in file. Only add values after the edge triclique
     start_parsing = False
-    with (results + '/' + taskid + '.kel', 'r') as fh:
-        for line in fh:
-            if start_parsing:
+    #with (results + '/' + taskid + '.mkc', 'r') as fh:
+    fh = open(results + '/' + taskid + '.mkc', 'r')
+    for line in fh:
+        if start_parsing:
+            if not re.match("[ \n\t\r]", line):
                 temp_line = filter(None, re.split("[\t\s ]+", line))
                 partitions.append(temp_line)
-            else:
-                matchObj = re.match('edge maximum k-clique', line)
-                if matchObj:
-                    start_parsing = True
+        else:
+            matchObj = re.match('edge maximum k-clique', line)
+            if matchObj:
+                start_parsing = True
+    fh.close()
 
     # make a flattened list of unique values in partitions and then
     # create an empty matrix based on that list
@@ -208,6 +211,7 @@ def create_json_from_triclique_output(taskid, results):
     sorted(set(identifiers))
     n = len(identifiers)
     Matrix = [[0 for x in range(n)] for x in range(n)]
+
 
     # Loop through the Matrix and, foreach i,j, check the partition matrix to see if they show up together
     # this can be modified later to test for weight
@@ -222,13 +226,18 @@ def create_json_from_triclique_output(taskid, results):
     for i in range(n):
         json += '['
         for j in range(n):
-            row.append(Matrix[i][j])
+            row.append(str(Matrix[i][j]))
         json += ','.join(row)
         json += '],'
         row = []
+    json = json[:-1]
     json += ']'
 
-    print json
+    f = open(results + '/' + taskid + '.json', 'wb')
+    f.write(json)
+    f.close()
+
+    create_csv_from_mkc(taskid, results, identifiers, partitions)
 
     return Matrix
 
@@ -260,9 +269,21 @@ def get_matrix_value(i, j, identifiers, partitions):
         p += 1
 
     if len(set(id2Found).intersection(id1Found)) > 0:
-        print set(id2Found).intersection(id1Found)
+        #print set(id2Found).intersection(id1Found)
         return 1.0
     else:
         return 0.0
 
 
+def create_csv_from_mkc(taskid, results, identifiers, partitions):
+    HOMOLOGY_BOX_COLORS = ['#6699FF', '#FFCC00', '#FF0000', '#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6']
+    f = open(results + '/' + taskid + '.csv', 'wb')
+    f.write("name,gs_name,something,something,color\n")
+    for i in range(len(identifiers)):
+        for j in range(len(partitions)):
+            print identifiers[i]
+            print partitions[j]
+            if identifiers[i] in partitions[j]:
+                 f.write(str(identifiers[i]) + ',' + str(identifiers[i]) + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
+    f.close()

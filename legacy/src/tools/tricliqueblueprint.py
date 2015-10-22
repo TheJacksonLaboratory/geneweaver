@@ -10,6 +10,7 @@ import uuid
 from geneweaverdb import *
 import toolcommon as tc
 from edgelist import *
+from decimal import Decimal
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -34,30 +35,26 @@ def run_tool():
 
     # gather the params into a dictionary
     homology_str = 'Homology'
-    params = {homology_str: None}
+    method_str   = 'Methods'
+    params1 = {homology_str: None}
+    params2 = {method_str: None}
     for tool_param in get_tool_params(TOOL_CLASSNAME, True):
-        params[tool_param.name] = form[tool_param.name]
+        params1[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
-            params[homology_str] = form[tool_param.name]
-    if params[homology_str] != 'Excluded':
-        params[homology_str] = 'Included'
-    '''
-    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
-        if tool_param.name.endswith('_ExactGeneOverlap'):
-            if params[tool_param.name] != 'Enabled':
-                params[tool_param.name] = 'Disabled'
-            else:
-                if len(selected_project_ids) != 2:
-                    flask.flash("Warning: You must select 2 projects!")
-                    return flask.redirect('analyze')
-        elif tool_param.name.endswith('_Jaccard'):
-            if params[tool_param.name] != 'Enabled':
-                params[tool_param.name] = 'Disabled'
-            else:
-                if len(selected_project_ids) < 3:
-                    flask.flash("Warning: You need at least 3 projects!")
-                    return flask.redirect('analyze')
-    '''
+            params1[homology_str] = form[tool_param.name]
+        elif tool_param.name.endswith('_' + method_str):
+            params2[method_str] = form[tool_param.name]
+
+    if params1[homology_str] != 'Excluded':
+        params1[homology_str] = 'Included'
+    if params2[method_str] != 'Jaccard Overlap':
+        params2[method_str] = 'ExactGeneOverlap'
+        if len(selected_geneset_ids) != 2:
+            flask.flash("Warning: You must select exactly 2 projects!")
+            return flask.redirect('analyze')
+    else:
+        flask.flash("This tool is not currently available.")
+        return flask.redirect('analyze')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -76,22 +73,25 @@ def run_tool():
         user_id,
         task_id,
         selected_geneset_ids,
-        json.dumps(params),
+        json.dumps(params1),
         tool.name,
         desc,
         desc)
+
+    # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
+    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    print task_id
+    print "Wrote file in the results directory"
 
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
-            'params': params,
+            'params': params1,
         },
         task_id=task_id)
-
-    # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
-    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    # print "results path: ", RESULTS_PATH
 
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
@@ -171,6 +171,11 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     return task_id
 
 
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
@@ -181,10 +186,29 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
+        create_json_from_triclique_output(task_id, RESULTS_PATH)
+        # Open files and pass via template
+        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
+        json_results = f.readline()
+        f.close()
+        g = open(RESULTS_PATH + '/' + task_id + '.csv', 'r')
+        csv_results = ''
+        for line in g:
+            line = line[:-1]
+            line = line + '\t'
+            csv_results += line
+            print csv_results
+        g.close()
+        # Need json.loads
+        # Need safe
+        # Look into json floats (application.py for function)
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/TricliqueViewer_result.html',
             async_result=json.loads(async_result.result),
+            task_id=task_id,
+            json_results=json.dumps(json_results, default=decimal_default),
+            csv_results=csv_results,
             tool=tool)
     else:
         # render a page telling their results are pending
