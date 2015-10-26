@@ -1527,7 +1527,7 @@ class Geneset:
     @property
     def ontological_associations(self):
         if self.__ontological_associations is None:
-            self.__ontological_associations = get_ontologies_for_geneset(self.geneset)
+            self.__ontological_associations = get_all_ontologies_by_geneset(self.geneset)
         return self.__ontological_associations
 
     @property
@@ -1563,6 +1563,10 @@ class Ontology:
         self.children = ont_dict['ont_children']
         self.parents = ont_dict['ont_parents']
         self.ontdb_id = ont_dict['ontdb_id']
+
+class OntologyParent:
+    def __init__(self, ont_dict):
+        self.ontology_id = ont_dict['left_ont_id']
 
 
 def authenticate_user(email, password):
@@ -1950,23 +1954,22 @@ def get_genesets_by_user_id(user_id):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets if len(genesets) > 0 else None
 
-
-def get_ontologies_for_geneset(geneset_id):
-    with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT * FROM ontology NATURAL JOIN geneset_ontology WHERE gs_id=%s AND gso_ref_type<>'Blacklist';''',
-            (geneset_id,))
-        return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
-
 def get_all_parents_for_ontology(ont_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            Select left_ont_id FROM ontology NATURAL JOIN ontology_relation
-            WHERE right_ont_id=%s AND or_type=is_a;
-            ''',(ont_id,)
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.left_ont_id = ont1.ont_id
+            LEFT JOIN geneset_ontology ont3
+            ON ont3.ont_id = ont2.left_ont_id
+            WHERE right_ont_id=%s AND or_type='is_a'
+            AND gso_ref_type<>'Blacklist'
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
         )
-    return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+        parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return parents
 
 
 class GenesetValue:
@@ -2636,7 +2639,7 @@ def get_result_by_runhash(apikey, res_runhash):
     return cursor.fetchall();
 
 
-def get_all_ontologies_by_geneset(gs_id, temp=None):
+def get_all_ontologies_by_geneset(gs_id):
     with PooledCursor() as cursor:
         cursor.execute(
         '''
@@ -2649,39 +2652,8 @@ def get_all_ontologies_by_geneset(gs_id, temp=None):
                         order by ont_id
         ''', (gs_id,)
         )
-        #if temp is None:
         ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
-        #elif temp == 'temp':
-            #genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
-            #ontology = [TempOntology(row_dict) for row_dict in dictify_cursor(cursor)]
         return ontology
-
-        #cursor.execute(
-            #'''
-        #        SELECT row_to_json(row, true)
-        #        FROM(
-        #                SELECT *
-        #                FROM extsrc.ontology natural join odestatic.ontologydb
-        #                WHERE ont_id in (	SELECT ont_id
-        #                                    FROM extsrc.geneset_ontology
-        #                                    WHERE gs_id = %s
-        #                                )
-        #                or ont_id in    (	SELECT ont_children
-        #                                    FROM extsrc.ontology
-        #                                    WHERE ont_id in (	SELECT ont_id
-        #                                                        FROM extsrc.geneset_ontology
-        #                                                        WHERE gs_id = %s
-        #                                                    )
-        #                                )
-        #                or ont_id in	(	SELECT ont_parents
-        #                                    FROM extsrc.ontology
-        #                                    WHERE ont_id in	(	SELECT ont_id
-        #                                                        FROM extsrc.geneset_ontology
-        #                                                        WHERE gs_id = %s
-        #                                                    )
-        #                                ) order by ont_id
-        #            ) row; #''', (gs_id, gs_id, gs_id))
-    #return cursor.fetchall();
 
 
 #call by API only

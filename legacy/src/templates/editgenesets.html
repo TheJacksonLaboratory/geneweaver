@@ -238,24 +238,28 @@
             <div class="row">
                 <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
                     <ul class="jstree-container-ul">
-                        {% for ont in onts %}
-                            {% if ont.child == 0 %}
+                        {% for parent_list in ont_parents %}
+                            {% for parent in parent_list %}
+                                {% if parent %}
+                                    {{ parent.name }}
+                            <!--
                             <li id="j1_1" class="jstree-node jstree-leaf" role="treeitem" aria-selected = "false">
                                 <i class="jstree-icon jstree-ocl"></i>
                                     <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
                                         <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
-                                        {{ ont.name }}
+
                                     </a>
-                            </li>
-                            {% else %}
-                                <li id="j1_1" class="jstree-node jstree-closed" role="treeitem" aria-expanded = false aria-selected = "false">
+                            </li>-->
+
+                                <!--<li id="j1_1" class="jstree-node jstree-closed" role="treeitem" aria-expanded = false aria-selected = "false">
                                 <i class="jstree-icon jstree-ocl"></i>
                                     <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
                                         <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
-                                        {{ ont.name }}
+
                                     </a>
-                            </li>
-                            {% endif %}
+                            </li>-->
+                                {% endif %}
+                            {% endfor %}
                         {% endfor %}
                     </ul>
             </div>
@@ -264,6 +268,39 @@
 
             <div class="row">
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
+                <div id="tree">
+                </ul>
+                    <ul id="treeData">
+                        <li id="id1" title="Look, a tool tip!">item1 with key and tooltip
+                        <li id="id2">item2
+                        <li id="id3" class="folder">Folder with some children
+                            <ul>
+                                <li id="id3.1">Sub-item 3.1
+                                    <ul>
+                                        <li id="id3.1.1">Sub-item 3.1.1
+                                        <li id="id3.1.2">Sub-item 3.1.2
+                                    </ul>
+                                <li id="id3.2">Sub-item 3.2
+                                    <ul>
+                                        <li id="id3.2.1">Sub-item 3.2.1
+                                        <li id="id3.2.2">Sub-item 3.2.2
+                                    </ul>
+                            </ul>
+                        <li id="id4" class="expanded">Document with some children (expanded on init)
+                            <ul>
+                                <li id="id4.1"  class="active focused">Sub-item 4.1 (active and focus on init)
+                                    <ul>
+                                        <li id="id4.1.1">Sub-item 4.1.1
+                                        <li id="id4.1.2">Sub-item 4.1.2
+                                    </ul>
+                                <li id="id4.2">Sub-item 4.2
+                                    <ul>
+                                        <li id="id4.2.1">Sub-item 4.2.1
+                                        <li id="id4.2.2">Sub-item 4.2.2
+                                    </ul>
+                            </ul>
+                    </ul>
+                    </div>
             </div>
 
         {% endif %}
@@ -288,6 +325,23 @@
 {% endif %}
 
 <script>
+
+		$(function(){
+			$("#tree").dynatree({
+				// using default options
+			});
+			<!-- Start_Exclude: This block is not part of the sample code -->
+			$("#skinCombo")
+			.val(0) // set state to prevent caching
+			.change(function(){
+				var href = "../src/"
+					+ $(this).val()
+					+ "/ui.dynatree.css"
+					+ "?reload=" + new Date().getTime();
+				$("#skinSheet").attr("href", href);
+			});
+			<!-- End_Exclude -->
+		});
 
     var user_id = {{ user_id }}
 
