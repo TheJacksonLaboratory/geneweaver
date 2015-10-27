@@ -1560,8 +1560,10 @@ class Ontology:
         self.reference_id = ont_dict['ont_ref_id']
         self.name = ont_dict['ont_name']
         self.description = ont_dict['ont_description']
-        self.children = ont_dict['ont_children']
-        self.parents = ont_dict['ont_parents']
+        self.numChildren = ont_dict['ont_children']
+        self.numParents = ont_dict['ont_parents']
+        self.parents = []
+        self.children = []
         self.ontdb_id = ont_dict['ontdb_id']
 
 class OntologyParent:
@@ -1960,16 +1962,38 @@ def get_all_parents_for_ontology(ont_id):
             '''
             SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
             FROM ontology ont1 INNER JOIN ontology_relation ont2
-            ON ont2.left_ont_id = ont1.ont_id
-            LEFT JOIN geneset_ontology ont3
-            ON ont3.ont_id = ont2.left_ont_id
-            WHERE right_ont_id=%s AND or_type='is_a'
-            AND gso_ref_type<>'Blacklist'
+            ON ont2.right_ont_id = ont1.ont_id
+            WHERE left_ont_id=%s AND or_type='is_a'
             GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
             ''' % (ont_id,)
         )
-        parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
-    return parents
+    parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+
+    parent_list = []
+    print(parents)
+    for parent in parents:
+        parent_list.append([parent])
+        print(parent.numParents)
+        if(parent.numParents != 0):
+            parent_list.append(get_all_parents_for_ontology(parent.ontology_id))
+        #else:
+            #parent_list.append([])
+    print(parent_list)
+    return parent_list
+
+def get_all_children_for_ontology(ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.left_ont_id = ont1.ont_id
+            WHERE right_ont_id=%s AND or_type='is_a'
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
+        )
+    children = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return children
 
 
 class GenesetValue:

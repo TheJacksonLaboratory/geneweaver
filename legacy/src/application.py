@@ -318,9 +318,8 @@ def render_editgenesets(gs_id):
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
     ont_parents = []
-
-    for ont in onts:
-        ont_parents.append(geneweaverdb.get_all_parents_for_ontology(ont.ontology_id))
+#    for ont in onts:
+    ont_parents = (geneweaverdb.get_all_parents_for_ontology(304))
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
