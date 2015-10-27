@@ -1564,6 +1564,16 @@ class Ontology:
         self.parents = ont_dict['ont_parents']
         self.ontdb_id = ont_dict['ontdb_id']
 
+class Ontologydb:
+    def __init__(self, ontdb_dict):
+        self.ontologydb_id = ontdb_dict['ontdb_id']
+        self.name = ontdb_dict['ontdb_name']
+        self.prefix = ontdb_dict['ontdb_prefix']
+        self.ncbo_id = ontdb_dict['ontdb_ncbo_id']
+        self.date = ontdb_dict['ontdb_date']
+        self.linkout_url = ontdb_dict['ontdb_linkout_url']
+        self.ncbo_vid = ontdb_dict['ontdb_ncbo_vid']
+
 
 def authenticate_user(email, password):
     """
@@ -1950,13 +1960,37 @@ def get_genesets_by_user_id(user_id):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets if len(genesets) > 0 else None
 
-
 def get_ontologies_for_geneset(geneset_id):
+    """
+    Gets a list of Ontology objects that belong to the geneset_id
+    :param geneset_id:  the geneset ID
+    :return:        list of Ontology objects that belongs to
+    """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM ontology NATURAL JOIN geneset_ontology WHERE gs_id=%s AND gso_ref_type<>'Blacklist';''',
+            '''SELECT * FROM ontology JOIN geneset_ontology USING ont_id WHERE gs_id=%s AND gso_ref_type<>'Blacklist';''',
             (geneset_id,))
         return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+
+def get_child_ontologies_for_ontology(ont_id):
+    """
+    Gets a list of Ontology objects that belong to the geneset_id
+    :param ont_id:  the ontology ID
+    :return:        list of Ontology objects that belongs to
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT * FROM ontology NATURAL JOIN ontology_relation WHERE or_type='is_a' AND left_ont_id=%s AND ont_id=%s;''',
+            (ont_id,ont_id))
+        return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+
+#
+def get_all_ontologydb():
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT * FROM ontologydb;'''
+            )
+        return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
 
 
 class GenesetValue:
