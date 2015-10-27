@@ -44,8 +44,10 @@
 </style>
 
 
-{% if user_id == 0 %}
+{% if g.user.user_id == 0 %}
+
     {% include 'htmlfragments/permissionError.html' %}
+
 {% else %}
 
     {% block body %}
@@ -103,9 +105,9 @@
                     <div id="help-text" class="panel-group" style="display: none;">
                         <p><i class="fa fa-arrow-right"></i> Select Projects and Gene Sets from the left and appropriate
                             actions from the list on the right. Deleting projects will permanently remove them from your
-                            account. Removing Gene Sets will only remove them from the Project, not delete them from GeneWeaver.</p>
-                        <p><i class="fa fa-arrow-right"></i> When creating an Empty New Project, you may find the project
-                            temporarily unavailable until appropriate Gene Sets are added to them.</p>
+                            account.</p>
+                        <p><i class="fa fa-arrow-right"></i> Removing Gene Sets will only remove them from the Project,
+                            not delete them from GeneWeaver.</p>
                         <p><i class="fa fa-arrow-right"></i> Actions on Gene Sets, such as Combine or Remove, work only
                             on individual Gene Sets and not at the project level.</p>
                     </div>
@@ -124,6 +126,8 @@
     {% include 'modal/deleteProject.html' %}
 
     {% include 'modal/addBlankProject.html' %}
+
+    {% include 'modal/combineGenesets.html' %}
 
 {% endif %}
 
@@ -246,33 +250,77 @@
 
         // Call modal for combine all gene sets
         $('#callCombineGeneSets').on('click', function () {
-            //var gsid = [];
+            //get all checked gene sets
+            //also split off the name from the number
             var gsname = [];
+            var gsid = [];
             jQuery("input[type=checkbox]:checked").each(function () {
                 var v = ($(this).attr("id"));
-                gsname.push(v);
+                gsid.push(v.split('_')[1]);
+                gsname.push('GS'+ v.split('_')[1]);
             });
-            alert(gsname);
-            //jQuery("input[type=checkbox]:checked").each(function () {
-            //    var v = ($(this).attr("data-project"));
-            //    projid.push(v);
-            //});
-            //if (projid.length == 0) {
-            //    $(document).trigger("add-alerts", [
-            //        {
-            //            'message': "You must select at least one project.",
-            //            'priority': 'danger'
-            //        }
-            //    ]);
-            //}
-            //else{
-            //    var p = projid.join(",");
-            //    var q = projname.join(", ");
-            //    $("#myModalLabel").html(q);
-            //    $("#myModalValue").val(p);
-            //    $("#delProjects").modal('show');
-            //}
+            //display error if no genesets are selected
+            if (gsname.length == 0) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Gene Sets were selected for combining into the same project.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            // send the list to the modal.
+            else{
+                var n = gsname.join(", ");
+                var i = gsid.join(",");
+                $("#myCombineGSLabel").html(n);
+                $("#myCombineGSValue").val(i);
+                $("#combineGenesets").modal('show');
+
+            }
         });
+
+        //function to add row for a new project name
+        $('#addNewProject').on('click', function () {
+            $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+                    '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+        });
+
+
+        // Add genesets to projects
+        $('#addGenesetsToProjects').on('click', function (e) {
+            var checked = [];
+            $("input[name='options[]']:checked").each(function () {
+                checked.push(parseInt($(this).val()));
+            });
+            var option = JSON.stringify(checked);
+            var g = $('#myCombineGSValue').val();
+            var npn = $('#newProjName').val();
+            if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Projects were selected.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else {
+                $.ajax({
+                    type: "GET",
+                    url: "../addGenesetsToProjects",
+                    data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
+                    success: function (data) {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Genesets Successfully Added to Selected Projects.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.location.reload();
+                    }
+                });
+            }
+        });
+
 
         //help checkbox
         $( "#help" ).click(function() {
