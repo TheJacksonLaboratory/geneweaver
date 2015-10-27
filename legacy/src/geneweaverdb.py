@@ -718,7 +718,8 @@ def add_project(usr_id, pj_name):
     return cursor.fetchone()
 
 def add_geneset2project(pj_id, gs_id):
-    gs_id = gs_id[2:]
+    if gs_id[:2] == 'GS':
+        gs_id = gs_id[2:]
     with PooledCursor() as cursor:
         cursor.execute(
             ''' INSERT INTO project2geneset
@@ -740,6 +741,7 @@ def add_genesets_to_projects(rargs):
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
+        print gs_id
         for pj_id in checked:
            for g in gs_id:
                g = g.strip()

@@ -171,8 +171,8 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
 
     file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
 
-	print file
-	print RESULTS + taskid + '.kel'
+    print file
+    print RESULTS + taskid + '.kel'
     out = open(RESULTS + taskid + '.kel', 'wb')
     out.write(file)
     out.close()
