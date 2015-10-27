@@ -64,6 +64,9 @@
   margin-left: 965px;
   margin-bottom: 50px;
     }
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
 </style>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
@@ -72,6 +75,8 @@
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
+
+
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
@@ -82,6 +87,7 @@
                   <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
                      Rerun Tool Options
                   </a>
+
                </h2>
             </div>
             <div id="jcCollapse" class="panel-collapse collapse">
@@ -212,10 +218,21 @@
 
 <br /><br />
 
+    <h4>Venn Diagram view:
+    <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
 
-    <h4>Venn Diagram view:</h4>
+<script type = "text/javascript">
 
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+          $('#clickableFontAwesome').popover({
+            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
+            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            'to navigate to intersection details.'
+        });
 
+</script>
 
 {#Location for where the d3 is appended to in the html#}
 <div id="jaccard"></div>
@@ -250,6 +267,7 @@
 
 {# Start of script#}
 <script type="text/javascript">
+
 
 {#  Declaration of data as d variable#}
     var d = {{ data | safe }};
@@ -579,7 +597,7 @@ var threshold = false;
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("dblclick", function(d) {
            window.open(
-                   "lazlo.ecs.baylor.edu" + d.url)})
+                   d.url)})
         .attr("class", function(d, i, nRadius) {
 {#                console.log(i);#}
 {#                console.log("Pvalue=", d);#}
