@@ -2671,11 +2671,14 @@ def get_all_ontologies_by_geneset(gs_id):
                         FROM extsrc.ontology natural join odestatic.ontologydb
                         WHERE ont_id in (	SELECT ont_id
                                             FROM extsrc.geneset_ontology
-                                            WHERE gs_id = %s AND gso_ref_type<>'Blacklist'
+                                            WHERE gs_id = %s
                                         )
                         order by ont_id
         ''', (gs_id,)
         )
+
+        #CODE USED FOR BLACKLIST: AND gso_ref_type<>'Blacklist'
+
         ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
         return ontology
 
