@@ -149,7 +149,6 @@
         {% if onts %}
             <div class="row">
                 <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
-                    {{ onts|length }}
                     <ul class="jstree-container-ul">
                         {% for ont in onts %}
                             {% if ont.child == 0 %}
