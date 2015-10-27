@@ -748,6 +748,21 @@ def add_genesets_to_projects(rargs):
                add_geneset2project(pj_id, g)
     return
 
+def user_is_project_owner(user_id, proj_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(pj_id) FROM project WHERE usr_id=%s AND pj_id=%s''', (user_id, proj_id))
+        return cursor.fetchone()[0]
+
+def remove_geneset_from_project(rargs):
+    user_id = flask.session['user_id']
+    gs_id = rargs.get('gs_id', type=int)
+    proj_id = rargs.get('proj_id', type=int)
+    if get_user(user_id).is_admin or user_is_project_owner(user_id, proj_id):
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
+            cursor.connection.commit()
+            return
+
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir
     user_id = rargs.get('user_id', type=int)
