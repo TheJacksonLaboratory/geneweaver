@@ -2006,7 +2006,7 @@ def get_all_children_for_ontology(ont_id):
     children = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return children
 
-#
+
 def get_all_ontologydb():
     with PooledCursor() as cursor:
         cursor.execute(
@@ -2014,6 +2014,12 @@ def get_all_ontologydb():
             )
         return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
 
+# def get_all_root_ontology_for_database(ontdb_id):
+ #   with PooledCursor() as cursor:
+ #       cursor.execute(
+ #           '''SELECT ont.right_ont_id FROM ontology_relation ont
+ ##              WHERE (SELECT count(ont2.left_ont_id) FROM ontology_relation )'''
+ #       )
 
 class GenesetValue:
     def __init__(self, gsv_dict):
