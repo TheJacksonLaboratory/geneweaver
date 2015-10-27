@@ -257,7 +257,7 @@
       <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
   </label>
 
-  <input type="range" min="0" max=".1" step = "0.005" id="nRadius">
+  <input type="range" min="0" max="1" step = "0.05" id="nRadius">
 </p>
 
 
@@ -605,15 +605,20 @@ var threshold = false;
 {#                  return "circle2";#}
 
 
-              if( (d.pvalue < nRadius) ){
-                  return "circle1";
-              }
-              else if(d.pvalue === 0){
-                  return "circle3";
-              }
-              else {
-                  return "circle2";
-              }
+{#              if(d.pvalue == -1){#}
+{#                  return "circle3";#}
+{#              }#}
+{#              else if (d.pvalue == 1){#}
+{#                  return "circle2";#}
+{#              }#}
+{#              else if(d.pvalue > nRadius){#}
+{#                  return "circle1";#}
+{#              }#}
+{#              else if(d.pvalue < nRadius){#}
+{#                  return "circle3";#}
+{#              }#}
+
+
 {#              }#}
 {#                else{#}
 {#                  return "circle2";#}
@@ -675,7 +680,7 @@ d3.select("#nRadius").on("input", function() {
 
 
 // Initial starting radius of the circle
-updateOpacity(.05);
+updateOpacity(0);
 
 // update the elements
 function updateOpacity(nRadius) {
@@ -684,11 +689,12 @@ function updateOpacity(nRadius) {
   d3.select("#nRadius-value").text(nRadius);
   d3.select("#nRadius").property("value", nRadius);
     console.log(nRadius);
-  // update the circle radius
-  svgContainer.selectAll(".circle1")
-    .style("fill-opacity", nRadius*10);
-  svgContainer.selectAll(".circle3")
-    .style("fill-opacity", 0);
+    svgContainer.selectAll("circle")
+        .filter(function (d) {if (d.pvalue < nRadius ) return true;})
+        .style("fill-opacity",0);
+    svgContainer.selectAll("circle")
+        .filter(function (d) {if (d.pvalue >= nRadius ) return true;})
+        .style("fill-opacity",1);
 
 
 }
