@@ -15,7 +15,7 @@ from flask import session
 app = flask.Flask(__name__)
 
 # Need to change this path to ~/Documents/geneweaver/results
-RESULTS_PATH = '/Users/group10admin/geneweaver/results'
+RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -519,6 +519,52 @@ def delete_geneset_by_gsid(rargs):
         )
         cursor.connection.commit()
         return
+
+
+def delete_project_by_id(rargs):
+    projids = rargs.split(',')
+    user_id = flask.session['user_id']
+    if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE from project2geneset WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
+            cursor.execute('''DELETE from project WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
+            print cursor.statusmessage
+            cursor.connection.commit()
+        return
+
+
+def add_project_by_name(rargs):
+    name = rargs
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created) VALUES (%s, %s, now())''', (user_id,
+                                name,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
+
+
+def change_project_by_id(rargs):
+    id = rargs['projid']
+    name = rargs['projname']
+    if name == '':
+        return {'error': 'You must provide a valid Project Name'}
+    else:
+        user_id = flask.session['user_id']
+        if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
+            with PooledCursor() as cursor:
+                cursor.execute('''UPDATE project SET pj_name=%s WHERE pj_id=%s''', (name, id,))
+                print cursor.statusmessage
+                cursor.connection.commit()
+            return {'error': 'None'}
+        else:
+            return {'error': 'You do not have permission to add a Project to this account.'}
 
 def delete_geneset_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
@@ -1955,6 +2001,23 @@ def get_temp_geneset_values(geneset_id):
                                            WHERE gs_id=%s GROUP BY gs_id, ode_gene_id ORDER BY ode_gene_id;''' % (geneset_id,))
         return [TempGenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
+
+def get_genes_by_gs_id(geneset_id):
+    '''
+    Returns all of the ode_gene_ids for a given gs_id. This is seperate form the geneset_value class, created specifically
+    for making edgelist files outside of the scope.
+    :param geneset_id:
+    :return: list of genes
+    '''
+    genes = []
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT ode_gene_id FROM geneset_value WHERE gs_id=%s''', (geneset_id,))
+        res = cursor.fetchall()
+        for r in res:
+            genes.append(r[0])
+    return genes
+
+
 def get_all_geneset_values(gs_id):
     '''
     Generic function to get all geneset values geneset_value.gs_values
@@ -2563,12 +2626,11 @@ def get_result_by_runhash(apikey, res_runhash):
     return cursor.fetchall();
 
 
-def get_all_ontologies_by_geneset(gs_id):
+def get_all_ontologies_by_geneset(gs_id, temp=None):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
-                FROM(
-                        SELECT *
+        '''
+            SELECT *
                         FROM extsrc.ontology natural join odestatic.ontologydb
                         WHERE ont_id in (	SELECT ont_id
                                             FROM extsrc.geneset_ontology
@@ -2588,8 +2650,41 @@ def get_all_ontologies_by_geneset(gs_id):
                                                                 WHERE gs_id = %s
                                                             )
                                         ) order by ont_id
-                    ) row; ''', (gs_id, gs_id, gs_id))
-    return cursor.fetchall();
+            ''', (gs_id, gs_id, gs_id)
+        )
+        #if temp is None:
+        ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+        #elif temp == 'temp':
+            #genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+            #ontology = [TempOntology(row_dict) for row_dict in dictify_cursor(cursor)]
+        return ontology
+
+        #cursor.execute(
+            #'''
+        #        SELECT row_to_json(row, true)
+        #        FROM(
+        #                SELECT *
+        #                FROM extsrc.ontology natural join odestatic.ontologydb
+        #                WHERE ont_id in (	SELECT ont_id
+        #                                    FROM extsrc.geneset_ontology
+        #                                    WHERE gs_id = %s
+        #                                )
+        #                or ont_id in    (	SELECT ont_children
+        #                                    FROM extsrc.ontology
+        #                                    WHERE ont_id in (	SELECT ont_id
+        #                                                        FROM extsrc.geneset_ontology
+        #                                                        WHERE gs_id = %s
+        #                                                    )
+        #                                )
+        #                or ont_id in	(	SELECT ont_parents
+        #                                    FROM extsrc.ontology
+        #                                    WHERE ont_id in	(	SELECT ont_id
+        #                                                        FROM extsrc.geneset_ontology
+        #                                                        WHERE gs_id = %s
+        #                                                    )
+        #                                ) order by ont_id
+        #            ) row; #''', (gs_id, gs_id, gs_id))
+    #return cursor.fetchall();
 
 
 #call by API only

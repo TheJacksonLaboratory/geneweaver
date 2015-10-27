@@ -236,6 +236,14 @@
         <div style="margin-left: 1em;">
         <br>
         {% if onts %}
+            <div class="row">
+                <div id="ontology_tree" class="jstree jstree-1 jstree-default-responsive" role="tree" aria-acivedescendant="j1_3"></div>
+                        {% for ont in onts %}
+                            <li>
+                                <td>> {{ont}}</td>
+                            </li>
+                        {% endfor %}
+            </div>
 
         {% else %}
 
@@ -343,6 +351,36 @@
                             '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
                 }
             });
+            /******New Tmp Code for Ontology Tree******/
+            $.ajax({
+                type: "POST",
+                url: "../updategeneset",
+                data: data,
+                //processData: false,
+                //contentType: false,
+                success: function(r)
+                {
+                    var v = JSON.parse(r);
+                    if (v["success"] == 'True') {
+                        var gs_id = {{ geneset.geneset_id }};
+                        window.location = '../editgenesetgenes/' + gs_id;
+                    }
+                    else {
+                        $("html, body").animate({ scrollTop: 0 }, "slow");
+                        $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
+                    }
+                },
+                error: function(r)
+                {
+                    $("html, body").animate({ scrollTop: 0 }, "slow");
+                    $("#result").html('<div class="alert alert-danger fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
+                }
+            });
+            /************End Tmp Code***********/
 
         });
 
@@ -397,6 +435,8 @@
                     }
                 });
             };
+
+
 
         });
 
