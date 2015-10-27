@@ -66,15 +66,7 @@ $(function () {
 
     //Initialize positions of tree elements to reduce tangling caused by random initialization
     nodes = flatten(g.data.nodes);
-    var nextdepths = [0];
-    for (i = 0; i < nodes.length; i++) {
-        while (nodes[i].depth > nextdepths.length - 1) {
-            nextdepths.push(0);
-        }
-        nodes[i].x = nodes[i].depth * 100 + 100;
-        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
-        nextdepths[nodes[i].depth]++;
-    }
+    initialize_layout(nodes);
 
 
     //Draw the graph:
@@ -266,6 +258,25 @@ function getLinks(nodes) {
     return links;
 }
 
+function initialize_layout(nodes) {
+    var nextdepths = [0];
+    var previous = [-1];
+    for (i = 0; i < nodes.length; i++) {
+        while (nodes[i].depth > nextdepths.length - 1) {
+            nextdepths.push(0);
+            previous.push(-1);
+        }
+        if(previous[nodes[i].depth] >= 0) {
+            prevNode = getNodeByID(nodes, previous[nodes[i].depth]);
+            prevNode.neighbors.push(nodes[i].id);
+            nodes[i].neighbors = [prevNode.id];
+        }
+        nodes[i].x = nodes[i].depth * 100 + 100;
+        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+        nextdepths[nodes[i].depth]++;
+    }
+}
+
 
 //Invoked from 'update'
 //Return the color of the node
@@ -314,18 +325,7 @@ function click(d) {
         //console.log("_children:" + d._children);
     }
     nodes = flatten(g.data.nodes);
-    var nextdepths = [0];
-    for (i = 0; i < nodes.length; i++) {
-        while (nodes[i].depth > nextdepths.length - 1) {
-            nextdepths.push(0);
-        }
-        //if(nodes[i].depth == 0){
-        //    nodes[i].fixed = true;
-        //}
-        nodes[i].py = nextdepths[nodes[i].depth] * 20 + 100;
-        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
-        nextdepths[nodes[i].depth]++;
-    }
+    initialize_layout(nodes);
     //
     update();
 }
