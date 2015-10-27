@@ -152,30 +152,36 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
     # Get the intersecting set of genes between proj1 and proj2 as a list
     genes = get_genes_from_proj_intersection(proj1, proj2, homology)
 
-    # Get all geneset and genes in a project as a list[dictify(cursor)]
-    projDict1 = get_genesets_for_project(proj1, usr_id)
-    projDict2 = get_genesets_for_project(proj2, usr_id)
+    # TODO: Error nicely (should go here -- e.g. if len(genes) == 0)
 
-    # Populate the edges between the intersecting genes and projDict1, called partition1
-    partition1 = edge_gene2proj(genes, projDict1, 1)
+    if len(genes) > 0:
+        # Get all geneset and genes in a project as a list[dictify(cursor)]
+        projDict1 = get_genesets_for_project(proj1, usr_id)
+        projDict2 = get_genesets_for_project(proj2, usr_id)
 
-    # Populate the edges between the intersecting genes and projDict2, called partition2
-    partition2 = edge_gene2proj(genes, projDict2, 2)
+        # Populate the edges between the intersecting genes and projDict1, called partition1
+        partition1 = edge_gene2proj(genes, projDict1, 1)
 
-    # Populate the edges between the intersectin of the lists of geneset ids in projDict1 and projDict2
-    partition3 = edge_proj2proj([v.geneset_id for v in projDict1], [v.geneset_id for v in projDict2])
+        # Populate the edges between the intersecting genes and projDict2, called partition2
+        partition2 = edge_gene2proj(genes, projDict2, 2)
 
-    # Create the first line (1st part, 2nd part, 3rd part, total)
-    # and write out to RESULTS directory
-    firstLine = str(len(partition1) + len(partition3)) + '\t' + str(len(partition2) + len(partition3)) + '\t' + str(len(partition1) + len(partition2)) + '\t' + str(len(partition1) + len(partition2) + len(partition3)) + '\n'
+        # Populate the edges between the intersectin of the lists of geneset ids in projDict1 and projDict2
+        partition3 = edge_proj2proj([v.geneset_id for v in projDict1], [v.geneset_id for v in projDict2])
 
-    file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
+        # Create the first line (1st part, 2nd part, 3rd part, total)
+        # and write out to RESULTS directory
+        firstLine = str(len(partition1) + len(partition3)) + '\t' + str(len(partition2) + len(partition3)) + '\t' + str(len(partition1) + len(partition2)) + '\t' + str(len(partition1) + len(partition2) + len(partition3)) + '\n'
 
-    print file
-    print RESULTS + taskid + '.kel'
-    out = open(RESULTS + taskid + '.kel', 'wb')
-    out.write(file)
-    out.close()
+        file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
+
+        print file
+        print RESULTS + taskid + '.kel'
+        out = open(RESULTS + taskid + '.kel', 'wb')
+        out.write(file)
+        out.close()
+        #return True
+    else:
+        #return False
 
 
 def create_json_from_triclique_output(taskid, results):
@@ -274,9 +280,9 @@ def get_matrix_value(i, j, identifiers, partitions):
 
     if len(set(id2Found).intersection(id1Found)) > 0:
         #print set(id2Found).intersection(id1Found)
-        return 1.0
-    else:
         return 0.0
+    else:
+        return 1.0
 
 
 def create_csv_from_mkc(taskid, results, identifiers, partitions):
