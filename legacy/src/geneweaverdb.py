@@ -229,12 +229,7 @@ def get_all_projects(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
-                CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
-                WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
-                (SELECT p2g.pj_id FROM project2geneset p2g WHERE p2g.pj_id=p.pj_id))
-            UNION
-            (SELECT p.*, x.* FROM project p, (
+            SELECT p.*, x.* FROM project p, (
                 SELECT p2g.pj_id, COUNT(gs_id), x.count AS deprecated, g.group
                 FROM
                     project2geneset p2g
@@ -252,7 +247,7 @@ def get_all_projects(usr_id):
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
-            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
+            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name;
             ''',
             {'usr_id': usr_id}
         )
@@ -1534,7 +1529,7 @@ class Geneset:
     @property
     def ontological_associations(self):
         if self.__ontological_associations is None:
-            self.__ontological_associations = get_ontologies_for_geneset(self.geneset)
+            self.__ontological_associations = get_all_ontologies_by_geneset(self.geneset)
         return self.__ontological_associations
 
     @property
@@ -1567,9 +1562,15 @@ class Ontology:
         self.reference_id = ont_dict['ont_ref_id']
         self.name = ont_dict['ont_name']
         self.description = ont_dict['ont_description']
-        self.children = ont_dict['ont_children']
-        self.parents = ont_dict['ont_parents']
+        self.numChildren = ont_dict['ont_children']
+        self.numParents = ont_dict['ont_parents']
+        self.parents = []
+        self.children = []
         self.ontdb_id = ont_dict['ontdb_id']
+
+class OntologyParent:
+    def __init__(self, ont_dict):
+        self.ontology_id = ont_dict['left_ont_id']
 
 
 def authenticate_user(email, password):
@@ -1957,13 +1958,44 @@ def get_genesets_by_user_id(user_id):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets if len(genesets) > 0 else None
 
-
-def get_ontologies_for_geneset(geneset_id):
+def get_all_parents_for_ontology(ont_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM ontology NATURAL JOIN geneset_ontology WHERE gs_id=%s AND gso_ref_type<>'Blacklist';''',
-            (geneset_id,))
-        return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+            '''
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.right_ont_id = ont1.ont_id
+            WHERE left_ont_id=%s AND or_type='is_a'
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
+        )
+    parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+
+    parent_list = []
+    print(parents)
+    for parent in parents:
+        parent_list.append([parent])
+        print(parent.numParents)
+        if(parent.numParents != 0):
+            parent_list.append(get_all_parents_for_ontology(parent.ontology_id))
+        #else:
+            #parent_list.append([])
+    print(parent_list)
+    return parent_list
+
+def get_all_children_for_ontology(ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.left_ont_id = ont1.ont_id
+            WHERE right_ont_id=%s AND or_type='is_a'
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
+        )
+    children = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return children
 
 
 class GenesetValue:
@@ -2636,30 +2668,21 @@ def get_result_by_runhash(apikey, res_runhash):
 def get_all_ontologies_by_geneset(gs_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
-                FROM(
-                        SELECT *
+        '''
+            SELECT *
                         FROM extsrc.ontology natural join odestatic.ontologydb
                         WHERE ont_id in (	SELECT ont_id
                                             FROM extsrc.geneset_ontology
                                             WHERE gs_id = %s
                                         )
-                        or ont_id in    (	SELECT ont_children
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in (	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        )
-                        or ont_id in	(	SELECT ont_parents
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in	(	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        ) order by ont_id
-                    ) row; ''', (gs_id, gs_id, gs_id))
-    return cursor.fetchall();
+                        order by ont_id
+        ''', (gs_id,)
+        )
+
+        #CODE USED FOR BLACKLIST: AND gso_ref_type<>'Blacklist'
+
+        ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+        return ontology
 
 
 #call by API only
