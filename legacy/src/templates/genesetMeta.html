@@ -146,22 +146,38 @@
 
 
             {% endif %}
+        {% if onts %}
+            <div class="row">
+                <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
+                    <ul class="jstree-container-ul">
+                        {% for ont in onts %}
+                            {% if ont.child == 0 %}
+                            <li id="j1_1" class="jstree-node jstree-leaf" role="treeitem" aria-selected = "false">
+                                <i class="jstree-icon jstree-ocl"></i>
+                                    <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
+                                        <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
+                                        {{ ont.name }}
+                                    </a>
+                            </li>
+                            {% else %}
+                                <li id="j1_1" class="jstree-node jstree-closed" role="treeitem" aria-expanded = false aria-selected = "false">
+                                <i class="jstree-icon jstree-ocl"></i>
+                                    <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
+                                        <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
+                                        {{ ont.name }}
+                                    </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+            </div>
 
-            {# {% if geneset.onts %} #}
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>ONTOLOGY:</strong></p>
-                    </div>
-                    <div class="col-md-10">
-                        {% if geneset.onts %}
-                            <a href="{{ geneset.onts }}">{{ geneset.onts }}</a>
-                        {% else %}
-                            None
-                        {% endif %}
-                    </div>
-                </div>
-            {#  {% endif %} #}
+        {% else %}
+
+            <div class="row">
+                <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
+            </div>
+
+        {% endif %}
 
         </div>
-    </div>
-</div>

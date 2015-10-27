@@ -14,8 +14,8 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-# Need to change this path to ~/Documents/geneweaver/results
-RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results'
+RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
+
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -229,7 +229,12 @@ def get_all_projects(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT p.*, x.* FROM project p, (
+            (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
+                CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
+                WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
+                (SELECT p2g.pj_id FROM project2geneset p2g WHERE p2g.pj_id=p.pj_id))
+            UNION
+            (SELECT p.*, x.* FROM project p, (
                 SELECT p2g.pj_id, COUNT(gs_id), x.count AS deprecated, g.group
                 FROM
                     project2geneset p2g
@@ -247,7 +252,7 @@ def get_all_projects(usr_id):
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
-            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name;
+            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
             ''',
             {'usr_id': usr_id}
         )
@@ -713,7 +718,8 @@ def add_project(usr_id, pj_name):
     return cursor.fetchone()
 
 def add_geneset2project(pj_id, gs_id):
-    gs_id = gs_id[2:]
+    if gs_id[:2] == 'GS':
+        gs_id = gs_id[2:]
     with PooledCursor() as cursor:
         cursor.execute(
             ''' INSERT INTO project2geneset
@@ -735,6 +741,7 @@ def add_genesets_to_projects(rargs):
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
+        print gs_id
         for pj_id in checked:
            for g in gs_id:
                g = g.strip()
@@ -1527,7 +1534,7 @@ class Geneset:
     @property
     def ontological_associations(self):
         if self.__ontological_associations is None:
-            self.__ontological_associations = get_ontologies_for_geneset(self.geneset)
+            self.__ontological_associations = get_all_ontologies_by_geneset(self.geneset)
         return self.__ontological_associations
 
     @property
@@ -1960,29 +1967,44 @@ def get_genesets_by_user_id(user_id):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets if len(genesets) > 0 else None
 
-def get_ontologies_for_geneset(geneset_id):
-    """
-    Gets a list of Ontology objects that belong to the geneset_id
-    :param geneset_id:  the geneset ID
-    :return:        list of Ontology objects that belongs to
-    """
+def get_all_parents_for_ontology(ont_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM ontology JOIN geneset_ontology USING ont_id WHERE gs_id=%s AND gso_ref_type<>'Blacklist';''',
-            (geneset_id,))
-        return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+            '''
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.right_ont_id = ont1.ont_id
+            WHERE left_ont_id=%s AND or_type='is_a'
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
+        )
+    parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
 
-def get_child_ontologies_for_ontology(ont_id):
-    """
-    Gets a list of Ontology objects that belong to the geneset_id
-    :param ont_id:  the ontology ID
-    :return:        list of Ontology objects that belongs to
-    """
+    parent_list = []
+    print(parents)
+    for parent in parents:
+        parent_list.append([parent])
+        print(parent.numParents)
+        if(parent.numParents != 0):
+            parent_list.append(get_all_parents_for_ontology(parent.ontology_id))
+        #else:
+            #parent_list.append([])
+    print(parent_list)
+    return parent_list
+
+def get_all_children_for_ontology(ont_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM ontology NATURAL JOIN ontology_relation WHERE or_type='is_a' AND left_ont_id=%s AND ont_id=%s;''',
-            (ont_id,ont_id))
-        return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+            '''
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.left_ont_id = ont1.ont_id
+            WHERE right_ont_id=%s AND or_type='is_a'
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
+        )
+    children = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return children
 
 #
 def get_all_ontologydb():
@@ -2839,3 +2861,32 @@ def generate_api_key(user_id):
         )
         cursor.connection.commit()
     return new_api_key
+
+def checkJaccardResultExists(setSize1, setSize2):
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT * 
+                    FROM jaccard_distribution_results
+                    WHERE set_size1 = %s and set_size2 = %s;
+                ''',(setSize1, setSize2)
+                )
+
+        return list(dictify_cursor(cursor))
+    except:
+        print "In the except"
+        return []
+
+def getPvalue(setSize1, setSize2, jaccard):
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT * 
+                    FROM jaccard_distribution_results
+                    WHERE set_size1 = %s and set_size2 = %s and jaccard_coef = %s;
+                ''',(setSize1, setSize2, jaccard)
+                )
+        pVal = dictify_cursor(cursor)
+        return cursor.fetchone()[5]
+    except:
+        return 0

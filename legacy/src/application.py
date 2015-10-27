@@ -1,3 +1,4 @@
+#Kelechi was here
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
@@ -13,6 +14,7 @@ import json
 import os
 import os.path as path
 import re
+import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
@@ -89,7 +91,8 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 #*************************************
 
 # changed this path 9/3
-RESULTS_PATH = '/Users/group16admin/geneweaver/results'
+RESULTS_PATH = '/Users/group5admin/geneweaver/results'
+
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -316,6 +319,11 @@ def render_editgenesets(gs_id):
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+
+    ont_parents = []
+#    for ont in onts:
+    ont_parents = (geneweaverdb.get_all_parents_for_ontology(304))
+
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
@@ -324,7 +332,7 @@ def render_editgenesets(gs_id):
 
     #onts = None
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, onts=onts)
+                                 view=view, onts=onts, ont_parents=ont_parents)
 
 
 @app.route('/updategeneset', methods=['POST'])
@@ -599,12 +607,9 @@ def render_viewgeneset(gs_id):
 
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    onts = geneweaverdb.get_ontologies_for_geneset(gs_id)
-    ontdbs = geneweaverdb.get_all_ontologydb()
-    childonts = []
-    x = 0;
-    for ont in onts:
-        childonts.append(geneweaverdb.get_child_ontologies_for_ontology(ont.ontology_id))
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+
+
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
@@ -613,7 +618,7 @@ def render_viewgeneset(gs_id):
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, onts=onts, childonts=childonts)
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, onts=onts)
 
 
 @app.route('/mygenesets')
@@ -997,6 +1002,17 @@ def render_project_genesets():
     return flask.render_template('singleProject.html',
                                  genesets=genesets,
                                  proj={'project_id': pid})
+
+@app.route('/changePvalues/<setSize1>/<setSize2>/<jaccard>', methods=["GET"])
+def changePvalues(setSize1, setSize2, jaccard):
+    tempDict = geneweaverdb.checkJaccardResultExists(setSize1, setSize2)
+    print tempDict
+    if(len(tempDict) > 0):
+            pValue = geneweaverdb.getPvalue(setSize1,setSize2,jaccard)
+    else:
+        return json.dumps(-1)
+
+    return json.dumps(pValue)
 
 
 #****** ADMIN ROUTES ******************************************************************
@@ -1443,7 +1459,12 @@ def render_reset():
 
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
+    ## Secret key for reCAPTCHA form
+    RECAP_SECRET = '6LeO7g4TAAAAAObZpw2KFnFjz1trc_hlpnhkECyS'
+    RECAP_URL = 'https://www.google.com/recaptcha/api/siteverify'
     form = flask.request.form
+    http = urllib3.PoolManager()
+    
     if not form['usr_first_name']:
         return flask.render_template('register.html', error="Please enter your first name.")
     elif not form['usr_last_name']:
@@ -1453,7 +1474,36 @@ def json_register_successful():
     elif not form['usr_password']:
         return flask.render_template('register.html', error="Please enter your password.")
 
+    captcha = form['g-recaptcha-response']
+
+    ## No robots
+    if not captcha:
+        return flask.render_template('register.html', 
+		error="There was a problem with your captcha input. Please try again.")
+
+    else:
+	## The only data required by reCAPTCHA is secret and response. An
+	## optional parameter, remoteip, containing the end user's IP can also
+	## be appended.
+	pdata = {'secret': RECAP_SECRET, 'response': captcha}
+	resp = http.request('POST', RECAP_URL, fields=pdata)
+
+	## 200 = OK
+	if resp.status != 200:
+	    return flask.render_template('register.html', 
+		    error=("There was a problem with the reCAPTCHA servers. "
+			   "Please try again."))
+	
+	rdata = json.loads(resp.data)
+
+	## If success is false, the dict should contain an 'error-code.' This
+	## isn't checked currently.
+	if not rdata['success']:
+	    return flask.render_template('register.html', 
+		    error="Incorrect captcha. Please try again.")
+
     user = _form_register()
+
     if user is None:
         return flask.render_template('register.html', register_not_successful=True)
     else:
