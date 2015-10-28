@@ -1,0 +1,23 @@
+    <div class="modal fade" id="removeModal_{{ gs.geneset_id }}">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5" id="delGS_{{ gs.geneset_id }}">
+                        Remove GeneSet from Project</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <h4>Are you sure that you want to remove <span style="color: #006400;">GS{{ gs.geneset_id }}</span>
+                    from the current project? This will not delete the GeneSet from GeneWeaver.</h4>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" onclick="removeSelected('{{ gs.geneset_id }}', {{ proj.project_id }})"
+                            data-dismiss="modal">Remove from Project
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
