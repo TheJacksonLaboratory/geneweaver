@@ -1,3 +1,4 @@
+#Kelechi was here
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
@@ -89,8 +90,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
-# changed this path 9/3
-RESULTS_PATH = '/var/www/html/geneweaver/results'
+RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
 
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
@@ -995,6 +995,17 @@ def render_project_genesets():
                                  genesets=genesets,
                                  proj={'project_id': pid})
 
+@app.route('/changePvalues/<setSize1>/<setSize2>/<jaccard>', methods=["GET"])
+def changePvalues(setSize1, setSize2, jaccard):
+    tempDict = geneweaverdb.checkJaccardResultExists(setSize1, setSize2)
+    print tempDict
+    if(len(tempDict) > 0):
+            pValue = geneweaverdb.getPvalue(setSize1,setSize2,jaccard)
+    else:
+        return json.dumps(-1)
+
+    return json.dumps(pValue)
+
 
 #****** ADMIN ROUTES ******************************************************************
 
@@ -1242,6 +1253,11 @@ def add_genesets_projects():
         results = geneweaverdb.add_genesets_to_projects(request.args)
         return json.dumps(results)
 
+@app.route('/removeGenesetFromProject')
+def remove_geneset_from_project():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.remove_geneset_from_project(request.args)
+        return json.dumps(results)
 
 @app.route('/deleteGeneset')
 def delete_geneset():
