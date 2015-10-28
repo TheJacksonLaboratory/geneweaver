@@ -1,4 +1,3 @@
-
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
@@ -776,10 +775,7 @@ $(document).ready(function(){
 
 
 <script>
-    // TODO: Dynamic resizing
-    // TODO: Formatting of text
-    var w =  width + margin.left + margin.right;
-    var h = height + margin.top + margin.bottom;
+    var w =  width + margin.left + margin.right, h = height + margin.top + margin.bottom;
     var border = 0.5;
     var bordercolor = 'black';
     var d = {{ data | safe }};
@@ -792,6 +788,7 @@ $(document).ready(function(){
         }
     }
 
+
     var svg = d3.select("#panel").append("svg:svg")
         .attr("width",  width + margin.left + margin.right)
         .attr("height", h);
@@ -799,10 +796,6 @@ $(document).ready(function(){
     var addOnX = 0;
     var addOnY = 0;
     var cont = 0;
-<<<<<<< HEAD
-    var total = count*count;
-    var offset = 0;
-=======
   //  var total = count*count;
     var offset = 0;
 
@@ -810,20 +803,13 @@ $(document).ready(function(){
     addOnY = 0;
 
     var c = 0;
->>>>>>> 745c11860a4afd4eedd3ca8c9825732fe6e0e0e3
 
     for(i = 0; i < count; i++) {
       for(var k = 0; k < count; k++) {
         addOnX += 110;
-<<<<<<< HEAD
-        if (i % count == 0) {
-            addOnY += 90;
-            addOnX = 0; 
-=======
         if(c % count == 0) {
           addOnY += 90;
           addOnX = 0;
->>>>>>> 745c11860a4afd4eedd3ca8c9825732fe6e0e0e3
         }
 
         if(k == offset) {
@@ -833,66 +819,6 @@ $(document).ready(function(){
                 .attr("y", addOnY - 50)
                 .attr("width", 110)
                 .attr("height", 90)
-<<<<<<< HEAD
-                .style("stroke", bordercolor)
-                .style("fill", "none")
-                .style("stroke-width", border);
-    }
-    addOnX = 0;
-    addOnY = 0;
-    
-    
-    /*
-     for(i = 0; i < total; i++) {
-        addOnX += 110;
-        if (i % count == 0) {
-            addOnY += 90;
-            addOnX = 0;
-        }
-        if ((i % count-1 == offset || i == 0) && i != 1) {
-            svg.append("text")
-                    .attr("x", addOnX + 220)
-                    .attr("y", addOnY)
-                    .text(d.geneset_table[0].entries[0].text)
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "12px")
-                    .attr("fill", "blue");
-        }else{
-         svg.append("text")
-                    .attr("x", addOnX + 230)
-                    .attr("y", addOnY)
-                    .text(d.geneset_table[0].entries[1].text)
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "12px")
-                    .attr("fill", "red");
-        }
-    }
-    */
-    var c = 0;
-    for(i = 0; i < count; i++) {
-      for(var k = 0; k < count; k++) {
-        addOnX += 110;
-        if(c % count == 0) {
-          addOnY += 90;
-          addOnX = 0;
-        }
-        if(k == offset) {
-          svg.append("text")
-                  .attr("x", addOnX + 220)
-                  .attr("y", addOnY)
-                  .text(d.geneset_table[0].entries[0].text)
-                  .attr("font-family", "sans-serif")
-                  .attr("font-size", "12px")
-                  .attr("fill", "blue");
-        } else {
-         svg.append("text")
-                  .attr("x", addOnX + 230)
-                  .attr("y", addOnY)
-                  .text(d.geneset_table[0].entries[1].text)
-                  .attr("font-family", "sans-serif")
-                  .attr("font-size", "12px")
-                  .attr("fill", "red");
-=======
                 .style("stroke", "#ffffff")
                 .style("fill", "#36bac4")
                // .style("opacity", 0.5)
@@ -935,7 +861,6 @@ $(document).ready(function(){
                   .attr("font-size", "12px")
 
 
->>>>>>> 745c11860a4afd4eedd3ca8c9825732fe6e0e0e3
         }
         c++;
       }
