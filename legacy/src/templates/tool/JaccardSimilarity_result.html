@@ -64,6 +64,9 @@
   margin-left: 965px;
   margin-bottom: 50px;
     }
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
 </style>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
@@ -72,6 +75,8 @@
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
+
+
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
@@ -82,6 +87,7 @@
                   <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
                      Rerun Tool Options
                   </a>
+
                </h2>
             </div>
             <div id="jcCollapse" class="panel-collapse collapse">
@@ -114,6 +120,8 @@
         </div>
     </div>
 </form>
+
+
 
 <br /><h4>Table View:</h4>
 
@@ -207,21 +215,31 @@
 </td></tr>
 </table>
 <br><br>
-<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel</div>
+<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Click to slide down panel to see gene set table</div>
 <div id="panel" ></div>
 
 <br /><br />
 
+    <h4>Venn Diagram view:
+    <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
 
-    <h4>Venn Diagram view:</h4>
+<script type = "text/javascript">
 
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+          $('#clickableFontAwesome').popover({
+            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
+            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            ' to navigate to intersection details.'
+        });
 
+</script>
 
 {#Location for where the d3 is appended to in the html#}
 <div id="jaccard"></div>
 
-{# Displays output to a new window if selected #}
-<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
+
 {#{{ data | safe }}#}
 {# Style sheet and calls for slider code from other websites#}
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
@@ -231,8 +249,7 @@
 
 
 
-{##}
-{#<button type="button" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check header" onclick="myFunction()">Reset Zoom</button>#}
+
     </br>
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
@@ -240,16 +257,17 @@
       <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
   </label>
 
-  <input type="range" min="0" max=".1" step = "0.005" id="nRadius">
+  <input type="range" min="0" max="1" step = "0.05" id="nRadius">
 </p>
 
 
     <script src="http://d3js.org/d3.v3.min.js"></script>
 
-
+<button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
 
 {# Start of script#}
 <script type="text/javascript">
+
 
 {#  Declaration of data as d variable#}
     var d = {{ data | safe }};
@@ -522,18 +540,29 @@ var threshold = false;
     var margin = {top: -5, right: -5, bottom: -5, left: -5},
     width = 1100 - margin.left - margin.right,
     height = 900 - margin.top - margin.bottom;
-
+    var counter = 0;
 
     //Create the SVG Viewport
     var svgContainer = d3.select("#jaccard").append("svg")
             .attr("width", width )
             .attr("height", height)
-            .call(d3.behavior.zoom().on("zoom", function () {
-                svgContainer.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
-              }))
-              .append("g");
+            .call(d3.behavior.zoom()
+                .on("zoom", function () {
+                    svgContainer.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+                }))
+            .append("g");
 
 
+       //Button to reset zoom
+       $("#zoomButton").on("click", function () {
+                    counter++;
+                    svgContainer
+                          .transition()
+                        .duration(1000)
+                         .attr('transform', "translate(0,0)");
+                           zoom.scale(1);
+                          zoom.translate([0, 0]);
+                  });
 
     var div = d3.select("#jaccard").append("div")
         .attr("class", "tooltip")
@@ -579,7 +608,7 @@ var threshold = false;
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("dblclick", function(d) {
            window.open(
-                   "lazlo.ecs.baylor.edu" + d.url)})
+                   d.url)})
         .attr("class", function(d, i, nRadius) {
 {#                console.log(i);#}
 {#                console.log("Pvalue=", d);#}
@@ -587,15 +616,20 @@ var threshold = false;
 {#                  return "circle2";#}
 
 
-              if( (d.pvalue < nRadius) ){
-                  return "circle1";
-              }
-              else if(d.pvalue === 0){
-                  return "circle3";
-              }
-              else {
-                  return "circle2";
-              }
+{#              if(d.pvalue == -1){#}
+{#                  return "circle3";#}
+{#              }#}
+{#              else if (d.pvalue == 1){#}
+{#                  return "circle2";#}
+{#              }#}
+{#              else if(d.pvalue > nRadius){#}
+{#                  return "circle1";#}
+{#              }#}
+{#              else if(d.pvalue < nRadius){#}
+{#                  return "circle3";#}
+{#              }#}
+
+
 {#              }#}
 {#                else{#}
 {#                  return "circle2";#}
@@ -657,7 +691,7 @@ d3.select("#nRadius").on("input", function() {
 
 
 // Initial starting radius of the circle
-updateOpacity(.05);
+updateOpacity(0);
 
 // update the elements
 function updateOpacity(nRadius) {
@@ -666,14 +700,16 @@ function updateOpacity(nRadius) {
   d3.select("#nRadius-value").text(nRadius);
   d3.select("#nRadius").property("value", nRadius);
     console.log(nRadius);
-  // update the circle radius
-  svgContainer.selectAll(".circle1")
-    .style("fill-opacity", nRadius*10);
-  svgContainer.selectAll(".circle3")
-    .style("fill-opacity", 0);
+
+    svgContainer.selectAll("circle")
+        .filter(function (d) {if (d.pvalue < nRadius ) return true;})
+        .style("fill-opacity",0);
+    svgContainer.selectAll("circle")
+        .filter(function (d) {if (d.pvalue >= nRadius ) return true;})
+        .style("fill-opacity",1);
+   }
 
 
-}
 
 
 
@@ -738,6 +774,7 @@ $(document).ready(function(){
 
 
 
+
 <script>
     // TODO: Dynamic resizing
     // TODO: Formatting of text
@@ -762,20 +799,41 @@ $(document).ready(function(){
     var addOnX = 0;
     var addOnY = 0;
     var cont = 0;
+<<<<<<< HEAD
     var total = count*count;
     var offset = 0;
+=======
+  //  var total = count*count;
+    var offset = 0;
 
-    for(i = 0; i < total; i++) {
+    addOnX = 0;
+    addOnY = 0;
+
+    var c = 0;
+>>>>>>> 745c11860a4afd4eedd3ca8c9825732fe6e0e0e3
+
+    for(i = 0; i < count; i++) {
+      for(var k = 0; k < count; k++) {
         addOnX += 110;
+<<<<<<< HEAD
         if (i % count == 0) {
             addOnY += 90;
             addOnX = 0; 
+=======
+        if(c % count == 0) {
+          addOnY += 90;
+          addOnX = 0;
+>>>>>>> 745c11860a4afd4eedd3ca8c9825732fe6e0e0e3
         }
-        svg.append("rect")
+
+        if(k == offset) {
+
+           svg.append("rect")
                 .attr("x", addOnX + 200)
                 .attr("y", addOnY - 50)
                 .attr("width", 110)
                 .attr("height", 90)
+<<<<<<< HEAD
                 .style("stroke", bordercolor)
                 .style("fill", "none")
                 .style("stroke-width", border);
@@ -834,6 +892,50 @@ $(document).ready(function(){
                   .attr("font-family", "sans-serif")
                   .attr("font-size", "12px")
                   .attr("fill", "red");
+=======
+                .style("stroke", "#ffffff")
+                .style("fill", "#36bac4")
+               // .style("opacity", 0.5)
+                .attr("border", 1);
+
+            svg.append("text")
+              .attr("x", addOnX + 220)
+              .attr("y", addOnY)
+              .text(d.geneset_table[0].entries[0].text)
+              .attr("font-family", "sans-serif")
+              .attr("font-size", "12px")
+              .attr("fill", "blue")
+              .on("click", function(d) {window.open("http://127.0.0.1:5000" + d.geneset_table[0].url) })
+
+
+        } else {
+           svg.append("rect")
+                .attr("x", addOnX + 200)
+                .attr("y", addOnY - 50)
+                .attr("width", 110)
+                .attr("height", 90)
+                .style("stroke", "#ffffff")
+                   .style("fill", function(d) {
+                       if (k == 3 || k ==1 ) {
+                           return "#fe5b54";
+                       }
+                       else {
+                           return "#febd55";
+                       }
+                   })
+                //.style("fill", "#36bac4")
+            // .style("opacity", 1)
+                .attr("border", 1);
+
+                svg.append("text")
+                 .attr("x", addOnX + 235)
+                  .attr("y", addOnY)
+                  .text( d.geneset_table[0].entries[1].text.split("*"))
+                  .attr("font-family", "sans-serif")
+                  .attr("font-size", "12px")
+
+
+>>>>>>> 745c11860a4afd4eedd3ca8c9825732fe6e0e0e3
         }
         c++;
       }
@@ -848,8 +950,9 @@ $(document).ready(function(){
                .attr("y",  30)
                .text(d.genesets[i])
                .attr("font-family", "sans-serif")
-               .attr("font-size", "12px")
-               .attr("fill", "red");
+               .attr("font-size", "15px")
+                .style("font-weight",  "bold")
+               .attr("fill", "#fc9e54");
 
         xCoordinate += 110;
     }
