@@ -14,7 +14,7 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '$HOME/geneweaver/results'
+RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
 
 
 
@@ -229,7 +229,12 @@ def get_all_projects(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT p.*, x.* FROM project p, (
+            (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
+                CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
+                WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
+                (SELECT p2g.pj_id FROM project2geneset p2g WHERE p2g.pj_id=p.pj_id))
+            UNION
+            (SELECT p.*, x.* FROM project p, (
                 SELECT p2g.pj_id, COUNT(gs_id), x.count AS deprecated, g.group
                 FROM
                     project2geneset p2g
@@ -247,7 +252,7 @@ def get_all_projects(usr_id):
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
-            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name;
+            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
             ''',
             {'usr_id': usr_id}
         )
@@ -713,7 +718,8 @@ def add_project(usr_id, pj_name):
     return cursor.fetchone()
 
 def add_geneset2project(pj_id, gs_id):
-    gs_id = gs_id[2:]
+    if gs_id[:2] == 'GS':
+        gs_id = gs_id[2:]
     with PooledCursor() as cursor:
         cursor.execute(
             ''' INSERT INTO project2geneset
@@ -735,11 +741,27 @@ def add_genesets_to_projects(rargs):
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
+        print gs_id
         for pj_id in checked:
            for g in gs_id:
                g = g.strip()
                add_geneset2project(pj_id, g)
     return
+
+def user_is_project_owner(user_id, proj_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(pj_id) FROM project WHERE usr_id=%s AND pj_id=%s''', (user_id, proj_id))
+        return cursor.fetchone()[0]
+
+def remove_geneset_from_project(rargs):
+    user_id = flask.session['user_id']
+    gs_id = rargs.get('gs_id', type=int)
+    proj_id = rargs.get('proj_id', type=int)
+    if get_user(user_id).is_admin or user_is_project_owner(user_id, proj_id):
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
+            cursor.connection.commit()
+            return
 
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir
