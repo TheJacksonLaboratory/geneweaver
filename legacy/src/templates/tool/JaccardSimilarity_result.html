@@ -215,7 +215,7 @@
 </td></tr>
 </table>
 <br><br>
-<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel</div>
+<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Click to slide down panel to see gene set table</div>
 <div id="panel" ></div>
 
 <br /><br />
@@ -231,7 +231,7 @@
           $('#clickableFontAwesome').popover({
             title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
             'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
-            'to navigate to intersection details.'
+            ' to navigate to intersection details.'
         });
 
 </script>
@@ -774,6 +774,7 @@ $(document).ready(function(){
 
 </script>
 
+{{ data | safe }}
 
 
 <script>
@@ -798,50 +799,75 @@ $(document).ready(function(){
     var addOnX = 0;
     var addOnY = 0;
     var cont = 0;
-    var total = count*count;
+  //  var total = count*count;
+    var offset = 0;
 
+    addOnX = 0;
+    addOnY = 0;
 
-    for(i = 0; i < total; i++) {
+    var c = 0;
+
+    for(i = 0; i < count; i++) {
+      for(var k = 0; k < count; k++) {
         addOnX += 110;
-        if (i % count == 0) {
-            addOnY += 90;
-            addOnX = 0;
+        if(c % count == 0) {
+          addOnY += 90;
+          addOnX = 0;
         }
-        svg.append("rect")
+
+        if(k == offset) {
+
+           svg.append("rect")
                 .attr("x", addOnX + 200)
                 .attr("y", addOnY - 50)
                 .attr("width", 110)
                 .attr("height", 90)
-                .style("stroke", bordercolor)
-                .style("fill", "none")
-                .style("stroke-width", border);
-    }
-    addOnX = 0;
-    addOnY = 0;
-     for(i = 0; i < total; i++) {
-        addOnX += 110;
-        if (i % count == 0) {
-            addOnY += 90;
-            addOnX = 0;
-        }
-         if ((i % count-1 == 0 || i == 0) && i != 1) {
-            svg.append("text")
-                    .attr("x", addOnX + 220)
-                    .attr("y", addOnY)
-                    .text(d.geneset_table[0].entries[0].text)
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "12px")
-                    .attr("fill", "blue");
-        }else{
-         svg.append("text")
-                    .attr("x", addOnX + 230)
-                    .attr("y", addOnY)
-                    .text(d.geneset_table[0].entries[1].text)
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "12px")
-                    .attr("fill", "red");
-              }
+                .style("stroke", "#ffffff")
+                .style("fill", "#36bac4")
+               // .style("opacity", 0.5)
+                .attr("border", 1);
 
+            svg.append("text")
+              .attr("x", addOnX + 220)
+              .attr("y", addOnY)
+              .text(d.geneset_table[0].entries[0].text)
+              .attr("font-family", "sans-serif")
+              .attr("font-size", "12px")
+              .attr("fill", "blue")
+              .on("click", function(d) {window.open("http://127.0.0.1:5000" + d.geneset_table[0].url) })
+
+
+        } else {
+           svg.append("rect")
+                .attr("x", addOnX + 200)
+                .attr("y", addOnY - 50)
+                .attr("width", 110)
+                .attr("height", 90)
+                .style("stroke", "#ffffff")
+                   .style("fill", function(d) {
+                       if (k == 3 || k ==1 ) {
+                           return "#fe5b54";
+                       }
+                       else {
+                           return "#febd55";
+                       }
+                   })
+                //.style("fill", "#36bac4")
+            // .style("opacity", 1)
+                .attr("border", 1);
+
+                svg.append("text")
+                 .attr("x", addOnX + 235)
+                  .attr("y", addOnY)
+                  .text( d.geneset_table[0].entries[1].text.split("*"))
+                  .attr("font-family", "sans-serif")
+                  .attr("font-size", "12px")
+
+
+        }
+        c++;
+      }
+      offset++;
     }
 
     var xCoordinate = 235;
@@ -852,8 +878,9 @@ $(document).ready(function(){
                .attr("y",  30)
                .text(d.genesets[i])
                .attr("font-family", "sans-serif")
-               .attr("font-size", "12px")
-               .attr("fill", "red");
+               .attr("font-size", "15px")
+                .style("font-weight",  "bold")
+               .attr("fill", "#fc9e54");
 
         xCoordinate += 110;
     }
