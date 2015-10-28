@@ -64,6 +64,9 @@
   margin-left: 965px;
   margin-bottom: 50px;
     }
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
 </style>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
@@ -72,6 +75,8 @@
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
+
+
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
@@ -82,6 +87,7 @@
                   <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
                      Rerun Tool Options
                   </a>
+
                </h2>
             </div>
             <div id="jcCollapse" class="panel-collapse collapse">
@@ -209,21 +215,32 @@
 </td></tr>
 </table>
 <br><br>
-<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Click to slide down panel to see gene set table</div>
+<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel</div>
 <div id="panel" ></div>
 
 <br /><br />
 
+    <h4>Venn Diagram view:
+    <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
 
-    <h4>Venn Diagram view:</h4>
+<script type = "text/javascript">
 
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+          $('#clickableFontAwesome').popover({
+            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
+            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            'to navigate to intersection details.'
+        });
 
+</script>
 
 {#Location for where the d3 is appended to in the html#}
 <div id="jaccard"></div>
 
 {# Displays output to a new window if selected #}
-{#<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>#}
+<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
 {#{{ data | safe }}#}
 {# Style sheet and calls for slider code from other websites#}
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
@@ -242,7 +259,7 @@
       <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
   </label>
 
-  <input type="range" min="0" max=".1" step = "0.005" id="nRadius">
+  <input type="range" min="0" max="1" step = "0.05" id="nRadius">
 </p>
 
 
@@ -252,6 +269,7 @@
 
 {# Start of script#}
 <script type="text/javascript">
+
 
 {#  Declaration of data as d variable#}
     var d = {{ data | safe }};
@@ -592,7 +610,7 @@ var threshold = false;
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("dblclick", function(d) {
            window.open(
-                   "lazlo.ecs.baylor.edu" + d.url)})
+                   d.url)})
         .attr("class", function(d, i, nRadius) {
 {#                console.log(i);#}
 {#                console.log("Pvalue=", d);#}
@@ -600,15 +618,20 @@ var threshold = false;
 {#                  return "circle2";#}
 
 
-              if( (d.pvalue < nRadius) ){
-                  return "circle1";
-              }
-              else if(d.pvalue === 0){
-                  return "circle3";
-              }
-              else {
-                  return "circle2";
-              }
+{#              if(d.pvalue == -1){#}
+{#                  return "circle3";#}
+{#              }#}
+{#              else if (d.pvalue == 1){#}
+{#                  return "circle2";#}
+{#              }#}
+{#              else if(d.pvalue > nRadius){#}
+{#                  return "circle1";#}
+{#              }#}
+{#              else if(d.pvalue < nRadius){#}
+{#                  return "circle3";#}
+{#              }#}
+
+
 {#              }#}
 {#                else{#}
 {#                  return "circle2";#}
@@ -670,7 +693,7 @@ d3.select("#nRadius").on("input", function() {
 
 
 // Initial starting radius of the circle
-updateOpacity(.05);
+updateOpacity(0);
 
 // update the elements
 function updateOpacity(nRadius) {
@@ -679,13 +702,14 @@ function updateOpacity(nRadius) {
   d3.select("#nRadius-value").text(nRadius);
   d3.select("#nRadius").property("value", nRadius);
     console.log(nRadius);
-  // update the circle radius
-  svgContainer.selectAll(".circle1")
-    .style("fill-opacity", nRadius*10);
-  svgContainer.selectAll(".circle3")
-    .style("fill-opacity", 0);
-}
 
+    svgContainer.selectAll("circle")
+        .filter(function (d) {if (d.pvalue < nRadius ) return true;})
+        .style("fill-opacity",0);
+    svgContainer.selectAll("circle")
+        .filter(function (d) {if (d.pvalue >= nRadius ) return true;})
+        .style("fill-opacity",1);
+   }
 
 
 
