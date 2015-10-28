@@ -25,6 +25,7 @@
                     class="table-checkbox proj-{{ proj.project_id }}-check"
                     style="margin: 2px; padding: 0px 2px;">
             #}
+
         </td>
     {% endif %}
 
@@ -140,6 +141,25 @@
         {% endif %}
     {% endif %}
 
+    {# only want to display this from the projects page. This is not the correct way...#}
+    {% if request.endpoint == "render_project_genesets" %}
+
+        {% if g.user is defined %}
+            {% if proj is defined %}
+                <td>
+                    <span id="remove-geneset-{{ gs.geneset_id }}" data-toggle="modal"
+                          data-target="#removeModal_{{ gs.geneset_id }}"
+                          style="cursor: pointer; color: #808080; margin: 2px; padding: 0px 2px;">
+                        <i class="fa fa-trash-o"></i>
+                    </span>
+
+                    {% include 'modal/removeGenesetFromProject.html' %}
+                </td>
+            {% endif %}
+        {% endif %}
+
+    {% endif %}
+
     <td>
         <!--
 			<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
@@ -235,6 +255,24 @@
                 var route = "/add_geneset_to_project/" + this.name + "/" + geneset_id + ".html";
                 $.get(route, function (data, status) {
                 });
+            }
+        });
+    }
+
+    //pass remove modal values to function
+    function removeSelected(geneset_id, proj_id) {
+        $.ajax({
+            type: "GET",
+            url: "../removeGenesetFromProject",
+            data: {"gs_id": geneset_id, "proj_id": proj_id},
+            success: function (data) {
+                location.reload();
+                $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project name added successfully.",
+                                'priority': 'success'
+                            }
+                ]);
             }
         });
     }
