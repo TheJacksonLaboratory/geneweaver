@@ -239,8 +239,7 @@
 {#Location for where the d3 is appended to in the html#}
 <div id="jaccard"></div>
 
-{# Displays output to a new window if selected #}
-<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in New Window</a>
+
 {#{{ data | safe }}#}
 {# Style sheet and calls for slider code from other websites#}
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
@@ -251,7 +250,6 @@
 
 
 
-<button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
     </br>
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
@@ -265,7 +263,7 @@
 
     <script src="http://d3js.org/d3.v3.min.js"></script>
 
-
+<button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
 
 {# Start of script#}
 <script type="text/javascript">
@@ -774,7 +772,7 @@ $(document).ready(function(){
 
 </script>
 
-{{ data | safe }}
+
 
 
 <script>
