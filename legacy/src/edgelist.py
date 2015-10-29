@@ -181,6 +181,7 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
         out.close()
         #return True
     else:
+        pass
         #return False
 
 
