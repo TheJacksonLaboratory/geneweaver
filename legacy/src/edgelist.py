@@ -28,7 +28,8 @@ y is in the third partite set, z is in the fifth partite set.
 
 '''
 
-from geneweaverdb import PooledCursor, dictify_cursor, get_genesets_for_project, get_genes_by_geneset_id
+from geneweaverdb import PooledCursor, dictify_cursor, get_genesets_for_project, get_genes_by_geneset_id, \
+    get_genesets_for_project
 from flask import session
 import os.path
 import re
@@ -87,6 +88,20 @@ def intersect_geneset(gsid1, gsid2, hom=True):
                               WHERE gv.gs_id=%s AND gv.ode_gene_id=h2.ode_gene_id AND h2.hom_id=h1.hom_id''', (gsid1, gsid2,))
     return True if cursor.rowcount != 0 else False
 
+def get_jaccard(pjid1, pjid2, threshold):
+    '''
+    Return the jaccard of two projects if it exists, 0 otherwise
+    :param pjid1: int
+    :param pjid2: int
+    :return: float
+    '''
+    pj1 = pjid1 if pjid1 < pjid2 else pjid2
+    pj2 = pjid2 if pjid2 > pjid1 else pjid1
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT jac_value FROM geneset_jaccard WHERE gs_id_left=%s AND gs_id_right=%s AND
+                          jac_value > %s''', (pj1, pj2, threshold,))
+        return cursor.fetchone()[0] if cursor.rowcount != 0 else 0
+
 
 def edge_gene2proj(genes, projDict, partition):
     '''
@@ -125,8 +140,66 @@ def edge_proj2proj(projDict1, projDict2):
     list(set(part))
     return part
 
+def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold):
+    '''
+    This function takes a taskid and results dir for writing. It also takes a LIST of projects and a threshold. By
+    looping through the list, we write all possible combinations of geneset pairs over the given threshold (threshold).
+    This file is writen as a *.kel file with values in the columns seperated by tabs, with weach column representing a
+    partition. The file has a \n EOF character.
+    :param taskid: string
+    :param results: string
+    :param projs: list
+    :param threshold: float
+    :return:
+    '''
+    # Set variables
+    ##########################################
+    # Comment out these lines as appropriate
+    # for running offline
+    usr_id = 48
+    #usr_id = session['user_id']
+    RESULTS = '/Users/baker/Desktop/'
+    #RESULTS = results
+    ###########################################
+    out = ''
+    genesets = {}
+    counts = {}
 
-def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology=True):
+    # make a dictionary of proj -> genesets
+    for p in projs:
+        genesets[p] = get_genesets_for_project(p, usr_id)
+
+    # Loop through all of the proj_ids, and return jaccard values where they exist, 0 otherwise
+    for i in range(0, len(projs)):
+        for j in range(0, len(projs)):
+            k = i + j + 1
+            # Set up the proper number of tabs between the two columns that are being populated
+            pretab = '\t' * i
+            endtab = '\t' * ((len(projs) - 1) - k)
+            midtab = '\t' * (k - i)
+            if k < len(projs):
+                ## Need to keep counts of each row in the counts disctionary
+                if projs[i] not in counts:
+                    counts[projs[i]] = 1
+                else:
+                    counts[projs[i]] += 1
+                if projs[k] not in counts:
+                    counts[projs[k]] = 1
+                else:
+                    counts[projs[k]] += 1
+                ## Now another inner loop (maybe need to be recursive?) to find all combinations of values
+                ## against eachother.
+                for m in genesets[projs[i]]:
+                    for n in genesets[projs[k]]:
+                        jac_value = get_jaccard(m.geneset_id, n.geneset_id, threshold)
+                        if jac_value > 0:
+                            out += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
+
+
+    print out
+
+
+def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
     '''
     This function takes two project ids, finds the intersection of genes and constructs
     the a task.kel file (which stands for K-clique Edge List (kel). This is a tab-delimited
@@ -135,7 +208,6 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
     :param taskid:
     :param proj1:
     :param proj2:
-    :param homology: Default = True
     :return: /results-dir/[task_id].kel
     '''
     # Set variables
@@ -143,7 +215,6 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
     # Comment out this line when running offline
     #usr_id = 48
     usr_id = session['user_id']
-    #RESULTS = results + '/'
     RESULTS = results
     #############################################
     out = ''
@@ -181,6 +252,7 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
         out.close()
         #return True
     else:
+        pass
         #return False
 
 
@@ -201,8 +273,6 @@ def create_json_from_triclique_output(taskid, results):
 
     # Read in file. Only add values after the edge triclique
     start_parsing = False
-    #with (results + '/' + taskid + '.mkc', 'r') as fh:
-    #fh = open(results + '/' + taskid + '.mkc', 'r')
     fh = open(os.path.join(results, taskid + '.mkc'), 'r')
     for line in fh:
         if start_parsing:
@@ -297,3 +367,6 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
             if identifiers[i] in partitions[j]:
                  f.write(str(identifiers[i]) + ',' + str(identifiers[i]) + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
     f.close()
+
+
+create_kpartite_file_from_jaccard_overlap('sfdsf', 'sdf', [1268,1622,1623,1633], 0.05)
