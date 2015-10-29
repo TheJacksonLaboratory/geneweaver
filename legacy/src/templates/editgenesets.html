@@ -301,22 +301,14 @@
             initAjax: {
                 url: "/getOntDBNodes",
                 data: { ontdb: "ontdb" }
+
             },
             onActivate: function(node) {
                 $("echoActive").text("" + node + " (" + node.name + ")")
             },
         });
-        <!-- Start_Exclude: This block is not part of the sample code -->
-        $("#skinCombo")
-        .val(0) // set state to prevent caching
-        .change(function(){
-            var href = "../src/"
-                + $(this).val()
-                + "/ui.dynatree.css"
-                + "?reload=" + new Date().getTime();
-            $("#skinSheet").attr("href", href);
-        });
-        <!-- End_Exclude -->
+        console.log(ontdb)
+
     });
 
         $(function(){

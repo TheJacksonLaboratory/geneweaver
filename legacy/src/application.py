@@ -333,6 +333,22 @@ def render_editgenesets(gs_id):
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, onts=onts, ont_parents=ont_parents, ontdb=ontdb)
 
+@app.route('/getOntDBNodes')
+def get_ontdb_nodes():
+    result = geneweaverdb.get_all_ontologydb()
+    #data = dict()
+    #data = dict()
+    #data.update({"success": result})
+    data = "["
+    for i in range(0, len(result)):
+        data += "{\"title\": \"" + result[i].name + "\"," \
+            " \"isFolder\": true, \"isLazy\": true, \"key\": \""\
+            + str(result[i].ontologydb_id) + "\""
+        if(i < len(result)-1):
+            data += "},"
+        else: data += "}]"
+    return (data)
+
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():

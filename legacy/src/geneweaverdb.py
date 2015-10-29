@@ -2014,6 +2014,15 @@ def get_all_ontologydb():
             )
         return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
 
+def get_all_ontologydb_as_json():
+    with PooledCursor() as cursor:
+        cursor.execute(
+            ''' SELECT row_to_json(row, true)
+                FROM(	SELECT *
+                        FROM ontologydb
+                    ) row; ''')
+    return cursor.fetchall();
+
 # def get_all_root_ontology_for_database(ontdb_id):
  #   with PooledCursor() as cursor:
  #       cursor.execute(
