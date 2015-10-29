@@ -1981,15 +1981,15 @@ def get_all_parents_for_ontology(ont_id):
     parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
 
     parent_list = []
-    print(parents)
-    for parent in parents:
-        parent_list.append([parent])
-        print(parent.numParents)
-        if(parent.numParents != 0):
-            parent_list.append(get_all_parents_for_ontology(parent.ontology_id))
+    #print(parents)
+    #for parent in parents:
+    #    parent_list.append([parent])
+    #    print(parent.numParents)
+    #    if(parent.numParents != 0):
+    #        parent_list.append(get_all_parents_for_ontology(parent.ontology_id))
         #else:
             #parent_list.append([])
-    print(parent_list)
+    #print(parent_list)
     return parent_list
 
 def get_all_children_for_ontology(ont_id):
