@@ -369,4 +369,3 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f.close()
 
 
-create_kpartite_file_from_jaccard_overlap('sfdsf', 'sdf', [1268,1622,1623,1633], 0.05)
