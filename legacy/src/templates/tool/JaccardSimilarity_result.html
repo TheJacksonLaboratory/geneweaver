@@ -15,7 +15,7 @@
   pointer-events: none;}
 {#        font-weight: bold;#}
 
-    #slider {
+#slider {
   margin-top: 50px;
   margin-left: 50px;
   margin-bottom: 50px;
@@ -42,7 +42,6 @@
 #panel, #flip {
     padding: 5px;
     text-align: center;
-{#    border: solid 1px #26c3c0;#}
     width: 1130px;
 }
 
@@ -59,172 +58,192 @@
 }
 
 
-#zoomButton{
-  margin-top: 50px;
-  margin-left: 965px;
-  margin-bottom: 50px;
-    }
-    #clickableFontAwesome {
-        cursor: pointer;
-    }
+#clickableFontAwesome {
+    cursor: pointer;
+}
+
+
+#rerunPanel, #rerunFlip {
+    padding: 5px;
+    text-align: center;
+{#    border: solid 1px #26c3c0;#}
+    width: 1130px;
+}
+
+#rerunPanel {
+    padding: 50px;
+    height: 350px;
+    text-align: left;
+    display: none;
+}
+
+#rerunFlip {
+ height: 50px;
+   background-color:#d9edf7;
+   color: #317baf;
+   text-shadow: none;
+}
+
+.left-cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+.right-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: right;
+  right: 0;
+}
+
+.box-header {
+
+  padding-bottom: 5px;
+  display: table;
+  width: 100%;
+}
+
 </style>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
-{#<script src="/static/d3/radar.js" charset="utf-8"></script>#}
+ <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<link rel="stylesheet" href="/resources/demos/style.css">
+
 
 <div class="page-header">
     <h1>{{ title }}</h1>
 </div>
 
 
-
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="row">
-        <div class="col-md-12">
-                <div class="panel panel-info">
-            <div class="panel-heading">
-               <h2 class="panel-title">
-                  <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-                     Rerun Tool Options
-                  </a>
-
-               </h2>
-            </div>
-            <div id="jcCollapse" class="panel-collapse collapse">
-               <div class="panel-body">
-                  <div class="row">
-                     <div class="col-md-4">
-                        <div class="form-group">{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
-                     </div>
-                     <div class="col-md-4">
-                        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
-                     </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
-                            </div>
-
-                     <div class="col-md-4">
-                        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-
-                        <button class="btn btn-primary"
-                           type='submit'
-                           value='run'
-                           onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
-                           Run
-                        </button>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         </div>
-        </div>
-    </div>
-</form>
-
-
-
-<br /><h4>Table View:</h4>
-
-<br clear="all"  class="floatGeneList">
-<form name="listform" id="listform">
-<table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left" style=" border-bottom: thin solid #ccc;"> &nbsp;
-
-{% for item in async_result.geneset_table %}
-  </th><th style="border-top: 4px solid #000; border-right: 4px solid #000; border-left: 4px solid #000; border-bottom: 4px solid #000; {cycle values=",background-color: #fff;"}">
-  <a href="{{ item.url }}">{{ item.gsID }}</a>
-{% endfor %}
-</th></tr>
-
-{% set j = 0 %}
-{% for item in async_result.geneset_table %}
-    {% set i = 0 %}
-<tr><td style="border-bottom: none; white-space:nowrap;" align="left">
-<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
-<a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
-    {% for jac in item.entries %}
-   <td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
-    {% if jac.url == "0" %}
-        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
-    {% elif jac.url == "1" %}
-        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
-    {% elif jac.url %}
-      <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
-    {% else %}
-      <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
-    {% endif %}
-    </td>
-    {% set i = i + 1 %}
-   {% endfor %}
-    {%set j = j + 1 %}
-<td style="width: 25em;">&nbsp;</td></tr>
-{% endfor %}
-
-<tr><td colspan="4" style="border-bottom: none;">
-<div id="project_selector">
-<input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
-    <p style="margin-left:30px; font-size: 15px;"> Select All
-    <select name="addToProject" onchange="javascript:handleSelect(this);">
-        <option value="-1">Add selected to project...</option>
-        {% for project in list %}
-            <option value="{{project.project_id}}">{{project.name}} ({{project.count}})</option>
-        {% endfor %}
-        <option value="-2">+ Create new project...</option></select></p>
+<div id="rerunFlip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header "> Rerun Tool Options</div>
+<div id="rerunPanel" >
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div class="form-group" >{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
+        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
+        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
+        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+        <button class="btn btn-primary"
+           type='submit'
+           value='run'
+           onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
+           Run
+        </button>
+     </form>
 </div>
-   <script type="text/javascript">
-      function handleSelect(elm)
-      {
-         var genesets = [];
-            if (elm.value != "-1") {
-                if (elm.value == "-2") {
-                    var name = prompt("Enter a name for the new project:");
-                    $.get("/create_project/" + name + ".html", function (data, status) {
-                        $('input:checkbox[name="gs_id[]"]').each(function () {
-                            if (this.checked) {
-                                genesets.push(this.value);
-                            }
-                        });
-                        if (genesets.length != 0) {
-                            for (var i = 0; i < genesets.length; i++) {
-                                $.get("/add_geneset_to_project/" + data + "/" + genesets[i] + ".html");
-                            }
-                        }
-                        else {
-                            window.alert("Please select gene set(s) to add first!")
-                        }
-                    });
-                }
-                else {
-                    $('input:checkbox[name="gs_id[]"]').each(function () {
-                        if (this.checked) {
-                            genesets.push(this.value);
-                        }
-                    });
-                    if (genesets.length != 0) {
-                        for (var i = 0; i < genesets.length; i++) {
-                            $.get("/add_geneset_to_project/" + elm.value + "/" + genesets[i] + ".html", function (data, status) {
-                            });
-                        }
-                    }
-                    else {
-                         window.alert("Please select gene set(s) to add first!")
-                    }
-                }
-            }
-      }
-</script>
-</td></tr>
-</table>
+
+
+
+
+{##}
+{#<br clear="all"  class="floatGeneList">#}
+{#<form name="listform" id="listform">#}
+{#<table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left" style=" border-bottom: thin solid #ccc;"> &nbsp;#}
+{##}
+{#{% for item in async_result.geneset_table %}#}
+{#  </th><th style="border-top: 4px solid #000; border-right: 4px solid #000; border-left: 4px solid #000; border-bottom: 4px solid #000; {cycle values=",background-color: #fff;"}">#}
+{#  <a href="{{ item.url }}">{{ item.gsID }}</a>#}
+{#{% endfor %}#}
+{#</th></tr>#}
+{##}
+{#{% set j = 0 %}#}
+{#{% for item in async_result.geneset_table %}#}
+{#    {% set i = 0 %}#}
+{#<tr><td style="border-bottom: none; white-space:nowrap;" align="left">#}
+{#<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">#}
+{#<a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;#}
+{#    {% for jac in item.entries %}#}
+{#   <td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">#}
+{#    {% if jac.url == "0" %}#}
+{#        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>#}
+{#    {% elif jac.url == "1" %}#}
+{#        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>#}
+{#    {% elif jac.url %}#}
+{#      <a href="{{ jac.url }}">{{ jac.text | safe }}</a>#}
+{#    {% else %}#}
+{#      <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>#}
+{#    {% endif %}#}
+{#    </td>#}
+{#    {% set i = i + 1 %}#}
+{#   {% endfor %}#}
+{#    {%set j = j + 1 %}#}
+{#<td style="width: 25em;">&nbsp;</td></tr>#}
+{#{% endfor %}#}
+
+
+
+{##}
+{#<tr><td colspan="4" style="border-bottom: none;">#}
+{#<div id="project_selector">#}
+{#<input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">#}
+{#    <p style="margin-left:30px; font-size: 15px;"> Select All#}
+{#    <select name="addToProject" onchange="javascript:handleSelect(this);">#}
+{#        <option value="-1">Add selected to project...</option>#}
+{#        {% for project in list %}#}
+{#            <option value="{{project.project_id}}">{{project.name}} ({{project.count}})</option>#}
+{#        {% endfor %}#}
+{#        <option value="-2">+ Create new project...</option></select></p>#}
+{#</div>#}
+
+
+{#   <script type="text/javascript">#}
+{#      function handleSelect(elm)#}
+{#      {#}
+{#         var genesets = [];#}
+{#            if (elm.value != "-1") {#}
+{#                if (elm.value == "-2") {#}
+{#                    var name = prompt("Enter a name for the new project:");#}
+{#                    $.get("/create_project/" + name + ".html", function (data, status) {#}
+{#                        $('input:checkbox[name="gs_id[]"]').each(function () {#}
+{#                            if (this.checked) {#}
+{#                                genesets.push(this.value);#}
+{#                            }#}
+{#                        });#}
+{#                        if (genesets.length != 0) {#}
+{#                            for (var i = 0; i < genesets.length; i++) {#}
+{#                                $.get("/add_geneset_to_project/" + data + "/" + genesets[i] + ".html");#}
+{#                            }#}
+{#                        }#}
+{#                        else {#}
+{#                            window.alert("Please select gene set(s) to add first!")#}
+{#                        }#}
+{#                    });#}
+{#                }#}
+{#                else {#}
+{#                    $('input:checkbox[name="gs_id[]"]').each(function () {#}
+{#                        if (this.checked) {#}
+{#                            genesets.push(this.value);#}
+{#                        }#}
+{#                    });#}
+{#                    if (genesets.length != 0) {#}
+{#                        for (var i = 0; i < genesets.length; i++) {#}
+{#                            $.get("/add_geneset_to_project/" + elm.value + "/" + genesets[i] + ".html", function (data, status) {#}
+{#                            });#}
+{#                        }#}
+{#                    }#}
+{#                    else {#}
+{#                         window.alert("Please select gene set(s) to add first!")#}
+{#                    }#}
+{#                }#}
+{#            }#}
+{#      }#}
+{#</script>#}
+
+{##}
+{##}
+{#</td></tr>#}
+{#</table>#}
+
 <br><br>
 <div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Click to slide down panel to see gene set table</div>
 <div id="panel" ></div>
+<br>
 
-<br /><br />
-
-    <h4>Venn Diagram view:
+  <div class="box-header clearfix">
+    <div class = "left-cell">  <h4>Venn Diagram view:
     <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
 
 <script type = "text/javascript">
-
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
@@ -233,21 +252,17 @@
             'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
             ' to navigate to intersection details.'
         });
-
 </script>
+</div>
+    <div class="right-cell">
+    <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
+    </div>
+</div>
+
+
 
 {#Location for where the d3 is appended to in the html#}
 <div id="jaccard"></div>
-
-
-{#{{ data | safe }}#}
-{# Style sheet and calls for slider code from other websites#}
- <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-<script src="//code.jquery.com/jquery-1.10.2.js"></script>
-<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-<link rel="stylesheet" href="/resources/demos/style.css">
-
-
 
 
     </br>
@@ -261,14 +276,14 @@
 </p>
 
 
-    <script src="http://d3js.org/d3.v3.min.js"></script>
 
-<button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
+
+
+
+
 
 {# Start of script#}
 <script type="text/javascript">
-
-
 {#  Declaration of data as d variable#}
     var d = {{ data | safe }};
 
@@ -346,14 +361,10 @@ var threshold = false;
               str=str.replace(/^\s+|\s+$/g,'');
               pValues[pValueCount] =  str;
               pValueCount += 1;
-
          }
-
       }
   }
 
-{#  for (i = 0; i < pValueCount; i++) {#}
-{#      console.log(pValues[i].pVal + " in circle: " + pValues[i].circle);#}
 
 
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
@@ -568,14 +579,14 @@ var threshold = false;
         .attr("class", "tooltip")
         .style("opacity", 0);
 
-//Add circles to the svgContainer
+    //Add circles to the svgContainer
     var circles = svgContainer.selectAll("circle")
             .data(circleData)
             .enter()
             .append("circle");
 
 
-//Add the circle attributes
+    //Add the circle attributes
     var circleAttributes = circles
             .attr("cx", function (d) { return d.cx + d.cxshift + 50; })
             .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
@@ -589,27 +600,26 @@ var threshold = false;
             .style("stroke", bordercolor)
             .attr("border", border)
 
-     // When mouse is over object html output styling of label will display
-    .on("mouseover", function(d) {
-            div.transition()
-                .duration(200)
-                .style("opacity", .9);
-            div .html((d.title)+ "<br/>" + (d.des))
-                .style("left", (d3.event.pageX) + "px")
-                .style("top", (d3.event.pageY) + "px");
+             // When mouse is over object html output styling of label will display
+             .on("mouseover", function(d) {
+                div.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                div .html((d.title)+ "<br/>" + (d.des))
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY) + "px");
 
-            })
-     // When mouse leaves change opacity to 0 so not displayed
-        .on("mouseout", function(d) {
-            div.transition()
-                .duration(500)
-                .style("opacity", 0);   })
+                })
+             // When mouse leaves change opacity to 0 so not displayed
+            .on("mouseout", function(d) {
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", 0);   })
 
-    // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
-        .on("dblclick", function(d) {
-           window.open(
-                   d.url)})
-        .attr("class", function(d, i, nRadius) {
+             // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
+            .on("dblclick", function(d) {
+               window.open( d.url)})
+            .attr("class", function(d, i, nRadius) {
 {#                console.log(i);#}
 {#                console.log("Pvalue=", d);#}
 {#              if (i < pValueCount) {#}
@@ -638,12 +648,12 @@ var threshold = false;
                //    return i == 0 ? "circle1" : "circle2";});
 
 
-//Add the SVG Text Element to the svgContainer
+    //Add the SVG Text Element to the svgContainer
     var text = svgContainer.selectAll("text")
             .data(circleData)
             .enter();
 
-// X Gene_Set labels added to d3
+    // X Gene_Set labels added to d3
     text.append("text")
             .text(function (d) { return d.label;})
             .attr("x", function (d) {return d.labelx + 50; })
@@ -651,7 +661,7 @@ var threshold = false;
             .style("font-weight", "bold")
             .attr("font-size", "10px");
 
-// Y Gene_Set labels added to d3
+    // Y Gene_Set labels added to d3
     text.append("text")
             .text(function (d) {return d.label;})
             .attr("x", function (d) {return 25;})
@@ -659,7 +669,7 @@ var threshold = false;
             .style("font-weight", "bold")
             .attr("font-size", "10px");
 
-// X Gene_Set labels added to d3
+    // X Gene_Set labels added to d3
     text.append("text")
             .text(function (d) { return d.label1;})
             .attr("x", function (d) {return d.labelx + 50; })
@@ -667,7 +677,7 @@ var threshold = false;
             .style("font-weight", "bold")
             .attr("font-size", "10px");
 
-// Y Gene_Set labels added to d3
+    // Y Gene_Set labels added to d3
     text.append("text")
             .text(function (d) {return d.label1;})
             .attr("x", function (d) {return 25;})
@@ -675,7 +685,7 @@ var threshold = false;
             .style("font-weight", "bold")
             .attr("font-size", "10px");
 
-// Jaccard, p-value, and overlap display added to d3
+    // Jaccard, p-value, and overlap display added to d3
     text.append("text")
             .text(function (d) { return d.gene_id;})
             .attr("x", function (d) { return d.txshift; })
@@ -684,33 +694,30 @@ var threshold = false;
 
 
 
-// when the input range changes update the circle
-d3.select("#nRadius").on("input", function() {
-    updateOpacity(+this.value);
-});
+    // when the input range changes update the circle
+    d3.select("#nRadius").on("input", function() {
+        updateOpacity(+this.value);
+    });
 
 
-// Initial starting radius of the circle
-updateOpacity(0);
+    // Initial starting radius of the circle
+    updateOpacity(0);
 
-// update the elements
-function updateOpacity(nRadius) {
+    // update the elements
+    function updateOpacity(nRadius) {
 
-  // adjust the text on the range slider
-  d3.select("#nRadius-value").text(nRadius);
-  d3.select("#nRadius").property("value", nRadius);
-    console.log(nRadius);
+      // adjust the text on the range slider
+      d3.select("#nRadius-value").text(nRadius);
+      d3.select("#nRadius").property("value", nRadius);
+        console.log(nRadius);
 
-    svgContainer.selectAll("circle")
-        .filter(function (d) {if (d.pvalue < nRadius ) return true;})
-        .style("fill-opacity",0);
-    svgContainer.selectAll("circle")
-        .filter(function (d) {if (d.pvalue >= nRadius ) return true;})
-        .style("fill-opacity",1);
-   }
-
-
-
+        svgContainer.selectAll("circle")
+            .filter(function (d) {if (d.pvalue < nRadius ) return true;})
+            .style("fill-opacity",0);
+        svgContainer.selectAll("circle")
+            .filter(function (d) {if (d.pvalue >= nRadius ) return true;})
+            .style("fill-opacity",1);
+       }
 
 
     // Changes on Url menu to select different download types
@@ -721,35 +728,33 @@ function updateOpacity(nRadius) {
         }
     }
 
-// Download types function and selection - not made by KRISTEN, in prior to working on
-function changeImg(sel, dl) {
+    // Download types function and selection - not made by KRISTEN, in prior to working on
+    function changeImg(sel, dl) {
 
-    if (sel.value == 'svg') {
-        document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}";
-    }
-    else if (sel.value == 'png') {
-        document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}";
-    }
-    else if (sel.value == 'pdf') {
-        document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}";
-    }
-}
-
-// Checkbox for selecting a geneset
-function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
-    var allChecked = true;
-    genesetCheckboxes.each(function (i, gsCheckbox) {
-        gsCheckbox = $(gsCheckbox);
-        if (!gsCheckbox.prop('checked')) {
-            allChecked = false;
-            return false;
+        if (sel.value == 'svg') {
+            document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}";
         }
-    });
+        else if (sel.value == 'png') {
+            document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}";
+        }
+        else if (sel.value == 'pdf') {
+            document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}";
+        }
+    }
 
-    projCheckbox.prop('checked', allChecked);
-}
+    // Checkbox for selecting a geneset
+    function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
+        var allChecked = true;
+        genesetCheckboxes.each(function (i, gsCheckbox) {
+            gsCheckbox = $(gsCheckbox);
+            if (!gsCheckbox.prop('checked')) {
+                allChecked = false;
+                return false;
+            }
+        });
 
-
+        projCheckbox.prop('checked', allChecked);
+    }
  </script>
 
 
@@ -759,10 +764,6 @@ function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
 
 {#Script for the slider to control the jaccard similarity threshold.#}
 <script type="text/javascript">
-{#  $("#zoomButton").click(function(){#}
-{#        $("#jaccard").animate({height: "100px"});#}
-{#    });#}
-
 //This allows the user to view the chart or not
 $(document).ready(function(){
     $("#flip").click(function(){
@@ -770,7 +771,20 @@ $(document).ready(function(){
     });
 });
 
+$(document).ready(function(){
+    $("#rerunFlip").click(function(){
+        $("#rerunPanel").slideToggle("slow");
+    });
+});
 </script>
+
+
+
+
+
+
+
+
 
 
 
@@ -789,7 +803,6 @@ $(document).ready(function(){
         }
     }
 
-
     var svg = d3.select("#panel").append("svg:svg")
         .attr("width",  width + margin.left + margin.right)
         .attr("height", h);
@@ -797,13 +810,8 @@ $(document).ready(function(){
     var addOnX = 0;
     var addOnY = 0;
     var cont = 0;
-  //  var total = count*count;
-    var offset = 0;
-
-    addOnX = 0;
-    addOnY = 0;
-
     var c = 0;
+    var offset = 0;
 
     for(i = 0; i < count; i++) {
       for(var k = 0; k < count; k++) {
@@ -834,7 +842,6 @@ $(document).ready(function(){
               .attr("fill", "blue")
               .on("click", function(d) {window.open("http://127.0.0.1:5000" + d.geneset_table[0].url) })
 
-
         } else {
            svg.append("rect")
                 .attr("x", addOnX + 200)
@@ -843,25 +850,21 @@ $(document).ready(function(){
                 .attr("height", 90)
                 .style("stroke", "#ffffff")
                    .style("fill", function(d) {
-                       if (k == 3 || k ==1 ) {
+                       if (k % 2) {
                            return "#fe5b54";
                        }
                        else {
                            return "#febd55";
                        }
                    })
-                //.style("fill", "#36bac4")
-            // .style("opacity", 1)
                 .attr("border", 1);
 
-                svg.append("text")
+            svg.append("text")
                  .attr("x", addOnX + 235)
-                  .attr("y", addOnY)
-                  .text( d.geneset_table[0].entries[1].text.split("*"))
-                  .attr("font-family", "sans-serif")
-                  .attr("font-size", "12px")
-
-
+                 .attr("y", addOnY)
+                 .text( d.geneset_table[0].entries[1].text)
+                 .attr("font-family", "sans-serif")
+                 .attr("font-size", "12px")
         }
         c++;
       }
@@ -886,8 +889,12 @@ $(document).ready(function(){
 
 </script>
 
-<br>
 
+
+
+
+
+<br>
 
 View As:</r>
 <form>
