@@ -612,6 +612,64 @@ def render_viewgeneset(gs_id):
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
 
+@app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET', 'POST'])
+def render_viewgenesetoverlap(gs_id, gs_id1):
+    # get values for sorting result columns
+    # i'm saving these to a session variable
+    # probably not the correct format
+    if flask.request.method == 'GET':
+        args = flask.request.args
+        if 'sort' in args:
+            session['sort'] = args['sort']
+            if 'dir' in session:
+                if session['dir'] != 'DESC':
+                    session['dir'] = 'DESC'
+                else:
+                    session['dir'] = 'ASC'
+            else:
+                session['dir'] = 'ASC'
+    # get value for the alt-gene-id column
+    if 'extsrc' in session:
+        if session['extsrc'] == 2:
+            altGeneSymbol = 'Ensembl'
+        elif session['extsrc'] == 7:
+            altGeneSymbol = 'Symbol'
+        elif session['extsrc'] == 10:
+            altGeneSymbol = 'MGD'
+        elif session['extsrc'] == 12:
+            altGeneSymbol = 'RGD'
+        elif session['extsrc'] == 13:
+            altGeneSymbol = 'ZFin'
+        elif session['extsrc'] == 14:
+            altGeneSymbol = 'FlyBase'
+        elif session['extsrc'] == 15:
+            altGeneSymbol = 'WormBase'
+        else:
+            altGeneSymbol = 'Entrez'
+    else:
+        altGeneSymbol = 'Entrez'
+
+    emphgenes = {}
+    emphgeneids = []
+
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    geneset1 = geneweaverdb.get_geneset(gs_id1, user_id)
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+    else:
+        view = None
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
+    return flask.render_template('viewgenesetoverlap.html', geneset=geneset, geneset1=geneset1,emphgeneids=emphgeneids, user_id=user_id,
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
+
 
 @app.route('/mygenesets')
 def render_user_genesets():

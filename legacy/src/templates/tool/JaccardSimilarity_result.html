@@ -252,7 +252,7 @@
     </br>
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
-        <h5>Jaccard Threshold (0.05 increments):
+        <h5>P-Value Threshold (0.05 increments):
       <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
   </label>
 
@@ -306,8 +306,8 @@
 
 {#Create string to hold titles#}
     var str = "";
-
-
+{#Create varaible to store row number#}
+    var row = -1;
 {# Intializes gene_ids array for click url functionality#}
     for (i= 0; i<gene_sets.length; i++){
         gene_ids[i] = gid;
@@ -411,13 +411,14 @@ var threshold = false;
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                     "url":  d.venn_diagrams[i].url,
+                     "url":   gene_url[check-1] +'/' + gene_url[check-1],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
                     "show" : threshold
 
 
                 });
+                 row +=1;
 
                 {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
                 if((i === 0) && (k === 0)) {
@@ -502,10 +503,11 @@ var threshold = false;
                     "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                     "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                     "des": d.venn_diagrams[i].desc1,
-                    "url": "/viewgenesetdetails/" + gene_url[check],
+                    "url":  gene_url[check]+'/'+ gene_url[check-1],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
-                    "show" : threshold
+                    "show" : threshold,
+                    "url1":   d.venn_diagrams[i].url
 
 
                 });
@@ -519,18 +521,20 @@ var threshold = false;
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                    "url": "/viewgenesetdetails/" + gene_url[check-1],
+                    "url": gene_url[check]+'/'+ gene_url[check-1],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
                     "show" : threshold
                 });
-
+                console.log(row);
+                console.log(gene_url[check], d.venn_diagrams[row].url);
             }
 
         }
 
 
     }
+
 
 {# Intializes border for circles#}
     var border = 1;
@@ -607,7 +611,7 @@ var threshold = false;
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("dblclick", function(d) {
            window.open(
-                   d.url)})
+                   "/viewgenesetoverlap/" + d.url)})
         .attr("class", function(d, i, nRadius) {
 {#                console.log(i);#}
 {#                console.log("Pvalue=", d);#}
