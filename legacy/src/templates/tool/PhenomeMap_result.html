@@ -28,22 +28,22 @@
             stroke-width: 1.5px;
         }
 
-       path{
+        path {
             fill: none;
             stroke: #ccc;
             stroke-width: 1.5px;
         }
 
-        .link{
+        .link {
             fill: none;
             stroke: #ccc;
             stroke-width: 1.5px;
-         }
+        }
 
         /*Just making sure the select2 box is glued to the top*/
         .search {
-	        width: 100%;
-	    }
+            width: 100%;
+        }
 
     </style>
 
@@ -69,7 +69,7 @@
 
 <div class="page-header">
     <h1>{{ title }}
-    {{ runhash }} </h1>
+        {{ runhash }} </h1>
 </div>
 
 {# {{ async_result.parameters.output_prefix}} #}
@@ -248,7 +248,7 @@
 
 <div id="viz2">
     <script>
- //Notes:
+        //Notes:
         // STILL VERY MUCH IN PROGRESS
         // Initially borrowed from http://bl.ocks.org/mbostock/1093130
         //      with heavy modification. Creates a DAG and displays it in a tree
@@ -279,7 +279,9 @@
                     fill = d3.scale.category20();
 
             var diagonal = d3.svg.diagonal()
-                .projection(function(d) { return [d.y, d.x]; });
+                    .projection(function (d) {
+                        return [d.y, d.x];
+                    });
 
 
             //Create a sized SVG surface within viz:
@@ -317,7 +319,7 @@
             nodes = flatten(g.data.nodes);
             var nextdepths = [0];
             for (i = 0; i < nodes.length; i++) {
-                while(nodes[i].depth > nextdepths.length - 1){
+                while (nodes[i].depth > nextdepths.length - 1) {
                     nextdepths.push(0);
                 }
                 //if(nodes[i].depth == 0){
@@ -373,18 +375,18 @@
             // create a subselection, wiring up data, using a function to define
             //how it's supposed to know what is appended/updated/exited
 
-                                    //console.log("G.LINK (before): \n" + JSON.stringify(g.link));
+            //console.log("G.LINK (before): \n" + JSON.stringify(g.link));
 
             g.link = g.link.data(links);
 
-                                                ///console.log("G.LINK (middle): \n" + JSON.stringify(g.link));
+            ///console.log("G.LINK (middle): \n" + JSON.stringify(g.link));
 
             //Get rid of old links:
             g.link.exit().remove();
 
 
-             /*var diagonal = d3.svg.diagonal()
-                .projection(function(d) { return [d.y, d.x]; });*/
+            /*var diagonal = d3.svg.diagonal()
+             .projection(function(d) { return [d.y, d.x]; });*/
 
             //Build new links by adding new svg lines:
             g.link
@@ -393,15 +395,15 @@
                     .attr("class", "link");
 
 
-              /*g.link
-                    .enter()
-                    .insert("path", "g")
-                    .attr("class", "link")
-                    .attr("d", function(d) {
-                        console.log(d);
-                        var o = {x: d.source.x, y: d.source.y};
-                        return diagonal({source: o, target: o});
-                    });*/
+            /*g.link
+             .enter()
+             .insert("path", "g")
+             .attr("class", "link")
+             .attr("d", function(d) {
+             console.log(d);
+             var o = {x: d.source.x, y: d.source.y};
+             return diagonal({source: o, target: o});
+             });*/
 
             // create a subselection, wiring up data, using a function to define
             //how it's suppossed to know what is appended/updated/exited
@@ -416,23 +418,33 @@
                     .append("g")
                     .attr("class", "node")
                     .on("click", click)
+                    .on("mouseover", mouseover)
+                    .on("mouseout", mouseout)
                     .call(g.force.drag);
             //circle within the single node group:
             nodeEnter.append("circle")
-                     .attr("r", 4.5);
+                    .attr("r", 4.5);
 
             //text within the single node group:
             nodeEnter.append("text")
                     .attr("dy", "-.2em")
-                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
-                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
+                    .attr("dx", function (d) {
+                        return (d.children.length > 0) ? "-1em" : "1em";
+                    })
+                    .attr("text-anchor", function (d) {
+                        return (d.children.length > 0) ? "end" : "start";
+                    })
                     .text(function (d) {
                         return d.name;
                     });
             nodeEnter.append("text")
                     .attr("dy", "1em")
-                    .attr("dx", function(d) { return (d.children.length > 0) ? "-1em" : "1em"; })
-                    .attr("text-anchor", function(d) { return (d.children.length > 0) ? "end" : "start"; })
+                    .attr("dx", function (d) {
+                        return (d.children.length > 0) ? "-1em" : "1em";
+                    })
+                    .attr("text-anchor", function (d) {
+                        return (d.children.length > 0) ? "end" : "start";
+                    })
                     .text(function (d) {
                         return d.depth;
                     });
@@ -443,7 +455,7 @@
             //-------------------
 
             //g.node.fontcolor(textColor)
-            g.node.select("text").attr("fill",textColor);
+            g.node.select("text").attr("fill", textColor);
 
         }
 
@@ -455,6 +467,7 @@
         // So returns a list of all nodes under the root.
         function flatten(data) {
             var nodes = [];
+
             function recurse(node) {
                 if (!getNodeByID(nodes, node.id)) nodes.push(node);
                 if (node.children.length > 0) {
@@ -465,8 +478,8 @@
                 }
             }
 
-            for(var i = 0, len = data.length; i < len; i++){
-                if(data[i].depth == 0) {
+            for (var i = 0, len = data.length; i < len; i++) {
+                if (data[i].depth == 0) {
                     recurse(data[i]);
                 }
             }
@@ -542,7 +555,7 @@
                 d.children = [];
                 console.log("children: " + d.children);
                 console.log("_children:" + d._children);
-            } else if (d._children){
+            } else if (d._children) {
                 console.log("expanding node " + d.name + " (" + d.id + ")");
                 d.children = d._children;
                 d._children = null;
@@ -552,7 +565,7 @@
             nodes = flatten(g.data.nodes);
             var nextdepths = [0];
             for (i = 0; i < nodes.length; i++) {
-                while(nodes[i].depth > nextdepths.length - 1){
+                while (nodes[i].depth > nextdepths.length - 1) {
                     nextdepths.push(0);
                 }
                 //if(nodes[i].depth == 0){
@@ -577,8 +590,8 @@
             //redraw position of every link within the link set:
 
             g.link.attr("x1", function (d) {
-                        return d.source.x;
-                    })
+                return d.source.x;
+            })
                     .attr("y1", function (d) {
                         return d.source.y;
                     })
@@ -591,6 +604,19 @@
             //same for the nodes, using a functor:
 
 
+        }
+
+        function mouseover(d) {
+            d3.select(this).append("text")
+                    .attr("class", "hover")
+                    .attr('transform', function (d) {
+                        return 'translate(5, -10)';
+                    })
+                    .text(d.name + ": " + d.id);
+        }
+
+        function mouseout(d) {
+            d3.select(this).select("text.hover").remove();
         }
 
         //
