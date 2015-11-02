@@ -23,7 +23,7 @@ $(function () {
     //use a global var for the data:
     g.data = data;
 
-    console.log("DATA = " + JSON.stringify(data));
+    //console.log("DATA = " + JSON.stringify(data));
     var width = 1200,
         height = 1000;
 
@@ -89,7 +89,11 @@ function update() {
 
     //iterate through original nested data, and get one dimension array of nodes.
     var nodes = flatten(g.data.nodes);
-    console.log(nodes.length + " nodes to draw");
+    for(var i = 0; i < nodes.length; i++){
+        console.log("Node " + nodes[i].id + "\n\tAbove: " + nodes[i].above + 
+                    "\n\tBelow: " + nodes[i].below);
+    }
+    //console.log(nodes.length + " nodes to draw");
 
 
     //Each node extracted above has a children attribute.
@@ -193,13 +197,11 @@ function flatten(data) {
     for (var i = 0, len = data.length; i < len; i++) {
         if (data[i]._children) {
             for(var j = 0, jlen = data[i]._children.length; j < jlen; j++){
-                console.log(data[i]._children[j] + " IS NOT AN ORPHAN ALSO " + i + " " + j);
                 getNodeByID(data, data[i]._children[j]).orphan = false;
             }
         }
         else {
              for(var j = 0, jlen = data[i].children.length; j < jlen; j++){
-                console.log(data[i].children[j] + " IS NOT AN ORPHAN ALSO " + i + " " + j);
                  getNodeByID(data, data[i].children[j]).orphan = false;
              }
         }
@@ -268,9 +270,10 @@ function initialize_layout(nodes) {
         }
         if(previous[nodes[i].depth] >= 0) {
             prevNode = getNodeByID(nodes, previous[nodes[i].depth]);
-            prevNode.neighbors.push(nodes[i].id);
-            nodes[i].neighbors = [prevNode.id];
+            prevNode.below = nodes[i].id;
+            nodes[i].above = prevNode.id;
         }
+        previous[nodes[i].depth] = nodes[i].id;
         nodes[i].x = nodes[i].depth * 100 + 100;
         nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
         nextdepths[nodes[i].depth]++;
@@ -416,6 +419,17 @@ function tick() {
         .attr("y2", function (d) {
             return d.target.y;
         });
+}
+
+function collide(node) {
+	var pad = 15,
+        ny1 = node.y - pad,
+        ny2 = node.y + pad;
+   	return function() {
+        if(node.above) {
+        	var above = getNodeById(g.nodes, node.above);
+        }
+    }
 }
 
 
