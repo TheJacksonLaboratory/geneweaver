@@ -15,7 +15,7 @@
             force: null
         };
 
-        g.data = {{ data | safe }};
+        //g.data = {{ data | safe }};
 
 
         //initialization
