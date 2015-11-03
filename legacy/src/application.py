@@ -623,6 +623,9 @@ def render_viewgeneset(gs_id):
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    ontdbs = geneweaverdb.get_all_ontologydb()
+    for ontdb in ontdbs:
+        ontroots = geneweaverdb.get_all_root_ontology_for_database(ontdb.ontologydb_id)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
