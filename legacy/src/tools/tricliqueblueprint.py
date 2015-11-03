@@ -14,6 +14,7 @@ from decimal import Decimal
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+#RESULTS_PATH = 'Users/group6admin/geneweaver/results/'
 
 # Melissa 9/14/15 Removed .html from route URI
 @triclique_viewer_blueprint.route('/run-triclique-viewer', methods=['POST'])
@@ -81,8 +82,12 @@ def run_tool():
 
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
     # TODO: get result from this function (boolean) and figure out how to send this information via response
-    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
-    print task_id
+    noIntersect = create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    if noIntersect == -1:
+        flask.flash("Warning: The genesets for the projects you chose had no intersection")
+        return flask.redirect('analyze')
+
+    print "task_id",task_id
     print "Wrote file in the results directory"
 
     async_result = tc.celery_app.send_task(

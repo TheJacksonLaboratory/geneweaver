@@ -31,6 +31,8 @@ y is in the third partite set, z is in the fifth partite set.
 from geneweaverdb import PooledCursor, dictify_cursor, get_genesets_for_project, get_genes_by_geneset_id, \
     get_genesets_for_project
 from flask import session
+from flask import redirect
+from flask import flash
 import os.path
 import re
 
@@ -156,10 +158,10 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     ##########################################
     # Comment out these lines as appropriate
     # for running offline
-    usr_id = 48
-    #usr_id = session['user_id']
-    RESULTS = '/Users/baker/Desktop/'
-    #RESULTS = results
+    #usr_id = 48
+    usr_id = session['user_id']
+    #RESULTS = '/Users/baker/Desktop/'
+    RESULTS = results
     ###########################################
     out = ''
     genesets = {}
@@ -199,7 +201,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     print out
 
 
-def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
+def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology):
     '''
     This function takes two project ids, finds the intersection of genes and constructs
     the a task.kel file (which stands for K-clique Edge List (kel). This is a tab-delimited
@@ -218,12 +220,16 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
     RESULTS = results
     #############################################
     out = ''
+
     homology = homology if homology is True else False
 
     # Get the intersecting set of genes between proj1 and proj2 as a list
     genes = get_genes_from_proj_intersection(proj1, proj2, homology)
 
-    # TODO: Error nicely (should go here -- e.g. if len(genes) == 0)
+    # Catches if there are no intersections for the projects selected
+    # Will redirect user to analyze page
+    if genes is None:
+        return -1
 
     if len(genes) > 0:
         # Get all geneset and genes in a project as a list[dictify(cursor)]
@@ -245,8 +251,9 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
 
         file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
 
+        print "file contains:"
         print file
-        print RESULTS + taskid + '.kel'
+        print "filepath:", RESULTS + taskid + '.kel'
         out = open(RESULTS + taskid + '.kel', 'wb')
         out.write(file)
         out.close()
