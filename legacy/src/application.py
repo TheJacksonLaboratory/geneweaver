@@ -349,6 +349,18 @@ def get_ontdb_nodes():
         else: data += "}]"
     return (data)
 
+@app.route('/getOntRootNodes', methods=['POST', 'GET'])
+def get_ont_root_nodes():
+    result = geneweaverdb.get_all_root_ontology_for_database(request.args['db_id'])
+    data = "["
+    for i in range(0, len(result)):
+        data += "{\"title\": \"" + result[i].name + "\"," \
+            " \"isFolder\": true, \"isLazy\": true, \"key\": \""\
+            + str(result[i].ontologydb_id) + "\""
+        if(i < len(result)-1):
+            data += "},"
+        else: data += "}]"
+    return (data)
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():

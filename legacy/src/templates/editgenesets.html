@@ -300,15 +300,21 @@
         $("#testtree").dynatree({
             initAjax: {
                 url: "/getOntDBNodes",
-                data: { ontdb: "ontdb" }
+                data: {ontdb: "ontdb"}
 
             },
-            onActivate: function(node) {
+            onActivate: function (node) {
                 $("echoActive").text("" + node + " (" + node.name + ")")
             },
-        });
-        console.log(ontdb)
 
+            onLazyRead: function (node) {
+                console.log("LAZY LOAD")
+                node.appendAjax({
+                    url: "/getOntRootNodes",
+                    data: {db_id: node.data.key}
+                })
+            }
+        })
     });
 
         $(function(){
