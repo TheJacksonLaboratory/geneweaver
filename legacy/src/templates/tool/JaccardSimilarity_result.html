@@ -68,7 +68,6 @@
 #rerunPanel, #rerunFlip {
     padding: 5px;
     text-align: center;
-{#    border: solid 1px #26c3c0;#}
     width: 1130px;
 }
 
@@ -138,19 +137,10 @@
      </form>
 </div>
 
-
-
-
-
 <br clear="all"  class="floatGeneList">
 <form name="listform" id="listform">
-<table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left" style=" border-bottom: thin solid #ccc;"> &nbsp;
+<table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left"> &nbsp;
 
-{% for item in async_result.geneset_table %}
-  </th><th style="border-top: 4px solid #000; border-right: 4px solid #000; border-left: 4px solid #000; border-bottom: 4px solid #000; {cycle values=",background-color: #fff;"}">
-  <a href="{{ item.url }}">{{ item.gsID }}</a>
-{% endfor %}
-</th></tr>
 
 {% set j = 0 %}
 {% for item in async_result.geneset_table %}
@@ -158,24 +148,10 @@
 <tr><td style="border-bottom: none; white-space:nowrap;" align="left">
 <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
 <a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
-    {% for jac in item.entries %}
-   <td align="center" style=" padding: 0.5em; border-left: thin solid #000; {{ jac.background }}">
-    {% if jac.url == "0" %}
-        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
-    {% elif jac.url == "1" %}
-        <a href="/geneset_intersection/{{item.gsID}}/{{async_result.genesets[i]}}/{{i+j*async_result.genesets|length}}.html">{{ jac.text | safe }}</a>
-    {% elif jac.url %}
-      <a href="{{ jac.url }}">{{ jac.text | safe }}</a>
-    {% else %}
-      <span style="font-size: 0.75em;">{{ jac.text | safe }}</span>
-    {% endif %}
-    </td>
-    {% set i = i + 1 %}
-   {% endfor %}
+
     {%set j = j + 1 %}
 <td style="width: 25em;">&nbsp;</td></tr>
 {% endfor %}
-
 
 
 
@@ -235,12 +211,11 @@
       }
 </script>
 
-
-
 </td></tr>
 </table>
 
 <br><br>
+
 <div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel
 <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
 
@@ -252,7 +227,6 @@
             title: 'Geneset Table Instructions', content: 'Click on panel to expand and view table of geneset values.'
         });
 </script></div>
-<div id="panel" ></div>
 <br>
 
   <div class="box-header clearfix">
@@ -300,6 +274,10 @@
 
 {# Start of script#}
 <script type="text/javascript">
+
+
+
+
 {#  Declaration of data as d variable#}
     var d = {{ data | safe }};
 
@@ -786,11 +764,17 @@ $(document).ready(function(){
 
 
 <script>
+
+
+
+
+
     var w =  width + margin.left + margin.right, h = height + margin.top + margin.bottom;
     var border = 0.5;
     var bordercolor = 'black';
     var d = {{ data | safe }};
     var count = 0;
+
 
 
     for (var key in d.genesets) {
@@ -799,9 +783,48 @@ $(document).ready(function(){
         }
     }
 
+
+
     var svg = d3.select("#panel").append("svg:svg")
         .attr("width",  width + margin.left + margin.right)
         .attr("height", h);
+
+    var xcoord = 90;
+
+       for(i = 0; i < count; i++){
+
+        svg.append("foreignObject")
+              .attr("width", 325)
+              .attr("height", 0)
+              .attr("x", -35)
+              .attr("y", xcoord - 85)
+            .append("xhtml:body")
+            .html( "<form id =test><input type=checkbox id=check /> <label for=check>" + d.geneset_table[i].text  + "</label></form>");
+
+             xcoord +=90;
+        }
+
+
+$('#check').change(function() {
+
+    var $check = $(this),
+        $div = $check.parent();
+
+    if ($check.prop('checked')) {
+
+        $div.addClass('test');
+
+    } else {
+
+        $div.removeClass('test');
+
+    }
+
+});
+
+
+
+
 
     var addOnX = 0;
     var addOnY = 0;
@@ -820,7 +843,7 @@ $(document).ready(function(){
         if(k == offset) {
 
            svg.append("rect")
-                .attr("x", addOnX + 200)
+                .attr("x", addOnX + 340)
                 .attr("y", addOnY - 50)
                 .attr("width", 110)
                 .attr("height", 90)
@@ -830,7 +853,7 @@ $(document).ready(function(){
                 .attr("border", 1);
 
             svg.append("text")
-              .attr("x", addOnX + 220)
+              .attr("x", addOnX + 360)
               .attr("y", addOnY)
               .text(d.geneset_table[0].entries[0].text)
               .attr("font-family", "sans-serif")
@@ -838,9 +861,12 @@ $(document).ready(function(){
               .attr("fill", "blue")
               .on("click", function(d) {window.open("http://127.0.0.1:5000" + d.geneset_table[0].url) })
 
+
+
+
         } else {
            svg.append("rect")
-                .attr("x", addOnX + 200)
+                .attr("x", addOnX + 340)
                 .attr("y", addOnY - 50)
                 .attr("width", 110)
                 .attr("height", 90)
@@ -856,7 +882,7 @@ $(document).ready(function(){
                 .attr("border", 1);
 
             svg.append("text")
-                 .attr("x", addOnX + 235)
+                 .attr("x", addOnX + 375)
                  .attr("y", addOnY)
                  .text( d.geneset_table[0].entries[1].text)
                  .attr("font-family", "sans-serif")
@@ -867,7 +893,7 @@ $(document).ready(function(){
       offset++;
     }
 
-    var xCoordinate = 235;
+    var xCoordinate = 360;
 
     for (i = 0; i < count; i++){
         var text = svg.append("text")
