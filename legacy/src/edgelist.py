@@ -31,6 +31,8 @@ y is in the third partite set, z is in the fifth partite set.
 from geneweaverdb import PooledCursor, dictify_cursor, get_genesets_for_project, get_genes_by_geneset_id, \
     get_genesets_for_project
 from flask import session
+from flask import redirect
+from flask import flash
 import os.path
 import re
 
@@ -156,9 +158,10 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     ##########################################
     # Comment out these lines as appropriate
     # for running offline
-    usr_id = 48
-    #usr_id = session['user_id']
-    RESULTS = '/Users/baker/Desktop/'
+    #usr_id = 48
+    usr_id = session['user_id']
+    RESULTS = '/Users/group6admin/geneweaver/results'
+    #RESULTS = '/Users/baker/Desktop/'
     #RESULTS = results
     ###########################################
     out = ''
@@ -215,13 +218,14 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
     # Comment out this line when running offline
     #usr_id = 48
     usr_id = session['user_id']
-    RESULTS = results
+    RESULTS = '/Users/group6admin/geneweaver/results'
     #############################################
     out = ''
-    homology = homology if homology is True else False
+
+    #homology = homology if homology is True else False
 
     # Get the intersecting set of genes between proj1 and proj2 as a list
-    genes = get_genes_from_proj_intersection(proj1, proj2, homology)
+    genes = get_genes_from_proj_intersection(proj1, proj2)
 
     # TODO: Error nicely (should go here -- e.g. if len(genes) == 0)
 
@@ -250,8 +254,10 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
         out = open(RESULTS + taskid + '.kel', 'wb')
         out.write(file)
         out.close()
-        #return True
+        return True
     else:
+        #flash("Warning: The genesets for the projects you chose had no intersection")
+        #return redirect('analyze')
         pass
         #return False
 
