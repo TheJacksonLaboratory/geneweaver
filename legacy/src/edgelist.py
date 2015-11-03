@@ -257,11 +257,6 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
         out = open(RESULTS + taskid + '.kel', 'wb')
         out.write(file)
         out.close()
-        #return True
-    else:
-        pass
-        #return False
-
 
 def create_json_from_triclique_output(taskid, results):
     """
