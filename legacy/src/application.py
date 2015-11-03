@@ -316,6 +316,7 @@ def render_editgenesets(gs_id):
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    ontdb = geneweaverdb.get_all_ontologydb()
 
     ont_parents = []
 
@@ -330,7 +331,23 @@ def render_editgenesets(gs_id):
 
     #onts = None
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, onts=onts, ont_parents=ont_parents)
+                                 view=view, onts=onts, ont_parents=ont_parents, ontdb=ontdb)
+
+@app.route('/getOntDBNodes')
+def get_ontdb_nodes():
+    result = geneweaverdb.get_all_ontologydb()
+    #data = dict()
+    #data = dict()
+    #data.update({"success": result})
+    data = "["
+    for i in range(0, len(result)):
+        data += "{\"title\": \"" + result[i].name + "\"," \
+            " \"isFolder\": true, \"isLazy\": true, \"key\": \""\
+            + str(result[i].ontologydb_id) + "\""
+        if(i < len(result)-1):
+            data += "},"
+        else: data += "}]"
+    return (data)
 
 
 @app.route('/updategeneset', methods=['POST'])

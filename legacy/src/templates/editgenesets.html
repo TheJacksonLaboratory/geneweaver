@@ -236,13 +236,12 @@
         <br>
         {% if onts %}
             <div class="row">
-            {{ ont_parents }}
                 <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
                     <ul class="jstree-container-ul">
                     <div id="tree">
                         <ul id="treeData">
-                            {% for ont_p in ont_parents %}
-                                <li>{{ ont_p }}</li>
+                            {% for ont in onts %}
+                                <li>{{ ont.name }}</li>
                             {% endfor %}
                         </ul>
                     </div>
@@ -253,39 +252,19 @@
 
             <div class="row">
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
-                <div id="tmptree">
-                </ul>
+                <div id="ontology_db_tree">
                     <ul id="treeData">
-                        <li id="id1" title="Look, a tool tip!">item1 with key and tooltip
-                        <li id="id2">item2
-                        <li id="id3" class="folder">Folder with some children
-                            <ul>
-                                <li id="id3.1">Sub-item 3.1
-                                    <ul>
-                                        <li id="id3.1.1">Sub-item 3.1.1
-                                        <li id="id3.1.2">Sub-item 3.1.2
-                                    </ul>
-                                <li id="id3.2">Sub-item 3.2
-                                    <ul>
-                                        <li id="id3.2.1">Sub-item 3.2.1
-                                        <li id="id3.2.2">Sub-item 3.2.2
-                                    </ul>
-                            </ul>
-                        <li id="id4" class="expanded">Document with some children (expanded on init)
-                            <ul>
-                                <li id="id4.1"  class="active focused">Sub-item 4.1 (active and focus on init)
-                                    <ul>
-                                        <li id="id4.1.1">Sub-item 4.1.1
-                                        <li id="id4.1.2">Sub-item 4.1.2
-                                    </ul>
-                                <li id="id4.2">Sub-item 4.2
-                                    <ul>
-                                        <li id="id4.2.1">Sub-item 4.2.1
-                                        <li id="id4.2.2">Sub-item 4.2.2
-                                    </ul>
-                            </ul>
+                        {% for dbid in ontdb %}
+                        <li class="folder">
+                            {{ dbid.name }}
+                            <ul><li></li></ul>
+                        {% endfor %}
                     </ul>
-                    </div>
+                </div>
+
+                <div id="testtree">
+                </div>
+                <span id="echoActive">-</span>
             </div>
 
         {% endif %}
@@ -311,25 +290,29 @@
 
 <script>
 
-		$(function(){
-			$("#tree").dynatree({
-				// using default options
-			});
-			<!-- Start_Exclude: This block is not part of the sample code -->
-			$("#skinCombo")
-			.val(0) // set state to prevent caching
-			.change(function(){
-				var href = "../src/"
-					+ $(this).val()
-					+ "/ui.dynatree.css"
-					+ "?reload=" + new Date().getTime();
-				$("#skinSheet").attr("href", href);
-			});
-			<!-- End_Exclude -->
+    $(function(){
+		$("#ontology_db_tree").dynatree({
+			// using default options
 		});
+    });
+
+    $(function(){
+        $("#testtree").dynatree({
+            initAjax: {
+                url: "/getOntDBNodes",
+                data: { ontdb: "ontdb" }
+
+            },
+            onActivate: function(node) {
+                $("echoActive").text("" + node + " (" + node.name + ")")
+            },
+        });
+        console.log(ontdb)
+
+    });
 
         $(function(){
-			$("#tmptree").dynatree({
+			$("#tree").dynatree({
 				// using default options
 			});
 			<!-- Start_Exclude: This block is not part of the sample code -->
