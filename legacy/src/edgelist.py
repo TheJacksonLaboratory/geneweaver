@@ -160,7 +160,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     # for running offline
     #usr_id = 48
     usr_id = session['user_id']
-    RESULTS = '/Users/group6admin/geneweaver/results'
+    RESULTS = '/Users/group6admin/geneweaver/results/'
     #RESULTS = '/Users/baker/Desktop/'
     #RESULTS = results
     ###########################################
@@ -202,7 +202,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     print out
 
 
-def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
+def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology):
     '''
     This function takes two project ids, finds the intersection of genes and constructs
     the a task.kel file (which stands for K-clique Edge List (kel). This is a tab-delimited
@@ -218,11 +218,11 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
     # Comment out this line when running offline
     #usr_id = 48
     usr_id = session['user_id']
-    RESULTS = '/Users/group6admin/geneweaver/results'
+    RESULTS = '/Users/group6admin/geneweaver/results/'
     #############################################
     out = ''
 
-    #homology = homology if homology is True else False
+    homology = homology if homology is True else False
 
     # Get the intersecting set of genes between proj1 and proj2 as a list
     genes = get_genes_from_proj_intersection(proj1, proj2)
@@ -249,12 +249,13 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2):
 
         file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
 
+        print "file contains:"
         print file
-        print RESULTS + taskid + '.kel'
+        print "filepath:", RESULTS + taskid + '.kel'
         out = open(RESULTS + taskid + '.kel', 'wb')
         out.write(file)
         out.close()
-        return True
+        #return True
     else:
         #flash("Warning: The genesets for the projects you chose had no intersection")
         #return redirect('analyze')

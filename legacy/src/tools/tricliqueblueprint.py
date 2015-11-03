@@ -14,6 +14,7 @@ from decimal import Decimal
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+RESULTS_PATH = 'Users/group6admin/geneweaver/results/'
 
 # Melissa 9/14/15 Removed .html from route URI
 @triclique_viewer_blueprint.route('/run-triclique-viewer', methods=['POST'])
@@ -38,7 +39,7 @@ def run_tool():
     method_str   = 'Methods'
     params1 = {homology_str: None}
     params2 = {method_str: None}
-    for tool_param in get_tool_params(TOOL_CLASSNAME, True):
+    for tool_param in geneweaverdb.get_tool_params(TOOL_CLASSNAME, True):
         params1[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
             params1[homology_str] = form[tool_param.name]
@@ -68,9 +69,9 @@ def run_tool():
         return flask.redirect('analyze')
 
     task_id = str(uuid.uuid4())
-    tool = get_tool(TOOL_CLASSNAME)
+    tool = geneweaverdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
-    insert_result(
+    geneweaverdb.insert_result(
         user_id,
         task_id,
         selected_geneset_ids,
@@ -81,8 +82,8 @@ def run_tool():
 
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
     # TODO: get result from this function (boolean) and figure out how to send this information via response
-    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1])
-    print task_id
+    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    print "task_id",task_id
     print "Wrote file in the results directory"
 
     async_result = tc.celery_app.send_task(
@@ -182,7 +183,7 @@ def decimal_default(obj):
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
-    tool = get_tool(TOOL_CLASSNAME)
+    tool = geneweaverdb.get_tool(TOOL_CLASSNAME)
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
