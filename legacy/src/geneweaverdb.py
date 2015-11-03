@@ -2027,8 +2027,11 @@ def get_all_root_ontology_for_database(ontdb_id):
     ontology = []
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT ont.right_ont_id FROM ontology_relation ont
-               WHERE (SELECT count(ont2.left_ont_id) FROM ontology_relation ont2 WHERE ont.right_ont_id = ont2.right._ont_id) = 0;'''
+            '''
+               SELECT DISTINCT ont_id
+               FROM ontology
+               WHERE ont_parents = 0 AND ontdb_id = %s;
+            ''' % (ontdb_id)
         )
         result = cursor.fetchall()
         for r in result:
