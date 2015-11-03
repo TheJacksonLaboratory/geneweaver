@@ -160,9 +160,8 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     # for running offline
     #usr_id = 48
     usr_id = session['user_id']
-    RESULTS = '/Users/group6admin/geneweaver/results/'
     #RESULTS = '/Users/baker/Desktop/'
-    #RESULTS = results
+    RESULTS = results
     ###########################################
     out = ''
     genesets = {}
@@ -218,16 +217,19 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
     # Comment out this line when running offline
     #usr_id = 48
     usr_id = session['user_id']
-    RESULTS = '/Users/group6admin/geneweaver/results/'
+    RESULTS = results
     #############################################
     out = ''
 
     homology = homology if homology is True else False
 
     # Get the intersecting set of genes between proj1 and proj2 as a list
-    genes = get_genes_from_proj_intersection(proj1, proj2)
+    genes = get_genes_from_proj_intersection(proj1, proj2, homology)
 
-    # TODO: Error nicely (should go here -- e.g. if len(genes) == 0)
+    # Catches if there are no intersections for the projects selected
+    # Will redirect user to analyze page
+    if genes is None:
+        return -1
 
     if len(genes) > 0:
         # Get all geneset and genes in a project as a list[dictify(cursor)]
@@ -257,8 +259,6 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
         out.close()
         #return True
     else:
-        #flash("Warning: The genesets for the projects you chose had no intersection")
-        #return redirect('analyze')
         pass
         #return False
 
