@@ -3,6 +3,7 @@
 {% import 'macros.html' as macros %}
 <style>
 
+
     div.tooltip {
   position: absolute;
   text-align: center;
@@ -13,6 +14,8 @@
   background: ghostwhite;
   pointer-events: none;}
 {#        font-weight: bold;#}
+
+
 
 #slider {
   margin-top: 50px;
@@ -51,15 +54,15 @@
 {#    background-color: #FFFFFF;#}
 }
 
+
+
 #flip {
  height: 50px;
  background-color: #006b00
 }
 
 
-#clickableFontAwesome {
-    cursor: pointer;
-}
+
 
 
 #rerunPanel, #rerunFlip {
@@ -99,6 +102,10 @@
   padding-bottom: 5px;
   display: table;
   width: 100%;
+}
+
+#clickableFontAwesome {
+    cursor: pointer;
 }
 
 </style>
@@ -234,7 +241,17 @@
 </table>
 
 <br><br>
-<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel</div>
+<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel
+<span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
+
+<script type = "text/javascript">
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+          $('#clickableFontAwesome').popover({
+            title: 'Geneset Table Instructions', content: 'Click on panel to expand and view table of geneset values.'
+        });
+</script></div>
 <div id="panel" ></div>
 <br>
 
