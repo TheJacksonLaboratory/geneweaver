@@ -3,7 +3,6 @@
 {% import 'macros.html' as macros %}
 <style>
 
-
     div.tooltip {
   position: absolute;
   text-align: center;
@@ -14,8 +13,6 @@
   background: ghostwhite;
   pointer-events: none;}
 {#        font-weight: bold;#}
-
-
 
 #slider {
   margin-top: 50px;
@@ -40,6 +37,9 @@
     border-top-color: #E74937 !important;
 }
 
+#clickableFontAwesome {
+    cursor: pointer;
+}
 
 #panel, #flip {
     padding: 5px;
@@ -54,14 +54,10 @@
 {#    background-color: #FFFFFF;#}
 }
 
-
-
 #flip {
  height: 50px;
- background-color: #006b00
+ background-color: #006b00;
 }
-
-
 
 
 
@@ -103,21 +99,17 @@
   width: 100%;
 }
 
-#clickableFontAwesome {
-    cursor: pointer;
-}
-
 </style>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-<link rel="stylesheet" href="/resources/demos/style.css">
+{#<link rel="stylesheet" href="/resources/demos/style.css">#}
 
 
 <div class="page-header">
-    <h1>{{ title }}</h1>
+    <h1>{{ title }}&nbsp;<span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h1>
 </div>
 
 
@@ -210,39 +202,22 @@
             }
       }
 </script>
-
 </td></tr>
 </table>
 
 <br><br>
+<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel</div>
+<div id="panel" >
 
-<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel
-<span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
-
-<script type = "text/javascript">
-    $(function () {
-        $("[data-toggle='tooltip']").tooltip();
-    });
-          $('#clickableFontAwesome').popover({
-            title: 'Geneset Table Instructions', content: 'Click on panel to expand and view table of geneset values.'
-        });
-</script></div>
+</div>
 <br>
 
   <div class="box-header clearfix">
-    <div class = "left-cell">  <h4>Venn Diagram view:
-    <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
+  <div class = "left-cell">
+    <h4>Venn Diagram view:</h4>
 
-<script type = "text/javascript">
-    $(function () {
-        $("[data-toggle='tooltip']").tooltip();
-    });
-          $('#clickableFontAwesome').popover({
-            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
-            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
-            ' to navigate to intersection details.'
-        });
-</script>
+
+
 </div>
     <div class="right-cell">
     <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
@@ -255,7 +230,7 @@
 <div id="jaccard"></div>
 
 
-    </br>
+    </form>
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
         <h5>P-Value Threshold (0.05 increments):
@@ -266,6 +241,34 @@
 </p>
 
 
+<br>
+
+View As:</r>
+<form>
+   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
+   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
+    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
+</form>
+
+<br>
+Download As:
+<select name="downloadType" id="downloadType">
+   <option value="null">Select file type...</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
+</select>
+<br><br><br>
+
+
+
+
+{% include 'footer.html' %}
+
+
+
+
+
 
 
 
@@ -274,9 +277,6 @@
 
 {# Start of script#}
 <script type="text/javascript">
-
-
-
 
 {#  Declaration of data as d variable#}
     var d = {{ data | safe }};
@@ -532,8 +532,8 @@ var threshold = false;
                     "pvalue" : str,
                     "show" : threshold
                 });
-                console.log(row);
-                console.log(gene_url[check], d.venn_diagrams[row].url);
+{#                console.log(row);#}
+{#                console.log(gene_url[check], d.venn_diagrams[row].url);#}
             }
 
         }
@@ -683,7 +683,7 @@ var threshold = false;
       // adjust the text on the range slider
       d3.select("#nRadius-value").text(nRadius);
       d3.select("#nRadius").property("value", nRadius);
-        console.log(nRadius);
+
 
         svgContainer.selectAll("circle")
             .filter(function (d) {if (d.pvalue < nRadius ) return true;})
@@ -729,15 +729,11 @@ var threshold = false;
 
         projCheckbox.prop('checked', allChecked);
     }
- </script>
-
-
-
 
 
 
 {#Script for the slider to control the jaccard similarity threshold.#}
-<script type="text/javascript">
+
 //This allows the user to view the chart or not
 $(document).ready(function(){
     $("#flip").click(function(){
@@ -750,23 +746,22 @@ $(document).ready(function(){
         $("#rerunPanel").slideToggle("slow");
     });
 });
+
+
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+          $('#clickableFontAwesome').popover({
+            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
+            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            'to navigate to intersection details.'
+        });
+
 </script>
 
 
-
-
-
-
-
-
-
-
-
-
-<script>
-
-
-
+<script type="text/javascript">
 
 
     var w =  width + margin.left + margin.right, h = height + margin.top + margin.bottom;
@@ -821,10 +816,6 @@ $('#check').change(function() {
     }
 
 });
-
-
-
-
 
     var addOnX = 0;
     var addOnY = 0;
@@ -916,26 +907,4 @@ $('#check').change(function() {
 
 
 
-<br>
 
-View As:</r>
-<form>
-   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
-   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
-    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
-</form>
-
-<br>
-Download As:
-<select name="downloadType" id="downloadType">
-   <option value="null">Select file type...</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
-</select>
-<br><br><br>
-
-
-
-
-{% include 'footer.html' %}
