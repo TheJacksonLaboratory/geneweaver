@@ -252,16 +252,6 @@
 
             <div class="row">
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
-                <div id="ontology_db_tree">
-                    <ul id="treeData">
-                        {% for dbid in ontdb %}
-                        <li class="folder">
-                            {{ dbid.name }}
-                            <ul><li></li></ul>
-                        {% endfor %}
-                    </ul>
-                </div>
-
                 <div id="testtree">
                 </div>
                 <span id="echoActive">-</span>
@@ -298,6 +288,8 @@
 
     $(function(){
         $("#testtree").dynatree({
+            checkbox: true,
+            selectMode: 2,
             initAjax: {
                 url: "/getOntDBNodes",
                 data: {ontdb: "ontdb"}
@@ -308,7 +300,6 @@
             },
 
             onLazyRead: function (node) {
-                console.log("LAZY LOAD")
                 node.appendAjax({
                     url: "/getOntRootNodes",
                     data: {key: node.data.key, is_db: node.data.db}

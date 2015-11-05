@@ -342,7 +342,7 @@ span.dynatree-expanded a
 
 span.dynatree-selected a
 {
-/*	color: green; */
+	color: green;
 	font-style: italic;
 }
 

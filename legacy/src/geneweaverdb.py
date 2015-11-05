@@ -1999,10 +1999,11 @@ def get_all_children_for_ontology(ont_id):
             SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
             FROM ontology ont1 INNER JOIN ontology_relation ont2
             ON ont2.left_ont_id = ont1.ont_id
-            WHERE right_ont_id=%s AND or_type='is_a'
+            WHERE right_ont_id=%s
             GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
             ''' % (ont_id,)
         )
+        #Note:  removed AND or_type='is_a' from query
     children = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return children
 
