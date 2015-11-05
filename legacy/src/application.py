@@ -355,11 +355,13 @@ def get_ont_root_nodes():
     data = "["
     for i in range(0, len(result)):
         data += "{\"title\": \"" + result[i].name + "\"," \
-            " \"isFolder\": true, \"isLazy\": true, \"key\": \""\
-            + str(result[i].ontologydb_id) + "\""
+            " \"isFolder\": false, \"isLazy\": true, \"key\": \""\
+            + str(result[i].ontology_id) + "\""
         if(i < len(result)-1):
             data += "},"
-        else: data += "}]"
+        else: data += "}"
+    data += "]"
+    print(data)
     return (data)
 
 @app.route('/updategeneset', methods=['POST'])
