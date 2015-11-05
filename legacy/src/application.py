@@ -328,41 +328,44 @@ def render_editgenesets(gs_id):
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
-
-    #onts = None
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, onts=onts, ont_parents=ont_parents, ontdb=ontdb)
 
 @app.route('/getOntDBNodes')
 def get_ontdb_nodes():
     result = geneweaverdb.get_all_ontologydb()
-    #data = dict()
-    #data = dict()
-    #data.update({"success": result})
-    data = "["
+    info = []
     for i in range(0, len(result)):
-        data += "{\"title\": \"" + result[i].name + "\"," \
-            " \"isFolder\": true, \"isLazy\": true, \"key\": \""\
-            + str(result[i].ontologydb_id) + "\""
-        if(i < len(result)-1):
-            data += "},"
-        else: data += "}]"
-    return (data)
+        data = dict()
+        data["title"] = result[i].name
+        data["isFolder"] = True
+        data["isLazy"] = True
+        data["key"] = result[i].ontologydb_id
+        data["db"] = True
+        info.append(data)
+    return (json.dumps(info))
 
 @app.route('/getOntRootNodes', methods=['POST', 'GET'])
 def get_ont_root_nodes():
-    result = geneweaverdb.get_all_root_ontology_for_database(request.args['db_id'])
-    data = "["
+    print(request.args['is_db'])
+    print(request.args['key'])
+    if(request.args['is_db'] == "true"):
+        result = geneweaverdb.get_all_root_ontology_for_database(request.args['key'])
+        print(result)
+    else:
+        "HERE"
+        result = geneweaverdb.get_all_children_for_ontology(request.args['key'])
+        print(result)
+    info = []
     for i in range(0, len(result)):
-        data += "{\"title\": \"" + result[i].name + "\"," \
-            " \"isFolder\": false, \"isLazy\": true, \"key\": \""\
-            + str(result[i].ontology_id) + "\""
-        if(i < len(result)-1):
-            data += "},"
-        else: data += "}"
-    data += "]"
-    print(data)
-    return (data)
+        data = dict()
+        data["title"] = result[i].name
+        data["isFolder"] = False
+        data["isLazy"] = True
+        data["key"] = result[i].ontology_id
+        data["db"] = False
+        info.append(data)
+    return (json.dumps(info))
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():

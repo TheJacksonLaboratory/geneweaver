@@ -2014,28 +2014,7 @@ def get_all_ontologydb():
             )
         return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
 
-def get_all_ontologydb_as_json():
-    with PooledCursor() as cursor:
-        cursor.execute(
-            ''' SELECT row_to_json(row, true)
-                FROM(	SELECT *
-                        FROM ontologydb
-                    ) row; ''')
-    return cursor.fetchall();
-
-def get_all_root_ontology_for_database_as_json(ontdb_id):
-    with PooledCursor() as cursor:
-        cursor.execute(
-            ''' SELECT row_to_json(row, true)
-                FROM(	SELECT *
-                        FROM ontology
-                        WHERE ont_parents = 0 AND ontdb_id = %s
-                    ) row; ''' % (ontdb_id)
-        )
-    return cursor.fetchall();
-
 def get_all_root_ontology_for_database(ontdb_id):
-    #ontology = []
     with PooledCursor() as cursor:
         cursor.execute(
             '''
@@ -2044,9 +2023,6 @@ def get_all_root_ontology_for_database(ontdb_id):
                WHERE ont_parents = 0 AND ontdb_id = %s;
             ''' % (ontdb_id)
         )
-        #result = cursor.fetchall()
-        #for r in result:
-        #    ontology.append(r[0])
     return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
 
 class GenesetValue:

@@ -311,7 +311,7 @@
                 console.log("LAZY LOAD")
                 node.appendAjax({
                     url: "/getOntRootNodes",
-                    data: {db_id: node.data.key}
+                    data: {key: node.data.key, is_db: node.data.db}
                 })
             }
         })
