@@ -52,11 +52,11 @@ $(function () {
         })
         //linkStrength also proportional to distance
         .linkStrength(function (link) {
-            return 1 / ((link.target.depth - link.source.depth) * 1.5);
+            return 1 / ((link.target.depth - link.source.depth) * 1);
         })
         //Deeper nodes have a stronger charge because there's more jostling for space down there
         .charge(function (d) {
-            return (-((d.depth+1) * 400));
+            return (-((d.depth+1) * 1));
         })
         .chargeDistance(300)
         .gravity(0.05)
@@ -65,7 +65,7 @@ $(function () {
 
 
     //Initialize positions of tree elements to reduce tangling caused by random initialization
-    nodes = flatten(g.data.nodes);
+    var nodes = flatten(g.data.nodes);
     initialize_layout(nodes);
 
 
@@ -135,6 +135,12 @@ function update() {
     var nodeEnter = g.node.enter()
         .append("g")
         .attr("class", "node")
+    	.attr("above", function(d) {
+            return(d.above);
+        })
+    	.attr("below", function(d) {
+            return(d.below);
+        })
         .on("click", click)
         .call(g.force.drag);
     //circle within the single node group:
@@ -176,6 +182,8 @@ function update() {
 
     //g.node.fontcolor(textColor)
     g.node.select("text").attr("fill", textColor);
+    
+    console.log(g.force.nodes());
 
 }
 
@@ -197,6 +205,8 @@ function flatten(data) {
     for (var i = 0, len = data.length; i < len; i++) {
         if (data[i]._children) {
             for(var j = 0, jlen = data[i]._children.length; j < jlen; j++){
+                                console.log("PARAM 1: " + data + "\n PARAM 2: " + data[i]._children[j]);
+
                 getNodeByID(data, data[i]._children[j]).orphan = false;
             }
         }
@@ -212,8 +222,6 @@ function flatten(data) {
     function recurse(node) {
         if (!getNodeByID(nodes, node.id)) {
             nodes.push(node);
-        }
-        else {
         }
         if (node.children.length > 0) {
             for (var i = 0, count = node.children.length; i < count; i++) {
@@ -400,8 +408,14 @@ $("#search").on("select2-selecting", function (e) {
 //event handler for every time the force layout engine
 //says to redraw everything: keeps each node in its respective column
 function tick() {
-
+    
+    for (var i = 0; i < g.force.nodes().length; i++) {
+        console.log("COLLIDING NODE " + g.force.nodes()[i].id);
+     	collide(g.force.nodes()[i]);   
+    }
+    
     g.node.attr("transform", function (d) {
+        //collide(d);
         d.x = d.depth * 200 + 100;
         return ("translate(" + d.x + "," + d.y + ")");
     });
@@ -422,14 +436,51 @@ function tick() {
 }
 
 function collide(node) {
-	var pad = 15,
+    //node.py = node.y;
+    //console.log("colliding");
+	var pad = 15*Math.pow(node.depth, .3),
         ny1 = node.y - pad,
         ny2 = node.y + pad;
-   	return function() {
-        if(node.above) {
-        	var above = getNodeById(g.nodes, node.above);
-        }
-    }
+        if(typeof node.above !== 'undefined') {
+            //console.log("collision between " + node.id + " and " + node.above);
+        	var above = getNodeByID(g.force.nodes(), node.above);
+            //above.py = above.y;
+            var dy = node.y - above.y;
+            var l = Math.abs(dy);
+            pad *=2
+            if(l < pad) {
+                l  = (l-pad) / l * .05;
+                node.y -= dy *=l;
+                above.y += dy;
+        	}
+            if(above.y > node.y) {
+             	node.above = above.above;
+                above.below = node.below;
+                node.below = above.id;
+                above.above = node.id;
+            }
+    	}
+        if(typeof node.below !== 'undefined') {
+            //console.log("PARAM 1: " + g.force.nodes() + "\n PARAM 2: " + node.below);
+        	var below = getNodeByID(g.force.nodes(), node.below);
+            //below.py = below.y;
+            //console.log("collision between " + node.id + " and " + node.above);
+            var dy = node.y - below.y;
+            var l = Math.abs(dy);
+            pad*=2
+            if(l < pad) {
+                l  = (l-pad) / l * .05;
+                console.log("L = " + l);
+                node.y -= dy *=l;
+                below.y += dy;
+        	}
+            if(below.y < node.y) {
+             	node.below = below.below;
+                below.above = node.above;
+                node.above = below.id;
+                below.below = node.id;
+            }
+    	}
 }
 
 
