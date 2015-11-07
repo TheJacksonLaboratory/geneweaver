@@ -5,9 +5,10 @@
 <div class="page-header">
 	<h1>{{ title }}</h1>
 </div>
-
 <head>
-<link rel="stylesheet" type="text/css" href="d3style.css">
+<!-- <link rel="stylesheet" type="text/css" href="d3style.css"> -->
+
+
 
 <p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
 
@@ -54,19 +55,6 @@
 
    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
    <div id="cluster-tree">
-        <style type="text/css">
-             circle.node {
-              cursor: pointer;
-              stroke: #000;
-              stroke-width: .5px;
-            }
-
-            line.link {
-              fill: none;
-              stroke: #9ecae1;
-              stroke-width: 1.5px;
-            }
-        </style>
         <script type="text/javascript">
 
             var w = 500,//1280
@@ -81,9 +69,10 @@
                 .linkDistance(function(d) { return d.target._children ? 80 : 30; })
                 .size([w, h - 160]);
 
-            var vis = d3.select("#area2").append("svg:svg") //"#cluster-tree"
+            var vis = d3.select("#area2").append("svg") //"#cluster-tree"
                 .attr("width", w)
-                .attr("height", h);
+                .attr("height", h)
+                    .attr("id","d3cluster");
 
             //Resulting json file is loaded
             d3.json("/static/flare.json", function(json) {
@@ -152,7 +141,7 @@
             }
 
             // Color leaf nodes orange, and packages white or blue.
-            function color(d) {
+            function fill(d) {
               return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
             }
 
@@ -189,16 +178,6 @@
 
 <!--sunburst-->
 <div >
-
-    <style>
-
-    path {
-      stroke: #fff;
-      fill-rule: evenodd;
-    }
-
-    </style>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
     <script>
 
@@ -218,7 +197,8 @@
         .attr("width", width)
         .attr("height", height+100)
       .append("g")
-        .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")");
+        .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")")
+            .attr("id","d3sunburst");
 
     var partition = d3.layout.partition()
         .value(function(d) { return d.size; });
@@ -266,35 +246,8 @@
 
 <!--cirlce packing zoomable -->
 <div>
-    <style>
 
-    .node {
-      cursor: pointer;
-    }
 
-    .node:hover {
-      stroke: #fff;
-      stroke-width: 1.5px;
-    }
-
-    .node--leaf {
-      fill: white;
-    }
-
-    .label {
-      font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
-      text-anchor: middle;
-      text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
-    }
-
-    .label,
-    .node--root,
-    .node--leaf {
-      pointer-events: none;
-    }
-
-    </style>
-    <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
     <script>
 
@@ -315,7 +268,8 @@
         .attr("width", diameter)
         .attr("height", diameter)
         .append("g")
-        .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+        .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")")
+            .attr("id","cp");
 
     d3.json("/static/flare.json", function(error, root) {
       if (error) throw error;
@@ -375,6 +329,73 @@
 
     </script>
 </div>
+
+<button class="button" onClick="window.open('http://www.site.com');"><span class="icon">Open</span></button>
+
+
+
+
+<script>
+createNewPage();
+function drawChart(newWindowRoot){
+    var sampleSVG = newWindowRoot;
+    sampleSVG
+        .append("button")
+        .text("hi")
+        .attr("width", 100)
+        .attr("height", 100);
+
+    sampleSVG.append('svg').append("circle")
+        .style("stroke", "gray")
+        .style("fill", "red")
+        .attr("r", 40)
+        .attr("cx", 50)
+        .attr("cy", 50)
+        .on("mouseover", function(){d3.select(this).style("fill", "aliceblue");})
+        .on("mouseout", function(){d3.select(this).style("fill", "white");});
+}
+function createNewPage(){
+
+    var button = d3.select("body").append("button")
+            .attr("class", "button")
+            .attr("id", "myButton")
+            .text("Visualize");
+
+    document.getElementById("myButton").onclick = function () {
+
+        var newWindow = window.open('');
+        newWindowRoot = d3.select(newWindow.document.body)
+            .attr("width","1060px")
+            .attr("margin","50px auto");
+
+        drawChart(newWindowRoot);
+
+    }
+
+}
+</script>
+
+
+<form id="todo-id" class="form-horizontal" role="form" method="post">
+    <div class="row">
+        <div class="col-md-12">
+                <div class="panel panel-info">
+				<div class="panel-heading">
+					<h2 class="panel-title">
+						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+							View Graphs in New Window
+						</a>
+					</h2>
+				</div>
+
+                <input name="Circle Packing" type="button" value="Circle Packing" onclick="window.open('/static/cp_zoom.html')"/>
+
+                <input name="Force Tree" type="button" value="Force Tree" onclick="window.open('/static/ft_zoom.html')"/>
+
+                <input name="Sunburst" type="button" value="Sunburst" onclick="window.open('/static/sun_zoom.html')"/>
+        </div>
+    </div>
+</form>
 
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
