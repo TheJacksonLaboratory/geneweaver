@@ -87,8 +87,8 @@ def run_tool():
         flask.flash("Warning: The genesets for the projects you chose had no intersection")
         return flask.redirect('analyze')
 
-    print "task_id",task_id
-    print "Wrote file in the results directory"
+    #print "task_id",task_id
+    #print "Wrote file in the results directory"
 
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
@@ -204,7 +204,7 @@ def view_result(task_id):
             line = line[:-1]
             line = line + '\t'
             csv_results += line
-            print csv_results
+            #print csv_results
         g.close()
         # Need json.loads
         # Need safe
