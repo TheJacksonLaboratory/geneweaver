@@ -656,6 +656,8 @@ def updategeneset(usr_id, form):
     pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
     pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
     pub_id = (form["pmid"]).strip() if form["pmid"] else None
+    ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
+    #ont_ids = (form["onts"].strip()) if form["onts"] else None
     pmid = None
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, gs_id) != 1:
         return 'You do not have permission to update this geneset'
@@ -702,10 +704,49 @@ def updategeneset(usr_id, form):
     with PooledCursor() as cursor:
         sql = cursor.mogrify('''UPDATE geneset SET pub_id=%s, gs_name=(%s), gs_abbreviation=(%s), gs_description=(%s)
                                 WHERE gs_id=%s''', (pmid, gs_name, gs_abbreviation, gs_description, gs_id,))
-        print sql
+        #print sql
         cursor.execute(sql)
         cursor.connection.commit()
+    # update geneset ontologies
+    #clear_geneset_ontology(gs_id)
+
+    gso_ref_type = ""
+    for ont in ont_ids:
+        add_ont_to_geneset(gs_id, ont, gso_ref_type)
+
     return 'True'
+
+def byteify(input):
+    if isinstance(input, dict):
+        return {byteify(key):byteify(value) for key,value in input.iteritems()}
+    elif isinstance(input, list):
+        return [byteify(element) for element in input]
+    elif isinstance(input, unicode):
+        return input.encode('utf-8')
+    else:
+        return input
+
+def clear_geneset_ontology(gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            DELETE FROM geneset_ontology
+            WHERE gs_id=%s;
+            ''',
+            (gs_id,)
+        )
+    cursor.connection.commit()
+    return
+
+def add_ont_to_geneset(gs_id, ont_id):
+    print(gs_id, ", ", ont_id)
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''INSERT INTO geneset_ontology
+            (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, 'TMP');
+            ''', (gs_id, ont_id,))
+        cursor.connection.commit()
+    return cursor.fetchone()
 
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
@@ -715,7 +756,7 @@ def add_project(usr_id, pj_name):
                 RETURNING pj_id;
                 ''', (usr_id, pj_name,))
         cursor.connection.commit()
-    return cursor.fetchone()
+    return
 
 def add_geneset2project(pj_id, gs_id):
     if gs_id[:2] == 'GS':
@@ -2014,6 +2055,19 @@ def get_all_ontologydb():
             '''SELECT * FROM ontologydb;'''
             )
         return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
+
+def get_all_gso_ref_type():
+    with PooledCursor() as cursor:
+        print("HERE!!!!!!")
+        gso_ref_types = []
+        cursor.execute(
+            '''SELECT gso_ref_type FROM geneset_ontology GROUP BY gso_ref_type'''
+        )
+        result = cursor.fetchall()
+        for type in result:
+            print(type)
+            gso_ref_types.append(type[0])
+    return gso_ref_types
 
 def get_all_root_ontology_for_database(ontdb_id):
     with PooledCursor() as cursor:

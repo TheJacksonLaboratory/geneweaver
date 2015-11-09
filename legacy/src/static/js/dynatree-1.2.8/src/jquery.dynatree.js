@@ -2403,6 +2403,17 @@ DynaTree.prototype = {
 		return arr;
 	},
 
+    serializeArr: function(stopOnParents) {
+		// Return a JavaScript array of objects, ready to be encoded as a JSON
+		// string for selected nodes
+		var nodeList = this.getSelectedNodes(stopOnParents);
+        var data = [];
+		for(var i=0, l=nodeList.length; i<l; i++){
+			data.push(nodeList[i].data.key);
+		}
+		return data;
+	},
+
 	getPersistData: function() {
 		return this.persistence.toDict();
 	},
