@@ -448,10 +448,11 @@
                     .text(function (d) {
                         return d.depth;
                     });
+            var colorscale = d3.scale.category20();
             //All nodes, do the following:
             g.node.select("circle")
                     .style("fill", color) //calls delegate
-                    .style("stroke", outerRingColor);
+                    .style("stroke", colorscale);
             //-------------------
 
             //g.node.fontcolor(textColor)
@@ -610,9 +611,10 @@
             d3.select(this).append("text")
                     .attr("class", "hover")
                     .attr('transform', function (d) {
-                        return 'translate(5, -10)';
+                        return 'translate(5, -5)';
                     })
-                    .text(d.name + ": " + d.id);
+                    .text(d.name + ": " + d.id)
+                    .style("font-weight", "bold");
         }
 
         function mouseout(d) {
