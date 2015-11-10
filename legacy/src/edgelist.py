@@ -231,6 +231,9 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
     if genes is None:
         return -1
 
+    if len(genes) > 50:
+        return -2
+
     if len(genes) > 0:
         # Get all geneset and genes in a project as a list[dictify(cursor)]
         projDict1 = get_genesets_for_project(proj1, usr_id)

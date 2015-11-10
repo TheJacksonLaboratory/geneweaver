@@ -82,11 +82,13 @@ def run_tool():
 
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
     # TODO: get result from this function (boolean) and figure out how to send this information via response
-    noIntersection = create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
-    if noIntersection == -1:
+    outOfBounds = create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    if outOfBounds == -1:
         flask.flash("Warning: The genesets for the projects you chose had no intersection")
         return flask.redirect('analyze')
-
+    if outOfBounds == -2:
+        flask.flash("Warning: These genesets are too large for timely analysis.")
+        return flask.redirect('analyze')
     #print "task_id",task_id
     #print "Wrote file in the results directory"
 
