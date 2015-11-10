@@ -1980,7 +1980,7 @@ def get_all_parents_for_ontology(ont_id):
         )
     parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
 
-    parent_list = []
+    #parent_list = []
     #print(parents)
     #for parent in parents:
     #    parent_list.append([parent])
@@ -1990,7 +1990,45 @@ def get_all_parents_for_ontology(ont_id):
         #else:
             #parent_list.append([])
     #print(parent_list)
-    return parent_list
+    return parents
+
+def get_all_parents_to_root_for_ontology(ont_id):
+
+    result = [1]
+    ont_cur_id = ont_id
+    parent_path_list = []
+    parent_path_list.append([ont_cur_id])
+    ont_queue = []
+    count = 1;
+    while result[0] != 0:
+        parent_cur_path_list = parent_path_list.pop()
+        #print parent_cur_path_list
+        ont_cur_id = parent_cur_path_list[-1]
+        #print "CURRENT ID %d" % ont_cur_id
+        with PooledCursor() as cursor:
+            cursor.execute(
+                '''
+                SELECT count(*)
+                FROM ontology
+                WHERE ont_id = %s AND ont_parents = 0
+                ''' % (ont_cur_id)
+            )
+        result = cursor.fetchall() #Fun fact: cursor.fetchall() returns a list of tuples
+        if result[0][0] == 1: #result[0] = a tuple of one element, result[0][0] = an element from a tuple from a list
+            ordered_parent_cur_path_list = []
+            while parent_cur_path_list:
+                back = parent_cur_path_list.pop()
+                if parent_cur_path_list:
+                    parent_cur_path_list = parent_cur_path_list[0]
+                ordered_parent_cur_path_list.append(back)
+            return ordered_parent_cur_path_list
+
+        for ont in get_all_parents_for_ontology(ont_cur_id):
+            parent_path_list.append([parent_cur_path_list, ont.ontology_id])
+        #print "==================="
+        #print parent_path_list
+        #print "==================="
+
 
 def get_all_children_for_ontology(ont_id):
     with PooledCursor() as cursor:
