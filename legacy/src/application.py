@@ -16,6 +16,7 @@ import json
 import os
 import os.path as path
 import re
+import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
@@ -92,7 +93,8 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 #*************************************
 
 # changed this path 9/3
-RESULTS_PATH = '/Users/group5admin/geneweaver/results'
+RESULTS_PATH = '/var/www/html/geneweaver/results'
+
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
@@ -1441,7 +1443,12 @@ def render_reset():
 
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
+    ## Secret key for reCAPTCHA form
+    RECAP_SECRET = '6LeO7g4TAAAAAObZpw2KFnFjz1trc_hlpnhkECyS'
+    RECAP_URL = 'https://www.google.com/recaptcha/api/siteverify'
     form = flask.request.form
+    http = urllib3.PoolManager()
+    
     if not form['usr_first_name']:
         return flask.render_template('register.html', error="Please enter your first name.")
     elif not form['usr_last_name']:
@@ -1451,7 +1458,36 @@ def json_register_successful():
     elif not form['usr_password']:
         return flask.render_template('register.html', error="Please enter your password.")
 
+    captcha = form['g-recaptcha-response']
+
+    ## No robots
+    if not captcha:
+        return flask.render_template('register.html', 
+		error="There was a problem with your captcha input. Please try again.")
+
+    else:
+	## The only data required by reCAPTCHA is secret and response. An
+	## optional parameter, remoteip, containing the end user's IP can also
+	## be appended.
+	pdata = {'secret': RECAP_SECRET, 'response': captcha}
+	resp = http.request('POST', RECAP_URL, fields=pdata)
+
+	## 200 = OK
+	if resp.status != 200:
+	    return flask.render_template('register.html', 
+		    error=("There was a problem with the reCAPTCHA servers. "
+			   "Please try again."))
+	
+	rdata = json.loads(resp.data)
+
+	## If success is false, the dict should contain an 'error-code.' This
+	## isn't checked currently.
+	if not rdata['success']:
+	    return flask.render_template('register.html', 
+		    error="Incorrect captcha. Please try again.")
+
     user = _form_register()
+
     if user is None:
         return flask.render_template('register.html', register_not_successful=True)
     else:

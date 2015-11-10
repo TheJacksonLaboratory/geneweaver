@@ -5,82 +5,53 @@
 <div class="page-header">
 	<h1>{{ title }}</h1>
 </div>
-<head>
-<!-- <link rel="stylesheet" type="text/css" href="d3style.css"> -->
-
-
 
 <p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
+<div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+    <div id="cluster-tree">
+        <style type="text/css">
+            .node circle {
+              cursor: pointer;
+            }
 
-<div class="container">
-    <div class="row">
-        <div class="col-xs-6" id="area0">
-            <select class="form-control tooltip-enabled" id="JaccardClustering_Method"
-            name="JaccardClustering_Method" title="Hierarchical Clustering method to use.">
-                <option label="Ward" value="Ward" selected="selected">Ward</option>
-                <option label="Complete" value="Complete">Complete</option>
-                <option label="Average" value="Average">Average</option>
-            </select>
-        </div>
-    </div>
-</div>
+            .node text {
+              font: 10px sans-serif;
+              pointer-events: none;
+              text-anchor: middle;
+            }
 
-<div class="container">
-    <div class="row">
-        <div class="col-md-6" id="area1"></div>
-        <div class="col-md-6" id="area2"></div>
-
-    </div>
-</div>
-
-
-<div class="container">
-    <div class="row">
-        <div class="col-md-6" id="area3"></div>
-        <div class="col-md-6" id="area4"></div>
-
-    </div>
-</div>
-
-
-<div class="container">
-    <div class="row">
-        <div class="span6" id="area5"></div>
-
-
-    </div>
-</div>
-<!--cluster tree -->
-<div >
-
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
-   <div id="cluster-tree">
+            line.link {
+              fill: none;
+              stroke: #9ecae1;
+              stroke-width: 1.5px;
+            }
+        </style>
         <script type="text/javascript">
 
-            var w = 500,//1280
-                h = 500,//80
-                node,
-                link,
+            var width = 1150,
+                height = 800,
                 root;
 
             var force = d3.layout.force()
-                .on("tick", tick)
-                .charge(function(d) { return d._children ? -d.size / 100 : -30; })
-                .linkDistance(function(d) { return d.target._children ? 80 : 30; })
-                .size([w, h - 160]);
+                .linkDistance(80)
+                .charge(-120)
+                .gravity(.05)
+                .size([width, height])
+                .on("tick", tick);
 
-            var vis = d3.select("#area2").append("svg") //"#cluster-tree"
-                .attr("width", w)
-                .attr("height", h)
-                    .attr("id","d3cluster");
+            var svg = d3.select("#cluster-tree").append("svg")
+                .attr("width", width)
+                .attr("height", height);
 
-            //Resulting json file is loaded
-            d3.json("/static/flare.json", function(json) {
+            var link = svg.selectAll(".link"),
+                node = svg.selectAll(".node");
+
+            d3.json("{{ cluster_data }}", function(error, json) {
+              if (error) throw error;
+
               root = json;
-              root.fixed = true;
-              root.x = w / 2; //2
-              root.y = h / 2 - 80; //-80
-               update();
+              update();
             });
 
             function update() {
@@ -93,41 +64,48 @@
                   .links(links)
                   .start();
 
-              // Update the links…
-              link = vis.selectAll("line.link")
-                  .data(links, function(d) { return d.target.id; });
+              // Update links.
+              link = link.data(links, function(d) { return d.target.id; });
 
-              // Enter any new links.
-              link.enter().insert("svg:line", ".node")//svg:line
-                  .attr("class", "link")
-                  .attr("x1", function(d) { return d.source.x; })
-                  .attr("y1", function(d) { return d.source.y; })
-                  .attr("x2", function(d) { return d.target.x; })
-                  .attr("y2", function(d) { return d.target.y; });
-
-              // Exit any old links.
               link.exit().remove();
 
-              // Update the nodes…
-              node = vis.selectAll("circle.node")
-                  .data(nodes, function(d) { return d.id; })
-                  .style("fill", color);
+              link.enter().insert("line", ".node")
+                  .attr("class", "link");
 
-              node.transition()
-                  .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; });
+              // Update nodes.
+              node = node.data(nodes, function(d) { return d.id; });
 
-              // Enter any new nodes.
-              node.enter().append("svg:circle")//svg:cirlce
+              node.exit().remove();
+
+              var nodeEnter = node.enter().append("g")
                   .attr("class", "node")
-                  .attr("cx", function(d) { return d.x; })
-                  .attr("cy", function(d) { return d.y; })
-                  .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; })
-                  .style("fill", color)
                   .on("click", click)
                   .call(force.drag);
 
-              // Exit any old nodes.
-              node.exit().remove();
+              nodeEnter.append("circle")
+                  .attr("r", function(d) {
+                          return d._children ? 5
+                                  : d.children ? 5
+                                  : Math.sqrt(d.size) / 6;
+                      }
+              );
+                //test
+              nodeEnter.append("text")
+                  .attr("dy", "-2em")
+                      .attr("dx","-2.5em")
+                  .text(function(d) { return d._children ? ''
+                              : d.children ? ''
+                              : d.name;
+                      }
+              );
+
+              node.select("circle")
+                      .attr("r", function(d) {
+                          return d._children ? 10
+                                  : d.children ? 5
+                                  : Math.sqrt(d.size) / 6;
+                      })
+                  .style("fill", color);
             }
 
             function tick() {
@@ -136,17 +114,18 @@
                   .attr("x2", function(d) { return d.target.x; })
                   .attr("y2", function(d) { return d.target.y; });
 
-              node.attr("cx", function(d) { return d.x; })
-                  .attr("cy", function(d) { return d.y; });
+              node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
             }
 
-            // Color leaf nodes orange, and packages white or blue.
-            function fill(d) {
-              return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+            function color(d) {
+              return d._children ? "#3182bd" // collapsed package
+                  : d.children ? "#c6dbef" // expanded package
+                  : "#00ff99"; // leaf node
             }
 
             // Toggle children on click.
             function click(d) {
+              if (d3.event.defaultPrevented) return; // ignore drag
               if (d.children) {
                 d._children = d.children;
                 d.children = null;
@@ -162,242 +141,18 @@
               var nodes = [], i = 0;
 
               function recurse(node) {
-                if (node.children) node.size = node.children.reduce(function(p, v) { return p + recurse(v); }, 0);
+                if (node.children) node.children.forEach(recurse);
                 if (!node.id) node.id = ++i;
                 nodes.push(node);
-                return node.size;
               }
 
-              root.size = recurse(root);
+              recurse(root);
               return nodes;
             }
+
         </script>
     </div>
 </div>
-
-
-<!--sunburst-->
-<div >
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
-    <script>
-
-    var width = 500,//960
-        height = 500,//700
-        radius = Math.min(width, height) / 2;
-
-    var x = d3.scale.linear()
-        .range([0, 2 * Math.PI]);
-
-    var y = d3.scale.sqrt()
-        .range([0, radius]);
-
-    var color = d3.scale.category20c();
-
-    var svg = d3.select("#area3").append("svg")
-        .attr("width", width)
-        .attr("height", height+100)
-      .append("g")
-        .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")")
-            .attr("id","d3sunburst");
-
-    var partition = d3.layout.partition()
-        .value(function(d) { return d.size; });
-
-    var arc = d3.svg.arc()
-        .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x))); })
-        .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx))); })
-        .innerRadius(function(d) { return Math.max(0, y(d.y)); })
-        .outerRadius(function(d) { return Math.max(0, y(d.y + d.dy)); });
-
-    d3.json("/static/flare.json", function(error, root) {
-      if (error) throw error;
-
-      var path = svg.selectAll("path")
-          .data(partition.nodes(root))
-        .enter().append("path")
-          .attr("d", arc)
-          .style("fill", function(d) { return color((d.children ? d : d.parent).name); })
-          .on("click", click);
-
-      function click(d) {
-        path.transition()
-          .duration(750)
-          .attrTween("d", arcTween(d));
-      }
-    });
-
-    d3.select(self.frameElement).style("height", height + "px");
-
-    // Interpolate the scales!
-    function arcTween(d) {
-      var xd = d3.interpolate(x.domain(), [d.x, d.x + d.dx]),
-          yd = d3.interpolate(y.domain(), [d.y, 1]),
-          yr = d3.interpolate(y.range(), [d.y ? 20 : 0, radius]);
-      return function(d, i) {
-        return i
-            ? function(t) { return arc(d); }
-            : function(t) { x.domain(xd(t)); y.domain(yd(t)).range(yr(t)); return arc(d); };
-      };
-    }
-
-    </script>
-</div>
-
-
-<!--cirlce packing zoomable -->
-<div>
-
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
-    <script>
-
-    var margin = 10, //20
-        diameter = 500; //960
-
-    var color = d3.scale.linear()
-        .domain([-1, 5])
-        .range(["hsl(360,100%,100%)", "hsl(222,59%,54%)"])//"hsl(152. 80%, 80%)" 228, 30, 40
-        .interpolate(d3.interpolateHcl);
-
-    var pack = d3.layout.pack()
-        .padding(2)
-        .size([diameter - margin, diameter - margin])
-        .value(function(d) { return d.size; })
-
-    var svg2 = d3.select("#area4").append("svg")
-        .attr("width", diameter)
-        .attr("height", diameter)
-        .append("g")
-        .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")")
-            .attr("id","cp");
-
-    d3.json("/static/flare.json", function(error, root) {
-      if (error) throw error;
-
-      var focus = root,
-          nodes = pack.nodes(root),
-          view;
-
-      var circle = svg2.selectAll("circle")
-          .data(nodes)
-        .enter().append("circle")
-          .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-          .style("fill", function(d) { return d.children ? color(d.depth) : null; })
-          .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
-
-      var text = svg2.selectAll("text")
-          .data(nodes)
-        .enter().append("text")
-          .attr("class", "label")
-          .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
-          .style("display", function(d) { return d.parent === root ? null : "none"; })
-          .text(function(d) { return d.name; });
-
-      var node = svg2.selectAll("circle,text");
-
-      d3.select("body")
-          .style("background", color(-1))
-          .on("click", function() { zoom(root); });
-
-      zoomTo([root.x, root.y, root.r * 2 + margin]);
-
-      function zoom(d) {
-        var focus0 = focus; focus = d;
-
-        var transition = d3.transition()
-            .duration(d3.event.altKey ? 7500 : 750)
-            .tween("zoom", function(d) {
-              var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
-              return function(t) { zoomTo(i(t)); };
-            });
-
-        transition.selectAll("text")
-          .filter(function(d) { return d.parent === focus || this.style.display === "inline"; })
-            .style("fill-opacity", function(d) { return d.parent === focus ? 1 : 0; })
-            .each("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
-            .each("end", function(d) { if (d.parent !== focus) this.style.display = "none"; });
-      }
-
-      function zoomTo(v) {
-        var k = diameter / v[2]; view = v;
-        node.attr("transform", function(d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
-        circle.attr("r", function(d) { return d.r * k; });
-      }
-    });
-
-    d3.select(self.frameElement).style("height", diameter + "px");
-
-    </script>
-</div>
-
-<button class="button" onClick="window.open('http://www.site.com');"><span class="icon">Open</span></button>
-
-
-
-
-<script>
-createNewPage();
-function drawChart(newWindowRoot){
-    var sampleSVG = newWindowRoot;
-    sampleSVG
-        .append("button")
-        .text("hi")
-        .attr("width", 100)
-        .attr("height", 100);
-
-    sampleSVG.append('svg').append("circle")
-        .style("stroke", "gray")
-        .style("fill", "red")
-        .attr("r", 40)
-        .attr("cx", 50)
-        .attr("cy", 50)
-        .on("mouseover", function(){d3.select(this).style("fill", "aliceblue");})
-        .on("mouseout", function(){d3.select(this).style("fill", "white");});
-}
-function createNewPage(){
-
-    var button = d3.select("body").append("button")
-            .attr("class", "button")
-            .attr("id", "myButton")
-            .text("Visualize");
-
-    document.getElementById("myButton").onclick = function () {
-
-        var newWindow = window.open('');
-        newWindowRoot = d3.select(newWindow.document.body)
-            .attr("width","1060px")
-            .attr("margin","50px auto");
-
-        drawChart(newWindowRoot);
-
-    }
-
-}
-</script>
-
-
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="row">
-        <div class="col-md-12">
-                <div class="panel panel-info">
-				<div class="panel-heading">
-					<h2 class="panel-title">
-						<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-							View Graphs in New Window
-						</a>
-					</h2>
-				</div>
-
-                <input name="Circle Packing" type="button" value="Circle Packing" onclick="window.open('/static/cp_zoom.html')"/>
-
-                <input name="Force Tree" type="button" value="Force Tree" onclick="window.open('/static/ft_zoom.html')"/>
-
-                <input name="Sunburst" type="button" value="Sunburst" onclick="window.open('/static/sun_zoom.html')"/>
-        </div>
-    </div>
-</form>
-
-
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">
@@ -435,7 +190,6 @@ function createNewPage(){
     </div>
 </form>
 
-
 <p>View GeneSet Information:</p>
 <select name="genesetDetails" id="genesetDetails">
 	<option value="null">Select GeneSet...</option>
@@ -466,3 +220,5 @@ function createNewPage(){
 </script>
 
 {% include 'footer.html' %}
+
+
