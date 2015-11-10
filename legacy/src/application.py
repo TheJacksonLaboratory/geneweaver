@@ -367,6 +367,16 @@ def get_ont_root_nodes():
         info.append(data)
     return (json.dumps(info))
 
+@app.route('/getOntParentNodes', methods=['POST', 'GET'])
+def get_ont_parent_nodes():
+
+
+    info = []
+    
+
+
+    return (json.dumps(info))
+
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
     if 'user_id' in flask.session:
