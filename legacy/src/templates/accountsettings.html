@@ -1,313 +1,456 @@
 {% set title="Account Settings" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-<div class="page-header">
-	<h1>Account and Groups</h1>
-</div>
-<div class="row">
-	<div class="col-md-6">
-		<div class="panel panel-primary">
-			<div class="panel-heading">
-				<h2 class="panel-title">Manage Groups</h2>
-			</div>
-			<div class="panel-body">
-				
-					
-					<div class="panel panel-info" id="memberAccordion">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-6">
-									<a data-toggle="collapse" right data-parent="#memberAccordion" href="#member">
-										Groups I'm A Part Of
-										<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						<div id="member" class="panel-collapse collapse" >
-							<div class="panel-body">
-								<div>
-									<table class ="table table-striped">
-									<th>Owner of</th>
-									{% for grpO in groupsOwnerOf %}
-										<tr>
-											<td>
-												{{grpO.grp_name}}
-											</td>
-										</tr>
-									{% endfor %}
-									</table>
-								</div>
-								<div>
-									<table class ="table table-striped">
-									<th>Member of</th>
-									{% for grpM in groupsMemberOf %}
-										<tr>
-											<td>
-												{{grpM.grp_name}}
-											</td>
-										</tr>
-									{% endfor %}
-									</table>
-								</div>
-							</div>
-						</div>
-					</div>
-				<div class="panel-group" id="groupAccordion">				
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#create">
-									Create New Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						
-						<div id="create" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>Please enter a unique group name.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupCreate">
-									</div>
-								</div>
-								<div class="row">
-									<div class="col-xs-6">
-										<label><input type="checkbox" name="private_box" value="Private" id="groupPrivate" checked>Private</label>
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Create'
-											onclick='createGroup()'>Create
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-					
-					
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#delete">
-									Delete Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						
-						<div id="delete" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>You can only delete groups you own.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupDelete">
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Delete'
-											onclick='deleteGroup()'>Delete
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-					
-				
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#add">
-									Add User to Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						<div id="add" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>You can only add users to groups you own.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupAddUser">
-									</div>
-								</div>
-								<br>
-								<div class="row">
-									<div class="col-xs-2">
-										User Email:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="user_email" id="groupAddEmail">
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Add'
-											onclick='addGroupUser()'>Add
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-				
-				
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#remove">
-									Remove User from Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						<div id="remove" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>You can only remove users from groups you own.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupRemoveUser">
-									</div>
-								</div>
-								<br>
-								<div class="row">
-									<div class="col-xs-2">
-										User Email:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="user_email" id="groupRemoveEmail">
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Remove'
-											onclick='removeGroupUser()'>Remove
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-				</div>	
 
-				
-			</div>
-		</div>
-		<div class="panel panel-primary">
-			<div class="panel-heading">
-				<h2 class="panel-title">Generate API Key</h2>
-			</div>
-			<form method="post" action="{{url_for('generate_api_key')}}">
-				<div class="panel-body">
-					<div class="col-xs-7">
-						API Key: {{user.api_key}}
-					</div>
-					<button id="generate_api_key" class="btn btn-primary pull-right">Generate New Key</button>
-				</div>
-			</form>
-		</div>
-	</div>
-	<div class="col-md-6">
-		<div class="panel panel-primary">
-			<div class="panel-heading">
-				<h2 class="panel-title">Update Account</h2>
-			</div>
-			<div class="panel-body">
-				<form>
-					<div class="row">
-						<div class="col-md-4">
-							Name:
-						</div>
-						<div class="col-md-8">
-							<input type="text" name="username" value="{{user.first_name}} {{user.last_name}}">
-						</div>
-					</div><br>
-					<div class="row">
-						<div class="col-md-4">
-							Email:
-						</div>
-						<div class="col-md-8">
-							<input type="text" name="email" value="{{user.email}}">
-						</div>
-					</div><br>
-					<button class="ui-state-disabled btn bg-blue">Save Changes</button><br><br>
-				</form>
-				<h4 class="section-header">Change Password</h4><hr>
-				<form method="post" action="{{url_for('change_password')}}">
-					<div class="row">
-						<div class="col-md-4">
-							Current Password:
-						</div>
-						<div class="col-md-8">
-							<input type="password" name="curr_pass">
-						</div>
-					</div><br>
-					<div class="row">
-						<div class="col-md-4">
-							New Password:
-						</div>
-						<div class="col-md-8">
-							<input type="password" name="new_pass" id="password_1">
-						</div>
-					</div><br>
-					<div class="row">
-						<div class="col-md-4">
-							Confirm New Password:
-						</div>
-						<div class="col-md-8">
-							<input type="password" name="conf_new" id="password_2">
-						</div>
-					</div>
-					<br>
-					<button id="change_password" class="ui-state-disabled btn bg-blue">Change Password</button>
-				</form>
-			</div>
-		</div>
-	</div>
-</div>
+
+<style>
+
+    a:hover {
+        text-decoration: none;
+    }
+
+    #clickablefontawesome {
+        cursor: pointer;
+    }
+
+    #clickabledelete, #clickablemember {
+        cursor: pointer;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .page-header2 {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .panel .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+        border: #006400;
+    }
+
+    .row {
+        border: none;
+    }
+
+    table th {
+        color: #006400;
+        border-top: 5px solid #006400;
+    }
+
+
+</style>
+
+{% if g.user.user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+        <p>
+
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+        <div class="panel panel-default panel-heading bg-gray-light">
+            <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+        </div>
+
+
+
+
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Manage Groups</h2>
+                    </div>
+
+                    <div class="panel-body">
+
+                        <div class="row">
+                            <div class="page-header2">
+                                <h4>Groups That I Own</h4>
+                            </div>
+                            <table class="table table-striped">
+                                {% if groupsOwnerOf | length > 0 %}
+                                {% for grpO in groupsOwnerOf %}
+                                    <tr>
+                                        <td>
+                                            {{ grpO.grp_name }}
+                                        </td>
+                                        <td>
+                                        {% if grpO.grp_private == 'f' %}
+                                            &nbsp;
+                                            {% else %}
+                                            <span class="label label-danger">Private</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ grpO.grp_created }}</td>
+                                        <td><span id="clickabledelete"><i class="fa fa-trash-o"></i></span>
+                                        &nbsp;
+                                            <span id="clickablemember"><i class="fa fa-external-link"></i></span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                {% else %}
+                                    <tr><th>None</th></tr>
+                                {% endif %}
+                            </table>
+                        </div>
+
+                        {% if groupsMemberOf | length > 0 %}
+                        <div class="row">
+                            <div class="page-header2">
+                                <h4>Groups That I Am a Member Of</h4>
+                            </div>
+                            <table class="table table-striped">
+                                {% for grpM in groupsMemberOf %}
+                                    <tr>
+                                        <td>
+                                            {{ grpM.grp_name }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                        {% endif %}
+
+
+
+
+
+                        {#
+                        <div class="panel panel-info" id="memberAccordion">
+                             <div class="panel panel-heading">
+                                <div class="row">
+                                    <div class="col-xs-6">
+                                        <a data-toggle="collapse" right data-parent="#memberAccordion" href="#member">
+                                            Groups I'm A Part Of
+                                            <span class="fa fa-chevron-down"></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="member" class="panel-collapse collapse">
+                                <div class="panel-body">
+                                    <div>
+                                        <table class="table table-striped">
+                                            <th>Owner of</th>
+                                            {% for grpO in groupsOwnerOf %}
+                                                <tr>
+                                                    <td>
+                                                        {{ grpO.grp_name }}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </div>
+                                    <div>
+                                        <table class="table table-striped">
+                                            <th>Member of</th>
+                                            {% for grpM in groupsMemberOf %}
+                                                <tr>
+                                                    <td>
+                                                        {{ grpM.grp_name }}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        #}
+
+                        <div class="panel-group" id="groupAccordion">
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <div class="row">
+                                        <div class="col-xs-10">
+
+                                            <a data-toggle="collapse" right data-parent="#groupAccordion"
+                                               href="#create">
+                                                Create New Group
+                                                <span class="fa fa-chevron-down"></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="create" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <form>
+                                            <div class="row">
+                                                <p>Please enter a unique group name.</p>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-2">
+                                                    Group:
+                                                </div>
+                                                <div class="col-xs-4">
+                                                    <input type="text" name="group_name" id="groupCreate">
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-6">
+                                                    <label><input type="checkbox" name="private_box" value="Private"
+                                                                  id="groupPrivate" checked>Private</label>
+                                                </div>
+                                                <div class="col-xr-2">
+                                                    <button class="btn btn-primary pull-right"
+                                                            type='submit'
+                                                            value='Create'
+                                                            onclick='createGroup()'>Create
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <div class="row">
+                                        <div class="col-xs-10">
+
+                                            <a data-toggle="collapse" right data-parent="#groupAccordion"
+                                               href="#delete">
+                                                Delete Group
+                                                <span class="fa fa-chevron-down"></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="delete" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <form>
+                                            <div class="row">
+                                                <p>You can only delete groups you own.</p>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-2">
+                                                    Group:
+                                                </div>
+                                                <div class="col-xs-4">
+                                                    <input type="text" name="group_name" id="groupDelete">
+                                                </div>
+                                                <div class="col-xr-2">
+                                                    <button class="btn btn-primary pull-right"
+                                                            type='submit'
+                                                            value='Delete'
+                                                            onclick='deleteGroup()'>Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <div class="row">
+                                        <div class="col-xs-10">
+                                            <a data-toggle="collapse" right data-parent="#groupAccordion" href="#add">
+                                                Add User to Group
+                                                <span class="fa fa-chevron-down"></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="add" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <form>
+                                            <div class="row">
+                                                <p>You can only add users to groups you own.</p>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-2">
+                                                    Group:
+                                                </div>
+                                                <div class="col-xs-4">
+                                                    <input type="text" name="group_name" id="groupAddUser">
+                                                </div>
+                                            </div>
+                                            <br>
+
+                                            <div class="row">
+                                                <div class="col-xs-2">
+                                                    User Email:
+                                                </div>
+                                                <div class="col-xs-4">
+                                                    <input type="text" name="user_email" id="groupAddEmail">
+                                                </div>
+                                                <div class="col-xr-2">
+                                                    <button class="btn btn-primary pull-right"
+                                                            type='submit'
+                                                            value='Add'
+                                                            onclick='addGroupUser()'>Add
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <div class="row">
+                                        <div class="col-xs-10">
+                                            <a data-toggle="collapse" right data-parent="#groupAccordion"
+                                               href="#remove">
+                                                Remove User from Group
+                                                <span class="fa fa-chevron-down"></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="remove" class="panel-collapse collapse">
+                                    <div class="panel-body">
+                                        <form>
+                                            <div class="row">
+                                                <p>You can only remove users from groups you own.</p>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-2">
+                                                    Group:
+                                                </div>
+                                                <div class="col-xs-4">
+                                                    <input type="text" name="group_name" id="groupRemoveUser">
+                                                </div>
+                                            </div>
+                                            <br>
+
+                                            <div class="row">
+                                                <div class="col-xs-2">
+                                                    User Email:
+                                                </div>
+                                                <div class="col-xs-4">
+                                                    <input type="text" name="user_email" id="groupRemoveEmail">
+                                                </div>
+                                                <div class="col-xr-2">
+                                                    <button class="btn btn-primary pull-right"
+                                                            type='submit'
+                                                            value='Remove'
+                                                            onclick='removeGroupUser()'>Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Generate API Key</h2>
+                    </div>
+                    <form method="post" action="{{ url_for('generate_api_key') }}">
+                        <div class="panel-body">
+                            <div class="col-xs-7">
+                                <strong>API Key:</strong> {{ user.api_key }}
+                            </div>
+                            <button id="generate_api_key" class="btn btn-success btn-transparent pull-right">
+                                <i class="fa fa-repeat"></i> Generate New Key</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Update Account</h2>
+                    </div>
+                    <div class="panel-body">
+                        <form>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    Name:
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="username"
+                                           value="{{ user.first_name }} {{ user.last_name }}">
+                                </div>
+                            </div>
+                            <br>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    Email:
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="email" value="{{ user.email }}">
+                                </div>
+                            </div>
+                            <br>
+                            <button class="ui-state-disabled btn btn-success btn-transparent">Save Changes</button>
+                            <br><br>
+                        </form>
+                        <h4 class="section-header">Change Password</h4>
+                        <hr>
+                        <form method="post" action="{{ url_for('change_password') }}">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    Current Password:
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="curr_pass">
+                                </div>
+                            </div>
+                            <br>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    New Password:
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="new_pass" id="password_1">
+                                </div>
+                            </div>
+                            <br>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    Confirm New Password:
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="password" name="conf_new" id="password_2">
+                                </div>
+                            </div>
+                            <br>
+                            <button id="change_password" class="ui-state-disabled btn btn-success btn-transparent">Change Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    {% endblock %}
+
+{% endif %}
+
+{% include 'footer.html' %}
+
 
 
 <script>
@@ -359,4 +502,3 @@ var userId = {{user.user_id}};
 
 
 </script>
-{% include 'footer.html' %}

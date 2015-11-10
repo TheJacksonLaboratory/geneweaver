@@ -299,8 +299,8 @@ def create_group(group_name, group_private, user_id):
         with PooledCursor() as cursor:
             cursor.execute(
                 '''
-                INSERT INTO production.grp (grp_name, grp_private)
-                VALUES (%s, %s)
+                INSERT INTO production.grp (grp_name, grp_private, grp_created)
+                VALUES (%s, %s, now())
                 RETURNING grp_id;
                 ''',
                 (group_name, 't',)
