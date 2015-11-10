@@ -78,6 +78,7 @@ def run_tool_api(apikey, relation, genesets):
     selected_geneset_ids = genesets.split(':')
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
+        # there needs to be a min of 2, is there a max?
         raise Exception('there must be at least two genesets selected to run this tool')
 
     else:
@@ -131,6 +132,7 @@ def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
+    # May need to update path to result to the location of the json file
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
