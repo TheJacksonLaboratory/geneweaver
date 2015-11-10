@@ -37,6 +37,9 @@
     border-top-color: #E74937 !important;
 }
 
+#clickableFontAwesome {
+    cursor: pointer;
+}
 
 #panel, #flip {
     padding: 5px;
@@ -54,13 +57,8 @@
 
 #flip {
  height: 50px;
-{# background-color: #006b00#}
 }
 
-
-#clickableFontAwesome {
-    cursor: pointer;
-}
 
 
 #rerunPanel, #rerunFlip {
@@ -130,7 +128,7 @@
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-<link rel="stylesheet" href="/resources/demos/style.css">
+{#<link rel="stylesheet" href="/resources/demos/style.css">#}
 
 <div class="panel panel-default panel-heading bg-gray-light">
     <h3 class="panel-title"><strong>{{ title }} </strong></h3>
@@ -156,30 +154,6 @@
 </div>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</td></tr>
-</table>
-
 <br>
 <div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">    Geneset Table Panel</i></div>
 <div id="panel" class="badger-left">
@@ -196,19 +170,11 @@
    <div class="page-header"> </div>
 <p>
   <div class="box-header clearfix">
-    <div class = "left-cell">  <h4>Venn Diagram view:
-    <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
+  <div class = "left-cell">
+    <h4>Venn Diagram view:</h4>
 
-<script type = "text/javascript">
-    $(function () {
-        $("[data-toggle='tooltip']").tooltip();
-    });
-          $('#clickableFontAwesome').popover({
-            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
-            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
-            ' to navigate to intersection details.'
-        });
-</script>
+
+
 </div>
     <div class="right-cell">
     <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
@@ -221,7 +187,7 @@
 <div id="jaccard"></div>
 
 
-    </br>
+    </form>
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
         <h5>P-Value Threshold (0.05 increments):
@@ -232,6 +198,34 @@
 </p>
 
 
+<br>
+
+View As:</r>
+<form>
+   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
+   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
+    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
+</form>
+
+<br>
+Download As:
+<select name="downloadType" id="downloadType">
+   <option value="null">Select file type...</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
+   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
+</select>
+<br><br><br>
+
+
+
+
+{% include 'footer.html' %}
+
+
+
+
+
 
 
 
@@ -240,9 +234,6 @@
 
 {# Start of script#}
 <script type="text/javascript">
-
-
-
 
 {#  Declaration of data as d variable#}
     var d = {{ data | safe }};
@@ -498,8 +489,8 @@ var threshold = false;
                     "pvalue" : str,
                     "show" : threshold
                 });
-                console.log(row);
-                console.log(gene_url[check], d.venn_diagrams[row].url);
+{#                console.log(row);#}
+{#                console.log(gene_url[check], d.venn_diagrams[row].url);#}
             }
 
         }
@@ -649,7 +640,7 @@ var threshold = false;
       // adjust the text on the range slider
       d3.select("#nRadius-value").text(nRadius);
       d3.select("#nRadius").property("value", nRadius);
-        console.log(nRadius);
+
 
         svgContainer.selectAll("circle")
             .filter(function (d) {if (d.pvalue < nRadius ) return true;})
@@ -695,12 +686,10 @@ var threshold = false;
 
         projCheckbox.prop('checked', allChecked);
     }
- </script>
-
 
 
 {#Script for the slider to control the jaccard similarity threshold.#}
-<script type="text/javascript">
+
 //This allows the user to view the chart or not
 $(document).ready(function() {
             $("#flip").click(function(){
@@ -711,6 +700,7 @@ $(document).ready(function(){
     $("#rerunFlip").click(function(){
         $("#rerunPanel").slideToggle("slow");
     });
+
 
 
      $('.project-link').on('click', function (event) {
@@ -725,6 +715,15 @@ $(document).ready(function(){
 
 });
 
+
+  $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+          $('#clickableFontAwesome').popover({
+            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
+            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            'to navigate to intersection details.'
+        });
 
 
 {#var html = d3.select("svg")#}
@@ -744,11 +743,9 @@ $(document).ready(function(){
 
 
 
-{{ data | safe }}
 
 
-
-<script>
+<script type="text/javascript">
 
 
    // var w =  width + margin.left + margin.right; //, h = height + margin.top + margin.bottom;
@@ -814,7 +811,6 @@ $('#check').change(function() {
     }
 
 });
-
 
 
     var addOnX = 0;
@@ -962,14 +958,6 @@ $('#check').change(function() {
 
 
 
-
-
-
-
-
-
-
-
 <br>
 <div class="container">
   <div class="dropdown">
@@ -1011,4 +999,3 @@ Download As:
 </form>
 
 
-{% include 'footer.html' %}
