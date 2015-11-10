@@ -238,7 +238,7 @@
             <div class="row">
                 <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
                     <ul class="jstree-container-ul">
-                    <div id="tree">
+                    <div id="testtree">
                         <ul id="treeData">
                             {% for ont in onts %}
                                 <li>{{ ont.name }}</li>
@@ -249,20 +249,19 @@
             </div>
 
         {% else %}
-
             <div class="row">
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
-                <div id="ontology_db_tree">
-                    <ul id="treeData">
-                        {% for dbid in ontdb %}
-                        <li class="folder">
-                            {{ dbid.name }}
-                            <ul><li></li></ul>
+                <div class="row">
+                <div class="col-xs-3">
+                    <select name="gso_ref_type" class="form-control" required>
+                        <option value="all" selected>All Reference Types</option>
+                        {% for ref_type in ref_types %}
+                        <option value="ref_type">{{ ref_type }}</option>
                         {% endfor %}
-                    </ul>
+                    </select>
                 </div>
-
-                <div id="testtree">
+                </div>
+                <div id="tree" name="selNodes" style="overflow:auto; max-height:600px">
                 </div>
                 <span id="echoActive">-</span>
             </div>
@@ -297,22 +296,29 @@
     });
 
     $(function(){
-        $("#testtree").dynatree({
+        $("#tree").dynatree({
+            checkbox: true,
+            selectMode: 2,
             initAjax: {
                 url: "/getOntDBNodes",
-                data: { ontdb: "ontdb" }
+                data: {ontdb: "ontdb"}
 
             },
-            onActivate: function(node) {
+            onActivate: function (node) {
                 $("echoActive").text("" + node + " (" + node.name + ")")
             },
-        });
-        console.log(ontdb)
 
+            onLazyRead: function (node) {
+                node.appendAjax({
+                    url: "/getOntRootNodes",
+                    data: {key: node.data.key, is_db: node.data.db}
+                })
+            }
+        })
     });
 
         $(function(){
-			$("#tree").dynatree({
+			$("#testtree").dynatree({
 				// using default options
 			});
 			<!-- Start_Exclude: This block is not part of the sample code -->
@@ -377,12 +383,21 @@
             $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') });
 
             var data = $("#upload-geneset-form").serialize();
+            var tree = $("#tree").dynatree("getTree");
+            //console.log(tree.serialize())
+            //console.log(tree.serializeArray())
+            //for(var i = 0; i < tree.length; i++){
+            //    console.log(tree[i].data.key);
+            //}
+            console.log(tree.serializeArr())
+            var onts = JSON.stringify(tree.serializeArr())
+            data = data.concat("&onts=", onts);
             //alert(data);
 
             $.ajax({
                 type: "POST",
                 url: "../updategeneset",
-                data: data,
+                data: data, //{data: data, onts: onts},
                 //processData: false,
                 //contentType: false,
                 success: function(r)
@@ -407,37 +422,6 @@
                             '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
                 }
             });
-            /******New Tmp Code for Ontology Tree******/
-            $.ajax({
-                type: "POST",
-                url: "../updategeneset",
-                data: data,
-                //processData: false,
-                //contentType: false,
-                success: function(r)
-                {
-                    var v = JSON.parse(r);
-                    if (v["success"] == 'True') {
-                        var gs_id = {{ geneset.geneset_id }};
-                        window.location = '../editgenesetgenes/' + gs_id;
-                    }
-                    else {
-                        $("html, body").animate({ scrollTop: 0 }, "slow");
-                        $("#result").html('<div class="alert alert-danger fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
-                    }
-                },
-                error: function(r)
-                {
-                    $("html, body").animate({ scrollTop: 0 }, "slow");
-                    $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
-                }
-            });
-            /************End Tmp Code***********/
-
         });
 
         function createReaderHandler(name) {

@@ -317,7 +317,7 @@ def render_editgenesets(gs_id):
     pubs = geneweaverdb.get_all_publications(gs_id)
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
     ontdb = geneweaverdb.get_all_ontologydb()
-
+    ref_types = geneweaverdb.get_all_gso_ref_type()
     ont_parents = []
 
     for ont in onts:
@@ -328,27 +328,44 @@ def render_editgenesets(gs_id):
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
-
-    #onts = None
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, onts=onts, ont_parents=ont_parents, ontdb=ontdb)
+                                 view=view, onts=onts, ont_parents=ont_parents, ontdb=ontdb, ref_types=ref_types)
 
 @app.route('/getOntDBNodes')
 def get_ontdb_nodes():
     result = geneweaverdb.get_all_ontologydb()
-    #data = dict()
-    #data = dict()
-    #data.update({"success": result})
-    data = "["
+    info = []
     for i in range(0, len(result)):
-        data += "{\"title\": \"" + result[i].name + "\"," \
-            " \"isFolder\": true, \"isLazy\": true, \"key\": \""\
-            + str(result[i].ontologydb_id) + "\""
-        if(i < len(result)-1):
-            data += "},"
-        else: data += "}]"
-    return (data)
+        data = dict()
+        data["title"] = result[i].name
+        data["isFolder"] = True
+        data["isLazy"] = True
+        data["key"] = result[i].ontologydb_id
+        data["db"] = True
+        info.append(data)
+    return (json.dumps(info))
 
+@app.route('/getOntRootNodes', methods=['POST', 'GET'])
+def get_ont_root_nodes():
+
+    if(request.args['is_db'] == "true"):
+        result = geneweaverdb.get_all_root_ontology_for_database(request.args['key'])
+    else:
+        result = geneweaverdb.get_all_children_for_ontology(request.args['key'])
+
+    info = []
+    for i in range(0, len(result)):
+        data = dict()
+        data["title"] = result[i].name
+        if(result[i].children == 0):
+            data["isFolder"] = False
+        else:
+            data["isFolder"] = True
+        data["isLazy"] = True
+        data["key"] = result[i].ontology_id
+        data["db"] = False
+        info.append(data)
+    return (json.dumps(info))
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
@@ -372,7 +389,7 @@ def render_editgeneset_genes(gs_id):
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
-    #onts = None
+
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:

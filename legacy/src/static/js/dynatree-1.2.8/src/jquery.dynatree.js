@@ -2374,6 +2374,23 @@ DynaTree.prototype = {
 		return includeRoot ? dict : dict.children;
 	},
 
+	serialize: function(stopOnParents) {
+		//ciflores
+		//Return a html text string in standard URL-encoded notation
+		// for selected nodes.
+		var nodeList = this.getSelectedNodes(stopOnParents);
+		var urldata = "&";
+		for(var i= 0, l=nodeList.length; i<l; i++){
+			if(i != l-1){
+				urldata = urldata+"ont_id=" + nodeList[i].data.key + "&";
+			}
+			else{
+				urldata = urldata+"ont_id=" + nodeList[i].data.key;
+			}
+		}
+		return urldata;
+	},
+
 	serializeArray: function(stopOnParents) {
 		// Return a JavaScript array of objects, ready to be encoded as a JSON
 		// string for selected nodes
@@ -2384,6 +2401,17 @@ DynaTree.prototype = {
 			arr.push({name: name, value: nodeList[i].data.key});
 		}
 		return arr;
+	},
+
+    serializeArr: function(stopOnParents) {
+		// Return a JavaScript array of objects, ready to be encoded as a JSON
+		// string for selected nodes
+		var nodeList = this.getSelectedNodes(stopOnParents);
+        var data = [];
+		for(var i=0, l=nodeList.length; i<l; i++){
+			data.push(nodeList[i].data.key);
+		}
+		return data;
 	},
 
 	getPersistData: function() {
