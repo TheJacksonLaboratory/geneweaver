@@ -40,20 +40,21 @@
 
 #panel, #flip {
     padding: 5px;
-    text-align: center;
-    width: 1130px;
+    text-align: left;
 }
 
 #panel {
-    padding: 50px;
-    height: 500px;
+{#    padding: 50px;#}
     display: none;
-{#    background-color: #FFFFFF;#}
+    background-color: #FFFFFF;
 }
+.badger-left:after {
+}
+
 
 #flip {
  height: 50px;
- background-color: #006b00
+{# background-color: #006b00#}
 }
 
 
@@ -64,23 +65,25 @@
 
 #rerunPanel, #rerunFlip {
     padding: 5px;
-    text-align: center;
-    width: 1130px;
+    text-align: left;
 }
 
 #rerunPanel {
-    padding: 50px;
     height: 350px;
     text-align: left;
     display: none;
 }
 
 #rerunFlip {
- height: 50px;
-   background-color:#d9edf7;
-   color: #317baf;
+   height: 50px;
    text-shadow: none;
 }
+#rerun{
+ float:right;
+    display:block;
+    margin-right: 585px;
+    clear:left;
+ }
 
 .left-cell {
   display: table-cell;
@@ -94,13 +97,34 @@
 }
 
 .box-header {
-
   padding-bottom: 5px;
   display: table;
   width: 100%;
 }
+.form-group{
+ padding-right: 300px;
+ }
 
+#addToProject, #exportData {
+    float: left;
+}
+
+ .divider{
+    margin: 5px;
+}
+
+
+  .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
 </style>
+
+
+
+
+
+
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
@@ -108,20 +132,21 @@
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <link rel="stylesheet" href="/resources/demos/style.css">
 
-
-<div class="page-header">
-    <h1>{{ title }}</h1>
+<div class="panel panel-default panel-heading bg-gray-light">
+    <h3 class="panel-title"><strong>{{ title }} </strong></h3>
 </div>
 
 
-<div id="rerunFlip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header "> Rerun Tool Options</div>
+
+<div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
+
 <div id="rerunPanel" >
     <form id="todo-id" class="form-horizontal" role="form" method="post">
         <div class="form-group" >{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
         <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
         <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
         <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-        <button class="btn btn-primary"
+        <button id="rerun" class="btn btn-primary"
            type='submit'
            value='run'
            onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
@@ -129,99 +154,6 @@
         </button>
      </form>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<br clear="all"  class="floatGeneList">
-<form name="listform" id="listform">
-<table cellspacing="0" style="font-size: 0.75em; "><tr><th valign="bottom" align="left"> &nbsp;
-
-
-{% set j = 0 %}
-{% for item in async_result.geneset_table %}
-    {% set i = 0 %}
-<tr><td style="border-bottom: none; white-space:nowrap;" align="left">
-<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ item.gsID[2:] }}">
-<a style="margin-left:30px; font-size:18px;" href="{{ item.url }}">{{ item.text }}</a> &nbsp;
-
-    {%set j = j + 1 %}
-<td style="width: 25em;">&nbsp;</td></tr>
-{% endfor %}
-
-
-
-<tr><td colspan="4" style="border-bottom: none;">
-<div id="project_selector">
-<input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
-    <p style="margin-left:30px; font-size: 15px;"> Select All
-    <select name="addToProject" onchange="javascript:handleSelect(this);">
-        <option value="-1">Add selected to project...</option>
-        {% for project in list %}
-            <option value="{{project.project_id}}">{{project.name}} ({{project.count}})</option>
-        {% endfor %}
-        <option value="-2">+ Create new project...</option></select></p>
-</div>
-
-
-   <script type="text/javascript">
-      function handleSelect(elm)
-      {
-         var genesets = [];
-            if (elm.value != "-1") {
-                if (elm.value == "-2") {
-                    var name = prompt("Enter a name for the new project:");
-                    $.get("/create_project/" + name + ".html", function (data, status) {
-                        $('input:checkbox[name="gs_id[]"]').each(function () {
-                            if (this.checked) {
-                                genesets.push(this.value);
-                            }
-                        });
-                        if (genesets.length != 0) {
-                            for (var i = 0; i < genesets.length; i++) {
-                                $.get("/add_geneset_to_project/" + data + "/" + genesets[i] + ".html");
-                            }
-                        }
-                        else {
-                            window.alert("Please select gene set(s) to add first!")
-                        }
-                    });
-                }
-                else {
-                    $('input:checkbox[name="gs_id[]"]').each(function () {
-                        if (this.checked) {
-                            genesets.push(this.value);
-                        }
-                    });
-                    if (genesets.length != 0) {
-                        for (var i = 0; i < genesets.length; i++) {
-                            $.get("/add_geneset_to_project/" + elm.value + "/" + genesets[i] + ".html", function (data, status) {
-                            });
-                        }
-                    }
-                    else {
-                         window.alert("Please select gene set(s) to add first!")
-                    }
-                }
-            }
-      }
-</script>
-
-
 
 
 
@@ -248,13 +180,21 @@
 </td></tr>
 </table>
 
-<br><br>
-<div id="flip" style="font-size: 1.5em" class="ui-btn ui-btn-inline ui-corner-all  ui-btn-b  header ">Geneset Table Panel</div>
-<div id="panel" >
+<br>
+<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">    Geneset Table Panel</i></div>
+<div id="panel" class="badger-left">
+<div id="chart"></div>
+                        <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add to Project
+                        </button>
 
+                        <button type="button" class="btn btn-lg btn-warning divider" id="exportData">
+                            <i class="fa fa-download pull-left"></i> Export Genes
+                        </button>
 </div>
 <br>
-
+   <div class="page-header"> </div>
+<p>
   <div class="box-header clearfix">
     <div class = "left-cell">  <h4>Venn Diagram view:
     <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h4>
@@ -759,23 +699,44 @@ var threshold = false;
 
 
 
-
-
-
 {#Script for the slider to control the jaccard similarity threshold.#}
 <script type="text/javascript">
 //This allows the user to view the chart or not
-$(document).ready(function(){
-    $("#flip").click(function(){
-        $("#panel").slideToggle("slow");
+$(document).ready(function() {
+            $("#flip").click(function(){
+                $("#panel").slideToggle("slow");
+            });
     });
-});
-
 $(document).ready(function(){
     $("#rerunFlip").click(function(){
         $("#rerunPanel").slideToggle("slow");
     });
+
+
+     $('.project-link').on('click', function (event) {
+
+			// Change chevron when project info is displayed
+			var chev = $(this).children('.fa-plus').length ?
+					   $(this).children('.fa-plus') :
+					   $(this).children('.fa-minus');
+
+			chev.toggleClass('fa-minus');
+			chev.toggleClass('fa-plus') });
+
 });
+
+
+
+{#var html = d3.select("svg")#}
+{#        .attr("title", "test2")#}
+{#        .attr("version", 1.1)#}
+{#        .attr("xmlns", "http://www.w3.org/2000/svg")#}
+{#        .node().parentNode.innerHTML;#}
+{#d3.select("#chart").append("div")#}
+{#        .attr("id", "download")#}
+{#        .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")#}
+{#        .append("img")#}
+{#        .attr("src", "data:image/svg+xml;base64,"+ btoa(html));#}
 </script>
 
 
@@ -783,37 +744,43 @@ $(document).ready(function(){
 
 
 
-
-
-
+{{ data | safe }}
 
 
 
 <script>
 
 
-
-
-
-    var w =  width + margin.left + margin.right, h = height + margin.top + margin.bottom;
+   // var w =  width + margin.left + margin.right; //, h = height + margin.top + margin.bottom;
     var border = 0.5;
     var bordercolor = 'black';
     var d = {{ data | safe }};
     var count = 0;
 
-
+    var entry= 0;
+    var ent_len = 0;
+    var genesettble = 0;
 
     for (var key in d.genesets) {
         if (d.genesets.hasOwnProperty(key)) {
             ++count;
         }
+
     }
 
 
 
-    var svg = d3.select("#panel").append("svg:svg")
+    var h= (count * 90) + 200;
+    var w = (count * 110) + 100;
+
+    function addStyle(h,w) {
+        $('<style>.badger-left:after { height: ' + h + ';</style>').appendTo('#panel');
+        $('<style>.badger-left:after { width: ' + w + ';</style>').appendTo('#panel');
+    }
+
+    var svg = d3.select("#chart").append("svg:svg")
         .attr("width",  width + margin.left + margin.right)
-        .attr("height", h);
+        .attr("height", h-100);
 
     var xcoord = 90;
 
@@ -822,8 +789,8 @@ $(document).ready(function(){
         svg.append("foreignObject")
               .attr("width", 325)
               .attr("height", 0)
-              .attr("x", -35)
-              .attr("y", xcoord - 85)
+              .attr("x", -5)
+              .attr("y", xcoord - 95)
             .append("xhtml:body")
             .html( "<form id =test><input type=checkbox id=check /> <label for=check>" + d.geneset_table[i].text  + "</label></form>");
 
@@ -850,13 +817,14 @@ $('#check').change(function() {
 
 
 
-
-
     var addOnX = 0;
     var addOnY = 0;
-    var cont = 0;
+    var addOnYLast = 0;
     var c = 0;
     var offset = 0;
+    var textX = 370;
+    var textY = 90;
+
 
     for(i = 0; i < count; i++) {
       for(var k = 0; k < count; k++) {
@@ -874,21 +842,8 @@ $('#check').change(function() {
                 .attr("width", 110)
                 .attr("height", 90)
                 .style("stroke", "#ffffff")
-                .style("fill", "#36bac4")
-               // .style("opacity", 0.5)
+                .style("fill", "#ffa076")
                 .attr("border", 1);
-
-            svg.append("text")
-              .attr("x", addOnX + 360)
-              .attr("y", addOnY)
-              .text(d.geneset_table[0].entries[0].text)
-              .attr("font-family", "sans-serif")
-              .attr("font-size", "12px")
-              .attr("fill", "blue")
-              .on("click", function(d) {window.open("http://127.0.0.1:5000" + d.geneset_table[0].url) })
-
-
-
 
         } else {
            svg.append("rect")
@@ -899,25 +854,90 @@ $('#check').change(function() {
                 .style("stroke", "#ffffff")
                    .style("fill", function(d) {
                        if (k % 2) {
-                           return "#fe5b54";
+                           return "#b9d9cf";
                        }
                        else {
-                           return "#febd55";
+                           return "#d7ede6";
                        }
                    })
                 .attr("border", 1);
-
-            svg.append("text")
-                 .attr("x", addOnX + 375)
-                 .attr("y", addOnY)
-                 .text( d.geneset_table[0].entries[1].text)
-                 .attr("font-family", "sans-serif")
-                 .attr("font-size", "12px")
         }
+
+
         c++;
       }
+
+
+
+
+
+
+
+       entry = 0;
+       for (var key in d.geneset_table[i].entries) {
+           if (d.geneset_table[i].entries.hasOwnProperty(key)) {
+               ++entry;
+           }
+           console.log("Entry length: " + Object.keys(d.geneset_table[i].entries[entry-1]).length);
+           if(Object.keys(d.geneset_table[i].entries[entry-1]).length == 3){
+
+                 svg.append("a")
+                  .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
+                  .append("text")
+                 .attr("x", textX)
+                 .attr("y", textY)
+                 .style("font-weight",  "bold")
+                 .text( d.geneset_table[i].entries[entry-1].jval)
+                 .attr("font-family", "sans-serif")
+                 .attr("font-size", "12px")
+                 .attr("fill", "blue");
+
+                 if((d.geneset_table[i].entries[entry-1].pval).length > 8){
+                      svg.append("a")
+                                .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
+                                .append("text")
+                                .attr("x", textX - 10)
+                                .attr("y", textY + 12)
+                                .style("font-weight", "bold")
+                                .text(d.geneset_table[i].entries[entry - 1].pval)
+                                .attr("font-family", "sans-serif")
+                                .attr("font-size", "12px")
+                                .attr("fill", "blue");
+                                //.on("click", function() { window.open("http://127.0.0.1:5000" + d3.select(this).geneset_table[i].entries[entry - 1].url)});
+
+                  }else{
+                    svg.append("a")
+                                 .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
+                                 .append("text")
+                                .attr("x", textX + 4)
+                                .attr("y", textY + 12)
+                                .style("font-weight", "bold")
+                                .text(d.geneset_table[i].entries[entry - 1].pval)
+                                .attr("font-family", "sans-serif")
+                                .attr("font-size", "12px")
+                                .attr("fill", "blue");
+                                // .on("click", function(){ window.open("http://www.google.com")});
+                                 //.on("click",  window.open("http://127.0.0.1:5000" + d.url), console.log (d.url));
+                  }
+            }
+            if(Object.keys(d.geneset_table[i].entries[entry-1]).length == 1){
+                 svg.append("text")
+                 .attr("x", textX)
+                 .attr("y", textY)
+                 .style("font-weight",  "bold")
+                 .text( d.geneset_table[i].entries[entry-1].jval)
+                 .attr("font-family", "sans-serif")
+                 .attr("font-size", "12px");
+            }
+            textX += 110;
+       }
+       textX -= ((count) * 110);
+        textY += 90;
       offset++;
     }
+
+
+
 
     var xCoordinate = 360;
 
@@ -934,7 +954,6 @@ $('#check').change(function() {
         xCoordinate += 110;
     }
 
-
 </script>
 
 
@@ -942,16 +961,40 @@ $('#check').change(function() {
 
 
 
-<br>
 
-View As:</r>
-<form>
-   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
-   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
-    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
-</form>
+
+
+
+
+
+
+
 
 <br>
+<div class="container">
+  <div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
+    <span class="caret"></span></button>
+    <ul class="dropdown-menu" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
+      <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg">SVG</a></li>
+      <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
+      <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+
+$(document).ready(function(){
+    $(".dropdown").on("show.bs.dropdown", function(event){
+        var x = $(event.relatedTarget).text(); // Get the button text
+
+    });
+});
+
+</script>
+
+
 Download As:
 <select name="downloadType" id="downloadType">
    <option value="null">Select file type...</option>
@@ -959,9 +1002,13 @@ Download As:
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
 </select>
+
 <br><br><br>
 
 
+<form method="get" action="">
+<button type="submit">Download!</button>
+</form>
 
 
 {% include 'footer.html' %}
