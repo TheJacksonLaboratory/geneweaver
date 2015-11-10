@@ -212,7 +212,9 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                     .data(layout.groups)
                     .enter().append("g")
                     .attr("class", "group")
-                    .on("mouseover", mouseover);
+                    .on("mouseover", mouseover)
+                //TODO: Figure out the correct url for this hyperlink
+                    .on("click", function(d, i) {window.open("http://127.0.0.1:5000/viewgenesetdetails/" + cities[i].gs_name)});
 
             // Add a mouseover title.
             group.append("title").text(function(d, i) {
@@ -271,6 +273,11 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                         + " → " + cities[d.source.index].name
                         + ": " + formatPercent(d.target.value);
             });
+
+            // Add an on click for each chord
+            chord.on("click", function(d) {
+                window.open("http://127.0.0.1:5000/viewgenesetdetails/" + cities[d.source.index].gs_name)
+            } );
 
             function mouseover(d, i) {
                 chord.classed("fade", function(p) {
