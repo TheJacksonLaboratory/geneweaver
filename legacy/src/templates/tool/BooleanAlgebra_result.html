@@ -34,6 +34,10 @@
 <td></td>
 </tr>
 
+<!-- change to have venn diagram d3
+http://www.benfrederickson.com/venn-diagrams-with-d3.js/
+-->
+
 {% for gene in async_result.gene_names %}
 <tr>
 <td>
@@ -83,6 +87,7 @@
             window.location = url;
         }
         else {
+            // need to have at least one gene to add, is there a max?
             window.alert("Please select at least one gene to add!");
         }
     }
