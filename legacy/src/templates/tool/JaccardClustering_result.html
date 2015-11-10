@@ -2,13 +2,157 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-
 <div class="page-header">
 	<h1>{{ title }}</h1>
 </div>
 
 <p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
+<div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+    <div id="cluster-tree">
+        <style type="text/css">
+            .node circle {
+              cursor: pointer;
+            }
 
+            .node text {
+              font: 10px sans-serif;
+              pointer-events: none;
+              text-anchor: middle;
+            }
+
+            line.link {
+              fill: none;
+              stroke: #9ecae1;
+              stroke-width: 1.5px;
+            }
+        </style>
+        <script type="text/javascript">
+
+            var width = 1150,
+                height = 800,
+                root;
+
+            var force = d3.layout.force()
+                .linkDistance(80)
+                .charge(-120)
+                .gravity(.05)
+                .size([width, height])
+                .on("tick", tick);
+
+            var svg = d3.select("#cluster-tree").append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            var link = svg.selectAll(".link"),
+                node = svg.selectAll(".node");
+
+            d3.json("{{ cluster_data }}", function(error, json) {
+              if (error) throw error;
+
+              root = json;
+              update();
+            });
+
+            function update() {
+              var nodes = flatten(root),
+                  links = d3.layout.tree().links(nodes);
+
+              // Restart the force layout.
+              force
+                  .nodes(nodes)
+                  .links(links)
+                  .start();
+
+              // Update links.
+              link = link.data(links, function(d) { return d.target.id; });
+
+              link.exit().remove();
+
+              link.enter().insert("line", ".node")
+                  .attr("class", "link");
+
+              // Update nodes.
+              node = node.data(nodes, function(d) { return d.id; });
+
+              node.exit().remove();
+
+              var nodeEnter = node.enter().append("g")
+                  .attr("class", "node")
+                  .on("click", click)
+                  .call(force.drag);
+
+              nodeEnter.append("circle")
+                  .attr("r", function(d) {
+                          return d._children ? 5
+                                  : d.children ? 5
+                                  : Math.sqrt(d.size) / 6;
+                      }
+              );
+                //test
+              nodeEnter.append("text")
+                  .attr("dy", "-2em")
+                      .attr("dx","-2.5em")
+                  .text(function(d) { return d._children ? ''
+                              : d.children ? ''
+                              : d.name;
+                      }
+              );
+
+              node.select("circle")
+                      .attr("r", function(d) {
+                          return d._children ? 10
+                                  : d.children ? 5
+                                  : Math.sqrt(d.size) / 6;
+                      })
+                  .style("fill", color);
+            }
+
+            function tick() {
+              link.attr("x1", function(d) { return d.source.x; })
+                  .attr("y1", function(d) { return d.source.y; })
+                  .attr("x2", function(d) { return d.target.x; })
+                  .attr("y2", function(d) { return d.target.y; });
+
+              node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+            }
+
+            function color(d) {
+              return d._children ? "#3182bd" // collapsed package
+                  : d.children ? "#c6dbef" // expanded package
+                  : "#00ff99"; // leaf node
+            }
+
+            // Toggle children on click.
+            function click(d) {
+              if (d3.event.defaultPrevented) return; // ignore drag
+              if (d.children) {
+                d._children = d.children;
+                d.children = null;
+              } else {
+                d.children = d._children;
+                d._children = null;
+              }
+              update();
+            }
+
+            // Returns a list of all nodes under the root.
+            function flatten(root) {
+              var nodes = [], i = 0;
+
+              function recurse(node) {
+                if (node.children) node.children.forEach(recurse);
+                if (!node.id) node.id = ++i;
+                nodes.push(node);
+              }
+
+              recurse(root);
+              return nodes;
+            }
+
+        </script>
+    </div>
+</div>
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">
@@ -31,7 +175,7 @@
 							</div>
 							<div class="col-md-4">
 								<input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-								<button class="btn btn-primary" 
+								<button class="btn btn-primary"
 									type='submit'
 									value='run'
 									onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
@@ -76,3 +220,5 @@
 </script>
 
 {% include 'footer.html' %}
+
+
