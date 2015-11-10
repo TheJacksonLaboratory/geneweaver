@@ -198,7 +198,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
                             out += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
 
 
-    print out
+    #print out
 
 
 def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology):
@@ -251,9 +251,9 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
 
         file = firstLine + ''.join(partition1) + ''.join(partition2) + ''.join(partition3) + '\n'
 
-        print "file contains:"
-        print file
-        print "filepath:", RESULTS + taskid + '.kel'
+        #print "file contains:"
+        #print file
+        #print "filepath:", RESULTS + taskid + '.kel'
         out = open(RESULTS + taskid + '.kel', 'wb')
         out.write(file)
         out.close()
@@ -364,8 +364,8 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f.write("name,gs_name,something,something,color\n")
     for i in range(len(identifiers)):
         for j in range(len(partitions)):
-            print identifiers[i]
-            print partitions[j]
+            #print identifiers[i]
+            #print partitions[j]
             if identifiers[i] in partitions[j]:
                  f.write(str(identifiers[i]) + ',' + str(identifiers[i]) + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
     f.close()
