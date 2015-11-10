@@ -61,6 +61,7 @@ def get_genes_from_proj_intersection(proj1, proj2, hom=True):
                               homology h2 WHERE p2g.pj_id=%s AND p2g.gs_id=gv.gs_id AND gv.ode_gene_id=h1.ode_gene_id
                               AND h1.hom_id=h2.hom_id''', (proj1, proj2,))
     res = list(dictify_cursor(cursor)) if cursor.rowcount != 0 else None
+
     #res = cursor.fetchall()
     #if res is not None:
     #    for r in res:
@@ -363,8 +364,21 @@ def get_matrix_value(i, j, identifiers, partitions):
 def create_csv_from_mkc(taskid, results, identifiers, partitions):
     HOMOLOGY_BOX_COLORS = ['#6699FF', '#FFCC00', '#FF0000', '#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
+
     f = open(results + '/' + taskid + '.csv', 'wb')
     f.write("name,gs_name,something,something,color\n")
+
+    genesets = []
+    genesets.append(identifiers[2])
+    genesets.append(identifiers[3])
+
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT gi_symbol FROM gene_info WHERE ode_gene_id = %s''', (68370,))
+
+    names = list(dictify_cursor(cursor))
+
+    print "names:", names
+
     for i in range(len(identifiers)):
         for j in range(len(partitions)):
             #print identifiers[i]
