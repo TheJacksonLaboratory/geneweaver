@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    #clickabledelete, #clickablemember {
+    .clickable {
         cursor: pointer;
     }
 
@@ -57,14 +57,12 @@
 
         <p>
 
-        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
         <div class="panel panel-default panel-heading bg-gray-light">
             <h3 class="panel-title"><strong>{{ title }}</strong></h3>
         </div>
 
-
-
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
 
         <div class="row">
@@ -76,31 +74,63 @@
 
                     <div class="panel-body">
 
-                        <div class="row">
+                        <div class="row" id="groups">
                             <div class="page-header2">
                                 <h4>Groups That I Own</h4>
                             </div>
                             <table class="table table-striped">
                                 {% if groupsOwnerOf | length > 0 %}
-                                {% for grpO in groupsOwnerOf %}
-                                    <tr>
-                                        <td>
-                                            {{ grpO.grp_name }}
-                                        </td>
-                                        <td>
-                                        {% if grpO.grp_private == 'f' %}
+                                    {% for grpO in groupsOwnerOf %}
+                                        <tr>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                      {{ grpO.grp_name }}</span>
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Privacy" type="button" title="Privacy Status"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                    {% if grpO.grp_private %}
+                                                        <span class="label label-danger">Private</span>
+                                                    {% else %}
+                                                        <span class="label label-default">Public</span>
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Date Create" type="button" title="Date Created"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                    {{ grpO.grp_created }}
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Delete" type="button" title="Delete Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                    <span class="clickable" id="delete_{{ grpO.grp_id }}"
+                                                          data-toggle="modal" data-target="#delModal_{{ grpO.grp_id }}">
+                                                            <i class="fa fa-trash-o"></i></span>
+                                                </span>
                                             &nbsp;
-                                            {% else %}
-                                            <span class="label label-danger">Private</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ grpO.grp_created }}</td>
-                                        <td><span id="clickabledelete"><i class="fa fa-trash-o"></i></span>
-                                        &nbsp;
-                                            <span id="clickablemember"><i class="fa fa-external-link"></i></span>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="View" type="button" title="View Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable" id="view_{{ grpO.grp_id }}"
+                                                            data-toggle="modal" data-target="#deleteGroupUsers_{{ grpO.grp_id }}">
+                                                    <i class="fa fa-external-link"></i></span></span>
+                                            &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Edit" type="button" title="Edit Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable" id="clickableedit"><i class="fa fa-pencil"></i></span></span>
+                                            &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Add" type="button" title="Add Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable" id="clickableadd"><i class="fa fa-plus"></i></span></span>
+                                            </td>
+                                        </tr>
+                                        {% include 'modal/deleteGroup.html' %}
+                                        {% include 'modal/deleteGroupUsers.html' %}
+                                    {% endfor %}
                                 {% else %}
                                     <tr><th>None</th></tr>
                                 {% endif %}
@@ -449,56 +479,95 @@
 
 {% endif %}
 
+
 {% include 'footer.html' %}
 
 
-
 <script>
-$(document).ready(function() {
-$("#password_2").keyup(validate);
-});
-function validate() {
-var password_1 = $("#password_1").val();
-var password_2 = $("#password_2").val();
-if(password_1 == password_2) {
-$("#change_password").removeClass("ui-state-disabled");
-}
-else {
-$("#change_password").addClass("ui-state-disabled");
-}
-}
+    $(document).ready(function () {
+        $("#password_2").keyup(validate);
 
-function createGroup() {
-var groupName = $("#groupCreate").val();
-var isPrivate = $("#groupPrivate").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/create_group/"+groupName+"/"+isPrivate+"/"+userId+"/",function(data,status){
-	});
+        $(function () {
+			$("[data-toggle='tooltip']").tooltip();
+		});
 
-}
-function deleteGroup() {
-var groupName = $("#groupDelete").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/delete_group/"+groupName+"/"+userId+"/",function(data,status){
-	});
-	
-}
+        $("#confirmDelete").on('click', function() {
+           var p = $(this).attr("#grp_id");
+            alert(p);
+        });
 
-function addGroupUser() {
-var groupName = $("#groupAddUser").val();
-var userEmail = $("#groupAddEmail").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/add_user_group/"+groupName+"/"+userId+"/"+userEmail+"/",function(data,status){
-	});
-}
+    });
 
-function removeGroupUser() {
-var groupName = $("#groupRemoveUser").val();
-var userEmail = $("#groupRemoveEmail").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/remove_user_group/"+groupName+"/"+userId+"/"+userEmail+"/",function(data,status){
-	});
-}
+    //pass remove modal values to function
+    function deleteGroupFromUser(grp_id) {
+        var g = grp_id;
+        var user_id = {{ user.user_id }};
+        $.get("/gwdb/delete_group/" + g + "/" + user_id + "/", function (data, status) {
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "Group Successfully Deleted.",
+                    'priority': 'success'
+                }
+            ]);
+            $("#groups").load(location.href + " #groups");        });
+    }
+
+
+    function validate() {
+        var password_1 = $("#password_1").val();
+        var password_2 = $("#password_2").val();
+        if (password_1 == password_2) {
+            $("#change_password").removeClass("ui-state-disabled");
+        }
+        else {
+            $("#change_password").addClass("ui-state-disabled");
+        }
+    }
+
+    function createGroup() {
+        var groupName = $("#groupCreate").val();
+        //var isPrivate = $("#groupPrivate").val();
+        if ($('input[name="private_box"]:checked').length > 0) {
+            var isPrivate = 'Private';
+        }
+        else {
+            var isPrivate = 'Public';
+        }
+        var userId = {{user.user_id}};
+        $.get("/gwdb/create_group/" + groupName + "/" + isPrivate + "/" + userId + "/", function (data, status) {
+            $("#groups").load(location.href + " #groups");
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "Group Successfully Added.",
+                    'priority': 'success'
+                }
+            ]);
+        });
+    }
+
+    function deleteGroup() {
+        var groupName = $("#groupDelete").val();
+        var userId = {{user.user_id}};
+        $.get("/gwdb/delete_group/" + groupName + "/" + userId + "/", function (data, status) {
+        });
+
+    }
+
+    function addGroupUser() {
+        var groupName = $("#groupAddUser").val();
+        var userEmail = $("#groupAddEmail").val();
+        var userId = {{user.user_id}};
+        $.get("/gwdb/add_user_group/" + groupName + "/" + userId + "/" + userEmail + "/", function (data, status) {
+        });
+    }
+
+    function removeGroupUser() {
+        var groupName = $("#groupRemoveUser").val();
+        var userEmail = $("#groupRemoveEmail").val();
+        var userId = {{user.user_id}};
+        $.get("/gwdb/remove_user_group/" + groupName + "/" + userId + "/" + userEmail + "/", function (data, status) {
+        });
+    }
 
 
 </script>

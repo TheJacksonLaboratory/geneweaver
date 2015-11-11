@@ -1,0 +1,42 @@
+{# Actual modal that displays and deletes users attached to a group #}
+
+<div class="modal fade" id="deleteGroupUsers_{{ grpO.grp_id }}">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="deleteGroupUsers" name="deleteGroupUsers" method="post" action="#"
+                  class="form-horizontal" novalidate="novalidate">
+
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">Group Members </h3>
+                </div>
+                <div class="modal-body">
+                    <div class="row" id="modalError"></div>
+                    <div class="row">
+                        <h4>Please select members to remove from group.</h4>
+                    </div>
+
+                    <div class="row" style="padding-top: 10px">
+                        {% for email in groupsEmail %}
+                            {% if email.grp_id == grpO.grp_id %}
+                                <label for="usrEmail_{{ email.grp_id }}_{{ email.usr_email }}"
+                                       class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off">{{ email.usr_email }}</label>
+                                <input
+                                        type="checkbox"
+                                        name="options[]"
+                                        id="usrEmail_{{ email.grp_id }}_{{ email.usr_email }}"
+                                        value="{{ email.usr_email }}">
+                            {% endif %}
+                        {% endfor %}
+                        <input type="hidden" id="myGroupID" name="groupID" value="{{ grpO.grp_id }}"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" data-dismiss="modal"
+                            id="removeUsersFromGroup">Remove Users
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

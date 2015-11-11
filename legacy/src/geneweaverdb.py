@@ -259,8 +259,23 @@ def get_all_projects(usr_id):
 
         return [Project(d) for d in dictify_cursor(cursor)]
 
-
+####################################################################################
 # Begin group block, Getting specific groups for a user, and creating/modifying them
+
+def get_all_members_of_group(usr_id):
+    """
+    return a dictionary of groups owned by user_id and all members
+    :param usr_id:
+    :return: list
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT u2g.grp_id, u.usr_email FROM usr2grp u2g, usr u WHERE u2g.grp_id IN
+            (SELECT grp_id FROM usr2grp WHERE usr_id=%s) AND u.usr_id=u2g.usr_id''', (usr_id,)
+        )
+    usr_emails = list(dictify_cursor(cursor))
+    return usr_emails if len(usr_emails) > 0 else None
 
 def get_all_owned_groups(usr_id):
     """
@@ -295,32 +310,23 @@ def get_all_member_groups(usr_id):
 # The user_id will be initialized as the owner of the group   
 
 def create_group(group_name, group_private, user_id):
-    if (group_private):
-        with PooledCursor() as cursor:
-            cursor.execute(
-                '''
-                INSERT INTO production.grp (grp_name, grp_private, grp_created)
-                VALUES (%s, %s, now())
-                RETURNING grp_id;
-                ''',
-                (group_name, 't',)
-            )
-            cursor.connection.commit()
-            # return the primary ID for the insert that we just performed
-            grp_id = cursor.fetchone()[0]
+    if group_private == 'Private':
+        priv = 't'
     else:
-        with PooledCursor() as cursor:
-            cursor.execute(
-                '''
-                INSERT INTO production.grp (grp_name, grp_private)
-                VALUES (%s, %s)
-                RETURNING grp_id;
-                ''',
-                (group_name, 'f',)
-            )
-            cursor.connection.commit()
-            # return the primary ID for the insert that we just performed
-            grp_id = cursor.fetchone()[0]
+        priv = 'f'
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO production.grp (grp_name, grp_private, grp_created)
+            VALUES (%s, %s, now())
+            RETURNING grp_id;
+            ''',
+            (group_name, priv,)
+        )
+        cursor.connection.commit()
+        # return the primary ID for the insert that we just performed
+        grp_id = cursor.fetchone()[0]
 
     with PooledCursor() as cursor:
         cursor.execute(
@@ -331,6 +337,7 @@ def create_group(group_name, group_private, user_id):
             (grp_id, user_id, )
         )
         cursor.connection.commit()
+        print cursor.statusmessage
 
     return grp_id
 
@@ -402,31 +409,36 @@ def toggle_group_active(group_id, user_id):
         cursor.connection.commit()
         return
 
+
 # Be Careful with this fucntion
 # Only let owners of groups call this function
 def delete_group(group_name, owner_id):
-    with PooledCursor() as cursor:
-        cursor.execute(
-            '''
-            DELETE FROM production.usr2grp
-            WHERE grp_id = (SELECT grp_id
-                            FROM production.usr2grp
-                            WHERE grp_id = (SELECT grp_id FROM production.grp WHERE grp_name = %s) AND  usr_id = %s AND u2g_privileges = 1)
-            RETURNING grp_id;
-            ''',
-            (group_name, owner_id,)
-        )
-        cursor.connection.commit()
-    with PooledCursor() as cursor:
-        cursor.execute(
-            '''
-            DELETE FROM production.grp
-            WHERE grp_name = %s;
-            ''',
-            (group_name,)
-        )
-        cursor.connection.commit()
-        return
+    if int(flask.session['user_id']) != int(owner_id):
+        print "here"
+        return {'error': 'You do not have permission to delete this group'}
+    else:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                '''
+                DELETE FROM production.usr2grp
+                WHERE grp_id = (SELECT grp_id
+                                FROM production.usr2grp
+                                WHERE grp_id = %s AND  usr_id = %s AND u2g_privileges = 1)
+                RETURNING grp_id;
+                ''',
+                (group_name, owner_id,)
+            )
+            cursor.connection.commit()
+        with PooledCursor() as cursor:
+            cursor.execute(
+                '''
+                DELETE FROM production.grp
+                WHERE grp_id = %s;
+                ''',
+                (group_name,)
+            )
+            cursor.connection.commit()
+        return {'error': 'None'}
 
 
 # End group block

@@ -288,8 +288,8 @@ def remove_user_group(group_name, user_id, user_email):
 
 @app.route("/gwdb/delete_group/<group_name>/<user_id>/")
 def delete_group(group_name, user_id):
-    geneweaverdb.delete_group(group_name, user_id)
-    return flask.redirect("/accoutnsetings.html")
+    results = geneweaverdb.delete_group(group_name, user_id)
+    return flask.redirect("/accountsettings")
 
 
 @app.route('/share_projects.html')
@@ -456,8 +456,9 @@ def render_accountsettings():
     user = geneweaverdb.get_user(flask.session.get('user_id'))
     groupsMemberOf = geneweaverdb.get_all_member_groups(flask.session.get('user_id'))
     groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
+    groupsEmail = geneweaverdb.get_all_members_of_group(flask.session.get('user_id'))
     return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
-                                 groupsOwnerOf=groupsOwnerOf)
+                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail)
 
 @app.route('/login.html')
 def render_login():
