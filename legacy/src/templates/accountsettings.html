@@ -512,6 +512,42 @@
             $("#groups").load(location.href + " #groups");        });
     }
 
+    // Add genesets to projects
+    $('#removeUsersFromGroup').on('click', function (e) {
+        var checked = [];
+        $("input[name='options[]']:checked").each(function () {
+            checked.push(parseInt($(this).val()));
+        });
+        var option = JSON.stringify(checked);
+        var g = $('#myGroupID').val();
+        if ($.isEmptyObject(checked)) {
+            $('#deleteGroupUsers_' + g).hide();
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "No Groups were selected.",
+                    'priority': 'danger'
+                }
+            ]);
+        }
+        else {
+            $.ajax({
+                type: "GET",
+                url: "../addGenesetsToProjects",
+                data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Genesets Successfully Added to Selected Projects.",
+                            'priority': 'success'
+                        }
+                    ]);
+                    window.location.reload();
+                }
+            });
+        }
+    });
+
+
 
     function validate() {
         var password_1 = $("#password_1").val();
