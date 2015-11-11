@@ -2039,9 +2039,11 @@ def get_all_parents_to_root_for_ontology(ont_id):
     ont_cur_id = ont_id
     parent_path_list = []
     parent_path_list.append([ont_cur_id])
-    ont_queue = []
-    count = 1;
+    list_of_ordered_parent_cur_path_list = []
     while result[0] != 0:
+        if parent_path_list == []:
+            print list_of_ordered_parent_cur_path_list
+            return list_of_ordered_parent_cur_path_list
         parent_cur_path_list = parent_path_list.pop()
         #print parent_cur_path_list
         ont_cur_id = parent_cur_path_list[-1]
@@ -2054,21 +2056,28 @@ def get_all_parents_to_root_for_ontology(ont_id):
                 WHERE ont_id = %s AND ont_parents = 0
                 ''' % (ont_cur_id)
             )
-        result = cursor.fetchall() #Fun fact: cursor.fetchall() returns a list of tuples
-        if result[0][0] == 1: #result[0] = a tuple of one element, result[0][0] = an element from a tuple from a list
+        #if there's a parent, return 0, else return 1
+        result = cursor.fetchall()      #Fun fact: cursor.fetchall() returns a list of tuples
+        if result[0][0] == 1:           #result[0] = a tuple of one element, result[0][0] = an element from a tuple from a list
+            #if there are no parent, then a root is reached, so time to pop and
+            #reorder this specific path to root and send to the master parent list
             ordered_parent_cur_path_list = []
-            while parent_cur_path_list:
-                back = parent_cur_path_list.pop()
-                if parent_cur_path_list:
-                    parent_cur_path_list = parent_cur_path_list[0]
+            while len(parent_cur_path_list) > 1:
+                back = parent_cur_path_list[-1]
+                parent_cur_path_list = parent_cur_path_list[0]
                 ordered_parent_cur_path_list.append(back)
-            return ordered_parent_cur_path_list
-
-        for ont in get_all_parents_for_ontology(ont_cur_id):
-            parent_path_list.append([parent_cur_path_list, ont.ontology_id])
-        #print "==================="
-        #print parent_path_list
-        #print "==================="
+            #print "One parent path finished"
+            if len(parent_cur_path_list) == 1:
+                ordered_parent_cur_path_list.append(parent_cur_path_list[-1])
+            list_of_ordered_parent_cur_path_list.append(ordered_parent_cur_path_list)
+        else:
+            #if there is multiple parent paths from my given ontology position, append
+            #those multiple paths of parents onto the path_list
+            for ont in get_all_parents_for_ontology(ont_cur_id):
+                parent_path_list.append([parent_cur_path_list, ont.ontology_id])
+        print "==================="
+        print parent_path_list
+        print "==================="
 
 
 def get_all_children_for_ontology(ont_id):
