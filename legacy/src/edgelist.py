@@ -368,14 +368,18 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f = open(results + '/' + taskid + '.csv', 'wb')
     f.write("name,gs_name,something,something,color\n")
 
-    genesets = []
-    genesets.append(identifiers[2])
-    genesets.append(identifiers[3])
+    # Get rid of the first two elements in identifiers (project ids)
+    genesets = list(identifiers)
+    genesets.pop(0)
+    genesets.pop(0)
 
+    # SQL query to the database to get the names of the genes
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT gi_symbol FROM gene_info WHERE ode_gene_id = %s''', (68370,))
+        cursor.execute(cursor.mogrify('''SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id IN (%s)'''%",".join(str(x) for x in genesets)))
 
     names = list(dictify_cursor(cursor))
+    for val in names:
+        print val
 
     print "names:", names
 
