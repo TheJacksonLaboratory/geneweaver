@@ -258,7 +258,7 @@ input[type="checkbox"]:hover:before {
          <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
       </div>
 </div>
-
+<script>//{{ data | safe }}</script>
 
 <script>
 
@@ -391,6 +391,27 @@ var threshold = false;
   }
 
 
+//console.log({{ data | safe }});
+// function to reduce matrix based on pValues and threshold
+function reduceMatrix() {
+  // create pMatrix
+  var pMatrix = [[]];
+  var row = [];
+  for(var i = 0; i < count; i++) {
+    var str = "-1";
+    if(i % num_sets === 0) {
+      pMatrix.push(row);
+    }
+    str = d.venn_diagrams[i].text[2].text;
+    str = str.replace("p =", "");
+    str = str.replace(/^\s+|\s+$/g, '');
+    str === "" ? str = "-1" : str = str;
+    row.push(str);
+  }
+  console.log(pMatrix);
+}
+
+//reduceMatrix();
 
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
     for (i = 0; i < count; i++) {
@@ -426,13 +447,13 @@ var threshold = false;
             if (k === 2) {
                 str = d.venn_diagrams[i].text[k].text;
                 str = str.replace("p =", "");
-                str = str.replace(/^\s+|\s+$/g, '')
+                str = str.replace(/^\s+|\s+$/g, '');
 
             }
 
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
-            if (d.venn_diagrams[i].c1x === d.venn_diagrams[i].c2x) {
+            if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
 {#                str = d.venn_diagrams[i].title1;#}
 {#                str= str.substring(0,32);#}
 {#                if (str >= d.JaccardSimilarity_p-Value){#}
@@ -522,12 +543,7 @@ var threshold = false;
 
 {#  Else make circles for orange and blue with appropriate json values #}
             else {
-{#                str = d.venn_diagrams[i].title1;#}
-{#                str = str.substring(0,32);#}
-{#                if (str >= d.JaccardSimilarity_p-Value){#}
-{#                        threshold = true;}#}
-{#                else{#}
-{#                        threshold = false;}#}
+              if (d.venn_diagrams[i].r2 >d.venn_diagrams[i].r1){
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -563,6 +579,46 @@ var threshold = false;
                     "pvalue" : str,
                     "show" : threshold
                 });
+              }
+              else{
+                              
+                circleData.push({
+
+                    "cx": d.venn_diagrams[i].c1x,
+                    "cy": d.venn_diagrams[i].c1y,
+                    "radius": d.venn_diagrams[i].r1,
+                    "fill": "#FF8000",
+                    "opacity": ".5",
+                    "cxshift": x_coord,
+                    "cyshift": y_coord,
+                    "des": d.venn_diagrams[i].desc1,
+                    "url": gene_url[check]+'/'+ gene_url[check-1],
+                    "title" : d.venn_diagrams[i].title1,
+                    "pvalue" : str,
+                    "show" : threshold
+                });
+
+                  circleData.push({
+                    "cx": d.venn_diagrams[i].c2x,
+                    "cy": d.venn_diagrams[i].c2y,
+                    "radius": d.venn_diagrams[i].r2,
+                    "fill": "#0000FF",
+                    "opacity": d.venn_diagrams[i].opacity,
+                    "cxshift": x_coord,
+                    "cyshift": y_coord,
+                    "gene_id": d.venn_diagrams[i].text[k].text,
+                    "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                    "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                    "des": d.venn_diagrams[i].desc1,
+                    "url":  gene_url[check]+'/'+ gene_url[check-1],
+                    "title" : d.venn_diagrams[i].title1,
+                    "pvalue" : str,
+                    "show" : threshold,
+                    "url1":   d.venn_diagrams[i].url
+
+
+                });
+              }
 {#                console.log(row);#}
 {#                console.log(gene_url[check], d.venn_diagrams[row].url);#}
             }
