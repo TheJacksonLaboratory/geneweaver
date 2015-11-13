@@ -350,14 +350,14 @@ def add_user_to_group(group_name, owner_id, usr_email, permission=0):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges)
+            INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
             VALUES ((SELECT grp_id
                      FROM production.usr2grp
                      WHERE grp_id = (SELECT grp_id FROM production.grp WHERE grp_name = %s)
                      AND usr_id = %s AND u2g_privileges = 1),
                     (SELECT usr_id
                      FROM production.usr
-                     WHERE usr_email = %s LIMIT 1), %s)
+                     WHERE usr_email = %s LIMIT 1), %s), 2, now()
             RETURNING grp_id;
             ''',
             (group_name, owner_id, usr_email, permission,)
@@ -393,6 +393,24 @@ def remove_user_from_group(group_name, owner_id, usr_email):
         cursor.connection.commit()
     # return the primary ID for the insert that we just performed
     return
+
+
+def remove_selected_users_from_group(user_id, user_emails, grp_id):
+    user_email = user_emails.split(',')
+    for e in user_email:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                '''
+                DELETE FROM production.usr2grp
+                WHERE grp_id=%s AND usr_id = (SELECT usr_id FROM production.usr WHERE usr_email=%s limit 1) AND
+                  EXISTS (SELECT 1 FROM production.usr2grp WHERE grp_id=%s AND usr_id=%s AND u2g_privileges=1)
+                ''',
+                (grp_id, e, grp_id, user_id,))
+
+        cursor.connection.commit()
+        print cursor.statusmessage
+        # return the primary ID for the insert that we just performed
+    return {'error': 'None'}
 
 
 # switches group active field between false and true, and true and false
@@ -1161,7 +1179,7 @@ def admin_set_edit(args, keys):
         return str(e)
 
 
-#adds item into db for specified table
+# adds item into db for specified table
 def admin_add(args):
     table = args.get('table', type=str)
     source_columns = []
@@ -1169,7 +1187,7 @@ def admin_add(args):
 
     keys = args.keys()
 
-    #sql creation   	   
+    # sql creation
     for key in keys:
         if key != 'table':
             value = args.get(key, type=str)
@@ -1241,7 +1259,6 @@ def genesets_per_species_per_tier(includeDeleted):
         sql4 = '''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 4 GROUP BY sp_id ORDER BY sp_id;'''
         sql5 = '''SELECT sp_id, count(*) FROM production.geneset WHERE gs_status NOT LIKE 'de%' AND cur_id = 5 GROUP BY sp_id ORDER BY sp_id;'''
 
-    #print sql1
 
     try:
         with PooledCursor() as cursor:
@@ -1646,9 +1663,12 @@ def get_user(user_id):
     :return:            the User matching the given ID or None if no such user is found
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT * FROM usr WHERE usr_id=%s''', (user_id,))
-        users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
-        return users[0] if len(users) == 1 else None
+        try:
+            cursor.execute('''SELECT * FROM usr WHERE usr_id=%s''', (user_id,))
+            users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
+            return users[0] if len(users) == 1 else None
+        except:
+            return None
 
 
 def get_user_byemail(user_email):

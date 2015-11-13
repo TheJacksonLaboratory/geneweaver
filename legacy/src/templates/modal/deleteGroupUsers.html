@@ -22,7 +22,7 @@
                                        class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off">{{ email.usr_email }}</label>
                                 <input
                                         type="checkbox"
-                                        name="options[]"
+                                        name="options_{{ grpO.grp_id }}[]"
                                         id="usrEmail_{{ email.grp_id }}_{{ email.usr_email }}"
                                         value="{{ email.usr_email }}">
                             {% endif %}
@@ -33,7 +33,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-warning" data-dismiss="modal"
-                            id="removeUsersFromGroup">Remove Users
+                            onclick="removeUsersFromGroup({{ grpO.grp_id }})">Remove Users
                     </button>
                 </div>
             </form>

@@ -493,7 +493,6 @@
 
         $("#confirmDelete").on('click', function() {
            var p = $(this).attr("#grp_id");
-            alert(p);
         });
 
     });
@@ -513,13 +512,13 @@
     }
 
     // Add genesets to projects
-    $('#removeUsersFromGroup').on('click', function (e) {
+    function removeUsersFromGroup(grp_id) {
         var checked = [];
-        $("input[name='options[]']:checked").each(function () {
-            checked.push(parseInt($(this).val()));
+        var g = grp_id;
+        $("input[name='options_"+g+"[]']:checked").each(function () {
+            checked.push($(this).val());
         });
-        var option = JSON.stringify(checked);
-        var g = $('#myGroupID').val();
+        var emails = checked.toString();
         if ($.isEmptyObject(checked)) {
             $('#deleteGroupUsers_' + g).hide();
             $(document).trigger("add-alerts", [
@@ -532,21 +531,20 @@
         else {
             $.ajax({
                 type: "GET",
-                url: "../addGenesetsToProjects",
-                data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
+                url: "../removeUsersFromGroup",
+                data: {"user_id": {{ g.user.user_id }}, "grp_id": g, "user_emails": emails},
                 success: function (data) {
                     $(document).trigger("add-alerts", [
                         {
-                            'message': "Genesets Successfully Added to Selected Projects.",
+                            'message': "Users successfully removed from group.",
                             'priority': 'success'
                         }
                     ]);
-                    window.location.reload();
+                    window.location.href('../accountsettings.html')
                 }
             });
         }
-    });
-
+    }
 
 
     function validate() {

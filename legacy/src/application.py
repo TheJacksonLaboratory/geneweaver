@@ -430,6 +430,16 @@ def update_geneset_genes():
             return json.dumps(results)
 
 
+@app.route('/removeUsersFromGroup', methods=['GET'])
+def remove_users_from_group():
+    if 'user_id' in flask.session:
+        user_id = request.args['user_id']
+        user_emails = request.args['user_emails']
+        grp_id = request.args['grp_id']
+        results = geneweaverdb.remove_selected_users_from_group(user_id, user_emails, grp_id)
+        return json.dumps(results)
+
+
 @app.route('/deleteProjectByID', methods=['GET'])
 def delete_projects():
     if 'user_id' in flask.session:
