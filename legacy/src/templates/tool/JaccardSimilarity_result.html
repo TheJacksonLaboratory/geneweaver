@@ -84,8 +84,9 @@
  }
 
 .left-cell {
-  display: table-cell;
   vertical-align: middle;
+  width: 200px;
+
 }
 .right-cell {
   display: table-cell;
@@ -94,10 +95,18 @@
   right: 0;
 }
 
+.middle-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: right;
+  padding-left: 320px;
+}
+
+
 .box-header {
   padding-bottom: 5px;
   display: table;
-  width: 100%;
+  width: 90%;
 }
 .form-group{
  padding-right: 300px;
@@ -112,15 +121,69 @@
 }
 
 
+#checkall{
+    float: left;
+
+}
+
   .page-header {
         border-bottom-width: thick;
         border-bottom-color: #006400;
     }
+
+input#checkall[type='checkbox'] {
+    -webkit-checkbox: none;
+    width:3px;
+    height:3px;
+    background:white;
+    border-radius:5px;
+    border:2px solid #555;
+}
+{#input#checkall[type='checkbox']:checked {#}
+{#    background: #006b00;#}
+{#}#}
+
+
+input[type="checkbox"] {
+ -webkit-appearance:none;/* Hides the default checkbox style */
+ height:1.32em;
+ width:1.32em;
+ cursor:pointer;
+ position:relative;
+ -webkit-transition: .15s;
+ border-radius: 4px;
+ background-color: rgba(221, 221, 221, 0.87);
+
+}
+
+input[type="checkbox"]:hover {
+ background: rgba(143, 151, 105, 0.67);
+}
+input[type="checkbox"]:checked {
+ background-color:green;
+}
+
+input[type="checkbox"]:before, input[type="checkbox"]:checked:before {
+ position:absolute;
+ top:0;
+ left:0;
+ width:100%;
+ height:100%;
+ line-height:1.32em;
+ text-align:center;
+ color:#fff;
+
+}
+
+input[type="checkbox"]:checked:before {
+ content: '✔';
+}
+
+input[type="checkbox"]:hover:before {
+ background:rgba(255,255,255,0.3);
+}
+
 </style>
-
-
-
-
 
 
 
@@ -158,6 +221,13 @@
 <div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">    Geneset Table Panel</i></div>
 <div id="panel" class="badger-left">
 <div id="chart"></div>
+
+
+                        <div><form action="#" method="post" id="myform">
+                            <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
+                        </form></div> <p></p><br><br><br>
+
+
                         <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
                             <i class="fa fa-folder-o pull-left"></i> Add to Project
                         </button>
@@ -170,16 +240,36 @@
    <div class="page-header"> </div>
 <p>
   <div class="box-header clearfix">
-  <div class = "left-cell">
-    <h4>Venn Diagram view:</h4>
-
-
-
+      <div class = "left-cell">
+         <h4>Venn Diagram view:</h4>
+      </div>
+      <div class="container middle-cell">
+         <div class="dropdown middle-cell">
+             <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
+             <span class="caret"></span></button>
+              <ul class="dropdown-menu" id="menudrop" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
+                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg">SVG</a></li>
+                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
+                  <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
+              </ul>
+         </div>
+      </div>
+            <div class="right-cell">
+         <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
+      </div>
 </div>
-    <div class="right-cell">
-    <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
-    </div>
-</div>
+
+
+<script>
+
+$(document).ready(function(){
+    $(".dropdown").on("show.bs.dropdown", function(event){
+        var x = $(event.relatedTarget).text(); // Get the button text
+
+    });
+});
+
+</script>
 
 
 
@@ -187,11 +277,10 @@
 <div id="jaccard"></div>
 
 
-    </form>
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
-        <h5>P-Value Threshold (0.05 increments):
-      <label  style="font-weight: bold" id="nRadius-value">…</label></h5>
+        <h2>P-Value Threshold (0.05 increments):
+      <label  style="font-weight: bold" id="nRadius-value">…</label></h2>
   </label>
 
   <input type="range" min="0" max="1" step = "0.05" id="nRadius">
@@ -200,32 +289,17 @@
 
 <br>
 
-View As:</r>
-<form>
-   <label>SVG<input type="radio" name="view" value="svg" onclick="changeImg(this, false);" checked></label>
-   <label>PNG<input type="radio" name="view" value="png" onclick="changeImg(this, false);"></label>
-    <label>PDF<input type="radio" name="view" value="pdf" onclick="changeImg(this, false);"></label>
-</form>
+
+
 
 <br>
-Download As:
+
 <select name="downloadType" id="downloadType">
    <option value="null">Select file type...</option>
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
    <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
 </select>
-<br><br><br>
-
-
-
-
-{% include 'footer.html' %}
-
-
-
-
-
 
 
 
@@ -352,7 +426,7 @@ var threshold = false;
             if (k === 2) {
                 str = d.venn_diagrams[i].text[k].text;
                 str = str.replace("p =", "");
-                str = str.replace(/^\s+|\s+$/g, '');
+                str = str.replace(/^\s+|\s+$/g, '')
 
             }
 
@@ -740,13 +814,7 @@ $(document).ready(function(){
 
 
 
-
-
-
-
-
 <script type="text/javascript">
-
 
    // var w =  width + margin.left + margin.right; //, h = height + margin.top + margin.bottom;
     var border = 0.5;
@@ -767,12 +835,19 @@ $(document).ready(function(){
 
 
 
-    var h= (count * 90) + 200;
+    var h= (count * 90) + 150;
     var w = (count * 110) + 100;
 
     function addStyle(h,w) {
         $('<style>.badger-left:after { height: ' + h + ';</style>').appendTo('#panel');
         $('<style>.badger-left:after { width: ' + w + ';</style>').appendTo('#panel');
+    }
+
+    function toggle(source) {
+        checkboxes = document.getElementsByName('foo');
+        for (var i = 0, n = checkboxes.length; i < n; i++) {
+            checkboxes[i].checked = source.checked;
+        }
     }
 
     var svg = d3.select("#chart").append("svg:svg")
@@ -781,36 +856,38 @@ $(document).ready(function(){
 
     var xcoord = 90;
 
+
+
+
+
        for(i = 0; i < count; i++){
 
-        svg.append("foreignObject")
+         svg.append("foreignObject")
               .attr("width", 325)
               .attr("height", 0)
-              .attr("x", -5)
-              .attr("y", xcoord - 95)
+              .attr("x", 3)
+              .attr("y", xcoord - 70)
             .append("xhtml:body")
-            .html( "<form id =test><input type=checkbox id=check /> <label for=check>" + d.geneset_table[i].text  + "</label></form>");
+           .html( "<input type=checkbox name=foo value=bar id=check>");
+
+
+
+
+            result = (d.geneset_table[i].text).replace(/.{34}\S*\s+/g, "$&@").split(/\s+@/);
+            console.log(result);
+            var nextLine = 0;
+           for(j = 0; j < result.length; j++) {
+               svg .append("a")
+                       .attr("xlink:href", d.geneset_table[i].url).append("text")
+                       .attr("x", 40)
+                        .style("font-weight",  "bold")
+                       .attr("y", xcoord - 6 + nextLine)
+                       .text(result[j]);
+               nextLine += 14;
+           }
 
              xcoord +=90;
         }
-
-
-$('#check').change(function() {
-
-    var $check = $(this),
-        $div = $check.parent();
-
-    if ($check.prop('checked')) {
-
-        $div.addClass('test');
-
-    } else {
-
-        $div.removeClass('test');
-
-    }
-
-});
 
 
     var addOnX = 0;
@@ -958,44 +1035,5 @@ $('#check').change(function() {
 
 
 
-<br>
-<div class="container">
-  <div class="dropdown">
-    <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
-    <span class="caret"></span></button>
-    <ul class="dropdown-menu" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
-      <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg">SVG</a></li>
-      <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
-      <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
-    </ul>
-  </div>
-</div>
-
-<script>
-
-$(document).ready(function(){
-    $(".dropdown").on("show.bs.dropdown", function(event){
-        var x = $(event.relatedTarget).text(); // Get the button text
-
-    });
-});
-
-</script>
-
-
-Download As:
-<select name="downloadType" id="downloadType">
-   <option value="null">Select file type...</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
-</select>
-
-<br><br><br>
-
-
-<form method="get" action="">
-<button type="submit">Download!</button>
-</form>
 
 
