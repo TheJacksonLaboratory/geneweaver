@@ -402,16 +402,26 @@ function reduceMatrix() {
     if(i % num_sets === 0) {
       pMatrix.push(row);
     }
-    str = d.venn_diagrams[i].text[2].text;
-    str = str.replace("p =", "");
-    str = str.replace(/^\s+|\s+$/g, '');
-    str === "" ? str = "-1" : str = str;
-    row.push(str);
+    count_text = 0;
+    for(var key in d.venn_diagrams[i].text) {
+      if(d.venn_diagrams[i].text.hasOwnProperty(key)) {
+        ++count_text;
+      }
+    }
+
+    if(count_text >= 3) {
+      str = d.venn_diagrams[i].text[2].text;
+      console.log(str);
+      str = str.replace("p =", "");
+      str = str.replace(/^\s+|\s+$/g, '');
+      str === "" ? str = "-2" : str = str;
+      row.push(str);
+    }
   }
   console.log(pMatrix);
 }
 
-//reduceMatrix();
+reduceMatrix();
 
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
     for (i = 0; i < count; i++) {
