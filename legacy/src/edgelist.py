@@ -380,7 +380,8 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     genesets.pop(0)
 
     with PooledCursor() as cursor:
-        cursor.execute(cursor.mogrify('''SELECT gs_name, gs_id FROM geneset WHERE gs_id IN (%s)'''%",".join(str(x) for x in projects)))
+        ordering = '''ORDER BY FIELD(gs_id, (%s))'''%",".join(str(x) for x in projects)
+        cursor.execute(cursor.mogrify('''SELECT gs_name, gs_id FROM geneset WHERE gs_id IN (%s)'''%",".join(str(x) for x in projects) + ordering))
 
     project_names = list(dictify_cursor(cursor))
     p_names = []
