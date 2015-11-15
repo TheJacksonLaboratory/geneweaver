@@ -369,26 +369,48 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f.write("name,gs_name,something,something,color\n")
 
     # Get rid of the first two elements in identifiers (project ids)
+    print "identifiers before:", identifiers
     genesets = list(identifiers)
+    print "genesets:", genesets
+    projects = []
+    projects.append(genesets[0])
+    projects.append(genesets[1])
+    print "projects:", projects
     genesets.pop(0)
     genesets.pop(0)
+
+    with PooledCursor() as cursor:
+        ordering = '''ORDER BY FIELD(gs_id, (%s))'''%",".join(str(x) for x in projects)
+        cursor.execute(cursor.mogrify('''SELECT gs_name, gs_id FROM geneset WHERE gs_id IN (%s)'''%",".join(str(x) for x in projects) + ordering))
+
+    project_names = list(dictify_cursor(cursor))
+    p_names = []
+    for val in project_names:
+            print val.values()
+            p_names.append(val.values()[0].encode('ascii'))
 
     # SQL query to the database to get the names of the genes
     with PooledCursor() as cursor:
-        cursor.execute(cursor.mogrify('''SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id IN (%s)'''%",".join(str(x) for x in genesets)))
+        cursor.execute(cursor.mogrify('''SELECT ode_ref_id, ode_gene_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id IN (%s)'''%",".join(str(x) for x in genesets)))
 
     names = list(dictify_cursor(cursor))
+    g_names = []
+    g_names.append(p_names[0])
+    g_names.append(p_names[1])
     for val in names:
-        print val
+        print val.values()
+        g_names.append(val.values()[0].encode('ascii'))
 
-    print "names:", names
+    print "g_names:", g_names
+    print "identifiers:", identifiers
 
     for i in range(len(identifiers)):
         for j in range(len(partitions)):
             #print identifiers[i]
             #print partitions[j]
             if identifiers[i] in partitions[j]:
-                 f.write(str(identifiers[i]) + ',' + str(identifiers[i]) + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
+                f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
+                print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
     f.close()
 
 

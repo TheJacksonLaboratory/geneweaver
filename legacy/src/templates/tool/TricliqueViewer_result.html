@@ -115,7 +115,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                         var n = temp.split(',');
                         //t = n[1];
                         //t = n[1].replace(/-.*/,'');
-                        t = n[0];
+                        t = n[1];
                         document.write(t.fontcolor(n[4]) + "<br>");
 
                     }
@@ -215,7 +215,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                     .attr("class", "group")
                     .on("mouseover", mouseover)
                 //TODO: Figure out the correct url for this hyperlink
-                    .on("click", function(d, i) {window.open("http://127.0.0.1:5000/viewgenesetdetails/" + cities[i].gs_name)});
+                    .on("click", function(d, i) {window.open("http://127.0.0.1:5000/viewgenesetdetails/" + cities[i].name)});
 
             // Add a mouseover title.
             group.append("title").text(function(d, i) {
@@ -246,7 +246,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     					return (d.endAngle + d.startAngle)/2 > Math.PI ?
         				"end" : "start";
 				})
-			.text(function(d,i) { return cities[i].name; });
+			.text(function(d,i) { return cities[i].gs_name; });
 
 //            groupText.append("textPath")
 //                    .attr("xlink:href", function(d, i) { return "#group" + i; })
