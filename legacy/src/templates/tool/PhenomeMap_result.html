@@ -453,8 +453,8 @@
             var colorscale = d3.scale.category20();
             //All nodes, do the following:
             g.node.select("circle")
-                    .style("fill", function(d,i) { return colors_google(d,i); } );
-{#                    .style("stroke", function(d,i) { return colors_google(d,i); });#}
+                    .style("fill", function(d) { return colors_google(d); } )
+                    .style("stroke", function(d) { return colors_google(d); });
             //-------------------
 
             //g.node.fontcolor(textColor)
@@ -462,15 +462,12 @@
 
         }
 
-        function colors_google(d,n) {
+        function colors_google(d) {
             var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
 
-            if (!dictionary[d.species] || !(dictionary[d.species] instanceof Array)) {
-                dictionary[d.species] = n;
+            if (!(d.species in dictionary)) {
+                dictionary[d.species] = Object.keys(dictionary).length;
             }
-
-            console.log(dictionary[d.species] + ": " + d.species + ": " + colors_g[dictionary[d.species]]);
-
 
             return colors_g[dictionary[d.species]];
         }
