@@ -1,4 +1,4 @@
-<!--
+ <!--
     file created by Melissa 9/15/15
     file needs to be altered to perform specific functions for triclique tool
     modified by Kevin 9/20/15
@@ -216,6 +216,9 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                     .on("mouseover", mouseover)
                 //TODO: Figure out the correct url for this hyperlink
                     .on("click", function(d, i) {window.open("http://127.0.0.1:5000/viewgenesetdetails/" + cities[i].name)});
+                    //.on("click", function(d){
+                    //    window.open("http://127.0.0.1:5000/search/?searchbar=" + cities[i].gs_name + "&pagination_page=1&searchGenes=yes")
+                    //});
 
             // Add a mouseover title.
             group.append("title").text(function(d, i) {
