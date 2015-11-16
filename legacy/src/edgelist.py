@@ -403,7 +403,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     # SQL query to the database to get the names of the genes
     for g in range(len(genesets)):
         with PooledCursor() as cursor:
-            cursor.execute(cursor.mogrify("SELECT ode_ref_id, ode_gene_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + genesets[g] + " ' "))
+            cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + genesets[g] + " ' "))
 
         temp = (list(dictify_cursor(cursor)))
         temp = temp[0]
