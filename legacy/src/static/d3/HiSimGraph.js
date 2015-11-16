@@ -52,11 +52,11 @@ $(function () {
         })
         //linkStrength also proportional to distance
         .linkStrength(function (link) {
-            return 1 / ((link.target.depth - link.source.depth) * 1);
+            return 1 / ((link.target.depth - link.source.depth) * 1.5);
         })
         //Deeper nodes have a stronger charge because there's more jostling for space down there
         .charge(function (d) {
-            return (-((d.depth+1) * 1));
+            return (-((d.depth+1) * 400));
         })
         .chargeDistance(300)
         .gravity(0.05)
@@ -411,7 +411,7 @@ function tick() {
     
     for (var i = 0; i < g.force.nodes().length; i++) {
         console.log("COLLIDING NODE " + g.force.nodes()[i].id);
-     	collide(g.force.nodes()[i]);   
+     	//collide(g.force.nodes()[i]);
     }
     
     g.node.attr("transform", function (d) {
