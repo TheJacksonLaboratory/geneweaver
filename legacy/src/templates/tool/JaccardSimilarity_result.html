@@ -391,47 +391,239 @@ var threshold = false;
   }
 
 
+// Determine whether an element exists in an array
+function isIn(arr, x) {
+    for(var i = 0; i < arr.length; i++) {
+       if(arr[i] == x) return true; 
+    }
+    return false;
+}
+
 //console.log({{ data | safe }});
 // function to reduce matrix based on pValues and threshold
 function reduceMatrix() {
-  // create pMatrix
-  var pMatrix = [[]];
-  var row = [];
-  for(var i = 0; i < count; i++) {
-    var str = "-1";
-    if(i % num_sets === 0) {
-      pMatrix.push(row);
+    // create pMatrix
+    var pMatrix = []; // Array of Arrays (Matrix data structure)
+    var row = [];     // Each Array element of pMatrix
+    var elim = [];    // Array of rows (and columns) to be removed
+
+    for(var i = 0; i < count; i++) {
+        var str = "-1";
+        if(i % num_sets === 0 && i > 2) {
+            pMatrix.push(row);
+            row = [];
+        }
+        count_text = 0;
+        for(var key in d.venn_diagrams[i].text) {
+            if(d.venn_diagrams[i].text.hasOwnProperty(key)) {
+                ++count_text;
+            }
+        }
+        if(count_text >= 3) {
+            str = d.venn_diagrams[i].text[2].text;
+            str = str.replace("p =", "");
+            str = str.replace(/^\s+|\s+$/g, '');
+            str === "" ? str = "-1" : str = str;
+            row.push(str);
+        } else {
+            row.push("-1");
+        }
     }
-    count_text = 0;
-    for(var key in d.venn_diagrams[i].text) {
-      if(d.venn_diagrams[i].text.hasOwnProperty(key)) {
-        ++count_text;
+
+    pMatrix.push(row);
+    console.log(pMatrix);
+    var counter = 0;
+    for(var h = 0; h < pMatrix.length; h++) {
+        var isNull = true;
+        for(var j = 0; j < pMatrix[h].length; j++) {
+            if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) { 
+                isNull = false;
+                break;
+            }
+        }
+        if(isNull == true) {
+            elim.push(counter);
+        }
+        counter++;
+    }
+    /*
+    // Plot the circles
+    var _i = 0;
+    for (var row = 0; row < num_sets; row++) {
+        if(isIn(elim, row)) {
+          _i += num_sets;
+          continue;
+        }
+        row > 0 ? y_coord += 150 : y_coord = 50;
+        x_coord = 150;
+        for(var col = 0; col < num_sets; col++) {
+            if(isIn(elim, col)) {
+              _i++;
+              continue;
+            }
+            var str = pMatrix[row][col];
+            x_coord += 200;
+            gene_lab_coor.push([d.venn_diagrams[_i].tx, d.venn_diagrams[_i].ty]);
+            //{#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
+            for(var k = 0; k < count_text; k++) {
+                if (d.venn_diagrams[_i].r1 === d.venn_diagrams[_i].r2) {
+                    circleData.push({
+                        "cx": d.venn_diagrams[_i].c2x,
+                        "cy": d.venn_diagrams[_i].c2y,
+                        "radius": d.venn_diagrams[_i].r2,
+                        "fill": "#66FFFF",
+                        "opacity": d.venn_diagrams[_i].opacity,
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "des": d.venn_diagrams[_i].desc1,
+                         "url":   gene_url[check-1] +'/' + gene_url[check-1],
+                        "title" : d.venn_diagrams[_i].title1,
+                        "pvalue" : str,
+                        "show" : threshold
+                    });
+                    row +=1;
+
+                    //# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
+                    if((_i === 0) && (k === 0)) {
+                         circleData.push({
+                                "gene_id": d.venn_diagrams[_i].text[k].text,
+                                "txshift": x_coord + d.venn_diagrams[_i].text[k].tx + 27,
+                                "tyshift": y_coord + d.venn_diagrams[_i].text[k].ty + 40,
+                                "label": d.geneset_table[check].text.substring(0,25),
+                                "label1": d.geneset_table[check].text.substring(25,50),
+                                "labelx": x_coord,
+                                "labely": y_coord,
+                                "pvalue" : str,
+                                "show" : threshold
+
+                            });
+                            check += 1;
+
+                            //{# Else (FIXES OVERLAP) object is not i = 0, text k is 0, and is a diagonal then intializes jaccard, p and coordinate values#}
+                            circleData.push({
+                                "gene_id": d.venn_diagrams[_i].text[k].text,
+                                "txshift": x_coord + d.venn_diagrams[_i].text[k].tx + 27,
+                                "tyshift": y_coord + d.venn_diagrams[_i].text[k].ty + 40,
+                                "label": d.geneset_table[check].text.substring(0,25),
+                                "label1": d.geneset_table[check].text.substring(25,50),
+                                "labelx": x_coord,
+                                "labely": y_coord,
+                                "pvalue" : str,
+                                "show" : threshold
+
+                            });
+                            check += 1;
+
+                    //{# If k or i is different push the label onto the circledata array #}
+                    } else {
+                        circleData.push({
+                            "gene_id": d.venn_diagrams[_i].text[k].text,
+                            "txshift": x_coord + d.venn_diagrams[_i].text[k].tx + 18,
+                            "tyshift": y_coord + d.venn_diagrams[_i].text[k].ty + 24,
+                            "pvalue" : str,
+                            "show" : threshold
+                        });
+                    }
+
+                //{#  Else make circles for orange and blue with appropriate json values #}
+                } else {
+                  if (d.venn_diagrams[_i].r2 > d.venn_diagrams[_i].r1){
+                    circleData.push({
+                        "cx": d.venn_diagrams[_i].c2x,
+                        "cy": d.venn_diagrams[_i].c2y,
+                        "radius": d.venn_diagrams[_i].r2,
+                        "fill": "#0000FF",
+                        "opacity": d.venn_diagrams[_i].opacity,
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "gene_id": d.venn_diagrams[_i].text[k].text,
+                        "txshift": x_coord + d.venn_diagrams[_i].text[k].tx + 20,
+                        "tyshift": y_coord + d.venn_diagrams[_i].text[k].ty + 30,
+                        "des": d.venn_diagrams[_i].desc1,
+                        "url":  gene_url[check]+'/'+ gene_url[check-1],
+                        "title" : d.venn_diagrams[_i].title1,
+                        "pvalue" : str,
+                        "show" : threshold,
+                        "url1":   d.venn_diagrams[_i].url
+                    });
+
+                    circleData.push({
+                        "cx": d.venn_diagrams[_i].c1x,
+                        "cy": d.venn_diagrams[_i].c1y,
+                        "radius": d.venn_diagrams[_i].r1,
+                        "fill": "#FF8000",
+                        "opacity": ".5",
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "des": d.venn_diagrams[_i].desc1,
+                        "url": gene_url[check]+'/'+ gene_url[check-1],
+                        "title" : d.venn_diagrams[_i].title1,
+                        "pvalue" : str,
+                        "show" : threshold
+                    });
+
+                  } else {
+                                  
+                    circleData.push({
+                        "cx": d.venn_diagrams[_i].c1x,
+                        "cy": d.venn_diagrams[_i].c1y,
+                        "radius": d.venn_diagrams[_i].r1,
+                        "fill": "#FF8000",
+                        "opacity": ".5",
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "des": d.venn_diagrams[_i].desc1,
+                        "url": gene_url[check]+'/'+ gene_url[check-1],
+                        "title" : d.venn_diagrams[_i].title1,
+                        "pvalue" : str,
+                        "show" : threshold
+                    });
+
+                    circleData.push({
+                        "cx": d.venn_diagrams[_i].c2x,
+                        "cy": d.venn_diagrams[_i].c2y,
+                        "radius": d.venn_diagrams[_i].r2,
+                        "fill": "#0000FF",
+                        "opacity": d.venn_diagrams[_i].opacity,
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "gene_id": d.venn_diagrams[_i].text[k].text,
+                        "txshift": x_coord + d.venn_diagrams[_i].text[k].tx + 20,
+                        "tyshift": y_coord + d.venn_diagrams[_i].text[k].ty + 30,
+                        "des": d.venn_diagrams[_i].desc1,
+                        "url":  gene_url[check]+'/'+ gene_url[check-1],
+                        "title" : d.venn_diagrams[_i].title1,
+                        "pvalue" : str,
+                        "show" : threshold,
+                        "url1":   d.venn_diagrams[_i].url
+                    });
+                  }
+              }
+              _i++;
+          }
+            
       }
     }
-
-    if(count_text >= 3) {
-      str = d.venn_diagrams[i].text[2].text;
-      console.log(str);
-      str = str.replace("p =", "");
-      str = str.replace(/^\s+|\s+$/g, '');
-      str === "" ? str = "-2" : str = str;
-      row.push(str);
-    }
-  }
-  console.log(pMatrix);
+    */
+    return elim;
 }
 
-reduceMatrix();
+var elim = reduceMatrix();
 
+
+var e_count = 0;
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
     for (i = 0; i < count; i++) {
         var str = "-1";
         if (i % num_sets === 0) {
             x_coord = 150;
             y_coord += 150;
+            e_count++;
             if (i === 0) {
                 y_coord = 50;
+                e_count = 0;
             }
+            
         }
         else {
             x_coord += 200;
@@ -464,12 +656,6 @@ reduceMatrix();
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
-{#                str = d.venn_diagrams[i].title1;#}
-{#                str= str.substring(0,32);#}
-{#                if (str >= d.JaccardSimilarity_p-Value){#}
-{#                    threshold = true;}#}
-{#                else{#}
-{#                    threshold = false}#}
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -490,13 +676,6 @@ reduceMatrix();
 
                 {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
                 if((i === 0) && (k === 0)) {
-{#                    if (str >= d.JaccardSimilarity_p - Value) {#}
-{##}
-{#                    threshold = true;#}
-{#                }#}
-{#                    else {#}
-{#                        threshold = false;#}
-{#                    }#}
                      circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
@@ -514,11 +693,6 @@ reduceMatrix();
 
                 {# Else (FIXES OVERLAP) object is not i = 0, text k is 0, and is a diagonal then intializes jaccard, p and coordinate values#}
                 else if ( (k===0) && (i !== 0) && (i%(num_sets+1) ===0)){
-{#                    if (str >= d.JaccardSimilarity_p-Value){#}
-{#                        threshold = true;}#}
-{#                    else {#}
-{#                        threshold = false;#}
-{#                    }#}
                         circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
@@ -536,10 +710,6 @@ reduceMatrix();
 
                 {# If k or i is different push the label onto the circledata array #}
                 else {
-{#                     if (str >= d.JaccardSimilarity_p-Value){#}
-{#                        threshold = true;}#}
-{#                    else{#}
-{#                        threshold = false;}#}
                     circleData.push({
                         "gene_id": d.venn_diagrams[i].text[k].text,
                         "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 18,
