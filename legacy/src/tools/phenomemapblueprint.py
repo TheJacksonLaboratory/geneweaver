@@ -203,9 +203,16 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
+        f = open('/Users/group4admin/PycharmProjects/results/TestOutput.hisim.json', 'r');
+        data = ''
+        for line in f:
+            data += str(line)
+        json.dumps(data)
+        f.close()
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/PhenomeMap_result.html',
+            data=data,
             async_result=json.loads(async_result.result),
             tool=tool)
     else:
