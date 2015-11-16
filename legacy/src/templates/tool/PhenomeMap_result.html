@@ -267,6 +267,8 @@
 
         g.data = {{ data | safe }};
 
+        var dictionary = {};
+
 
         //initialization
         $(function () {
@@ -451,8 +453,8 @@
             var colorscale = d3.scale.category20();
             //All nodes, do the following:
             g.node.select("circle")
-                    .style("fill", color) //calls delegate
-                    .style("fill", function(d,i) { return colores_google(i); } );
+                    .style("fill", function(d,i) { return colors_google(d,i); } );
+{#                    .style("stroke", function(d,i) { return colors_google(d,i); });#}
             //-------------------
 
             //g.node.fontcolor(textColor)
@@ -460,10 +462,19 @@
 
         }
 
-        function colores_google(n) {
-            var colores_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
-            return colores_g[n % colores_g.length];
+        function colors_google(d,n) {
+            var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
+
+            if (!dictionary[d.species] || !(dictionary[d.species] instanceof Array)) {
+                dictionary[d.species] = n;
+            }
+
+            console.log(dictionary[d.species] + ": " + d.species + ": " + colors_g[dictionary[d.species]]);
+
+
+            return colors_g[dictionary[d.species]];
         }
+
 
         // Invoked from 'update'.
         // The original source data is not the usual nodes + edge list,
@@ -617,7 +628,13 @@
                     .attr('transform', function (d) {
                         return 'translate(5, -5)';
                     })
-                    .text(d.name + ": " + d.id)
+                    .attr("dx", function (d) {
+                        return (d.children.length > 0) ? "1em" : "-1em";
+                    })
+                    .attr("text-anchor", function (d) {
+                        return (d.children.length > 0) ? "start" : "end";
+                    })
+                    .text(d.name + ": " + d.species)
                     .style("font-weight", "bold");
         }
 
