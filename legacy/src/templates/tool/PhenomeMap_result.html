@@ -454,7 +454,8 @@
             //All nodes, do the following:
             g.node.select("circle")
                     .style("fill", function(d) { return colors_google(d); } )
-                    .style("stroke", function(d) { return colors_google(d); });
+                    .style("stroke", function(d) { return colors_google(d); })
+                    .style("fill-opacity", opacity);
             //-------------------
 
             //g.node.fontcolor(textColor)
@@ -536,12 +537,12 @@
         //Return the color of the node
         //based on the children value of the
         //source data item: {name=..., children: {...}}
-        function color(d) {
-            return d._children ? "#3182bd" // collapsed package
+        function opacity(d) {
+            return d._children ? "1" // collapsed package
                     :
-                    d.children.length > 0 ? "#c6dbef" // expanded package
+                    d.children.length > 0 ? ".5" // expanded package
                             :
-                            "#ffffff"; // leaf node
+                            "0"; // leaf node
         }
 
 
