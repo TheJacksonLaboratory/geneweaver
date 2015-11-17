@@ -371,16 +371,16 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f.write("name,gs_name,something,something,color\n")
 
     # Get rid of the first two elements in identifiers (project ids)
-    print "identifiers before:", identifiers
+    #print "identifiers before:", identifiers
     genesets = list(identifiers)
-    print "genesets:", genesets
+    #print "genesets:", genesets
     proj_ids = []
     proj_ids.append(genesets[0])
     proj_ids.append(genesets[1])
-    print "projects:", proj_ids
+    #print "projects:", proj_ids
     genesets.pop(0)
     genesets.pop(0)
-    print "genesets:", genesets
+    #print "genesets:", genesets
 
     proj_names = list()
 
@@ -397,7 +397,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     for val in proj_names:
         p_names.append(val[0].encode('ascii'))
 
-    print "project_names", p_names
+    #print "project_names", p_names
 
     gs_names = []
     # SQL query to the database to get the names of the genes
@@ -418,7 +418,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     for val in gs_names:
         g_names.append(val[0].encode('ascii'))
 
-    print "g_names:", g_names
+    #print "g_names:", g_names
 
     for i in range(len(identifiers)):
         for j in range(len(partitions)):
@@ -426,7 +426,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
             #print partitions[j]
             if identifiers[i] in partitions[j]:
                 f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
-                print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
+                #print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
     f.close()
 
 
