@@ -183,7 +183,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
             endtab = '\t' * ((len(projs) - 1) - k)
             midtab = '\t' * (k - i)
             if k < len(projs):
-                ## Need to keep counts of each row in the counts disctionary
+                ## Need to keep counts of each row in the counts dictionary
                 if projs[i] not in counts:
                     counts[projs[i]] = 1
                 else:
@@ -197,11 +197,18 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
                 for m in genesets[projs[i]]:
                     for n in genesets[projs[k]]:
                         jac_value = get_jaccard(m.geneset_id, n.geneset_id, threshold)
+                        print jac_value
                         if jac_value > 0:
                             out += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
 
+    # If no genes were found in the intersection
+    if len(out) == 0:
+            return -1
 
-    #print out
+    print out
+    f = open(RESULTS + taskid + '.kel', 'wb')
+    f.write(out)
+    f.close()
 
 
 def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology):

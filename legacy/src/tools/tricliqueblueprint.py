@@ -55,8 +55,9 @@ def run_tool():
             flask.flash("Warning: You must select exactly 2 projects!")
             return flask.redirect('analyze')
     else:
-        flask.flash("This tool is not currently available.")
-        return flask.redirect('analyze')
+        if len(selected_project_ids) < 3:
+            flask.flash("Warning: You must select at least 3 projects!")
+            return flask.redirect('analyze')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -81,8 +82,18 @@ def run_tool():
         desc)
 
     # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
-    # TODO: get result from this function (boolean) and figure out how to send this information via response
-    outOfBounds = create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    if params2[method_str] == 'ExactGeneOverlap':
+        print "Exact gene overlap"
+        outOfBounds = create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    #TODO: get threshold from user
+    else:
+        print "Jaccard"
+        # Warn the user if the projects selected are too large
+        if len(selected_geneset_ids) > 50:
+            flask.flash("Warning: Selecting too many genesets will not return results in a timely fashion")
+            return flask.redirect('analyze')
+        outOfBounds = create_kpartite_file_from_jaccard_overlap(task_id, RESULTS_PATH, selected_project_ids, 0.001)
+
     if outOfBounds == -1:
         flask.flash("Warning: The genesets for the projects you chose had no intersection")
         return flask.redirect('analyze')
