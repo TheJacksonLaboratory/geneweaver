@@ -2042,12 +2042,11 @@ def get_all_parents_to_root_for_ontology(ont_id):
     list_of_ordered_parent_cur_path_list = []
     while result[0] != 0:
         if parent_path_list == []:
-            print list_of_ordered_parent_cur_path_list
+            #print list_of_ordered_parent_cur_path_list
             return list_of_ordered_parent_cur_path_list
         parent_cur_path_list = parent_path_list.pop()
-        #print parent_cur_path_list
         ont_cur_id = parent_cur_path_list[-1]
-        #print "CURRENT ID %d" % ont_cur_id
+
         with PooledCursor() as cursor:
             cursor.execute(
                 '''
@@ -2066,7 +2065,6 @@ def get_all_parents_to_root_for_ontology(ont_id):
                 back = parent_cur_path_list[-1]
                 parent_cur_path_list = parent_cur_path_list[0]
                 ordered_parent_cur_path_list.append(back)
-            #print "One parent path finished"
             if len(parent_cur_path_list) == 1:
                 ordered_parent_cur_path_list.append(parent_cur_path_list[-1])
             list_of_ordered_parent_cur_path_list.append(ordered_parent_cur_path_list)
@@ -2075,9 +2073,9 @@ def get_all_parents_to_root_for_ontology(ont_id):
             #those multiple paths of parents onto the path_list
             for ont in get_all_parents_for_ontology(ont_cur_id):
                 parent_path_list.append([parent_cur_path_list, ont.ontology_id])
-        print "==================="
-        print parent_path_list
-        print "==================="
+        #print "==================="
+        #print parent_path_list
+        #print "==================="
 
 
 def get_all_children_for_ontology(ont_id):

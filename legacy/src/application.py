@@ -333,9 +333,11 @@ def render_editgenesets(gs_id):
 
 @app.route('/getOntDBNodes')
 def get_ontdb_nodes():
-    selected_onts = request.args['onts']
-    for ont in selected_onts:
-        print ont
+    gs_id = request.args['gs_id']
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    parents = []
+    for ont in onts:
+        parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
     result = geneweaverdb.get_all_ontologydb()
     info = []
     for i in range(0, len(result)):
@@ -346,20 +348,19 @@ def get_ontdb_nodes():
         data["key"] = result[i].ontologydb_id
         data["db"] = True
         data["children"] = []
-        #info.append(data)
-    #for i in range(0, len(result)):
-        result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
-        for i in range(0, len(result2)):
-            data2 = dict()
-            data2["title"] = result2[i].name
-            if(result2[i].children == 0):
-                data2["isFolder"] = False
-            else:
-                data2["isFolder"] = True
-            data2["isLazy"] = True
-            data2["key"] = result2[i].ontology_id
-            data2["db"] = False
-            data["children"].append(data2)
+        #data["expand"] = True
+        #result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
+        #for i in range(0, len(result2)):
+        #    data2 = dict()
+        #    data2["title"] = result2[i].name
+        #    if(result2[i].children == 0):
+        #        data2["isFolder"] = False
+        #    else:
+        #        data2["isFolder"] = True
+        #    data2["isLazy"] = True
+        #    data2["key"] = result2[i].ontology_id
+        #    data2["db"] = False
+        #    data["children"].append(data2)
         info.append(data)
     return (json.dumps(info))
 

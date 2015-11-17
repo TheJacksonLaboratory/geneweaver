@@ -248,6 +248,23 @@
                     </ul>
             </div>
 
+            <div class="row">
+                <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
+                <div class="row">
+                <div class="col-xs-3">
+                    <select name="gso_ref_type" class="form-control" required>
+                        <option value="all" selected>All Reference Types</option>
+                        {% for ref_type in ref_types %}
+                        <option value="ref_type">{{ ref_type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                </div>
+                <div id="tree" name="selNodes" style="overflow:auto; max-height:600px">
+                </div>
+                <span id="echoActive">-</span>
+            </div>
+
         {% else %}
             <div class="row">
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
@@ -301,9 +318,13 @@
             selectMode: 2,
             initAjax: {
                 url: "/getOntDBNodes",
-                data: {ontdb: "ontdb"}
-
+                data: { "gs_id": $(location).attr("href").split('/').pop() }
             },
+
+            onCreate: function(node, nodeSpan){
+                //alert("New Object Created" + node);
+            },
+
             onActivate: function (node) {
                 $("echoActive").text("" + node + " (" + node.name + ")")
             },
@@ -389,8 +410,8 @@
             //for(var i = 0; i < tree.length; i++){
             //    console.log(tree[i].data.key);
             //}
-            console.log(tree.serializeArr())
-            var onts = JSON.stringify(tree.serializeArr())
+            console.log(tree.serializeArr());
+            var onts = JSON.stringify(tree.serializeArr());
             data = data.concat("&onts=", onts);
             //alert(data);
 
