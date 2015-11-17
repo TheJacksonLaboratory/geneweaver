@@ -8,6 +8,7 @@ from urlparse import parse_qs, urlparse
 import adminviews
 import genesetblueprint
 import geneweaverdb
+from src.geneweaverdb import get_all_parents_for_ontology
 import uploadfiles
 import json
 import os
@@ -319,7 +320,6 @@ def render_editgenesets(gs_id):
     ontdb = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
     ont_parents = []
-
     for ont in onts:
         ont_parents.append(geneweaverdb.get_all_parents_for_ontology(ont.ontology_id))
 
@@ -333,6 +333,9 @@ def render_editgenesets(gs_id):
 
 @app.route('/getOntDBNodes')
 def get_ontdb_nodes():
+    selected_onts = request.args['onts']
+    for ont in selected_onts:
+        print ont
     result = geneweaverdb.get_all_ontologydb()
     info = []
     for i in range(0, len(result)):
@@ -342,12 +345,26 @@ def get_ontdb_nodes():
         data["isLazy"] = True
         data["key"] = result[i].ontologydb_id
         data["db"] = True
+        data["children"] = []
+        #info.append(data)
+    #for i in range(0, len(result)):
+        result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
+        for i in range(0, len(result2)):
+            data2 = dict()
+            data2["title"] = result2[i].name
+            if(result2[i].children == 0):
+                data2["isFolder"] = False
+            else:
+                data2["isFolder"] = True
+            data2["isLazy"] = True
+            data2["key"] = result2[i].ontology_id
+            data2["db"] = False
+            data["children"].append(data2)
         info.append(data)
     return (json.dumps(info))
 
 @app.route('/getOntRootNodes', methods=['POST', 'GET'])
 def get_ont_root_nodes():
-
     if(request.args['is_db'] == "true"):
         result = geneweaverdb.get_all_root_ontology_for_database(request.args['key'])
     else:
@@ -372,7 +389,7 @@ def get_ont_parent_nodes():
 
 
     info = []
-    
+
 
 
     return (json.dumps(info))
