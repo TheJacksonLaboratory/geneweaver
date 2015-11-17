@@ -146,7 +146,7 @@ def edge_proj2proj(projDict1, projDict2):
     return part
 
 def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold):
-    '''
+        '''
     This function takes a taskid and results dir for writing. It also takes a LIST of projects and a threshold. By
     looping through the list, we write all possible combinations of geneset pairs over the given threshold (threshold).
     This file is writen as a *.kel file with values in the columns seperated by tabs, with weach column representing a
@@ -166,7 +166,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     #RESULTS = '/Users/baker/Desktop/'
     RESULTS = results
     ###########################################
-    out = ''
+    fileout = ''
     genesets = {}
     counts = {}
 
@@ -183,7 +183,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
             endtab = '\t' * ((len(projs) - 1) - k)
             midtab = '\t' * (k - i)
             if k < len(projs):
-                ## Need to keep counts of each row in the counts dictionary
+                # Need to keep counts of each row in the counts disctionary
                 if projs[i] not in counts:
                     counts[projs[i]] = 1
                 else:
@@ -192,23 +192,28 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
                     counts[projs[k]] = 1
                 else:
                     counts[projs[k]] += 1
-                ## Now another inner loop (maybe need to be recursive?) to find all combinations of values
-                ## against eachother.
+                # Now another inner loop (maybe need to be recursive?) to find all combinations of values
+                # against eachother.
                 for m in genesets[projs[i]]:
                     for n in genesets[projs[k]]:
                         jac_value = get_jaccard(m.geneset_id, n.geneset_id, threshold)
-                        print jac_value
                         if jac_value > 0:
-                            out += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
+                            fileout += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
 
-    # If no genes were found in the intersection
-    if len(out) == 0:
-            return -1
+    # Add the row counts to the top of the page
+    values = []
+    for p in projs:
+        values.append(counts[p])
+    temp = str.join('\t', (values))
+    fileout = temp + '\n' + fileout
 
-    print out
-    f = open(RESULTS + taskid + '.kel', 'wb')
-    f.write(out)
-    f.close()
+    # print results to a file
+    print "file contains:"
+    print fileout
+    print "filepath:", RESULTS + taskid + '.kel'
+    out = open(RESULTS + taskid + '.kel', 'wb')
+    out.write(fileout)
+    out.close()
 
 
 def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology):
