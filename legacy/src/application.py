@@ -336,10 +336,14 @@ def get_ontdb_nodes():
     gs_id = request.args['gs_id']
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
     parents = []
+    used_dbs = set()
     for ont in onts:
         parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
+        if ont.ontdb_id not in used_dbs:
+            used_dbs.add(ont.ontdb_id)
     result = geneweaverdb.get_all_ontologydb()
     info = []
+
     for i in range(0, len(result)):
         data = dict()
         data["title"] = result[i].name
@@ -348,7 +352,8 @@ def get_ontdb_nodes():
         data["key"] = result[i].ontologydb_id
         data["db"] = True
         data["children"] = []
-        #data["expand"] = True
+        if data["key"] in used_dbs:
+            data["expand"] = True
         #result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
         #for i in range(0, len(result2)):
         #    data2 = dict()
