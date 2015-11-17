@@ -2309,7 +2309,10 @@ class ToolConfig:
         self.classname = tool_dict['tool_classname']
         self.name = tool_dict['tool_name']
         self.description = tool_dict['tool_description']
-        self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        try:
+            self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        except:
+            self.requirements = None
         self.is_active = tool_dict['tool_active'] == '1'
         self.sort_priority = tool_dict['tool_sort']
         self.__params = None
