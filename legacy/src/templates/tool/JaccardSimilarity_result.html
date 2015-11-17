@@ -410,27 +410,51 @@ function isIn(arr, x) {
 //console.log({{ data | safe }});
 // function to reduce matrix based on pValues and threshold
 function reduceMatrix() {
-   // create pMatrix
-   var pMatrix = []; // Array of Arrays (Matrix data structure)
-   var row = [];     // Each Array element of pMatrix
-   var elim = [];    // Array of rows (and columns) to be removed
+    // create pMatrix
+    var pMatrix = []; // Array of Arrays (Matrix data structure)
+    var row = [];     // Each Array element of pMatrix
+    var elim = [];    // Array of rows (and columns) to be removed
 
     for(var i = 0; i < count; i++) {
-        for(var h = 0; h < pMatrix.length; h++) {
-            var isNull = true;
-            for(var j = 0; j < pMatrix[h].length; j++) {
-                if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) { 
-                    isNull = false;
-                    break;
-                }
+        var str = "-1";
+        if(i % num_sets === 0 && i > 2) {
+            pMatrix.push(row);
+            row = [];
+        }
+        count_text = 0;
+        for(var key in d.venn_diagrams[i].text) {
+            if(d.venn_diagrams[i].text.hasOwnProperty(key)) {
+                ++count_text;
             }
-            if(isNull == true) {
-                elim.push(counter);
-            }
-            counter++;
+        }
+        if(count_text >= 3) {
+            str = d.venn_diagrams[i].text[2].text;
+            str = str.replace("p =", "");
+            str = str.replace(/^\s+|\s+$/g, '');
+            str === "" ? str = "-1" : str = str;
+            row.push(str);
+        } else {
+            row.push("-1");
         }
     }
-    return elim;
+
+    pMatrix.push(row);
+    console.log(pMatrix);
+    var counter = 0;
+    for(var h = 0; h < pMatrix.length; h++) {
+        var isNull = true;
+        for(var j = 0; j < pMatrix[h].length; j++) {
+            if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) { 
+                isNull = false;
+                break;
+            }
+        }
+        if(isNull == true) {
+            elim.push(counter);
+        }
+        counter++;
+    }
+   return elim;
 }
 
 var elim = reduceMatrix();
@@ -1050,7 +1074,7 @@ $(document).ready(function(){
            if (d.geneset_table[i].entries.hasOwnProperty(key)) {
                ++entry;
            }
-           console.log("Entry length: " + Object.keys(d.geneset_table[i].entries[entry-1]).length);
+           //console.log("Entry length: " + Object.keys(d.geneset_table[i].entries[entry-1]).length);
            if(Object.keys(d.geneset_table[i].entries[entry-1]).length == 3){
 
                  svg.append("a")
@@ -1167,7 +1191,7 @@ $(document).ready(function(){
 
 
             result = (d.geneset_table[i].text).replace(/.{30}\S*\s+/g, "$&@").split(/\s+@/);
-            console.log(result);
+            //console.log(result);
             var nextLine = 0;
            for(j = 0; j < result.length; j++) {
                svg .append("a")
