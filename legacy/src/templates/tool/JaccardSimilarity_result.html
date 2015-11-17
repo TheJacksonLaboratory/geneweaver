@@ -397,40 +397,105 @@ var threshold = false;
   }
 
 
+// Determine whether an element exists in an array
+function isIn(arr, x) {
+    for(var i = 0; i < arr.length; i++) {
+       if(arr[i] === x) return true; 
+    }
+    return false;
+}
+
 //console.log({{ data | safe }});
 // function to reduce matrix based on pValues and threshold
 function reduceMatrix() {
-  // create pMatrix
-  var pMatrix = [[]];
-  var row = [];
-  for(var i = 0; i < count; i++) {
-    var str = "-1";
-    if(i % num_sets === 0) {
-      pMatrix.push(row);
+    // create pMatrix
+    var pMatrix = []; // Array of Arrays (Matrix data structure)
+    var row = [];     // Each Array element of pMatrix
+    var elim = [];    // Array of rows (and columns) to be removed
+
+    for(var i = 0; i < count; i++) {
+        var str = "-1";
+        if(i % num_sets === 0 && i > 2) {
+            pMatrix.push(row);
+            row = [];
+        }
+        count_text = 0;
+        for(var key in d.venn_diagrams[i].text) {
+            if(d.venn_diagrams[i].text.hasOwnProperty(key)) {
+                ++count_text;
+            }
+        }
+        if(count_text >= 3) {
+            str = d.venn_diagrams[i].text[2].text;
+            str = str.replace("p =", "");
+            str = str.replace(/^\s+|\s+$/g, '');
+            str === "" ? str = "-1" : str = str;
+            row.push(str);
+        } else {
+            row.push("-1");
+        }
     }
-    str = d.venn_diagrams[i].text[2].text;
-    str = str.replace("p =", "");
-    str = str.replace(/^\s+|\s+$/g, '');
-    str === "" ? str = "-1" : str = str;
-    row.push(str);
-  }
-  console.log(pMatrix);
+
+    pMatrix.push(row);
+    console.log(pMatrix);
+    var counter = 0;
+    for(var h = 0; h < pMatrix.length; h++) {
+        var isNull = true;
+        for(var j = 0; j < pMatrix[h].length; j++) {
+            if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) { 
+                isNull = false;
+                break;
+            }
+        }
+        if(isNull == true) {
+            elim.push(counter);
+        }
+        counter++;
+    }
+    return elim;
 }
 
-//reduceMatrix();
+var elim = reduceMatrix();
+console.log(elim + " length = " + elim.length);
 
+var row_count = 0;
+var num_sets2 = num_sets - elim.length + 1;
+var first_run = true;
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
     for (i = 0; i < count; i++) {
         var str = "-1";
-        if (i % num_sets === 0) {
+        if (i % num_sets === 0) {  // New row
+            row_count++;
             x_coord = 150;
             y_coord += 150;
-            if (i === 0) {
+
+            if (first_run) {
                 y_coord = 50;
+                first_run = false;
+                row_count = 0;
+            }
+            
+            while(isIn(elim, row_count)) {
+                console.log("row " + row_count + " is in elim");
+                row_count++;
+                i += num_sets;
+                console.log("i = " + i);
+            }
+            if(elim.length < num_sets){
+                while(isIn(elim, i % num_sets)) {
+                    console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
+                    i++;
+                }
             }
         }
         else {
             x_coord += 200;
+            
+            while(isIn(elim, i % num_sets)) {
+                console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
+                i++;
+            }
+            
         }
 
 {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
@@ -460,12 +525,6 @@ function reduceMatrix() {
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
-{#                str = d.venn_diagrams[i].title1;#}
-{#                str= str.substring(0,32);#}
-{#                if (str >= d.JaccardSimilarity_p-Value){#}
-{#                    threshold = true;}#}
-{#                else{#}
-{#                    threshold = false}#}
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -486,13 +545,6 @@ function reduceMatrix() {
 
                 {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
                 if((i === 0) && (k === 0)) {
-{#                    if (str >= d.JaccardSimilarity_p - Value) {#}
-{##}
-{#                    threshold = true;#}
-{#                }#}
-{#                    else {#}
-{#                        threshold = false;#}
-{#                    }#}
                      circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
@@ -510,11 +562,6 @@ function reduceMatrix() {
 
                 {# Else (FIXES OVERLAP) object is not i = 0, text k is 0, and is a diagonal then intializes jaccard, p and coordinate values#}
                 else if ( (k===0) && (i !== 0) && (i%(num_sets+1) ===0)){
-{#                    if (str >= d.JaccardSimilarity_p-Value){#}
-{#                        threshold = true;}#}
-{#                    else {#}
-{#                        threshold = false;#}
-{#                    }#}
                         circleData.push({
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
@@ -532,10 +579,6 @@ function reduceMatrix() {
 
                 {# If k or i is different push the label onto the circledata array #}
                 else {
-{#                     if (str >= d.JaccardSimilarity_p-Value){#}
-{#                        threshold = true;}#}
-{#                    else{#}
-{#                        threshold = false;}#}
                     circleData.push({
                         "gene_id": d.venn_diagrams[i].text[k].text,
                         "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 18,
@@ -630,8 +673,6 @@ function reduceMatrix() {
             }
 
         }
-
-
     }
 
 
@@ -873,7 +914,6 @@ $(document).ready(function(){
 {#        .append("img")#}
 {#        .attr("src", "data:image/svg+xml;base64,"+ btoa(html));#}
 </script>
-
 
 
 
@@ -1122,6 +1162,60 @@ $(document).ready(function(){
                .attr("transform", function(d, i) {
                             return "translate("+x(14)+","+y(50)+")";
                        })
+                               .attr("font-family", "sans-serif")
+               .attr("font-size", "15px")
+                .style("font-weight",  "bold")
+               .attr("fill", "#fc9e54");
+
+        xCoordinate += 110;
+    }
+
+
+    svg.append("rect")
+            .attr("x", -80)
+             .attr("y", -30)
+           .attr("width", 370)
+         .attr("height", h)
+        .style("fill","white");
+
+       for(i = 0; i < count; i++){
+
+         svg.append("foreignObject")
+              .attr("width", 325)
+              .attr("height", 0)
+              .attr("x", 3)
+              .attr("y", xcoord - 37)
+              .append("xhtml:body")
+           .html( "<input type=checkbox name=foo value=bar id=check>");
 
 
 
+
+            result = (d.geneset_table[i].text).replace(/.{30}\S*\s+/g, "$&@").split(/\s+@/);
+            console.log(result);
+            var nextLine = 0;
+           for(j = 0; j < result.length; j++) {
+               svg .append("a")
+                       .attr("xlink:href", d.geneset_table[i].url).append("text")
+                       .attr("x", -13)
+                        .style("font-weight",  "bold")
+                       .attr("y", xcoord  + nextLine)
+                       .text(result[j]);
+               nextLine += 14;
+           }
+
+             xcoord +=90;
+       }
+
+
+
+
+    function zoom() {
+      svg.select(".x.axis").call(xAxis);
+          svg.selectAll(".rectangles")
+            .attr("transform", function(d, i) {
+        return "translate("+x(14)+","+y(50)+")";
+      })
+
+    }
+</script>
