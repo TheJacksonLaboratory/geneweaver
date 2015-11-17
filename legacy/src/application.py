@@ -1312,6 +1312,11 @@ def add_genesets_projects():
         results = geneweaverdb.add_genesets_to_projects(request.args)
         return json.dumps(results)
 
+@app.route('/removeGenesetFromProject')
+def remove_geneset_from_project():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.remove_geneset_from_project(request.args)
+        return json.dumps(results)
 
 @app.route('/deleteGeneset')
 def delete_geneset():
