@@ -52,6 +52,7 @@
 
     {% block body %}
 
+
         <div id="maindiv" xmlns="http://www.w3.org/1999/html">
 
             <p>
@@ -91,9 +92,6 @@
                         </button>
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="shareProjects">
                             <i class="fa fa-share-alt pull-left"></i> Share Projects
-                        </button>
-                        <button type="button" class="btn btn-lg btn-block btn-warning" id="removeGeneSets">
-                            <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
                         </button>
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="callCombineGeneSets">
                             <i class="fa fa-chain pull-left"></i> Combine Gene Sets
@@ -361,8 +359,8 @@
                     $(this).children('.fa-caret-right') :
                     $(this).children('.fa-caret-down');
 
-            chev.toggleClass('fa-caret-down')
-            chev.toggleClass('fa-caret-right')
+            chev.toggleClass('fa-caret-down');
+            chev.toggleClass('fa-caret-right');
 
             // Get the project ID from the link href, but gotta strip out
             // '#genesets-' first
@@ -377,7 +375,7 @@
             // Flask should return the rendered HTML, inject it into the DOM
             $.get(url, data).done(function (data) {
 
-                var tbody = pbid + ' tbody'
+                var tbody = pbid + ' tbody';
                 $(pbid).append(data);
 
                 var allclass = '#proj-' + pid + '-allcheck';
