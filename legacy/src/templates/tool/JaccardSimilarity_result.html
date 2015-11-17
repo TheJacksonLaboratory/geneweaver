@@ -183,6 +183,12 @@ input[type="checkbox"]:hover:before {
  background:rgba(255,255,255,0.3);
 }
 
+
+        .axis path,
+        .axis line {
+          fill: none;
+
+        }
 </style>
 
 
@@ -870,9 +876,10 @@ $(document).ready(function(){
 
 
 
-<script type="text/javascript">
 
-   // var w =  width + margin.left + margin.right; //, h = height + margin.top + margin.bottom;
+
+<script>
+    // var w =  width + margin.left + margin.right; //, h = height + margin.top + margin.bottom;
     var border = 0.5;
     var bordercolor = 'black';
     var d = {{ data | safe }};
@@ -888,11 +895,10 @@ $(document).ready(function(){
         }
 
     }
-
-
-
     var h= (count * 90) + 150;
     var w = (count * 110) + 100;
+
+
 
     function addStyle(h,w) {
         $('<style>.badger-left:after { height: ' + h + ';</style>').appendTo('#panel');
@@ -906,102 +912,124 @@ $(document).ready(function(){
         }
     }
 
-    var svg = d3.select("#chart").append("svg:svg")
-        .attr("width",  width + margin.left + margin.right)
-        .attr("height", h-100);
-
-    var xcoord = 90;
 
 
 
+    var margin = {top: 30, right: 0, bottom: 20, left: 60},
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+    var xMax = 34,
+      xMin = 0,
+      yMax = 840,
+      yMin = 0;
+
+    //Define scales
+    var x = d3.scale.linear()
+      .domain([xMin, xMax])
+      .range([0, width-100]);
+
+    var y = d3.scale.linear()
+      .domain([yMin, yMax])
+      .range([height+20, 0]);
 
 
-       for(i = 0; i < count; i++){
 
-         svg.append("foreignObject")
-              .attr("width", 325)
-              .attr("height", 0)
-              .attr("x", 3)
-              .attr("y", xcoord - 70)
-            .append("xhtml:body")
-           .html( "<input type=checkbox name=foo value=bar id=check>");
+    //Define X axis
+    var xAxis = d3.svg.axis()
+      .scale(x)
+      .orient("bottom")
+      .tickSize(-height)
+      .tickFormat(d3.format("s"));
 
-
+    //Define Y axis
 
 
-            result = (d.geneset_table[i].text).replace(/.{34}\S*\s+/g, "$&@").split(/\s+@/);
-            console.log(result);
-            var nextLine = 0;
-           for(j = 0; j < result.length; j++) {
-               svg .append("a")
-                       .attr("xlink:href", d.geneset_table[i].url).append("text")
-                       .attr("x", 40)
-                        .style("font-weight",  "bold")
-                       .attr("y", xcoord - 6 + nextLine)
-                       .text(result[j]);
-               nextLine += 14;
-           }
+        var zm = d3.behavior.zoom().x(x).scaleExtent([1, 8]).on("zoom", zoom);
 
-             xcoord +=90;
-        }
+    var svg = d3.select("#chart").append("svg")
+      .attr("width", width + margin.left + margin.right + 90)
+      .attr("height", h-100)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(zm);
 
 
-    var addOnX = 0;
-    var addOnY = 0;
+
+    svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + h + ")")
+      .call(xAxis);
+
+
+
+
+  var addOnX = 0;
+    var addOnY = -520;
     var addOnYLast = 0;
     var c = 0;
     var offset = 0;
-    var textX = 370;
-    var textY = 90;
+    var textX = 30;
+    var textY = -390;
+    var xcoord = 60;
+
+   d3.select("#toLeft").on("click", zoom);
+
+
+
+
 
 
     for(i = 0; i < count; i++) {
-      for(var k = 0; k < count; k++) {
-        addOnX += 110;
-        if(c % count == 0) {
-          addOnY += 90;
-          addOnX = 0;
+        for (var k = 0; k < count; k++) {
+            addOnX += 110;
+            if (c % count == 0) {
+                addOnY += 90;
+                addOnX = 0;
+            }
+
+             if(k == offset) {
+
+                       svg.append("rect")
+                             .attr("class", "rectangles")
+                            .attr("x", addOnX)
+                            .attr("y", addOnY)
+                            .attr("width", 110)
+                            .attr("height", 90)
+                            .attr("transform", function(d, i) {
+                            return "translate("+x(14)+","+y(50)+")";
+                      })
+                            .style("stroke", "#ffffff")
+                            .style("fill", "#ffa076")
+                            .attr("border", 1);
+                            //  console.log("Salmon: (" + addOnX + ", " + addOnY + ")");
+
+             } else {
+                       svg.append("rect")
+                             .attr("class", "rectangles")
+                            .attr("x", addOnX)
+                            .attr("y", addOnY)
+                            .attr("width", 110)
+                            .attr("height", 90)
+                              .attr("transform", function(d, i) {
+                            return "translate("+x(14)+","+y(50)+")";
+                       })
+                            .style("stroke", "#ffffff")
+                               .style("fill", function() {
+                                   if (k % 2) {
+                                       return "#b9d9cf";
+                                   }
+                                   else {
+                                       return "#d7ede6";
+                                   }
+                               })
+                            .attr("border", 1);
+                            // console.log("Blue: (" + addOnX + ", " + addOnY + ")");
+            }
+
+
+            c++;
         }
-
-        if(k == offset) {
-
-           svg.append("rect")
-                .attr("x", addOnX + 340)
-                .attr("y", addOnY - 50)
-                .attr("width", 110)
-                .attr("height", 90)
-                .style("stroke", "#ffffff")
-                .style("fill", "#ffa076")
-                .attr("border", 1);
-
-        } else {
-           svg.append("rect")
-                .attr("x", addOnX + 340)
-                .attr("y", addOnY - 50)
-                .attr("width", 110)
-                .attr("height", 90)
-                .style("stroke", "#ffffff")
-                   .style("fill", function(d) {
-                       if (k % 2) {
-                           return "#b9d9cf";
-                       }
-                       else {
-                           return "#d7ede6";
-                       }
-                   })
-                .attr("border", 1);
-        }
-
-
-        c++;
-      }
-
-
-
-
-
-
-
        entry = 0;
        for (var key in d.geneset_table[i].entries) {
            if (d.geneset_table[i].entries.hasOwnProperty(key)) {
@@ -1013,6 +1041,10 @@ $(document).ready(function(){
                  svg.append("a")
                   .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
                   .append("text")
+                   .attr("transform", function(d, i) {
+                            return "translate("+x(14)+","+y(50)+")";
+                       })
+                   .attr("class", "rectangles")
                  .attr("x", textX)
                  .attr("y", textY)
                  .style("font-weight",  "bold")
@@ -1025,7 +1057,11 @@ $(document).ready(function(){
                       svg.append("a")
                                 .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
                                 .append("text")
-                                .attr("x", textX - 10)
+                                 .attr("transform", function(d, i) {
+                            return "translate("+x(14)+","+y(50)+")";
+                           })
+                                .attr("class", "rectangles")
+                                .attr("x", textX )
                                 .attr("y", textY + 12)
                                 .style("font-weight", "bold")
                                 .text(d.geneset_table[i].entries[entry - 1].pval)
@@ -1038,6 +1074,10 @@ $(document).ready(function(){
                     svg.append("a")
                                  .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
                                  .append("text")
+                                 .attr("transform", function(d, i) {
+                            return "translate("+x(14)+","+y(50)+")";
+                           })
+                                  .attr("class", "rectangles")
                                 .attr("x", textX + 4)
                                 .attr("y", textY + 12)
                                 .style("font-weight", "bold")
@@ -1051,6 +1091,10 @@ $(document).ready(function(){
             }
             if(Object.keys(d.geneset_table[i].entries[entry-1]).length == 1){
                  svg.append("text")
+                  .attr("class", "rectangles")
+                  .attr("transform", function(d, i) {
+                            return "translate("+x(14)+","+y(50)+")";
+                           })
                  .attr("x", textX)
                  .attr("y", textY)
                  .style("font-weight",  "bold")
@@ -1062,34 +1106,22 @@ $(document).ready(function(){
        }
        textX -= ((count) * 110);
         textY += 90;
-      offset++;
+
+         offset++;
     }
 
 
-
-
-    var xCoordinate = 360;
+    var xCoordinate = 30;
 
     for (i = 0; i < count; i++){
         var text = svg.append("text")
-               .attr("x", xCoordinate)
-               .attr("y",  30)
+                .attr("class", "rectangles")
+               .attr("x", xCoordinate - 10)
+               .attr("y",  - 435)
                .text(d.genesets[i])
-               .attr("font-family", "sans-serif")
-               .attr("font-size", "15px")
-                .style("font-weight",  "bold")
-               .attr("fill", "#fc9e54");
-
-        xCoordinate += 110;
-    }
-
-</script>
-
-
-
-
-
-
+               .attr("transform", function(d, i) {
+                            return "translate("+x(14)+","+y(50)+")";
+                       })
 
 
 
