@@ -146,7 +146,7 @@ def edge_proj2proj(projDict1, projDict2):
     return part
 
 def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold):
-        '''
+    '''
     This function takes a taskid and results dir for writing. It also takes a LIST of projects and a threshold. By
     looping through the list, we write all possible combinations of geneset pairs over the given threshold (threshold).
     This file is writen as a *.kel file with values in the columns seperated by tabs, with weach column representing a
@@ -170,9 +170,15 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     genesets = {}
     counts = {}
 
+    # Dictionary of dictionaries
+    # Each entry
+    # Project: {i, k}
+
     # make a dictionary of proj -> genesets
     for p in projs:
         genesets[p] = get_genesets_for_project(p, usr_id)
+
+    edge_count = 0
 
     # Loop through all of the proj_ids, and return jaccard values where they exist, 0 otherwise
     for i in range(0, len(projs)):
@@ -184,14 +190,14 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
             midtab = '\t' * (k - i)
             if k < len(projs):
                 # Need to keep counts of each row in the counts disctionary
-                if projs[i] not in counts:
-                    counts[projs[i]] = 1
+                if i not in counts:
+                    counts[i] = 1
                 else:
-                    counts[projs[i]] += 1
-                if projs[k] not in counts:
-                    counts[projs[k]] = 1
+                    counts[i] += 1
+                if k not in counts:
+                    counts[k] = 1
                 else:
-                    counts[projs[k]] += 1
+                    counts[k] += 1
                 # Now another inner loop (maybe need to be recursive?) to find all combinations of values
                 # against eachother.
                 for m in genesets[projs[i]]:
@@ -199,12 +205,14 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
                         jac_value = get_jaccard(m.geneset_id, n.geneset_id, threshold)
                         if jac_value > 0:
                             fileout += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
+                            edge_count = edge_count + 1
 
     # Add the row counts to the top of the page
     values = []
-    for p in projs:
-        values.append(counts[p])
+    for i in range(0, len(projs)):
+        values.append(str(counts[i]))
     temp = str.join('\t', (values))
+    temp = temp + '\t' + str(edge_count)
     fileout = temp + '\n' + fileout
 
     # print results to a file
