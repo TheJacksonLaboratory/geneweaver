@@ -344,15 +344,15 @@ function click(d) {
 //NOT YET IN USE--SEARCH FUNCTIONALITY
 //basically a way to get the path to an object
 function searchTree(obj, search, path) {
-    if (obj.Genesets === search) { //if search is found return, add the object to the path and return it
+    if (search in obj.Genesets) { //if search is found return, add the object to the path and return it
         path.push(obj);
         return path;
     }
     else if (obj.children || obj._children) { //if children are collapsed d3 object will have them instantiated as _children
-        var children = (obj.children) ? obj.children : obj._children;
+        var children = (obj.children.length > 0) ? obj.children : obj._children;
         for (var i = 0; i < children.length; i++) {
             path.push(obj);// we assume this path is the right one
-            var found = searchTree(children[i], search, path);
+            var found = searchTree(getNodeByID(children[i]), search, path);
             if (found) {// we were right, this should return the bubbled-up path from the first if statement
                 return found;
             }
@@ -382,7 +382,7 @@ function extract_select2_data(node, leaves, index) {
 //NOT YET IN USE--SEARCH FUNCTIONALITY
 function openPaths(paths) {
     for (var i = 0; i < paths.length; i++) {
-        if (paths[i].id !== "1") {//i.e. not root
+        if (!paths[i].orphan) {//i.e. not root
             paths[i].class = 'found';
             if (paths[i]._children) { //if children are hidden: open them, otherwise: don't do anything
                 paths[i].children = paths[i]._children;
