@@ -189,15 +189,16 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
             endtab = '\t' * ((len(projs) - 1) - k)
             midtab = '\t' * (k - i)
             if k < len(projs):
-                # Need to keep counts of each row in the counts disctionary
+                # Need to keep counts of each row in the counts dictionary
                 if i not in counts:
                     counts[i] = 1
-                else:
-                    counts[i] += 1
+                # Shouldn't there only be one vertex per partition, since each partition is a project??
+                #else:
+                #    counts[i] += 1
                 if k not in counts:
                     counts[k] = 1
-                else:
-                    counts[k] += 1
+                #else:
+                #    counts[k] += 1
                 # Now another inner loop (maybe need to be recursive?) to find all combinations of values
                 # against eachother.
                 for m in genesets[projs[i]]:
@@ -318,6 +319,9 @@ def create_json_from_triclique_output(taskid, results):
     identifiers = [item for sublist in partitions for item in sublist]
     sorted(set(identifiers))
     n = len(identifiers)
+
+    #TODO: if n == 0
+
     Matrix = [[0 for x in range(n)] for x in range(n)]
 
 
@@ -380,6 +384,8 @@ def get_matrix_value(i, j, identifiers, partitions):
         #print set(id2Found).intersection(id1Found)
         return 0.0
     else:
+        # TODO: query to the database to get the frequency of the gene in the geneset or project
+        # Will have to be different for Jaccard and Exact gene overlap
         return 1.0
 
 

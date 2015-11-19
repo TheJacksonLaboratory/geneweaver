@@ -108,7 +108,7 @@ def run_tool():
         kwargs={
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
-            'params': params1,
+            'params': params2,
         },
         task_id=task_id)
     # print "results path: ", RESULTS_PATH
