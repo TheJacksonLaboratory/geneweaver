@@ -5,7 +5,20 @@
 
 {% import 'macros.html' as macros %}
 
-
+<style>
+    .reveal-if-active {
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+    }
+    input[type="radio"]:checked ~ .reveal-if-active {
+        opacity: 1;
+        max-height: 100px;
+        overflow: visible;
+    }
+    
+    
+</style>
 <div class="panel">
 	<div class="panel-heading">
 		<img src="/static/images/GW2-kpartite.png" width="50" height="50">
@@ -17,9 +30,19 @@
 	</div>
 	<div id="triCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
-			<div class="from-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Homology']) }}</div>
-            <div class="form-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Methods']) }}</div>
+			<div class="form-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Homology']) }}</div>
+            <div class="form-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Methods']) }}
+                <div id="reveal-if-active">
+                    <p>Hello world</p>
+                </div>
+            </div>
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
 </div>
+
+<script>
+    $('#form-group').click(function() {
+        $(".reveal-if-active").slideToggle("slow");
+});
+</script>

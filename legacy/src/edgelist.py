@@ -366,6 +366,11 @@ def get_matrix_value(i, j, identifiers, partitions):
     # Get the actual value in the sorted list of identifiers
     id1 = identifiers[i]
     id2 = identifiers[j]
+    print "In get_matrix_value"
+    print id1
+    print id2
+    print "Identifiers" + str(identifiers)
+    print "Partitions: " + str(partitions)
 
     # Set variables
     id1Found = []
@@ -386,6 +391,8 @@ def get_matrix_value(i, j, identifiers, partitions):
     else:
         # TODO: query to the database to get the frequency of the gene in the geneset or project
         # Will have to be different for Jaccard and Exact gene overlap
+        #with PooledCursor() as cursor:
+        #    cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + genesets[g] + " ' "))
         return 1.0
 
 
