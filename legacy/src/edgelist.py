@@ -124,9 +124,9 @@ def edge_gene2proj(genes, projDict, partition):
                 ## If the gene exists in the geneset
                 if int(gg[0]['ode_gene_id']) == int(g['ode_gene_id']):
                     if partition == 1:
-                        part.append(str(v.geneset_id) + '\t\t' + str(g['ode_gene_id']) + '\n')
+                        part.append('gs_' + str(v.geneset_id) + '\t\t' + 'gi_' + str(g['ode_gene_id']) + '\n')
                     elif partition == 2:
-                        part.append('\t' + str(v.geneset_id) + '\t' + str(g['ode_gene_id']) + '\n')
+                        part.append('\t' + 'gs_' + str(v.geneset_id) + '\t' + 'gi_' + str(g['ode_gene_id']) + '\n')
     return set(part)
 
 
@@ -141,7 +141,7 @@ def edge_proj2proj(projDict1, projDict2):
     for n in projDict1:
         for m in projDict2:
             if intersect_geneset(n, m):
-                part.append(str(n) + '\t' + str(m) + '\t\t\n')
+                part.append('gs_' + str(n) + '\t' + 'gs_' + str(m) + '\t\t\n')
     list(set(part))
     return part
 
@@ -391,9 +391,15 @@ def get_matrix_value(i, j, identifiers, partitions):
     else:
         # TODO: query to the database to get the frequency of the gene in the geneset or project
         # Will have to be different for Jaccard and Exact gene overlap
-        #with PooledCursor() as cursor:
-        #    cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + genesets[g] + " ' "))
-        return 1.0
+        geneset_id = ''
+        if re.match("^gs_", id1):
+            geneset_id = id1[3:]
+        else:
+            geneset_id = id2[3:]
+        with PooledCursor() as cursor:
+            cursor.execute(cursor.mogrify("SELECT gs_count FROM geneset WHERE gs_id =' " + geneset_id + " ' "))
+            gs_count = cursor.fetchone()
+        return 1.0/gs_count[0]
 
 
 def create_csv_from_mkc(taskid, results, identifiers, partitions):
@@ -407,19 +413,27 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     print "identifiers before:", identifiers
     genesets = list(identifiers)
     print "genesets:", genesets
-    proj_ids = []
-    proj_ids.append(genesets[0])
-    proj_ids.append(genesets[1])
-    print "projects:", proj_ids
-    genesets.pop(0)
-    genesets.pop(0)
-    print "genesets:", genesets
+    gs_ids = []
+    gi_ids = []
+    for item in genesets:
+        if re.match("^gs_", item):
+            gs_ids.append(item[3:])
+        else:
+            gi_ids.append(item[3:])
+    print "genesets:", gs_ids
+    print "genes:", gi_ids
+    # Get rid of gs_ and gi
+    for x in range(0,len(identifiers)):
+        identifiers[x] = identifiers[x][3:]
+    for item in partitions:
+        for x in range(0, len(item)):
+            item[x] = item[x][3:]
 
     proj_names = list()
 
-    for p in range(len(proj_ids)):
+    for p in range(len(gs_ids)):
         with PooledCursor() as cursor:
-            cursor.execute(cursor.mogrify("SELECT gs_name FROM geneset WHERE gs_id =' " + proj_ids[p] + " ' "))
+            cursor.execute(cursor.mogrify("SELECT gs_name FROM geneset WHERE gs_id =' " + gs_ids[p] + " ' "))
 
         temp = (list(dictify_cursor(cursor)))
         temp = temp[0]
@@ -434,9 +448,9 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
 
     gs_names = []
     # SQL query to the database to get the names of the genes
-    for g in range(len(genesets)):
+    for g in range(len(gi_ids)):
         with PooledCursor() as cursor:
-            cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + genesets[g] + " ' "))
+            cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + gi_ids[g] + " ' "))
 
         temp = (list(dictify_cursor(cursor)))
         temp = temp[0]
