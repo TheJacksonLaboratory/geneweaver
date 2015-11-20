@@ -6,6 +6,7 @@ import celery.states as states
 import flask
 import json
 import uuid
+import os.path
 
 from geneweaverdb import *
 import toolcommon as tc
@@ -206,7 +207,13 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
-        create_json_from_triclique_output(task_id, RESULTS_PATH)
+        # Check to see if we are using Exact Gene Overlap or Jaccard
+        jfile_name = RESULTS_PATH + '/' + task_id + '.mkcj'
+        efile_name = RESULTS_PATH + '/' + task_id + '.mkc'
+        if os.path.isfile(efile_name):
+            create_json_from_triclique_output(task_id, RESULTS_PATH)
+        if os.path.isfile(jfile_name):
+            create_json_from_triclique_output_jaccard(task_id, RESULTS_PATH)
         # Open files and pass via template
         f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
         json_results = f.readline()

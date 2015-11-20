@@ -477,3 +477,144 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f.close()
 
 
+def create_json_from_triclique_output_jaccard(taskid, results):
+    """
+    This function is not finished becuase I am not sure of the exact format for all possible values of k
+    :param taskid: this is prepended to .kel files
+    :param results: from the results directory
+    :return: true
+    """
+
+    # List of lists of values represented by partitions
+    partitions = []
+
+    # The strategy is to make a matrix of size n (the length of the indentifier list). Loop through the list, and find
+    # the identifiers at the appropriate index, and then check to see if they exist in separate partitions (or lists)
+    # within the partitions list
+
+    # Read in file. Only add values after the edge triclique
+    start_parsing = False
+    fh = open(os.path.join(results, taskid + '.mkcj'), 'r')
+    for line in fh:
+        if start_parsing:
+            if not re.match("[ \n\t\r]", line):
+                temp_line = filter(None, re.split("[\t\s ]+", line))
+                partitions.append(temp_line)
+        else:
+            matchObj = re.match('edge maximum k-clique', line)
+            if matchObj:
+                start_parsing = True
+    fh.close()
+
+    # make a flattened list of unique values in partitions and then
+    # create an empty matrix based on that list
+    identifiers = [item for sublist in partitions for item in sublist]
+    sorted(set(identifiers))
+    n = len(identifiers)
+
+    #TODO: if n == 0
+
+    Matrix = [[0 for x in range(n)] for x in range(n)]
+
+
+    # Loop through the Matrix and, foreach i,j, check the partition matrix to see if they show up together
+    # this can be modified later to test for weight
+    for i in range(n):
+        for j in range(n):
+            Matrix[i][j] = get_matrix_value(i, j, identifiers, partitions)
+
+
+    # Print matrix
+    row = []
+    json = '['
+    for i in range(n):
+        json += '['
+        for j in range(n):
+            row.append(str(Matrix[i][j]))
+        json += ','.join(row)
+        json += '],'
+        row = []
+    json = json[:-1]
+    json += ']'
+
+    f = open(results + '/' + taskid + '.json', 'wb')
+    f.write(json)
+    f.close()
+
+    create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions)
+
+    return Matrix
+
+def create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions):
+    HOMOLOGY_BOX_COLORS = ['#6699FF', '#FFCC00', '#FF0000', '#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6']
+
+    f = open(results + '/' + taskid + '.csv', 'wb')
+    f.write("name,gs_name,something,something,color\n")
+
+    # Get rid of the first two elements in identifiers (project ids)
+    print "identifiers before:", identifiers
+    genesets = list(identifiers)
+    print "genesets:", genesets
+    gs_ids = []
+    gi_ids = []
+    for item in genesets:
+        if re.match("^gs_", item):
+            gs_ids.append(item[3:])
+        else:
+            gi_ids.append(item[3:])
+    print "genesets:", gs_ids
+    print "genes:", gi_ids
+    # Get rid of gs_ and gi
+    for x in range(0,len(identifiers)):
+        identifiers[x] = identifiers[x][3:]
+    for item in partitions:
+        for x in range(0, len(item)):
+            item[x] = item[x][3:]
+
+    proj_names = list()
+
+    for p in range(len(gs_ids)):
+        with PooledCursor() as cursor:
+            cursor.execute(cursor.mogrify("SELECT gs_name FROM geneset WHERE gs_id =' " + gs_ids[p] + " ' "))
+
+        temp = (list(dictify_cursor(cursor)))
+        temp = temp[0]
+        temp = temp.values()
+        proj_names.append(temp)
+
+    p_names = []
+    for val in proj_names:
+        p_names.append(val[0].encode('ascii'))
+
+    print "project_names", p_names
+
+    gs_names = []
+    # SQL query to the database to get the names of the genes
+    for g in range(len(gi_ids)):
+        with PooledCursor() as cursor:
+            cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + gi_ids[g] + " ' "))
+
+        temp = (list(dictify_cursor(cursor)))
+        temp = temp[0]
+        temp = temp.values()
+        gs_names.append(temp)
+
+    g_names = []
+
+    for val in p_names:
+        g_names.append(val)
+
+    for val in gs_names:
+        g_names.append(val[0].encode('ascii'))
+
+    print "g_names:", g_names
+
+    for i in range(len(identifiers)):
+        for j in range(len(partitions)):
+            #print identifiers[i]
+            #print partitions[j]
+            if identifiers[i] in partitions[j]:
+                f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
+                print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
+    f.close()
