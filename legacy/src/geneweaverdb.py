@@ -14,7 +14,7 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '/Users/group6admin/geneweaver/results/'
+RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results/'
 
 
 
@@ -2138,7 +2138,7 @@ class ToolConfig:
         try:
             self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
         except:
-            self.requirements = 'None'
+            self.requirements = None
         self.is_active = tool_dict['tool_active'] == '1'
         self.sort_priority = tool_dict['tool_sort']
         self.__params = None

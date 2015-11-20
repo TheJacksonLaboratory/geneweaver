@@ -124,9 +124,9 @@ def edge_gene2proj(genes, projDict, partition):
                 ## If the gene exists in the geneset
                 if int(gg[0]['ode_gene_id']) == int(g['ode_gene_id']):
                     if partition == 1:
-                        part.append(str(v.geneset_id) + '\t\t' + str(g['ode_gene_id']) + '\n')
+                        part.append('gs_' + str(v.geneset_id) + '\t\t' + 'gi_' + str(g['ode_gene_id']) + '\n')
                     elif partition == 2:
-                        part.append('\t' + str(v.geneset_id) + '\t' + str(g['ode_gene_id']) + '\n')
+                        part.append('\t' + 'gs_' + str(v.geneset_id) + '\t' + 'gi_' + str(g['ode_gene_id']) + '\n')
     return set(part)
 
 
@@ -141,7 +141,7 @@ def edge_proj2proj(projDict1, projDict2):
     for n in projDict1:
         for m in projDict2:
             if intersect_geneset(n, m):
-                part.append(str(n) + '\t' + str(m) + '\t\t\n')
+                part.append('gs_' + str(n) + '\t' + 'gs_' + str(m) + '\t\t\n')
     list(set(part))
     return part
 
@@ -166,13 +166,19 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     #RESULTS = '/Users/baker/Desktop/'
     RESULTS = results
     ###########################################
-    out = ''
+    fileout = ''
     genesets = {}
     counts = {}
+
+    # Dictionary of dictionaries
+    # Each entry
+    # Project: {i, k}
 
     # make a dictionary of proj -> genesets
     for p in projs:
         genesets[p] = get_genesets_for_project(p, usr_id)
+
+    edge_count = 0
 
     # Loop through all of the proj_ids, and return jaccard values where they exist, 0 otherwise
     for i in range(0, len(projs)):
@@ -183,25 +189,40 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
             endtab = '\t' * ((len(projs) - 1) - k)
             midtab = '\t' * (k - i)
             if k < len(projs):
-                ## Need to keep counts of each row in the counts disctionary
-                if projs[i] not in counts:
-                    counts[projs[i]] = 1
-                else:
-                    counts[projs[i]] += 1
-                if projs[k] not in counts:
-                    counts[projs[k]] = 1
-                else:
-                    counts[projs[k]] += 1
-                ## Now another inner loop (maybe need to be recursive?) to find all combinations of values
-                ## against eachother.
+                # Need to keep counts of each row in the counts dictionary
+                if i not in counts:
+                    counts[i] = 1
+                # Shouldn't there only be one vertex per partition, since each partition is a project??
+                #else:
+                #    counts[i] += 1
+                if k not in counts:
+                    counts[k] = 1
+                #else:
+                #    counts[k] += 1
+                # Now another inner loop (maybe need to be recursive?) to find all combinations of values
+                # against eachother.
                 for m in genesets[projs[i]]:
                     for n in genesets[projs[k]]:
                         jac_value = get_jaccard(m.geneset_id, n.geneset_id, threshold)
                         if jac_value > 0:
-                            out += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
+                            fileout += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
+                            edge_count = edge_count + 1
 
+    # Add the row counts to the top of the page
+    values = []
+    for i in range(0, len(projs)):
+        values.append(str(counts[i]))
+    temp = str.join('\t', (values))
+    temp = temp + '\t' + str(edge_count)
+    fileout = temp + '\n' + fileout
 
-    #print out
+    # print results to a file
+    print "file contains:"
+    print fileout
+    print "filepath:", RESULTS + taskid + '.kel'
+    out = open(RESULTS + taskid + '.kel', 'wb')
+    out.write(fileout)
+    out.close()
 
 
 def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, homology):
@@ -298,6 +319,9 @@ def create_json_from_triclique_output(taskid, results):
     identifiers = [item for sublist in partitions for item in sublist]
     sorted(set(identifiers))
     n = len(identifiers)
+
+    #TODO: if n == 0
+
     Matrix = [[0 for x in range(n)] for x in range(n)]
 
 
@@ -342,6 +366,11 @@ def get_matrix_value(i, j, identifiers, partitions):
     # Get the actual value in the sorted list of identifiers
     id1 = identifiers[i]
     id2 = identifiers[j]
+    print "In get_matrix_value"
+    print id1
+    print id2
+    print "Identifiers" + str(identifiers)
+    print "Partitions: " + str(partitions)
 
     # Set variables
     id1Found = []
@@ -360,7 +389,17 @@ def get_matrix_value(i, j, identifiers, partitions):
         #print set(id2Found).intersection(id1Found)
         return 0.0
     else:
-        return 1.0
+        # TODO: query to the database to get the frequency of the gene in the geneset or project
+        # Will have to be different for Jaccard and Exact gene overlap
+        geneset_id = ''
+        if re.match("^gs_", id1):
+            geneset_id = id1[3:]
+        else:
+            geneset_id = id2[3:]
+        with PooledCursor() as cursor:
+            cursor.execute(cursor.mogrify("SELECT gs_count FROM geneset WHERE gs_id =' " + geneset_id + " ' "))
+            gs_count = cursor.fetchone()
+        return 1.0/gs_count[0]
 
 
 def create_csv_from_mkc(taskid, results, identifiers, partitions):
@@ -371,22 +410,30 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     f.write("name,gs_name,something,something,color\n")
 
     # Get rid of the first two elements in identifiers (project ids)
-    #print "identifiers before:", identifiers
+    print "identifiers before:", identifiers
     genesets = list(identifiers)
-    #print "genesets:", genesets
-    proj_ids = []
-    proj_ids.append(genesets[0])
-    proj_ids.append(genesets[1])
-    #print "projects:", proj_ids
-    genesets.pop(0)
-    genesets.pop(0)
-    #print "genesets:", genesets
+    print "genesets:", genesets
+    gs_ids = []
+    gi_ids = []
+    for item in genesets:
+        if re.match("^gs_", item):
+            gs_ids.append(item[3:])
+        else:
+            gi_ids.append(item[3:])
+    print "genesets:", gs_ids
+    print "genes:", gi_ids
+    # Get rid of gs_ and gi
+    for x in range(0,len(identifiers)):
+        identifiers[x] = identifiers[x][3:]
+    for item in partitions:
+        for x in range(0, len(item)):
+            item[x] = item[x][3:]
 
     proj_names = list()
 
-    for p in range(len(proj_ids)):
+    for p in range(len(gs_ids)):
         with PooledCursor() as cursor:
-            cursor.execute(cursor.mogrify("SELECT gs_name FROM geneset WHERE gs_id =' " + proj_ids[p] + " ' "))
+            cursor.execute(cursor.mogrify("SELECT gs_name FROM geneset WHERE gs_id =' " + gs_ids[p] + " ' "))
 
         temp = (list(dictify_cursor(cursor)))
         temp = temp[0]
@@ -397,13 +444,13 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     for val in proj_names:
         p_names.append(val[0].encode('ascii'))
 
-    #print "project_names", p_names
+    print "project_names", p_names
 
     gs_names = []
     # SQL query to the database to get the names of the genes
-    for g in range(len(genesets)):
+    for g in range(len(gi_ids)):
         with PooledCursor() as cursor:
-            cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + genesets[g] + " ' "))
+            cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + gi_ids[g] + " ' "))
 
         temp = (list(dictify_cursor(cursor)))
         temp = temp[0]
@@ -418,7 +465,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     for val in gs_names:
         g_names.append(val[0].encode('ascii'))
 
-    #print "g_names:", g_names
+    print "g_names:", g_names
 
     for i in range(len(identifiers)):
         for j in range(len(partitions)):
@@ -426,7 +473,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
             #print partitions[j]
             if identifiers[i] in partitions[j]:
                 f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
-                #print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
+                print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
     f.close()
 
 
