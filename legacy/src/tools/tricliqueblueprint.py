@@ -15,7 +15,7 @@ from decimal import Decimal
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
-#RESULTS_PATH = 'Users/group5admin/Documents/geneweaver/results/'
+#RESULTS_PATH = 'Users/group6admin/geneweaver/results/'
 
 # Melissa 9/14/15 Removed .html from route URI
 @triclique_viewer_blueprint.route('/run-triclique-viewer', methods=['POST'])
@@ -51,7 +51,6 @@ def run_tool():
         params1[homology_str] = 'Included'
     if params2[method_str] != 'Jaccard Overlap':
         params2[method_str] = 'ExactGeneOverlap'
-        #if len(selected_geneset_ids) != 2:
         if len(selected_project_ids) != 2:
             flask.flash("Warning: You must select exactly 2 projects!")
             return flask.redirect('analyze')
