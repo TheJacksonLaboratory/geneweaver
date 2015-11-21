@@ -163,7 +163,6 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     # for running offline
     #usr_id = 48
     usr_id = session['user_id']
-    #RESULTS = '/Users/baker/Desktop/'
     RESULTS = results
     ###########################################
     fileout = ''
@@ -280,7 +279,6 @@ def create_kpartite_file_from_gene_intersection(taskid, results, proj1, proj2, h
 
         #print "file contains:"
         #print file
-        #print "filepath:", RESULTS + taskid + '.kel'
         out = open(RESULTS + taskid + '.kel', 'wb')
         out.write(file)
         out.close()

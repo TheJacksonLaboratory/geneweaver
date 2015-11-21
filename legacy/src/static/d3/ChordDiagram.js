@@ -32,10 +32,6 @@
     svg.append("circle")
             .attr("r", outerRadius);
 
-    //d3.csv("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".csv", function(cities) {
-      //  d3.json("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".json", function(matrix) {
-    //d3.csv(csv_results, function(cities) {
-      //  d3.json(json_results, function(matrix) {
     d3.csv("../../static/cities2.csv", function(cities) {
         d3.json("../../static/matrix2.json", function(matrix) {
             // Compute the chord layout.

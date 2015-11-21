@@ -98,7 +98,6 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                     return X.responseText;
                 }
 
-                //var mycells = IO('/Users/group5admin/Documents/geneweaver/results/' + "{{ task_id | safe }}" + '.csv');
                 var mycells = "{{ csv_results | safe }}";
                 // REmember to change the split \n back to a tab
                 mycells = mycells.split(/\t/g).map(function(a){return a.split(/\t/g)} );
@@ -194,14 +193,10 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
             console.log(csv_results);
             console.log(json_results);
 
-    //d3.csv("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".csv", function(cities) {
-      //  d3.json("/Users/group5admin/Documents/geneweaver/results/" + task_id + ".json", function(matrix) {
     csv_results = csv_results.replace(/\t/g, "\n");
             var cities = d3.csv.parse(csv_results);
             var matrix = JSON.parse(json_results);
-           // d3.csv.parse(csv_results, function(cities) {
 
-       // JSON.parse(json_results, function(matrix) {
             // Compute the chord layout.
             layout.matrix(matrix);
             console.log("test");
