@@ -210,10 +210,14 @@ def view_result(task_id):
         # Check to see if we are using Exact Gene Overlap or Jaccard
         jfile_name = RESULTS_PATH + '/' + task_id + '.mkcj'
         efile_name = RESULTS_PATH + '/' + task_id + '.mkc'
+        triclique_result = 0
         if os.path.isfile(efile_name):
-            create_json_from_triclique_output(task_id, RESULTS_PATH)
+            triclique_result = create_json_from_triclique_output(task_id, RESULTS_PATH)
         if os.path.isfile(jfile_name):
-            create_json_from_triclique_output_jaccard(task_id, RESULTS_PATH)
+            triclique_result = create_json_from_triclique_output_jaccard(task_id, RESULTS_PATH)
+        if triclique_result == 1:
+            flask.flash("Warning: The genesets for the projects you chose had no maximal triclique")
+            return flask.redirect('analyze')
         # Open files and pass via template
         f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
         json_results = f.readline()

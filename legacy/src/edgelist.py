@@ -102,6 +102,9 @@ def get_jaccard(pjid1, pjid2, threshold):
     '''
     pj1 = pjid1 if pjid1 < pjid2 else pjid2
     pj2 = pjid2 if pjid2 > pjid1 else pjid1
+    # If the two genesets are the same, should we be returning 1?
+    if pj1 == pj2:
+        return 1
     with PooledCursor() as cursor:
         cursor.execute('''SELECT jac_value FROM geneset_jaccard WHERE gs_id_left=%s AND gs_id_right=%s AND
                           jac_value > %s''', (pj1, pj2, threshold,))
@@ -178,6 +181,11 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     for p in projs:
         genesets[p] = get_genesets_for_project(p, usr_id)
 
+    for p in projs:
+        counts[p] = 0
+        for g in genesets[p]:
+            counts[p] += 1
+
     edge_count = 0
 
     # Loop through all of the proj_ids, and return jaccard values where they exist, 0 otherwise
@@ -190,13 +198,13 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
             midtab = '\t' * (k - i)
             if k < len(projs):
                 # Need to keep counts of each row in the counts dictionary
-                if i not in counts:
-                    counts[i] = 1
+                #if i not in counts:
+                #    counts[i] = 1
                 # Shouldn't there only be one vertex per partition, since each partition is a project??
                 #else:
                 #    counts[i] += 1
-                if k not in counts:
-                    counts[k] = 1
+                #if k not in counts:
+                #    counts[k] = 1
                 #else:
                 #    counts[k] += 1
                 # Now another inner loop (maybe need to be recursive?) to find all combinations of values
@@ -211,7 +219,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     # Add the row counts to the top of the page
     values = []
     for i in range(0, len(projs)):
-        values.append(str(counts[i]))
+        values.append(str(counts[projs[i]]))
     temp = str.join('\t', (values))
     temp = temp + '\t' + str(edge_count)
     fileout = temp + '\n' + fileout
@@ -313,14 +321,14 @@ def create_json_from_triclique_output(taskid, results):
             if matchObj:
                 start_parsing = True
     fh.close()
+    if len(partitions) == 0:
+        return 1
 
     # make a flattened list of unique values in partitions and then
     # create an empty matrix based on that list
     identifiers = [item for sublist in partitions for item in sublist]
     sorted(set(identifiers))
     n = len(identifiers)
-
-    #TODO: if n == 0
 
     Matrix = [[0 for x in range(n)] for x in range(n)]
 
@@ -505,6 +513,8 @@ def create_json_from_triclique_output_jaccard(taskid, results):
             if matchObj:
                 start_parsing = True
     fh.close()
+    if len(partitions) == 0:
+        return 1
 
     # make a flattened list of unique values in partitions and then
     # create an empty matrix based on that list
@@ -512,7 +522,8 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     sorted(set(identifiers))
     n = len(identifiers)
 
-    #TODO: if n == 0
+    print "partitions", partitions
+    print "identifiers", identifiers
 
     Matrix = [[0 for x in range(n)] for x in range(n)]
 
