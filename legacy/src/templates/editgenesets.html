@@ -252,7 +252,7 @@
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
                 <div class="row">
                 <div class="col-xs-3">
-                    <select name="gso_ref_type" class="form-control" required>
+                    <select name="gso_ref_type" id="gso_ref_type" class="form-control" required>
                         <option value="all" selected>All Reference Types</option>
                         {% for ref_type in ref_types %}
                         <option value="ref_type">{{ ref_type }}</option>
@@ -318,7 +318,10 @@
             selectMode: 2,
             initAjax: {
                 url: "/getOntDBNodes",
-                data: { "gs_id": $(location).attr("href").split('/').pop() }
+                data: {
+                    "gs_id": $(location).attr("href").split('/').pop(),
+                    "universe": "None"
+                }
             },
 
             onCreate: function(node, nodeSpan){
@@ -357,7 +360,16 @@
 
     var user_id = {{ user_id }}
 
-
+    $($("#gso_ref_type").change(function () {
+        $("#tree").dynatree("option", "initAjax", {
+            url: "/getOntDBNodes",
+            data: {
+                "gs_id": $(location).attr("href").split('/').pop(),
+                universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+            }
+        });
+        $("#tree").dynatree("getTree").reload();
+    }));
 
     function myFunction(genes)
     {

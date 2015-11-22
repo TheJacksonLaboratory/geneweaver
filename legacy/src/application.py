@@ -335,6 +335,7 @@ def render_editgenesets(gs_id):
 def get_ontdb_nodes():
     gs_id = request.args['gs_id']
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    print(request.args['universe'])
     parents = []
     used_dbs = set()
     for ont in onts:
@@ -358,59 +359,66 @@ def get_ontdb_nodes():
             for i in range(0, len(result2)):
                 data2 = dict()
                 data2["title"] = result2[i].name
+                data2["isLazy"] = True
+                data2["key"] = result2[i].ontology_id
+                data2["db"] = False
+                data2["children"] = []
                 if(result2[i].children == 0):
                     data2["isFolder"] = False
                 else:
                     data2["isFolder"] = True
                     for a in range(0, len(parents)):
                         for b in range(0, len(parents[a])):
-                            if result2[i].ontology_id in parents[a][b] and result2[i].children != 0:
-                                data2["expand"] = True
-                data2["isLazy"] = True
-                data2["key"] = result2[i].ontology_id
-                data2["db"] = False
-                data2["children"] = []
-                #cur_data = data2["children"]
-                data2_master_path_list_tuple = []
-                is_done = 1
-                #cur_node = result2[i]
-                list_unchecked = []
-                list_unchecked.append([data2,result2[i]])
-                if result2[i].children > 0:
-                    while is_done > 0:
-                        cur_data_node_tuple = list_unchecked.pop()
-                        cur_data = cur_data_node_tuple[0]
-                        cur_node = cur_data_node_tuple[1]
-                        for j in range(0, len(parents)): #for a list of the multiple parent path of one ontology
-                            for k in range(0, len(parents[j])): #for a list of a single parent path for ontology
-                                if cur_node.ontology_id in parents[j][k] and cur_node.children != 0: #if the root is in the parent path and has children
-                                    result3 = geneweaverdb.get_all_children_for_ontology(cur_node.ontology_id)
-                                    for ont in result3:
-                                        newData = dict()
-                                        newData["title"] = ont.name
-                                        newData["isLazy"] = True
-                                        newData["key"] = ont.ontology_id
-                                        newData["db"] = False
-                                        for sel_ont in onts:
-                                            if ont.ontology_id == sel_ont.ontology_id:
-                                                newData["select"] = True
-                                        if ont.children == 0:
-                                            newData["isFolder"] = False
+                            if len(parents[a][b]) > 0:
+                                if result2[i].ontology_id == parents[a][b][0]:
+                                    data2["expand"] = True
+                                    child_list = geneweaverdb.get_all_children_for_ontology(result2[i].ontology_id)
+                                    for child in child_list:
+                                        if child.ontology_id in parents[a][b]:
+                                            new_child_dict = create_new_expanded_child_dict(child, parents[a][b], parents[a][b][len(parents[a][b])-1])
                                         else:
-                                            for x in range(0, len(parents)):
-                                                for y in range(0, len(parents[x])):
-                                                    if ont.ontology_id in parents[x][y] and ont.children != 0:
-                                                        newData["isFolder"] = True
-                                                        newData["expand"] = True
-                                                        newData["children"] = []
-                                                        list_unchecked.append([newData,ont])
-                                                        is_done += 1
-                                        cur_data["children"].append(newData)
-                        is_done -= 1
-                #print data2["children"]
+                                            new_child_dict = create_new_child_dict(child)
+                                        data2["children"].append(new_child_dict)
                 data["children"].append(data2)
         info.append(data)
     return (json.dumps(info))
+
+def create_new_child_dict(ontology_node):
+    new_child_dict = dict()
+    new_child_dict["title"] = ontology_node.name
+    new_child_dict["isLazy"] = True
+    new_child_dict["key"] = ontology_node.ontology_id
+    new_child_dict["db"] = False
+    if ontology_node.children == 0:
+        new_child_dict["isFolder"] = False
+    else:
+        new_child_dict["isFolder"] = True
+    return new_child_dict
+
+def create_new_expanded_child_dict(ontology_node, parents, end_node):
+    new_child_dict = dict()
+    new_child_dict["title"] = ontology_node.name
+    new_child_dict["isLazy"] = True
+    new_child_dict["key"] = ontology_node.ontology_id
+    new_child_dict["db"] = False
+    if ontology_node.children == 0:
+        new_child_dict["isFolder"] = False
+    else:
+        new_child_dict["isFolder"] = True
+    if ontology_node.ontology_id in parents:
+        if ontology_node.ontology_id == end_node:
+            new_child_dict["select"] = True
+            return new_child_dict
+        else:
+            new_child_dict["expand"] = True
+            new_child_dict["children"] = []
+            ontology_node_children = geneweaverdb.get_all_children_for_ontology((ontology_node.ontology_id))
+            for child in ontology_node_children:
+                if child.ontology_id in parents:
+                    new_child_dict["children"].append(create_new_expanded_child_dict(child, parents, end_node))
+                else:
+                    new_child_dict["children"].append(create_new_child_dict(child))
+    return new_child_dict
 
 @app.route('/getOntRootNodes', methods=['POST', 'GET'])
 def get_ont_root_nodes():
