@@ -354,18 +354,61 @@ def get_ontdb_nodes():
         data["children"] = []
         if data["key"] in used_dbs:
             data["expand"] = True
-        #result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
-        #for i in range(0, len(result2)):
-        #    data2 = dict()
-        #    data2["title"] = result2[i].name
-        #    if(result2[i].children == 0):
-        #        data2["isFolder"] = False
-        #    else:
-        #        data2["isFolder"] = True
-        #    data2["isLazy"] = True
-        #    data2["key"] = result2[i].ontology_id
-        #    data2["db"] = False
-        #    data["children"].append(data2)
+            result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
+            for i in range(0, len(result2)):
+                data2 = dict()
+                data2["title"] = result2[i].name
+                if(result2[i].children == 0):
+                    data2["isFolder"] = False
+                else:
+                    data2["isFolder"] = True
+                    for a in range(0, len(parents)):
+                        for b in range(0, len(parents[a])):
+                            if result2[i].ontology_id in parents[a][b] and result2[i].children != 0:
+                                data2["expand"] = True
+                data2["isLazy"] = True
+                data2["key"] = result2[i].ontology_id
+                data2["db"] = False
+                data2["children"] = []
+                #cur_data = data2["children"]
+                data2_master_path_list_tuple = []
+                is_done = 1
+                #cur_node = result2[i]
+                list_unchecked = []
+                list_unchecked.append([data2,result2[i]])
+                if result2[i].children > 0:
+                    while is_done > 0:
+                        cur_data_node_tuple = list_unchecked.pop()
+                        cur_data = cur_data_node_tuple[0]
+                        cur_node = cur_data_node_tuple[1]
+                        for j in range(0, len(parents)): #for a list of the multiple parent path of one ontology
+                            for k in range(0, len(parents[j])): #for a list of a single parent path for ontology
+                                if cur_node.ontology_id in parents[j][k] and cur_node.children != 0: #if the root is in the parent path and has children
+                                    result3 = geneweaverdb.get_all_children_for_ontology(cur_node.ontology_id)
+                                    for ont in result3:
+                                        newData = dict()
+                                        newData["title"] = ont.name
+                                        newData["isLazy"] = True
+                                        newData["key"] = ont.ontology_id
+                                        newData["db"] = False
+                                        for sel_ont in onts:
+                                            if ont.ontology_id == sel_ont.ontology_id:
+                                                newData["select"] = True
+                                        if ont.children == 0:
+                                            newData["isFolder"] = False
+                                        else:
+                                            for x in range(0, len(parents)):
+                                                for y in range(0, len(parents[x])):
+                                                    if ont.ontology_id in parents[x][y] and ont.children != 0:
+                                                        newData["isFolder"] = True
+                                                        newData["expand"] = True
+                                                        newData["children"] = []
+                                                        list_unchecked.append([newData,ont])
+                                                        is_done += 1
+                                        cur_data["children"].append(newData)
+                        is_done -= 1
+                #print data2["children"]
+                data["children"].append(data2)
         info.append(data)
     return (json.dumps(info))
 
