@@ -462,12 +462,16 @@ var elim = reduceMatrix();
 var row_count = 0;
 var first_run = true;
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
+var xVal = 0;
+var yVal = -1;
     for (i = 0; i < count; i++) {
         var str = "-1";
         if (i % num_sets === 0) {
             row_count++;
             x_coord = 150;
             y_coord += 150;
+            yVal++;
+            xVal = 0;
             if (first_run) {
                 y_coord = 50;
                 first_run = false;
@@ -531,7 +535,7 @@ var first_run = true;
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                     "url":   gene_url[check-1] +'/' + gene_url[check-1],
+                     "url":   gene_url[xVal] +'/' + gene_url[yVal],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
                     "show" : threshold
@@ -605,7 +609,7 @@ var first_run = true;
                     "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                     "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                     "des": d.venn_diagrams[i].desc1,
-                    "url":  gene_url[check]+'/'+ gene_url[check-1],
+                    "url":  gene_url[xVal]+'/'+ gene_url[yVal],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
                     "show" : threshold,
@@ -623,7 +627,7 @@ var first_run = true;
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                    "url": gene_url[check]+'/'+ gene_url[check-1],
+                    "url": gene_url[xVal]+'/'+ gene_url[yVal],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
                     "show" : threshold
@@ -641,7 +645,7 @@ var first_run = true;
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                    "url": gene_url[check]+'/'+ gene_url[check-1],
+                    "url": gene_url[xVal]+'/'+ gene_url[yVal],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
                     "show" : threshold
@@ -659,7 +663,7 @@ var first_run = true;
                     "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                     "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                     "des": d.venn_diagrams[i].desc1,
-                    "url":  gene_url[check]+'/'+ gene_url[check-1],
+                    "url":  gene_url[xVal]+'/'+ gene_url[yVal],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
                     "show" : threshold,
@@ -669,9 +673,9 @@ var first_run = true;
                 });
               }
             }
-
+            
         }
-
+        xVal++;
 
     }
 

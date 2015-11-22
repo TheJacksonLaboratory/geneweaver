@@ -13,6 +13,12 @@
         cursor: pointer;
     }
 
+    #intersection {
+    margin: auto;
+    width: 35%;
+    padding: 10px;
+    }
+
 </style>
 
 
@@ -51,6 +57,15 @@
         </div>
     </div>
 
+    {#Location for where the d3 is appended to in the html#}
+    
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">Geneset Intersect</h3>
+    </div>
+
+    <div id="intersection"></div>
+            
+    
 
     <!-- Show the Geneset List at the intersection of the genesets -->
     <div class="panel panel-default">
@@ -176,10 +191,127 @@
         </script>
     {% endfor %}
 
-
+{{venn | safe}}
+{{jaccard | safe}}
+{{pval | safe}}
 
 <script type="text/javascript">
     // include all of your jquery here
+
+    var circleData = [];
+    var d = {{venn | safe}};
+    var jaccard = {{jaccard | safe}};
+    var pval = {{pval | safe }};
+
+    if (d.circledata.r2 != d.circledata.r1){
+        if (d.circledata.r2 < d.circledata.r1){
+        circleData.push({
+                        "cx": d.circledata.c1x,
+                        "cy": d.circledata.c1y,
+                        "radius": d.circledata.r1,
+                        "fill": "#FF8000",
+                        "opacity": 1,
+                        "cxshift": 0,
+                        "cyshift": 0,
+                        "jaccard": jaccard
+                    });
+
+        circleData.push({
+                        "cx": d.circledata.c2x,
+                        "cy": d.circledata.c2y,
+                        "radius": d.circledata.r2,
+                        "fill": "#0000FF",
+                        "opacity": 1,
+                        "cxshift": 0,
+                        "cyshift": 0,
+                        "jaccard": jaccard
+
+                   });
+    }
+        else{
+            circleData.push({
+                            "cx": d.circledata.c2x,
+                            "cy": d.circledata.c2y,
+                            "radius": d.circledata.r2,
+                            "fill": "#0000FF",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+                       });
+            circleData.push({
+                        "cx": d.circledata.c1x,
+                        "cy": d.circledata.c1y,
+                        "radius": d.circledata.r1,
+                        "fill": "#FF8000",
+                        "opacity": 1,
+                        "cxshift": 0,
+                        "cyshift": 0,
+                        "jaccard": jaccard
+                    });
+
+        }
+    }
+    else{
+        circleData.push({
+                        "cx": d.circledata.c1x,
+                        "cy": d.circledata.c1y,
+                        "radius": d.circledata.r1,
+                        "fill": "#66FFFF",
+                        "opacity": 1,
+                        "cxshift": 0,
+                        "cyshift": 0,
+                        "jaccard": jaccard
+                    });
+    }
+
+    {# Intializes border for circles#}
+    var border = 1;
+    var bordercolor = 'black';
+    var width = 250;
+    var height= 250;
+
+      //Create the SVG Viewport
+    var svgContainer = d3.select("#intersection").append("svg")
+            .attr("width", width )
+            .attr("height", height);
+
+    //Add circles to the svgContainer
+    var circles = svgContainer.selectAll("circle")
+            .data(circleData)
+            .enter()
+            .append("circle");
+
+     //Add the circle attributes
+    var circleAttributes = circles
+            .attr("cx", function (d) { return d.cx + d.cxshift + 50; })
+            .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
+            .attr("r", function (d) {return d.radius; })
+            .style("fill", function (d) { return d.fill; })
+            .style("fill-opacity", function (d) {return d.opacity - .2})
+            .attr("cxshift", function (d) {   return d.cxshift; })
+            .attr("cyshift", function (d) {  return d.cyshift; })
+            .style("stroke", bordercolor)
+            .attr("border", border);
+
+    textData = [{"tx": 110, "ty": 200}];
+
+     //Add the SVG Text Element to the svgContainer
+    var text = svgContainer.selectAll("text")
+            .data(circleData)
+            .enter();
+
+    text.append("text")
+            .text( function(d) { return "J = "+ jaccard;})
+            .attr("x", function (d) { return 90; })
+            .attr("y", function (d) { return 200;  })
+            .attr("font-size", "15px");
+        text.append("text")
+            .text( function(d) { return "p = " +pval;})
+            .attr("x", function (d) { return 90; })
+            .attr("y", function (d) { return 215;  })
+            .attr("font-size", "15px");
+
 
     function emphasize(id) {
         if (document.getElementById(id).checked) {
