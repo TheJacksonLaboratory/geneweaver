@@ -2035,17 +2035,6 @@ def get_all_parents_for_ontology(ont_id):
             ''' % (ont_id,)
         )
     parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
-
-    #parent_list = []
-    #print(parents)
-    #for parent in parents:
-    #    parent_list.append([parent])
-    #    print(parent.numParents)
-    #    if(parent.numParents != 0):
-    #        parent_list.append(get_all_parents_for_ontology(parent.ontology_id))
-        #else:
-            #parent_list.append([])
-    #print(parent_list)
     return parents
 
 def get_all_parents_to_root_for_ontology(ont_id):
@@ -2810,65 +2799,34 @@ def get_result_by_runhash(apikey, res_runhash):
     return cursor.fetchall();
 
 
-def get_all_ontologies_by_geneset(gs_id, temp=None):
+def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
     with PooledCursor() as cursor:
-        cursor.execute(
-        '''
-            SELECT *
-                        FROM extsrc.ontology natural join odestatic.ontologydb
-                        WHERE ont_id in (	SELECT ont_id
-                                            FROM extsrc.geneset_ontology
-                                            WHERE gs_id = %s
-                                        )
-                        or ont_id in    (	SELECT ont_children
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in (	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        )
-                        or ont_id in	(	SELECT ont_parents
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in	(	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        ) order by ont_id
-            ''', (gs_id, gs_id, gs_id)
-        )
-        #if temp is None:
-        ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
-        #elif temp == 'temp':
-            #genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
-            #ontology = [TempOntology(row_dict) for row_dict in dictify_cursor(cursor)]
-        return ontology
-
-        #cursor.execute(
-            #'''
-        #        SELECT row_to_json(row, true)
-        #        FROM(
-        #                SELECT *
-        #                FROM extsrc.ontology natural join odestatic.ontologydb
-        #                WHERE ont_id in (	SELECT ont_id
-        #                                    FROM extsrc.geneset_ontology
-        #                                    WHERE gs_id = %s
-        #                                )
-        #                or ont_id in    (	SELECT ont_children
-        #                                    FROM extsrc.ontology
-        #                                    WHERE ont_id in (	SELECT ont_id
-        #                                                        FROM extsrc.geneset_ontology
-        #                                                        WHERE gs_id = %s
-        #                                                    )
-        #                                )
-        #                or ont_id in	(	SELECT ont_parents
-        #                                    FROM extsrc.ontology
-        #                                    WHERE ont_id in	(	SELECT ont_id
-        #                                                        FROM extsrc.geneset_ontology
-        #                                                        WHERE gs_id = %s
-        #                                                    )
-        #                                ) order by ont_id
-        #            ) row; #''', (gs_id, gs_id, gs_id))
-    #return cursor.fetchall();
+        if gso_ref_type == "All Reference Types":
+            cursor.execute(
+            '''
+                SELECT *
+                            FROM extsrc.ontology natural join odestatic.ontologydb
+                            WHERE ont_id in (	SELECT ont_id
+                                                FROM extsrc.geneset_ontology
+                                                WHERE gs_id = %s
+                                            )
+                            order by ont_id
+                ''', (gs_id,)
+            )
+        else:
+            cursor.execute(
+            '''
+                SELECT *
+                            FROM extsrc.ontology natural join odestatic.ontologydb
+                            WHERE ont_id in (	SELECT ont_id
+                                                FROM extsrc.geneset_ontology
+                                                WHERE gs_id = %s AND gso_ref_type = %s
+                                            )
+                            order by ont_id
+                ''', (gs_id, gso_ref_type,)
+            )
+    ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return ontology
 
 
 #call by API only

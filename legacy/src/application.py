@@ -316,12 +316,18 @@ def render_editgenesets(gs_id):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
-    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
-    ontdb = geneweaverdb.get_all_ontologydb()
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
+    #ontdb = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
     ont_parents = []
+    print(gs_id)
     for ont in onts:
-        ont_parents.append(geneweaverdb.get_all_parents_for_ontology(ont.ontology_id))
+        print(ont.ontology_id)
+        #ont_parents.append(geneweaverdb.get_all_parents_for_ontology(ont.ontology_id))
+        ontology_parents = geneweaverdb.get_all_parents_for_ontology(ont.ontology_id)
+        for parent in ontology_parents:
+            print(parent.ontology_id)
+        print (geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
@@ -329,31 +335,33 @@ def render_editgenesets(gs_id):
     else:
         view = None
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, onts=onts, ont_parents=ont_parents, ontdb=ontdb, ref_types=ref_types)
+                                 view=view, ref_types=ref_types)
 
 @app.route('/getOntDBNodes')
 def get_ontdb_nodes():
     gs_id = request.args['gs_id']
-    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
-    print(request.args['universe'])
+    gso_ref_type = request.args['universe']
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
+
     parents = []
     used_dbs = set()
     for ont in onts:
         parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
         if ont.ontdb_id not in used_dbs:
             used_dbs.add(ont.ontdb_id)
+
     result = geneweaverdb.get_all_ontologydb()
     info = []
 
     for i in range(0, len(result)):
-        data = dict()
-        data["title"] = result[i].name
-        data["isFolder"] = True
-        data["isLazy"] = True
-        data["key"] = result[i].ontologydb_id
-        data["db"] = True
-        data["children"] = []
-        if data["key"] in used_dbs:
+        if result[i].ontologydb_id in used_dbs:
+            data = dict()
+            data["title"] = result[i].name
+            data["isFolder"] = True
+            data["isLazy"] = True
+            data["key"] = result[i].ontologydb_id
+            data["db"] = True
+            data["children"] = []
             data["expand"] = True
             result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
             for i in range(0, len(result2)):
@@ -380,7 +388,17 @@ def get_ontdb_nodes():
                                             new_child_dict = create_new_child_dict(child)
                                         data2["children"].append(new_child_dict)
                 data["children"].append(data2)
-        info.append(data)
+            info.append(data)
+        else:
+            if gso_ref_type == "All Reference Types":
+                data = dict()
+                data["title"] = result[i].name
+                data["isFolder"] = True
+                data["isLazy"] = True
+                data["key"] = result[i].ontologydb_id
+                data["db"] = True
+                info.append(data)
+
     return (json.dumps(info))
 
 def create_new_child_dict(ontology_node):
@@ -472,7 +490,7 @@ def render_editgeneset_genes(gs_id):
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
-    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
@@ -489,7 +507,7 @@ def render_editgeneset_genes(gs_id):
     for p in platform:
         pidts[p['pf_shortname']] = p['pf_name']
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
-                                 gidts=gidts, pidts=pidts, onts=onts, view=view, meta=meta)
+                                 gidts=gidts, pidts=pidts, view=view, meta=meta)
 
 
 @app.route('/setthreshold/<int:gs_id>')
@@ -723,12 +741,12 @@ def render_viewgeneset(gs_id):
 
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
-    ontdbs = geneweaverdb.get_all_ontologydb()
-    for ontdb in ontdbs:
-        ontroots = geneweaverdb.get_all_root_ontology_for_database(ontdb.ontologydb_id)
+    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    #ontdbs = geneweaverdb.get_all_ontologydb()
+    #for ontdb in ontdbs:
+    #    ontroots = geneweaverdb.get_all_root_ontology_for_database(ontdb.ontologydb_id)
     #for
-    parents = geneweaverdb.get_all_parents_to_root_for_ontology(8000)
+    #parents = geneweaverdb.get_all_parents_to_root_for_ontology(8000)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
@@ -737,7 +755,7 @@ def render_viewgeneset(gs_id):
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, onts=onts)
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
 
 
 @app.route('/mygenesets')

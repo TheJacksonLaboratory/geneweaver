@@ -234,20 +234,21 @@
         </div>
         <div style="margin-left: 1em;">
         <br>
-        {% if onts %}
+        {# {% if onts %} #}
+        <!--
             <div class="row">
                 <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
                     <ul class="jstree-container-ul">
                     <div id="testtree">
                         <ul id="treeData">
-                            {% for ont in onts %}
-                                <li>{{ ont.name }}</li>
-                            {% endfor %}
+                            {# {% for ont in onts %} #}
+                                <li>{# {{ ont.name }} #}</li>
+                            {# {% endfor %} #}
                         </ul>
                     </div>
                     </ul>
             </div>
-
+        -->
             <div class="row">
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
                 <div class="row">
@@ -265,16 +266,17 @@
                 <span id="echoActive">-</span>
             </div>
 
-        {% else %}
+        {# {% else %} #}
+        <!--
             <div class="row">
                 <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
                 <div class="row">
                 <div class="col-xs-3">
                     <select name="gso_ref_type" class="form-control" required>
                         <option value="all" selected>All Reference Types</option>
-                        {% for ref_type in ref_types %}
-                        <option value="ref_type">{{ ref_type }}</option>
-                        {% endfor %}
+                        {# {% for ref_type in ref_types %} #}
+                        <option value="ref_type">{# {{ ref_type }} #}</option>
+                        {# {% endfor %} #}
                     </select>
                 </div>
                 </div>
@@ -282,10 +284,9 @@
                 </div>
                 <span id="echoActive">-</span>
             </div>
+        -->
 
-        {% endif %}
-
-        </div>
+        {# {% endif %} #}
 
 
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
@@ -320,7 +321,7 @@
                 url: "/getOntDBNodes",
                 data: {
                     "gs_id": $(location).attr("href").split('/').pop(),
-                    "universe": "None"
+                    universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
                 }
             },
 
