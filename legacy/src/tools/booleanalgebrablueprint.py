@@ -9,7 +9,8 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'BooleanAlgebra'
 boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@boolean_algebra_blueprint.route('/run-boolean-algebra.html', methods=['POST'])
+@boolean_algebra_blueprint.route('/Boolean-Algebra.html', methods=['POST'])
+# @boolean_algebra_blueprint.route('/run-boolean-algebra.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
@@ -23,6 +24,7 @@ def run_tool():
         return flask.redirect('analyze')
 
     else:
+
         params = {}
         for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
             params[tool_param.name] = form[tool_param.name]
