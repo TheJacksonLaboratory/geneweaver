@@ -682,6 +682,11 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
 
     pvalue = geneweaverdb.getPvalue(geneset.count, geneset1.count, jaccard)
 
+    diagramSizes = []
+    diagramSizes.append(geneset.count-intersect_genes)
+    diagramSizes.append(intersect_genes)
+    diagramSizes.append(geneset1.count-intersect_genes)
+
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
@@ -692,7 +697,7 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetoverlap.html', geneset=geneset,emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, 
-                                 venn = venn, jaccard = jaccard, pval = pvalue)
+                                 venn = venn, jaccard = jaccard, pval = pvalue, sizes = diagramSizes)
 
 # @app.route('/viewgenesetoverlap/<int:gsID_1>/<int:gsID_2>', methods=['GET', 'POST'])
 # def geneset_intersection(gsID_1, gsID_2):
