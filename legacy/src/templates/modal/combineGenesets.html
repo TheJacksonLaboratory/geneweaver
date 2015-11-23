@@ -1,0 +1,50 @@
+{# Modal to combine geneset ids into a new project #}
+
+<div class="modal fade" id="combineGenesets">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="addGenesetsToProj" name="addGenesetsToProj" method="post" action="#"
+                  class="form-horizontal" novalidate="novalidate">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5" id="combineLabel">Combine Gene Sets</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="row" id="modalError"></div>
+                    <div class="row">
+                        <h4>The following Gene Sets will be combined:<br><br>
+                        <strong><span class="rows" id="myCombineGSLabel" style="color: #006400;"></span></strong>
+                        <br></h4>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-success btn-transparent"
+                                    id="addNewProject">
+                                <i class="fa fa-plus"></i> Add to New Project
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row" id="reveal-if-active"></div>
+                    <div class="row" style="padding-top: 10px">
+                        {% for currProj in g.user.projects %}
+                            <label for="addProjects{{ currProj.project_id }}"
+                                   class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off">
+                                {{ currProj.name }}</label>
+                            <input
+                                    type="checkbox"
+                                    name="options[]"
+                                    id="addProjects{{ currProj.project_id }}"
+                                    value="{{ currProj.project_id }}">
+                        {% endfor %}
+                        <input type="hidden" id="myCombineGSValue" name="gs_id"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" id="addGenesetsToProjects" data-dismiss="modal">Combine into New
+                        Project
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
