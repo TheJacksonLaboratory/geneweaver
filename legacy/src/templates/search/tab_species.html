@@ -78,7 +78,7 @@
 </style>
 
 {#
-	An example filter tree for tiers looks like this.
+	An example filter tree for species looks like this.
 
 	No Tier
 	|
@@ -99,9 +99,9 @@
 
 #}
 <!-- Supposed to be a tree-like structure, a series of lists ul/li/ul... -->
-<div id="tab1_2" class="tab-pane">
+<div id="tab_species" class="tab-pane">
 	<form action="/searchFilter.json">
-		<div class="filter-title">Filter by Tier</div>
+		<div class="filter-title">Filter by Species</div>
 
 		<ul class="tree">
 			{% if searchFilters.tierList.noTier > 1 %}
