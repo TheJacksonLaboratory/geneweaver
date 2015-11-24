@@ -332,8 +332,8 @@ def render_editgenesets(gs_id):
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, ref_types=ref_types)
 
-@app.route('/getOntDBNodes')
-def get_ontdb_nodes():
+@app.route('/initOntTree')
+def init_ont_tree():
     gs_id = request.args['gs_id']
     gso_ref_type = request.args['universe']
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
@@ -346,8 +346,6 @@ def get_ontdb_nodes():
             print ont.ontology_id
         if ont.ontdb_id not in used_dbs:
             used_dbs.add(ont.ontdb_id)
-    for parent in parents:
-        print(parent)
 
     result = geneweaverdb.get_all_ontologydb()
     info = []
@@ -456,16 +454,6 @@ def get_ont_root_nodes():
         data["key"] = result[i].ontology_id
         data["db"] = False
         info.append(data)
-    return (json.dumps(info))
-
-@app.route('/getOntParentNodes', methods=['POST', 'GET'])
-def get_ont_parent_nodes():
-
-
-    info = []
-
-
-
     return (json.dumps(info))
 
 @app.route('/updategeneset', methods=['POST'])

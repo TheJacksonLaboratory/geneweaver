@@ -2024,6 +2024,11 @@ def get_genesets_by_user_id(user_id):
         return genesets if len(genesets) > 0 else None
 
 def get_all_parents_for_ontology(ont_id):
+    """
+    Gets all parent ontology for a given ontology
+    :param ont_id:     ontology ID
+    :return:            a list of ontology objects that are the parents
+    """
     with PooledCursor() as cursor:
         cursor.execute(
             '''
@@ -2034,11 +2039,17 @@ def get_all_parents_for_ontology(ont_id):
             GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
             ''' % (ont_id,)
         )
+    #Note:  removed AND or_type='is_a' from query
     parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return parents
 
 def get_all_parents_to_root_for_ontology(ont_id):
-
+    """
+    Gets a path from the starting ontology to it's root ontology
+    and returns it as a list starting from the root
+    :param ont_id:     selected ontology ID
+    :return:            a list of ontology ids that represents the path from root to the selected id
+    """
     result = [1]
     ont_cur_id = ont_id
     parent_path_list = []
@@ -2083,6 +2094,11 @@ def get_all_parents_to_root_for_ontology(ont_id):
 
 
 def get_all_children_for_ontology(ont_id):
+    """
+    Gets all child ontology for a given ontology
+    :param ont_id:     ontology ID
+    :return:            a list of ontology objects that are the child
+    """
     with PooledCursor() as cursor:
         cursor.execute(
             '''
@@ -2099,6 +2115,11 @@ def get_all_children_for_ontology(ont_id):
 
 
 def get_all_ontologydb():
+    """
+    Gets all ontology databases
+    :param
+    :return:            a list of ontologydb objects
+    """
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT * FROM ontologydb;'''
@@ -2106,19 +2127,27 @@ def get_all_ontologydb():
         return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
 
 def get_all_gso_ref_type():
+    """
+    Gets all gso_ref_types is possible
+    :param
+    :return:            a list of gso_ref_type string that is possible
+    """
     with PooledCursor() as cursor:
-        print("HERE!!!!!!")
         gso_ref_types = []
         cursor.execute(
             '''SELECT gso_ref_type FROM geneset_ontology GROUP BY gso_ref_type'''
         )
         result = cursor.fetchall()
         for type in result:
-            print(type)
             gso_ref_types.append(type[0])
     return gso_ref_types
 
 def get_all_root_ontology_for_database(ontdb_id):
+    """
+    Gets all root ontology for a given ontology database
+    :param ont_id:     ontologydb ID
+    :return:            a list of ontology objects that are the root of a given ontology database
+    """
     with PooledCursor() as cursor:
         cursor.execute(
             '''
