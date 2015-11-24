@@ -533,7 +533,7 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     # this can be modified later to test for weight
     for i in range(n):
         for j in range(n):
-            Matrix[i][j] = get_matrix_value(i, j, identifiers, partitions)
+            Matrix[i][j] = get_matrix_value_jaccard(i, j, identifiers, partitions)
 
 
     # Print matrix
@@ -630,3 +630,60 @@ def create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions):
                 f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
                 print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
     f.close()
+
+def get_matrix_value_jaccard(i, j, identifiers, partitions):
+    """
+    Find out if identifier ar i, j are in the same or different partitions.
+    :param i:
+    :param j:
+    :param identifiers: sorted list
+    :param partitions: list of list
+    :return: float. 1.0 or 0.0
+    """
+    # Get the actual value in the sorted list of identifiers
+    id1 = identifiers[i]
+    id2 = identifiers[j]
+    print "In get_matrix_value_jaccard"
+    print id1
+    print id2
+    print "Identifiers" + str(identifiers)
+    print "Partitions: " + str(partitions)
+
+    # Set variables
+    id1Found = 0
+    id2Found = 0
+    p = 0
+    in_both = 0
+
+    # Find which partition each identifier is in
+    index = 0
+    bound = len(partitions)
+    for n in range(0, bound):
+        if i >= len(partitions[n]) + index:
+            index += len(partitions[n])
+        else:
+            id1Found = n
+            break
+    index = 0
+    for m in range(0, bound):
+        if j >= len(partitions[m]) + index:
+            index += len(partitions[m])
+        else:
+            id2Found = m
+            break
+
+    if id1Found == id2Found:
+        return 0.0
+    else:
+        return 1.0
+        # TODO: query to the database to get the frequency of the gene in the geneset or project
+        # Will have to be different for Jaccard and Exact gene overlap
+        #geneset_id = ''
+        #if re.match("^gs_", id1):
+        #    geneset_id = id1[3:]
+        #else:
+        #    geneset_id = id2[3:]
+        #with PooledCursor() as cursor:
+        #    cursor.execute(cursor.mogrify("SELECT gs_count FROM geneset WHERE gs_id =' " + geneset_id + " ' "))
+        #    gs_count = cursor.fetchone()
+        #return 1.0/gs_count[0]
