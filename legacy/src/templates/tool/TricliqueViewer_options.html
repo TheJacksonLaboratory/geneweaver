@@ -34,56 +34,24 @@
             <div class="form-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Methods']) }}
                 <div id="reveal-if-active"></div>
             </div>
-            <table class = "dataentrytable" summary = "Table is used to present the theshold value options">
-                <tbody>
-                    <tr>
-                        <td class = "delabel" scope = "row">
-                            <label for = "theshold_id">
-                                <span class = "fieldlabeltext"> Theshold value: </span>
-                            </label>
-                        </td>
-                        <td colspan = "10" class = dedefault">
-                            <select name = "sel_theshold" size = "10" multiple_id = "theshold_id">
-                                <option value = "0.0">0.0</option>
-                                <option value = "0.1">0.1</option>
-                                <option value = "0.2">0.2</option>
-                                <option value = "0.3">0.3</option>
-                                <option value = "0.4">0.4</option>
-                                <option value = "0.5">0.5</option>
-                                <option value = "0.6">0.6</option>
-                                <option value = "0.7">0.6</option>
-                                <option value = "0.8">0.7</option>
-                                <option value = "0.9">0.9</option>
-                                <option value = "1.0">1.0</option>
-                            </select>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            {# <div class = "row">
-                <div class = "small-10 medium-11 columns">
-                    <div class = "range-slider" data-slider data-options = "display_selector: #sliderOutput3;">
-                        <span class = "range-slider-handle" role = "slider" tabindex = "0"></span>
-                        <span class = "range-slider-active-segment"></span>
-                    </div>
-                </div>
-                <div class = "small-2 medium-1 columns">
-                    <span id = "sliderOutput3"></span>
-                </div>
-            </div>#}
-            {# <div data-slick = '{"slideToShow": 10, "slideToScroll": 3}'>
-                <div><h0>0.0</h0></div>
-                <div><h1>0.1</h1></div>
-                <div><h2>0.2</h2></div>
-                <div><h3>0.3</h3></div>
-                <div><h4>0.4</h4></div>
-                <div><h5>0.5</h5></div>
-                <div><h6>0.6</h6></div>
-                <div><h7>0.7</h7></div>
-                <div><h8>0.8</h8></div>
-                <div><h9>0.9</h9></div>
-                <div><h10>1.0</h10></div>
-            </div>#}
+            <div class = "form-group">
+                <label>
+                    Theshold Values:
+                </label>
+                <select name = "Triclique_ThresholdValues" class = "form-control">
+                    <option value = "0.0">0.0</option>
+                        <option value = "0.1">0.1</option>
+                        <option value = "0.2">0.2</option>
+                        <option value = "0.3">0.3</option>
+                        <option value = "0.4">0.4</option>
+                        <option value = "0.5">0.5</option>
+                        <option value = "0.6">0.6</option>
+                        <option value = "0.7">0.6</option>
+                        <option value = "0.8">0.7</option>
+                        <option value = "0.9">0.9</option>
+                        <option value = "1.0">1.0</option>
+                </select>
+            </div>
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
@@ -92,54 +60,6 @@
 <script>
     $('#form-group').click(function() {
         $(".reveal-if-active").slideToggle("slow");
-        var slide = $(slick.slides[currentSlide]);
 
     });
-    {# $(function(){
-        $("input.ts").click(function(){
-            var btnText = $(this).val();
-            if(btnText == '0.0'){
-                $("#slider").slider("value", 0);
-            }
-            return false;
-        });
-        var mouseX = 0;
-        var mouseY = 0;
-        $(document).mousemove(function(e){
-            mouseX = e.pageX;
-            mouseY = e.pageY;
-        });
-        var TEMPlate_slider_max = 1.0;
-        var TEMPlate_slider_options_count = 10;
-        var slider_max = TEMPlate_slider_max;
-        var slider_options_count = TEMPlate_slider_options_count;
-        $("#slider").slider({
-            min    : 0,
-            max    : slider_max,
-            step   : 0.1,
-            value  : 0,
-            slide  : sliderChange,
-            change : sliderChange
-        });
-        function sliderChange(event, ui){
-            var range_value = ui.value;
-            var option_size = slider_max / slider_options_count;
-            var range = Math.floor(range_value / (option_size));
-            if(range_value == slider_max) range--;
-            var value = (range_value - range * option_size) + 1;
-            $("#amount").css("width", "auto");
-            $("#amount").text("Threshold: " + value)
-            if($("#amount").css("position") != "absolute"){
-                $("#amount").css("position", "absolute");
-            }
-            var left = mouseX;
-            if(parseInt($("#amount").offset().left) < parseInt(left - 10))
-                left = $("a.ui-slider-handle").offset().left + 10;
-            if(parseInt($("#amount").width() + left) > parseInt($("#slider").offset().left + $("#slider").width())){
-                left = $("#slider").offset().left + $("#slider").width() - $("#amount").width();
-            }
-            $("#amount").css("left", left);
-        }
-
-    }); #}
 </script>
