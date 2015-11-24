@@ -172,6 +172,8 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     genesets = {}
     counts = {}
 
+    print "theshold value selected : ", threshold
+
     # Dictionary of dictionaries
     # Each entry
     # Project: {i, k}
@@ -208,6 +210,7 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
                 #    counts[k] += 1
                 # Now another inner loop (maybe need to be recursive?) to find all combinations of values
                 # against eachother.
+
                 for m in genesets[projs[i]]:
                     for n in genesets[projs[k]]:
                         jac_value = get_jaccard(m.geneset_id, n.geneset_id, threshold)
