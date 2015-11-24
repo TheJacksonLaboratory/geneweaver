@@ -660,12 +660,7 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id1, user_id)
     geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
-    print "Number of genes in the intersect", geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
-    # intersect_genes = {}
-    # temp_genes = geneweaverdb.get_gene_sym_by_intersection(gs_id, gs_id1)
-    # for j in range(0, len(temp_genes[0])):
-    #     intersect_genes[temp_genes[0][j]] = geneweaverdb.if_gene_has_homology(temp_genes[1][j])
-    # list=geneweaverdb.get_all_projects(user_id)
+    
     intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
 
     if gs_id == gs_id1:
@@ -698,44 +693,6 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
     return flask.render_template('viewgenesetoverlap.html', geneset=geneset,emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, 
                                  venn = venn, jaccard = jaccard, pval = pvalue, sizes = diagramSizes)
-
-# @app.route('/viewgenesetoverlap/<int:gsID_1>/<int:gsID_2>', methods=['GET', 'POST'])
-# def geneset_intersection(gsID_1, gsID_2):
-#     user_id = flask.session.get('user_id')
-#     if user_id:
-#         geneset1 = geneweaverdb.get_geneset(gsID_1, user_id)
-#         geneset2 = geneweaverdb.get_geneset(gsID_2, user_id)
-#         genesets = [geneset1, geneset2]
-         
-
-#     return flask.render_template(
-#         "viewgenesetoverlap.html", venn=json.loads(venn),
-#         genesets=genesets, gene_sym=intersect_genes, list=list)
-# def getOverlapDetails(gs_id, gs_id1):
-#     if 'user_id' in session:
-#         user_id = session['user_id']
-#     else:
-#         user_id = 0
-#     geneset1 = geneweaverdb.get_genes_by_geneset_id(gs_id)
-#     geneset2 = geneweaverdb.get_genes_by_geneset_id(gs_id1)
-
-#     # print "geneset1 ", geneset1[0][0]['ode_gene_id']
-
-#     gs1_length = len(geneset1)
-#     gs2_length = len(geneset2)
-#     intersect_count = 0
-
-#     for x in xrange(0, len(geneset1)):
-#         for y in xrange(0, len(geneset2)):
-#             if(geneset1[x][0]['ode_gene_id'] == geneset2[y][0]['ode_gene_id']):
-#                 intersect_count += 1
-#             elif geneweaverdb.if_gene_has_homology(geneset1[x][0]['ode_gene_id']) != None:
-#                 if geneweaverdb.if_gene_has_homology(geneset1[x][0]['ode_gene_id']) == geneweaverdb.if_gene_has_homology(geneset2[y][0]['ode_gene_id']):
-#                     intersect_count += 1
-
-#     venn = createVennDiagram(gs1_length, gs2_length, intersect_count)
-
-#     return json.dumps(venn)
 
 
 def createVennDiagram(i,ii,j, size=100):
