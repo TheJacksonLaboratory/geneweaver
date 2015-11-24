@@ -191,6 +191,11 @@ input[type="checkbox"]:hover:before {
         }
 </style>
 
+<button class="btn btn-success" id="save_as_svg" value> Save as SVG</button>
+<button class="btn btn-success" id="save_as_pdf" value> Save as PDF</button>
+<button class="btn btn-success" id="save_as_png" value> Save as PNG</button>
+
+
 
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
@@ -214,7 +219,7 @@ input[type="checkbox"]:hover:before {
         <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
         <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
         <button id="rerun" class="btn btn-primary"
-           type='submit'
+           type='submit'x
            value='run'
            onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
            Run
@@ -227,9 +232,9 @@ input[type="checkbox"]:hover:before {
 <div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">    Geneset Table Panel</i></div>
 <div id="panel" class="badger-left">
 <div id="toLeft" style="float:right font-size: 2.25em"><i class="fa fa-chevron-right"></i> </div>
-<div id="toRifhr" style="float:left font-size: 2.25em"><i class="fa fa-chevron-left"></i> </div>
+<div id="toRight" style="float:left font-size: 2.25em"><i class="fa fa-chevron-left"></i> </div>
+    <button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
 <div id="chart"></div>
-
 
                         <div><form action="#" method="post" id="myform">
                             <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
@@ -255,8 +260,8 @@ input[type="checkbox"]:hover:before {
          <div class="dropdown middle-cell">
              <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
              <span class="caret"></span></button>
-              <ul class="dropdown-menu" id="menudrop" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
-                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg">SVG</a></li>
+              <ul class="dropdown-menu dropdown-menu-right" id="menudrop" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
+                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg" onclick="getSVG()">SVG</a></li>
                   <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
                   <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
               </ul>
@@ -266,7 +271,15 @@ input[type="checkbox"]:hover:before {
          <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
       </div>
 </div>
-<script>//{{ data | safe }}</script>
+
+
+
+
+
+
+
+
+
 
 <script>
 
@@ -506,8 +519,8 @@ function reduceMatrix() {
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label": d.geneset_table[check].text.substring(0, 30), //d.geneset_table[check].text.replace(/\.(?=[A-Z])/g, '<br /><br />'),
-                            "label1": d.geneset_table[check].text.substring(30, d.geneset_table[check].text.length),
+                            "label": d.geneset_table[check].text.substring(0, 25), //d.geneset_table[check].text.replace(/\.(?=[A-Z])/g, '<br /><br />'),
+                            "label1": d.geneset_table[check].text.substring(25, 50),
                             "labelx": x_coord,
                             "labely": y_coord,
                             "pvalue" : str,
@@ -545,8 +558,8 @@ function reduceMatrix() {
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label":  d.geneset_table[check].text.substring(0, 30),
-                            "label1": d.geneset_table[check].text.substring(30, d.geneset_table[check].text.length),
+                            "label":  d.geneset_table[check].text.substring(0, 25),
+                            "label1": d.geneset_table[check].text.substring(25, 50),
                             "labelx": x_coord,
                             "labely": y_coord,
                             "pvalue" : str,
@@ -613,7 +626,7 @@ function reduceMatrix() {
                 });
               }
               else{
-                              
+
                 circleData.push({
 
                     "cx": d.venn_diagrams[i].c1x,
@@ -852,12 +865,7 @@ function reduceMatrix() {
 
 {#Script for the slider to control the jaccard similarity threshold.#}
 
-//This allows the user to view the chart or not
-$(document).ready(function() {
-            $("#flip").click(function(){
-                $("#panel").slideToggle("slow");
-            });
-    });
+
 $(document).ready(function(){
     $("#rerunFlip").click(function(){
         $("#rerunPanel").slideToggle("slow");
@@ -888,21 +896,44 @@ $(document).ready(function(){
         });
 
 
-{#var html = d3.select("svg")#}
-{#        .attr("title", "test2")#}
-{#        .attr("version", 1.1)#}
-{#        .attr("xmlns", "http://www.w3.org/2000/svg")#}
-{#        .node().parentNode.innerHTML;#}
-{#d3.select("#chart").append("div")#}
-{#        .attr("id", "download")#}
-{#        .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")#}
-{#        .append("img")#}
-{#        .attr("src", "data:image/svg+xml;base64,"+ btoa(html));#}
+
+
+
+
+function getSVG() {
+    var html = d3.select("svg")
+            .attr("title", "test2")
+            .attr("version", 1.1)
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .node().parentNode.innerHTML;
+
+
+    d3.select("body")
+            .append("div")
+            .attr("id", "download")
+            .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")
+            .append("img")
+            .attr("src", "data:image/svg+xml;base64," + btoa(html));
+}
 </script>
 
 
 
 <script>
+//Button to reset zoom
+       $("#zoomButtonChart").on("click", function () {
+                    svg.selectAll(".rectangles")
+                       .transition()
+                       .duration(1000)
+                        .attr("transform", "translate(300," + (h-338) + ")")
+                            .call(zm).call(xAxis);
+                  });
+//This allows the user to view the chart or not
+$(document).ready(function() {
+            $("#flip").click(function(){
+                $("#panel").slideToggle("slow");
+            });
+    });
     // var w =  width + margin.left + margin.right; //, h = height + margin.top + margin.bottom;
     var border = 0.5;
     var bordercolor = 'black';
