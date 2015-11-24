@@ -319,15 +319,10 @@ def render_editgenesets(gs_id):
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
     #ontdb = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
-    ont_parents = []
-    print(gs_id)
-    for ont in onts:
-        print(ont.ontology_id)
+    #ont_parents = []
+    #for ont in onts:
         #ont_parents.append(geneweaverdb.get_all_parents_for_ontology(ont.ontology_id))
-        ontology_parents = geneweaverdb.get_all_parents_for_ontology(ont.ontology_id)
-        for parent in ontology_parents:
-            print(parent.ontology_id)
-        print (geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
+        #ontology_parents = geneweaverdb.get_all_parents_for_ontology(ont.ontology_id)
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
@@ -347,8 +342,12 @@ def get_ontdb_nodes():
     used_dbs = set()
     for ont in onts:
         parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
+        if len(parents[-1]) == 0:
+            print ont.ontology_id
         if ont.ontdb_id not in used_dbs:
             used_dbs.add(ont.ontdb_id)
+    for parent in parents:
+        print(parent)
 
     result = geneweaverdb.get_all_ontologydb()
     info = []
