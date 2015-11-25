@@ -317,18 +317,18 @@ def render_editgenesets(gs_id):
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
-    #ontdb = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
-    #ont_parents = []
-    #for ont in onts:
-        #ont_parents.append(geneweaverdb.get_all_parents_for_ontology(ont.ontology_id))
-        #ontology_parents = geneweaverdb.get_all_parents_for_ontology(ont.ontology_id)
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
+    if not (user_info.is_admin or user_info.is_curator):
+        ref_types = ["Publication, NCBO Annotator",
+                     "Description, NCBO ANnotator",
+                     "GeneWeaver Primary Inferred",
+                     "Manual Association",]
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, ref_types=ref_types)
 
@@ -346,8 +346,8 @@ def update_geneset_ontology_db():
 
     return json.dumps(True)
 
-@app.route('/getOntDBNodes')
-def get_ontdb_nodes():
+@app.route('/initOntTree')
+def init_ont_tree():
     gs_id = request.args['gs_id']
     gso_ref_type = request.args['universe']
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
@@ -471,16 +471,6 @@ def get_ont_root_nodes():
         info.append(data)
     return (json.dumps(info))
 
-@app.route('/getOntParentNodes', methods=['POST', 'GET'])
-def get_ont_parent_nodes():
-
-
-    info = []
-
-
-
-    return (json.dumps(info))
-
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
     if 'user_id' in flask.session:
@@ -502,7 +492,6 @@ def render_editgeneset_genes(gs_id):
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
-    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
