@@ -2039,7 +2039,7 @@ def get_all_parents_for_ontology(ont_id):
             GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
             ''' % (ont_id,)
         )
-    #Note:  removed AND or_type='is_a' from query
+        #Note:  removed AND or_type='is_a' from query
     parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return parents
 

@@ -260,7 +260,7 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
-@app.route('/projects')
+@ app.route('/projects')
 def render_projects():
     return flask.render_template('projects.html')
 
@@ -317,18 +317,18 @@ def render_editgenesets(gs_id):
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
-    #ontdb = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
-    #ont_parents = []
-    #for ont in onts:
-        #ont_parents.append(geneweaverdb.get_all_parents_for_ontology(ont.ontology_id))
-        #ontology_parents = geneweaverdb.get_all_parents_for_ontology(ont.ontology_id)
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
+    if not (user_info.is_admin or user_info.is_curator):
+        ref_types = ["Publication, NCBO Annotator",
+                     "Description, NCBO ANnotator",
+                     "GeneWeaver Primary Inferred",
+                     "Manual Association",]
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, ref_types=ref_types)
 
@@ -340,7 +340,7 @@ def init_ont_tree():
 
     parents = []
     used_dbs = set()
-    for ont in onts:
+    for ont in onts: #
         parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
         if len(parents[-1]) == 0:
             print ont.ontology_id
@@ -477,7 +477,6 @@ def render_editgeneset_genes(gs_id):
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
-    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
