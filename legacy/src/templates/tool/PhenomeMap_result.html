@@ -20,18 +20,11 @@
         .node text {
             font: 12px sans-serif;
             pointer-events: none;
-        }
-
-        line {
-            fill: none;
-            stroke: #ccc;
-            stroke-width: 1.5px;
-        }
-
-        path {
-            fill: none;
-            stroke: #ccc;
-            stroke-width: 1.5px;
+            text-shadow:
+                -1px -1px 0 #FFF,
+                1px -1px 0 #FFF,
+                -1px 1px 0 #FFF,
+                1px 1px 0 #FFF;
         }
 
         .link {
@@ -58,8 +51,9 @@
 <!-- Cytoscape settings and graph rendering for tool output -->
 <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
 #}
+<link rel="stylesheet" type="text/css" href="../../static/select2/select2.min.css"></link>
 <script type="text/javascript" src="../../static/d3/d3.min.js"></script>
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/select2/3.5.0/select2.min.js"></script>
+<script type="text/javascript" src="../../static/select2/select2.min.js"></script>
 
 {#<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>#}
 {# {{ data | safe }} #}
@@ -81,7 +75,7 @@
 	the extra $.get() call below.
 #}
 
-{#
+
 {% if runhash %}
     <script type="text/javascript">
 
@@ -96,7 +90,7 @@
 
     </script>
 {% endif %}
-#}
+
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
@@ -321,19 +315,9 @@ $(function () {
     var nodes = flatten(g.data.nodes);
     initialize_layout(nodes);
 
-    var roots = [];
-    for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].orphan) {
-            roots.push(i);
-        }
-    }
+    select2_data = extract_select2_data();
 
-    select2_data = [];
-
-    for(var i = 0; i < roots.length; i++) {
-        select2_data.concat(extract_select2_data(roots, [], 0)[1]);
-    }
-
+    console.log(select2_data);
 
 
     $("#search").select2({
@@ -396,6 +380,15 @@ function update() {
         .insert("line", ".node")
         .attr("class", "link");
 
+    g.link.style("stroke", function(d) {
+       if(d.source.found && d.target.found) {
+           return "red";
+       }
+        else{
+           return "#ccc";
+       }
+    });
+
     // create a subselection, wiring up data, using a function to define
     //how it's suppossed to know what is appended/updated/exited
     g.node = g.node.data(nodes, function (d) {
@@ -404,7 +397,7 @@ function update() {
     //Get rid of old nodes:
     g.node.exit().remove();
     //-------------------
-    //create new nodes by making groupd elements, that contain circls and text:
+    //create new nodes by making grouped elements, that contain circls and text:
     var nodeEnter = g.node.enter()
         .append("g")
         .attr("class", "node")
@@ -430,8 +423,8 @@ function update() {
             return (d.children.length > 0) ? "end" : "start";
         })
         .text(function (d) {
-            //return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets..." ;
-            return d.Genesets;
+            return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets..." ;
+            //return d.Genesets;
         });
 
     //
@@ -444,8 +437,8 @@ function update() {
             return (d.children.length > 0) ? "end" : "start";
         })
         .text(function (d) {
-            //return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes..." ;
-            return d.Genes;
+            return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes..." ;
+            //return d.Genes;
         });
     //All nodes, do the following:
     g.node.select("circle")
@@ -483,7 +476,7 @@ function flatten(data) {
     for (var i = 0, len = data.length; i < len; i++) {
         if (data[i]._children) {
             for(var j = 0, jlen = data[i]._children.length; j < jlen; j++){
-                console.log("PARAM 1: " + data + "\n PARAM 2: " + data[i]._children[j]);
+                //console.log("PARAM 1: " + data + "\n PARAM 2: " + data[i]._children[j]);
                 getNodeByID(data, data[i]._children[j]).orphan = false;
             }
         }
@@ -538,6 +531,9 @@ function getLinks(nodes) {
                 source: n,
                 target: getNodeByID(nodes, n.children[j])
             };
+            if (link.source.found && link.target.found) {
+                link.class = "found";
+            }
             links.push(link);
         }
     }
@@ -618,62 +614,59 @@ function click(d) {
     update();
 }
 
+
 //NOT YET IN USE--SEARCH FUNCTIONALITY
 //basically a way to get the path to an object
-function searchTree(obj, search, path) {
-    if (search in obj.Genesets) { //if search is found return, add the object to the path and return it
-        path.push(obj);
-        return path;
-    }
-    else if (obj.children || obj._children) { //if children are collapsed d3 object will have them instantiated as _children
-        var children = (obj.children.length > 0) ? obj.children : obj._children;
-        for (var i = 0; i < children.length; i++) {
-            path.push(obj);// we assume this path is the right one
-            var found = searchTree(getNodeByID(children[i]), search, path);
-            if (found) {// we were right, this should return the bubbled-up path from the first if statement
-                return found;
-            }
-            else {//we were wrong, remove this parent from the path and continue iterating
-                path.pop();
-            }
+function searchTree(search) {
+    console.log("SEARCH STRING : " + search);
+    path = [];
+    for(var i = 0; i < g.data.nodes.length; i++) {
+        g.data.nodes[i].found = false;
+        if(g.data.nodes[i].Genesets.indexOf(search) >= 0) {
+            path.push(g.data.nodes[i]);
         }
     }
-    else {//not the right object, return false so it will continue to iterate in the loop
-        return false;
-    }
+    return path;
 }
 
 //NOT YET IN USE--SEARCH FUNCTIONALITY
-function extract_select2_data(node, leaves, index) {
-{#    if (node.children.length > 0) {#}
-{#        for (var i = 0; i < node.children.length; i++) {#}
-{#            index = extract_select2_data(node.children[i], leaves, index)[0];#}
-{#        }#}
-{#    }#}
-{#    else {#}
-{#        leaves.push(node.id);#}
-{#    }#}
-{#    return [index, leaves];#}
-    return [1, "Black Tie"];
+function extract_select2_data() {
+    var index = 0;
+    var data = g.data.nodes;
+    var leaves = [];
+    var leaf = data[0];
+    while(leaf.children.length > 0) {
+        leaf = getNodeByID(data, leaf.children[0]);
+    }
+    var leafdepth = leaf.depth;
+    for(var i = 0; i < data.length; i++) {
+        if (data[i].depth == leafdepth) {
+            leaves.push({"id":++index,"text":data[i].Genesets[0]});
+        }
+    }
+    return leaves;
 }
 
 //NOT YET IN USE--SEARCH FUNCTIONALITY
 function openPaths(paths) {
     for (var i = 0; i < paths.length; i++) {
-        if (!paths[i].orphan) {//i.e. not root
-            paths[i].class = 'found';
+        //if (!paths[i].orphan) {//i.e. not root
+            paths[i].found = true;
             if (paths[i]._children) { //if children are hidden: open them, otherwise: don't do anything
                 paths[i].children = paths[i]._children;
                 paths[i]._children = null;
-            }
-            update(paths[i]);
         }
     }
+    update();
 }
 
 //NOT YET IN USE--SEARCH FUNCTIONALITY
 $("#search").on("select2-selecting", function (e) {
-    var paths = searchTree(root, e.object.text, []);
+    var roots = [];
+    var paths = [];
+
+    paths = searchTree(e.object.text);
+    console.log(paths);
     if (typeof(paths) !== "undefined") {
         openPaths(paths);
     }
@@ -767,23 +760,23 @@ function collide(node) {
 //
 var data = {
     "nodes": [
-        {"id": 0, "Genesets": [1, 2, 3, 4, 5], "Genes": ["I"], "children": [1, 2], "depth": 0},
-        {"id": 1, "Genesets": [1, 2, 4, 5], "Genes": ["A", "I"], "children": [3, 16], "depth": 1},
-        {"id": 2, "Genesets": [2, 3, 4, 5], "Genes": ["I", "K"], "children": [6, 16], "depth": 1},
-        {"id": 3, "Genesets": [1, 2, 4], "Genes": ["A", "E", "I"], "children": [7,8], "depth": 2},
-        {"id": 4, "Genesets": [1, 2, 3], "Genes": ["G","I"], "children": [9,10], "depth": 2},
-        {"id": 5, "Genesets": [1, 3, 4], "Genes": ["I","J"], "children": [7, 11], "depth": 2},
-        {"id": 6, "Genesets": [2, 3, 4], "Genes": ["I", "K", "M"], "children": [9, 11], "depth": 2, "emphasis": true},
-        {"id": 7, "Genesets": [1, 4], "Genes": ["A", "E", "I", "B", "D", "J"], "children": [12, 15], "depth": 3},
-        {"id": 8, "Genesets": [1, 2], "Genes": ["A", "C", "E", "G", "I"], "children": [12, 13], "depth": 3},
-        {"id": 9, "Genesets": [2, 3], "Genes": ["G", "I", "M", "P"], "children": [13, 14], "depth": 3, "emphasis": true},
-        {"id": 10, "Genesets": [1, 3], "Genes": ["G", "H", "I", "J"], "children": [12, 14], "depth": 3},
-        {"id": 11, "Genesets": [3, 4], "Genes": ["I", "J", "K", "L", "M", "N"], "children": [14, 15], "depth": 3, "emphasis": true},
-        {"id": 12, "Genesets": [1], "Genes": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"], "children": [], "depth": 4},
-        {"id": 13, "Genesets": [2], "Genes": ["A", "C", "E", "G", "I", "K", "M", "P"], "children": [], "depth": 4, "emphasis": true},
-        {"id": 14, "Genesets": [3], "Genes": ["G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"], "children": [], "depth": 4, "emphasis": true},
-        {"id": 15, "Genesets": [4], "Genes": ["A", "B", "D", "E", "I", "J", "K", "L", "M", "N"], "children": [], "depth": 4, "emphasis": true},
-        {"id": 16, "Genesets": [5], "Genes": ["A", "I", "K"], "children": [], "depth": 4}
+        {"id": 0, "Genesets": ["One", "Two", "Three", "Four", "Five"], "Genes": ["I"], "children": [1, 2], "depth": 0},
+        {"id": 1, "Genesets": ["One", "Two", "Four", "Five"], "Genes": ["A", "I"], "children": [3, 16], "depth": 1},
+        {"id": 2, "Genesets": ["Two", "Three", "Four", "Five"], "Genes": ["I", "K"], "children": [6, 16], "depth": 1},
+        {"id": 3, "Genesets": ["One", "Two", "Four"], "Genes": ["A", "E", "I"], "children": [7,8], "depth": 2},
+        {"id": 4, "Genesets": ["One", "Two", "Three"], "Genes": ["G","I"], "children": [9,10], "depth": 2},
+        {"id": 5, "Genesets": ["One", "Three", "Four"], "Genes": ["I","J"], "children": [7, 11], "depth": 2},
+        {"id": 6, "Genesets": ["Two", "Three", "Four"], "Genes": ["I", "K", "M"], "children": [9, 11], "depth": 2, "emphasis": true},
+        {"id": 7, "Genesets": ["One", "Four"], "Genes": ["A", "E", "I", "B", "D", "J"], "children": [12, 15], "depth": 3},
+        {"id": 8, "Genesets": ["One", "Two"], "Genes": ["A", "C", "E", "G", "I"], "children": [12, 13], "depth": 3},
+        {"id": 9, "Genesets": ["Two", "Three"], "Genes": ["G", "I", "M", "P"], "children": [13, 14], "depth": 3, "emphasis": true},
+        {"id": 10, "Genesets": ["One", "Three"], "Genes": ["G", "H", "I", "J"], "children": [12, 14], "depth": 3},
+        {"id": 11, "Genesets": ["Three", "Four"], "Genes": ["I", "J", "K", "L", "M", "N"], "children": [14, 15], "depth": 3, "emphasis": true},
+        {"id": 12, "Genesets": ["One"], "Genes": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"], "children": [], "depth": 4},
+        {"id": 13, "Genesets": ["Two"], "Genes": ["A", "C", "E", "G", "I", "K", "M", "P"], "children": [], "depth": 4, "emphasis": true},
+        {"id": 14, "Genesets": ["Three"], "Genes": ["G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"], "children": [], "depth": 4, "emphasis": true},
+        {"id": 15, "Genesets": ["Four"], "Genes": ["A", "B", "D", "E", "I", "J", "K", "L", "M", "N"], "children": [], "depth": 4, "emphasis": true},
+        {"id": 16, "Genesets": ["Five"], "Genes": ["A", "I", "K"], "children": [], "depth": 4}
 
 
 
