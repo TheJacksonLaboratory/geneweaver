@@ -336,7 +336,26 @@
             onLazyRead: function (node) {
                 node.appendAjax({
                     url: "/getOntRootNodes",
-                    data: {key: node.data.key, is_db: node.data.db}
+                    data: {
+                        key: node.data.key,
+                        is_db: node.data.db,
+                        universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+                    }
+                })
+            },
+
+            onSelect: function (flag, node) {
+                $.ajax({
+                    url: "/updateGenesetOntologyDB",
+                    data: {
+                        key: node.data.key,
+                        flag: flag,
+                        universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML,
+                        gs_id: $(location).attr("href").split('/').pop()
+                    },
+                    success: function(data){
+
+                    }
                 })
             }
         })

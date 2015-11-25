@@ -332,6 +332,20 @@ def render_editgenesets(gs_id):
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
                                  view=view, ref_types=ref_types)
 
+@app.route('/updateGenesetOntologyDB')
+def update_geneset_ontology_db():
+    ont_id = request.args['key']
+    gs_id = request.args['gs_id']
+    flag = request.args['flag']
+    gso_ref_type = request.args['universe']
+
+    if(flag == "true"):
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
+    else:
+        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
+
+    return json.dumps(True)
+
 @app.route('/getOntDBNodes')
 def get_ontdb_nodes():
     gs_id = request.args['gs_id']
@@ -342,26 +356,26 @@ def get_ontdb_nodes():
     used_dbs = set()
     for ont in onts:
         parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
-        if len(parents[-1]) == 0:
-            print ont.ontology_id
         if ont.ontdb_id not in used_dbs:
             used_dbs.add(ont.ontdb_id)
-    for parent in parents:
-        print(parent)
 
     result = geneweaverdb.get_all_ontologydb()
     info = []
 
     for i in range(0, len(result)):
+        data = dict()
+        data["title"] = result[i].name
+        data["isFolder"] = True
+        data["isLazy"] = True
+        data["key"] = result[i].ontologydb_id
+        data["db"] = True
+        data["hideCheckbox"] = True
+        data["unselectable"] = True
         if result[i].ontologydb_id in used_dbs:
-            data = dict()
-            data["title"] = result[i].name
-            data["isFolder"] = True
-            data["isLazy"] = True
-            data["key"] = result[i].ontologydb_id
-            data["db"] = True
             data["children"] = []
             data["expand"] = True
+            if gso_ref_type == "All Reference Types":
+                data["unselectable"] = True
             result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
             for i in range(0, len(result2)):
                 data2 = dict()
@@ -369,6 +383,8 @@ def get_ontdb_nodes():
                 data2["isLazy"] = True
                 data2["key"] = result2[i].ontology_id
                 data2["db"] = False
+                if gso_ref_type == "All Reference Types":
+                    data["unselectable"] = True
                 data2["children"] = []
                 if(result2[i].children == 0):
                     data2["isFolder"] = False
@@ -382,42 +398,36 @@ def get_ontdb_nodes():
                                     child_list = geneweaverdb.get_all_children_for_ontology(result2[i].ontology_id)
                                     for child in child_list:
                                         if child.ontology_id in parents[a][b]:
-                                            new_child_dict = create_new_expanded_child_dict(child, parents[a][b], parents[a][b][len(parents[a][b])-1])
+                                            new_child_dict = create_new_expanded_child_dict(child, parents[a][b], parents[a][b][len(parents[a][b])-1], gso_ref_type)
                                         else:
-                                            new_child_dict = create_new_child_dict(child)
+                                            new_child_dict = create_new_child_dict(child, gso_ref_type)
                                         data2["children"].append(new_child_dict)
                 data["children"].append(data2)
-            info.append(data)
-        else:
-            if gso_ref_type == "All Reference Types":
-                data = dict()
-                data["title"] = result[i].name
-                data["isFolder"] = True
-                data["isLazy"] = True
-                data["key"] = result[i].ontologydb_id
-                data["db"] = True
-                info.append(data)
+        info.append(data)
+    return json.dumps(info)
 
-    return (json.dumps(info))
-
-def create_new_child_dict(ontology_node):
+def create_new_child_dict(ontology_node, grt):
     new_child_dict = dict()
     new_child_dict["title"] = ontology_node.name
     new_child_dict["isLazy"] = True
     new_child_dict["key"] = ontology_node.ontology_id
     new_child_dict["db"] = False
+    if grt == "All Reference Types":
+        new_child_dict["unselectable"] = True
     if ontology_node.children == 0:
         new_child_dict["isFolder"] = False
     else:
         new_child_dict["isFolder"] = True
     return new_child_dict
 
-def create_new_expanded_child_dict(ontology_node, parents, end_node):
+def create_new_expanded_child_dict(ontology_node, parents, end_node, grt):
     new_child_dict = dict()
     new_child_dict["title"] = ontology_node.name
     new_child_dict["isLazy"] = True
     new_child_dict["key"] = ontology_node.ontology_id
     new_child_dict["db"] = False
+    if grt == "All Reference Types":
+        new_child_dict["unselectable"] = True
     if ontology_node.children == 0:
         new_child_dict["isFolder"] = False
     else:
@@ -432,9 +442,9 @@ def create_new_expanded_child_dict(ontology_node, parents, end_node):
             ontology_node_children = geneweaverdb.get_all_children_for_ontology((ontology_node.ontology_id))
             for child in ontology_node_children:
                 if child.ontology_id in parents:
-                    new_child_dict["children"].append(create_new_expanded_child_dict(child, parents, end_node))
+                    new_child_dict["children"].append(create_new_expanded_child_dict(child, parents, end_node, grt))
                 else:
-                    new_child_dict["children"].append(create_new_child_dict(child))
+                    new_child_dict["children"].append(create_new_child_dict(child, grt))
     return new_child_dict
 
 @app.route('/getOntRootNodes', methods=['POST', 'GET'])
@@ -443,11 +453,14 @@ def get_ont_root_nodes():
         result = geneweaverdb.get_all_root_ontology_for_database(request.args['key'])
     else:
         result = geneweaverdb.get_all_children_for_ontology(request.args['key'])
+    gso_ref_type = request.args['universe']
 
     info = []
     for i in range(0, len(result)):
         data = dict()
         data["title"] = result[i].name
+        if gso_ref_type == "All Reference Types":
+            data["unselectable"] = True
         if(result[i].children == 0):
             data["isFolder"] = False
         else:

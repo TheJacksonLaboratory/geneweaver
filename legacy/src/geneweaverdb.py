@@ -656,7 +656,7 @@ def updategeneset(usr_id, form):
     pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
     pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
     pub_id = (form["pmid"]).strip() if form["pmid"] else None
-    ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
+    #ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
     #ont_ids = (form["onts"].strip()) if form["onts"] else None
     pmid = None
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, gs_id) != 1:
@@ -710,9 +710,9 @@ def updategeneset(usr_id, form):
     # update geneset ontologies
     #clear_geneset_ontology(gs_id)
 
-    gso_ref_type = ""
-    for ont in ont_ids:
-        add_ont_to_geneset(gs_id, ont, gso_ref_type)
+    #gso_ref_type = ""
+    #for ont in ont_ids:
+    #    add_ont_to_geneset(gs_id, ont, gso_ref_type)
 
     return 'True'
 
@@ -738,15 +738,15 @@ def clear_geneset_ontology(gs_id):
     cursor.connection.commit()
     return
 
-def add_ont_to_geneset(gs_id, ont_id):
+def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
     print(gs_id, ", ", ont_id)
     with PooledCursor() as cursor:
         cursor.execute(
             '''INSERT INTO geneset_ontology
-            (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, 'TMP');
-            ''', (gs_id, ont_id,))
+            (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, %s);
+            ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
-    return cursor.fetchone()
+    return #cursor.fetchone()
 
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
@@ -803,6 +803,17 @@ def remove_geneset_from_project(rargs):
             cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
             cursor.connection.commit()
             return
+
+def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            DELETE FROM geneset_ontology
+            WHERE gs_id=%s AND ont_id=%s AND gso_ref_type=%s
+            ''', (gs_id, ont_id, gso_ref_type)
+        )
+        cursor.connection.commit()
+        return
 
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir

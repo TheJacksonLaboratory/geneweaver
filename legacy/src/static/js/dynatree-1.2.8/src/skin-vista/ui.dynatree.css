@@ -343,6 +343,8 @@ span.dynatree-expanded a
 span.dynatree-selected a
 {
 	color: green;
+	background-color: #fcff06;
+	font-weight: bold;
 	font-style: italic;
 }
 
