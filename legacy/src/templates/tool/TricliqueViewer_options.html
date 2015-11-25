@@ -34,24 +34,28 @@
             <div class="form-group">{{ macros.tool_param_radio(tool.params['TricliqueViewer_Methods']) }}
                 <div id="reveal-if-active"></div>
             </div>
+
             <div class = "form-group">
                 <label>
-                    Theshold Values:
+                    Theshold Values (for Jaccard Overlap method):
                 </label>
                 <select name = "Triclique_ThresholdValues" class = "form-control">
-                    <option value = "0.0">0.0</option>
-                        <option value = "0.1">0.1</option>
-                        <option value = "0.2">0.2</option>
-                        <option value = "0.3">0.3</option>
-                        <option value = "0.4">0.4</option>
-                        <option value = "0.5">0.5</option>
-                        <option value = "0.6">0.6</option>
-                        <option value = "0.7">0.6</option>
-                        <option value = "0.8">0.7</option>
-                        <option value = "0.9">0.9</option>
-                        <option value = "1.0">1.0</option>
+                    <option value = "0.00">0.00</option>
+                    <option value = "0.01">0.01</option>
+                    <option value = "0.05">0.05</option>
+                    <option value = "0.10">0.10</option>
+                    <option value = "0.20">0.20</option>
+                    <option value = "0.30">0.30</option>
+                    <option value = "0.40">0.40</option>
+                    <option value = "0.50">0.50</option>
+                    <option value = "0.60">0.60</option>
+                    <option value = "0.70">0.60</option>
+                    <option value = "0.80">0.70</option>
+                    <option value = "0.90">0.90</option>
+                    <option value = "1.00">1.00</option>
                 </select>
             </div>
+
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
@@ -60,6 +64,5 @@
 <script>
     $('#form-group').click(function() {
         $(".reveal-if-active").slideToggle("slow");
-
     });
 </script>

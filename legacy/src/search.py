@@ -456,13 +456,13 @@ def keyword_paginated_search(terms, pagination_page,
 
 
     #TODO remove diagnostic query
-    print 'debug query: ' + query
+    #print 'debug query: ' + query
 
     #Run the actual query
     results = client.Query(query)
 
     ## Sort the results based on user input
-    print 'debug results: ' + str(results)
+    #print 'debug results: ' + str(results)
 
     #Check if the query had an error
     if (results == None):
