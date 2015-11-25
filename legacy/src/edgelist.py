@@ -35,6 +35,7 @@ from flask import redirect
 from flask import flash
 import os.path
 import re
+import copy
 
 
 
@@ -187,6 +188,9 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
         for g in genesets[p]:
             counts[p] += 1
 
+    ignored = []
+    ign_projects = []
+
     edge_count = 0
 
     # Loop through all of the proj_ids, and return jaccard values where they exist, 0 otherwise
@@ -217,6 +221,19 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
                         if jac_value > 0:
                             fileout += pretab + str(m.geneset_id) + midtab + str(n.geneset_id) + endtab + '\n'
                             edge_count = edge_count + 1
+                        else:
+                            if str(m.geneset_id) not in fileout and str(m.geneset_id) not in ignored:
+                                ignored.append(str(m.geneset_id))
+                                ign_projects.append(str(projs[i]))
+                            if str(n.geneset_id) not in fileout and str(n.geneset_id) not in ignored:
+                                ignored.append(str(n.geneset_id))
+                                ign_projects.append(str(projs[k]))
+
+
+    ig = ''
+    for i in range(0, len(ignored)):
+        if ignored[i] not in fileout:
+            ig += ign_projects[i] + '\t' + ignored[i] + '\n'
 
     # Add the row counts to the top of the page
     values = []
@@ -232,6 +249,9 @@ def create_kpartite_file_from_jaccard_overlap(taskid, results, projs, threshold)
     print "filepath:", RESULTS + taskid + '.kel'
     out = open(RESULTS + taskid + '.kel', 'wb')
     out.write(fileout)
+    out.close()
+    out = open(RESULTS + taskid + '.ign', 'wb')
+    out.write(ig)
     out.close()
 
 
@@ -493,7 +513,7 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     :param results: from the results directory
     :return: true
     """
-
+    usr_id = session['user_id']
     # List of lists of values represented by partitions
     partitions = []
 
@@ -517,6 +537,36 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     if len(partitions) == 0:
         return 1
 
+    fh = open(os.path.join(results, taskid + '.ign'), 'r')
+    ignored = []
+    for line in fh:
+        temp_line = filter(None, re.split("[\t\s]+", line))
+        ignored.append(temp_line)
+
+    print "IGNORED,", ignored
+    # Combine those that are in the same project
+    gsets = []
+    for item in ignored:
+        pjid = item[0]
+        gsid = item[1]
+        temp = get_genesets_for_project(pjid, usr_id)
+        tempadd = []
+        for item in temp:
+            tempadd.append(str(int(item.geneset_id)))
+        gsets.append(tempadd)
+    print "gsets", list(gsets)
+    for i in range(0,len(gsets)):
+        for j in range(0, len(partitions)):
+            p = copy.copy(partitions[j])
+            p.append(ignored[i][1])
+            set(sorted(set(p)))
+            print p
+            print sorted(set(gsets[i]))
+            if set(sorted(set(gsets[i]))).issubset(p):
+                partitions[j].append(ignored[i][1])
+
+
+
     # make a flattened list of unique values in partitions and then
     # create an empty matrix based on that list
     identifiers = [item for sublist in partitions for item in sublist]
@@ -533,7 +583,7 @@ def create_json_from_triclique_output_jaccard(taskid, results):
     # this can be modified later to test for weight
     for i in range(n):
         for j in range(n):
-            Matrix[i][j] = get_matrix_value_jaccard(i, j, identifiers, partitions)
+            Matrix[i][j] = get_matrix_value_jaccard(i, j, identifiers, partitions, ignored)
 
 
     # Print matrix
@@ -567,71 +617,30 @@ def create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions):
     # Get rid of the first two elements in identifiers (project ids)
     print "identifiers before:", identifiers
     genesets = list(identifiers)
-    print "genesets:", genesets
-    gs_ids = []
-    gi_ids = []
-    for item in genesets:
-        if re.match("^gs_", item):
-            gs_ids.append(item[3:])
-        else:
-            gi_ids.append(item[3:])
-    print "genesets:", gs_ids
-    print "genes:", gi_ids
-    # Get rid of gs_ and gi
-    for x in range(0,len(identifiers)):
-        identifiers[x] = identifiers[x][3:]
-    for item in partitions:
-        for x in range(0, len(item)):
-            item[x] = item[x][3:]
-
-    proj_names = list()
-
-    for p in range(len(gs_ids)):
-        with PooledCursor() as cursor:
-            cursor.execute(cursor.mogrify("SELECT gs_name FROM geneset WHERE gs_id =' " + gs_ids[p] + " ' "))
-
-        temp = (list(dictify_cursor(cursor)))
-        temp = temp[0]
-        temp = temp.values()
-        proj_names.append(temp)
-
-    p_names = []
-    for val in proj_names:
-        p_names.append(val[0].encode('ascii'))
-
-    print "project_names", p_names
-
+    temp_names = []
     gs_names = []
-    # SQL query to the database to get the names of the genes
-    for g in range(len(gi_ids)):
+
+    for p in range(len(genesets)):
         with PooledCursor() as cursor:
-            cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + gi_ids[g] + " ' "))
+            cursor.execute(cursor.mogrify("SELECT gs_name FROM geneset WHERE gs_id =' " + genesets[p] + " ' "))
 
         temp = (list(dictify_cursor(cursor)))
         temp = temp[0]
         temp = temp.values()
-        gs_names.append(temp)
+        temp_names.append(temp)
 
-    g_names = []
+    for val in temp_names:
+        gs_names.append(val[0].encode('ascii'))
 
-    for val in p_names:
-        g_names.append(val)
-
-    for val in gs_names:
-        g_names.append(val[0].encode('ascii'))
-
-    print "g_names:", g_names
-
-    for i in range(len(identifiers)):
-        for j in range(len(partitions)):
-            #print identifiers[i]
-            #print partitions[j]
-            if identifiers[i] in partitions[j]:
-                f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
-                print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
+    count = 0
+    for i in range(len(partitions)):
+        for j in range(len(partitions[i])):
+            print str(identifiers[count]) + ',' + gs_names[count] + ',0,0,' + HOMOLOGY_BOX_COLORS[i] + '\n'
+            f.write(str(identifiers[count]) + ',' + gs_names[count] + ',0,0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
+            count = count + 1
     f.close()
 
-def get_matrix_value_jaccard(i, j, identifiers, partitions):
+def get_matrix_value_jaccard(i, j, identifiers, partitions, ignored):
     """
     Find out if identifier ar i, j are in the same or different partitions.
     :param i:
@@ -655,6 +664,10 @@ def get_matrix_value_jaccard(i, j, identifiers, partitions):
     p = 0
     in_both = 0
 
+    for item in ignored:
+        if id1 in item or id2 in item:
+            return 0.0
+
     # Find which partition each identifier is in
     index = 0
     bound = len(partitions)
@@ -675,15 +688,9 @@ def get_matrix_value_jaccard(i, j, identifiers, partitions):
     if id1Found == id2Found:
         return 0.0
     else:
-        return 1.0
-        # TODO: query to the database to get the frequency of the gene in the geneset or project
-        # Will have to be different for Jaccard and Exact gene overlap
-        #geneset_id = ''
-        #if re.match("^gs_", id1):
-        #    geneset_id = id1[3:]
-        #else:
-        #    geneset_id = id2[3:]
-        #with PooledCursor() as cursor:
-        #    cursor.execute(cursor.mogrify("SELECT gs_count FROM geneset WHERE gs_id =' " + geneset_id + " ' "))
-        #    gs_count = cursor.fetchone()
-        #return 1.0/gs_count[0]
+        # Return similarity
+        gs_id1 = id1 if id1 < id2 else id2
+        gs_id2 = id2 if id2 > id1 else id1
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT jac_value FROM geneset_jaccard WHERE gs_id_left=%s AND gs_id_right=%s''', (gs_id1, gs_id2,))
+        return cursor.fetchone()[0] if cursor.rowcount != 0 else 0
