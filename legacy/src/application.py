@@ -1,4 +1,3 @@
-#Kelechi was here
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
@@ -21,6 +20,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
     combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
 import sphinxapi
 import search
+import math
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -38,7 +38,7 @@ app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 print '==================================================='
 print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
 print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
-print '"How to generate good secret keys" AT			  '
+print '"How to generate good secret keys" AT              '
 print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
 print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
@@ -611,6 +611,140 @@ def render_viewgeneset(gs_id):
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
+
+@app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET', 'POST'])
+def render_viewgenesetoverlap(gs_id, gs_id1):
+    # get values for sorting result columns
+    # i'm saving these to a session variable
+    # probably not the correct format
+    if flask.request.method == 'GET':
+        args = flask.request.args
+        if 'sort' in args:
+            session['sort'] = args['sort']
+            if 'dir' in session:
+                if session['dir'] != 'DESC':
+                    session['dir'] = 'DESC'
+                else:
+                    session['dir'] = 'ASC'
+            else:
+                session['dir'] = 'ASC'
+    # get value for the alt-gene-id column
+    if 'extsrc' in session:
+        if session['extsrc'] == 2:
+            altGeneSymbol = 'Ensembl'
+        elif session['extsrc'] == 7:
+            altGeneSymbol = 'Symbol'
+        elif session['extsrc'] == 10:
+            altGeneSymbol = 'MGD'
+        elif session['extsrc'] == 12:
+            altGeneSymbol = 'RGD'
+        elif session['extsrc'] == 13:
+            altGeneSymbol = 'ZFin'
+        elif session['extsrc'] == 14:
+            altGeneSymbol = 'FlyBase'
+        elif session['extsrc'] == 15:
+            altGeneSymbol = 'WormBase'
+        else:
+            altGeneSymbol = 'Entrez'
+    else:
+        altGeneSymbol = 'Entrez'
+
+    emphgenes = {}
+    emphgeneids = []
+
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+    geneset = geneweaverdb.get_geneset(gs_id1, user_id)
+    geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
+    
+    intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+
+    if gs_id == gs_id1:
+        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1-gs_id)
+    else:
+        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+
+    print (geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes)
+
+    venn = createVennDiagram(geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes, 150)
+
+    jaccard = float(intersect_genes)/float(geneset.count-intersect_genes + geneset1.count-intersect_genes + intersect_genes)
+    jaccard="%.6f" % jaccard
+
+    pvalue = geneweaverdb.getPvalue(geneset.count, geneset1.count, jaccard)
+
+    diagramSizes = []
+    diagramSizes.append(geneset.count-intersect_genes)
+    diagramSizes.append(intersect_genes)
+    diagramSizes.append(geneset1.count-intersect_genes)
+
+
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+    else:
+        view = None
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
+    return flask.render_template('viewgenesetoverlap.html', geneset=geneset,emphgeneids=emphgeneids, user_id=user_id,
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, 
+                                 venn = venn, jaccard = jaccard, pval = pvalue, sizes = diagramSizes)
+
+
+def createVennDiagram(i,ii,j, size=100):
+    pi = math.acos(-1.0)
+    r1 = math.sqrt(i/pi)
+    r2 = math.sqrt(ii/pi)
+    if r1==0:
+        r1=1.0
+    if r2==0:
+        r2=1.0
+    scale=size/2.0/(r1+r2)
+
+    if i==j or ii==j:  # complete overlap
+        c1x=c1y=c2x=c2y=size/2.0
+    elif j==0:  # no overlap
+        c1x=c1y=r1*scale
+        c2x=c2y=size-(r2*scale)
+    else:
+        # originally written by zuopan, rewritten a number of times
+        step = .001
+        beta = pi
+        if r1<r2:
+            r2_=r1
+            r1_=r2
+        else:
+            r1_=r1
+            r2_=r2
+        r2o1=r2_/r1_
+        r1_2=r1_*r1_
+        r2_2=r2_*r2_
+
+        while beta > 0:
+            beta -= step
+            alpha = math.asin(math.sin(beta)/r1_ * r2_)
+            Sj = r1_2*alpha + r2_2*(pi-beta) - 0.5*(r1_2*math.sin(2*alpha) + r2_2*math.sin(2*beta));
+            if Sj > j:
+                break
+
+        oq= r1_*math.cos(alpha) - r2_*math.cos(beta)
+        oq=(oq*scale)/2.0
+
+        c1x=(size/2.0) - oq
+        c2x=(size/2.) + oq
+        c1y=c2y=size/2.0
+
+    r1=r1*scale
+    r2=r2*scale
+
+    data = {}
+    data['circledata'] = {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2}
+
+    return json.dumps(data)
 
 
 @app.route('/mygenesets')
@@ -1476,28 +1610,28 @@ def json_register_successful():
     ## No robots
     if not captcha:
         return flask.render_template('register.html', 
-		error="There was a problem with your captcha input. Please try again.")
+        error="There was a problem with your captcha input. Please try again.")
 
     else:
-	## The only data required by reCAPTCHA is secret and response. An
-	## optional parameter, remoteip, containing the end user's IP can also
-	## be appended.
-	pdata = {'secret': RECAP_SECRET, 'response': captcha}
-	resp = http.request('POST', RECAP_URL, fields=pdata)
+        ## The only data required by reCAPTCHA is secret and response. An
+        ## optional parameter, remoteip, containing the end user's IP can also
+        ## be appended.
+        pdata = {'secret': RECAP_SECRET, 'response': captcha}
+        resp = http.request('POST', RECAP_URL, fields=pdata)
 
-	## 200 = OK
-	if resp.status != 200:
-	    return flask.render_template('register.html', 
-		    error=("There was a problem with the reCAPTCHA servers. "
-			   "Please try again."))
-	
-	rdata = json.loads(resp.data)
+    ## 200 = OK
+    if resp.status != 200:
+        return flask.render_template('register.html', 
+            error=("There was a problem with the reCAPTCHA servers. "
+               "Please try again."))
+    
+    rdata = json.loads(resp.data)
 
-	## If success is false, the dict should contain an 'error-code.' This
-	## isn't checked currently.
-	if not rdata['success']:
-	    return flask.render_template('register.html', 
-		    error="Incorrect captcha. Please try again.")
+    ## If success is false, the dict should contain an 'error-code.' This
+    ## isn't checked currently.
+    if not rdata['success']:
+        return flask.render_template('register.html', 
+            error="Incorrect captcha. Please try again.")
 
     user = _form_register()
 
