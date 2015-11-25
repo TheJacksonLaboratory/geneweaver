@@ -44,6 +44,15 @@
             width: 100%;
         }
 
+        .legend {
+                height: 100px;
+                width: 100px;
+	            padding: 5px;
+	            font: 10px sans-serif;
+	            background: yellow;
+	            box-shadow: 2px 2px 1px #888;
+            }
+
     </style>
 
 </head>
@@ -268,6 +277,9 @@
 
         var dictionary = {};
 
+        var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477",
+            "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300",
+            "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
 
         //initialization
         $(function () {
@@ -289,6 +301,36 @@
                     .append("svg")
                     .attr("width", width)
                     .attr("height", height);
+
+            var legend = svg.append("g")
+                .attr("class", "legend")
+	            .attr("height", 100)
+	            .attr("width", 100)
+                .attr("transform", "translate(900)");
+
+            legend.selectAll('rect')
+                .data(dictionary)
+                .enter()
+                .append("rect")
+	            .attr("x", function(d,i){return i *  20;})
+                .attr("y", height + 20)
+	            .attr("width", 10)
+	            .attr("height", 10)
+	            .style("fill", function(d,i) {
+                    var color = colors_g[dictionary[i]];
+                    return color;
+                });
+
+            legend.selectAll('text')
+                .data(dictionary)
+                .enter()
+                .append("text")
+	            .attr("x", function(d, i){ return i *  20 + 9;})
+                .attr("y", ((height + 20)*-1))
+	            .text(function(d,i) {
+                    var text = dictionary[i];
+                    return text;
+                });
 
             g.link = svg.selectAll("path.link"),
                     g.node = svg.selectAll(".node");
@@ -384,26 +426,11 @@
             //Get rid of old links:
             g.link.exit().remove();
 
-
-            /*var diagonal = d3.svg.diagonal()
-             .projection(function(d) { return [d.y, d.x]; });*/
-
             //Build new links by adding new svg lines:
             g.link
                     .enter()
                     .insert("line", ".node")
                     .attr("class", "link");
-
-
-            /*g.link
-             .enter()
-             .insert("path", "g")
-             .attr("class", "link")
-             .attr("d", function(d) {
-             console.log(d);
-             var o = {x: d.source.x, y: d.source.y};
-             return diagonal({source: o, target: o});
-             });*/
 
             // create a subselection, wiring up data, using a function to define
             //how it's suppossed to know what is appended/updated/exited
@@ -413,7 +440,7 @@
             //Get rid of old nodes:
             g.node.exit().remove();
             //-------------------
-            //create new nodes by making groupd elements, that contain circls and text:
+            //create new nodes by making grouped elements, that contain circles and text:
             var nodeEnter = g.node.enter()
                     .append("g")
                     .attr("class", "node")
@@ -437,7 +464,7 @@
                         return (d.children.length > 0) ? "end" : "start";
                     })
                     .text(function (d) {
-                        return d.name;
+                        return d.Genesets;
                     });
             nodeEnter.append("text")
                     .attr("dy", "1em")
@@ -448,7 +475,7 @@
                         return (d.children.length > 0) ? "end" : "start";
                     })
                     .text(function (d) {
-                        return d.depth;
+                        return d.Genes;
                     });
 
             //All nodes, do the following:
@@ -464,8 +491,6 @@
         }
 
         function colors_google(d) {
-            var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
-
             console.log("Species: " + d.species + "Species Length:" + d.species.length);
 
             if(d.species.length > 1){
@@ -551,14 +576,7 @@
                             "0"; // leaf node
         }
 
-
-        function outerRingColor(d) {
-            if (d.emphasis) {
-                return "#33AD33";
-            }
-            else return "default";
-        }
-
+        //Changes text color for emphasis
         function textColor(d) {
             if (d.emphasis) {
                 return '#CC0000';
@@ -621,7 +639,7 @@
                     .attr("y2", function (d) {
                         return d.target.y;
                     });
-            //same for the nodes, using a functor:
+            //same for the nodes, using a function:
 
 
         }
@@ -638,7 +656,7 @@
                     .attr("text-anchor", function (d) {
                         return (d.children.length > 0) ? "start" : "end";
                     })
-                    .text(d.name + ": " + d.species)
+                    .text(d.Genesets + ": " + d.species)
                     .style("font-weight", "bold");
         }
 
@@ -646,27 +664,7 @@
             d3.select(this).select("text.hover").remove();
         }
 
-        //
-        //var data = {
-        //    "nodes": [
-        //        {"id": 0, "name": "flare", "children": [1], "depth": 0, "emphasis": true},      //0
-        //        {"id": 1, "name": "analytics", "children": [2, 7, 13], "depth": 1},             //1
-        //        {"id": 2, "name": "cluster", "children": [3, 4, 5, 6, 15], "depth": 2},         //2
-        //        {"id": 3, "name": "AgglomerativeCluster", "children": [], "depth": 3},          //3
-        //        {"id": 4, "name": "CommunityStructure", "children": [], "depth": 3},            //4
-        //        {"id": 5, "name": "HierarchicalCluster", "children": [], "depth": 3},           //5
-        //        {"id": 6, "name": "MergeEdge", "children": [], "depth": 3},                     //6
-        //        {"id": 7, "name": "graph", "children": [8, 9, 10, 11, 12, 15], "depth": 2},     //7
-        //        {"id": 8, "name": "BetweennessCentrality", "children": [], "depth": 3},         //8
-        //        {"id": 9, "name": "LinkDIstance", "children": [], "depth": 3},                  //9
-        //        {"id": 10, "name": "MaxFlowMinCut", "children": [], "depth": 3},                //10
-        //        {"id": 11, "name": "ShortestPaths", "children": [], "depth": 3},                //11
-        //        {"id": 12, "name": "SpanningTree", "children": [], "depth": 3},                 //12
-        //        {"id": 13, "name": "optimization", "children": [14, 15], "depth": 2},           //13
-        //        {"id": 14, "name": "AspectRatioBanker", "children": [], "depth": 3},            //14
-        //        {"id": 15, "name": "TestLeaf", "children": [], "depth": 3, "emphasis": true}    //14
-        //    ]
-        //};
+
     </script>
 
 </div>
