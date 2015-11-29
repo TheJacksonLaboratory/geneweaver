@@ -204,7 +204,7 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
-        f = open(os.path.join('/Users/group4admin/PycharmProjects/results/TestOutput.hisim.json'), 'r');
+        f = open(os.path.join('/Users/group1admin/results/TestOutput.hisim.json'), 'r');
         data = ''
         for line in f:
             data += str(line)
