@@ -23,7 +23,7 @@ $(function () {
     //use a global var for the data:
     g.data = data;
 
-    console.log("DATA = " + JSON.stringify(data));
+    //console.log("DATA = " + JSON.stringify(data));
     var width = 1200,
         height = 1000;
 
@@ -65,16 +65,8 @@ $(function () {
 
 
     //Initialize positions of tree elements to reduce tangling caused by random initialization
-    nodes = flatten(g.data.nodes);
-    var nextdepths = [0];
-    for (i = 0; i < nodes.length; i++) {
-        while (nodes[i].depth > nextdepths.length - 1) {
-            nextdepths.push(0);
-        }
-        nodes[i].x = nodes[i].depth * 100 + 100;
-        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
-        nextdepths[nodes[i].depth]++;
-    }
+    var nodes = flatten(g.data.nodes);
+    initialize_layout(nodes);
 
 
     //Draw the graph:
@@ -97,7 +89,11 @@ function update() {
 
     //iterate through original nested data, and get one dimension array of nodes.
     var nodes = flatten(g.data.nodes);
-    console.log(nodes.length + " nodes to draw");
+    for(var i = 0; i < nodes.length; i++){
+        console.log("Node " + nodes[i].id + "\n\tAbove: " + nodes[i].above + 
+                    "\n\tBelow: " + nodes[i].below);
+    }
+    //console.log(nodes.length + " nodes to draw");
 
 
     //Each node extracted above has a children attribute.
@@ -139,6 +135,12 @@ function update() {
     var nodeEnter = g.node.enter()
         .append("g")
         .attr("class", "node")
+    	.attr("above", function(d) {
+            return(d.above);
+        })
+    	.attr("below", function(d) {
+            return(d.below);
+        })
         .on("click", click)
         .call(g.force.drag);
     //circle within the single node group:
@@ -180,6 +182,8 @@ function update() {
 
     //g.node.fontcolor(textColor)
     g.node.select("text").attr("fill", textColor);
+    
+    console.log(g.force.nodes());
 
 }
 
@@ -201,13 +205,13 @@ function flatten(data) {
     for (var i = 0, len = data.length; i < len; i++) {
         if (data[i]._children) {
             for(var j = 0, jlen = data[i]._children.length; j < jlen; j++){
-                console.log(data[i]._children[j] + " IS NOT AN ORPHAN ALSO " + i + " " + j);
+                                console.log("PARAM 1: " + data + "\n PARAM 2: " + data[i]._children[j]);
+
                 getNodeByID(data, data[i]._children[j]).orphan = false;
             }
         }
         else {
              for(var j = 0, jlen = data[i].children.length; j < jlen; j++){
-                console.log(data[i].children[j] + " IS NOT AN ORPHAN ALSO " + i + " " + j);
                  getNodeByID(data, data[i].children[j]).orphan = false;
              }
         }
@@ -218,8 +222,6 @@ function flatten(data) {
     function recurse(node) {
         if (!getNodeByID(nodes, node.id)) {
             nodes.push(node);
-        }
-        else {
         }
         if (node.children.length > 0) {
             for (var i = 0, count = node.children.length; i < count; i++) {
@@ -264,6 +266,26 @@ function getLinks(nodes) {
     }
 
     return links;
+}
+
+function initialize_layout(nodes) {
+    var nextdepths = [0];
+    var previous = [-1];
+    for (i = 0; i < nodes.length; i++) {
+        while (nodes[i].depth > nextdepths.length - 1) {
+            nextdepths.push(0);
+            previous.push(-1);
+        }
+        if(previous[nodes[i].depth] >= 0) {
+            prevNode = getNodeByID(nodes, previous[nodes[i].depth]);
+            prevNode.below = nodes[i].id;
+            nodes[i].above = prevNode.id;
+        }
+        previous[nodes[i].depth] = nodes[i].id;
+        nodes[i].x = nodes[i].depth * 100 + 100;
+        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+        nextdepths[nodes[i].depth]++;
+    }
 }
 
 
@@ -314,18 +336,7 @@ function click(d) {
         //console.log("_children:" + d._children);
     }
     nodes = flatten(g.data.nodes);
-    var nextdepths = [0];
-    for (i = 0; i < nodes.length; i++) {
-        while (nodes[i].depth > nextdepths.length - 1) {
-            nextdepths.push(0);
-        }
-        //if(nodes[i].depth == 0){
-        //    nodes[i].fixed = true;
-        //}
-        nodes[i].py = nextdepths[nodes[i].depth] * 20 + 100;
-        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
-        nextdepths[nodes[i].depth]++;
-    }
+    initialize_layout(nodes);
     //
     update();
 }
@@ -333,15 +344,15 @@ function click(d) {
 //NOT YET IN USE--SEARCH FUNCTIONALITY
 //basically a way to get the path to an object
 function searchTree(obj, search, path) {
-    if (obj.Genesets === search) { //if search is found return, add the object to the path and return it
+    if (search in obj.Genesets) { //if search is found return, add the object to the path and return it
         path.push(obj);
         return path;
     }
     else if (obj.children || obj._children) { //if children are collapsed d3 object will have them instantiated as _children
-        var children = (obj.children) ? obj.children : obj._children;
+        var children = (obj.children.length > 0) ? obj.children : obj._children;
         for (var i = 0; i < children.length; i++) {
             path.push(obj);// we assume this path is the right one
-            var found = searchTree(children[i], search, path);
+            var found = searchTree(getNodeByID(children[i]), search, path);
             if (found) {// we were right, this should return the bubbled-up path from the first if statement
                 return found;
             }
@@ -371,7 +382,7 @@ function extract_select2_data(node, leaves, index) {
 //NOT YET IN USE--SEARCH FUNCTIONALITY
 function openPaths(paths) {
     for (var i = 0; i < paths.length; i++) {
-        if (paths[i].id !== "1") {//i.e. not root
+        if (!paths[i].orphan) {//i.e. not root
             paths[i].class = 'found';
             if (paths[i]._children) { //if children are hidden: open them, otherwise: don't do anything
                 paths[i].children = paths[i]._children;
@@ -397,8 +408,14 @@ $("#search").on("select2-selecting", function (e) {
 //event handler for every time the force layout engine
 //says to redraw everything: keeps each node in its respective column
 function tick() {
-
+    
+    for (var i = 0; i < g.force.nodes().length; i++) {
+        console.log("COLLIDING NODE " + g.force.nodes()[i].id);
+     	//collide(g.force.nodes()[i]);
+    }
+    
     g.node.attr("transform", function (d) {
+        //collide(d);
         d.x = d.depth * 200 + 100;
         return ("translate(" + d.x + "," + d.y + ")");
     });
@@ -416,6 +433,54 @@ function tick() {
         .attr("y2", function (d) {
             return d.target.y;
         });
+}
+
+function collide(node) {
+    //node.py = node.y;
+    //console.log("colliding");
+	var pad = 15*Math.pow(node.depth, .3),
+        ny1 = node.y - pad,
+        ny2 = node.y + pad;
+        if(typeof node.above !== 'undefined') {
+            //console.log("collision between " + node.id + " and " + node.above);
+        	var above = getNodeByID(g.force.nodes(), node.above);
+            //above.py = above.y;
+            var dy = node.y - above.y;
+            var l = Math.abs(dy);
+            pad *=2
+            if(l < pad) {
+                l  = (l-pad) / l * .05;
+                node.y -= dy *=l;
+                above.y += dy;
+        	}
+            if(above.y > node.y) {
+             	node.above = above.above;
+                above.below = node.below;
+                node.below = above.id;
+                above.above = node.id;
+            }
+    	}
+        if(typeof node.below !== 'undefined') {
+            //console.log("PARAM 1: " + g.force.nodes() + "\n PARAM 2: " + node.below);
+        	var below = getNodeByID(g.force.nodes(), node.below);
+            //below.py = below.y;
+            //console.log("collision between " + node.id + " and " + node.above);
+            var dy = node.y - below.y;
+            var l = Math.abs(dy);
+            pad*=2
+            if(l < pad) {
+                l  = (l-pad) / l * .05;
+                console.log("L = " + l);
+                node.y -= dy *=l;
+                below.y += dy;
+        	}
+            if(below.y < node.y) {
+             	node.below = below.below;
+                below.above = node.above;
+                node.above = below.id;
+                below.below = node.id;
+            }
+    	}
 }
 
 

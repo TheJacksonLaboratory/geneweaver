@@ -2150,7 +2150,10 @@ class ToolConfig:
         self.classname = tool_dict['tool_classname']
         self.name = tool_dict['tool_name']
         self.description = tool_dict['tool_description']
-        self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        try:
+            self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        except:
+            self.requirements = None
         self.is_active = tool_dict['tool_active'] == '1'
         self.sort_priority = tool_dict['tool_sort']
         self.__params = None
@@ -2331,6 +2334,60 @@ def if_gene_has_homology(gene_id):
             return 1
         else:
             return 0
+
+def get_geneset_intersect(geneset_id1, geneset_id2):
+    """
+    Return all genes within intersecting genesets including homology
+    """
+    gene_id1 = []
+    gene_id2 = []
+    intersect_sym = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id1,))
+        for gid in cursor:
+            gene_id1.append(gid[0])
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id2,))
+        for gid in cursor:
+            gene_id2.append(gid[0])
+
+        intersect_id = list(set(gene_id1).intersection(set(gene_id2)))
+        homology1 = []
+        homology2 = []
+    for gid in gene_id1:
+            print gid
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                print "hom_id = ", hom_id[0]
+                homology1.append(hom_id[0])
+
+    for gid in gene_id2:
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                homology2.append(hom_id[0])
+
+    homology_id = list(set(homology1).intersection(set(homology2)))
+    print homology_id
+    print intersect_id
+
+    return len(intersect_id) + len(homology_id)
 
 
 # sample api calls begin
