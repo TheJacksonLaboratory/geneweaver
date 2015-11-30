@@ -384,16 +384,19 @@ def init_ont_tree():
                 data2["key"] = result2[i].ontology_id
                 data2["db"] = False
                 if gso_ref_type == "All Reference Types":
-                    data["unselectable"] = True
+                    data2["unselectable"] = True
                 data2["children"] = []
                 if(result2[i].children == 0):
                     data2["isFolder"] = False
                 else:
                     data2["isFolder"] = True
-                    for a in range(0, len(parents)):
-                        for b in range(0, len(parents[a])):
-                            if len(parents[a][b]) > 0:
-                                if result2[i].ontology_id == parents[a][b][0]:
+                for a in range(0, len(parents)):
+                    for b in range(0, len(parents[a])):
+                        if len(parents[a][b]) > 0:
+                            if result2[i].ontology_id == parents[a][b][0]:
+                                if(result2[i].ontology_id == parents[a][b][len(parents[a][b])-1]):
+                                    data2["select"] = True
+                                else:
                                     data2["expand"] = True
                                     child_list = geneweaverdb.get_all_children_for_ontology(result2[i].ontology_id)
                                     for child in child_list:
