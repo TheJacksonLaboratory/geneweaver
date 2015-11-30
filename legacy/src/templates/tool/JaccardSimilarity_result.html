@@ -292,7 +292,14 @@ $(document).ready(function(){
 
 
 {#Location for where the d3 is appended to in the html#}
-<div id="jaccard"></div>
+<div id="jaccard">
+
+        <div id=divError class="alert alert-danger fade in">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+        The p-value threshold is too high, please run the tool again at a lower threshold.
+        </div>
+
+</div>
 
 
   <label for="nRadius">
@@ -511,6 +518,21 @@ var yVal = -1;
             }
         }
 
+        console.log("row count: " + row_count + ", num sets: " + num_sets);
+
+        if(row_count == num_sets){
+                   $('#nRadius-value').hide();
+                    $('#nRadius').hide();
+                     $('#thresholdMsg').hide();
+                     $('#zoomButton').hide();
+                     $('#menu1').hide();
+
+                        $('#flip').hide();
+                          $('#divError').show();
+        }else{
+         $('#divError').hide();
+
+        }
 {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
         gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
 
