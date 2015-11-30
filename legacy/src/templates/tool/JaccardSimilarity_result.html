@@ -191,9 +191,7 @@ input[type="checkbox"]:hover:before {
         }
 </style>
 
-<button class="btn btn-success" id="save_as_svg" value> Save as SVG</button>
-<button class="btn btn-success" id="save_as_pdf" value> Save as PDF</button>
-<button class="btn btn-success" id="save_as_png" value> Save as PNG</button>
+
 
 
 
@@ -322,7 +320,7 @@ $(document).ready(function(){
 </select>
 
 
-
+{{data | safe}}
 
 
 
@@ -500,6 +498,7 @@ var yVal = -1;
                 while(isIn(elim, i % num_sets)) {
                     console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
                     i++;
+                    xVal++;
                 }
             }
         }
@@ -508,6 +507,7 @@ var yVal = -1;
             while(isIn(elim, i % num_sets)) {
                 console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
                 i++;
+                xVal++;
             }
         }
 
@@ -538,22 +538,47 @@ var yVal = -1;
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
+              console.log(d.venn_diagrams[i].opacity)
+              if (d.venn_diagrams[i].opacity == .40){
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
                     "radius": d.venn_diagrams[i].r2,
-                    "fill": "#66FFFF",
+                    "fill": "#99FFFF",
                     "opacity": d.venn_diagrams[i].opacity,
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                     "url":   gene_url[xVal] +'/' + gene_url[yVal],
+                     "url":   '/viewgenesetdetails/' + gene_url[xVal],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
-                    "show" : threshold
+                    "show" : threshold,
+                    "row" : xVal, 
+                    "col" : yVal
 
 
                 });
+              }
+              else{
+                circleData.push({
+                    "cx": d.venn_diagrams[i].c2x,
+                    "cy": d.venn_diagrams[i].c2y,
+                    "radius": d.venn_diagrams[i].r2,
+                    "fill": "pink",
+                    "opacity": d.venn_diagrams[i].opacity,
+                    "cxshift": x_coord,
+                    "cyshift": y_coord,
+                    "des": d.venn_diagrams[i].desc1,
+                     "url":   '/viewgenesetdetails/' + gene_url[xVal],
+                    "title" : d.venn_diagrams[i].title1,
+                    "pvalue" : str,
+                    "show" : threshold,
+                    "row" : xVal, 
+                    "col" : yVal
+
+
+                });
+              }
                  row +=1;
 
                 {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
@@ -565,8 +590,8 @@ var yVal = -1;
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label": d.geneset_table[check].text.substring(0, 25), //d.geneset_table[check].text.replace(/\.(?=[A-Z])/g, '<br /><br />'),
-                            "label1": d.geneset_table[check].text.substring(25, 50),
+                            "label": d.geneset_table[xVal].text.substring(0, 25), //d.geneset_table[check].text.replace(/\.(?=[A-Z])/g, '<br /><br />'),
+                            "label1": d.geneset_table[xVal].text.substring(25, 50),
                             "labelx": x_coord,
                             "labely": y_coord,
                             "pvalue" : str,
@@ -582,8 +607,8 @@ var yVal = -1;
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label":  d.geneset_table[check].text.substring(0, 25),
-                            "label1": d.geneset_table[check].text.substring(25, 50),
+                            "label":  d.geneset_table[xVal].text.substring(0, 25),
+                            "label1": d.geneset_table[xVal].text.substring(25, 50),
                             "labelx": x_coord,
                             "labely": y_coord,
                             "pvalue" : str,
@@ -608,84 +633,179 @@ var yVal = -1;
 
 {#  Else make circles for orange and blue with appropriate json values #}
             else {
-              if (d.venn_diagrams[i].r2 >d.venn_diagrams[i].r1){
-                circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "#0000FF",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "gene_id": d.venn_diagrams[i].text[k].text,
-                    "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                    "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url":  gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold,
-                    "url1":   d.venn_diagrams[i].url
+              if (d.venn_diagrams[i].opacity ==.40){
+                if (d.venn_diagrams[i].r2 >d.venn_diagrams[i].r1) {
+                  circleData.push({
+                      "cx": d.venn_diagrams[i].c2x,
+                      "cy": d.venn_diagrams[i].c2y,
+                      "radius": d.venn_diagrams[i].r2,
+                      "fill": "FF6666",
+                      "opacity": d.venn_diagrams[i].opacity,
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "gene_id": d.venn_diagrams[i].text[k].text,
+                      "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                      "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "url1":   d.venn_diagrams[i].url,
+                      "row" : xVal, 
+                      "col" : yVal
 
 
-                });
-                circleData.push({
+                  });
+                  circleData.push({
 
-                    "cx": d.venn_diagrams[i].c1x,
-                    "cy": d.venn_diagrams[i].c1y,
-                    "radius": d.venn_diagrams[i].r1,
-                    "fill": "#FF8000",
-                    "opacity": ".5",
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url": gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold
-                });
-              }
-              else{
-
-                circleData.push({
-
-                    "cx": d.venn_diagrams[i].c1x,
-                    "cy": d.venn_diagrams[i].c1y,
-                    "radius": d.venn_diagrams[i].r1,
-                    "fill": "#FF8000",
-                    "opacity": ".5",
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url": gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold
-                });
+                      "cx": d.venn_diagrams[i].c1x,
+                      "cy": d.venn_diagrams[i].c1y,
+                      "radius": d.venn_diagrams[i].r1,
+                      "fill": "DD99FF",
+                      "opacity": ".5",
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url": '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "row" : xVal, 
+                      "col" : yVal
+                  });
+                }
+                else{
 
                   circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "#0000FF",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "gene_id": d.venn_diagrams[i].text[k].text,
-                    "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                    "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url":  gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold,
-                    "url1":   d.venn_diagrams[i].url
+
+                      "cx": d.venn_diagrams[i].c1x,
+                      "cy": d.venn_diagrams[i].c1y,
+                      "radius": d.venn_diagrams[i].r1,
+                      "fill": "DD99FF",
+                      "opacity": ".5",
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url": '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "row" : xVal, 
+                      "col" : yVal
+                  });
+
+                    circleData.push({
+                      "cx": d.venn_diagrams[i].c2x,
+                      "cy": d.venn_diagrams[i].c2y,
+                      "radius": d.venn_diagrams[i].r2,
+                      "fill": "FF6666",
+                      "opacity": d.venn_diagrams[i].opacity,
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "gene_id": d.venn_diagrams[i].text[k].text,
+                      "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                      "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "url1":   d.venn_diagrams[i].url,
+                      "row" : xVal, 
+                      "col" : yVal
 
 
                 });
               }
             }
-            
+            else{
+                  if (d.venn_diagrams[i].r2 >d.venn_diagrams[i].r1) {
+                  circleData.push({
+                      "cx": d.venn_diagrams[i].c2x,
+                      "cy": d.venn_diagrams[i].c2y,
+                      "radius": d.venn_diagrams[i].r2,
+                      "fill": "yellow",
+                      "opacity": d.venn_diagrams[i].opacity,
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "gene_id": d.venn_diagrams[i].text[k].text,
+                      "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                      "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "url1":   d.venn_diagrams[i].url,
+                      "row" : xVal, 
+                      "col" : yVal
+
+
+                  });
+                  circleData.push({
+
+                      "cx": d.venn_diagrams[i].c1x,
+                      "cy": d.venn_diagrams[i].c1y,
+                      "radius": d.venn_diagrams[i].r1,
+                      "fill": "orange",
+                      "opacity": ".5",
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url": '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "row" : xVal, 
+                      "col" : yVal
+                  });
+                }
+                else{
+
+                  circleData.push({
+
+                      "cx": d.venn_diagrams[i].c1x,
+                      "cy": d.venn_diagrams[i].c1y,
+                      "radius": d.venn_diagrams[i].r1,
+                      "fill": "orange",
+                      "opacity": ".5",
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url": '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "row" : xVal, 
+                      "col" : yVal
+                  });
+
+                    circleData.push({
+                      "cx": d.venn_diagrams[i].c2x,
+                      "cy": d.venn_diagrams[i].c2y,
+                      "radius": d.venn_diagrams[i].r2,
+                      "fill": "yellow",
+                      "opacity": d.venn_diagrams[i].opacity,
+                      "cxshift": x_coord,
+                      "cyshift": y_coord,
+                      "gene_id": d.venn_diagrams[i].text[k].text,
+                      "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                      "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                      "des": d.venn_diagrams[i].desc1,
+                      "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                      "title" : d.venn_diagrams[i].title1,
+                      "pvalue" : str,
+                      "show" : threshold,
+                      "url1":   d.venn_diagrams[i].url,
+                      "row" : xVal, 
+                      "col" : yVal
+
+
+                });
+              }
+            }
+          }
         }
         xVal++;
 
@@ -740,13 +860,39 @@ var yVal = -1;
             .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
             .attr("r", function (d) {return d.radius; })
             .style("fill", function (d) { return d.fill; })
-            .style("fill-opacity", function (d) {return d.opacity - .2})
+            .style("fill-opacity", function (d) {return d.opacity})
             .attr("cxshift", function (d) {   return d.cxshift; })
             .attr("cyshift", function (d) {  return d.cyshift; })
             .attr("label", function (d) { return d.label; })
             .attr("pValue", function (d) { return d.pvalue; })
-            .style("stroke", bordercolor)
-            .attr("border", border)
+            .style("stroke", 'black')
+            .style("stroke-width", 1)
+
+    .on("click", function(d){
+          if(d3.event.shiftKey){
+                  var row = d.row;
+                  var col = d.col;
+
+                  console.log(row + " " + col)
+
+                  svgContainer.selectAll("circle")
+                    .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
+                    .style('stroke', 'yellow')
+                     .style("stroke-width", 3)
+                  svgContainer.selectAll("circle")  
+                    .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
+                    .style('stroke', 'black')
+                    .style("stroke-width", 1);
+                }
+            
+
+  
+          if(d3.event.altKey){
+                  svgContainer.selectAll("circle")
+                    .style('stroke', 'black')
+                     .style("stroke-width", 1);
+                }
+            })
 
      // When mouse is over object html output styling of label will display
     .on("mouseover", function(d) {
@@ -767,9 +913,11 @@ var yVal = -1;
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("dblclick", function(d) {
            window.open(
-                   "/viewgenesetoverlap/" + d.url)});
+                   d.url)});
 
                //    return i == 0 ? "circle1" : "circle2";});
+
+        
 
 
     //Add the SVG Text Element to the svgContainer
@@ -866,6 +1014,7 @@ var yVal = -1;
         }
     }
 
+    
     // Checkbox for selecting a geneset
     function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
         var allChecked = true;
@@ -1254,3 +1403,5 @@ $(document).ready(function() {
 
 
 </script>
+
+{% include 'footer.html' %}
