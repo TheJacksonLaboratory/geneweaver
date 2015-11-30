@@ -265,7 +265,7 @@ input[type="checkbox"]:hover:before {
          </div>
       </div>
             <div class="right-cell">
-         <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
+         <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header">Reset Zoom</button>
       </div>
 </div>
 
@@ -538,8 +538,6 @@ var yVal = -1;
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
-              console.log(d.venn_diagrams[i].opacity)
-              if (d.venn_diagrams[i].opacity == .40){
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
@@ -558,27 +556,6 @@ var yVal = -1;
 
 
                 });
-              }
-              else{
-                circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "pink",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                     "url":   '/viewgenesetdetails/' + gene_url[xVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold,
-                    "row" : xVal, 
-                    "col" : yVal
-
-
-                });
-              }
                  row +=1;
 
                 {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
@@ -633,7 +610,6 @@ var yVal = -1;
 
 {#  Else make circles for orange and blue with appropriate json values #}
             else {
-              if (d.venn_diagrams[i].opacity ==.40){
                 if (d.venn_diagrams[i].r2 >d.venn_diagrams[i].r1) {
                   circleData.push({
                       "cx": d.venn_diagrams[i].c2x,
@@ -719,93 +695,6 @@ var yVal = -1;
                 });
               }
             }
-            else{
-                  if (d.venn_diagrams[i].r2 >d.venn_diagrams[i].r1) {
-                  circleData.push({
-                      "cx": d.venn_diagrams[i].c2x,
-                      "cy": d.venn_diagrams[i].c2y,
-                      "radius": d.venn_diagrams[i].r2,
-                      "fill": "yellow",
-                      "opacity": d.venn_diagrams[i].opacity,
-                      "cxshift": x_coord,
-                      "cyshift": y_coord,
-                      "gene_id": d.venn_diagrams[i].text[k].text,
-                      "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                      "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                      "des": d.venn_diagrams[i].desc1,
-                      "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                      "title" : d.venn_diagrams[i].title1,
-                      "pvalue" : str,
-                      "show" : threshold,
-                      "url1":   d.venn_diagrams[i].url,
-                      "row" : xVal, 
-                      "col" : yVal
-
-
-                  });
-                  circleData.push({
-
-                      "cx": d.venn_diagrams[i].c1x,
-                      "cy": d.venn_diagrams[i].c1y,
-                      "radius": d.venn_diagrams[i].r1,
-                      "fill": "orange",
-                      "opacity": ".5",
-                      "cxshift": x_coord,
-                      "cyshift": y_coord,
-                      "des": d.venn_diagrams[i].desc1,
-                      "url": '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                      "title" : d.venn_diagrams[i].title1,
-                      "pvalue" : str,
-                      "show" : threshold,
-                      "row" : xVal, 
-                      "col" : yVal
-                  });
-                }
-                else{
-
-                  circleData.push({
-
-                      "cx": d.venn_diagrams[i].c1x,
-                      "cy": d.venn_diagrams[i].c1y,
-                      "radius": d.venn_diagrams[i].r1,
-                      "fill": "orange",
-                      "opacity": ".5",
-                      "cxshift": x_coord,
-                      "cyshift": y_coord,
-                      "des": d.venn_diagrams[i].desc1,
-                      "url": '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                      "title" : d.venn_diagrams[i].title1,
-                      "pvalue" : str,
-                      "show" : threshold,
-                      "row" : xVal, 
-                      "col" : yVal
-                  });
-
-                    circleData.push({
-                      "cx": d.venn_diagrams[i].c2x,
-                      "cy": d.venn_diagrams[i].c2y,
-                      "radius": d.venn_diagrams[i].r2,
-                      "fill": "yellow",
-                      "opacity": d.venn_diagrams[i].opacity,
-                      "cxshift": x_coord,
-                      "cyshift": y_coord,
-                      "gene_id": d.venn_diagrams[i].text[k].text,
-                      "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                      "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                      "des": d.venn_diagrams[i].desc1,
-                      "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                      "title" : d.venn_diagrams[i].title1,
-                      "pvalue" : str,
-                      "show" : threshold,
-                      "url1":   d.venn_diagrams[i].url,
-                      "row" : xVal, 
-                      "col" : yVal
-
-
-                });
-              }
-            }
-          }
         }
         xVal++;
 
