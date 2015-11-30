@@ -160,6 +160,14 @@
                                     Run
                                 </button>
                             </div>
+                            <div class="span12">
+                                <button class="btn btn-success" id="save_as_BMP" onclick="submit_download_form('bmp')" value>
+                                    Save as BMP</button>
+                            </div>
+                            <form id="svg_form" method="post" action="http://localhost/cgi-bin/download.py">
+                                <input type="hidden" id="output_format" name="output_format" value="bmp">
+                                <input type="hidden" id="data" name="data" value="">
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -749,5 +757,24 @@
                     });
         }
     </script>
+    <script type="text/javascript">
+        /*
+            populates the form above with the svg data from the graph
+            and the requested output and submits the form
+        */
+        function submit_download_form(output_format){
+            //get the d3js svg element
+            var tmp = document.getElementById("viz2");
+            var svg = tmp.getElementsByTagName("svg")[0];
 
+            //extract the data as svg text string
+            var svg_xml = (new XMLSerializer).serializeToString(svg);
+
+            //submit the form to the server with the result as an attachment to download
+            var form = document.getElementById("svg_form");
+            form['output_format'].value = output_format;
+            form['data'].value = svg_xml;
+            form.submit();
+        }
+    </script>
 </div>
