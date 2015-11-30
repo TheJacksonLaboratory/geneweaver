@@ -14,8 +14,8 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
-
+# Need to change this path to ~/Documents/geneweaver/results
+RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -229,12 +229,7 @@ def get_all_projects(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
-                CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
-                WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
-                (SELECT p2g.pj_id FROM project2geneset p2g WHERE p2g.pj_id=p.pj_id))
-            UNION
-            (SELECT p.*, x.* FROM project p, (
+            SELECT p.*, x.* FROM project p, (
                 SELECT p2g.pj_id, COUNT(gs_id), x.count AS deprecated, g.group
                 FROM
                     project2geneset p2g
@@ -252,7 +247,7 @@ def get_all_projects(usr_id):
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
-            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
+            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name;
             ''',
             {'usr_id': usr_id}
         )
@@ -718,8 +713,7 @@ def add_project(usr_id, pj_name):
     return cursor.fetchone()
 
 def add_geneset2project(pj_id, gs_id):
-    if gs_id[:2] == 'GS':
-        gs_id = gs_id[2:]
+    gs_id = gs_id[2:]
     with PooledCursor() as cursor:
         cursor.execute(
             ''' INSERT INTO project2geneset
@@ -741,27 +735,11 @@ def add_genesets_to_projects(rargs):
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
-        print gs_id
         for pj_id in checked:
            for g in gs_id:
                g = g.strip()
                add_geneset2project(pj_id, g)
     return
-
-def user_is_project_owner(user_id, proj_id):
-    with PooledCursor() as cursor:
-        cursor.execute('''SELECT COUNT(pj_id) FROM project WHERE usr_id=%s AND pj_id=%s''', (user_id, proj_id))
-        return cursor.fetchone()[0]
-
-def remove_geneset_from_project(rargs):
-    user_id = flask.session['user_id']
-    gs_id = rargs.get('gs_id', type=int)
-    proj_id = rargs.get('proj_id', type=int)
-    if get_user(user_id).is_admin or user_is_project_owner(user_id, proj_id):
-        with PooledCursor() as cursor:
-            cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
-            cursor.connection.commit()
-            return
 
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir
@@ -2150,7 +2128,10 @@ class ToolConfig:
         self.classname = tool_dict['tool_classname']
         self.name = tool_dict['tool_name']
         self.description = tool_dict['tool_description']
-        self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        try:
+            self.requirements = [x.strip() for x in tool_dict['tool_requirements'].split(',')]
+        except:
+            self.requirements = None
         self.is_active = tool_dict['tool_active'] == '1'
         self.sort_priority = tool_dict['tool_sort']
         self.__params = None
@@ -2735,6 +2716,35 @@ def get_gene_database_by_id(apikey, gdb_id):
                     ) row; ''', (gdb_id,))
     return cursor.fetchall()
 
+def get_genesymbols_by_gs_id(gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            select g.ode_ref_id from gene g, geneset_value gv where gv.gs_id= %s and gv.ode_gene_id=g.ode_gene_id and g.gdb_id=7 and ode_pref='t';
+            ''', (gs_id,)
+        )
+
+    return cursor.fetchall()
+
+def get_gsinfo_by_gs_id(gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            select gs_name, gs_abbreviation, sp_id from geneset where gs_id = %s;
+            ''', (gs_id,)
+        )
+
+    return cursor.fetchall()
+
+def get_species_name_by_sp_id(sp_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            select sp_name from species where sp_id = %s;
+            ''', (sp_id,)
+        )
+
+    return cursor.fetchall()[0][0]
 
 #API only	
 def add_project_for_user(apikey, pj_name):
@@ -2795,32 +2805,3 @@ def generate_api_key(user_id):
         )
         cursor.connection.commit()
     return new_api_key
-
-def checkJaccardResultExists(setSize1, setSize2):
-    try:
-        with PooledCursor() as cursor:
-            cursor.execute(
-                ''' SELECT * 
-                    FROM jaccard_distribution_results
-                    WHERE set_size1 = %s and set_size2 = %s;
-                ''',(setSize1, setSize2)
-                )
-
-        return list(dictify_cursor(cursor))
-    except:
-        print "In the except"
-        return []
-
-def getPvalue(setSize1, setSize2, jaccard):
-    try:
-        with PooledCursor() as cursor:
-            cursor.execute(
-                ''' SELECT * 
-                    FROM jaccard_distribution_results
-                    WHERE set_size1 = %s and set_size2 = %s and jaccard_coef = %s;
-                ''',(setSize1, setSize2, jaccard)
-                )
-        pVal = dictify_cursor(cursor)
-        return cursor.fetchone()[5]
-    except:
-        return 0

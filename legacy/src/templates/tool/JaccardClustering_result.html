@@ -2,157 +2,473 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+<style type="text/css">
+    .d3 {
+        width: 100%;
+    }
+
+    .key > * {
+        margin: 5px;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    #form-container {
+        width: 30%;
+    }
+
+    #form-container > * {
+        margin: 5px;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    #d3-container {
+        position: relative;
+    }
+
+    #d3-legend {
+        position: absolute;
+        width: 15%;
+    }
+
+    .node circle {
+      cursor: pointer;
+    }
+
+    /* mouse nodes */
+    .mouse, line .mouse {
+        fill: #eeb44f;
+        stroke: #eeb44f;
+    }
+
+    .mouse:hover {
+        fill: #a36d10;
+        stroke: #a36d10;
+    }
+
+    /* human nodes */
+    .human, line .human {
+        fill: #d7c000;
+        stroke: #d7c000;
+    }
+
+    .human:hover {
+        fill: #807200;
+        stroke: #807200;
+    }
+
+    /* rat nodes */
+    .rat, line .rat {
+        fill: #44fcf7;
+        stroke: #44fcf7;
+    }
+
+    .rat:hover {
+        fill: #03b0ab;
+        stroke: #03b0ab;
+    }
+
+    /* fly nodes */
+    .fly, line .fly {
+        fill: #fca5b7;
+        stroke: #fca5b7;
+    }
+
+    .fly:hover {
+        fill: #f95275;
+        stroke: #f95275;
+    }
+
+    /* zf nodes */
+    .zebrafish, line .zebrafish {
+        fill: #8fcb0a;
+        stroke: #8fcb0a;
+    }
+
+    .zebrafish:hover {
+        fill: #567a06;
+        stroke: #567a06;
+    }
+
+    /* monkey nodes */
+    .monkey, line .monkey {
+        fill: #b4d1fb;
+        stroke: #b4d1fb;
+    }
+
+    .monkey:hover {
+        fill: #5697f6;
+        stroke: #5697f6;
+    }
+
+    /* gene nodes */
+    .gene, line .gene {
+        fill: #cc00ff;
+        stroke: #cc00ff;
+    }
+
+    .gene:hover {
+        fill: #7a0099;
+        stroke: #7a0099;
+    }
+
+    /* cluster nodes */
+    .cluster, line .cluster{
+        fill: #0099ff;
+        stroke: #0099ff;
+    }
+
+    .collapsed-cluster, line .cluster {
+        fill: #004d80;
+        stroke: #004d80;
+    }
+
+    .node text {
+      font: 10px sans-serif;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    line.link {
+      fill: none;
+      stroke-width: 2px;
+    }
+</style>
+
 <div class="page-header">
 	<h1>{{ title }}</h1>
 </div>
-
 <p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
-<div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
-    <div id="cluster-tree">
-        <style type="text/css">
-            .node circle {
-              cursor: pointer;
-            }
 
-            .node text {
-              font: 10px sans-serif;
-              pointer-events: none;
-              text-anchor: middle;
-            }
-
-            line.link {
-              fill: none;
-              stroke: #9ecae1;
-              stroke-width: 1.5px;
-            }
-        </style>
-        <script type="text/javascript">
-
-            var width = 1150,
-                height = 800,
-                root;
-
-            var force = d3.layout.force()
-                .linkDistance(80)
-                .charge(-120)
-                .gravity(.05)
-                .size([width, height])
-                .on("tick", tick);
-
-            var svg = d3.select("#cluster-tree").append("svg")
-                .attr("width", width)
-                .attr("height", height);
-
-            var link = svg.selectAll(".link"),
-                node = svg.selectAll(".node");
-
-            d3.json("{{ cluster_data }}", function(error, json) {
-              if (error) throw error;
-
-              root = json;
-              update();
-            });
-
-            function update() {
-              var nodes = flatten(root),
-                  links = d3.layout.tree().links(nodes);
-
-              // Restart the force layout.
-              force
-                  .nodes(nodes)
-                  .links(links)
-                  .start();
-
-              // Update links.
-              link = link.data(links, function(d) { return d.target.id; });
-
-              link.exit().remove();
-
-              link.enter().insert("line", ".node")
-                  .attr("class", "link");
-
-              // Update nodes.
-              node = node.data(nodes, function(d) { return d.id; });
-
-              node.exit().remove();
-
-              var nodeEnter = node.enter().append("g")
-                  .attr("class", "node")
-                  .on("click", click)
-                  .call(force.drag);
-
-              nodeEnter.append("circle")
-                  .attr("r", function(d) {
-                          return d._children ? 5
-                                  : d.children ? 5
-                                  : Math.sqrt(d.size) / 6;
-                      }
-              );
-                //test
-              nodeEnter.append("text")
-                  .attr("dy", "-2em")
-                      .attr("dx","-2.5em")
-                  .text(function(d) { return d._children ? ''
-                              : d.children ? ''
-                              : d.name;
-                      }
-              );
-
-              node.select("circle")
-                      .attr("r", function(d) {
-                          return d._children ? 10
-                                  : d.children ? 5
-                                  : Math.sqrt(d.size) / 6;
-                      })
-                  .style("fill", color);
-            }
-
-            function tick() {
-              link.attr("x1", function(d) { return d.source.x; })
-                  .attr("y1", function(d) { return d.source.y; })
-                  .attr("x2", function(d) { return d.target.x; })
-                  .attr("y2", function(d) { return d.target.y; });
-
-              node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-            }
-
-            function color(d) {
-              return d._children ? "#3182bd" // collapsed package
-                  : d.children ? "#c6dbef" // expanded package
-                  : "#00ff99"; // leaf node
-            }
-
-            // Toggle children on click.
-            function click(d) {
-              if (d3.event.defaultPrevented) return; // ignore drag
-              if (d.children) {
-                d._children = d.children;
-                d.children = null;
-              } else {
-                d.children = d._children;
-                d._children = null;
-              }
-              update();
-            }
-
-            // Returns a list of all nodes under the root.
-            function flatten(root) {
-              var nodes = [], i = 0;
-
-              function recurse(node) {
-                if (node.children) node.children.forEach(recurse);
-                if (!node.id) node.id = ++i;
-                nodes.push(node);
-              }
-
-              recurse(root);
-              return nodes;
-            }
-
-        </script>
+<div id="ui-container">
+    <div class="form-container">
+        <label for="JaccardClustering_Method">Method:</label>
+        <div>
+            <select class="form-control tooltip-enabled" id="JaccardClustering_Method" name="JaccardClustering_Method" title="Hierarchical Clustering method to use.">
+                <option label="Average" value="Average" selected="selected">Average</option>
+                <option label="Complete" value="Complete">Complete</option>
+                <option label="Single" value="Single">Single</option>
+                <option label="Ward" value="Ward">Ward</option>
+                <option label="McQuitty" value="McQuitty">McQuitty</option>
+            </select>
+        </div>
+        <label for="JaccardClustering_Homology">Homology:</label>
+        <div>
+            <select class="form-control tooltip-enabled" id="JaccardClustering_Homology" name="JaccardClustering_Homology" title="Collapse homologous genes across species">
+                <option label="Included" value="Included" selected="selected">Included</option>
+                <option label="Excluded" value="Excluded">Excluded</option>
+            </select>
+        </div>
+    </div>
+    <div id="d3-container" class="d3">
+        <div id="d3-legend" class="d3"></div>
+        <div id="d3-visual" class="d3"></div>
     </div>
 </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+    <script type="text/javascript">
+
+        var width = document.getElementById("d3-container").offsetWidth,
+            height = document.getElementById("d3-container").offsetWidth/1.5,
+            root;
+
+        var svg = d3.select("#d3-visual").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        var link = svg.selectAll(".link"),
+            node = svg.selectAll(".node");
+
+        var force, k;
+
+        d3.json("{{ cluster_data }}", function(error, json) {
+          if (error) throw error;
+
+          root = json;
+
+          k = Math.sqrt(root.length / (width * height));
+
+          force = d3.layout.force()
+          .linkDistance(function(d) { return d.target.level == 0 ? 150 : 50;})
+          .charge(-50)
+          .gravity(.02)
+          .size([width, height])
+          .on("tick", tick);
+
+          var elements = flatten(root);
+
+            //Collapse genes into genesets by default
+          for(var n in elements)
+            {
+                if(elements[n].type == "geneset")
+                {
+                    collapse(elements[n]);
+                }
+            }
+
+          update();
+        });
+
+        function update() {
+          var nodes = flatten(root),
+                  links = d3.layout.tree().links(nodes),
+                  treeHeight = root.height;
+
+          // Restart the force layout.
+          force
+              .nodes(nodes)
+              .links(links)
+              .start();
+
+          // Update links.
+          link = link.data(links, function(d) { return d.target.id; });
+
+          link.exit().remove();
+
+          link.enter().insert("line", ".node")
+              .attr("class", species)
+                  .style("opacity", opac);
+
+          // Update nodes.
+          node = node.data(nodes, function(d) { return d.id; });
+          node.exit().remove();
+
+          var nodeEnter = node.enter().append("g")
+              .attr("class", "node")
+              .on("click", click)
+              .call(force.drag);
+
+          nodeEnter.append("circle")
+              .attr("r", radius)
+              .attr("class", species)
+                  .style("opacity", opac);
+
+          nodeEnter.append("text")
+              .attr("dy", dist)
+                  .attr("dx", dist)
+              .text(label);
+
+          node.on("mouseover", mouseover);
+          node.on("mouseout", mouseout);
+          node.on("dblclick", dblclick);
+        }
+
+        function tick() {
+          link.attr("x1", function(d) { return d.source.x; })
+              .attr("y1", function(d) { return d.source.y; })
+              .attr("x2", function(d) { return d.target.x; })
+              .attr("y2", function(d) { return d.target.y; });
+
+          node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+        }
+
+        function label(d) {
+            return d.type == "geneset" ? d.name : '';
+        }
+
+        function dist(d) {
+            return -1*(radius(d)+5)
+        }
+
+        function radius(d) {
+            return d.type == 'collapsed-cluster' ? d.size*2
+                   : d.size ? d.size
+                    : 0;
+        }
+
+        function opac(d) {
+            if(d.name)
+            {
+                return d.name == "root" ? "0"
+                    : d.type == "geneset" ? 1
+                    : d.type == "gene" ? .5
+                    : d.jaccard_index + .08;
+            }
+            return d.source.name == "root" ? "0"
+                    : d.source.type == "geneset" ? .2
+                    : d.source.jaccard_index + .08;
+
+        }
+
+        function species(d) {
+            if (d.species)
+            {
+                var _species;
+
+                if(d.species == "Macaca mulatta")
+                {
+                    _species = "monkey"
+                }
+                else if(d.species == "Canis familiaris")
+                {
+                    _species = "dog"
+                }
+                else if(d.species == "Mus musculus")
+                {
+                    _species = "mouse"
+                }
+                else if(d.species == "Rattus norvegicus")
+                {
+                    _species = "rat"
+                }
+                else if(d.species == "Drosophila melanogaster")
+                {
+                    _species = "fly"
+                }
+                else if(d.species == "Danio rerio")
+                {
+                    _species = "zebrafish"
+                }
+                else if(d.species == "Caenorhabditis elegans")
+                {
+                    _species = "nematode"
+                }
+                else if(d.species == "Gallus gallus")
+                {
+                    _species = "chicken"
+                }
+                else if(d.species == "Saccharomyces cerevisiae")
+                {
+                    _species = "yeast"
+                }
+                else if(d.species == "Homo sapiens")
+                {
+                    _species = "human"
+                }
+
+                if (!$("#"+_species+"_key").length)
+                {
+                    var key = d3.select("#d3-legend").append("div")
+                            .attr("id", _species+"_key")
+                            .attr("class","key");
+
+                    key.append("rect")
+                        .attr("class",_species)
+                        .style("width", "20px")
+                        .style("height", "20px");
+
+                    key.append("p").text(_species);
+                }
+
+                return _species
+            }
+            else if(d.type)
+            {
+                return d.type;
+            }
+            else if(d.source.type == "geneset")
+            {
+                return "link "+ species(d.source);
+            }
+            else
+            {
+                return "link "+ d.source.type;
+            }
+        }
+
+        // Toggle children on click.
+        function click(d) {
+          if (d3.event.defaultPrevented) return; // ignore drag
+
+          if (d.genes)
+          {
+              console.log(d.g_index);
+              if(d.g_index >= d.genes.length)
+              {
+                  console.log('collapse.');
+                  d.children = null;
+                  d.g_index = 0;
+              }
+              else if(d.g_index+10 < d.genes.length)
+              {
+                  console.log('expand +10.');
+                  d.children = d.genes.slice(d.g_index,d.g_index+10);
+                  d.g_index += 10;
+              }
+              else {
+                  console.log('expand remaining.');
+                  d.children = d.genes.slice(d.g_index);
+                  d.g_index = d.genes.length;
+              }
+          } else {
+              if (d.children) {
+                  d.type = 'collapsed-cluster';
+                  d._children = d.children;
+                  d.children = null;
+              } else {
+                  d.type = 'cluster';
+                  d.children = d._children;
+                  d._children = null;
+              }
+
+              var nodeSelected = d3.select(this);
+              nodeSelected.select("circle").attr("class",species);
+          }
+
+          update();
+        }
+
+        // Toggle children on click.
+        function collapse(d) {
+          if (d.children) {
+              d.genes = d.children;
+              d.g_index = 0;
+              d.children = null;
+          }
+        }
+
+        function mouseover(d) {
+
+            if(d.type == "cluster") {
+                var nodeSelected = d3.select(this);
+                nodeSelected.select("circle").attr("r", d.size+10);
+                nodeSelected.select("text").attr("dy", "0.5em");
+                nodeSelected.select("text").attr("dx", "0em");
+                nodeSelected.select("text").text(d.jaccard_index.toPrecision(2));
+            }
+            else if(d.type == "geneset")
+            {
+                var nodeSelected = d3.select(this);
+                nodeSelected.select("text").text(d.info);
+            }
+            else {
+                var nodeSelected = d3.select(this);
+                nodeSelected.select("circle").attr("r", d.size*2);
+                nodeSelected.select("text").text(d.name);
+            }
+        }
+
+        function mouseout(d) {
+
+            var nodeSelected = d3.select(this);
+            nodeSelected.select("circle").attr("r", radius);
+            nodeSelected.select("text").attr("dy", dist);
+            nodeSelected.select("text").attr("dx", dist);
+            nodeSelected.select("text").text(label);
+        }
+
+        function dblclick(d) {
+            if(d.type == 'geneset') {
+                window.open("/viewgenesetdetails/"+ d.id);
+            }
+        }
+
+        // Returns a list of all nodes under the root.
+        function flatten(root) {
+          var nodes = [], i = 0;
+
+          function recurse(node) {
+            if (node.children) node.children.forEach(recurse);
+            if (!node.id) node.id = ++i;
+            nodes.push(node);
+          }
+
+          recurse(root);
+          return nodes;
+        }
+    </script>
+
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">
@@ -198,18 +514,6 @@
 	{% endfor %}
 </select>
 
-<div class="row">
-	<div class="col-md-12 link panel" style="test-align: center;">
-		<OBJECT data="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}" type="image/png" height="1500" width="1500">
-		</OBJECT>
-		<br />
-		<a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Jaccard Clustering Graph as PDF</a>
-		-
-		<a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">Open in new window</a>
-	</div>
-</div>
-
-
 <script type="text/javascript">
 	var urlMenu = document.getElementById("genesetDetails");
 	urlMenu.onchange = function () {
@@ -220,5 +524,3 @@
 </script>
 
 {% include 'footer.html' %}
-
-

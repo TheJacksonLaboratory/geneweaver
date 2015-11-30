@@ -6,6 +6,9 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 
+# BITBUCKET IS DUMB
+# NO. IT'S REALLY DUMB
+
 TOOL_CLASSNAME = 'JaccardClustering'
 jaccardclustering_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
@@ -29,6 +32,38 @@ def run_tool():
         flask.flash("Warning: You need at least 3 genes!")
         return flask.redirect('analyze')
 
+    # info dictionary
+    gs_dict = {}
+
+
+    # retrieve gene symbols
+    gene_symbols = {}
+
+    for gs_id in selected_geneset_ids:
+        raw = gwdb.get_genesymbols_by_gs_id(gs_id)
+        symbol_list = []
+
+        for sym in raw:
+            symbol_list.append(sym[0])
+
+        gene_symbols[gs_id] = symbol_list
+
+    # retrieve gs names and abbreviations
+    gene_set_names = {}
+    gene_set_abbreviations = {}
+    species_info = {}
+
+    for gs_id in selected_geneset_ids:
+        raw = gwdb.get_gsinfo_by_gs_id(gs_id)
+        gene_set_names[gs_id] = raw[0][0]
+        gene_set_abbreviations[gs_id] = raw[0][1]
+        species_info[gs_id] = gwdb.get_species_name_by_sp_id(raw[0][2])
+
+    gs_dict["gene_symbols"] = gene_symbols
+    gs_dict["gene_set_names"] = gene_set_names
+    gs_dict["gene_set_abbr"] = gene_set_abbreviations
+    gs_dict["species_info"] = species_info
+
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
@@ -38,9 +73,6 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
-
-
-
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -70,6 +102,7 @@ def run_tool():
             'gsids': selected_geneset_ids,
             'output_prefix': task_id,
             'params': params,
+            'gs_dict': gs_dict,
         },
         task_id=task_id)
 
@@ -149,7 +182,6 @@ def view_result(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     path_to_result = '/results/'+task_id+'.json'
-    #path_to_result = '/static/flare.json'
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
