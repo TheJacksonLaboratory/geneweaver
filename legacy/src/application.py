@@ -660,8 +660,40 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id1, user_id)
     geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
-    
-    intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+    genesets = []
+    genesets.append(geneset)
+    genesets.append(geneset1)
+
+    genes = []
+    genes1 = []
+
+    print "--------------------------------------"
+    for gene in geneset.geneset_values:
+        genes.append(gene.source_list[0])
+    print "--------------------------------------"
+
+    for gene in geneset1.geneset_values:
+        genes1.append(gene.source_list[0])
+
+    print genes1
+    print "length of genes", len(genes1)
+
+
+    intersection_genes = {}
+    temp_genes = geneweaverdb.get_intersect_by_homology(gs_id, gs_id1)
+    # print "temp_genes", temp_genes
+    for j in range(0, len(temp_genes[0])):
+        intersection_genes[temp_genes[0][j]] = geneweaverdb.if_gene_has_homology(temp_genes[1][j])
+
+    # intersection_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+
+    print "Keys", list(intersection_genes.keys())
+
+    genesFinal = [item for item in genes if item not in list(intersection_genes.keys())]
+    genes1Final = [item for item in genes1 if item not in list(intersection_genes.keys())]
+
+    print "length of gene final", len(genesFinal)
+    print "length of gene final", len(genes1Final)
 
     if gs_id == gs_id1:
         intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1-gs_id)
@@ -670,7 +702,7 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
 
     print (geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes)
 
-    venn = createVennDiagram(geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes, 150)
+    venn = createVennDiagram(geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes, 200)
 
     jaccard = float(intersect_genes)/float(geneset.count-intersect_genes + geneset1.count-intersect_genes + intersect_genes)
     jaccard="%.6f" % jaccard
@@ -692,7 +724,8 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetoverlap.html', geneset=geneset,emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, 
-                                 venn = venn, jaccard = jaccard, pval = pvalue, sizes = diagramSizes)
+                                 venn = venn, jaccard = jaccard, pval = pvalue, sizes = diagramSizes, genesets=genesets,
+                                 gene_sym = intersection_genes, gene_sym_set1 = genesFinal, gene_sym_set2 = genes1Final)
 
 
 def createVennDiagram(i,ii,j, size=100):
