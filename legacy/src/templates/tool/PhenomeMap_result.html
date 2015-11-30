@@ -63,7 +63,7 @@
         {{ runhash }} </h1>
 </div>
 
-{# {{ async_result.parameters.output_prefix}} #}
+ OUTPUT_PREFIX = {{ async_result.parameters.output_prefix}} 
 
 {#
 	Checks to see if runhash is defined. If it is, that means we're
@@ -249,13 +249,16 @@
 
 <div id="viz2">
     <script>
+
         var g = {
             data: null,
             force: null
         };
 
+        var OUTPUT_PREFIX = "{{async_result.parameters.output_prefix}}";
         g.data = {{data | safe}};
 
+        console.log(OUTPUT_PREFIX);
         var dictionary = {};
         dictionary["Multiple Species"] = "#636363";
 
@@ -477,7 +480,7 @@
             nodeEnter.select("circle")
                     .append("svg:title")
                     .text(function (d) {
-                        return d.tooltip + "\n" + d.tooltip;
+                        return d.tooltip;
                     });
 
             //All nodes, do the following:
