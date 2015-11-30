@@ -145,43 +145,85 @@
 
 
             {% endif %}
-        {% if onts %}
+
+            {# Annotation Information #}
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h2 class="panel-title">
+                    Annotation Information
+                </h2>
+            </div>
+
+            <div style="margin-left: 1em;">
+                <br>
                 <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>ONTOLOGY:</strong></p>
+                    <div class="panel panel-default panel-heading bg-gray-light">
+                        <h3 class="panel-title"><strong>Geneset-Ontology Data</strong>
+                            <span id="genesetOntologyInfo"><i class="fa fa-info-circle"></i></span></h3>
                     </div>
                 </div>
-            <div class="row">
-                <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
-                    <ul class="jstree-container-ul">
-                        {% for ont in onts %}
-                            {% if ont.child == 0 %}
-                            <li id="j1_1" class="jstree-node jstree-leaf" role="treeitem" aria-selected = "false">
-                                <i class="jstree-icon jstree-ocl"></i>
-                                    <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
-                                        <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
-                                        {{ ont.name }}
-                                    </a>
-                            </li>
-                            {% else %}
-                                <li id="j1_1" class="jstree-node jstree-closed" role="treeitem" aria-expanded = false aria-selected = "false">
-                                <i class="jstree-icon jstree-ocl"></i>
-                                    <a class="jstree-anchor jstree-clicked jstree-hovered" href="#">
-                                        <i class="jstree-icon jstree-themeicon fa fa-folder-o c-purple jstree-themeicon-custom"></i>
-                                        {{ ont.name }}
-                                    </a>
-                            </li>
-                            {% endif %}
-                        {% endfor %}
-                    </ul>
+                <div class="row">
+                    <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                        Got to Edit MetaData page to change ontology information.
+                    </div>
+                </div>
+                <div class="row">
+                    <div style="border: 1px solid #afafaf;">
+                        <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
+                    </div>
+                </div>
             </div>
 
-        {% else %}
+            <script>
+                $(function(){
+                    //Initialize dynatree data and functions
+                    $("#tree").dynatree({
+                        checkbox: true,
+                        selectMode: 2,
+                        initAjax: {
+                            url: "/initOntTree",
+                            data: {
+                                "gs_id": $(location).attr("href").split('/').pop(),
+                                universe: "All Reference Types"
+                            }
+                        },
 
-            <div class="row">
-                <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
-            </div>
+                        //Performs lazy ajax call when new nodes need to be viewed
+                        onLazyRead: function (node) {
+                            node.appendAjax({
+                                url: "/getOntRootNodes",
+                                data: {
+                                    key: node.data.key,
+                                    is_db: node.data.db,
+                                    universe: "All Reference Types"
+                                }
+                            })
+                        },
 
-        {% endif %}
+                        //Performs lazy ajax call to update the database when an ontology is selected or unselected
+                        onSelect: function (flag, node) {
+                            $.ajax({
+                                url: "/updateGenesetOntologyDB",
+                                data: {
+                                    key: node.data.key,
+                                    flag: flag,
+                                    universe: "All Reference Types",
+                                    gs_id: $(location).attr("href").split('/').pop()
+                                },
+                                success: function(data){
 
+                                }
+                            })
+                        }
+                    })
+                });
+
+                //Popover that gives Geneset Ontology functionality overview for the user
+                //Displayed when ontologies are linked with the geneset
+                $('#genesetOntologyInfo').popover({
+                        title: 'Geneset Ontologies', content: 'Ontologies linked to the current geneset are ' +
+                        'shown below as the highlighted nodes within the ontology databases. Only available to edit ' +
+                        'on Edit MetaData page.'
+                });
+            </script>
         </div>

@@ -9,7 +9,7 @@ ul.dynatree-container
 	padding: 3px;
 	margin: 0; /* issue 201 */
 	background-color: white;
-	border: 1px dotted gray;
+	border: none;/*1px solid #afafaf;*/
 	overflow: auto;
 /*	height: 100%; /* issue 263, 470 */
 	min-height: 0%;

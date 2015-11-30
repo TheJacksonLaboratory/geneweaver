@@ -37,6 +37,18 @@
         background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
     }
 
+    #anotologyInformation, #noAnotologyInformation {
+        cursor: pointer;
+    }
+
+    #genesetOntologyAlert {
+        padding: 8px;
+        margin-top: 0px;
+        margin-left: 0px;
+        margin-right: 0px;
+        margin-bottom: 20px;
+    }
+
 </style>
 
 
@@ -156,66 +168,65 @@
             </h2>
         </div>
         <div style="margin-left: 1em;">
-        <br>
-
-        <p>
-            If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
-        </p>
+            <br>
+            <p>
+                If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
+            </p>
 
             <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="3000"></div>
 
-        <div class="row">
-            <div class="col-md-2">
-                PubMed ID:
+            <div class="row">
+                <div class="col-md-2">
+                    PubMed ID:
+                </div>
+                <div class="col-md-4">
+                    <input id="pub_pubmed" type="text" name="pub_pubmed" size="10" value="{{ pubs.pubmed_id }}">&nbsp;
+                        <i id="clickablePubmed" class="fa fa-refresh"></i>
+                </div><br><br>
+                <div id="pubmed_manual" style="display:none">
+                    <div class="col-md-2">Title:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_title" id="pub_title" value="{{ pubs.title }}" size="50"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Authors:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_authors" id="pub_authors" value="{{ pubs.authors }}" size="50"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Journal:</div>
+                    <div class="col-md-8">
+                        <input type="text" name="pub_journal" id="pub_journal" value="{{ pubs.journal }}" size="50"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Volume:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_volume" id="pub_volume" value="{{ pubs.volume }}" size="10" maxlength="10"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Pages:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_pages" id="pub_pages" value="{{ pubs.pages }}" size="15" maxlength="15"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Month:</div>
+                    <div class="col-md-2">
+                        <input type="text" name="pub_month" id="pub_month" value="{{ pubs.month }}" size="3" maxlength="3"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Year:</div>
+                    <div  class="col-md-2">
+                        <input type="text" name="pub_year" id="pub_year" value="{{ pubs.year }}" size="4" maxlength="4"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
+                    </div><br><br>
+                    <div class="col-md-2">Abstract:</div>
+                    <div  class="col-md-4">
+                        <textarea name="pub_abstract" id="pub_abstract" cols="50" rows="10"
+                                style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >{{ pubs.abstract }}</textarea>
+                    </div><br><br>
+                </div>
             </div>
-            <div class="col-md-4">
-                <input id="pub_pubmed" type="text" name="pub_pubmed" size="10" value="{{ pubs.pubmed_id }}">&nbsp;
-                    <i id="clickablePubmed" class="fa fa-refresh"></i>
-            </div><br><br>
-            <div id="pubmed_manual" style="display:none">
-                <div class="col-md-2">Title:</div>
-                <div class="col-md-8">
-                    <input type="text" name="pub_title" id="pub_title" value="{{ pubs.title }}" size="50"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Authors:</div>
-                <div class="col-md-8">
-                    <input type="text" name="pub_authors" id="pub_authors" value="{{ pubs.authors }}" size="50"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Journal:</div>
-                <div class="col-md-8">
-                    <input type="text" name="pub_journal" id="pub_journal" value="{{ pubs.journal }}" size="50"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Volume:</div>
-                <div class="col-md-2">
-                    <input type="text" name="pub_volume" id="pub_volume" value="{{ pubs.volume }}" size="10" maxlength="10"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Pages:</div>
-                <div class="col-md-2">
-                    <input type="text" name="pub_pages" id="pub_pages" value="{{ pubs.pages }}" size="15" maxlength="15"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Month:</div>
-                <div class="col-md-2">
-                    <input type="text" name="pub_month" id="pub_month" value="{{ pubs.month }}" size="3" maxlength="3"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Year:</div>
-                <div  class="col-md-2">
-                    <input type="text" name="pub_year" id="pub_year" value="{{ pubs.year }}" size="4" maxlength="4"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >
-                </div><br><br>
-                <div class="col-md-2">Abstract:</div>
-                <div  class="col-md-4">
-                    <textarea name="pub_abstract" id="pub_abstract" cols="50" rows="10"
-                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)" >{{ pubs.abstract }}</textarea>
-                </div><br><br>
-            </div>
-        </div>
-        <br>
+            <br>
             <div id="pubmed_button_div">
                 <span id="pubmed_manual_button"><b>Manual Entry <i class="fa fa-angle-down"></i></b></span><br>
             </div>
@@ -232,62 +243,45 @@
                 Annotation Information
             </h2>
         </div>
+
         <div style="margin-left: 1em;">
-        <br>
-        {# {% if onts %} #}
-        <!--
+            <br>
             <div class="row">
-                <div id="ontology_tree" class="jstree jstree-1 jstree-default jstree-default-responsive" role="tree" aria-acivedescendant="j1_1"></div>
-                    <ul class="jstree-container-ul">
-                    <div id="testtree">
-                        <ul id="treeData">
-                            {# {% for ont in onts %} #}
-                                <li>{# {{ ont.name }} #}</li>
-                            {# {% endfor %} #}
-                        </ul>
+                {% if onts %}
+                <div class="panel panel-default panel-heading bg-gray-light">
+                    <h3 class="panel-title"><strong>Annotation Information</strong>
+                        <span id="anotologyInformation"><i class="fa fa-info-circle"></i></span></h3>
+                </div>
+
+                {% else %}
+                <div class="panel panel-default panel-heading bg-gray-light">
+                    <h3 class="panel-title"><strong>No Annotation Information is Associated with this GeneSet</strong>
+                        <span id="noAnotologyInformation"><i class="fa fa-info-circle"></i></span></h3>
+                </div>
+
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-xs-3";>
+                        <select name="gso_ref_type" id="gso_ref_type" class="form-control" style="margin-bottom: 20px;" required>
+                            <option value="all" selected>All Reference Types</option>
+                            {% for ref_type in ref_types %}
+                            <option value="ref_type">{{ ref_type }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    </ul>
-            </div>
-        -->
-            <div class="row">
-                <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
-                <div class="row">
-                <div class="col-xs-3">
-                    <select name="gso_ref_type" id="gso_ref_type" class="form-control" required>
-                        <option value="all" selected>All Reference Types</option>
-                        {% for ref_type in ref_types %}
-                        <option value="ref_type">{{ ref_type }}</option>
-                        {% endfor %}
-                    </select>
+                    <div id="genesetOntologyAlert" class="alert alert-warning fade in col-xs-3">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                            Geneset-Ontology Link Changes Persist on Select/Deselect.
+                    </div>
                 </div>
-                </div>
-                <div id="tree" name="selNodes" style="overflow:auto; max-height:600px">
-                </div>
-                <span id="echoActive">-</span>
-            </div>
 
-        {# {% else %} #}
-        <!--
-            <div class="row">
-                <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
-                <div class="row">
-                <div class="col-xs-3">
-                    <select name="gso_ref_type" class="form-control" required>
-                        <option value="all" selected>All Reference Types</option>
-                        {# {% for ref_type in ref_types %} #}
-                        <option value="ref_type">{# {{ ref_type }} #}</option>
-                        {# {% endfor %} #}
-                    </select>
+                <div style="border: 1px solid #afafaf;">
+                    <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
                 </div>
-                </div>
-                <div id="tree" name="selNodes" style="overflow:auto; max-height:600px">
-                </div>
-                <span id="echoActive">-</span>
+                <!--<span id="echoActive">-</span>-->
             </div>
-        -->
-
-        {# {% endif %} #}
-
+        </div>
 
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
 
@@ -308,12 +302,7 @@
 <script>
 
     $(function(){
-		$("#ontology_db_tree").dynatree({
-			// using default options
-		});
-    });
-
-    $(function(){
+        //Initialize dynatree data and functions
         $("#tree").dynatree({
             checkbox: true,
             selectMode: 2,
@@ -325,14 +314,11 @@
                 }
             },
 
-            onCreate: function(node, nodeSpan){
-                //alert("New Object Created" + node);
-            },
+            //onActivate: function (node) {
+            //    $("echoActive").text("" + node + " (" + node.name + ")")
+            //},
 
-            onActivate: function (node) {
-                $("echoActive").text("" + node + " (" + node.name + ")")
-            },
-
+            //Performs lazy ajax call when new nodes need to be viewed
             onLazyRead: function (node) {
                 node.appendAjax({
                     url: "/getOntRootNodes",
@@ -344,6 +330,7 @@
                 })
             },
 
+            //Performs lazy ajax call to update the database when an ontology is selected or unselected
             onSelect: function (flag, node) {
                 $.ajax({
                     url: "/updateGenesetOntologyDB",
@@ -361,25 +348,9 @@
         })
     });
 
-        $(function(){
-			$("#testtree").dynatree({
-				// using default options
-			});
-			<!-- Start_Exclude: This block is not part of the sample code -->
-			$("#skinCombo")
-			.val(0) // set state to prevent caching
-			.change(function(){
-				var href = "../src/"
-					+ $(this).val()
-					+ "/ui.dynatree.css"
-					+ "?reload=" + new Date().getTime();
-				$("#skinSheet").attr("href", href);
-			});
-			<!-- End_Exclude -->
-		});
-
     var user_id = {{ user_id }}
 
+    //This refreshes all tree data based on changing gso_ref_type (universe) seen in the gso_ref_type select tag
     $($("#gso_ref_type").change(function () {
         $("#tree").dynatree("option", "initAjax", {
             url: "/initOntTree",
@@ -437,15 +408,9 @@
 
             var data = $("#upload-geneset-form").serialize();
             var tree = $("#tree").dynatree("getTree");
-            //console.log(tree.serialize())
-            //console.log(tree.serializeArray())
-            //for(var i = 0; i < tree.length; i++){
-            //    console.log(tree[i].data.key);
-            //}
-            console.log(tree.serializeArr());
+            //May be used later on in order to submit ontology tree information with form.
             var onts = JSON.stringify(tree.serializeArr());
             data = data.concat("&onts=", onts);
-            //alert(data);
 
             $.ajax({
                 type: "POST",
@@ -578,6 +543,22 @@
         $('#file_text').prop('disabled',function() { return !$(this).prop('disabled') })
         $('#file_data').prop('disabled',function() { return !$(this).prop('disabled') })
     }
+
+    //Popover that gives Geneset Ontology functionality overview for the user
+    //Displayed when ontologies are linked with the geneset
+    $('#anotologyInformation').popover({
+            title: 'Geneset Ontologies', content: 'Linked geneset ontologies are displayed below as the highlighted ' +
+            'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
+            'selection of various geneset ontology reference types.  All selected ontologies may be viewed under the ' +
+            'All Reference Types category.  Geneset-ontology links may be added or removed under any other category'
+    });
+    //Displayed when NO ontologies are linked with the geneset
+    $('#noAnotologyInformation').popover({
+            title: 'Geneset Ontologies', content: 'Linked geneset ontologies are displayed below as the highlighted ' +
+            'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
+            'selection of various geneset ontology reference types.  All selected ontologies may be viewed under the ' +
+            'All Reference Types category.  Geneset-ontology links may be added or removed under any other category'
+    });
 
 </script>
 

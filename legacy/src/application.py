@@ -330,7 +330,7 @@ def render_editgenesets(gs_id):
                      "GeneWeaver Primary Inferred",
                      "Manual Association",]
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, ref_types=ref_types)
+                                 view=view, ref_types=ref_types, onts=onts)
 
 @app.route('/updateGenesetOntologyDB')
 def update_geneset_ontology_db():
