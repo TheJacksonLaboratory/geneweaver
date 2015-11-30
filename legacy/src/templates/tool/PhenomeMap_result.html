@@ -1,15 +1,13 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-<head>
+<head xmlns="http://www.w3.org/1999/html">
     <meta charset="utf-8">
     <style>
-
         .node circle {
             cursor: pointer;
             stroke: #3182bd;
             stroke-width: 3px;
-            r: 4.5;
         }
 
         .found {
@@ -20,31 +18,22 @@
         .node text {
             font: 12px sans-serif;
             pointer-events: none;
+            text-shadow: -1px -1px 0 #FFF,
+            1px -1px 0 #FFF,
+            -1px 1px 0 #FFF,
+            1px 1px 0 #FFF;
         }
 
-        line {
+        .link {
             fill: none;
             stroke: #ccc;
             stroke-width: 1.5px;
         }
-
-       path{
-            fill: none;
-            stroke: #ccc;
-            stroke-width: 1.5px;
-        }
-
-        .link{
-            fill: none;
-            stroke: #ccc;
-            stroke-width: 1.5px;
-         }
 
         /*Just making sure the select2 box is glued to the top*/
         .search {
-	        width: 100%;
-	    }
-
+            width: 100%;
+        }
     </style>
 
 </head>
@@ -58,14 +47,20 @@
 <!-- Cytoscape settings and graph rendering for tool output -->
 <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
 #}
+<link rel="stylesheet" type="text/css" href="../../static/select2/select2.min.css"> </link>
 <script type="text/javascript" src="../../static/d3/d3.min.js"></script>
-<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/select2/3.5.0/select2.min.js"></script>
+<script type="text/javascript" src="../../static/select2/select2.min.js"></script>
 
+{#<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>#}
+{# {{ data | safe }} #}
+{#<script>#}
+{#    var d = {{  data |safe }};#}
+{#    console.log(d.nodes[0].id);#}
+{#</script>#}
 
 <div class="page-header">
     <h1>{{ title }}
-    {{ runhash }} </h1>
+        {{ runhash }} </h1>
 </div>
 
 {# {{ async_result.parameters.output_prefix}} #}
@@ -76,7 +71,7 @@
 	the extra $.get() call below.
 #}
 
-{#
+
 {% if runhash %}
     <script type="text/javascript">
 
@@ -91,7 +86,7 @@
 
     </script>
 {% endif %}
-#}
+
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
@@ -174,7 +169,7 @@
 </form>
 
 {#
-	A fucking hack, since for some reason the tools return SUCCESS even when
+	A hack, since for some reason the tools return SUCCESS even when
 	they fail. Checks to see if the results have a key, 'failed', which
 	contains the error message for the failure.
 #}
@@ -241,6 +236,515 @@
 </script>
 #}
 
+<div id="legend"></div>
+<div id="search"></div>
+
+<div id="viz2">
+    <script>
+        var g = {
+            data: null,
+            force: null
+        };
+
+        g.data = {{data | safe}};
+
+        var dictionary = {};
+        dictionary["Multiple Species"] = "#636363";
+
+        var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477",
+            "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300",
+            "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
+
+        //initialization
+        $(function () {
+
+            //console.log("DATA = " + JSON.stringify(data));
+            var width = 1200,
+                    height = 1000,
+                    select2_data;
+
+            var r = 6,
+                    fill = d3.scale.category20();
 
 
-<div id="viz2"></div>
+            //Create a sized SVG surface within viz:
+            var svg = d3.select("#viz2")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .call(d3.behavior.zoom()
+                            .on("zoom", function () {
+                                svg.attr("transform", "translate(" + d3.event.translate + ")" + "scale(" + d3.event.scale + ")")
+                            }))
+                    .append("g");
+
+            g.link = svg.selectAll("path.link"),
+                    g.node = svg.selectAll(".node");
+
+            //Create a graph layout engine:
+            g.force = d3.layout.force()
+                    .nodes(g.data.nodes)
+                    .links(getLinks(g.data.nodes))
+                //linkDistance proportional to difference in depths to prevent crowding
+                    .linkDistance(function (link) {
+                        return ((link.target.depth - link.source.depth) * 40);
+                    })
+                //linkStrength also proportional to distance
+                    .linkStrength(function (link) {
+                        return 1 / ((link.target.depth - link.source.depth) * 1.5);
+                    })
+                //Deeper nodes have a stronger charge because there's more jostling for space down there
+                    .charge(function (d) {
+                        return (-((d.depth + 1) * 400));
+                    })
+                    .chargeDistance(300)
+                    .gravity(0.05)
+                    .size([width, height])
+                    .on("tick", tick);
+
+
+            //Initialize positions of tree elements to reduce tangling caused by random initialization
+            var nodes = flatten(g.data.nodes);
+            initialize_layout(nodes);
+
+            //Data to search on
+            select2_data = extract_select2_data();
+
+            console.log("Searching: " + select2_data);
+
+            //Populate search
+            $("#search").select2({
+                data: select2_data,
+                containerCssClass: "search"
+            });
+
+
+            //Draw the graph:
+            //Note that this method is invoked again
+            //when clicking nodes:
+            update();
+
+            //Create a svg legend
+            var legend = d3.select("#legend")
+                    .append("svg")
+                    .attr("width", "300")
+                    .attr("height", function () {
+
+                        return ((Object.keys(dictionary).length) * 20 + 10);
+                    })
+
+                    .selectAll("circle")
+                    .data(Object.keys(dictionary))
+                    .enter()
+                    .append("g")
+                    .attr("class", "node");
+
+            //Color the legend circles
+            legend.append("circle")
+                    .attr("r", 4.5)
+                    .style("fill", function (d) {
+                        return dictionary[d];
+                    })
+                    .style("stroke", function (d) {
+                        return dictionary[d];
+                    })
+                    .style("stroke-width", "3")
+                    .style("fill-opacity", ".5")
+                    .attr("cy", function (d) {
+                        return 10 + 20 * Object.keys(dictionary).indexOf(d);
+                    })
+                    .attr("cx", 20);
+
+            //Write the legend text
+            legend.append("text")
+                    .text(function (d) {
+                        return d;
+                    })
+                    .attr("dy", function (d) {
+                        return 14 + 20 * Object.keys(dictionary).indexOf(d);
+                    })
+                    .attr("dx", "30")
+                    .attr("text-anchor", "start")
+                    .style("font:", "12px sans-serif")
+                    .style("fill", "black");
+        });
+
+
+        //invoked once at the start,
+        //and again when from 'click' method
+        //which expands and collapses a node.
+        function update() {
+            var width = 960,
+                    height = 500,
+                    padding = 15;
+
+            //iterate through original nested data, and get one dimension array of nodes.
+            var nodes = flatten(g.data.nodes);
+            for (var i = 0; i < nodes.length; i++) {
+                console.log("Node " + nodes[i].id + "\n\tAbove: " + nodes[i].above +
+                        "\n\tBelow: " + nodes[i].below);
+            }
+
+            //Each node extracted above has a children attribute.
+            //from them, we can use a tree() layout function in order
+            //to build a links selection.
+            var links = getLinks(nodes);
+
+
+            // pass both of those sets to the graph layout engine, and restart it
+            g.force.nodes(nodes)
+                    .links(links)
+                    .start();
+
+            //-------------------
+            // create a subselection, wiring up data, using a function to define
+            //how it's supposed to know what is appended/updated/exited
+            g.link = g.link.data(links);
+
+            //Build new links by adding new svg lines:
+            g.link
+                    .enter()
+                    .insert("line", ".node")
+                    .attr("class", "link");
+
+            // create a subselection, wiring up data, using a function to define
+            //how it's suppossed to know what is appended/updated/exited
+            g.node = g.node.data(nodes, function (d) {
+                return d.id;
+            });
+            //Get rid of old nodes:
+            g.node.exit().remove();
+            g.link.exit().remove();
+            //-------------------
+            //create new nodes by making groupd elements, that contain circles and text:
+            var nodeEnter = g.node.enter()
+                    .append("g")
+                    .attr("class", "node")
+                    .on("click", click)
+                    .on("mousedown", function (d) {
+                        d3.event.stopPropagation();
+                    })
+                    .call(g.force.drag);
+
+            //circle within the single node group:
+            nodeEnter.append("circle")
+                    .attr("r", 4.5);
+
+            //Set link color based on search
+            g.link.style("stroke", function (d) {
+                if (d.source.found && d.target.found) {
+                    return "red";
+                }
+                else {
+                    return "#ccc";
+                }
+            });
+
+            //append geneset text on top of node
+            nodeEnter.append("text")
+                    .attr("dy", "-.2em")
+                    .attr("dx", function (d) {
+                        return (d.children.length > 0) ? "-1em" : "1em";
+                    })
+                    .attr("text-anchor", function (d) {
+                        return (d.children.length > 0) ? "end" : "start";
+                    })
+                    .text(function (d) {
+                        return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets...";
+                    });
+
+            //append genes on the bottom of the nodes
+            nodeEnter.append("text")
+                    .attr("dy", "1em")
+                    .attr("dx", function (d) {
+                        return (d.children.length > 0) ? "-1em" : "1em";
+                    })
+                    .attr("text-anchor", function (d) {
+                        return (d.children.length > 0) ? "end" : "start";
+                    })
+                    .text(function (d) {
+                        return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes...";
+                    });
+
+            nodeEnter.select("circle")
+                    .append("svg:title")
+                    .text(function (d) {
+                        return d.tooltip + "\n" + d.tooltip;
+                    });
+
+            //All nodes, do the following:
+            g.node.select("circle")
+                    .style("fill", function (d) {
+                        return colors_google(d);
+                    })
+                    .style("stroke", function (d) {
+                        return colors_google(d);
+                    })
+                    .style("fill-opacity", opacity);
+            //-------------------
+
+            g.node.select("text").attr("fill", textColor);
+
+            g.force.start();
+            var circles = d3.selectAll("circle");
+            circles.attr("r", function (d) {
+                return (d.weight >= 3 ? 4.5 * Math.sqrt(d.weight) : 4.5);
+            });
+        }
+
+        function colors_google(d) {
+            console.log("Species: " + d.species + "Species Length:" + d.species.length);
+
+            if (d.species.length > 1) {
+                return "#636363";
+            }
+
+            else if (!(d.species in dictionary)) {
+                dictionary[d.species] = colors_g[(Object.keys(dictionary).length % colors_g.length)];
+            }
+
+            return dictionary[d.species];
+        }
+
+        //Change opacity based on number of children
+        function opacity(d) {
+            return d._children ? "1" // collapsed package
+                    :
+                    d.children.length > 0 ? ".55" // expanded package
+                            :
+                            "0"; // leaf node
+        }
+
+        //Changes text color for emphasis
+        function textColor(d) {
+            if (d.emphasis) {
+                return '#CC0000';
+            }
+            else return 'default';
+        }
+
+        $("#tooltip").mousemove(function (e) {
+            //find X & Y coordinates
+            x = e.clientX,
+                    y = e.clientY;
+
+            //Set tooltip position according to mouse position
+            tooltipSpan.style.top = (y + 20) + 'px';
+            tooltipSpan.style.left = (x + 20) + 'px';
+        });
+
+
+        // Invoked from 'update'.
+        // The original source data is not the usual nodes + edge list,
+        // but rather an adjacency list of nodes and their children.
+        // We need a list of nodes + links for the force layout engine.
+        // So returns a list of all nodes under the root.
+        function flatten(data) {
+            var nodes = [];
+            //checks to see which nodes have no parents. these are the only nodes we will recurse on,
+            //to make sure we cover the entire tree with minimum redundancy. Worth a O(n) operation once
+            //to save up to n extra recursive calls, and prevents collapsed children from showing up when they
+            //shouldn't
+            for (var i = 0, len = data.length; i < len; i++) {
+                data[i].orphan = true;
+            }
+            for (var i = 0, len = data.length; i < len; i++) {
+                if (data[i]._children) {
+                    for (var j = 0, jlen = data[i]._children.length; j < jlen; j++) {
+                        //console.log("PARAM 1: " + data + "\n PARAM 2: " + data[i]._children[j]);
+                        getNodeByID(data, data[i]._children[j]).orphan = false;
+                    }
+                }
+                else {
+                    for (var j = 0, jlen = data[i].children.length; j < jlen; j++) {
+                        getNodeByID(data, data[i].children[j]).orphan = false;
+                    }
+                }
+            }
+
+            //recursively get each node's children and it's children's children. does not
+            //look at collapsed children or their children.
+            function recurse(node) {
+                if (!getNodeByID(nodes, node.id)) {
+                    nodes.push(node);
+                }
+                if (node.children.length > 0) {
+                    for (var i = 0, count = node.children.length; i < count; i++) {
+                        var nextNode = getNodeByID(data, node.children[i]);
+                        recurse(nextNode);
+                    }
+                }
+            }
+
+            //recurse on orphans only
+            for (var i = 0, len = data.length; i < len; i++) {
+                if (data[i].orphan) {
+                    recurse(data[i]);
+                }
+            }
+            return nodes;
+        }
+
+        //nodes are identified in the children arrays by their ID, so we need
+        //this function to access the nodes.
+        function getNodeByID(nodes, wanted_id) {
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].id == wanted_id) {
+                    return nodes[i];
+                }
+            }
+        }
+
+        //gets the array of link objects for the force diagram to use
+        function getLinks(nodes) {
+
+            var links = [];
+            for (var i = 0; i < nodes.length; i++) {
+                var n = nodes[i];
+                for (var j = 0; j < n.children.length; j++) {
+                    var link = {
+                        source: n,
+                        target: getNodeByID(nodes, n.children[j])
+                    };
+                    if (link.source.found && link.target.found) {
+                        link.class = "found";
+                    }
+                    links.push(link);
+                }
+            }
+            return links;
+        }
+
+        function initialize_layout(nodes) {
+            var nextdepths = [0];
+            var previous = [-1];
+            for (i = 0; i < nodes.length; i++) {
+                while (nodes[i].depth > nextdepths.length - 1) {
+                    nextdepths.push(0);
+                    previous.push(-1);
+                }
+                if (previous[nodes[i].depth] >= 0) {
+                    prevNode = getNodeByID(nodes, previous[nodes[i].depth]);
+                    prevNode.below = nodes[i].id;
+                    nodes[i].above = prevNode.id;
+                }
+                previous[nodes[i].depth] = nodes[i].id;
+                nodes[i].x = nodes[i].depth * 100 + 100;
+                nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+                nextdepths[nodes[i].depth]++;
+            }
+        }
+
+        //Collapses nodes upon click, unless they're being dragged.
+        //essentially switches the "active" children array with the
+        // "hidden" _children array.
+        function click(d) {
+            if (d3.event.defaultPrevented) return; // ignore drag
+
+            if (d.children.length > 0) {
+                //console.log("collapsing node " + d.Genesets + " (" + d.id + ")");
+                d._children = d.children;
+                d.children = [];
+                //console.log("children: " + d.children);
+                //console.log("_children:" + d._children);
+            } else if (d._children) {
+                //console.log("expanding node " + d.Genesets + " (" + d.id + ")");
+                d.children = d._children;
+                d._children = null;
+                //console.log("children: " + d.children);
+                //console.log("_children:" + d._children);
+            }
+            nodes = flatten(g.data.nodes);
+            initialize_layout(nodes);
+            //
+            update();
+        }
+
+
+        //searches on a string sent in from the dropdown
+        function searchTree(search) {
+            console.log("SEARCH STRING : " + search);
+            path = [];
+            for (var i = 0; i < g.data.nodes.length; i++) {
+                g.data.nodes[i].found = false;
+                if (g.data.nodes[i].Genesets.indexOf(search) >= 0) {
+                    path.push(g.data.nodes[i]);
+                }
+            }
+            return path;
+        }
+
+        //Exctracts the data to search on
+        function extract_select2_data() {
+            var index = 0;
+            var data = g.data.nodes;
+            var leaves = [];
+            var leaf = data[0];
+            while (leaf.children.length > 0) {
+                leaf = getNodeByID(data, leaf.children[0]);
+            }
+            var leafdepth = leaf.depth;
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].depth == leafdepth) {
+                    leaves.push({"id": ++index, "text": data[i].Genesets[0]});
+                }
+            }
+            return leaves;
+        }
+
+        //Find the searched path and expand the collapsed nodes
+        function openPaths(paths) {
+            for (var i = 0; i < paths.length; i++) {
+                //if (!paths[i].orphan) {//i.e. not root
+                paths[i].found = true;
+                if (paths[i]._children) { //if children are hidden: open them, otherwise: don't do anything
+                    paths[i].children = paths[i]._children;
+                    paths[i]._children = null;
+                }
+            }
+            update();
+        }
+
+
+        //attaching the search functionality to the search div tag
+        $("#search").on("select2-selecting", function (e) {
+            var roots = [];
+            var paths = [];
+
+            paths = searchTree(e.object.text);
+            console.log(paths);
+            if (typeof(paths) !== "undefined") {
+                openPaths(paths);
+            }
+            else {
+                alert(e.object.text + " not found!");
+            }
+        });
+
+
+        //event handler for every time the force layout engine
+        //says to redraw everything: keeps each node in its respective column
+        function tick() {
+            g.node.attr("transform", function (d) {
+                //collide(d);
+                d.x = d.depth * 200 + 100;
+                return ("translate(" + d.x + "," + d.y + ")");
+            });
+
+            //redraw position of every link within the link set:
+            g.link.attr("x1", function (d) {
+                return d.source.x;
+            })
+                    .attr("y1", function (d) {
+                        return d.source.y;
+                    })
+                    .attr("x2", function (d) {
+                        return d.target.x;
+                    })
+                    .attr("y2", function (d) {
+                        return d.target.y;
+                    });
+        }
+    </script>
+
+</div>
