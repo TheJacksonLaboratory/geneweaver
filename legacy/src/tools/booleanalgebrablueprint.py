@@ -43,6 +43,7 @@ def run_tool():
         task_id = str(uuid.uuid4())
         tool = gwdb.get_tool(TOOL_CLASSNAME)
         desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
+
         gwdb.insert_result(
             user_id,
             task_id,
@@ -51,6 +52,7 @@ def run_tool():
             tool.name,
             desc,
             desc)
+
 
         async_result = tc.celery_app.send_task(
             tc.fully_qualified_name(TOOL_CLASSNAME),
@@ -102,7 +104,7 @@ def run_tool_api(apikey, relation, genesets):
 					params[tool_param.name] = relation
 					if params[tool_param.name] not in ['Union','Intersect','Except']:
 						params[tool_param.name] = 'Union'
-        print(params)
+
         # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
         # insert result for this run
@@ -131,10 +133,11 @@ def run_tool_api(apikey, relation, genesets):
 
 @boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
+
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
-    # May need to update path to result to the location of the json file
+    # C: May need to update path to result to the location of the json file
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
@@ -143,10 +146,20 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
         # results are ready. render the page for the user
+
+        # added emphgeneids for the table in the boolean algebra result html file
+        emphgeneids = []
+
+        user_id = flask.session['user_id']
+        emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+        for row in emphgenes:
+            emphgeneids.append(str(row['ode_gene_id']))
+
         return flask.render_template(
             'tool/BooleanAlgebra_result.html',
             async_result=json.loads(async_result.result),
-            tool=tool)
+            tool=tool,
+            emphgeneids=emphgeneids)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
@@ -155,6 +168,7 @@ def view_result(task_id):
 @boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
     # TODO need to check for read permissions on task
+
     async_result = tc.celery_app.AsyncResult(task_id)
 
     return flask.jsonify({
