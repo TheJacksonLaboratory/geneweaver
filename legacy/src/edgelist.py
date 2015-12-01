@@ -36,6 +36,7 @@ from flask import flash
 import os.path
 import re
 import copy
+from collections import OrderedDict
 
 
 
@@ -494,15 +495,46 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     for val in gs_names:
         g_names.append(val[0].encode('ascii'))
 
-    print "g_names:", g_names
 
-    for i in range(len(identifiers)):
-        for j in range(len(partitions)):
-            #print identifiers[i]
-            #print partitions[j]
-            if identifiers[i] in partitions[j]:
-                f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
-                print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
+#    ident = []
+#    indices = []
+#    count = 0
+#    for i in identifiers:
+#        if i not in ident:
+#            ident.append(i)
+#        else:
+#            indices.append(count)
+#        count = count + 1
+
+#    print "indices", indices
+
+#    for index in indices:
+#        g_names[index] = "00000"
+
+#    print g_names
+#
+#    g_names[:] = [x for x in g_names if x != "00000"]
+
+#    print "g_names:", g_names
+
+
+#    print ident
+#    print partitions
+
+#    for i in range(len(ident)):
+#        for j in range(len(partitions)):
+#            #print identifiers[i]
+#            #print partitions[j]
+#            if ident[i] in partitions[j]:
+#                f.write(str(ident[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
+#                print str(ident[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
+
+    count = 0
+    for i in range(len(partitions)):
+        for j in range(len(partitions[i])):
+            print str(identifiers[count]) + ',' + g_names[count] + ',0,0,' + HOMOLOGY_BOX_COLORS[i] + '\n'
+            f.write(str(identifiers[count]) + ',' + g_names[count] + ',0,0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
+            count = count + 1
     f.close()
 
 

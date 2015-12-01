@@ -286,7 +286,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 
             // Add an on click for each chord
             chord.on("click", function(d) {
-                window.open("http://127.0.0.1:5000/viewgenesetdetails/" + cities[d.source.index].gs_name)
+                window.open("http://127.0.0.1:5000/viewgenesetoverlap/" + cities[d.source.index].gs_name + "/" + cities[d.target.index])
             } );
 
             function mouseover(d, i) {
