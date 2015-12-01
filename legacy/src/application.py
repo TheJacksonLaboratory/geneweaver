@@ -334,6 +334,15 @@ def render_editgenesets(gs_id):
 
 @app.route('/updateGenesetOntologyDB')
 def update_geneset_ontology_db():
+    # ##########################################
+    # Updates the geneset by calling a function
+    #   to either add or remove an geneset-
+    #   ontology link.
+    # param: passed in by ajax data (ont_id,
+    #        gs_id, flag, gso_ref_type)
+    # return: True
+    # ##########################################
+
     ont_id = request.args['key']
     gs_id = request.args['gs_id']
     flag = request.args['flag']
@@ -348,6 +357,18 @@ def update_geneset_ontology_db():
 
 @app.route('/initOntTree')
 def init_ont_tree():
+    # ##########################################
+    # Initializes the ontology dynatree. If
+    #   there are no geneset-ontology links, the
+    #   intial data consists only of the ontology
+    #   databases.  Otherwise, initial data
+    #   consists, for all geneset-ontology links,
+    #   expansion from the originating database
+    #   down to the geneset-ontology linked node.
+    # param: passed in by ajax data (gs_id,
+    #        gso_ref_type)
+    # return: JSON object containing init info
+    # ##########################################
     gs_id = request.args['gs_id']
     gso_ref_type = request.args['universe']
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
@@ -450,7 +471,7 @@ def create_new_expanded_child_dict(ontology_node, parents, end_node, grt):
                     new_child_dict["children"].append(create_new_child_dict(child, grt))
     return new_child_dict
 
-@app.route('/getOntRootNodes', methods=['POST', 'GET'])
+@app.route('/expandOntNode', methods=['POST', 'GET'])
 def get_ont_root_nodes():
     if(request.args['is_db'] == "true"):
         result = geneweaverdb.get_all_root_ontology_for_database(request.args['key'])
@@ -745,12 +766,6 @@ def render_viewgeneset(gs_id):
 
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
-    #ontdbs = geneweaverdb.get_all_ontologydb()
-    #for ontdb in ontdbs:
-    #    ontroots = geneweaverdb.get_all_root_ontology_for_database(ontdb.ontologydb_id)
-    #for
-    #parents = geneweaverdb.get_all_parents_to_root_for_ontology(8000)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:

@@ -317,7 +317,7 @@
             //Performs lazy ajax call when new nodes need to be viewed
             onLazyRead: function (node) {
                 node.appendAjax({
-                    url: "/getOntRootNodes",
+                    url: "/expandOntNode",
                     data: {
                         key: node.data.key,
                         is_db: node.data.db,
