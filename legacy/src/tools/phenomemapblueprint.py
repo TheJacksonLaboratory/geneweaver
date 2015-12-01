@@ -205,16 +205,22 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
         #print "HEYOOOOOH LOOK HERE FOR THE THING " + async_result
-        f = open(os.path.join('/home/csi/m/moy/geneweaver/results/' + str(async_result) +'.json'), 'r');
+        f = open(os.path.join('/home/csi/m/moy/geneweaver/results/' + str(async_result) +'.json'), 'r')
+        csv_file = open(os.path.join('/home/csi/m/moy/geneweaver/results/' + str(async_result) +'.csv'), 'r')
         data = ''
         for line in f:
             data += str(line)
+        csv_data=''
+        for line in csv_file:
+            csv_data += str(line)
         json.dumps(data)
+        csv_file.close()
         f.close()
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/PhenomeMap_result.html',
             data=data,
+            csv_data=csv_data,
             async_result=json.loads(async_result.result),
             tool=tool)
     else:

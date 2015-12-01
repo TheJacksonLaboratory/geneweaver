@@ -162,8 +162,11 @@
                             </div>
                             <div class="span12">
                                 <button class="btn btn-success" id="save_as_BMP" onclick="submit_download_form('bmp')" value>
-                                    Save as BMP</button>
+                                    Download BMP</button>
                             </div>
+                            <form method="get" action="{{ csv_data | safe }}">
+                                <buton type="submit">Download CSV</buton>
+                            </form>
                             <form id="svg_form" method="post" action="http://localhost/cgi-bin/download.py">
                                 <input type="hidden" id="output_format" name="output_format" value="bmp">
                                 <input type="hidden" id="data" name="data" value="">
@@ -672,13 +675,15 @@
         }
 
 
-        //searches on a string sent in from the dropdown
+       //searches on a string sent in from the dropdown
         function searchTree(search) {
             console.log("SEARCH STRING : " + search);
             path = [];
             for (var i = 0; i < g.data.nodes.length; i++) {
                 g.data.nodes[i].found = false;
-                if (g.data.nodes[i].Genesets.indexOf(search) >= 0) {
+                if (g.data.nodes[i].Genesets.indexOf(search) >= 0
+                    || g.data.nodes[i].Genes.indexOf(search) >= 0
+                    || g.data.nodes[i].species.indexOf(search) >= 0) {
                     path.push(g.data.nodes[i]);
                 }
             }
@@ -697,10 +702,31 @@
             var leafdepth = leaf.depth;
             for (var i = 0; i < data.length; i++) {
                 if (data[i].depth == leafdepth) {
-                    leaves.push({"id": ++index, "text": data[i].Genesets[0]});
+                    //leaves.add({"id": ++index, "text": data[i].Genesets[0]});
+                    if(leaves.indexOf(data[i].Genesets[0]) < 0) {
+                        leaves.push(data[i].Genesets[0]);
+                    }
+                    for (var j = 0; j < data[i].Genes.length; j++) {
+                     	//leaves.add({"id": ++index, "text": data[i].Genes[j]});
+ 						if(leaves.indexOf(data[i].Genes[j]) < 0) {
+                        	leaves.push(data[i].Genes[j]);
+                        }
+                    }
+                    for (var j = 0; j < data[i].species.length; j++) {
+                     	//leaves.add({"id": ++index, "text": data[i].species[j]});
+                    	if(leaves.indexOf(data[i].species[j]) < 0) {
+                         	leaves.push(data[i].species[j]);
+                        }
+                    }
                 }
             }
-            return leaves;
+			leaves.sort();
+            console.log(leaves);
+            leavesArr = [];
+            for (var i = 0; i < leaves.length; i++) {
+                leavesArr.push({"id": ++index,"text": leaves[i]});
+            }
+            return leavesArr;
         }
 
         //Find the searched path and expand the collapsed nodes
