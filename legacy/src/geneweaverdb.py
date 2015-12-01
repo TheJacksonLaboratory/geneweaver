@@ -14,7 +14,7 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
+RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results/'
 
 
 
@@ -533,7 +533,7 @@ def delete_project_by_id(rargs):
         with PooledCursor() as cursor:
             cursor.execute('''DELETE from project2geneset WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
             cursor.execute('''DELETE from project WHERE pj_id in (%s)''' % ",".join(str(x) for x in projids))
-            print cursor.statusmessage
+            #print cursor.statusmessage
             cursor.connection.commit()
         return
 
@@ -548,7 +548,7 @@ def add_project_by_name(rargs):
             with PooledCursor() as cursor:
                 cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created) VALUES (%s, %s, now())''', (user_id,
                                 name,))
-                print cursor.statusmessage
+                #print cursor.statusmessage
                 cursor.connection.commit()
             return {'error': 'None'}
         else:
@@ -565,7 +565,7 @@ def change_project_by_id(rargs):
         if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
             with PooledCursor() as cursor:
                 cursor.execute('''UPDATE project SET pj_name=%s WHERE pj_id=%s''', (name, id,))
-                print cursor.statusmessage
+                #print cursor.statusmessage
                 cursor.connection.commit()
             return {'error': 'None'}
         else:
@@ -576,7 +576,7 @@ def delete_geneset_value_by_id(rargs):
     gene_id = rargs.get('id', type=str)
     with PooledCursor() as cursor:
         cursor.execute('''DELETE from temp_geneset_value WHERE gs_id=%s AND src_id =%s''', (gs_id, gene_id,))
-        print cursor.statusmessage
+        #print cursor.statusmessage
         cursor.connection.commit()
         return
 
@@ -782,7 +782,7 @@ def add_genesets_to_projects(rargs):
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
-        print gs_id
+        #print gs_id
         for pj_id in checked:
            for g in gs_id:
                g = g.strip()
@@ -901,7 +901,7 @@ def get_server_side_genesets(rargs):
                     where_clause,
                     order_clause,
                     limit_clause]) + ';'
-    print sql
+    #print sql
 
     with PooledCursor() as cursor:
         # cursor.execute(sql, ac_patterns + pc_patterns)
@@ -975,7 +975,7 @@ def get_server_side_results(rargs):
                     where_clause,
                     order_clause,
                     limit_clause]) + ';'
-    print sql
+    #print sql
 
     with PooledCursor() as cursor:
         # cursor.execute(sql, ac_patterns + pc_patterns)
@@ -1011,7 +1011,7 @@ def get_server_side(rargs):
     source_columns = []
     select_columns = []
 
-    print source_table
+    #print source_table
 
     i = 0
     temp = rargs.get('columns[%d][name]' % i)
@@ -1066,7 +1066,7 @@ def get_server_side(rargs):
                     where_clause,
                     order_clause,
                     limit_clause]) + ';'
-    print sql
+    #print sql
 
     with PooledCursor() as cursor:
         #cursor.execute(sql, ac_patterns + pc_patterns)
@@ -1134,7 +1134,7 @@ def get_required_columns(table):
 def get_nullable_columns(table):
     sql = '''SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND table_schema='%s' AND is_nullable='YES' AND column_name NOT IN (SELECT column_name FROM information_schema.columns WHERE table_name = '%s' AND column_default LIKE '%s' AND table_schema='%s');''' % (
         table.split(".")[1], table.split(".")[0], table.split(".")[1], "%nextval(%", table.split(".")[0])
-    print sql
+    #print sql
     try:
         with PooledCursor() as cursor:
             cursor.execute(sql)
@@ -1164,7 +1164,7 @@ def admin_delete(args, keys):
 
     sql = '''DELETE FROM %s WHERE %s;''' % (table, ' AND '.join(keys))
 
-    print sql
+    #print sql
     try:
         with PooledCursor() as cursor:
             cursor.execute(sql)
@@ -1191,7 +1191,7 @@ def admin_set_edit(args, keys):
 
     sql = '''UPDATE %s SET %s WHERE %s;''' % (table, ','.join(colmerge), ' AND '.join(keys))
 
-    print sql
+    #print sql
     try:
         with PooledCursor() as cursor:
             cursor.execute(sql)
@@ -1220,7 +1220,7 @@ def admin_add(args):
     if len(source_columns) <= 0:
         return "Nothing to insert"
     sql = 'INSERT INTO %s (%s) VALUES (\'%s\');' % (table, ','.join(source_columns), '\',\''.join(column_values))
-    print sql
+    #print sql
     try:
         with PooledCursor() as cursor:
             cursor.execute(sql)
@@ -1325,7 +1325,7 @@ def get_species_id_by_name(sp_name):
 
 def get_gdb_id_by_name(gdb_name):
     gdb_name = gdb_name.strip()
-    print gdb_name
+    #print gdb_name
     with PooledCursor() as cursor:
         cursor.execute('''SELECT gdb_id FROM genedb WHERE gdb_shortname=%s''', (gdb_name,))
         if cursor.rowcount != 0:
@@ -1860,7 +1860,7 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
     if user_id is 0:
         user_id = -1
-    print geneset_id
+    #print geneset_id
     with PooledCursor() as cursor:
         cursor.execute('''SELECT gs_id FROM geneset WHERE pub_id IN (SELECT pub_id FROM geneset WHERE gs_id=%s)''',
                        (geneset_id,))
@@ -2271,7 +2271,7 @@ def get_geneset_values(geneset_id):
     ode_ref = '1'
     if 'extsrc' in session:
         ode_ref = session['extsrc']
-        print session['extsrc']
+        #print session['extsrc']
 
 
     with PooledCursor() as cursor:
@@ -2598,7 +2598,7 @@ def get_file(apikey, task_id, file_type):
     # if exists
     rel_path = task_id + "." + file_type
     abs_file_path = os.path.join(RESULTS_PATH, rel_path)
-    print(abs_file_path)
+    #print(abs_file_path)
     if (os.path.exists(abs_file_path)):
         return flask.redirect("/results/" + rel_path)
     else:
@@ -2617,7 +2617,7 @@ def get_link(apikey, task_id, file_type):
     # if exists
     rel_path = task_id + "." + file_type
     abs_file_path = os.path.join(RESULTS_PATH, rel_path)
-    print(abs_file_path)
+    #print(abs_file_path)
     if (os.path.exists(abs_file_path)):
         return "/results/" + rel_path
     else:
@@ -2929,7 +2929,7 @@ def get_genesets_by_projects(apikey, projectids):
     projects = '('
     pArray = projectids.split(':')
     formGenesets = ''
-    print(user[0])
+    #print(user[0])
 
     for proj in pArray:
         if (len(projects) > 1):
@@ -3083,7 +3083,7 @@ def checkJaccardResultExists(setSize1, setSize2):
 
         return list(dictify_cursor(cursor))
     except:
-        print "In the except"
+        #print "In the except"
         return []
 
 def getPvalue(setSize1, setSize2, jaccard):
