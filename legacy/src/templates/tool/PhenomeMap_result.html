@@ -63,7 +63,7 @@
         {{ runhash }} </h1>
 </div>
 
- OUTPUT_PREFIX = {{ async_result.parameters.output_prefix}} 
+{# OUTPUT_PREFIX = {{ async_result.parameters.output_prefix}} #}
 
 {#
 	Checks to see if runhash is defined. If it is, that means we're
@@ -164,8 +164,8 @@
                                 <button class="btn btn-success" id="save_as_BMP" onclick="submit_download_form('bmp')" value>
                                     Download BMP</button>
                             </div>
-                            <form method="get" action="{{ csv_data | safe }}">
-                                <buton type="submit">Download CSV</buton>
+                            <form method="get" action="/home/csi/m/moy/geneweaver/results/{{async_result.parameters.output_prefix}}.csv">
+                                <button type="submit">Download CSV</button>
                             </form>
                             <form id="svg_form" method="post" action="http://localhost/cgi-bin/download.py">
                                 <input type="hidden" id="output_format" name="output_format" value="bmp">
