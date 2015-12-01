@@ -14,8 +14,8 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-# Need to change this path to ~/Documents/geneweaver/results
-RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results'
+RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
+
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -229,7 +229,12 @@ def get_all_projects(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT p.*, x.* FROM project p, (
+            (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
+                CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
+                WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
+                (SELECT p2g.pj_id FROM project2geneset p2g WHERE p2g.pj_id=p.pj_id))
+            UNION
+            (SELECT p.*, x.* FROM project p, (
                 SELECT p2g.pj_id, COUNT(gs_id), x.count AS deprecated, g.group
                 FROM
                     project2geneset p2g
@@ -247,7 +252,7 @@ def get_all_projects(usr_id):
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
-            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name;
+            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
             ''',
             {'usr_id': usr_id}
         )
@@ -651,6 +656,8 @@ def updategeneset(usr_id, form):
     pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
     pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
     pub_id = (form["pmid"]).strip() if form["pmid"] else None
+    #ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
+    #ont_ids = (form["onts"].strip()) if form["onts"] else None
     pmid = None
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id, gs_id) != 1:
         return 'You do not have permission to update this geneset'
@@ -697,10 +704,49 @@ def updategeneset(usr_id, form):
     with PooledCursor() as cursor:
         sql = cursor.mogrify('''UPDATE geneset SET pub_id=%s, gs_name=(%s), gs_abbreviation=(%s), gs_description=(%s)
                                 WHERE gs_id=%s''', (pmid, gs_name, gs_abbreviation, gs_description, gs_id,))
-        print sql
+        #print sql
         cursor.execute(sql)
         cursor.connection.commit()
+    # update geneset ontologies
+    #clear_geneset_ontology(gs_id)
+
+    #gso_ref_type = ""
+    #for ont in ont_ids:
+    #    add_ont_to_geneset(gs_id, ont, gso_ref_type)
+
     return 'True'
+
+def byteify(input):
+    if isinstance(input, dict):
+        return {byteify(key):byteify(value) for key,value in input.iteritems()}
+    elif isinstance(input, list):
+        return [byteify(element) for element in input]
+    elif isinstance(input, unicode):
+        return input.encode('utf-8')
+    else:
+        return input
+
+def clear_geneset_ontology(gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            DELETE FROM geneset_ontology
+            WHERE gs_id=%s;
+            ''',
+            (gs_id,)
+        )
+    cursor.connection.commit()
+    return
+
+def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
+    print(gs_id, ", ", ont_id)
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''INSERT INTO geneset_ontology
+            (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, %s);
+            ''', (gs_id, ont_id, gso_ref_type))
+        cursor.connection.commit()
+    return #cursor.fetchone()
 
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
@@ -710,10 +756,11 @@ def add_project(usr_id, pj_name):
                 RETURNING pj_id;
                 ''', (usr_id, pj_name,))
         cursor.connection.commit()
-    return cursor.fetchone()
+    return
 
 def add_geneset2project(pj_id, gs_id):
-    gs_id = gs_id[2:]
+    if gs_id[:2] == 'GS':
+        gs_id = gs_id[2:]
     with PooledCursor() as cursor:
         cursor.execute(
             ''' INSERT INTO project2geneset
@@ -735,11 +782,38 @@ def add_genesets_to_projects(rargs):
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
+        print gs_id
         for pj_id in checked:
            for g in gs_id:
                g = g.strip()
                add_geneset2project(pj_id, g)
     return
+
+def user_is_project_owner(user_id, proj_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(pj_id) FROM project WHERE usr_id=%s AND pj_id=%s''', (user_id, proj_id))
+        return cursor.fetchone()[0]
+
+def remove_geneset_from_project(rargs):
+    user_id = flask.session['user_id']
+    gs_id = rargs.get('gs_id', type=int)
+    proj_id = rargs.get('proj_id', type=int)
+    if get_user(user_id).is_admin or user_is_project_owner(user_id, proj_id):
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
+            cursor.connection.commit()
+            return
+
+def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            DELETE FROM geneset_ontology
+            WHERE gs_id=%s AND ont_id=%s AND gso_ref_type=%s
+            ''', (gs_id, ont_id, gso_ref_type)
+        )
+        cursor.connection.commit()
+        return
 
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir
@@ -1527,7 +1601,7 @@ class Geneset:
     @property
     def ontological_associations(self):
         if self.__ontological_associations is None:
-            self.__ontological_associations = get_ontologies_for_geneset(self.geneset)
+            self.__ontological_associations = get_all_ontologies_by_geneset(self.geneset)
         return self.__ontological_associations
 
     @property
@@ -1563,6 +1637,16 @@ class Ontology:
         self.children = ont_dict['ont_children']
         self.parents = ont_dict['ont_parents']
         self.ontdb_id = ont_dict['ontdb_id']
+
+class Ontologydb:
+    def __init__(self, ontdb_dict):
+        self.ontologydb_id = ontdb_dict['ontdb_id']
+        self.name = ontdb_dict['ontdb_name']
+        self.prefix = ontdb_dict['ontdb_prefix']
+        self.ncbo_id = ontdb_dict['ontdb_ncbo_id']
+        self.date = ontdb_dict['ontdb_date']
+        self.linkout_url = ontdb_dict['ontdb_linkout_url']
+        self.ncbo_vid = ontdb_dict['ontdb_ncbo_vid']
 
 
 def authenticate_user(email, password):
@@ -1950,14 +2034,140 @@ def get_genesets_by_user_id(user_id):
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets if len(genesets) > 0 else None
 
-
-def get_ontologies_for_geneset(geneset_id):
+def get_all_parents_for_ontology(ont_id):
+    """
+    Gets all parent ontology for a given ontology
+    :param ont_id:     ontology ID
+    :return:            a list of ontology objects that are the parents
+    """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM ontology NATURAL JOIN geneset_ontology WHERE gs_id=%s AND gso_ref_type<>'Blacklist';''',
-            (geneset_id,))
-        return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+            '''
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.right_ont_id = ont1.ont_id
+            WHERE left_ont_id=%s
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
+        )
+        #Note:  removed AND or_type='is_a' from query
+    parents = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return parents
 
+def get_all_parents_to_root_for_ontology(ont_id):
+    """
+    Gets a path from the starting ontology to it's root ontology
+    and returns it as a list starting from the root
+    :param ont_id:     selected ontology ID
+    :return:            a list of ontology ids that represents the path from root to the selected id
+    """
+    result = [1]
+    ont_cur_id = ont_id
+    parent_path_list = []
+    parent_path_list.append([ont_cur_id])
+    list_of_ordered_parent_cur_path_list = []
+    while result[0] != 0:
+        if parent_path_list == []:
+            #print list_of_ordered_parent_cur_path_list
+            return list_of_ordered_parent_cur_path_list
+        parent_cur_path_list = parent_path_list.pop()
+        ont_cur_id = parent_cur_path_list[-1]
+
+        with PooledCursor() as cursor:
+            cursor.execute(
+                '''
+                SELECT count(*)
+                FROM ontology
+                WHERE ont_id = %s AND ont_parents = 0
+                ''' % (ont_cur_id)
+            )
+        #if there's a parent, return 0, else return 1
+        result = cursor.fetchall()      #Fun fact: cursor.fetchall() returns a list of tuples
+        if result[0][0] == 1:           #result[0] = a tuple of one element, result[0][0] = an element from a tuple from a list
+            #if there are no parent, then a root is reached, so time to pop and
+            #reorder this specific path to root and send to the master parent list
+            ordered_parent_cur_path_list = []
+            while len(parent_cur_path_list) > 1:
+                back = parent_cur_path_list[-1]
+                parent_cur_path_list = parent_cur_path_list[0]
+                ordered_parent_cur_path_list.append(back)
+            if len(parent_cur_path_list) == 1:
+                ordered_parent_cur_path_list.append(parent_cur_path_list[-1])
+            list_of_ordered_parent_cur_path_list.append(ordered_parent_cur_path_list)
+        else:
+            #if there is multiple parent paths from my given ontology position, append
+            #those multiple paths of parents onto the path_list
+            for ont in get_all_parents_for_ontology(ont_cur_id):
+                parent_path_list.append([parent_cur_path_list, ont.ontology_id])
+        #print "==================="
+        #print parent_path_list
+        #print "==================="
+
+
+def get_all_children_for_ontology(ont_id):
+    """
+    Gets all child ontology for a given ontology
+    :param ont_id:     ontology ID
+    :return:            a list of ontology objects that are the child
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
+            FROM ontology ont1 INNER JOIN ontology_relation ont2
+            ON ont2.left_ont_id = ont1.ont_id
+            WHERE right_ont_id=%s
+            GROUP BY ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id;
+            ''' % (ont_id,)
+        )
+        #Note:  removed AND or_type='is_a' from query
+    children = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return children
+
+
+def get_all_ontologydb():
+    """
+    Gets all ontology databases
+    :param
+    :return:            a list of ontologydb objects
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT * FROM ontologydb;'''
+            )
+        return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
+
+def get_all_gso_ref_type():
+    """
+    Gets all gso_ref_types is possible
+    :param
+    :return:            a list of gso_ref_type string that is possible
+    """
+    with PooledCursor() as cursor:
+        gso_ref_types = []
+        cursor.execute(
+            '''SELECT gso_ref_type FROM geneset_ontology GROUP BY gso_ref_type'''
+        )
+        result = cursor.fetchall()
+        for type in result:
+            gso_ref_types.append(type[0])
+    return gso_ref_types
+
+def get_all_root_ontology_for_database(ontdb_id):
+    """
+    Gets all root ontology for a given ontology database
+    :param ont_id:     ontologydb ID
+    :return:            a list of ontology objects that are the root of a given ontology database
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+               SELECT *
+               FROM ontology
+               WHERE ont_parents = 0 AND ontdb_id = %s;
+            ''' % (ontdb_id)
+        )
+    return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
 
 class GenesetValue:
     def __init__(self, gsv_dict):
@@ -2313,6 +2523,60 @@ def if_gene_has_homology(gene_id):
         else:
             return 0
 
+def get_geneset_intersect(geneset_id1, geneset_id2):
+    """
+    Return all genes within intersecting genesets including homology
+    """
+    gene_id1 = []
+    gene_id2 = []
+    intersect_sym = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id1,))
+        for gid in cursor:
+            gene_id1.append(gid[0])
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id2,))
+        for gid in cursor:
+            gene_id2.append(gid[0])
+
+        intersect_id = list(set(gene_id1).intersection(set(gene_id2)))
+        homology1 = []
+        homology2 = []
+    for gid in gene_id1:
+            print gid
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                print "hom_id = ", hom_id[0]
+                homology1.append(hom_id[0])
+
+    for gid in gene_id2:
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                homology2.append(hom_id[0])
+
+    homology_id = list(set(homology1).intersection(set(homology2)))
+    print homology_id
+    print intersect_id
+
+    return len(intersect_id) + len(homology_id)
+
 
 # sample api calls begin
 
@@ -2629,33 +2893,34 @@ def get_result_by_runhash(apikey, res_runhash):
     return cursor.fetchall();
 
 
-def get_all_ontologies_by_geneset(gs_id):
+def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
     with PooledCursor() as cursor:
-        cursor.execute(
-            ''' SELECT row_to_json(row, true)
-                FROM(
-                        SELECT *
-                        FROM extsrc.ontology natural join odestatic.ontologydb
-                        WHERE ont_id in (	SELECT ont_id
-                                            FROM extsrc.geneset_ontology
-                                            WHERE gs_id = %s
-                                        )
-                        or ont_id in    (	SELECT ont_children
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in (	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        )
-                        or ont_id in	(	SELECT ont_parents
-                                            FROM extsrc.ontology
-                                            WHERE ont_id in	(	SELECT ont_id
-                                                                FROM extsrc.geneset_ontology
-                                                                WHERE gs_id = %s
-                                                            )
-                                        ) order by ont_id
-                    ) row; ''', (gs_id, gs_id, gs_id))
-    return cursor.fetchall();
+        if gso_ref_type == "All Reference Types":
+            cursor.execute(
+            '''
+                SELECT *
+                            FROM extsrc.ontology natural join odestatic.ontologydb
+                            WHERE ont_id in (	SELECT ont_id
+                                                FROM extsrc.geneset_ontology
+                                                WHERE gs_id = %s
+                                            )
+                            order by ont_id
+                ''', (gs_id,)
+            )
+        else:
+            cursor.execute(
+            '''
+                SELECT *
+                            FROM extsrc.ontology natural join odestatic.ontologydb
+                            WHERE ont_id in (	SELECT ont_id
+                                                FROM extsrc.geneset_ontology
+                                                WHERE gs_id = %s AND gso_ref_type = %s
+                                            )
+                            order by ont_id
+                ''', (gs_id, gso_ref_type,)
+            )
+    ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return ontology
 
 
 #call by API only
@@ -2805,3 +3070,32 @@ def generate_api_key(user_id):
         )
         cursor.connection.commit()
     return new_api_key
+
+def checkJaccardResultExists(setSize1, setSize2):
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT * 
+                    FROM jaccard_distribution_results
+                    WHERE set_size1 = %s and set_size2 = %s;
+                ''',(setSize1, setSize2)
+                )
+
+        return list(dictify_cursor(cursor))
+    except:
+        print "In the except"
+        return []
+
+def getPvalue(setSize1, setSize2, jaccard):
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                ''' SELECT * 
+                    FROM jaccard_distribution_results
+                    WHERE set_size1 = %s and set_size2 = %s and jaccard_coef = %s;
+                ''',(setSize1, setSize2, jaccard)
+                )
+        pVal = dictify_cursor(cursor)
+        return cursor.fetchone()[5]
+    except:
+        return 0

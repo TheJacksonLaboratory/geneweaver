@@ -1,6 +1,4 @@
 #Kelechi was here
-# So was Caylee C.
-# Here Again.
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
@@ -23,6 +21,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
     combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
 import sphinxapi
 import search
+import math
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -40,7 +39,7 @@ app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 print '==================================================='
 print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
 print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
-print '"How to generate good secret keys" AT			  '
+print '"How to generate good secret keys" AT              '
 print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
 print '==================================================='
 app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
@@ -92,8 +91,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
-RESULTS_PATH = '/Users/group14admin/geneweaver/results'
-# '/var/www/html/dev-geneweaver/results/'
+RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
 
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
@@ -320,17 +318,184 @@ def render_editgenesets(gs_id):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
-    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
+    ref_types = geneweaverdb.get_all_gso_ref_type()
+
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
-
-    onts = None
+    if not (user_info.is_admin or user_info.is_curator):
+        ref_types = ["Publication, NCBO Annotator",
+                     "Description, NCBO ANnotator",
+                     "GeneWeaver Primary Inferred",
+                     "Manual Association",]
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, onts=onts)
+                                 view=view, ref_types=ref_types, onts=onts)
 
+@app.route('/updateGenesetOntologyDB')
+def update_geneset_ontology_db():
+    # ##########################################
+    # Updates the geneset by calling a function
+    #   to either add or remove an geneset-
+    #   ontology link.
+    # param: passed in by ajax data (ont_id,
+    #        gs_id, flag, gso_ref_type)
+    # return: True
+    # ##########################################
+
+    ont_id = request.args['key']
+    gs_id = request.args['gs_id']
+    flag = request.args['flag']
+    gso_ref_type = request.args['universe']
+
+    if(flag == "true"):
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
+    else:
+        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
+
+    return json.dumps(True)
+
+@app.route('/initOntTree')
+def init_ont_tree():
+    # ##########################################
+    # Initializes the ontology dynatree. If
+    #   there are no geneset-ontology links, the
+    #   intial data consists only of the ontology
+    #   databases.  Otherwise, initial data
+    #   consists, for all geneset-ontology links,
+    #   expansion from the originating database
+    #   down to the geneset-ontology linked node.
+    # param: passed in by ajax data (gs_id,
+    #        gso_ref_type)
+    # return: JSON object containing init info
+    # ##########################################
+    gs_id = request.args['gs_id']
+    gso_ref_type = request.args['universe']
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
+
+    parents = []
+    used_dbs = set()
+    for ont in onts:
+        parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
+        if ont.ontdb_id not in used_dbs:
+            used_dbs.add(ont.ontdb_id)
+
+    result = geneweaverdb.get_all_ontologydb()
+    info = []
+
+    for i in range(0, len(result)):
+        data = dict()
+        data["title"] = result[i].name
+        data["isFolder"] = True
+        data["isLazy"] = True
+        data["key"] = result[i].ontologydb_id
+        data["db"] = True
+        data["hideCheckbox"] = True
+        data["unselectable"] = True
+        if result[i].ontologydb_id in used_dbs:
+            data["children"] = []
+            data["expand"] = True
+            if gso_ref_type == "All Reference Types":
+                data["unselectable"] = True
+            result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
+            for i in range(0, len(result2)):
+                data2 = dict()
+                data2["title"] = result2[i].name
+                data2["isLazy"] = True
+                data2["key"] = result2[i].ontology_id
+                data2["db"] = False
+                if gso_ref_type == "All Reference Types":
+                    data2["unselectable"] = True
+                data2["children"] = []
+                if(result2[i].children == 0):
+                    data2["isFolder"] = False
+                else:
+                    data2["isFolder"] = True
+                for a in range(0, len(parents)):
+                    for b in range(0, len(parents[a])):
+                        if len(parents[a][b]) > 0:
+                            if result2[i].ontology_id == parents[a][b][0]:
+                                if(result2[i].ontology_id == parents[a][b][len(parents[a][b])-1]):
+                                    data2["select"] = True
+                                else:
+                                    data2["expand"] = True
+                                    child_list = geneweaverdb.get_all_children_for_ontology(result2[i].ontology_id)
+                                    for child in child_list:
+                                        if child.ontology_id in parents[a][b]:
+                                            new_child_dict = create_new_expanded_child_dict(child, parents[a][b], parents[a][b][len(parents[a][b])-1], gso_ref_type)
+                                        else:
+                                            new_child_dict = create_new_child_dict(child, gso_ref_type)
+                                        data2["children"].append(new_child_dict)
+                data["children"].append(data2)
+        info.append(data)
+    return json.dumps(info)
+
+def create_new_child_dict(ontology_node, grt):
+    new_child_dict = dict()
+    new_child_dict["title"] = ontology_node.name
+    new_child_dict["isLazy"] = True
+    new_child_dict["key"] = ontology_node.ontology_id
+    new_child_dict["db"] = False
+    if grt == "All Reference Types":
+        new_child_dict["unselectable"] = True
+    if ontology_node.children == 0:
+        new_child_dict["isFolder"] = False
+    else:
+        new_child_dict["isFolder"] = True
+    return new_child_dict
+
+def create_new_expanded_child_dict(ontology_node, parents, end_node, grt):
+    new_child_dict = dict()
+    new_child_dict["title"] = ontology_node.name
+    new_child_dict["isLazy"] = True
+    new_child_dict["key"] = ontology_node.ontology_id
+    new_child_dict["db"] = False
+    if grt == "All Reference Types":
+        new_child_dict["unselectable"] = True
+    if ontology_node.children == 0:
+        new_child_dict["isFolder"] = False
+    else:
+        new_child_dict["isFolder"] = True
+    if ontology_node.ontology_id in parents:
+        if ontology_node.ontology_id == end_node:
+            new_child_dict["select"] = True
+            return new_child_dict
+        else:
+            new_child_dict["expand"] = True
+            new_child_dict["children"] = []
+            ontology_node_children = geneweaverdb.get_all_children_for_ontology((ontology_node.ontology_id))
+            for child in ontology_node_children:
+                if child.ontology_id in parents:
+                    new_child_dict["children"].append(create_new_expanded_child_dict(child, parents, end_node, grt))
+                else:
+                    new_child_dict["children"].append(create_new_child_dict(child, grt))
+    return new_child_dict
+
+@app.route('/expandOntNode', methods=['POST', 'GET'])
+def get_ont_root_nodes():
+    if(request.args['is_db'] == "true"):
+        result = geneweaverdb.get_all_root_ontology_for_database(request.args['key'])
+    else:
+        result = geneweaverdb.get_all_children_for_ontology(request.args['key'])
+    gso_ref_type = request.args['universe']
+
+    info = []
+    for i in range(0, len(result)):
+        data = dict()
+        data["title"] = result[i].name
+        if gso_ref_type == "All Reference Types":
+            data["unselectable"] = True
+        if(result[i].children == 0):
+            data["isFolder"] = False
+        else:
+            data["isFolder"] = True
+        data["isLazy"] = True
+        data["key"] = result[i].ontology_id
+        data["db"] = False
+        info.append(data)
+    return (json.dumps(info))
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
@@ -353,8 +518,6 @@ def render_editgeneset_genes(gs_id):
     species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
-    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id)
-    onts = None
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
@@ -370,7 +533,7 @@ def render_editgeneset_genes(gs_id):
     for p in platform:
         pidts[p['pf_shortname']] = p['pf_name']
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
-                                 gidts=gidts, pidts=pidts, onts=onts, view=view, meta=meta)
+                                 gidts=gidts, pidts=pidts, view=view, meta=meta)
 
 
 @app.route('/setthreshold/<int:gs_id>')
@@ -604,7 +767,6 @@ def render_viewgeneset(gs_id):
 
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
@@ -614,6 +776,140 @@ def render_viewgeneset(gs_id):
         emphgeneids.append(str(row['ode_gene_id']))
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
+
+@app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET', 'POST'])
+def render_viewgenesetoverlap(gs_id, gs_id1):
+    # get values for sorting result columns
+    # i'm saving these to a session variable
+    # probably not the correct format
+    if flask.request.method == 'GET':
+        args = flask.request.args
+        if 'sort' in args:
+            session['sort'] = args['sort']
+            if 'dir' in session:
+                if session['dir'] != 'DESC':
+                    session['dir'] = 'DESC'
+                else:
+                    session['dir'] = 'ASC'
+            else:
+                session['dir'] = 'ASC'
+    # get value for the alt-gene-id column
+    if 'extsrc' in session:
+        if session['extsrc'] == 2:
+            altGeneSymbol = 'Ensembl'
+        elif session['extsrc'] == 7:
+            altGeneSymbol = 'Symbol'
+        elif session['extsrc'] == 10:
+            altGeneSymbol = 'MGD'
+        elif session['extsrc'] == 12:
+            altGeneSymbol = 'RGD'
+        elif session['extsrc'] == 13:
+            altGeneSymbol = 'ZFin'
+        elif session['extsrc'] == 14:
+            altGeneSymbol = 'FlyBase'
+        elif session['extsrc'] == 15:
+            altGeneSymbol = 'WormBase'
+        else:
+            altGeneSymbol = 'Entrez'
+    else:
+        altGeneSymbol = 'Entrez'
+
+    emphgenes = {}
+    emphgeneids = []
+
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+    geneset = geneweaverdb.get_geneset(gs_id1, user_id)
+    geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
+    
+    intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+
+    if gs_id == gs_id1:
+        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1-gs_id)
+    else:
+        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+
+    print (geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes)
+
+    venn = createVennDiagram(geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes, 150)
+
+    jaccard = float(intersect_genes)/float(geneset.count-intersect_genes + geneset1.count-intersect_genes + intersect_genes)
+    jaccard="%.6f" % jaccard
+
+    pvalue = geneweaverdb.getPvalue(geneset.count, geneset1.count, jaccard)
+
+    diagramSizes = []
+    diagramSizes.append(geneset.count-intersect_genes)
+    diagramSizes.append(intersect_genes)
+    diagramSizes.append(geneset1.count-intersect_genes)
+
+
+    if user_id != 0:
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+    else:
+        view = None
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
+    return flask.render_template('viewgenesetoverlap.html', geneset=geneset,emphgeneids=emphgeneids, user_id=user_id,
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, 
+                                 venn = venn, jaccard = jaccard, pval = pvalue, sizes = diagramSizes)
+
+
+def createVennDiagram(i,ii,j, size=100):
+    pi = math.acos(-1.0)
+    r1 = math.sqrt(i/pi)
+    r2 = math.sqrt(ii/pi)
+    if r1==0:
+        r1=1.0
+    if r2==0:
+        r2=1.0
+    scale=size/2.0/(r1+r2)
+
+    if i==j or ii==j:  # complete overlap
+        c1x=c1y=c2x=c2y=size/2.0
+    elif j==0:  # no overlap
+        c1x=c1y=r1*scale
+        c2x=c2y=size-(r2*scale)
+    else:
+        # originally written by zuopan, rewritten a number of times
+        step = .001
+        beta = pi
+        if r1<r2:
+            r2_=r1
+            r1_=r2
+        else:
+            r1_=r1
+            r2_=r2
+        r2o1=r2_/r1_
+        r1_2=r1_*r1_
+        r2_2=r2_*r2_
+
+        while beta > 0:
+            beta -= step
+            alpha = math.asin(math.sin(beta)/r1_ * r2_)
+            Sj = r1_2*alpha + r2_2*(pi-beta) - 0.5*(r1_2*math.sin(2*alpha) + r2_2*math.sin(2*beta));
+            if Sj > j:
+                break
+
+        oq= r1_*math.cos(alpha) - r2_*math.cos(beta)
+        oq=(oq*scale)/2.0
+
+        c1x=(size/2.0) - oq
+        c2x=(size/2.) + oq
+        c1y=c2y=size/2.0
+
+    r1=r1*scale
+    r2=r2*scale
+
+    data = {}
+    data['circledata'] = {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2}
+
+    return json.dumps(data)
 
 
 @app.route('/mygenesets')
