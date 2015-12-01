@@ -67,6 +67,8 @@
     <!-- View GeneSet MetaData -->
     {% include 'viewGenesetMeta.html' %}
 
+     <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
+
     <!-- Show the Geneset List -->
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -205,6 +207,7 @@
             document.getElementById("{{gene}}").checked = true;
         </script>
     {% endfor %}
+
 
     <!-- <body onload="myFunction()"> -->
 
