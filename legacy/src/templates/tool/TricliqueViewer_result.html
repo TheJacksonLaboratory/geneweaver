@@ -255,7 +255,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     					return (d.endAngle + d.startAngle)/2 > Math.PI ?
         				"end" : "start";
 				})
-			.text(function(d,i) { return cities[i].gs_name; });
+			.text(function(d,i) { return cities[i].abbr; });
 
 //            groupText.append("textPath")
 //                    .attr("xlink:href", function(d, i) { return "#group" + i; })
