@@ -205,7 +205,7 @@ input[type="checkbox"]:hover:before {
 <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
 <div class="panel panel-default panel-heading bg-gray-light">
-    <h3 class="panel-title"><strong>{{ title }} </strong></h3>
+    <h3 class="panel-title"><strong>{{ title }} </strong> <span id="what" data-toggle="tooltip"><i class="fa fa-info-circle"></i></span></h3>
 </div>
 
 
@@ -334,7 +334,6 @@ $(document).ready(function(){
 </select>
 
 
-{{data | safe}}
 
 {% if g.user is defined %}
 
@@ -534,17 +533,15 @@ var yVal = -1;
         console.log("row count: " + row_count + ", num sets: " + num_sets);
 
         if(row_count == num_sets){
-                   $('#nRadius-value').hide();
-                    $('#nRadius').hide();
-                     $('#thresholdMsg').hide();
-                     $('#zoomButton').hide();
-                     $('#menu1').hide();
-
-                        $('#flip').hide();
-                          $('#divError').show();
+               $('#nRadius-value').hide();
+               $('#nRadius').hide();
+               $('#thresholdMsg').hide();
+               $('#zoomButton').hide();
+               $('#menu1').hide();
+               $('#flip').hide();
+               $('#divError').show();
         }else{
-         $('#divError').hide();
-
+             $('#divError').hide();
         }
 {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
         gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
@@ -1110,15 +1107,6 @@ $(document).ready(function(){
 });
 
 
-  $(function () {
-        $("[data-toggle='tooltip']").tooltip();
-    });
-          $('#clickableFontAwesome').popover({
-            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
-            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
-            'to navigate to intersection details.'
-        });
-
 
 
 
@@ -1243,7 +1231,7 @@ $(document).ready(function() {
 
 
 
-  var addOnX = 0;
+    var addOnX = 0;
     var addOnY = -520;
     var addOnYLast = 0;
     var c = 0;
@@ -1251,12 +1239,6 @@ $(document).ready(function() {
     var textX = 30;
     var textY = -390;
     var xcoord = 60;
-
-   d3.select("#toLeft").on("click", zoom);
-
-
-
-
 
 
     for(i = 0; i < count; i++) {
@@ -1422,7 +1404,7 @@ $(document).ready(function() {
        for(i = 0; i < count; i++){
 
          svg.append("foreignObject")
-              .attr("width", 325)
+              .attr("width", 285)
               .attr("height", 0)
               .attr("x", 3)
               .attr("y", xcoord - 37)
@@ -1460,6 +1442,7 @@ $(document).ready(function() {
 
     }
 
+<<<<<<< HEAD
     $('#addToProject').on('click', function () {
             //get all checked gene sets
             //also split off the name from the number
@@ -1494,8 +1477,44 @@ $(document).ready(function() {
 
             }
         });
+=======
+{#  $(function () {#}
+{#        $("[data-toggle='tooltip']").tooltip();#}
+{#    });#}
+{#          $('#clickableFontAwesome').popover({#}
+{#            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +#}
+{#            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +#}
+{#            'to navigate to intersection details.'#}
+{#        });#}
+
+</script>
 
 
+
+
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+>>>>>>> 06b9cc988616c73a66421b38637962211ad8dfa8
+
+
+
+<script>
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+var imgAltKey = '<img src="{{url_for('static', filename='images/altkey.png')}}">';
+var imgShiftKey = '<img src="{{url_for('static', filename='images/shiftkey.png')}}">';
+
+var wikiImg = '<a href="http://geneweaver.org/wiki/index.php?title=Jaccard_Similarity"><i class=fa fa-wikipedia-w></i></a>';
+
+ $('#what').popover({
+            title: 'How to Use', content: 'Scroll up or down to zoom in/out respectively ' +
+           'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            ' to navigate to intersection details. <br>' +
+            imgShiftKey + "+Click: Highlight a row for a certain geneset. <br>" +
+            imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
+        });
+        });
 </script>
 
 {% include 'footer.html' %}
