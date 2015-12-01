@@ -162,8 +162,11 @@
                             </div>
                             <div class="span12">
                                 <button class="btn btn-success" id="save_as_BMP" onclick="submit_download_form('bmp')" value>
-                                    Save as BMP</button>
+                                    Download BMP</button>
                             </div>
+                            <form method="get" action="{{ csv_data | safe }}">
+                                <buton type="submit">Download CSV</buton>
+                            </form>
                             <form id="svg_form" method="post" action="http://localhost/cgi-bin/download.py">
                                 <input type="hidden" id="output_format" name="output_format" value="bmp">
                                 <input type="hidden" id="data" name="data" value="">
