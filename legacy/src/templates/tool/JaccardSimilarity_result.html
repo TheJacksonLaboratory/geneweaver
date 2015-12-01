@@ -1498,20 +1498,19 @@ $(document).ready(function() {
 
 <script>
 $(document).ready(function(){
-    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="tooltip"]').tooltip();
 var imgAltKey = '<img src="{{url_for('static', filename='images/altkey.png')}}">';
 var imgShiftKey = '<img src="{{url_for('static', filename='images/shiftkey.png')}}">';
 
 var wikiImg = '<a href="http://geneweaver.org/wiki/index.php?title=Jaccard_Similarity"><i class=fa fa-wikipedia-w></i></a>';
 
  $('#what').popover({
-            title: 'How to Use', content: 'Scroll up or down to zoom in/out respectively ' +
-           'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
-            ' to navigate to intersection details. <br>' +
-            imgShiftKey + "+Click: Highlight a row for a certain geneset. <br>" +
-            imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
-        });
-        });
+            title: 'How to Use', content: 'Scroll up or down to zoom in/out respectively ' +
+           'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            ' to navigate to intersection details. <br>' +
+            imgShiftKey + "+Click: Highlight a row for a certain geneset. <br>" +
+            imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
+        });
+        });
 </script>
-
 {% include 'footer.html' %}
