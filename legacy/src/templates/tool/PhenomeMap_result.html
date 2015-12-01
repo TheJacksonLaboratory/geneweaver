@@ -164,7 +164,7 @@
                                 <button class="btn btn-success" id="save_as_BMP" onclick="submit_download_form('bmp')" value>
                                     Download BMP</button>
                             </div>
-                            <form method="get" action="{{ data | safe }}">
+                            <form method="get" action="{{ csv_data | safe }}">
                                 <buton type="submit">Download CSV</buton>
                             </form>
                             <form id="svg_form" method="post" action="http://localhost/cgi-bin/download.py">
