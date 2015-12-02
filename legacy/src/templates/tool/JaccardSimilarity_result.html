@@ -455,6 +455,10 @@ function reduceMatrix() {
             str = str.replace("p =", "");
             str = str.replace(/^\s+|\s+$/g, '');
             str === "" ? str = "-1" : str = str;
+            if(parseFloat(str) < d.JaccardSimilarity_p_Value) {
+              console.log(str + " is less than " + d.JaccardSimilarity_p_Value.toString())
+              str = "-1";
+            }
             row.push(str);
         } else {
             row.push("-1");
@@ -479,22 +483,24 @@ function reduceMatrix() {
     }
    return elim;
 }
-
 var elim = reduceMatrix();
-
+console.log(elim);
 var row_count = 0;
 var first_run = true;
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
-var xVal = 0;
+var xVal = -1;
 var yVal = -1;
+var skipMe = false;
     for (i = 0; i < count; i++) {
         var str = "-1";
         if (i % num_sets === 0) {
+            //console.log("New Row");
             row_count++;
             x_coord = 150;
             y_coord += 150;
             yVal++;
             xVal = 0;
+            console.log("xVal = " + xVal);
             if (first_run) {
                 y_coord = 50;
                 first_run = false;
@@ -505,25 +511,37 @@ var yVal = -1;
                 console.log("row " + row_count + " is in elim");
                 row_count++;
                 i += num_sets;
-                console.log("i = " + i);
+
+                //console.log("i = " + i);
             }
             if(elim.length < num_sets) {
                 while(isIn(elim, i % num_sets)) {
                     console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
                     i++;
                     xVal++;
+                    console.log("xVal = " + xVal);
                 }
             }
-        }
-        else {
+        } else {
             x_coord += 200;
             while(isIn(elim, i % num_sets)) {
                 console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
                 i++;
                 xVal++;
+                console.log("xVal = " + xVal);
+                console.log("i = " + i);
+                if(i % num_sets == 0) {
+                  i--;
+                  skipMe = true;
+                  break;
+                }
             }
         }
-
+        if(skipMe) {
+          skipMe = false;
+          continue;
+        }
+        if(i > 81) break;   // last element runoff check
         console.log("row count: " + row_count + ", num sets: " + num_sets);
 
   if(row_count == num_sets){
@@ -1025,7 +1043,7 @@ var yVal = -1;
 
 
     // Initial starting radius of the circle
-    updateOpacity(0);
+    updateOpacity(d.JaccardSimilarity_p_Value);
 
     // update the elements
     function updateOpacity(nRadius) {
