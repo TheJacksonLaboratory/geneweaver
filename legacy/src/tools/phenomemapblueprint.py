@@ -192,7 +192,29 @@ def run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, pe
 
     return task_id
 
+@phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.csv')
+def download_csv(task_id):
+    async_result = tc.celery_app.AsyncResult(task_id)
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
 
+    if async_result.state in states.PROPAGATE_STATES:
+        # TODO render a real descriptive error page not just an exception
+        raise Exception('error while processing: ' + tool.name)
+    elif async_result.state in states.READY_STATES:
+        return flask.send_file('/home/csi/m/moy/geneweaver/results/' + str(async_result) + '.csv', 'text/csv', True, 'HiSimGraph_Result.csv')
+
+
+
+@phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.bmp?svg=<svg>')
+def download_bmp(task_id):
+    async_result = tc.celery_app.AsyncResult(task_id)
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    print "svg = " + svg
+    if async_result.state in states.PROPAGATE_STATES:
+        # TODO render a real descriptive error page not just an exception
+        raise Exception('error while processing: ' + tool.name)
+    elif async_result.state in states.READY_STATES: 
+        return flask.send_file('/home/csi/m/moy/geneweaver/results/' + str(async_result) + '.bmp', 'text/csv', True, 'HiSimGraph_Result.bmp')
 
 @phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
