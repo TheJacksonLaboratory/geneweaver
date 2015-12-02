@@ -748,6 +748,21 @@ def add_genesets_to_projects(rargs):
                add_geneset2project(pj_id, g)
     return
 
+def user_is_project_owner(user_id, proj_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(pj_id) FROM project WHERE usr_id=%s AND pj_id=%s''', (user_id, proj_id))
+        return cursor.fetchone()[0]
+
+def remove_geneset_from_project(rargs):
+    user_id = flask.session['user_id']
+    gs_id = rargs.get('gs_id', type=int)
+    proj_id = rargs.get('proj_id', type=int)
+    if get_user(user_id).is_admin or user_is_project_owner(user_id, proj_id):
+        with PooledCursor() as cursor:
+            cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
+            cursor.connection.commit()
+            return
+
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir
     user_id = rargs.get('user_id', type=int)
@@ -2319,6 +2334,60 @@ def if_gene_has_homology(gene_id):
             return 1
         else:
             return 0
+
+def get_geneset_intersect(geneset_id1, geneset_id2):
+    """
+    Return all genes within intersecting genesets including homology
+    """
+    gene_id1 = []
+    gene_id2 = []
+    intersect_sym = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id1,))
+        for gid in cursor:
+            gene_id1.append(gid[0])
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id2,))
+        for gid in cursor:
+            gene_id2.append(gid[0])
+
+        intersect_id = list(set(gene_id1).intersection(set(gene_id2)))
+        homology1 = []
+        homology2 = []
+    for gid in gene_id1:
+            print gid
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                print "hom_id = ", hom_id[0]
+                homology1.append(hom_id[0])
+
+    for gid in gene_id2:
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                homology2.append(hom_id[0])
+
+    homology_id = list(set(homology1).intersection(set(homology2)))
+    print homology_id
+    print intersect_id
+
+    return len(intersect_id) + len(homology_id)
 
 
 # sample api calls begin
