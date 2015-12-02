@@ -311,7 +311,7 @@ $(document).ready(function(){
 
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
-        <h2>P-Value Threshold (0.05 increments):
+        <h2 id="pthresh">P-Value Threshold (0.05 increments):
       <label  style="font-weight: bold" id="nRadius-value">…</label></h2>
   </label>
 
@@ -550,11 +550,11 @@ var skipMe = false;
        $('#thresholdMsg').hide();
        $('#zoomButton').hide();
        $('#menu1').hide();
-       $('#flip').hide();
        $('#empLeg').hide();
        $('#genesetLeg').hide();
        $('#yaxisLeg').hide();
        $('#xaxisLeg').hide();
+        $('#pthresh').hide();
  
 }else{
      $('#divError').hide();
