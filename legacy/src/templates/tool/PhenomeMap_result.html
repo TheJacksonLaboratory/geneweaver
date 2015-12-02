@@ -164,43 +164,6 @@
                                 <a class="btn btn-success" href = '/PhenomeMap-result/{{async_result.parameters.output_prefix}}.csv'>
                                     Download csv</a>
                             </div>
-                            <div class="span12">
-                                <a class="btn btn-success" id="bmp_download" on-click="submit_download_form()" href = '/PhenomeMap-result/{{async_result.parameters.output_prefix}}.bmp'>
-                                    Download BMP</a>
-
-    <script type="text/javascript">
-        /*
-            populates the form above with the svg data from the graph
-            and the requested output and submits the form
-        */
-       console.log("IN THE SECOND SCRIPT TAG"); 
-        $('#bmp_download').click(submit_download_form());
-        console.log("AFTER THE CLICK ASSIGNMENT");
-        function submit_download_form(){
-            console.log("IN THE FUNCTION");
-            //get the d3js svg element
-            var tmp = document.getElementById("viz2");
-            var svg = tmp.getElementsByTagName("svg")[0];
-
-            //extract the data as svg text string
-            var svg_xml = (new XMLSerializer).serializeToString(svg);
-            console.log(svg_xml);
-            //submit the form to the server with the result as an attachment to download
-            var form = document.getElementById("bmp_download");
-            form.href += '?svg=' + svg_xml;
-            //form['output_format'].value = output_format;
-            //form['data'].value = svg_xml;
-            //form.submit();
-        }
-    </script>
-                            </div>
-                            <form method="get" action="/home/csi/m/moy/geneweaver/results/{{async_result.parameters.output_prefix}}.csv">
-                                <button type="submit">Download CSV</button>
-                            </form>
-                            <form id="svg_form" method="post" action="http://localhost/cgi-bin/download.py">
-                                <input type="hidden" id="output_format" name="output_format" value="bmp">
-                                <input type="hidden" id="data" name="data" value="">
-                            </form>
                         </div>
                     </div>
                 </div>
