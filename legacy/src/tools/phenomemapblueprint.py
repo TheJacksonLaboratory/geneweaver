@@ -201,7 +201,7 @@ def download_csv(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
-        return flask.send_file('/home/csi/m/moy/geneweaver/results/' + str(async_result) + '.csv', 'text/csv', True, 'HiSimGraph_Result.csv')
+        return flask.send_file('/var/www/html/dev-geneweaver/results/' + str(async_result) + '.csv', 'text/csv', True, 'HiSimGraph_Result.csv')
 
 
 
@@ -214,7 +214,7 @@ def download_bmp(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES: 
-        return flask.send_file('/home/csi/m/moy/geneweaver/results/' + str(async_result) + '.bmp', 'text/csv', True, 'HiSimGraph_Result.bmp')
+        return flask.send_file('/var/www/html/dev-geneweaver/results/' + str(async_result) + '.bmp', 'text/csv', True, 'HiSimGraph_Result.bmp')
 
 @phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
@@ -227,8 +227,8 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
         #print "HEYOOOOOH LOOK HERE FOR THE THING " + async_result
-        f = open(os.path.join('/home/csi/m/moy/geneweaver/results/' + str(async_result) +'.json'), 'r')
-        csv_file = open(os.path.join('/home/csi/m/moy/geneweaver/results/' + str(async_result) +'.csv'), 'r')
+        f = open(os.path.join('/var/www/html/dev-geneweaver/results/' + str(async_result) +'.json'), 'r')
+        csv_file = open(os.path.join('/var/www/html/dev-geneweaver/results/' + str(async_result) +'.csv'), 'r')
         data = ''
         for line in f:
             data += str(line)
