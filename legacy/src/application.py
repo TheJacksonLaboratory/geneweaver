@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #Kelechi was here
+=======
+#Shut up Kelechi
+>>>>>>> TeamHiSimGraph
 import flask
 from flask.ext.admin import Admin, BaseView, expose
 from flask.ext.admin.base import MenuLink
@@ -91,7 +95,7 @@ admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
 #*************************************
 
-RESULTS_PATH = '/Users/group5admin/Documents/geneweaver/results/'
+RESULTS_PATH = '/home/csi/m/moy/geneweaver/results/'
 
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
@@ -2172,5 +2176,5 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 
 if __name__ == '__main__':
     app.debug = True
-    #app.run(host='10.3.4.114')
-    app.run()
+    app.run(host='129.62.151.37')
+    #app.run()
