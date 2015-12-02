@@ -98,7 +98,7 @@
 .middle-cell {
   display: table-cell;
   vertical-align: middle;
-  text-align: right;
+  text-align: left;
   padding-left: 320px;
 }
 
@@ -131,7 +131,7 @@
         border-bottom-color: #006400;
     }
 
-input#checkall[type='checkbox'] {
+/*input#checkall[type='checkbox'] {
     -webkit-checkbox: none;
     width:3px;
     height:3px;
@@ -145,8 +145,8 @@ input#checkall[type='checkbox'] {
 
 
 input[type="checkbox"] {
- -webkit-appearance:none;/* Hides the default checkbox style */
- height:1.32em;
+ -webkit-appearance:none;*//* Hides the default checkbox style */
+ /*height:1.32em;
  width:1.32em;
  cursor:pointer;
  position:relative;
@@ -181,7 +181,7 @@ input[type="checkbox"]:checked:before {
 
 input[type="checkbox"]:hover:before {
  background:rgba(255,255,255,0.3);
-}
+}*/
 
 
         .axis path,
@@ -194,15 +194,16 @@ input[type="checkbox"]:hover:before {
 
 
 
-
-
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-{#<link rel="stylesheet" href="/resources/demos/style.css">#}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 
-<div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+{#<link rel="stylesheet" href="/resources/demos/style.css">#}
 
 <div class="panel panel-default panel-heading bg-gray-light">
     <h3 class="panel-title"><strong>{{ title }} </strong> <span id="what" data-toggle="tooltip"><i class="fa fa-info-circle"></i></span></h3>
@@ -256,16 +257,12 @@ input[type="checkbox"]:hover:before {
          <h4>Venn Diagram view:</h4>
       </div>
       <p style="font-size: 1em; font-weight: normal;">
-        <img src="/static/images/lavenderdot.png" /> = X-Axis Geneset<br />
-        <img src="/static/images/pinkreddot.png" /> = Y-Axis Geneset<br />
-        <img src="/static/images/cyandot.png" /> = Same Geneset<br />
-        <img src="/static/images/chartreusedot.png" /> = Contains Emphasis Gene</p><br />
       <div class="container middle-cell">
          <div class="dropdown middle-cell">
              <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
              <span class="caret"></span></button>
               <ul class="dropdown-menu dropdown-menu-right" id="menudrop" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
-                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg" onclick="getSVG()">SVG</a></li>
+                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg">SVG</a></li>
                   <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
                   <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
               </ul>
@@ -277,7 +274,10 @@ input[type="checkbox"]:hover:before {
 </div>
 
 
-
+<div id="xaxisLeg"><img src="/static/images/lavenderdot.png" > = X-Axis Geneset</div>
+<div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis Geneset</div>
+<div id="genesetLeg"> <img src="/static/images/cyandot.png" > = Same Geneset</div>
+<div id="empLeg"> <img src="/static/images/chartreusedot.png" > = Contains Emphasis Gene</p></div>
 
 
 
@@ -326,12 +326,6 @@ $(document).ready(function(){
 
 <br>
 
-<select name="downloadType" id="downloadType">
-   <option value="null">Select file type...</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
-</select>
 
 
 
@@ -532,17 +526,21 @@ var yVal = -1;
 
         console.log("row count: " + row_count + ", num sets: " + num_sets);
 
-        if(row_count == num_sets){
-               $('#nRadius-value').hide();
-               $('#nRadius').hide();
-               $('#thresholdMsg').hide();
-               $('#zoomButton').hide();
-               $('#menu1').hide();
-               $('#flip').hide();
-               $('#divError').show();
-        }else{
-             $('#divError').hide();
-        }
+  if(row_count == num_sets){
+       $('#nRadius-value').hide();
+       $('#nRadius').hide();
+       $('#thresholdMsg').hide();
+       $('#zoomButton').hide();
+       $('#menu1').hide();
+       $('#flip').hide();
+       $('#empLeg').hide();
+       $('#genesetLeg').hide();
+       $('#yaxisLeg').hide();
+       $('#xaxisLeg').hide();
+ 
+}else{
+     $('#divError').hide();
+}
 {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
         gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
 
@@ -1046,13 +1044,7 @@ var yVal = -1;
        }
 
 
-    // Changes on Url menu to select different download types
-    var urlMenu = document.getElementById("downloadType");
-    urlMenu.onchange = function () {
-        if (this.value != 'null') {
-            window.open(this.options[this.selectedIndex].value, '_blank');
-        }
-    }
+   
 
     // Download types function and selection - not made by KRISTEN, in prior to working on
     function changeImg(sel, dl) {
@@ -1112,21 +1104,22 @@ $(document).ready(function(){
 
 
 
-function getSVG() {
-    var html = d3.select("svg")
-            .attr("title", "test2")
-            .attr("version", 1.1)
-            .attr("xmlns", "http://www.w3.org/2000/svg")
-            .node().parentNode.innerHTML;
+// function getSVG() {
+//     var html = d3.select("svg")
+//             .attr("title", "test2")
+//             .attr("version", 1.1)
+//             .attr("xmlns", "http://www.w3.org/2000/svg")
+//             .node().parentNode.innerHTML;
 
 
-    d3.select("body")
-            .append("div")
-            .attr("id", "download")
-            .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")
-            .append("img")
-            .attr("src", "data:image/svg+xml;base64," + btoa(html));
-}
+//     d3.select("body")
+//             .append("div")
+//             .attr("id", "download")
+//             .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")
+//             .append("img")
+//             .attr("src", "data:image/svg+xml;base64," + btoa(html));
+// }
+// getSVG();
 </script>
 
 
@@ -1406,7 +1399,7 @@ $(document).ready(function() {
          svg.append("foreignObject")
               .attr("width", 285)
               .attr("height", 0)
-              .attr("x", 3)
+              .attr("x", 13)
               .attr("y", xcoord - 37)
               .append("xhtml:body")
            .html( "<input type=checkbox name=foo value=bar id=" + d.geneset_table[i].text.replace(/\s/g, '').replace(":","_") + ">");
@@ -1451,9 +1444,12 @@ $(document).ready(function() {
             jQuery("input[type=checkbox]:checked").each(function () {
                 console.log("inside jQuery");
                 var v = ($(this).attr("id"));
-                console.log(v);
-                gsid.push(v.split('_')[1]);
+                console.log("v = " + v);
+                gsid.push(v.split('_')[0]);
                 gsname.push('GS'+ v.split('_')[1]);
+                if(gsid.indexOf('checkall') != -1){
+                  gsid.pop()
+                }
                 console.log(gsid);
             });
             //display error if no genesets are selected
@@ -1470,31 +1466,58 @@ $(document).ready(function() {
               console.log("In else")
                 var n = gsname.join(", ");
                 var i = gsid.join(",");
-                $("#myModalLabel").html(n);
+                console.log(n)
+                $("#myModalLabel").html(i);
                 $("#myModalValue").val(i);
                 $("#addToProjectModal").modal('show');
 
             }
         });
-{#  $(function () {#}
-{#        $("[data-toggle='tooltip']").tooltip();#}
-{#    });#}
-{#          $('#clickableFontAwesome').popover({#}
-{#            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +#}
-{#            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +#}
-{#            'to navigate to intersection details.'#}
-{#        });#}
+
+  $('#addNewProject').on('click', function () {
+            $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+                    '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+    });
+
+  $('#addGenesetsToProjects').on('click', function (e) {
+            var checked = [];
+            $("input[name='options[]']:checked").each(function () {
+                checked.push(parseInt($(this).val()));
+            });
+            var option = JSON.stringify(checked);
+            var g = $('#myCombineGSValue').val();
+            var npn = $('#newProjName').val();
+            if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Projects were selected.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else {
+              // console.log(g.user );
+              console.log("npn " + npn);
+              console.log("g" + g);
+              console.log("option" + option);
+                $.ajax({
+                    type: "GET",
+                    url: "../addGenesetsToProjects",
+                    data: {"user_id": 0, "npn": npn, "gs_id": g, "option": option},
+                    success: function (data) {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Genesets Successfully Added to Selected Projects.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.location.reload();
+                    }
+                });
+            }
+        });
 
 </script>
-
-
-
-
-
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-
-
 
 <script>
 $(document).ready(function(){
