@@ -11,6 +11,7 @@ import os.path
 from geneweaverdb import *
 import toolcommon as tc
 from edgelist import *
+from decimal import Decimal
 
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -36,9 +37,11 @@ def run_tool():
 
     # gather the params into a dictionary
     homology_str = 'Homology'
-    params = {homology_str: None}
+    method_str   = 'Methods'
+    params1 = {homology_str: None}
+    params2 = {method_str: None}
     for tool_param in get_tool_params(TOOL_CLASSNAME, True):
-        params[tool_param.name] = form[tool_param.name]
+        params1[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
             params1[homology_str] = form[tool_param.name]
         elif tool_param.name.endswith('_' + method_str):
@@ -72,7 +75,7 @@ def run_tool():
         user_id,
         task_id,
         selected_geneset_ids,
-        json.dumps(params),
+        json.dumps(params1),
         tool.name,
         desc,
         desc)
@@ -109,9 +112,7 @@ def run_tool():
             'params': params2,
         },
         task_id=task_id)
-
-    # Will run Dr. Baker's graph-generating code here, and it will be stored in the results directory
-    create_kpartite_file_from_gene_intersection(task_id, RESULTS_PATH, selected_project_ids[0], selected_project_ids[1], homology=True)
+    # print "results path: ", RESULTS_PATH
 
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
@@ -191,6 +192,11 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     return task_id
 
 
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
 @triclique_viewer_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
@@ -231,6 +237,9 @@ def view_result(task_id):
         return flask.render_template(
             'tool/TricliqueViewer_result.html',
             async_result=json.loads(async_result.result),
+            task_id=task_id,
+            json_results=json.dumps(json_results, default=decimal_default),
+            csv_results=csv_results,
             tool=tool)
     else:
         # render a page telling their results are pending
