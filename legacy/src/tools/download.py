@@ -6,12 +6,14 @@
 
 import tempfile
 import cgi
+import StringIO
+
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 
 
 inputFile = tempfile.NamedTemporaryFile("w+b")
-outFile = tempfile.NamedTemporaryFile("w+b")
+outFile = StringIO.StringIO()
 
 
 #this assuming using data tag for svg and output_format tag for the end format
