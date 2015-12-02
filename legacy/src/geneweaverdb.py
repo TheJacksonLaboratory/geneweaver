@@ -2492,6 +2492,7 @@ def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
             gene_id2.append(gid[0])
 
         intersect_id = list(set(gene_id1).intersection(gene_id2))
+        print "intersect_id ", intersect_id
 
         for gene_id in intersect_id:
             cursor.execute(
@@ -2502,6 +2503,7 @@ def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
             for gid in cursor:
                 intersect_sym.append(gid[0])
 
+        # print "intersect_sym ", intersect_sym
         return intersect_sym, intersect_id
 
 
@@ -2521,6 +2523,80 @@ def if_gene_has_homology(gene_id):
             return 1
         else:
             return 0
+
+def get_intersect_by_homology(geneset_id1, geneset_id2):
+    """
+    Return all genes within intersecting genesets including homology
+    """
+    gene_id1 = []
+    gene_id2 = []
+    intersect_sym = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id1,))
+        for gid in cursor:
+            gene_id1.append(gid[0])
+        cursor.execute(
+            '''SELECT ode_gene_id
+               FROM extsrc.geneset_value
+               where gs_id = %s;
+            ''', (geneset_id2,))
+        for gid in cursor:
+            gene_id2.append(gid[0])
+
+        intersect_id = list(set(gene_id1).intersection(set(gene_id2)))
+
+        homology1 = {}
+        homology2 = {}
+    # print gene_id2
+
+    for gid in gene_id1:
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                if hom_id not in homology1:
+                    homology1[hom_id[0]] = []
+                    homology1[hom_id[0]].append(gid)
+                else:
+                    homology1[hom_id[0]].append(gid)
+
+    for gid in gene_id2:
+            cursor.execute(
+                '''SELECT hom_id
+                   FROM extsrc.homology
+                   where ode_gene_id = %s;
+                ''', (gid,))
+            hom_id = cursor.fetchone()
+            if hom_id:
+                if hom_id not in homology2:
+                    homology2[hom_id[0]] = []
+                    homology2[hom_id[0]].append(gid)
+                else:
+                    homology2[hom_id[0]].append(gid)
+
+    homology_genes = []
+
+    for key in homology1:
+        if key in homology2:
+            homology_genes = homology_genes + homology1[key] + homology2[key]
+
+    for gene_id in homology_genes:
+            cursor.execute(
+                '''SELECT gi_symbol
+                   FROM extsrc.gene_info
+                   where ode_gene_id = %s;
+                ''', (gene_id,))
+            for gid in cursor:
+                intersect_sym.append(gid[0])
+
+    return intersect_sym, homology_genes
 
 def get_geneset_intersect(geneset_id1, geneset_id2):
     """
@@ -2549,7 +2625,6 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
         homology1 = []
         homology2 = []
     for gid in gene_id1:
-            print gid
             cursor.execute(
                 '''SELECT hom_id
                    FROM extsrc.homology
@@ -2557,7 +2632,6 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
                 ''', (gid,))
             hom_id = cursor.fetchone()
             if hom_id:
-                print "hom_id = ", hom_id[0]
                 homology1.append(hom_id[0])
 
     for gid in gene_id2:
@@ -2571,8 +2645,6 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
                 homology2.append(hom_id[0])
 
     homology_id = list(set(homology1).intersection(set(homology2)))
-    print homology_id
-    print intersect_id
 
     return len(intersect_id) + len(homology_id)
 

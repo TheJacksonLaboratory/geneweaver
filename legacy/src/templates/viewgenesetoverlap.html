@@ -237,7 +237,7 @@ Gene Symbol
                         "cx": d.circledata.c1x,
                         "cy": d.circledata.c1y,
                         "radius": d.circledata.r1,
-                        "fill": "#FF8000",
+                        "fill": "#DD99FF",
                         "opacity": 1,
                         "cxshift": 0,
                         "cyshift": 0,
@@ -248,7 +248,7 @@ Gene Symbol
                         "cx": d.circledata.c2x,
                         "cy": d.circledata.c2y,
                         "radius": d.circledata.r2,
-                        "fill": "#0000FF",
+                        "fill": "#FF6666",
                         "opacity": 1,
                         "cxshift": 0,
                         "cyshift": 0,
@@ -261,7 +261,7 @@ Gene Symbol
                             "cx": d.circledata.c2x,
                             "cy": d.circledata.c2y,
                             "radius": d.circledata.r2,
-                            "fill": "#0000FF",
+                            "fill": "#FF6666",
                             "opacity": 1,
                             "cxshift": 0,
                             "cyshift": 0,
@@ -271,7 +271,7 @@ Gene Symbol
                         "cx": d.circledata.c1x,
                         "cy": d.circledata.c1y,
                         "radius": d.circledata.r1,
-                        "fill": "#FF8000",
+                        "fill": "#DD99FF",
                         "opacity": 1,
                         "cxshift": 0,
                         "cyshift": 0,
@@ -296,8 +296,8 @@ Gene Symbol
     {# Intializes border for circles#}
     var border = 1;
     var bordercolor = 'black';
-    var width = 250;
-    var height= 250;
+    var width = 300;
+    var height= 300;
 
       //Create the SVG Viewport
     var svgContainer = d3.select("#intersection").append("svg")
@@ -339,13 +339,13 @@ Gene Symbol
         text.append("text")
             .text( function(d) { return "J = "+ jaccard;})
             .attr("x", function (d) { return 115; })
-            .attr("y", function (d) { return 225;  })
+            .attr("y", function (d) { return 245;  })
             .attr("font-size", "18px")
             .style("font-weight", "bold");
         text.append("text")
             .text( function(d) { return "p = " +pval;})
             .attr("x", function (d) { return 110; })
-            .attr("y", function (d) { return 243;  })
+            .attr("y", function (d) { return 263;  })
             .attr("font-size", "18px")
             .style("font-weight", "bold");
     }
@@ -358,13 +358,13 @@ Gene Symbol
         text.append("text")
             .text( function(d) { return "J = "+ jaccard;})
             .attr("x", function (d) { return 100; })
-            .attr("y", function (d) { return 225;  })
+            .attr("y", function (d) { return 245;  })
             .attr("font-size", "18px")
             .style("font-weight", "bold");
         text.append("text")
             .text( function(d) { return "p = " +pval;})
             .attr("x", function (d) { return 95; })
-            .attr("y", function (d) { return 243;  })
+            .attr("y", function (d) { return 263;  })
             .attr("font-size", "18px")
             .style("font-weight", "bold");
 

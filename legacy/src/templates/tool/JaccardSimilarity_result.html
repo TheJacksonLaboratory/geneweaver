@@ -98,7 +98,7 @@
 .middle-cell {
   display: table-cell;
   vertical-align: middle;
-  text-align: right;
+  text-align: left;
   padding-left: 320px;
 }
 
@@ -131,7 +131,7 @@
         border-bottom-color: #006400;
     }
 
-input#checkall[type='checkbox'] {
+/*input#checkall[type='checkbox'] {
     -webkit-checkbox: none;
     width:3px;
     height:3px;
@@ -145,8 +145,8 @@ input#checkall[type='checkbox'] {
 
 
 input[type="checkbox"] {
- -webkit-appearance:none;/* Hides the default checkbox style */
- height:1.32em;
+ -webkit-appearance:none;*//* Hides the default checkbox style */
+ /*height:1.32em;
  width:1.32em;
  cursor:pointer;
  position:relative;
@@ -177,11 +177,11 @@ input[type="checkbox"]:before, input[type="checkbox"]:checked:before {
 
 input[type="checkbox"]:checked:before {
  content: '✔';
-}z
-z
-input[type="checkbox"]:hover:before {z
- background:rgba(255,255,255,0.3);z
-}z
+}
+
+input[type="checkbox"]:hover:before {
+ background:rgba(255,255,255,0.3);
+}*/
 
 
         .axis path,
@@ -191,23 +191,23 @@ input[type="checkbox"]:hover:before {z
         }
 </style>
 
-<button class="btn btn-success" id="save_as_svg" value> Save as SVG</button>
-<button class="btn btn-success" id="save_as_pdf" value> Save as PDF</button>
-<button class="btn btn-success" id="save_as_png" value> Save as PNG</button>
 
 
 
-
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
 {#<link rel="stylesheet" href="/resources/demos/style.css">#}
 
 <div class="panel panel-default panel-heading bg-gray-light">
-    <h3 class="panel-title"><strong>{{ title }} </strong></h3>
+    <h3 class="panel-title"><strong>{{ title }} </strong> <span id="what" data-toggle="tooltip"><i class="fa fa-info-circle"></i></span></h3>
 </div>
-
 
 
 <div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
@@ -231,8 +231,7 @@ input[type="checkbox"]:hover:before {z
 <br>
 <div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">    Geneset Table Panel</i></div>
 <div id="panel" class="badger-left">
-<div id="toLeft" style="float:right font-size: 2.25em"><i class="fa fa-chevron-right"></i> </div>
-<div id="toRight" style="float:left font-size: 2.25em"><i class="fa fa-chevron-left"></i> </div>
+
     <button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
 <div id="chart"></div>
 
@@ -249,31 +248,37 @@ input[type="checkbox"]:hover:before {z
                             <i class="fa fa-download pull-left"></i> Export Genes
                         </button>
 </div>
-<br>
+
+
    <div class="page-header"> </div>
 <p>
   <div class="box-header clearfix">
       <div class = "left-cell">
          <h4>Venn Diagram view:</h4>
       </div>
+      <p style="font-size: 1em; font-weight: normal;">
       <div class="container middle-cell">
          <div class="dropdown middle-cell">
              <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
              <span class="caret"></span></button>
               <ul class="dropdown-menu dropdown-menu-right" id="menudrop" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
-                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg" onclick="getSVG()">SVG</a></li>
+                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg">SVG</a></li>
                   <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
                   <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
               </ul>
          </div>
       </div>
             <div class="right-cell">
-         <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Zoom</button>
+         <button type="button" value="Update" id="zoomButton" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header">Reset Zoom</button>
       </div>
 </div>
 
 
-
+<div id="xaxisLeg"><img src="/static/images/lavenderdot.png" > = X-Axis Geneset</div>
+<div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis Geneset</div>
+<div id="genesetLeg"> <img src="/static/images/cyandot.png" > = Same Geneset</div>
+<div id="empLeg"> <img src="/static/images/chartreusedot.png" > = Contains Emphasis Gene</div>
+<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = Geneset Does Not Meet Threshold</div></p></div>
 
 
 
@@ -295,12 +300,19 @@ $(document).ready(function(){
 
 
 {#Location for where the d3 is appended to in the html#}
-<div id="jaccard"></div>
+<div id="jaccard">
+
+        <div id=divError class="alert alert-danger fade in">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+        The p-value threshold is too high, please run the tool again at a lower threshold.
+        </div>
+
+</div>
 
 
   <label for="nRadius">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
-        <h2>P-Value Threshold (0.05 increments):
+        <h2 id="pthresh">P-Value Threshold (0.05 increments):
       <label  style="font-weight: bold" id="nRadius-value">…</label></h2>
   </label>
 
@@ -315,17 +327,16 @@ $(document).ready(function(){
 
 <br>
 
-<select name="downloadType" id="downloadType">
-   <option value="null">Select file type...</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">SVG</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">PDF</option>
-   <option value="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}">PNG</option>
-</select>
 
 
 
+{% if g.user is defined %}
 
+    {% include 'modal/addGenesetsToProjects.html' %}
 
+{% endif %}
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 {# Start of script#}
 <script type="text/javascript">
@@ -445,6 +456,10 @@ function reduceMatrix() {
             str = str.replace("p =", "");
             str = str.replace(/^\s+|\s+$/g, '');
             str === "" ? str = "-1" : str = str;
+            if(parseFloat(str) < d.JaccardSimilarity_p_Value) {
+              console.log(str + " is less than " + d.JaccardSimilarity_p_Value.toString())
+              str = "-1";
+            }
             row.push(str);
         } else {
             row.push("-1");
@@ -469,22 +484,24 @@ function reduceMatrix() {
     }
    return elim;
 }
-
 var elim = reduceMatrix();
-
+console.log(elim);
 var row_count = 0;
 var first_run = true;
 {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
-var xVal = 0;
+var xVal = -1;
 var yVal = -1;
+var skipMe = false;
     for (i = 0; i < count; i++) {
         var str = "-1";
         if (i % num_sets === 0) {
+            //console.log("New Row");
             row_count++;
             x_coord = 150;
             y_coord += 150;
             yVal++;
             xVal = 0;
+            console.log("xVal = " + xVal);
             if (first_run) {
                 y_coord = 50;
                 first_run = false;
@@ -495,23 +512,55 @@ var yVal = -1;
                 console.log("row " + row_count + " is in elim");
                 row_count++;
                 i += num_sets;
-                console.log("i = " + i);
+
+                //console.log("i = " + i);
             }
             if(elim.length < num_sets) {
                 while(isIn(elim, i % num_sets)) {
                     console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
                     i++;
+                    xVal++;
+                    console.log("xVal = " + xVal);
                 }
             }
-        }
-        else {
+        } else {
             x_coord += 200;
             while(isIn(elim, i % num_sets)) {
                 console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
                 i++;
+                xVal++;
+                console.log("xVal = " + xVal);
+                console.log("i = " + i);
+                if(i % num_sets == 0) {
+                  i--;
+                  skipMe = true;
+                  break;
+                }
             }
         }
+        if(skipMe) {
+          skipMe = false;
+          continue;
+        }
+        if(i > 81) break;   // last element runoff check
+        console.log("row count: " + row_count + ", num sets: " + num_sets);
 
+  if(row_count == num_sets){
+       $('#nRadius-value').hide();
+       $('#nRadius').hide();
+       $('#thresholdMsg').hide();
+       $('#zoomButton').hide();
+       $('#menu1').hide();
+       $('#empLeg').hide();
+       $('#genesetLeg').hide();
+       $('#pvalLeg').hide();
+       $('#yaxisLeg').hide();
+       $('#xaxisLeg').hide();
+        $('#pthresh').hide();
+ 
+}else{
+     $('#divError').hide();
+}
 {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
         gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
 
@@ -539,22 +588,46 @@ var yVal = -1;
 
 {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
+              if((d.venn_diagrams[i].emphasis1 == "False" ) && (d.venn_diagrams[i].emphasis2 == "False")){
                 circleData.push({
                     "cx": d.venn_diagrams[i].c2x,
                     "cy": d.venn_diagrams[i].c2y,
                     "radius": d.venn_diagrams[i].r2,
-                    "fill": "#66FFFF",
+                    "fill": "#99FFFF",
                     "opacity": d.venn_diagrams[i].opacity,
                     "cxshift": x_coord,
                     "cyshift": y_coord,
                     "des": d.venn_diagrams[i].desc1,
-                     "url":   gene_url[xVal] +'/' + gene_url[yVal],
+                     "url":   '/viewgenesetdetails/' + gene_url[xVal],
                     "title" : d.venn_diagrams[i].title1,
                     "pvalue" : str,
-                    "show" : threshold
+                    "show" : threshold,
+                    "row" : xVal, 
+                    "col" : yVal
 
 
                 });
+              }
+              else{
+                circleData.push({
+                    "cx": d.venn_diagrams[i].c2x,
+                    "cy": d.venn_diagrams[i].c2y,
+                    "radius": d.venn_diagrams[i].r2,
+                    "fill": "chartreuse",
+                    "opacity": d.venn_diagrams[i].opacity,
+                    "cxshift": x_coord,
+                    "cyshift": y_coord,
+                    "des": d.venn_diagrams[i].desc1,
+                     "url":   '/viewgenesetdetails/' + gene_url[xVal],
+                    "title" : d.venn_diagrams[i].title1,
+                    "pvalue" : str,
+                    "show" : threshold,
+                    "row" : xVal, 
+                    "col" : yVal
+
+
+                });
+              }
                  row +=1;
 
                 {# When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates#}
@@ -566,8 +639,8 @@ var yVal = -1;
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label": d.geneset_table[check].text.substring(0, 25), //d.geneset_table[check].text.replace(/\.(?=[A-Z])/g, '<br /><br />'),
-                            "label1": d.geneset_table[check].text.substring(25, 50),
+                            "label": d.geneset_table[xVal].text.substring(0, 25), //d.geneset_table[check].text.replace(/\.(?=[A-Z])/g, '<br /><br />'),
+                            "label1": d.geneset_table[xVal].text.substring(25, 50),
                             "labelx": x_coord,
                             "labely": y_coord,
                             "pvalue" : str,
@@ -583,8 +656,8 @@ var yVal = -1;
                             "gene_id": d.venn_diagrams[i].text[k].text,
                             "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
                             "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label":  d.geneset_table[check].text.substring(0, 25),
-                            "label1": d.geneset_table[check].text.substring(25, 50),
+                            "label":  d.geneset_table[xVal].text.substring(0, 25),
+                            "label1": d.geneset_table[xVal].text.substring(25, 50),
                             "labelx": x_coord,
                             "labely": y_coord,
                             "pvalue" : str,
@@ -609,84 +682,202 @@ var yVal = -1;
 
 {#  Else make circles for orange and blue with appropriate json values #}
             else {
-              if (d.venn_diagrams[i].r2 >d.venn_diagrams[i].r1){
-                circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "#0000FF",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "gene_id": d.venn_diagrams[i].text[k].text,
-                    "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                    "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url":  gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold,
-                    "url1":   d.venn_diagrams[i].url
 
+                  if (d.venn_diagrams[i].r2 > d.venn_diagrams[i].r1) {
 
-                });
-                circleData.push({
+                    if (d.venn_diagrams[i].emphasis1 == "False"){
+                      circleData.push({
+                          "cx": d.venn_diagrams[i].c1x,
+                          "cy": d.venn_diagrams[i].c1y,
+                          "radius": d.venn_diagrams[i].r1,
+                          "fill": "FF6666",
+                          "opacity": d.venn_diagrams[i].opacity,
+                          "cxshift": x_coord,
+                          "cyshift": y_coord,
+                          "gene_id": d.venn_diagrams[i].text[k].text,
+                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                          "des": d.venn_diagrams[i].desc1,
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "title" : d.venn_diagrams[i].title1,
+                          "pvalue" : str,
+                          "show" : threshold,
+                          "url1":   d.venn_diagrams[i].url,
+                          "row" : xVal, 
+                          "col" : yVal
+                      });
+                    }
+                    else{
+                      circleData.push({
+                          "cx": d.venn_diagrams[i].c1x,
+                          "cy": d.venn_diagrams[i].c1y,
+                          "radius": d.venn_diagrams[i].r1,
+                          "fill": "chartreuse",
+                          "opacity": d.venn_diagrams[i].opacity,
+                          "cxshift": x_coord,
+                          "cyshift": y_coord,
+                          "gene_id": d.venn_diagrams[i].text[k].text,
+                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                          "des": d.venn_diagrams[i].desc1,
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "title" : d.venn_diagrams[i].title1,
+                          "pvalue" : str,
+                          "show" : threshold,
+                          "url1":   d.venn_diagrams[i].url,
+                          "row" : xVal, 
+                          "col" : yVal
+                      });
+                    }
 
-                    "cx": d.venn_diagrams[i].c1x,
-                    "cy": d.venn_diagrams[i].c1y,
-                    "radius": d.venn_diagrams[i].r1,
-                    "fill": "#FF8000",
-                    "opacity": ".5",
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url": gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold
-                });
-              }
+                    if (d.venn_diagrams[i].emphasis2 == "False"){
+                      circleData.push({
+                          "cx": d.venn_diagrams[i].c2x,
+                          "cy": d.venn_diagrams[i].c2y,
+                          "radius": d.venn_diagrams[i].r2,
+                          "fill": "DD99FF",
+                          "opacity": d.venn_diagrams[i].opacity,
+                          "cxshift": x_coord,
+                          "cyshift": y_coord,
+                          "gene_id": d.venn_diagrams[i].text[k].text,
+                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                          "des": d.venn_diagrams[i].desc1,
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "title" : d.venn_diagrams[i].title1,
+                          "pvalue" : str,
+                          "show" : threshold,
+                          "url1":   d.venn_diagrams[i].url,
+                          "row" : xVal, 
+                          "col" : yVal
+                      });
+                    }
+                    else{
+                      circleData.push({
+                          "cx": d.venn_diagrams[i].c2x,
+                          "cy": d.venn_diagrams[i].c2y,
+                          "radius": d.venn_diagrams[i].r2,
+                          "fill": "chartreuse",
+                          "opacity": d.venn_diagrams[i].opacity,
+                          "cxshift": x_coord,
+                          "cyshift": y_coord,
+                          "gene_id": d.venn_diagrams[i].text[k].text,
+                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                          "des": d.venn_diagrams[i].desc1,
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "title" : d.venn_diagrams[i].title1,
+                          "pvalue" : str,
+                          "show" : threshold,
+                          "url1":   d.venn_diagrams[i].url,
+                          "row" : xVal, 
+                          "col" : yVal
+                      });
+                    }
+
+                }
+                  
               else{
 
-                circleData.push({
+                     if (d.venn_diagrams[i].emphasis2 == "False"){
+                      circleData.push({
+                          "cx": d.venn_diagrams[i].c2x,
+                          "cy": d.venn_diagrams[i].c2y,
+                          "radius": d.venn_diagrams[i].r2,
+                          "fill": "DD99FF",
+                          "opacity": d.venn_diagrams[i].opacity,
+                          "cxshift": x_coord,
+                          "cyshift": y_coord,
+                          "gene_id": d.venn_diagrams[i].text[k].text,
+                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                          "des": d.venn_diagrams[i].desc1,
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "title" : d.venn_diagrams[i].title1,
+                          "pvalue" : str,
+                          "show" : threshold,
+                          "url1":   d.venn_diagrams[i].url,
+                          "row" : xVal, 
+                          "col" : yVal
+                     });
+                  }
+                  else{
+                    circleData.push({
+                        "cx": d.venn_diagrams[i].c2x,
+                        "cy": d.venn_diagrams[i].c2y,
+                        "radius": d.venn_diagrams[i].r2,
+                        "fill": "chartreuse",
+                        "opacity": d.venn_diagrams[i].opacity,
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "gene_id": d.venn_diagrams[i].text[k].text,
+                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                        "des": d.venn_diagrams[i].desc1,
+                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                        "title" : d.venn_diagrams[i].title1,
+                        "pvalue" : str,
+                        "show" : threshold,
+                        "url1":   d.venn_diagrams[i].url,
+                        "row" : xVal, 
+                        "col" : yVal
 
-                    "cx": d.venn_diagrams[i].c1x,
-                    "cy": d.venn_diagrams[i].c1y,
-                    "radius": d.venn_diagrams[i].r1,
-                    "fill": "#FF8000",
-                    "opacity": ".5",
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url": gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold
-                });
 
-                  circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "#0000FF",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "gene_id": d.venn_diagrams[i].text[k].text,
-                    "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                    "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                    "des": d.venn_diagrams[i].desc1,
-                    "url":  gene_url[xVal]+'/'+ gene_url[yVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold,
-                    "url1":   d.venn_diagrams[i].url
+                    });
+                  }
+
+                 if (d.venn_diagrams[i].emphasis1 == "False"){
+                    circleData.push({
+                        "cx": d.venn_diagrams[i].c1x,
+                        "cy": d.venn_diagrams[i].c1y,
+                        "radius": d.venn_diagrams[i].r1,
+                        "fill": "FF6666",
+                        "opacity": d.venn_diagrams[i].opacity,
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "gene_id": d.venn_diagrams[i].text[k].text,
+                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                        "des": d.venn_diagrams[i].desc1,
+                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                        "title" : d.venn_diagrams[i].title1,
+                        "pvalue" : str,
+                        "show" : threshold,
+                        "url1":   d.venn_diagrams[i].url,
+                        "row" : xVal, 
+                        "col" : yVal
 
 
-                });
+                    });
+                  }
+                  else{
+                    circleData.push({
+                        "cx": d.venn_diagrams[i].c1x,
+                        "cy": d.venn_diagrams[i].c1y,
+                        "radius": d.venn_diagrams[i].r1,
+                        "fill": "chartreuse",
+                        "opacity": d.venn_diagrams[i].opacity,
+                        "cxshift": x_coord,
+                        "cyshift": y_coord,
+                        "gene_id": d.venn_diagrams[i].text[k].text,
+                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
+                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
+                        "des": d.venn_diagrams[i].desc1,
+                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                        "title" : d.venn_diagrams[i].title1,
+                        "pvalue" : str,
+                        "show" : threshold,
+                        "url1":   d.venn_diagrams[i].url,
+                        "row" : xVal, 
+                        "col" : yVal
+
+
+                    });
+                  }
+
               }
+              
             }
-            
         }
         xVal++;
 
@@ -741,13 +932,39 @@ var yVal = -1;
             .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
             .attr("r", function (d) {return d.radius; })
             .style("fill", function (d) { return d.fill; })
-            .style("fill-opacity", function (d) {return d.opacity - .2})
+            .style("fill-opacity", function (d) {return d.opacity})
             .attr("cxshift", function (d) {   return d.cxshift; })
             .attr("cyshift", function (d) {  return d.cyshift; })
             .attr("label", function (d) { return d.label; })
             .attr("pValue", function (d) { return d.pvalue; })
-            .style("stroke", bordercolor)
-            .attr("border", border)
+            .style("stroke", 'black')
+            .style("stroke-width", 1)
+
+    .on("click", function(d){
+          if(d3.event.shiftKey){
+                  var row = d.row;
+                  var col = d.col;
+
+                  console.log(row + " " + col)
+
+                  svgContainer.selectAll("circle")
+                    .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
+                    .style('stroke', 'yellow')
+                     .style("stroke-width", 3)
+                  svgContainer.selectAll("circle")  
+                    .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
+                    .style('stroke', 'black')
+                    .style("stroke-width", 1);
+                }
+            
+
+  
+          if(d3.event.altKey){
+                  svgContainer.selectAll("circle")
+                    .style('stroke', 'black')
+                     .style("stroke-width", 1);
+                }
+            })
 
      // When mouse is over object html output styling of label will display
     .on("mouseover", function(d) {
@@ -768,9 +985,11 @@ var yVal = -1;
     // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
         .on("dblclick", function(d) {
            window.open(
-                   "/viewgenesetoverlap/" + d.url)});
+                   d.url)});
 
                //    return i == 0 ? "circle1" : "circle2";});
+
+        
 
 
     //Add the SVG Text Element to the svgContainer
@@ -826,7 +1045,7 @@ var yVal = -1;
 
 
     // Initial starting radius of the circle
-    updateOpacity(0);
+    updateOpacity(d.JaccardSimilarity_p_Value);
 
     // update the elements
     function updateOpacity(nRadius) {
@@ -845,13 +1064,7 @@ var yVal = -1;
        }
 
 
-    // Changes on Url menu to select different download types
-    var urlMenu = document.getElementById("downloadType");
-    urlMenu.onchange = function () {
-        if (this.value != 'null') {
-            window.open(this.options[this.selectedIndex].value, '_blank');
-        }
-    }
+   
 
     // Download types function and selection - not made by KRISTEN, in prior to working on
     function changeImg(sel, dl) {
@@ -867,6 +1080,7 @@ var yVal = -1;
         }
     }
 
+    
     // Checkbox for selecting a geneset
     function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
         var allChecked = true;
@@ -905,35 +1119,27 @@ $(document).ready(function(){
 });
 
 
-  $(function () {
-        $("[data-toggle='tooltip']").tooltip();
-    });
-          $('#clickableFontAwesome').popover({
-            title: 'Venn Diagram Instructions', content: 'Scroll up or down to zoom in/out respectively ' +
-            'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
-            'to navigate to intersection details.'
-        });
 
 
 
 
 
+// function getSVG() {
+//     var html = d3.select("svg")
+//             .attr("title", "test2")
+//             .attr("version", 1.1)
+//             .attr("xmlns", "http://www.w3.org/2000/svg")
+//             .node().parentNode.innerHTML;
 
-function getSVG() {
-    var html = d3.select("svg")
-            .attr("title", "test2")
-            .attr("version", 1.1)
-            .attr("xmlns", "http://www.w3.org/2000/svg")
-            .node().parentNode.innerHTML;
 
-
-    d3.select("body")
-            .append("div")
-            .attr("id", "download")
-            .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")
-            .append("img")
-            .attr("src", "data:image/svg+xml;base64," + btoa(html));
-}
+//     d3.select("body")
+//             .append("div")
+//             .attr("id", "download")
+//             .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")
+//             .append("img")
+//             .attr("src", "data:image/svg+xml;base64," + btoa(html));
+// }
+// getSVG();
 </script>
 
 
@@ -1038,7 +1244,7 @@ $(document).ready(function() {
 
 
 
-  var addOnX = 0;
+    var addOnX = 0;
     var addOnY = -520;
     var addOnYLast = 0;
     var c = 0;
@@ -1046,12 +1252,6 @@ $(document).ready(function() {
     var textX = 30;
     var textY = -390;
     var xcoord = 60;
-
-   d3.select("#toLeft").on("click", zoom);
-
-
-
-
 
 
     for(i = 0; i < count; i++) {
@@ -1187,6 +1387,8 @@ $(document).ready(function() {
 
     var xCoordinate = 30;
 
+    var gs_ids = d.genesets;
+
     for (i = 0; i < count; i++){
         var text = svg.append("text")
                 .attr("class", "rectangles")
@@ -1215,15 +1417,15 @@ $(document).ready(function() {
        for(i = 0; i < count; i++){
 
          svg.append("foreignObject")
-              .attr("width", 325)
+              .attr("width", 285)
               .attr("height", 0)
-              .attr("x", 3)
+              .attr("x", 13)
               .attr("y", xcoord - 37)
               .append("xhtml:body")
-           .html( "<input type=checkbox name=foo value=bar id=check>");
+           .html( "<input type=checkbox name=foo value=bar id=" + d.geneset_table[i].text.replace(/\s/g, '').replace(":","_") + ">");
 
-
-
+           str.replace(/\s/g, '');
+          console.log(d.geneset_table[i].text);
 
             result = (d.geneset_table[i].text).replace(/.{30}\S*\s+/g, "$&@").split(/\s+@/);
             //console.log(result);
@@ -1253,5 +1455,105 @@ $(document).ready(function() {
 
     }
 
+    $('#addToProject').on('click', function () {
+            //get all checked gene sets
+            //also split off the name from the number
+            console.log("inside")
+            var gsname = [];
+            var gsid = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                console.log("inside jQuery");
+                var v = ($(this).attr("id"));
+                console.log("v = " + v);
+                gsid.push(v.split('_')[0]);
+                gsname.push('GS'+ v.split('_')[1]);
+                if(gsid.indexOf('checkall') != -1){
+                  gsid.pop()
+                }
+                console.log(gsid);
+            });
+            //display error if no genesets are selected
+            if (gsname.length == 0) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Gene Sets were selected for combining into the same project.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            // send the list to the modal.
+            else{
+              console.log("In else")
+                var n = gsname.join(", ");
+                var i = gsid.join(",");
+                console.log(n)
+                $("#myModalLabel").html(i);
+                $("#myModalValue").val(i);
+                $("#addToProjectModal").modal('show');
+
+            }
+        });
+
+  $('#addNewProject').on('click', function () {
+            $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+                    '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+    });
+
+  $('#addGenesetsToProjects').on('click', function (e) {
+            var checked = [];
+            $("input[name='options[]']:checked").each(function () {
+                checked.push(parseInt($(this).val()));
+            });
+            var option = JSON.stringify(checked);
+            var g = $('#myCombineGSValue').val();
+            var npn = $('#newProjName').val();
+            if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Projects were selected.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else {
+              // console.log(g.user );
+              console.log("npn " + npn);
+              console.log("g" + g);
+              console.log("option" + option);
+                $.ajax({
+                    type: "GET",
+                    url: "../addGenesetsToProjects",
+                    data: {"user_id": 0, "npn": npn, "gs_id": g, "option": option},
+                    success: function (data) {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Genesets Successfully Added to Selected Projects.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.location.reload();
+                    }
+                });
+            }
+        });
 
 </script>
+
+<script>
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+var imgAltKey = '<img src="{{url_for('static', filename='images/altkey.png')}}">';
+var imgShiftKey = '<img src="{{url_for('static', filename='images/shiftkey.png')}}">';
+var wikiIcon = '<img src="{{url_for('static', filename='images/wikiIcon.png')}}">';
+var wikiImg = '<a href="http://geneweaver.org/wiki/index.php?title=Jaccard_Similarity">' + wikiIcon +'</i></a>';
+
+ $('#what').popover({
+            title: 'How to Use', content: 'Scroll up or down to zoom in/out respectively ' +
+           'within the Venn Diagram View. Click and drag to pan. Hover for labels and double click' +
+            ' to navigate to intersection details. <br>' +
+            imgShiftKey + "+Click: Highlight a row for a certain geneset. <br>" +
+            imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
+        });
+        });
+</script>
+{% include 'footer.html' %}
