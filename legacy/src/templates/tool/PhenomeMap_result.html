@@ -33,7 +33,28 @@
         /*Just making sure the select2 box is glued to the top*/
         .search {
             width: 100%;
+            border-radius: 4px;
         }
+
+        a.d3-slider-handle {
+            background: #00A2D9;
+            border-radius: 4px;
+            border: 0px;
+        }
+
+        .d3-slider{
+            background: #2B3647;
+            border-radius: 4px;
+            width: 720px;
+            position: absolute;
+        }
+
+        .btn-success{
+            color: #fff;
+            background-color: #006400;
+            border-color: #004C74;
+        }
+
     </style>
 
 </head>
@@ -76,8 +97,6 @@
 
 {% if runhash %}
     <script type="text/javascript">
-
-        console.log('wtf');
 
         var graph_url = '/results/' + '{{async_result.result_image}}';
         var xml = '';
@@ -154,8 +173,11 @@
                             <div class="col-md-4">
                                 <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
                             </div>
+                        </div>
+                        <div class="row">       
                             <div class="col-md-4">
                                 <button class="btn btn-primary"
+                                        style="bottom: 0; float: left;"
                                         type='submit'
                                         value='run'
                                         onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
@@ -163,9 +185,9 @@
                                 </button>
                             </div>
                             <div class="span12">
-                                <a class="btn btn-success"
+                                <button class="btn btn-success" style="bottom: 0; float: left;"
                                    href='/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv'>
-                                    Download csv</a>
+                                    Download csv</button>
                             </div>
                         </div>
                     </div>
@@ -334,7 +356,7 @@
                     });
 
             d3.select("#charge_slider")
-                    .call(charge_slider);
+                .call(charge_slider);
 
             d3.select("#ls_slider")
                     .call(ls_slider);
@@ -897,7 +919,32 @@
     </script>
 </div>
 
-<div id="stats" align="left" style="float: left; margin: 10px;">
+<h4>
+    Repulsion:
+</h4>
+<div id="charge_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Max Repulsion Distance:
+</h4>
+<div id="cd_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Link Strength:
+</h4>
+<div id="ls_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Link Distance:
+</h4>
+<div id="ld_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Gravitation Towards Center:
+</h4>
+<div id="gravity_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<div id="stats" align="left" style="float: left; margin-left: 10px; margin-top: 10px; margin-bottom: 10px; margin-right: 50px;">
     <h3>Stats</h3>
 </div>
 <div id="shortcuts" align="left" style="float: left; margin: 10px;">
@@ -930,39 +977,8 @@
     </table>
 </div>
 
-<div class="slider slider-horizontal">
-
-
-
-</div>
-<h4>
-    Repulsion:
-</h4>
-<div id="charge_slider"></div>
-
-<h4>
-    Max repulsion distance:
-</h4>
-<div id="cd_slider"></div>
-
-<h4>
-    Link Strength:
-</h4>
-<div id="ls_slider"></div>
-
-
-<h4>
-    Link Distance:
-</h4>
-<div id="ld_slider"></div>
-
-
-<h4>
-    Gravitation towards center:
-</h4>
-<div id="gravity_slider"></div>
-
-
-<div id="legend" style="float: right; margin: 10px;">
+<div id="legend" style="float: left; margin-left:50px; margin-bottom:10px; margin-top:10px; margin-top:10px;">
     <h3>Legend</h3>
 </div>
+
+{% include 'footer.html' %}
