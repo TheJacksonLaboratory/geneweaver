@@ -506,21 +506,19 @@
                     return "#ccc";
                 }
             });
-
-            //append geneset text on top of node
+ //text within the single node group:
             nodeEnter.append("text")
                     .attr("dy", "-.2em")
-                    .attr("dx", function (d) {
-                        return (d.children.length > 0) ? "-1em" : "1em";
-                    })
-                    .attr("text-anchor", function (d) {
-                        return (d.children.length > 0) ? "end" : "start";
-                    })
+                    .attr("dx", "1em")
+                    .attr("text-anchor", "start")
                     .text(function (d) {
-                        return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets...";
+                        if (d.children.length > 0 || d._children) {
+                            return;
+                        }
+                        else {
+                            return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets...";
+                        }
                     });
-
-            //append genes on the bottom of the nodes
             nodeEnter.append("text")
                     .attr("dy", "1em")
                     .attr("dx", function (d) {
@@ -530,7 +528,12 @@
                         return (d.children.length > 0) ? "end" : "start";
                     })
                     .text(function (d) {
-                        return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes...";
+                        if (d.children.length > 0 || d._children) {
+                            return;
+                        }
+                        else {
+                            return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes...";
+                        }
                     });
 
             nodeEnter.select("circle")
@@ -707,22 +710,26 @@
         // "hidden" _children array.
         function click(d) {
             if (d3.event.defaultPrevented) return; // ignore drag
-
             if (d.children.length > 0) {
-                //console.log("collapsing node " + d.Genesets + " (" + d.id + ")");
                 d._children = d.children;
                 d.children = [];
-                //console.log("children: " + d.children);
-                //console.log("_children:" + d._children);
+                nodes = flatten(g.data.nodes);
+                initialize_layout(nodes);
             } else if (d._children) {
-                //console.log("expanding node " + d.Genesets + " (" + d.id + ")");
                 d.children = d._children;
                 d._children = null;
-                //console.log("children: " + d.children);
-                //console.log("_children:" + d._children);
+                nodes = flatten(g.data.nodes);
+                initialize_layout(nodes);
+
             }
-            nodes = flatten(g.data.nodes);
-            initialize_layout(nodes);
+            else {
+                var paths = [];
+                for (var i = 0; i < d.Genesets.length; i++) {
+                    paths = paths.concat(searchTree(d.Genesets[i]));
+                }
+                openPaths(paths);
+            }
+
             //
             update();
         }
@@ -755,18 +762,15 @@
             var leafdepth = leaf.depth;
             for (var i = 0; i < data.length; i++) {
                 if (data[i].depth == leafdepth) {
-                    //leaves.add({"id": ++index, "text": data[i].Genesets[0]});
                     if (leaves.indexOf(data[i].Genesets[0]) < 0) {
                         leaves.push(data[i].Genesets[0]);
                     }
                     for (var j = 0; j < data[i].Genes.length; j++) {
-                        //leaves.add({"id": ++index, "text": data[i].Genes[j]});
                         if (leaves.indexOf(data[i].Genes[j]) < 0) {
                             leaves.push(data[i].Genes[j]);
                         }
                     }
                     for (var j = 0; j < data[i].species.length; j++) {
-                        //leaves.add({"id": ++index, "text": data[i].species[j]});
                         if (leaves.indexOf(data[i].species[j]) < 0) {
                             leaves.push(data[i].species[j]);
                         }
