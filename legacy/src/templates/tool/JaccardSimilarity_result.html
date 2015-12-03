@@ -495,11 +495,12 @@ var yVal = -1;
 var skipMe = false;
     for (i = 0; i < count; i++) {
         var str = "-1";
+
+        xVal++;
         if (i % num_sets === 0) {
             //console.log("New Row");
             row_count++;
             x_coord = 150;
-            y_coord += 150;
             yVal++;
             xVal = 0;
             console.log("xVal = " + xVal);
@@ -510,33 +511,47 @@ var skipMe = false;
             }
             if(isIn(elim, row_count)) { // Skip a row
                 console.log("row " + row_count + " is in elim");
-                row_count++;
-                i += num_sets;
+                //row_count++;
+                i += num_sets-1;
                 console.log("i = " + i);
-                //continue;
+                continue;
                 
-            }
-            console.log("row count = " +row_count);
-        } else {
-          
-          if(isIn(elim, i % num_sets)) {  // Skip a column
+            }else if(isIn(elim, i % num_sets)) {  // Skip a column
+              console.log("first col")
               console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
               i++;
               xVal++;
               console.log("else xVal = " + xVal);
               console.log("i = " + i);
+              y_coord += 150;
+              continue;
+            }
+              y_coord += 150;
+            }
+         else {
+          
+          if(isIn(elim, i % num_sets)) {  // Skip a column
+            console.log("column")
+              console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
+              console.log("else xVal = " + xVal);
+              console.log("i = " + i);
               if(i % num_sets === 0) {
                 i--;
-                xVal = 0;
+                xVal = -1;
                 //continue;
               }
+              continue;
           }
-          x_coord += 200;
+         
         }
-        if(i >= count) {console.log("i was " + i );break;}
+        x_coord += 200;
+        if(i >= count) {
+          console.log("i was " + i );break;}
         console.log("row count: " + row_count + ", num sets: " + num_sets);
 
-  if(row_count == num_sets){
+        alert(elim.length + " " + num_sets)
+
+  if(elim.length === num_sets){
        $('#nRadius-value').hide();
        $('#nRadius').hide();
        $('#thresholdMsg').hide();
@@ -547,11 +562,11 @@ var skipMe = false;
        $('#genesetLeg').hide();
        $('#yaxisLeg').hide();
        $('#xaxisLeg').hide();
-        $('#pthresh').hide();
- 
-}else{
-     $('#divError').hide();
-}
+       $('#pthresh').hide();
+       $('#jaccard').hide();
+  }else{
+       $('#divError').hide();
+  }
 {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
         gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
 
@@ -870,7 +885,6 @@ var skipMe = false;
               
             }
         }
-        xVal++;
 
     }
 
