@@ -33,7 +33,28 @@
         /*Just making sure the select2 box is glued to the top*/
         .search {
             width: 100%;
+            border-radius: 4px;
         }
+
+        a.d3-slider-handle {
+            background: #00A2D9;
+            border-radius: 4px;
+            border: 0px;
+        }
+
+        .d3-slider{
+            background: #2B3647;
+            border-radius: 4px;
+            width: 720px;
+            position: absolute;
+        }
+
+        .btn-success{
+            color: #fff;
+            background-color: #006400;
+            border-color: #004C74;
+        }
+
     </style>
 
 </head>
@@ -47,9 +68,11 @@
 <!-- Cytoscape settings and graph rendering for tool output -->
 <script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
 #}
+<link rel="stylesheet" type="text/css" href="../../static/css/d3.slider.css"> </link>
 <link rel="stylesheet" type="text/css" href="../../static/select2/select2.min.css"> </link>
 <script type="text/javascript" src="../../static/d3/d3.min.js"></script>
 <script type="text/javascript" src="../../static/select2/select2.min.js"></script>
+<script type="text/javascript" src="../../static/d3/d3.slider.js"></script>
 
 {#<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>#}
 {# {{ data | safe }} #}
@@ -74,8 +97,6 @@
 
 {% if runhash %}
     <script type="text/javascript">
-
-        console.log('wtf');
 
         var graph_url = '/results/' + '{{async_result.result_image}}';
         var xml = '';
@@ -152,8 +173,11 @@
                             <div class="col-md-4">
                                 <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
                             </div>
+                        </div>
+                        <div class="row">       
                             <div class="col-md-4">
                                 <button class="btn btn-primary"
+                                        style="bottom: 0; float: left;"
                                         type='submit'
                                         value='run'
                                         onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
@@ -161,8 +185,9 @@
                                 </button>
                             </div>
                             <div class="span12">
-                                <a class="btn btn-success" href = '/PhenomeMap-result/{{async_result.parameters.output_prefix}}.csv'>
-                                    Download csv</a>
+                                <button class="btn btn-success" style="bottom: 0; float: left;"
+                                   href='/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv'>
+                                    Download csv</button>
                             </div>
                         </div>
                     </div>
@@ -276,26 +301,95 @@
             g.link = svg.selectAll("path.link"),
                     g.node = svg.selectAll(".node");
 
+
+            var charge_slider = d3.slider()
+                    .axis(true)
+                    .min(0)
+                    .max(100)
+                    .step(.1)
+                    .value(40)
+                    .on('slide', function (e, v) {
+                        g.force.start();
+                    });
+
+            var cd_slider = d3.slider()
+                    .axis(true)
+                    .min(0)
+                    .max(100)
+                    .step(.1)
+                    .value(30)
+                    .on('slide', function (e, v) {
+                        g.force.chargeDistance(v / .1);
+                        g.force.start();
+                    });
+
+
+            var ls_slider = d3.slider()
+                    .axis(true)
+                    .min(0)
+                    .max(100)
+                    .step(.1)
+                    .value(30)
+                    .on('slide', function (e, v) {
+                        g.force.start();
+                    });
+
+            var ld_slider = d3.slider()
+                    .axis(true)
+                    .min(0)
+                    .max(100)
+                    .step(.1)
+                    .value(40)
+                    .on('slide', function (e, v) {
+                        g.force.start();
+                    });
+
+            var gravity_slider = d3.slider()
+                    .axis(true)
+                    .min(0)
+                    .max(100)
+                    .step(.1)
+                    .value(20)
+                    .on('slide', function (e, v) {
+                        g.force.gravity(Math.pow((v / 10), 2) / 100)
+                        g.force.start();
+                    });
+
+            d3.select("#charge_slider")
+                .call(charge_slider);
+
+            d3.select("#ls_slider")
+                    .call(ls_slider);
+
+            d3.select("#ld_slider")
+                    .call(ld_slider);
+
+            d3.select("#gravity_slider")
+                    .call(gravity_slider);
+
+            d3.select("#cd_slider")
+                    .call(cd_slider)
+
+
             //Create a graph layout engine:
             g.force = d3.layout.force()
                     .nodes(g.data.nodes)
                     .links(getLinks(g.data.nodes))
                 //linkDistance proportional to difference in depths to prevent crowding
                     .linkDistance(function (link) {
-                        return ((link.target.depth - link.source.depth) * 40);
+                        return ((link.target.depth - link.source.depth) * ld_slider.value());
                     })
                 //linkStrength also proportional to distance
                     .linkStrength(function (link) {
-                        return 1 / ((link.target.depth - link.source.depth) * 1.5);
+                        return 1 / ((link.target.depth - link.source.depth) * ls_slider.value() / 20);
                     })
                 //Deeper nodes have a stronger charge because there's more jostling for space down there
                     .charge(function (d) {
-                        return (-((d.depth + 1) * 400));
+                        return (-charge_slider.value() * ((d.depth + 1) * 10));
                     })
-                    .chargeDistance(300)
-                    .gravity(0.05)
                     .size([width, height])
                     .on("tick", tick);
+            console.log("CHARGE DISTANCE " + g.force.chargeDistance());
 
 
             //Initialize positions of tree elements to reduce tangling caused by random initialization
@@ -434,21 +528,19 @@
                     return "#ccc";
                 }
             });
-
-            //append geneset text on top of node
+ //text within the single node group:
             nodeEnter.append("text")
                     .attr("dy", "-.2em")
-                    .attr("dx", function (d) {
-                        return (d.children.length > 0) ? "-1em" : "1em";
-                    })
-                    .attr("text-anchor", function (d) {
-                        return (d.children.length > 0) ? "end" : "start";
-                    })
+                    .attr("dx", "1em")
+                    .attr("text-anchor", "start")
                     .text(function (d) {
-                        return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets...";
+                        if (d.children.length > 0 || d._children) {
+                            return;
+                        }
+                        else {
+                            return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets...";
+                        }
                     });
-
-            //append genes on the bottom of the nodes
             nodeEnter.append("text")
                     .attr("dy", "1em")
                     .attr("dx", function (d) {
@@ -458,7 +550,12 @@
                         return (d.children.length > 0) ? "end" : "start";
                     })
                     .text(function (d) {
-                        return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes...";
+                        if (d.children.length > 0 || d._children) {
+                            return;
+                        }
+                        else {
+                            return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes...";
+                        }
                     });
 
             nodeEnter.select("circle")
@@ -518,15 +615,15 @@
             else return 'default';
         }
 
-       // $("#tooltip").mousemove(function (e) {
-            //find X & Y coordinates
-         //   x = e.clientX,
-           //         y = e.clientY;
+        // $("#tooltip").mousemove(function (e) {
+        //find X & Y coordinates
+        //   x = e.clientX,
+        //         y = e.clientY;
 
-            //Set tooltip position according to mouse position
-           // tooltipSpan.style.top = (y + 20) + 'px';
-           // tooltipSpan.style.left = (x + 20) + 'px';
-       // });
+        //Set tooltip position according to mouse position
+        // tooltipSpan.style.top = (y + 20) + 'px';
+        // tooltipSpan.style.left = (x + 20) + 'px';
+        // });
 
 
         // Invoked from 'update'.
@@ -635,36 +732,40 @@
         // "hidden" _children array.
         function click(d) {
             if (d3.event.defaultPrevented) return; // ignore drag
-
             if (d.children.length > 0) {
-                //console.log("collapsing node " + d.Genesets + " (" + d.id + ")");
                 d._children = d.children;
                 d.children = [];
-                //console.log("children: " + d.children);
-                //console.log("_children:" + d._children);
+                nodes = flatten(g.data.nodes);
+                initialize_layout(nodes);
             } else if (d._children) {
-                //console.log("expanding node " + d.Genesets + " (" + d.id + ")");
                 d.children = d._children;
                 d._children = null;
-                //console.log("children: " + d.children);
-                //console.log("_children:" + d._children);
+                nodes = flatten(g.data.nodes);
+                initialize_layout(nodes);
+
             }
-            nodes = flatten(g.data.nodes);
-            initialize_layout(nodes);
+            else {
+                var paths = [];
+                for (var i = 0; i < d.Genesets.length; i++) {
+                    paths = paths.concat(searchTree(d.Genesets[i]));
+                }
+                openPaths(paths);
+            }
+
             //
             update();
         }
 
 
-       //searches on a string sent in from the dropdown
+        //searches on a string sent in from the dropdown
         function searchTree(search) {
             console.log("SEARCH STRING : " + search);
             path = [];
             for (var i = 0; i < g.data.nodes.length; i++) {
                 g.data.nodes[i].found = false;
                 if (g.data.nodes[i].Genesets.indexOf(search) >= 0
-                    || g.data.nodes[i].Genes.indexOf(search) >= 0
-                    || g.data.nodes[i].species.indexOf(search) >= 0) {
+                        || g.data.nodes[i].Genes.indexOf(search) >= 0
+                        || g.data.nodes[i].species.indexOf(search) >= 0) {
                     path.push(g.data.nodes[i]);
                 }
             }
@@ -683,29 +784,26 @@
             var leafdepth = leaf.depth;
             for (var i = 0; i < data.length; i++) {
                 if (data[i].depth == leafdepth) {
-                    //leaves.add({"id": ++index, "text": data[i].Genesets[0]});
-                    if(leaves.indexOf(data[i].Genesets[0]) < 0) {
+                    if (leaves.indexOf(data[i].Genesets[0]) < 0) {
                         leaves.push(data[i].Genesets[0]);
                     }
                     for (var j = 0; j < data[i].Genes.length; j++) {
-                     	//leaves.add({"id": ++index, "text": data[i].Genes[j]});
- 						if(leaves.indexOf(data[i].Genes[j]) < 0) {
-                        	leaves.push(data[i].Genes[j]);
+                        if (leaves.indexOf(data[i].Genes[j]) < 0) {
+                            leaves.push(data[i].Genes[j]);
                         }
                     }
                     for (var j = 0; j < data[i].species.length; j++) {
-                     	//leaves.add({"id": ++index, "text": data[i].species[j]});
-                    	if(leaves.indexOf(data[i].species[j]) < 0) {
-                         	leaves.push(data[i].species[j]);
+                        if (leaves.indexOf(data[i].species[j]) < 0) {
+                            leaves.push(data[i].species[j]);
                         }
                     }
                 }
             }
-			leaves.sort();
+            leaves.sort();
             console.log(leaves);
             leavesArr = [];
             for (var i = 0; i < leaves.length; i++) {
-                leavesArr.push({"id": ++index,"text": leaves[i]});
+                leavesArr.push({"id": ++index, "text": leaves[i]});
             }
             return leavesArr;
         }
@@ -764,43 +862,45 @@
                     });
         }
 
-    function loadStats() {
-        var result = {{ async_result|tojson }};
-        var stats_url = '/results/' + result.parameters.output_prefix + '.el.profile';
-        $.get(stats_url, function(data) {
-            var lines = data.split('\n');
-            lines = lines.slice(Math.max(lines.length - 8, 1), lines.length - 2);
-            if(lines.length != 6) {
-                $('#stats').append('Not available.');
-                return;
-            }
-            values = [];
-            $.each(lines, function(i, v) { values.push(v.split(':')[1].trim()); });
-            stats_table = $('<table></table>');
-            stats_table.append(
-                '<tr><td><b>Number of genes:</b></td><td>' + values[0] + '</td></tr>'
-                + '<tr><td><b>Number of genesets:</b></td><td>' + values[1] + '</td></tr>'
-                + '<tr><td><b>Number of bicliques:</b></td><td>' + values[3] + '</td></tr>'
-                + '<tr><td><b>Number of edges:</b></td><td>' + values[2] + '</td></tr>'
-                + '<tr><td><b>Max edge biclique size:</b></td><td>' + values[4] + '</td></tr>'
-                + '<tr><td><b>Max vertex biclique size:</b></td><td>' + values[5] + '</td></tr>'
-            );
-            stats_table.find('td').css('padding', 0);
-            $('#stats').append(stats_table);
-        });
-    }
-    // load statistics from file
-    $(window).load(loadStats);
+        function loadStats() {
+            var result = {{ async_result|tojson }};
+            var stats_url = '/results/' + result.parameters.output_prefix + '.el.profile';
+            $.get(stats_url, function (data) {
+                var lines = data.split('\n');
+                lines = lines.slice(Math.max(lines.length - 8, 1), lines.length - 2);
+                if (lines.length != 6) {
+                    $('#stats').append('Not available.');
+                    return;
+                }
+                values = [];
+                $.each(lines, function (i, v) {
+                    values.push(v.split(':')[1].trim());
+                });
+                stats_table = $('<table></table>');
+                stats_table.append(
+                        '<tr><td><b>Number of genes:</b></td><td>' + values[0] + '</td></tr>'
+                        + '<tr><td><b>Number of genesets:</b></td><td>' + values[1] + '</td></tr>'
+                        + '<tr><td><b>Number of bicliques:</b></td><td>' + values[3] + '</td></tr>'
+                        + '<tr><td><b>Number of edges:</b></td><td>' + values[2] + '</td></tr>'
+                        + '<tr><td><b>Max edge biclique size:</b></td><td>' + values[4] + '</td></tr>'
+                        + '<tr><td><b>Max vertex biclique size:</b></td><td>' + values[5] + '</td></tr>'
+                );
+                stats_table.find('td').css('padding', 0);
+                $('#stats').append(stats_table);
+            });
+        }
+        // load statistics from file
+        $(window).load(loadStats);
     </script>
     <script type="text/javascript">
         /*
-            populates the form above with the svg data from the graph
-            and the requested output and submits the form
-        */
-       console.log("IN THE SECOND SCRIPT TAG"); 
+         populates the form above with the svg data from the graph
+         and the requested output and submits the form
+         */
+        console.log("IN THE SECOND SCRIPT TAG");
         $('#bmp_download').click(submit_download_form());
         console.log("AFTER THE CLICK ASSIGNMENT");
-        function submit_download_form(){
+        function submit_download_form() {
             console.log("IN THE FUNCTION");
             //get the d3js svg element
             var tmp = document.getElementById("viz2");
@@ -819,22 +919,66 @@
     </script>
 </div>
 
-<div id="stats" align="left" style="float: left; margin: 10px;">
+<h4>
+    Repulsion:
+</h4>
+<div id="charge_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Max Repulsion Distance:
+</h4>
+<div id="cd_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Link Strength:
+</h4>
+<div id="ls_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Link Distance:
+</h4>
+<div id="ld_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<h4>
+    Gravitation Towards Center:
+</h4>
+<div id="gravity_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
+
+<div id="stats" align="left" style="float: left; margin-left: 10px; margin-top: 10px; margin-bottom: 10px; margin-right: 50px;">
     <h3>Stats</h3>
 </div>
 <div id="shortcuts" align="left" style="float: left; margin: 10px;">
     <h3>Shortcuts</h3>
     <table>
-        <tr><td><b>Zoom in: </b></td><td>hover over the graph and scroll up</td></tr>
-        <tr><td><b>Zoom out: </b></td><td>hover over the graph and scroll down</td></tr>
-        <tr><td><b>Panning mode: </b></td><td>drag background</td></tr>
-         <tr><td><b>Collapsing nodes: </b></td><td>click on a circle on the graph</td></tr>
-        <tr><td><b>Moving nodes: </b></td><td>click and hold a circle to drag</td></tr>
-        <tr><td><b>Emphasis genes: </b></td><td>indicated with red text</td></tr>
+        <tr>
+            <td><b>Zoom in: </b></td>
+            <td>hover over the graph and scroll up</td>
+        </tr>
+        <tr>
+            <td><b>Zoom out: </b></td>
+            <td>hover over the graph and scroll down</td>
+        </tr>
+        <tr>
+            <td><b>Panning mode: </b></td>
+            <td>drag background</td>
+        </tr>
+        <tr>
+            <td><b>Collapsing nodes: </b></td>
+            <td>click on a circle on the graph</td>
+        </tr>
+        <tr>
+            <td><b>Moving nodes: </b></td>
+            <td>click and hold a circle to drag</td>
+        </tr>
+        <tr>
+            <td><b>Emphasis genes: </b></td>
+            <td>indicated with red text</td>
+        </tr>
     </table>
 </div>
 
-
-<div id="legend"style="float: right; margin: 10px;">
+<div id="legend" style="float: left; margin-left:50px; margin-bottom:10px; margin-top:10px; margin-top:10px;">
     <h3>Legend</h3>
 </div>
+
+{% include 'footer.html' %}
