@@ -436,7 +436,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
                        '#D93459', '#5E228B', '#698FC6']
 
     f = open(results + '/' + taskid + '.csv', 'wb')
-    f.write("name,gs_name,something,something,color\n")
+    f.write("name,gs_name,abbr,something,color\n")
 
     # Get rid of the first two elements in identifiers (project ids)
     print "identifiers before:", identifiers
@@ -471,7 +471,9 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
 
     p_names = []
     for val in proj_names:
-        p_names.append(val[0].encode('ascii'))
+        temp = val[0].encode('ascii')
+        temp2 = temp.replace(',','')
+        p_names.append(temp2)
 
     print "project_names", p_names
 
@@ -480,7 +482,6 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     for g in range(len(gi_ids)):
         with PooledCursor() as cursor:
             cursor.execute(cursor.mogrify("SELECT ode_ref_id FROM gene WHERE ode_pref='t' and gdb_id=7 and ode_gene_id = ' " + gi_ids[g] + " ' "))
-
         temp = (list(dictify_cursor(cursor)))
         temp = temp[0]
         temp = temp.values()
@@ -494,15 +495,30 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     for val in gs_names:
         g_names.append(val[0].encode('ascii'))
 
+    abbr = []
+    for g in range(len(gs_ids)):
+        with PooledCursor() as cursor:
+            cursor.execute(cursor.mogrify("SELECT gs_abbreviation FROM geneset WHERE gs_id = ' " + gs_ids[g] + " ' "))
+        temp = (list(dictify_cursor(cursor)))
+        temp = temp[0]
+        temp = temp.values()
+        abbr.append(temp)
+    for g in gs_names:
+        abbr.append(g)
+
+    g_abbr=[]
+    for val in abbr:
+        g_abbr.append(val[0].encode('ascii'))
+
+
     print "g_names:", g_names
 
-    for i in range(len(identifiers)):
-        for j in range(len(partitions)):
-            #print identifiers[i]
-            #print partitions[j]
-            if identifiers[i] in partitions[j]:
-                f.write(str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j] + '\n')
-                print str(identifiers[i]) + ',' + g_names[i] + ',0,0,' + HOMOLOGY_BOX_COLORS[j]
+    count = 0
+    for i in range(len(partitions)):
+        for j in range(len(partitions[i])):
+            f.write(str(identifiers[count]) + ',' + g_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
+            print str(identifiers[count]) + ',' + g_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i]
+            count = count + 1
     f.close()
 
 
@@ -612,7 +628,7 @@ def create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions):
                        '#D93459', '#5E228B', '#698FC6']
 
     f = open(results + '/' + taskid + '.csv', 'wb')
-    f.write("name,gs_name,something,something,color\n")
+    f.write("name,gs_name,abbr,something,color\n")
 
     # Get rid of the first two elements in identifiers (project ids)
     print "identifiers before:", identifiers
@@ -630,13 +646,31 @@ def create_csv_from_mkc_jaccard(taskid, results, identifiers, partitions):
         temp_names.append(temp)
 
     for val in temp_names:
-        gs_names.append(val[0].encode('ascii'))
+        temp = val[0].encode('ascii')
+        temp2 = temp.replace(',','')
+        gs_names.append(temp2)
+    abbr = []
+    for g in range(len(genesets)):
+        with PooledCursor() as cursor:
+            cursor.execute(cursor.mogrify("SELECT gs_abbreviation FROM geneset WHERE gs_id = ' " + genesets[g] + " ' "))
+        temp = (list(dictify_cursor(cursor)))
+        temp = temp[0]
+        temp = temp.values()
+        abbr.append(temp)
+    for g in gs_names:
+        abbr.append(g)
+
+    g_abbr=[]
+    for val in abbr:
+        g_abbr.append(val[0].encode('ascii'))
+
+    print abbr
 
     count = 0
     for i in range(len(partitions)):
         for j in range(len(partitions[i])):
-            print str(identifiers[count]) + ',' + gs_names[count] + ',0,0,' + HOMOLOGY_BOX_COLORS[i] + '\n'
-            f.write(str(identifiers[count]) + ',' + gs_names[count] + ',0,0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
+            print str(identifiers[count]) + ',' + gs_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i] + '\n'
+            f.write(str(identifiers[count]) + ',' + gs_names[count] + ',' + g_abbr[count] + ',0,' + HOMOLOGY_BOX_COLORS[i] + '\n')
             count = count + 1
     f.close()
 
