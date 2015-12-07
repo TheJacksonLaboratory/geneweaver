@@ -7,7 +7,9 @@
 
     a:link {
         #color: darkgreen;
+
     }
+
     a:hover {
         #color: green;
         text-decoration: none;
@@ -19,6 +21,12 @@
     .panel .panel-header .panel-info .panel-heading {
         background-color: #F0F0F0;
         color: #F0F0F0;
+    }
+    .datatablerowhighlight{
+        background-color: #ECFFB3;
+    }
+    .row_selected{
+        background-color: #000000;
     }
 
     #clickableFontAwesome {
@@ -177,9 +185,7 @@
 				$(child).addClass('collapsed');
 		});
 
-		// This ensures that all genesets under a project are checked when
-		// the project checkbox is checked too, even if their data hasn't been
-		// retrieved from the server
+		// All selector checkbox
 		$('.proj-checkbox').on('click', function(event) {
 
 			var check = $(this).find('input[type=checkbox]');
@@ -194,32 +200,6 @@
 				});
 
 			} else {
-
-				var pbid = '#project-body-' + pid;
-				var data = {'project': pid};
-
-				// Load geneset data from the server if it hasn't been done yet
-				if ($(pbid).children().length === 0) {
-
-					// Flask should return the rendered HTML, inject it into the DOM
-					$.get(url, data).done(function (data) {
-
-						var tbody = pbid + ' tbody'
-						$(pbid).append(data);
-
-						var allclass = '#proj-' + pid + '-allcheck';
-						var chkclass = '.proj-' + pid + '-check';
-
-						// Now start checking to see if we need to mark the checkboxes
-						// under this particular project
-						if ($(allclass).attr('checked')) {
-
-							$(chkclass).each(function (index) {
-								$(this).attr('checked', true);
-							});
-						}
-					});
-				}
 
 				$(gscheck).each(function (index) {
 					$(this).attr('checked', true);

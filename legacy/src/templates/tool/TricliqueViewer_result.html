@@ -1,11 +1,11 @@
-<!--
+ <!--
     file created by Melissa 9/15/15
     file needs to be altered to perform specific functions for triclique tool
     modified by Kevin 9/20/15
     modifed by Clarissa on many, many days
 -->
 
-{% set title=tool.name + " Results" %}
+{% set title=tool.name + " Triclique Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -66,9 +66,10 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 
     .sets {
         width: 280px;
-        right: 0;
+        right: 280px;
         text-align: right;
     }
+
     #footer {
         float: left;
         clear: both;
@@ -96,26 +97,29 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                     X.send(V ? V : "");
                     return X.responseText;
                 }
-
                 //var mycells = IO('/Users/group5admin/Documents/geneweaver/results/' + "{{ task_id | safe }}" + '.csv');
                 var mycells = "{{ csv_results | safe }}";
                 // REmember to change the split \n back to a tab
                 mycells = mycells.split(/\t/g).map(function(a){return a.split(/\t/g)} );
+
                 var temp = '';
                 var t = '';
                 //document.write(mycells.join("\n")); //view the cells
-                // Added the minus 1 for reasons unknown...
-                for (i=1; i < mycells.length-1; ++i){
+                for (i=1; i < mycells.length; ++i){
                     entry = mycells[i];
+
                     for (j=0; j < entry.length; ++j){
                         temp = entry[j];
                         var n = temp.split(',');
-                        t = n[1];
+                        //t = n[1];
                         //t = n[1].replace(/-.*/,'');
-                        t = n[0] + ' ' + t + '<br>';
-                        document.writeln(t.fontcolor(n[4]));
+                        t = n[1];
+                        document.write(t.fontcolor(n[4]) + "<br>");
+
                     }
                 }
+                //console.log(t);
+
                 </script>
             </div>
     </div>
@@ -158,7 +162,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
 
     var width = 900,
             height = 900,
-            outerRadius = Math.min(width, height) / 2 - 10,
+            outerRadius = Math.min(width, height) / 2 - 75,
             innerRadius = outerRadius - 24;
 
     var formatPercent = d3.format(".1%");
@@ -207,7 +211,18 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                     .data(layout.groups)
                     .enter().append("g")
                     .attr("class", "group")
-                    .on("mouseover", mouseover);
+                    .on("mouseover", mouseover)
+                //TODO: Figure out the correct url for this hyperlink
+                    .on("click", function(d, i){
+                         console.log("cities[i]: ", cities[i].name)
+                         console.log("i: ", i)
+                         console.log(cities[i].name.length)
+                         if(cities[i].name.length == 5)
+                             window.open("http://127.0.0.1:5000/search/?searchbar=" + cities[i].gs_name + "&pagination_page=1&searchGenes=yes")
+                         else if(cities[i].name.length == 6)
+                             window.open("http://127.0.0.1:5000/viewgenesetdetails/" + cities[i].name)
+                    });
+
 
             // Add a mouseover title.
             group.append("title").text(function(d, i) {
@@ -238,7 +253,7 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
     					return (d.endAngle + d.startAngle)/2 > Math.PI ?
         				"end" : "start";
 				})
-			.text(function(d,i) { return cities[i].name; });
+			.text(function(d,i) { return cities[i].abbr; });
 
 //            groupText.append("textPath")
 //                    .attr("xlink:href", function(d, i) { return "#group" + i; })
@@ -266,6 +281,11 @@ contain a 1 if the gene is found in the corresponding GeneSet, or a 0 if it was 
                         + " → " + cities[d.source.index].name
                         + ": " + formatPercent(d.target.value);
             });
+
+            // Add an on click for each chord
+            chord.on("click", function(d) {
+                window.open("http://127.0.0.1:5000/viewgenesetoverlap/" + cities[d.source.index].name + "/" + cities[d.target.index].name)
+            } );
 
             function mouseover(d, i) {
                 chord.classed("fade", function(p) {
