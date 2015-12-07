@@ -9,7 +9,7 @@
         text-decoration: none;
     }
 
-    #clickablefontawesome {
+    #clickableGroupCreate {
         cursor: pointer;
     }
 
@@ -137,6 +137,35 @@
                             </table>
                         </div>
 
+                        <div class="row">
+                            <p><span id="clickableGroupCreate"><i class="fa fa-group"></i> Create New Group</span></p>
+                        </div>
+
+                        <div id="createGroup" style="display: none;">
+                            <form>
+                                <div class="row">
+                                    <label for="group_name"><h4>New Group Name: </h4></label>
+                                    <input type="text" id="groupCreate" name="group_name" class="form-control input-lg">
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-6">
+                                        <label><input type="checkbox" name="private_box" value="Private"
+                                                      id="groupPrivate" checked>Private</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xr-2">
+                                        <button class="btn btn-primary pull-left"
+                                                type='submit'
+                                                value='Create'
+                                                onclick='createGroup()'>Create
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+
                         {% if groupsMemberOf | length > 0 %}
                         <div class="row">
                             <div class="page-header2">
@@ -215,6 +244,10 @@
                                         </div>
                                     </div>
                                 </div>
+
+
+
+
 
                                 <div id="create" class="panel-collapse collapse">
                                     <div class="panel-body">
@@ -493,6 +526,10 @@
 
         $("#confirmDelete").on('click', function() {
            var p = $(this).attr("#grp_id");
+        });
+
+        $('#clickableGroupCreate').on('click', function () {
+            $('#createGroup').slideToggle();
         });
 
     });
