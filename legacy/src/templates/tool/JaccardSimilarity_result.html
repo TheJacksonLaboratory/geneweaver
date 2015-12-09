@@ -3,43 +3,6 @@
 {% import 'macros.html' as macros %}
 <style>
 
-    div.tooltip {
-  position: absolute;
-  text-align: center;
-  width: 300px;
-  height: 60px;
-  padding: 2px;
-  font: 10px sans-serif;
-  background: ghostwhite;
-  pointer-events: none;}
-{#        font-weight: bold;#}
-
-#slider {
-  margin-top: 50px;
-  margin-left: 50px;
-  margin-bottom: 50px;
-  width: auto;
-  height: auto;
-}
-
-.ui-slider-handle {
-    border-radius: 10px;
-    background: none !important;
-    background-color: #efefef !important;
-}
-
-.tooltip-inner {
-    background-color: #E74937 !important;
-    border-radius: 0px;
-}
-
-.tooltip-arrow {
-    border-top-color: #E74937 !important;
-}
-
-#clickableFontAwesome {
-    cursor: pointer;
-}
 
 #panel, #flip {
     padding: 5px;
@@ -47,19 +10,13 @@
 }
 
 #panel {
-{#    padding: 50px;#}
     display: none;
     background-color: #FFFFFF;
 }
-.badger-left:after {
-}
-
 
 #flip {
  height: 50px;
 }
-
-
 
 #rerunPanel, #rerunFlip {
     padding: 5px;
@@ -86,8 +43,8 @@
 .left-cell {
   vertical-align: middle;
   width: 200px;
-
 }
+
 .right-cell {
   display: table-cell;
   vertical-align: middle;
@@ -101,7 +58,6 @@
   text-align: left;
   padding-left: 320px;
 }
-
 
 .box-header {
   padding-bottom: 5px;
@@ -120,95 +76,41 @@
     margin: 5px;
 }
 
-
 #checkall{
     float: left;
-
 }
 
-  .page-header {
-        border-bottom-width: thick;
-        border-bottom-color: #006400;
-    }
-
-/*input#checkall[type='checkbox'] {
-    -webkit-checkbox: none;
-    width:3px;
-    height:3px;
-    background:white;
-    border-radius:5px;
-    border:2px solid #555;
-}
-{#input#checkall[type='checkbox']:checked {#}
-{#    background: #006b00;#}
-{#}#}
-
-
-input[type="checkbox"] {
- -webkit-appearance:none;*//* Hides the default checkbox style */
- /*height:1.32em;
- width:1.32em;
- cursor:pointer;
- position:relative;
- -webkit-transition: .15s;
- border-radius: 4px;
- background-color: rgba(221, 221, 221, 0.87);
-
+.page-header {
+    border-bottom-width: thick;
+    border-bottom-color: #006400;
 }
 
-input[type="checkbox"]:hover {
- background: rgba(143, 151, 105, 0.67);
-}
-input[type="checkbox"]:checked {
- background-color:green;
+.axis path,
+.axis line {
+    fill: none;
 }
 
-input[type="checkbox"]:before, input[type="checkbox"]:checked:before {
- position:absolute;
- top:0;
- left:0;
- width:100%;
- height:100%;
- line-height:1.32em;
- text-align:center;
- color:#fff;
-
-}
-
-input[type="checkbox"]:checked:before {
- content: '✔';
-}
-
-input[type="checkbox"]:hover:before {
- background:rgba(255,255,255,0.3);
-}*/
-
-
-        .axis path,
-        .axis line {
-          fill: none;
-
-        }
 </style>
-
-
-
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
- <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 
-{#<link rel="stylesheet" href="/resources/demos/style.css">#}
+
+{% if g.user is defined %}
+    {% include 'modal/addGenesetsToProjects.html' %}
+{% endif %}
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
+
 
 <div class="panel panel-default panel-heading bg-gray-light">
     <h3 class="panel-title"><strong>{{ title }} </strong> <span id="what" data-toggle="tooltip"><i class="fa fa-info-circle"></i></span></h3>
 </div>
-
 
 <div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
 
@@ -226,33 +128,29 @@ input[type="checkbox"]:hover:before {
         </button>
      </form>
 </div>
-
-
 <br>
-<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">    Geneset Table Panel</i></div>
+
+<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">Geneset Table Panel</i></div>
 <div id="panel" class="badger-left">
 
-    <button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
+<button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
 <div id="chart"></div>
+    <div><form action="#" method="post" id="myform">
+        <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
+         </form></div>
+         <p></p><br><br><br>
+         <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
+            <i class="fa fa-folder-o pull-left"></i> Add to Project
+         </button>
 
-                        <div><form action="#" method="post" id="myform">
-                            <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
-                        </form></div> <p></p><br><br><br>
-
-
-                        <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
-                            <i class="fa fa-folder-o pull-left"></i> Add to Project
-                        </button>
-
-                        <button type="button" class="btn btn-lg btn-warning divider" id="exportData">
-                            <i class="fa fa-download pull-left"></i> Export Genes
-                        </button>
+        <button type="button" class="btn btn-lg btn-warning divider" id="exportData">
+            <i class="fa fa-download pull-left"></i> Export Genes
+        </button>
 </div>
 
-
-   <div class="page-header"> </div>
+<div class="page-header"> </div>
 <p>
-  <div class="box-header clearfix">
+<div class="box-header clearfix">
       <div class = "left-cell">
          <h4>Venn Diagram view:</h4>
       </div>
@@ -281,157 +179,39 @@ input[type="checkbox"]:hover:before {
 <div id="pvalLeg"> <img src="/static/images/whitedot.png" > = Geneset Did Not Meet Threshold</div></p></div>
 
 
-
-
-
-
-
-<script>
-
-$(document).ready(function(){
-    $(".dropdown").on("show.bs.dropdown", function(event){
-        var x = $(event.relatedTarget).text(); // Get the button text
-
-    });
-});
-
-</script>
-
-
-
 {#Location for where the d3 is appended to in the html#}
 <div id="jaccard">
-
-        <div id=divError class="alert alert-danger fade in">
+    <div id=divError class="alert alert-danger fade in">
         <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
         The p-value threshold is too high, please run the tool again at a lower threshold.
-        </div>
-
+    </div>
 </div>
 
 
-  <label for="nRadius">
+  <label for="nOpacity">
 {#         style="display: inline-block; width: 240px; text-align: left">#}
         <h2 id="pthresh">P-Value Threshold (0.05 increments):
-      <label  style="font-weight: bold" id="nRadius-value">…</label></h2>
+      <label  style="font-weight: bold" id="nOpacity-value">…</label></h2>
   </label>
 
-  <input type="range" min="0" max="1" step = "0.05" id="nRadius">
+  <input type="range" min="0" max="1" step = "0.05" id="nOpacity">
 </p>
-
-
+<br>
 <br>
 
 
 
 
-<br>
-
-
-
-
-{% if g.user is defined %}
-
-    {% include 'modal/addGenesetsToProjects.html' %}
-
-{% endif %}
-
-{% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 {# Start of script#}
 <script type="text/javascript">
-
-{#  Declaration of data as d variable#}
-    var d = {{ data | safe }};
-
-{# Checks number of objects venn_diagram has#}
-    var count = 0;
-    for (var key in d.venn_diagrams)
-        if (d.venn_diagrams.hasOwnProperty(key))
-            count++;
-
-{# Counts number of text objects in venn_diagrams text set#}
-    var count_text = 0;
-
-{# Used to keep track of label id for gene sets that are overlapping with themselves#}
-    var check = 0;
-
-{# Array used to define the coordinates of the graph#}
-    var gene_lab_coor = [];
-
-{# Array for all elements of each venn_diagram circle object#}
-    var circleData = [];
-
-{# Finds the length and width of entire chart (object wise) #}
-    var num_sets = Math.sqrt(count);
-
-{# Sets the graph coordinates to 0,0#}
-    var x_coord = 0;
-    var y_coord = 0;
-
-{# Array to hold the value for gene_sets set in jSon data#}
-    var gene_sets = [];
-    gene_sets = d.geneset_table;
-
-{# Arrau to hold individual gene set ids (w/o the GS) to get the url#}
-    var gene_ids = [];
-    var gid= "";
-
-{#Create string to hold titles#}
-    var str = "";
-{#Create varaible to store row number#}
-    var row = -1;
-{# Intializes gene_ids array for click url functionality#}
-    for (i= 0; i<gene_sets.length; i++){
-        gene_ids[i] = gid;
-    }
-
-{# Gets URLs for click function#}
-    var gene_url = [];
-    var geneurl_text = "";
-    gene_url = d.genesets;
-{# Intializes gene_ids array for click url functionality#}
-    for (i= 0; i<gene_url.length; i++){
-        geneurl_text = gene_url[i].substring(2);
-        gene_url[i] = geneurl_text;
-    }
-
-{# var compare_threshold = d.JaccardSimilarity_p-Value;#}
-{#console.log(compare_threshold);#}
-var threshold = false;
- var pValues = [];
- var pValueCount = 0;
- var isPVal = "p = ";
-  for (i = 0; i < count; i++) {
-
-        count_text = 0;
-        for (var key in d.venn_diagrams[i].text) {
-            if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
-                ++count_text;
-            }
-        }
-      for (k = 0; k < count_text; k++) {
-          var str = d.venn_diagrams[i].text[k].text;
-          if(str.search(isPVal) != -1){
-              //alert(str.replace("p =  ",""));
-              str = str.replace("p =", "");
-              str=str.replace(/^\s+|\s+$/g,'');
-              pValues[pValueCount] =  str;
-              pValueCount += 1;
-         }
-      }
-  }
-
-
-function isIn(arr, x) {
+ function isIn(arr, x) {
     for(var i = 0; i < arr.length; i++) {
         if(arr[i] === x) return true;
     }
     return false;
 }
 
-
-//console.log({{ data | safe }});
 // function to reduce matrix based on pValues and threshold
 function reduceMatrix() {
     // create pMatrix
@@ -472,7 +252,7 @@ function reduceMatrix() {
     for(var h = 0; h < pMatrix.length; h++) {
         var isNull = true;
         for(var j = 0; j < pMatrix[h].length; j++) {
-            if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) { 
+            if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) {
                 isNull = false;
                 break;
             }
@@ -484,115 +264,193 @@ function reduceMatrix() {
     }
    return elim;
 }
-console.log("count", count);
-var elim = reduceMatrix();
-console.log(elim);
-var row_count = 0;
-var first_run = true;
-{# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
-var xVal = -1;
-var yVal = -1;
-var skipMe = false;
-    for (i = 0; i < count; i++) {
-        var str = "-1";
 
-        xVal++;
-        if (i % num_sets === 0) {
-            //console.log("New Row");
-            row_count++;
-            x_coord = 150;
-            yVal++;
-            xVal = 0;
-            console.log("xVal = " + xVal);
-            if (first_run) {
-                y_coord = 50;
-                first_run = false;
-                row_count = 0;
-            }
-            if(isIn(elim, row_count)) { // Skip a row
-                console.log("row " + row_count + " is in elim");
-                //row_count++;
-                i += num_sets-1;
-                console.log("i = " + i);
-                continue;
-                
-            }else if(isIn(elim, i % num_sets)) {  // Skip a column
-              console.log("first col")
-              console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
-              i++;
-              xVal++;
-              console.log("else xVal = " + xVal);
-              console.log("i = " + i);
-              y_coord += 150;
-              continue;
-            }
-              y_coord += 150;
-            }
-         else {
+
+
+   var d = {{ data | safe }}; //Declaration of data as d variable
+
+   {# Checks number of objects venn_diagram has#}
+   var count = 0;
+   for (var key in d.venn_diagrams)
+       if (d.venn_diagrams.hasOwnProperty(key))
+           count++;
+
+   var count_text = 0; // Counts number of text objects in venn_diagrams text set
+   var check = 0; // Used to keep track of label id for gene sets that are overlapping with themselves
+   var gene_lab_coor = []; // Array used to define the coordinates of the graph
+   var circleData = []; // Array for all elements of each venn_diagram circle object
+   var num_sets = Math.sqrt(count); // Finds the length and width of entire chart (object wise)
+
+   var x_coord = 0, y_coord = 0; // Sets the graph coordinates to 0,0
+
+   var gene_sets = []; //Array to hold the value for gene_sets set in jSon data
+   gene_sets = d.geneset_table;
+
+   var gene_ids = []; //Array to hold individual gene set ids (w/o the GS) to get the url
+   var gid= "";
+
+   var str = ""; // Create string to hold titles
+   var row = -1; // Create variable to store row number
+
+   {# Intializes gene_ids array for click url functionality#}
+   for (i= 0; i<gene_sets.length; i++){
+       gene_ids[i] = gid;
+   }
+
+   {# Gets URLs for click function#}
+   var gene_url = [];
+   var geneurl_text = "";
+   gene_url = d.genesets;
+
+    {# Intializes gene_ids array for click url functionality#}
+   for (i= 0; i<gene_url.length; i++){
+       geneurl_text = gene_url[i].substring(2);
+       gene_url[i] = geneurl_text;
+   }
+
+   var threshold = false;
+   var pValues = [];
+   var pValueCount = 0;
+   var isPVal = "p = ";
+
+   for (i = 0; i < count; i++) {
+
+       count_text = 0;
+
+       for (var key in d.venn_diagrams[i].text) {
+           if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
+               ++count_text;
+           }
+       }
+
+       for (k = 0; k < count_text; k++) {
+
+           var str = d.venn_diagrams[i].text[k].text;
+
+           if(str.search(isPVal) != -1){
+               str = str.replace("p =", "");
+               str=str.replace(/^\s+|\s+$/g,'');
+               pValues[pValueCount] =  str;
+               pValueCount += 1;
+           }
+       }
+   }
+
+
+   console.log("count", count);
+   var elim = reduceMatrix();
+   console.log(elim);
+   var row_count = 0;
+   var first_run = true;
+
+   {# Plots the graph in a correct fashion by incrementing differently for different items in the set#}
+   var xVal = -1;
+   var yVal = -1;
+   var skipMe = false;
+   for (i = 0; i < count; i++) {
+       var str = "-1";
+
+       xVal++;
+
+       if (i % num_sets === 0) {
+
+           row_count++;
+           x_coord = 150;
+           yVal++;
+           xVal = 0;
+           console.log("xVal = " + xVal);
+
+           if (first_run) {
+               y_coord = 50;
+               first_run = false;
+               row_count = 0;
+           }
+
+           if(isIn(elim, row_count)) { // Skip a row
+               console.log("row " + row_count + " is in elim");
+               i += num_sets-1;
+               console.log("i = " + i);
+               continue;
+           }
+           else if(isIn(elim, i % num_sets)) {  // Skip a column
+               console.log("first col")
+               console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
+               i++;
+               xVal++;
+               console.log("else xVal = " + xVal);
+               console.log("i = " + i);
+               y_coord += 150;
+               continue;
+           }
+
+           y_coord += 150;
+       }
+       else {
           
-          if(isIn(elim, i % num_sets)) {  // Skip a column
-            console.log("column")
-              console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
-              console.log("else xVal = " + xVal);
-              console.log("i = " + i);
-              if(i % num_sets === 0) {
-                i--;
-                xVal = -1;
-                //continue;
-              }
+           if(isIn(elim, i % num_sets)) {  // Skip a column
+               console.log("column")
+               console.log("element " + i + " (modulo " + num_sets + " = " + i % num_sets +") is in elim");
+               console.log("else xVal = " + xVal);
+               console.log("i = " + i);
+               if(i % num_sets === 0) {
+                  i--;
+                  xVal = -1;
+               }
               continue;
+           }
+       }
+
+       x_coord += 200;
+
+       if(i >= count) {
+           console.log("i was " + i );
+           break;
+       }
+
+       console.log("row count: " + row_count + ", num sets: " + num_sets);
+
+       if(elim.length === num_sets){
+           $('#nOpacity-value').hide();
+           $('#nOpacity').hide();
+           $('#thresholdMsg').hide();
+           $('#zoomButton').hide();
+           $('#menu1').hide();
+           $('#empLeg').hide();
+           $('#pvalLeg').hide();
+           $('#genesetLeg').hide();
+           $('#yaxisLeg').hide();
+           $('#xaxisLeg').hide();
+           $('#pthresh').hide();
+           $('#jaccard').hide();
+      }
+      else{
+           $('#divError').hide();
+      }
+
+      {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
+       gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
+
+       {# Resets the count_text value to 0 #}
+       count_text = 0;
+
+        {# Counts the number of objects in venn_diagram's text set #}
+       for (var key in d.venn_diagrams[i].text) {
+          if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
+             ++count_text;
           }
-         
-        }
-        x_coord += 200;
-        if(i >= count) {
-          console.log("i was " + i );break;}
-        console.log("row count: " + row_count + ", num sets: " + num_sets);
+       }
 
-        alert(elim.length + " " + num_sets)
+       {#  Read through k times and create text labels based upon k's value  #}
+       for (k = 0; k < count_text; k++) {
+          var isPVal = "p = ";
 
-  if(elim.length === num_sets){
-       $('#nRadius-value').hide();
-       $('#nRadius').hide();
-       $('#thresholdMsg').hide();
-       $('#zoomButton').hide();
-       $('#menu1').hide();
-       $('#empLeg').hide();
-       $('#pvalLeg').hide();
-       $('#genesetLeg').hide();
-       $('#yaxisLeg').hide();
-       $('#xaxisLeg').hide();
-       $('#pthresh').hide();
-       $('#jaccard').hide();
-  }else{
-       $('#divError').hide();
-  }
-{# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
-        gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
-
-{# Resets the count_text value to 0 #}
-        count_text = 0;
-
-{# Counts the number of objects in venn_diagram's text set #}
-        for (var key in d.venn_diagrams[i].text) {
-            if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
-                ++count_text;
-            }
-        }
-
-{#  Read through k times and create text labels based upon k's value  #}
-        for (k = 0; k < count_text; k++) {
-            var isPVal = "p = ";
-
-            if (k === 2) {
+             if (k === 2) {
                 str = d.venn_diagrams[i].text[k].text;
                 str = str.replace("p =", "");
                 str = str.replace(/^\s+|\s+$/g, '');
+             }
 
-            }
-
-
-{#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
+            {#  When values of c1,c2 are the same then make turquoise circle with initialized objects in json #}
             if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
               if((d.venn_diagrams[i].emphasis1 == "False" ) && (d.venn_diagrams[i].emphasis2 == "False")){
                 circleData.push({
@@ -696,7 +554,7 @@ var skipMe = false;
                           "cx": d.venn_diagrams[i].c1x,
                           "cy": d.venn_diagrams[i].c1y,
                           "radius": d.venn_diagrams[i].r1,
-                          "fill": "FF6666",
+                          "fill": "#FF6666",
                           "opacity": d.venn_diagrams[i].opacity,
                           "cxshift": x_coord,
                           "cyshift": y_coord,
@@ -741,7 +599,7 @@ var skipMe = false;
                           "cx": d.venn_diagrams[i].c2x,
                           "cy": d.venn_diagrams[i].c2y,
                           "radius": d.venn_diagrams[i].r2,
-                          "fill": "DD99FF",
+                          "fill": "#DD99FF",
                           "opacity": d.venn_diagrams[i].opacity,
                           "cxshift": x_coord,
                           "cyshift": y_coord,
@@ -790,7 +648,7 @@ var skipMe = false;
                           "cx": d.venn_diagrams[i].c2x,
                           "cy": d.venn_diagrams[i].c2y,
                           "radius": d.venn_diagrams[i].r2,
-                          "fill": "DD99FF",
+                          "fill": "#DD99FF",
                           "opacity": d.venn_diagrams[i].opacity,
                           "cxshift": x_coord,
                           "cyshift": y_coord,
@@ -837,7 +695,7 @@ var skipMe = false;
                         "cx": d.venn_diagrams[i].c1x,
                         "cy": d.venn_diagrams[i].c1y,
                         "radius": d.venn_diagrams[i].r1,
-                        "fill": "FF6666",
+                        "fill": "#FF6666",
                         "opacity": d.venn_diagrams[i].opacity,
                         "cxshift": x_coord,
                         "cyshift": y_coord,
@@ -1044,7 +902,7 @@ var skipMe = false;
 
 
     // when the input range changes update the circle
-    d3.select("#nRadius").on("input", function() {
+    d3.select("#nOpacity").on("input", function() {
         updateOpacity(+this.value);
     });
 
@@ -1053,18 +911,18 @@ var skipMe = false;
     updateOpacity(d.JaccardSimilarity_p_Value);
 
     // update the elements
-    function updateOpacity(nRadius) {
+    function updateOpacity(nOpacity) {
 
       // adjust the text on the range slider
-      d3.select("#nRadius-value").text(nRadius);
-      d3.select("#nRadius").property("value", nRadius);
+      d3.select("#nOpacity-value").text(nOpacity);
+      d3.select("#nOpacity").property("value", nOpacity);
 
 
         svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue < nRadius ) return true;})
+            .filter(function (d) {if (d.pvalue < nOpacity ) return true;})
             .style("fill-opacity",0);
         svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue >= nRadius ) return true;})
+            .filter(function (d) {if (d.pvalue >= nOpacity ) return true;})
             .style("fill-opacity",1);
        }
 
@@ -1199,7 +1057,6 @@ $(document).ready(function() {
 
 
 
-
     var margin = {top: 30, right: 0, bottom: 20, left: 60},
       width = 960 - margin.left - margin.right,
       height = 500 - margin.top - margin.bottom;
@@ -1217,7 +1074,6 @@ $(document).ready(function() {
     var y = d3.scale.linear()
       .domain([yMin, yMax])
       .range([height+20, 0]);
-
 
 
     //Define X axis
@@ -1542,6 +1398,9 @@ $(document).ready(function() {
             }
         });
 
+
+
+
 </script>
 
 <script>
@@ -1560,5 +1419,10 @@ var wikiImg = '<a href="http://geneweaver.org/wiki/index.php?title=Jaccard_Simil
             imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
         });
         });
+
 </script>
+
+
+
+
 {% include 'footer.html' %}
