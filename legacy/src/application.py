@@ -272,7 +272,14 @@ def get_group(user_id):
 
 @app.route("/gwdb/create_group/<group_name>/<group_private>/<user_id>/")
 def create_group(group_name, group_private, user_id):
-    return geneweaverdb.create_group(group_name, group_private, user_id)
+    results = geneweaverdb.create_group(group_name, group_private, user_id)
+    return json.dumps(results)
+
+
+@app.route("/gwdb/edit_group/<group_name>/<group_id>/<group_private>/<user_id>/")
+def edit_group_name(group_name, group_id, group_private, user_id):
+    results = geneweaverdb.edit_group_name(group_name, group_id, group_private, user_id)
+    return json.dumps(results)
 
 
 @app.route("/gwdb/add_user_group/<group_name>/<user_id>/<user_email>/")
@@ -289,7 +296,7 @@ def remove_user_group(group_name, user_id, user_email):
 @app.route("/gwdb/delete_group/<group_name>/<user_id>/")
 def delete_group(group_name, user_id):
     results = geneweaverdb.delete_group(group_name, user_id)
-    return flask.redirect("/accountsettings")
+    return json.dumps(results)
 
 
 @app.route('/share_projects.html')

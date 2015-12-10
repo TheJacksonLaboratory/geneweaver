@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable {
+    .clickable, .clickable_delete, .clickable_edit {
         cursor: pointer;
     }
 
@@ -93,7 +93,7 @@
                                                     {% if grpO.grp_private %}
                                                         <span class="label label-danger">Private</span>
                                                     {% else %}
-                                                        <span class="label label-default">Public</span>
+                                                        <span class="label label-info">Public</span>
                                                     {% endif %}
                                                 </span>
                                             </td>
@@ -105,8 +105,8 @@
                                             <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Delete" type="button" title="Delete Group"
                                                       style="margin: 2px; padding: 0px 2px;">
-                                                    <span class="clickable" id="delete_{{ grpO.grp_id }}"
-                                                          data-toggle="modal" data-target="#delModal_{{ grpO.grp_id }}">
+                                                    <span class="clickable_delete" id="deleteGroupModal_{{ grpO.grp_id }}"
+                                                          data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
                                                             <i class="fa fa-trash-o"></i></span>
                                                 </span>
                                             &nbsp;
@@ -120,7 +120,9 @@
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Edit" type="button" title="Edit Group"
                                                       style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable" id="clickableedit"><i class="fa fa-pencil"></i></span></span>
+                                                <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
+                                                        data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
+                                                            <i class="fa fa-pencil"></i></span></span>
                                             &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Add" type="button" title="Add Members"
@@ -129,7 +131,9 @@
                                             </td>
                                         </tr>
                                         {% include 'modal/deleteGroup.html' %}
-                                        {% include 'modal/deleteGroupUsers.html' %}
+                                        {% include 'modal/editGroupName.html' %}
+
+
                                     {% endfor %}
                                 {% else %}
                                     <tr><th>None</th></tr>
@@ -142,7 +146,7 @@
                         </div>
 
                         <div id="createGroup" style="display: none;">
-                            <form>
+                            <form id="createNewGroup">
                                 <div class="row">
                                     <label for="group_name"><h4>New Group Name: </h4></label>
                                     <input type="text" id="groupCreate" name="group_name" class="form-control input-lg">
@@ -156,9 +160,9 @@
                                 <div class="row">
                                     <div class="col-xr-2">
                                         <button class="btn btn-primary pull-left"
-                                                type='submit'
+                                                type='button'
                                                 value='Create'
-                                                onclick='createGroup()'>Create
+                                                id="createGroupButton">Create
                                         </button>
                                     </div>
                                 </div>
@@ -512,7 +516,9 @@
 
 {% endif %}
 
-
+{#
+{% include 'modal/deleteGroupUsers.html' %}
+ #}
 {% include 'footer.html' %}
 
 
@@ -532,21 +538,108 @@
             $('#createGroup').slideToggle();
         });
 
+        $('#createGroupButton').on('click', function () {
+            var groupName = $("#groupCreate").val();
+            //var isPrivate = $("#groupPrivate").val();
+            var isPrivate = 'Public';
+            if ($("#groupPrivate").is(':checked')) {
+                isPrivate = 'Private';
+            }
+            var userId = {{user.user_id}};
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/create_group/" + groupName + "/" + isPrivate + "/" + userId + "/",
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Group " + data + " Successfully Added.",
+                            'priority': 'success'
+                        }
+                    ]);
+                    $("#groups").load(location.href + " #groups");
+                    window.location.reload();
+                    $('#createGroup').slideToggle();
+                }
+            });
+        });
+
+        $('.clickable_edit').on('click', function() {
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#groupName_" + grp_id).val(grp_name);
+            $("#edit_user_id_" + grp_id).val({{ user.user_id }});
+            $("#edit_grp_id_" + grp_id).val(grp_id);
+            $('#editModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+
+        $('.editGroupName').on('click', function () {
+            var formID = $(this).attr("data-modal-id");
+            var groupID = $("#edit_grp_id_" + formID).val();
+            var userID = $("#edit_user_id_" + formID).val();
+            var groupName = $("#groupName_" + formID).val();
+            var isPrivate = 'Public';
+            if ($("#groupPrivate_" + formID).is(':checked')) {
+                isPrivate = 'Private';
+            }
+        });
+
+
+        $('.clickable_delete').on('click', function() {
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#myModalLabel_" + grp_id).html(grp_name);
+            $("#user_id_" + grp_id).val({{ user.user_id }});
+            $("#grp_id_" + grp_id).val(grp_id);
+            $('#delModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+
+        $('.deleteGroupFromUser').on('click', function () {
+            var formID = $(this).attr("data-modal-id");
+            var groupID = $("#grp_id_" + formID).val();
+            var userID = $("#user_id_" + formID).val();
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/delete_group/" + groupID + "/" + userID + "/",
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Group Successfully Deleted.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        //$("#groups").load(location.href + " #groups");
+                        window.location.reload();
+                    }
+                    else{
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error occured while deleting group " + groupID + ".",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                }
+            });
+        });
     });
 
     //pass remove modal values to function
-    function deleteGroupFromUser(grp_id) {
-        var g = grp_id;
-        var user_id = {{ user.user_id }};
-        $.get("/gwdb/delete_group/" + g + "/" + user_id + "/", function (data, status) {
-            $(document).trigger("add-alerts", [
-                {
-                    'message': "Group Successfully Deleted.",
-                    'priority': 'success'
-                }
-            ]);
-            $("#groups").load(location.href + " #groups");        });
-    }
+    //function deleteGroupFromUser(grp_id) {
+    //    var g = grp_id;
+    //    var user_id = {{ user.user_id }};
+    //    $.get("/gwdb/delete_group/" + g + "/" + user_id + "/", function (data, status) {
+    //        $(document).trigger("add-alerts", [
+    //            {
+    //                'message': "Group Successfully Deleted.",
+    //                'priority': 'success'
+    //            }
+    //        ]);
+    //        $("#groups").load(location.href + " #groups");        });
+    //}
 
     // Add genesets to projects
     function removeUsersFromGroup(grp_id) {
@@ -595,34 +688,48 @@
         }
     }
 
-    function createGroup() {
-        var groupName = $("#groupCreate").val();
+    //function createGroup() {
+    //    var groupName = $("#groupCreate").val();
         //var isPrivate = $("#groupPrivate").val();
-        if ($('input[name="private_box"]:checked').length > 0) {
-            var isPrivate = 'Private';
-        }
-        else {
-            var isPrivate = 'Public';
-        }
-        var userId = {{user.user_id}};
-        $.get("/gwdb/create_group/" + groupName + "/" + isPrivate + "/" + userId + "/", function (data, status) {
-            $("#groups").load(location.href + " #groups");
-            $(document).trigger("add-alerts", [
-                {
-                    'message': "Group Successfully Added.",
-                    'priority': 'success'
-                }
-            ]);
-        });
-    }
+    //    if ($('input[name="private_box"]:checked').length > 0) {
+    //        var isPrivate = 'Private';
+    //    }
+    //    else {
+    //        var isPrivate = 'Public';
+    //    }
+    //    var userId = {{user.user_id}};
+    //    $.ajax({
+    //        type: "GET",
+    //        url: "/gwdb/create_group/" + groupName + "/" + isPrivate + "/" + userId + "/",
+    //        success: function (data) {
+    //            $(document).trigger("add-alerts", [
+    //                {
+    //                    'message': "Group " + data + " Successfully Added.",
+        //                   'priority': 'success'
+    //                }
+    //            ]);
+    //            //$("#groups").load(location.href + " #groups");
+    //        }
+    //    });
 
-    function deleteGroup() {
-        var groupName = $("#groupDelete").val();
-        var userId = {{user.user_id}};
-        $.get("/gwdb/delete_group/" + groupName + "/" + userId + "/", function (data, status) {
-        });
+        //$.get("/gwdb/create_group/" + groupName + "/" + isPrivate + "/" + userId + "/", function (data, status) {
+        //    $("#groups").load(location.href + " #groups");
+        //    $(document).trigger("add-alerts", [
+        //        {
+        //            'message': "Group Successfully Added.",
+        //            'priority': 'success'
+        //        }
+        //    ]);
+        //});
+    //}
 
-    }
+    //function deleteGroup() {
+    //    var groupName = $("#groupDelete").val();
+    //    var userId = {{user.user_id}};
+    //    $.get("/gwdb/delete_group/" + groupName + "/" + userId + "/", function (data, status) {
+    //    });
+
+    //}
 
     function addGroupUser() {
         var groupName = $("#groupAddUser").val();

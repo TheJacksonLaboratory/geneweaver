@@ -338,7 +338,21 @@ def create_group(group_name, group_private, user_id):
         cursor.connection.commit()
         print cursor.statusmessage
 
-    return grp_id
+    return group_name
+
+# edit group name
+
+def edit_group_name(group_name, group_id, group_private, user_id):
+    if flask.session["user_id"] == user_id:
+        priv = 't' if group_private == 'Private' else 'f'
+        with PooledCursor as cursor:
+            cursor.execute('''UPDATE production.grp SET grp_name=%s AND grp_private=%s WHERE grp_id=%s
+                              AND EXISTS (SELECT 1 FROM usr2grp WHERE grp_id=%s AND usr_id=%s AND u2g_privalages=1)''',
+                           (group_name, priv, group_id))
+            cursor.connection.commit()
+        return {'error': 'None'}
+    else:
+        return {'error': 'User does not have permission'}
 
 
 # adds a user to the group specified.
