@@ -612,6 +612,7 @@ def render_viewgeneset(gs_id):
     return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
 
+#Function that calls the overlap page
 @app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET', 'POST'])
 def render_viewgenesetoverlap(gs_id, gs_id1):
     # get values for sorting result columns
@@ -656,59 +657,61 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
         user_id = session['user_id']
     else:
         user_id = 0
-
+    #Get the current user id 
     user_info = geneweaverdb.get_user(user_id)
+    #Get the geneset that corresponds to gs_id1
     geneset = geneweaverdb.get_geneset(gs_id1, user_id)
+    #Get the geneset that corresponds to gs_id
     geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
+    #List for the number of genesets
     genesets = []
     genesets.append(geneset)
     genesets.append(geneset1)
 
+    #All the genes within geneset 1
     genes = []
+    #All the genes within geneset 2
     genes1 = []
 
-    print "--------------------------------------"
+    #Puts all the ref ids of each gene from geneset1 
     for gene in geneset.geneset_values:
-        genes.append(gene.source_list[0])
-    print "--------------------------------------"
+            genes.append(gene.source_list[0])
 
+    #Puts all the ref ids of each gene from geneset1 
     for gene in geneset1.geneset_values:
         genes1.append(gene.source_list[0])
 
-    print genes1
-    print "length of genes", len(genes1)
 
-
+    #Holds the genes within the intersect portion of the venn diagram 
     intersection_genes = {}
+    #Finds the genes that belong in the intersection
     temp_genes = geneweaverdb.get_intersect_by_homology(gs_id, gs_id1)
-    # print "temp_genes", temp_genes
     for j in range(0, len(temp_genes[0])):
         intersection_genes[temp_genes[0][j]] = geneweaverdb.if_gene_has_homology(temp_genes[1][j])
 
-    # intersection_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
 
-    print "Keys", list(intersection_genes.keys())
-
+    #Final list of genes without the genes found within the intersection
     genesFinal = [item for item in genes if item not in list(intersection_genes.keys())]
+    #Final list of genes without the genes found within the intersection
     genes1Final = [item for item in genes1 if item not in list(intersection_genes.keys())]
 
-    print "length of gene final", len(genesFinal)
-    print "length of gene final", len(genes1Final)
-
+    #If the same gs_id is given return a complete overlap
     if gs_id == gs_id1:
         intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1-gs_id)
     else:
         intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
 
-    print (geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes)
-
+    #Draw the venn diagram
     venn = createVennDiagram(geneset.count-intersect_genes, geneset1.count-intersect_genes, intersect_genes, 200)
 
+    #Calculate the jaccard coefficient
     jaccard = float(intersect_genes)/float(geneset.count-intersect_genes + geneset1.count-intersect_genes + intersect_genes)
     jaccard="%.6f" % jaccard
 
+    #Find  the pvalue within the database
     pvalue = geneweaverdb.getPvalue(geneset.count, geneset1.count, jaccard)
 
+    #Finds the sizes of each portion of the venn diagram
     diagramSizes = []
     diagramSizes.append(geneset.count-intersect_genes)
     diagramSizes.append(intersect_genes)
@@ -720,14 +723,41 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
     else:
         view = None
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
+
+    #variables to hole if a geneset has an emphasis gene
+    inGeneset1 = False
+    inGeneset2 = False
+
+    #Check to see if an emphasis gene is in one of the genesets
+    for gene in emphgeneids:
+        inGeneset1 = geneweaverdb.check_emphasis(gs_id, gene)
+        if inGeneset1 == True:
+            break
+
+    for gene in emphgeneids:
+        inGeneset2 = geneweaverdb.check_emphasis(gs_id1, gene)
+        if inGeneset2 == True:
+            break
+
+    inGs1 = 0
+    inGs2 = 0
+
+    if inGeneset1:
+        inGs1 = 1
+
+    if inGeneset2:
+        inGs2 = 1
+
     return flask.render_template('viewgenesetoverlap.html', geneset=geneset,emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view, 
                                  venn = venn, jaccard = jaccard, pval = pvalue, sizes = diagramSizes, genesets=genesets,
-                                 gene_sym = intersection_genes, gene_sym_set1 = genesFinal, gene_sym_set2 = genes1Final)
+                                 gene_sym = intersection_genes, gene_sym_set1 = genesFinal, gene_sym_set2 = genes1Final,
+                                 gs1_emphasis = inGs1, gs2_emphasis = inGs2)
 
-
+#function to draw the venn diagrams for the overlap page
 def createVennDiagram(i,ii,j, size=100):
     pi = math.acos(-1.0)
     r1 = math.sqrt(i/pi)

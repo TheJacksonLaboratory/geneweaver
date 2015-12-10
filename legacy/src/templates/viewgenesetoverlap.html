@@ -6,7 +6,7 @@
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
 
-{# css section. As a rule, try not to embed style within elements. #}
+ <!-- css section. As a rule, try not to embed style within elements.-->
 <style type="text/css">
 
     #clickableFontAwesome {
@@ -22,14 +22,13 @@
 </style>
 
 
-
 {% if user_id == 0 %}
 
     {% include 'htmlfragments/permissionError.html' %}
 
 {% else %}
 
-
+    <!-- Header for the Geneset Overlap page -->
     <div class="row" id="result"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
@@ -46,6 +45,7 @@
                 <div class="row">
                     <div id="legend">
                         <center>
+                            <!-- Creates the div where the jaccard results of the overlap are displayed -->
                             <div id="venn">
                             </div>
                         </center>
@@ -56,7 +56,7 @@
         </div>
     </div>
 
-
+    <!-- displays detailed data about the individual genesets -->
     {% for gs in genesets %}
     <!-- Label the tier - which is the curation id, Geneset.cur_id -->
     <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ gs.geneset_id }}">
@@ -65,6 +65,7 @@
     <br />
 
     {% endfor %}
+    <!-- Creates options in html for the selecting the add to project -->
     <div id="project_selector">
     <input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
         <p style="margin-left:30px; font-size: 15px;"> Select All
@@ -77,6 +78,8 @@
     </div>
 
     </br></br>
+
+        <!-- Javascript for the select all to the project functionality -->
         <script type="text/javascript">
             function handleSelect(elm)
             {
@@ -120,19 +123,17 @@
             }
     </script>
 
-    {#Location for where the d3 is appended to in the html#}
-    
-    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+    <!-- Location for where the d3 is appended to in the html -->
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
         <h3 class="panel-title">Geneset Intersect</h3>
     </div>
 
+    <!-- Displays the jaccard results for the intersection -->
     <div id="intersection"></div>
             
     
-
     <!-- Show the Geneset List at the intersection of the genesets -->
-   
-    {% for gene in emphgeneids %}
+       {% for gene in emphgeneids %}
         <script>
             document.getElementById("{{gene}}").checked = true;
         </script>
@@ -146,7 +147,7 @@
 <div class="xfloatGeneList">
 
 <style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
-
+<!-- Key for Venn Diagram displayed -->
 <table cellspacing="0" style="font-size: 1em; width: 80%"><tr><th rowspan="2" valign="bottom">
 <p style="font-size: 1em; font-weight: normal;">
 <img src="/static/images/greendot.png" /> = Exact same gene in all sets<br />
@@ -158,6 +159,8 @@ Gene Symbol
 {% set j = 0 %}
 {% for gs in genesets %}
     {% if j!=0 %}
+
+    <!-- Sets the labels to for the columns of the gene list -->
     </th></tr><tr><th width="2%" rowspan="1" style="border-left: 1px solid #000; border-bottom: none;
     {% if j%2==1 %} background-color: #fff;{% endif %}">&nbsp;</th>
     {% endif %}
@@ -169,7 +172,7 @@ Gene Symbol
 {% endfor %}
 
 </th></tr>
-
+<!-- Sets the maroon circles for homology or green circles for the same gene -->
 {% set j = 0 %}
 {% for genes in gene_sym %}
       <tr><td class="{{genes}}">
@@ -187,7 +190,7 @@ Gene Symbol
         {% endfor %}
       </td><td width="250px">&nbsp;</td></tr>
 {% endfor %}
-
+<!-- Sets the yellow circles for the genes found only in geneset1 -->
 {% set j = 0 %}
 {% for genes in gene_sym_set1 %}
       <tr><td class="{{genes}}">
@@ -202,7 +205,7 @@ Gene Symbol
                 <div class="containedHomology"><img src=""/></div>
       </td><td width="250px">&nbsp;</td></tr>
 {% endfor %}
-
+<!-- Sets the yellow circles for the genes found only in geneset2 -->
 {% set j = 0 %}
 {% for genes in gene_sym_set2 %}
       <tr><td class="{{genes}}">
@@ -222,41 +225,114 @@ Gene Symbol
 
 <br />
 <br />
+
+{{gs1_emphasis | safe}}
+
+
 <script type="text/javascript">
     // include all of your jquery here
 
     var circleData = [];
+    //stores all the data to draw a circle
     var d = {{venn | safe}};
+    //stores the jaccard value
     var jaccard = {{jaccard | safe}};
+    //Stores the p value
     var pval = {{pval | safe }};
+    //Stores the sizes of the sections of the venn diagram
     var vennOverlap = {{sizes | safe}};
-
+    //Stores whether geneset1 has an emphasis gene
+    var empInGeneset1 = {{gs1_emphasis | safe}};
+    //Stores whether geneset1 has an emphasis gene
+    var empInGeneset2 = {{gs2_emphasis | safe}};
+    //Adds the circles to the circle data array
     if (d.circledata.r2 != d.circledata.r1){
         if (d.circledata.r2 < d.circledata.r1){
-        circleData.push({
+            if(empInGeneset2 == 1){
+                circleData.push({
                         "cx": d.circledata.c1x,
                         "cy": d.circledata.c1y,
                         "radius": d.circledata.r1,
-                        "fill": "#DD99FF",
+                        "fill": "chartreuse",
                         "opacity": 1,
                         "cxshift": 0,
                         "cyshift": 0,
                         "jaccard": jaccard
                     });
 
-        circleData.push({
-                        "cx": d.circledata.c2x,
-                        "cy": d.circledata.c2y,
-                        "radius": d.circledata.r2,
-                        "fill": "#FF6666",
-                        "opacity": 1,
-                        "cxshift": 0,
-                        "cyshift": 0,
-                        "jaccard": jaccard
+                circleData.push({
+                                "cx": d.circledata.c2x,
+                                "cy": d.circledata.c2y,
+                                "radius": d.circledata.r2,
+                                "fill": "#FF6666",
+                                "opacity": 1,
+                                "cxshift": 0,
+                                "cyshift": 0,
+                                "jaccard": jaccard
 
-                   });
-    }
+                           });
+
+            }
+            else if (empInGeneset1 == 1){
+            circleData.push({
+                            "cx": d.circledata.c1x,
+                            "cy": d.circledata.c1y,
+                            "radius": d.circledata.r1,
+                            "fill": "#DD99FF",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+                        });
+
+            circleData.push({
+                            "cx": d.circledata.c2x,
+                            "cy": d.circledata.c2y,
+                            "radius": d.circledata.r2,
+                            "fill": "chartreuse",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+
+                       });
+        }
+        else if ((empInGeneset1) == 1 && (empInGeneset2 == 1)){
+            circleData.push({
+                            "cx": d.circledata.c1x,
+                            "cy": d.circledata.c1y,
+                            "radius": d.circledata.r1,
+                            "fill": "chartreuse",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+                        });
+
+            circleData.push({
+                            "cx": d.circledata.c2x,
+                            "cy": d.circledata.c2y,
+                            "radius": d.circledata.r2,
+                            "fill": "chartreuse",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+
+                       });
+        }
         else{
+            circleData.push({
+                            "cx": d.circledata.c1x,
+                            "cy": d.circledata.c1y,
+                            "radius": d.circledata.r1,
+                            "fill": "#DD99FF",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+                        });
+
             circleData.push({
                             "cx": d.circledata.c2x,
                             "cy": d.circledata.c2y,
@@ -266,17 +342,108 @@ Gene Symbol
                             "cxshift": 0,
                             "cyshift": 0,
                             "jaccard": jaccard
+
                        });
-            circleData.push({
+        }
+    }
+        else{
+            if(empInGeneset2 == 1){
+                circleData.push({
                         "cx": d.circledata.c1x,
                         "cy": d.circledata.c1y,
                         "radius": d.circledata.r1,
-                        "fill": "#DD99FF",
+                        "fill": "chartreuse",
                         "opacity": 1,
                         "cxshift": 0,
                         "cyshift": 0,
                         "jaccard": jaccard
                     });
+
+                circleData.push({
+                                "cx": d.circledata.c2x,
+                                "cy": d.circledata.c2y,
+                                "radius": d.circledata.r2,
+                                "fill": "#FF6666",
+                                "opacity": 1,
+                                "cxshift": 0,
+                                "cyshift": 0,
+                                "jaccard": jaccard
+
+                           });
+
+            }
+            else if (empInGeneset1 == 1){
+            circleData.push({
+                            "cx": d.circledata.c1x,
+                            "cy": d.circledata.c1y,
+                            "radius": d.circledata.r1,
+                            "fill": "#DD99FF",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+                        });
+
+            circleData.push({
+                            "cx": d.circledata.c2x,
+                            "cy": d.circledata.c2y,
+                            "radius": d.circledata.r2,
+                            "fill": "chartreuse",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+
+                       });
+        }
+        else if ((empInGeneset1) == 1 && (empInGeneset2 == 1)){
+            circleData.push({
+                            "cx": d.circledata.c1x,
+                            "cy": d.circledata.c1y,
+                            "radius": d.circledata.r1,
+                            "fill": "chartreuse",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+                        });
+
+            circleData.push({
+                            "cx": d.circledata.c2x,
+                            "cy": d.circledata.c2y,
+                            "radius": d.circledata.r2,
+                            "fill": "chartreuse",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+
+                       });
+        }
+        else{
+            circleData.push({
+                            "cx": d.circledata.c1x,
+                            "cy": d.circledata.c1y,
+                            "radius": d.circledata.r1,
+                            "fill": "#DD99FF",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+                        });
+
+            circleData.push({
+                            "cx": d.circledata.c2x,
+                            "cy": d.circledata.c2y,
+                            "radius": d.circledata.r2,
+                            "fill": "#FF6666",
+                            "opacity": 1,
+                            "cxshift": 0,
+                            "cyshift": 0,
+                            "jaccard": jaccard
+
+                       });
+        }
 
         }
     }
@@ -293,7 +460,7 @@ Gene Symbol
                     });
     }
 
-    {# Intializes border for circles#}
+    // Intializes border for circles
     var border = 1;
     var bordercolor = 'black';
     var width = 300;
@@ -329,7 +496,7 @@ Gene Symbol
             .data(circleData)
             .enter();
 
-
+    //Add the section sizes, jaccard value, and p value to the svgContainer
     if (d.circledata.r2 != d.circledata.r1){
         text.append("text")
             .text( function(d) { return "(" + vennOverlap[0] + " (" + vennOverlap[1] + ") " + vennOverlap[2] + ")"; })
@@ -384,7 +551,7 @@ Gene Symbol
         }
     }
 
-
+    //Adds the help icon text to the help button
     $('#clickableFontAwesome').popover({
         title: 'Caution', content: 'Some recently added genesets may ' +
         'not be on this list due to a lag time in calculating global Jaccard scores between all genesets in our database.'
