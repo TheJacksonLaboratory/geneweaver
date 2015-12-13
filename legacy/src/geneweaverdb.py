@@ -342,13 +342,16 @@ def create_group(group_name, group_private, user_id):
 
 # edit group name
 
+
 def edit_group_name(group_name, group_id, group_private, user_id):
-    if flask.session["user_id"] == user_id:
+    if int(flask.session['user_id']) == int(user_id):
+        group_id = int(group_id)
+        user_id = int(user_id)
         priv = 't' if group_private == 'Private' else 'f'
-        with PooledCursor as cursor:
-            cursor.execute('''UPDATE production.grp SET grp_name=%s AND grp_private=%s WHERE grp_id=%s
-                              AND EXISTS (SELECT 1 FROM usr2grp WHERE grp_id=%s AND usr_id=%s AND u2g_privalages=1)''',
-                           (group_name, priv, group_id))
+        with PooledCursor() as cursor:
+            cursor.execute('''UPDATE production.grp SET grp_name=%s, grp_private=%s WHERE grp_id=%s
+                              AND EXISTS (SELECT 1 FROM usr2grp WHERE grp_id=%s AND usr_id=%s AND u2g_privileges=1)''',
+                           (group_name, priv, group_id, group_id, user_id,))
             cursor.connection.commit()
         return {'error': 'None'}
     else:
@@ -359,27 +362,29 @@ def edit_group_name(group_name, group_id, group_private, user_id):
 # permision should be passed as 0 if it is a normal user
 # permision should be passed as 1 if it is an admin
 # permision is defaulted to 0			        
-def add_user_to_group(group_name, owner_id, usr_email, permission=0):
+def add_user_to_group(group_id, owner_id, usr_email, permission=0):
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''
-            INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
-            VALUES ((SELECT grp_id
-                     FROM production.usr2grp
-                     WHERE grp_id = (SELECT grp_id FROM production.grp WHERE grp_name = %s)
-                     AND usr_id = %s AND u2g_privileges = 1),
-                    (SELECT usr_id
-                     FROM production.usr
-                     WHERE usr_email = %s LIMIT 1), %s), 2, now()
-            RETURNING grp_id;
-            ''',
-            (group_name, owner_id, usr_email, permission,)
-        )
-        cursor.connection.commit()
-        # return the primary ID for the insert that we just performed
-        grp_id = cursor.fetchone()[0]
-
-    return grp_id
+        cursor.execute('''SELECT usr_email FROM usr WHERE usr_email=%s''', (usr_email,))
+        if cursor.rowcount == 0:
+            return {'error': 'No User'}
+        else:
+            cursor.execute(
+                '''
+                INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
+                VALUES ((SELECT grp_id
+                         FROM production.usr2grp
+                         WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
+                        (SELECT usr_id
+                         FROM production.usr
+                         WHERE usr_email = %s LIMIT 1), %s, 2, now())
+                RETURNING grp_id;
+                ''',
+                (group_id, owner_id, usr_email, permission,)
+            )
+            cursor.connection.commit()
+            # return the primary ID for the insert that we just performed
+            #grp_id = cursor.fetchone()[0]
+            return {'error': 'None'}
 
 
 def remove_user_from_group(group_name, owner_id, usr_email):

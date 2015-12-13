@@ -282,10 +282,10 @@ def edit_group_name(group_name, group_id, group_private, user_id):
     return json.dumps(results)
 
 
-@app.route("/gwdb/add_user_group/<group_name>/<user_id>/<user_email>/")
-def add_user_group(group_name, user_id, user_email):
-    print(user_email)
-    return geneweaverdb.add_user_to_group(group_name, user_id, user_email)
+@app.route("/gwdb/add_user_group/<group_id>/<user_id>/<user_email>/")
+def add_user_group(group_id, user_id, user_email):
+    results = geneweaverdb.add_user_to_group(group_id, user_id, user_email)
+    return json.dumps(results)
 
 
 @app.route("/gwdb/remove_user_group/<group_name>/<user_id>/<user_email>/")

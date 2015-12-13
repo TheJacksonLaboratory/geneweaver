@@ -16,7 +16,8 @@
                     <div class="row">
                         <div class="col-xs-6">
                             <label><input type="checkbox" name="private_box" value="Private"
-                                          id="groupPrivate_{{ grpO.grp_id }}" checked>Private</label>
+                                          id="groupPrivate_{{ grpO.grp_id }}"
+                                          {% if grpO.grp_private %}checked{% endif %}>Private</label>
                         </div>
                     </div>
                 </div>
