@@ -424,9 +424,8 @@ def remove_selected_users_from_group(user_id, user_emails, grp_id):
                   EXISTS (SELECT 1 FROM production.usr2grp WHERE grp_id=%s AND usr_id=%s AND u2g_privileges=1)
                 ''',
                 (grp_id, e, grp_id, user_id,))
-
-        cursor.connection.commit()
-        print cursor.statusmessage
+            cursor.connection.commit()
+            print cursor.statusmessage
         # return the primary ID for the insert that we just performed
     return {'error': 'None'}
 
