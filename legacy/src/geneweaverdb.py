@@ -14,7 +14,7 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
+RESULTS_PATH = '/Users/group2admin/geneweaver/results'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -787,6 +787,23 @@ def add_genesets_to_projects(rargs):
                g = g.strip()
                add_geneset2project(pj_id, g)
     return
+
+# def add_genesets_to_projects(rargs):
+#     usr_id = rargs.get('user_id', type=int)
+#     npn = rargs.get('npn', type=str)
+#     gs_ids = rargs.get('gs_id', type=str)
+#     checked = json.loads(rargs.get('option', type=str))
+#     if (gs_ids is not None):
+#         if (npn is not None):
+#             new_pj_id = add_project(usr_id, npn)
+#             checked.append(new_pj_id)
+#         gs_id = gs_ids.split(',')
+#         print gs_id
+#         for pj_id in checked:
+#            for g in gs_id:
+#                g = g.strip()
+#                add_geneset2project(pj_id, g)
+#     return
 
 def user_is_project_owner(user_id, proj_id):
     with PooledCursor() as cursor:
@@ -2531,6 +2548,7 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
     gene_id1 = []
     gene_id2 = []
     intersect_sym = []
+    #Get all gene ids from both genesets
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT ode_gene_id
@@ -2546,13 +2564,12 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
             ''', (geneset_id2,))
         for gid in cursor:
             gene_id2.append(gid[0])
-
+        #Get only those genes that are in both genesets
         intersect_id = list(set(gene_id1).intersection(set(gene_id2)))
 
         homology1 = {}
         homology2 = {}
-    # print gene_id2
-
+    #Find all homology ids within both genesets
     for gid in gene_id1:
             cursor.execute(
                 '''SELECT hom_id
@@ -2561,6 +2578,8 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
                 ''', (gid,))
             hom_id = cursor.fetchone()
             if hom_id:
+                #If the homology id wasn't found in the geneset and not already added, add
+                #That id to the homology dictionary
                 if hom_id not in homology1:
                     homology1[hom_id[0]] = []
                     homology1[hom_id[0]].append(gid)
@@ -2575,6 +2594,8 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
                 ''', (gid,))
             hom_id = cursor.fetchone()
             if hom_id:
+                #If the homology id wasn't found in the geneset and not already added, add
+                #That id to the homology dictionary
                 if hom_id not in homology2:
                     homology2[hom_id[0]] = []
                     homology2[hom_id[0]].append(gid)
@@ -2582,11 +2603,11 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
                     homology2[hom_id[0]].append(gid)
 
     homology_genes = []
-
+    #Creates the list for the homology ids found in both genesets
     for key in homology1:
         if key in homology2:
             homology_genes = homology_genes + homology1[key] + homology2[key]
-
+    #Creates a dictionary of ode_ref_ids for the homologous genes
     for gene_id in homology_genes:
             cursor.execute(
                 '''SELECT gi_symbol
@@ -2600,11 +2621,11 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
 
 def get_geneset_intersect(geneset_id1, geneset_id2):
     """
-    Return all genes within intersecting genesets including homology
+    Return the size of intersecting genes
     """
     gene_id1 = []
     gene_id2 = []
-    intersect_sym = []
+    #Create lists for each gene in each geneset
     with PooledCursor() as cursor:
         cursor.execute(
             '''SELECT ode_gene_id
@@ -2621,9 +2642,12 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
         for gid in cursor:
             gene_id2.append(gid[0])
 
+        #Make a list with only the genes both genesets have in common
         intersect_id = list(set(gene_id1).intersection(set(gene_id2)))
         homology1 = []
         homology2 = []
+
+    #Find the homology ids in each geneset
     for gid in gene_id1:
             cursor.execute(
                 '''SELECT hom_id
@@ -2643,10 +2667,35 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
             hom_id = cursor.fetchone()
             if hom_id:
                 homology2.append(hom_id[0])
-
+    #Make a list with only the homologous genes both genesets have in common
     homology_id = list(set(homology1).intersection(set(homology2)))
 
     return len(intersect_id) + len(homology_id)
+#function to check whether an emphasis gene is found in a geneset
+def check_emphasis(gs_id, em_gene):
+    inGeneset = False;
+    #Find all the genes in a geneset
+    with PooledCursor() as cursor:
+        cursor.execute(
+        ''' SELECT * 
+            FROM geneset_value
+            WHERE gs_id = %s;
+        ''',(gs_id,)
+        )
+
+    result = cursor.fetchall()
+    #If there were no genes do nothing else put the ode_gene_ids of the geneset
+    #into a list
+    if result != None:
+        geneList = [gene[1] for gene in result]
+
+    em_gene = long(em_gene)
+
+    #If the emphasis gene was found in the geneset return true
+    if em_gene in geneList:
+        inGeneset = True
+
+    return inGeneset
 
 
 # sample api calls begin
