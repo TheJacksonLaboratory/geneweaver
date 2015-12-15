@@ -1,362 +1,529 @@
 {% set title="Account Settings" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-<div class="page-header">
-	<h1>Account and Groups</h1>
-</div>
-<div class="row">
-	<div class="col-md-6">
-		<div class="panel panel-primary">
-			<div class="panel-heading">
-				<h2 class="panel-title">Manage Groups</h2>
-			</div>
-			<div class="panel-body">
-				
-					
-					<div class="panel panel-info" id="memberAccordion">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-6">
-									<a data-toggle="collapse" right data-parent="#memberAccordion" href="#member">
-										Groups I'm A Part Of
-										<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						<div id="member" class="panel-collapse collapse" >
-							<div class="panel-body">
-								<div>
-									<table class ="table table-striped">
-									<th>Owner of</th>
-									{% for grpO in groupsOwnerOf %}
-										<tr>
-											<td>
-												{{grpO.grp_name}}
-											</td>
-										</tr>
-									{% endfor %}
-									</table>
-								</div>
-								<div>
-									<table class ="table table-striped">
-									<th>Member of</th>
-									{% for grpM in groupsMemberOf %}
-										<tr>
-											<td>
-												{{grpM.grp_name}}
-											</td>
-										</tr>
-									{% endfor %}
-									</table>
-								</div>
-							</div>
-						</div>
-					</div>
-				<div class="panel-group" id="groupAccordion">				
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#create">
-									Create New Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						
-						<div id="create" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>Please enter a unique group name.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupCreate">
-									</div>
-								</div>
-								<div class="row">
-									<div class="col-xs-6">
-										<label><input type="checkbox" name="private_box" value="Private" id="groupPrivate" checked>Private</label>
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Create'
-											onclick='createGroup()'>Create
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-					
-					
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#delete">
-									Delete Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						
-						<div id="delete" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>You can only delete groups you own.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupDelete">
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Delete'
-											onclick='deleteGroup()'>Delete
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-					
-				
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#add">
-									Add User to Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						<div id="add" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>You can only add users to groups you own.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupAddUser">
-									</div>
-								</div>
-								<br>
-								<div class="row">
-									<div class="col-xs-2">
-										User Email:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="user_email" id="groupAddEmail">
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Add'
-											onclick='addGroupUser()'>Add
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-				
-				
-					<div class="panel panel-info">
-						<div class="panel-heading">
-							<div class="row">
-								<div class="col-xs-10">
-									<a data-toggle="collapse" right data-parent="#groupAccordion" href="#remove">
-									Remove User from Group
-									<span class="fa fa-chevron-down"></span>
-									</a>
-								</div>
-							</div>
-						</div>
-						<div id="remove" class="panel-collapse collapse" >
-						<div class="panel-body">
-							<form>
-								<div class="row">
-									<p>You can only remove users from groups you own.</p>
-								</div>
-								<div class="row">
-									<div class="col-xs-2">
-										Group:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="group_name" id="groupRemoveUser">
-									</div>
-								</div>
-								<br>
-								<div class="row">
-									<div class="col-xs-2">
-										User Email:
-									</div>
-									<div class="col-xs-4">
-										<input type="text" name="user_email" id="groupRemoveEmail">
-									</div>
-									<div class="col-xr-2">
-										<button class="btn btn-primary pull-right" 
-											type='submit'
-											value='Remove'
-											onclick='removeGroupUser()'>Remove
-										</button>
-									</div>
-								</div>
-							</form>
-						</div>
-						</div>
-					</div>
-				</div>	
 
-				
-			</div>
-		</div>
-		<div class="panel panel-primary">
-			<div class="panel-heading">
-				<h2 class="panel-title">Generate API Key</h2>
-			</div>
-			<form method="post" action="{{url_for('generate_api_key')}}">
-				<div class="panel-body">
-					<div class="col-xs-7">
-						API Key: {{user.api_key}}
-					</div>
-					<button id="generate_api_key" class="btn btn-primary pull-right">Generate New Key</button>
-				</div>
-			</form>
-		</div>
-	</div>
-	<div class="col-md-6">
-		<div class="panel panel-primary">
-			<div class="panel-heading">
-				<h2 class="panel-title">Update Account</h2>
-			</div>
-			<div class="panel-body">
-				<form>
-					<div class="row">
-						<div class="col-md-4">
-							Name:
-						</div>
-						<div class="col-md-8">
-							<input type="text" name="username" value="{{user.first_name}} {{user.last_name}}">
-						</div>
-					</div><br>
-					<div class="row">
-						<div class="col-md-4">
-							Email:
-						</div>
-						<div class="col-md-8">
-							<input type="text" name="email" value="{{user.email}}">
-						</div>
-					</div><br>
-					<button class="ui-state-disabled btn bg-blue">Save Changes</button><br><br>
-				</form>
-				<h4 class="section-header">Change Password</h4><hr>
-				<form method="post" action="{{url_for('change_password')}}">
-					<div class="row">
-						<div class="col-md-4">
-							Current Password:
-						</div>
-						<div class="col-md-8">
-							<input type="password" name="curr_pass">
-						</div>
-					</div><br>
-					<div class="row">
-						<div class="col-md-4">
-							New Password:
-						</div>
-						<div class="col-md-8">
-							<input type="password" name="new_pass" id="password_1">
-						</div>
-					</div><br>
-					<div class="row">
-						<div class="col-md-4">
-							Confirm New Password:
-						</div>
-						<div class="col-md-8">
-							<input type="password" name="conf_new" id="password_2">
-						</div>
-					</div>
-					<br>
-					<button id="change_password" class="ui-state-disabled btn bg-blue">Change Password</button>
-				</form>
-			</div>
-		</div>
-	</div>
+
+<style>
+
+    a:hover {
+        text-decoration: none;
+    }
+
+    #clickableGroupCreate {
+        cursor: pointer;
+    }
+
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr {
+        cursor: pointer;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .page-header2 {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .panel .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+        border: #006400;
+    }
+
+    .row {
+        border: none;
+    }
+
+    table th {
+        color: #006400;
+        border-top: 5px solid #006400;
+    }
+
+
+</style>
+
+{% if g.user.user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+        <p>
+
+
+        <div class="panel panel-default panel-heading bg-gray-light">
+            <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+        </div>
+
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Manage Groups</h2>
+                    </div>
+
+                    <div class="panel-body">
+
+                        <div class="row" id="groups">
+                            <div class="page-header2">
+                                <h4>Groups That I Own</h4>
+                            </div>
+                            <table class="table table-striped">
+                                {% if groupsOwnerOf | length > 0 %}
+                                    {% for grpO in groupsOwnerOf %}
+                                        <tr>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                      {{ grpO.grp_name }}</span>
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Privacy" type="button" title="Privacy Status"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                    {% if grpO.grp_private %}
+                                                        <span class="label label-danger">Private</span>
+                                                    {% else %}
+                                                        <span class="label label-info">Public</span>
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Date Create" type="button" title="Date Created"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                    {{ grpO.grp_created }}
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Delete" type="button" title="Delete Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_delete" id="deleteGroupModal_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
+                                                      <i class="fa fa-trash-o"></i></span>
+                                                </span>
+                                            &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="View" type="button" title="View Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable" id="view_{{ grpO.grp_id }}"
+                                                            data-grp="{{ grpO.grp_id }}"><i class="fa fa-external-link"></i>
+                                                </span></span>
+                                            &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Edit" type="button" title="Edit Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
+                                                        data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
+                                                            <i class="fa fa-pencil"></i></span></span>
+                                            &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Add" type="button" title="Add Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
+                                                        data-grp="{{ grpO.grp_id }}"><i class="fa fa-plus"></i></span>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% include 'modal/deleteGroup.html' %}
+                                        {% include 'modal/editGroupName.html' %}
+                                        {% include 'modal/addUserToGroup.html' %}
+                                        {% include 'modal/deleteGroupUsers.html' %}
+
+
+                                    {% endfor %}
+
+                                    </table>
+
+                                {% else %}
+
+                                <div class="row">
+                                    <div class="alert alert-warning">You do not own any groups.</div>
+                                </div>
+
+                                {% endif %}
+
+                        </div>
+
+                        <div class="row">
+                            <p><span id="clickableGroupCreate"><i class="fa fa-group"></i> Create New Group</span></p>
+                        </div>
+
+                        <div id="createGroup" style="display: none;">
+                            <form id="createNewGroup">
+                                <div class="row">
+                                    <label for="group_name"><h4>New Group Name: </h4></label>
+                                    <input type="text" id="groupCreate" name="group_name" class="form-control input-lg">
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-6">
+                                        <label><input type="checkbox" name="private_box" value="Private"
+                                                      id="groupPrivate" checked>Private</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xr-2">
+                                        <button class="btn btn-primary pull-left"
+                                                type='button'
+                                                value='Create'
+                                                id="createGroupButton">Create
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <br/><hr>
+                        <div class="row">
+                            <div class="page-header2">
+                                <h4>Groups That I Am a Member Of</h4>
+                            </div>
+
+                            {% if groupsMemberOf | length > 0 %}
+
+                                <table class="table table-striped">
+                                    {% for grpM in groupsMemberOf %}
+                                        <tr>
+                                            <td>
+                                                {{ grpM.grp_name }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+
+                            {% else %}
+
+                                <div class="row">
+                                    <div class="alert alert-warning">You do not belong to any groups.</div>
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+
+                    </div>
+                </div>
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Generate API Key</h2>
+                    </div>
+                    <form method="post" action="{{ url_for('generate_api_key') }}">
+                        <div class="panel-body">
+                            <div class="col-xs-7">
+                                <strong>API Key:</strong> {{ user.api_key }}
+                            </div>
+                            <button id="generate_api_key" class="btn btn-success btn-transparent pull-right">
+                                <i class="fa fa-repeat"></i> Generate New Key</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Update Account</h2>
+                    </div>
+                    <div class="panel-body">
+                        <form>
+                            <div class="row">
+                                <label for="username"><h4>Name</h4></label>
+                                <input class="form-control input-lg" type="text" name="username"
+                                       value="{{ user.first_name }} {{ user.last_name }}">
+                            </div>
+                            <br>
+
+                            <div class="row">
+                                <label for="email"><h4>Email</h4></label>
+                                <input class="form-control input-lg" type="text" name="email"
+                                       value="{{ user.email }}">
+                            </div>
+                            <br>
+                            <button class="ui-state-disabled btn btn-success btn-transparent pull-right">Save Changes</button>
+                            <br><br>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Change Password</h2>
+                    </div>
+                    <div class="panel-body">
+                        <form method="post" action="{{ url_for('change_password') }}">
+                            <div class="row">
+                                <label for="curr_pass"><h4>Current Password</h4></label>
+                                <input class="form-control input-lg" type="password" name="curr_pass">
+                            </div>
+                            <br>
+                            <div class="row">
+                                <label for="password_1"><h4>New Password</h4></label>
+                                <input class="form-control input-lg" type="password" name="new_pass" id="password_1">
+                            </div>
+                            <br>
+                            <div class="row">
+                                <label for="password_2"><h4>Confirm New Password</h4></label>
+                                <input class="form-control input-lg" type="password" name="conf_new" id="password_2">
+                            </div>
+                            <br>
+                            <button id="change_password" class="ui-state-disabled btn btn-success btn-transparent pull-right">Change Password</button>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    {% endblock %}
+
+{% endif %}
 </div>
 
+
+{% include 'footer.html' %}
 
 <script>
-$(document).ready(function() {
-$("#password_2").keyup(validate);
-});
-function validate() {
-var password_1 = $("#password_1").val();
-var password_2 = $("#password_2").val();
-if(password_1 == password_2) {
-$("#change_password").removeClass("ui-state-disabled");
-}
-else {
-$("#change_password").addClass("ui-state-disabled");
-}
-}
+    $(document).ready(function () {
+        $("#password_2").keyup(validate);
 
-function createGroup() {
-var groupName = $("#groupCreate").val();
-var isPrivate = $("#groupPrivate").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/create_group/"+groupName+"/"+isPrivate+"/"+userId+"/",function(data,status){
-	});
+        $(function () {
+			$("[data-toggle='tooltip']").tooltip();
+		});
 
-}
-function deleteGroup() {
-var groupName = $("#groupDelete").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/delete_group/"+groupName+"/"+userId+"/",function(data,status){
-	});
-	
-}
+        $("#confirmDelete").on('click', function() {
+           var p = $(this).attr("#grp_id");
+        });
 
-function addGroupUser() {
-var groupName = $("#groupAddUser").val();
-var userEmail = $("#groupAddEmail").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/add_user_group/"+groupName+"/"+userId+"/"+userEmail+"/",function(data,status){
-	});
-}
+        $('#clickableGroupCreate').on('click', function () {
+            $('#createGroup').slideToggle();
+        });
 
-function removeGroupUser() {
-var groupName = $("#groupRemoveUser").val();
-var userEmail = $("#groupRemoveEmail").val();
-var userId = {{user.user_id}};
-	$.get("/gwdb/remove_user_group/"+groupName+"/"+userId+"/"+userEmail+"/",function(data,status){
-	});
-}
+        $('#createGroupButton').on('click', function () {
+            var groupName = $("#groupCreate").val();
+            //var isPrivate = $("#groupPrivate").val();
+            var isPrivate = 'Public';
+            if ($("#groupPrivate").is(':checked')) {
+                isPrivate = 'Private';
+            }
+            var userId = {{user.user_id}};
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/create_group/" + groupName + "/" + isPrivate + "/" + userId + "/",
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Group " + data + " Successfully Added.",
+                            'priority': 'success'
+                        }
+                    ]);
+                    $("#groups").load(location.href + " #groups");
+                    window.location.reload();
+                    $('#createGroup').slideToggle();
+                }
+            });
+        });
+
+        $('.clickable').on('click', function() {
+            var grp_id = ($(this).attr("data-grp"));
+            $("#del_user_id_" + grp_id).val({{ user.user_id }});
+            $("#del_grp_id_" + grp_id).val(grp_id);
+            $('#delUsrModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+
+        $('.delGroupUsers').on('click', function() {
+            var g = $(this).attr("data-modal-id");
+            var checked = [];
+            $("input[name='options_"+g+"[]']:checked").each(function () {
+                checked.push($(this).val());
+            });
+            var emails = checked.toString();
+            if ($.isEmptyObject(checked)) {
+                $('#delUsrModal_' + g).hide();
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Groups were selected.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else {
+                $.ajax({
+                    type: "GET",
+                    url: "../removeUsersFromGroup",
+                    data: {"user_id": {{ g.user.user_id }}, "grp_id": g, "user_emails": emails},
+                    success: function (data) {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Users successfully removed from group.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        //window.location.href('../accountsettings');
+                        window.location.reload(true);
+                    }
+                });
+            }
+        });
+
+
+        $('.clickable_addUsr').on('click', function() {
+            var grp_id = ($(this).attr("data-grp"));
+            $("#add_user_id_" + grp_id).val({{ user.user_id }});
+            $("#add_grp_id_" + grp_id).val(grp_id);
+            $('#addUsrModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+
+        $('.addUsrToGroup').on('click', function () {
+            var formID = $(this).attr("data-modal-id");
+            var groupID = $("#add_grp_id_" + formID).val();
+            var userID = $("#add_user_id_" + formID).val();
+            var userEmail = $("#addUsrEmail_" + formID).val();
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/add_user_group/" + groupID + "/" + userID + "/" + userEmail + "/",
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "User " + userEmail + " successfully added.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.location.reload();
+                    }
+                    else if (v["error"] == 'No User') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "User " + userEmail + " does not exist.",
+                                'priority': 'warning'
+                            }
+                        ]);
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error occurred while add user " + userEmail + ".",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                }
+            })
+        });
+
+        $('.clickable_edit').on('click', function() {
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#groupName_" + grp_id).val(grp_name);
+            $("#edit_user_id_" + grp_id).val({{ user.user_id }});
+            $("#edit_grp_id_" + grp_id).val(grp_id);
+            $('#editModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+
+        $('.editGroupName').on('click', function () {
+            var formID = $(this).attr("data-modal-id");
+            var groupID = $("#edit_grp_id_" + formID).val();
+            var userID = $("#edit_user_id_" + formID).val();
+            var groupName = $("#groupName_" + formID).val();
+            var isPrivate = 'Public';
+            if ($("#groupPrivate_" + formID).is(':checked')) {
+                isPrivate = 'Private';
+            }
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/edit_group/" + groupName + "/" + groupID + "/" + isPrivate + "/" + userID + "/",
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Group Successfully Edited.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        //$("#groups").load(location.href + " #groups");
+                        window.location.reload();
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error occurred while editing group name for group " + groupID + ".",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                }
+            });
+        });
+
+
+        $('.clickable_delete').on('click', function() {
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#myModalLabel_" + grp_id).html(grp_name);
+            $("#user_id_" + grp_id).val({{ user.user_id }});
+            $("#grp_id_" + grp_id).val(grp_id);
+            $('#delModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+
+        $('.deleteGroupFromUser').on('click', function () {
+            var formID = $(this).attr("data-modal-id");
+            var groupID = $("#grp_id_" + formID).val();
+            var userID = $("#user_id_" + formID).val();
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/delete_group/" + groupID + "/" + userID + "/",
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Group Successfully Deleted.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        //$("#groups").load(location.href + " #groups");
+                        window.location.reload();
+                    }
+                    else{
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error occurred while deleting group " + groupID + ".",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                }
+            });
+        });
+    });
+
+
+    function validate() {
+        var password_1 = $("#password_1").val();
+        var password_2 = $("#password_2").val();
+        if (password_1 == password_2) {
+            $("#change_password").removeClass("ui-state-disabled");
+        }
+        else {
+            $("#change_password").addClass("ui-state-disabled");
+        }
+    }
+
+
 
 
 </script>
-{% include 'footer.html' %}

@@ -1,51 +1,109 @@
 {% include 'header.html' %}
-{% set title="Emphasis" %}
+{% set title="Emphasis Genes" %}
+
+<style>
+
+    a:hover {
+        text-decoration: none;
+    }
+
+    #clickablefontawesome {
+        cursor: pointer;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
 
 
-<div class="page-header">
-    <h1>{{ title }}</h1>
-</div>
+</style>
 
-<table width="100%">
-    <tr>
-        <td>Current Emphasis List:</td>
-        <td>Add to list:</td>
-    </tr>
-    <tr>
-        <td rowspan="2">
-            <ul>
+{% if g.user.user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+        <p>
+
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+        <div class="panel panel-default panel-heading bg-gray-light">
+            <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+        </div>
+
+        <div class="row">
+
+            <!-- Emphasis gene column -->
+            <div class="col-md-6">
+                <div class="page-header"><h2>Current Emphasis List</h2></div>
+
                 {% if emphgenes|length <= 0 %}
-                    <p class="message">No genes set.</p>
+
+                    <div class="alert alert-danger fade in">No Emphasis Genes</div>
+
                 {% else %}
+
+                    <a href="{{ url_for('render_emphasis', Emphasis_RemoveAllGenes='yes') }}">
+                    <button type="button" class="btn btn-block btn-warning" id="callDeleteGenes">
+                        <i class="fa fa-times pull-left"></i> Clear All Genes
+                    </button>
+                    </a>
+                    <br/>
+
+                    <div class="gene-results">
                     {% for gene in emphgenes %}
-        		        <li>{{gene.ode_ref_id|lower}} ({{gene.sp_name}}) - <a href="{{url_for('render_emphasis', Emphasis_RemoveGene=gene.ode_gene_id)}}">remove</a></li>
-	                {% endfor %}
-                    <br />
-                    <a href="{{url_for('render_emphasis', Emphasis_RemoveAllGenes='yes')}}">clear</a>
+                        <strong>{{ gene.ode_ref_id|lower }} ({{ gene.sp_name }})</strong>
+                        <a href="{{ url_for('render_emphasis', Emphasis_RemoveGene=gene.ode_gene_id) }}">
+                            <span class="fa fa-trash-o"></span></a><br/>
+                    {% endfor %}
+                    </div>
+
                 {% endif %}
-            </ul>
-        </td>
-        <td>
-            <form action="{{ url_for('render_emphasis') }}" method="post">
-            <label>Find Gene: <input type="text" name="Emphasis_SearchGene" /></label><input type="submit" value="go" />
-            </form>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            {% if foundgenes|length > 0 %}
-                {% set allSearchGenes = [] %}
-                {% for gene in foundgenes %}
-                    {% set temp = allSearchGenes.append(gene.ode_gene_id) %}
-                    {{ gene.ode_ref_id|lower }} ({{gene.sp_name}}) - <a href="{{url_for('render_emphasis', Emphasis_AddGene=gene.ode_gene_id)}}">add</a>
-                    <br />
-                {% endfor %}
-                <br />
-                <a href="{{url_for('render_emphasis', Emphasis_AddAllGenes=allSearchGenes|join(' '))}}">add all</a>
-            {% endif %}
-        </td>
-    </tr>
-</table>
+            </div>
+
+            <div class="col-md-6">
+                <div class="page-header"><h2>Add Genes</h2></div>
+
+                <form class="form-class" action="{{ url_for('render_emphasis') }}" method="post">
+                    <div class="input-group">
+
+                        <input class="form-control" name="Emphasis_SearchGene" type="text"
+                               placeholder="Search for Gene"/>
+                        <span class="input-group-btn">
+                            <button class="btn btn-primary" type="submit">Go</button>
+                        </span>
+
+                    </div>
+                </form>
+
+                <br/>
+
+                {% if foundgenes|length > 0 %}
+                    {% set allSearchGenes = [] %}
+                    {% for gene in foundgenes %}
+                        {% set temp = allSearchGenes.append(gene.ode_gene_id) %}
+                        {{ gene.ode_ref_id|lower }} ({{ gene.sp_name }}) -
+                        <a href="{{ url_for('render_emphasis', Emphasis_AddGene=gene.ode_gene_id) }}">add</a>
+                        <br/>
+                    {% endfor %}
+                    <br/>
+                    <a href="{{ url_for('render_emphasis', Emphasis_AddAllGenes=allSearchGenes|join(' ')) }}">
+                        <i class="fa fa-arrow-left"></i> Add all genes</a>
+                {% endif %}
+            </div>
+        </div>
+
+    {% endblock %}
+
+{% endif %}
 
 
 {% include 'footer.html' %}
+
+

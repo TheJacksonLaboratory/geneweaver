@@ -272,13 +272,20 @@ def get_group(user_id):
 
 @app.route("/gwdb/create_group/<group_name>/<group_private>/<user_id>/")
 def create_group(group_name, group_private, user_id):
-    return geneweaverdb.create_group(group_name, group_private, user_id)
+    results = geneweaverdb.create_group(group_name, group_private, user_id)
+    return json.dumps(results)
 
 
-@app.route("/gwdb/add_user_group/<group_name>/<user_id>/<user_email>/")
-def add_user_group(group_name, user_id, user_email):
-    print(user_email)
-    return geneweaverdb.add_user_to_group(group_name, user_id, user_email)
+@app.route("/gwdb/edit_group/<group_name>/<group_id>/<group_private>/<user_id>/")
+def edit_group_name(group_name, group_id, group_private, user_id):
+    results = geneweaverdb.edit_group_name(group_name, group_id, group_private, user_id)
+    return json.dumps(results)
+
+
+@app.route("/gwdb/add_user_group/<group_id>/<user_id>/<user_email>/")
+def add_user_group(group_id, user_id, user_email):
+    results = geneweaverdb.add_user_to_group(group_id, user_id, user_email)
+    return json.dumps(results)
 
 
 @app.route("/gwdb/remove_user_group/<group_name>/<user_id>/<user_email>/")
@@ -288,8 +295,8 @@ def remove_user_group(group_name, user_id, user_email):
 
 @app.route("/gwdb/delete_group/<group_name>/<user_id>/")
 def delete_group(group_name, user_id):
-    geneweaverdb.delete_group(group_name, user_id)
-    return flask.redirect("/accoutnsetings.html")
+    results = geneweaverdb.delete_group(group_name, user_id)
+    return json.dumps(results)
 
 
 @app.route('/share_projects.html')
@@ -595,6 +602,16 @@ def update_geneset_genes():
             return json.dumps(results)
 
 
+@app.route('/removeUsersFromGroup', methods=['GET'])
+def remove_users_from_group():
+    if 'user_id' in flask.session:
+        user_id = request.args['user_id']
+        user_emails = request.args['user_emails']
+        grp_id = request.args['grp_id']
+        results = geneweaverdb.remove_selected_users_from_group(user_id, user_emails, grp_id)
+        return json.dumps(results)
+
+
 @app.route('/deleteProjectByID', methods=['GET'])
 def delete_projects():
     if 'user_id' in flask.session:
@@ -621,8 +638,9 @@ def render_accountsettings():
     user = geneweaverdb.get_user(flask.session.get('user_id'))
     groupsMemberOf = geneweaverdb.get_all_member_groups(flask.session.get('user_id'))
     groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
+    groupsEmail = geneweaverdb.get_all_members_of_group(flask.session.get('user_id'))
     return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
-                                 groupsOwnerOf=groupsOwnerOf)
+                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail)
 
 @app.route('/login.html')
 def render_login():
