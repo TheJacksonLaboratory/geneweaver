@@ -42,51 +42,38 @@
             border: 0px;
         }
 
-        .d3-slider{
+        .d3-slider {
             background: #2B3647;
             border-radius: 4px;
             width: 720px;
             position: absolute;
         }
 
-        .btn-success{
+        a.btn-success {
             color: #fff;
             background-color: #006400;
             border-color: #004C74;
         }
-
     </style>
 
 </head>
-{#
-<!-- JSON support for IE (needed to use JS API) -->
-<script type="text/javascript" src="../../static/js/cytoscape/json2.min.js"></script>
-<!-- Flash embedding utility (needed to embed Cytoscape Web) -->
-<script type="text/javascript" src="../../static/js/cytoscape/AC_OETags.min.js"></script>
-<!-- Cytoscape Web JS API (needed to reference org.cytoscapeweb.Visualization) -->
-<script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
-<!-- Cytoscape settings and graph rendering for tool output -->
-<script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
-#}
+<!-- Styling for d3 sliders -->
 <link rel="stylesheet" type="text/css" href="../../static/css/d3.slider.css"> </link>
+<!-- Styling for select2 search bar -->
 <link rel="stylesheet" type="text/css" href="../../static/select2/select2.min.css"> </link>
+<!-- Library for standard d3 functions -->
 <script type="text/javascript" src="../../static/d3/d3.min.js"></script>
+<!-- Library for select2 search bar -->
 <script type="text/javascript" src="../../static/select2/select2.min.js"></script>
+<!-- Additional d3 library for d3 sliders -->
 <script type="text/javascript" src="../../static/d3/d3.slider.js"></script>
 
-{#<script type="text/javascript" src="../../static/d3/HiSimGraph.js"> </script>#}
-{# {{ data | safe }} #}
-{#<script>#}
-{#    var d = {{  data |safe }};#}
-{#    console.log(d.nodes[0].id);#}
-{#</script>#}
 
 <div class="page-header">
     <h1>{{ title }}
         {{ runhash }} </h1>
 </div>
 
-{# OUTPUT_PREFIX = {{ async_result.parameters.output_prefix}} #}
 
 {#
 	Checks to see if runhash is defined. If it is, that means we're
@@ -97,6 +84,8 @@
 
 {% if runhash %}
     <script type="text/javascript">
+
+        console.log('wtf');
 
         var graph_url = '/results/' + '{{async_result.result_image}}';
         var xml = '';
@@ -173,11 +162,8 @@
                             <div class="col-md-4">
                                 <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
                             </div>
-                        </div>
-                        <div class="row">       
                             <div class="col-md-4">
                                 <button class="btn btn-primary"
-                                        style="bottom: 0; float: left;"
                                         type='submit'
                                         value='run'
                                         onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
@@ -185,9 +171,9 @@
                                 </button>
                             </div>
                             <div class="span12">
-                                <button class="btn btn-success" style="bottom: 0; float: left;"
+                                <a class="btn btn-success"
                                    href='/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv'>
-                                    Download csv</button>
+                                    Download csv</a>
                             </div>
                         </div>
                     </div>
@@ -198,6 +184,13 @@
 </form>
 
 {#
+    TEAM HISIM GRAPH NOTES:
+        We left this section commented out and didn't use it at all in testing our page, however it appears that there
+        is some important error handling happening here. We're leaving the code here commented out instead of
+        either uncommenting it to be used or deleting it outright, so that it might be used and tested by someone
+        working on this file in the future.
+    END TEAM HISIM GRAPH NOTES
+
 	A hack, since for some reason the tools return SUCCESS even when
 	they fail. Checks to see if the results have a key, 'failed', which
 	contains the error message for the failure.
@@ -223,35 +216,6 @@
 		</strong>
 	</div>
 {% endif %}
-<script type="text/javascript">
-    function loadStats() {
-        var result = {{ async_result|tojson }};
-        var stats_url = '/results/' + result.parameters.output_prefix + '.el.profile';
-        $.get(stats_url, function(data) {
-            var lines = data.split('\n');
-            lines = lines.slice(Math.max(lines.length - 8, 1), lines.length - 2);
-            if(lines.length != 6) {
-                $('#stats').append('Not available.');
-                return;
-            }
-            values = [];
-            $.each(lines, function(i, v) { values.push(v.split(':')[1].trim()); });
-            stats_table = $('<table></table>');
-            stats_table.append(
-                '<tr><td>Number of genes:</td><td>' + values[0] + '</td></tr>'
-                + '<tr><td>Number of genesets:</td><td>' + values[1] + '</td></tr>'
-                + '<tr><td>Number of bicliques:</td><td>' + values[3] + '</td></tr>'
-                + '<tr><td>Number of edges:</td><td>' + values[2] + '</td></tr>'
-                + '<tr><td>Max edge biclique size:</td><td>' + values[4] + '</td></tr>'
-                + '<tr><td>Max vertex biclique size:</td><td>' + values[5] + '</td></tr>'
-            );
-            stats_table.find('td').css('padding', 0);
-            $('#stats').append(stats_table);
-        });
-    }
-    // load statistics from file
-    $(window).load(loadStats);
-</script>
 #}
 
 <div id="search"></div>
@@ -259,18 +223,21 @@
 <div id="viz2">
     <script>
 
+        //global variable containing the JSON data and the d3.force object
         var g = {
             data: null,
             force: null
         };
 
+        //randomly generated prefix for the output file produced by Phenomemap.py
         var OUTPUT_PREFIX = "{{async_result.parameters.output_prefix}}";
         g.data = {{data | safe}};
 
-        console.log(OUTPUT_PREFIX);
-        var dictionary = {};
-        dictionary["Multiple Species"] = "#636363";
+        //dictionary of species & colors. Multiple Species defaults to gray.
+        var color_dict = {};
+        color_dict["Multiple Species"] = "#636363";
 
+        //color palette for the nodes
         var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477",
             "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300",
             "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
@@ -278,7 +245,6 @@
         //initialization
         $(function () {
 
-            //console.log("DATA = " + JSON.stringify(data));
             var width = 1200,
                     height = 1000,
                     select2_data;
@@ -287,7 +253,7 @@
                     fill = d3.scale.category20();
 
 
-            //Create a sized SVG surface within viz:
+            //Create a sized SVG surface within viz, with zooming and panning capability:
             var svg = d3.select("#viz2")
                     .append("svg")
                     .attr("width", width)
@@ -302,6 +268,7 @@
                     g.node = svg.selectAll(".node");
 
 
+            //d3 sliders for charge, charge distance, link strength, link distance, and gravity, respectively.
             var charge_slider = d3.slider()
                     .axis(true)
                     .min(0)
@@ -326,7 +293,7 @@
 
             var ls_slider = d3.slider()
                     .axis(true)
-                    .min(0)
+                    .min(1)
                     .max(100)
                     .step(.1)
                     .value(30)
@@ -336,7 +303,7 @@
 
             var ld_slider = d3.slider()
                     .axis(true)
-                    .min(0)
+                    .min(1)
                     .max(100)
                     .step(.1)
                     .value(40)
@@ -356,7 +323,7 @@
                     });
 
             d3.select("#charge_slider")
-                .call(charge_slider);
+                    .call(charge_slider);
 
             d3.select("#ls_slider")
                     .call(ls_slider);
@@ -383,13 +350,12 @@
                     .linkStrength(function (link) {
                         return 1 / ((link.target.depth - link.source.depth) * ls_slider.value() / 20);
                     })
-                //Deeper nodes have a stronger charge because there's more jostling for space down there
+                //Deeper nodes have a stronger charge to force a more spread-out, triangular tree shape
                     .charge(function (d) {
                         return (-charge_slider.value() * ((d.depth + 1) * 10));
                     })
                     .size([width, height])
                     .on("tick", tick);
-            console.log("CHARGE DISTANCE " + g.force.chargeDistance());
 
 
             //Initialize positions of tree elements to reduce tangling caused by random initialization
@@ -399,9 +365,8 @@
             //Data to search on
             select2_data = extract_select2_data();
 
-            console.log("Searching: " + select2_data);
 
-            //Populate search
+            //Populate search bar
             $("#search").select2({
                 data: select2_data,
                 containerCssClass: "search"
@@ -419,11 +384,11 @@
                     .attr("width", "300")
                     .attr("height", function () {
 
-                        return ((Object.keys(dictionary).length) * 20 + 10);
+                        return ((Object.keys(color_dict).length) * 20 + 10);
                     })
 
                     .selectAll("circle")
-                    .data(Object.keys(dictionary))
+                    .data(Object.keys(color_dict))
                     .enter()
                     .append("g")
                     .attr("class", "node");
@@ -432,15 +397,15 @@
             legend.append("circle")
                     .attr("r", 4.5)
                     .style("fill", function (d) {
-                        return dictionary[d];
+                        return color_dict[d];
                     })
                     .style("stroke", function (d) {
-                        return dictionary[d];
+                        return color_dict[d];
                     })
                     .style("stroke-width", "3")
                     .style("fill-opacity", ".5")
                     .attr("cy", function (d) {
-                        return 10 + 20 * Object.keys(dictionary).indexOf(d);
+                        return 10 + 20 * Object.keys(color_dict).indexOf(d);
                     })
                     .attr("cx", 20);
 
@@ -450,7 +415,7 @@
                         return d;
                     })
                     .attr("dy", function (d) {
-                        return 14 + 20 * Object.keys(dictionary).indexOf(d);
+                        return 14 + 20 * Object.keys(color_dict).indexOf(d);
                     })
                     .attr("dx", "30")
                     .attr("text-anchor", "start")
@@ -467,15 +432,12 @@
                     height = 500,
                     padding = 15;
 
-            //iterate through original nested data, and get one dimension array of nodes.
+            //iterate through original nested data, and get one dimensional array of nodes.
             var nodes = flatten(g.data.nodes);
-            for (var i = 0; i < nodes.length; i++) {
-                console.log("Node " + nodes[i].id + "\n\tAbove: " + nodes[i].above +
-                        "\n\tBelow: " + nodes[i].below);
-            }
 
-            //Each node extracted above has a children attribute.
-            //from them, we can use a tree() layout function in order
+
+            //Each node extracted above has an array of children id's.
+            //from them, we can use a custom getLinks() layout function in order
             //to build a links selection.
             var links = getLinks(nodes);
 
@@ -505,7 +467,7 @@
             g.node.exit().remove();
             g.link.exit().remove();
             //-------------------
-            //create new nodes by making groupd elements, that contain circles and text:
+            //create new nodes by making grouped elements that contain circles and text:
             var nodeEnter = g.node.enter()
                     .append("g")
                     .attr("class", "node")
@@ -519,7 +481,7 @@
             nodeEnter.append("circle")
                     .attr("r", 4.5);
 
-            //Set link color based on search
+            //Set link color based on search results
             g.link.style("stroke", function (d) {
                 if (d.source.found && d.target.found) {
                     return "red";
@@ -528,7 +490,8 @@
                     return "#ccc";
                 }
             });
- //text within the single node group:
+
+            //text within the single node group:
             nodeEnter.append("text")
                     .attr("dy", "-.2em")
                     .attr("dx", "1em")
@@ -557,7 +520,7 @@
                             return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes...";
                         }
                     });
-
+            //mouseover information for each node
             nodeEnter.select("circle")
                     .append("svg:title")
                     .text(function (d) {
@@ -584,6 +547,7 @@
             });
         }
 
+        //used for assigning colors to nodes
         function colors_google(d) {
             console.log("Species: " + d.species + "Species Length:" + d.species.length);
 
@@ -591,11 +555,11 @@
                 return "#636363";
             }
 
-            else if (!(d.species in dictionary)) {
-                dictionary[d.species] = colors_g[(Object.keys(dictionary).length % colors_g.length)];
+            else if (!(d.species in color_dict)) {
+                color_dict[d.species] = colors_g[(Object.keys(color_dict).length % colors_g.length)];
             }
 
-            return dictionary[d.species];
+            return color_dict[d.species];
         }
 
         //Change opacity based on number of children
@@ -643,7 +607,6 @@
             for (var i = 0, len = data.length; i < len; i++) {
                 if (data[i]._children) {
                     for (var j = 0, jlen = data[i]._children.length; j < jlen; j++) {
-                        //console.log("PARAM 1: " + data + "\n PARAM 2: " + data[i]._children[j]);
                         getNodeByID(data, data[i]._children[j]).orphan = false;
                     }
                 }
@@ -689,7 +652,6 @@
 
         //gets the array of link objects for the force diagram to use
         function getLinks(nodes) {
-
             var links = [];
             for (var i = 0; i < nodes.length; i++) {
                 var n = nodes[i];
@@ -707,6 +669,8 @@
             return links;
         }
 
+        //d3 randomly initializes force layout, and that causes some problem for our tree, so this deterministically
+        //initalizs node position
         function initialize_layout(nodes) {
             var nextdepths = [0];
             var previous = [-1];
@@ -727,6 +691,7 @@
             }
         }
 
+
         //Collapses nodes upon click, unless they're being dragged.
         //essentially switches the "active" children array with the
         // "hidden" _children array.
@@ -742,7 +707,6 @@
                 d._children = null;
                 nodes = flatten(g.data.nodes);
                 initialize_layout(nodes);
-
             }
             else {
                 var paths = [];
@@ -751,7 +715,6 @@
                 }
                 openPaths(paths);
             }
-
             //
             update();
         }
@@ -773,6 +736,9 @@
         }
 
         //Exctracts the data to search on
+        //TODO: there is an edge case where sometimes bootstrapping can have a childless node not at the bottom of the
+        //  tree. this function assumes that the bottom of the tree is the level at which the first leaf node is found.
+        //  Need to change this algorithm to get information from each leaf node regardless of depth.
         function extract_select2_data() {
             var index = 0;
             var data = g.data.nodes;
@@ -862,6 +828,7 @@
                     });
         }
 
+        //retrieves statistics on the graph generated
         function loadStats() {
             var result = {{ async_result|tojson }};
             var stats_url = '/results/' + result.parameters.output_prefix + '.el.profile';
@@ -892,6 +859,12 @@
         // load statistics from file
         $(window).load(loadStats);
     </script>
+    {#
+     Script for handling download of .bmp file. Doesn't work yet. Feel free to scrap this part entirely, we just left it
+     in case you can use it. Sam wrote it, so we're not sure what it does either.
+    #}
+
+    {#
     <script type="text/javascript">
         /*
          populates the form above with the svg data from the graph
@@ -917,34 +890,10 @@
             //form.submit();
         }
     </script>
+    #}
 </div>
 
-<h4>
-    Repulsion:
-</h4>
-<div id="charge_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
-
-<h4>
-    Max Repulsion Distance:
-</h4>
-<div id="cd_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
-
-<h4>
-    Link Strength:
-</h4>
-<div id="ls_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
-
-<h4>
-    Link Distance:
-</h4>
-<div id="ld_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
-
-<h4>
-    Gravitation Towards Center:
-</h4>
-<div id="gravity_slider" style="margin-bottom: 30px; margin-left: auto; margin-right: auto;" ></div>
-
-<div id="stats" align="left" style="float: left; margin-left: 10px; margin-top: 10px; margin-bottom: 10px; margin-right: 50px;">
+<div id="stats" align="left" style="float: left; margin: 10px;">
     <h3>Stats</h3>
 </div>
 <div id="shortcuts" align="left" style="float: left; margin: 10px;">
@@ -977,8 +926,38 @@
     </table>
 </div>
 
-<div id="legend" style="float: left; margin-left:50px; margin-bottom:10px; margin-top:10px; margin-top:10px;">
+<div class="slider slider-horizontal">
+
+
+</div>
+<h4>
+    Repulsion:
+</h4>
+<div id="charge_slider"></div>
+
+<h4>
+    Max repulsion distance:
+</h4>
+<div id="cd_slider"></div>
+
+<h4>
+    Link Strength:
+</h4>
+<div id="ls_slider"></div>
+
+
+<h4>
+    Link Distance:
+</h4>
+<div id="ld_slider"></div>
+
+
+<h4>
+    Gravitation towards center:
+</h4>
+<div id="gravity_slider"></div>
+
+
+<div id="legend" style="float: right; margin: 10px;">
     <h3>Legend</h3>
 </div>
-
-{% include 'footer.html' %}

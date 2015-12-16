@@ -226,7 +226,6 @@ def view_result(task_id):
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
-        #print "HEYOOOOOH LOOK HERE FOR THE THING " + async_result
         f = open(os.path.join('/var/www/html/dev-geneweaver/results/' + str(async_result) +'.json'), 'r')
         csv_file = open(os.path.join('/var/www/html/dev-geneweaver/results/' + str(async_result) +'.csv'), 'r')
         data = ''
