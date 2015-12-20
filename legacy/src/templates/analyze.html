@@ -70,7 +70,8 @@
             {%- for msg in errors %}
                 <div class="alert alert-danger fade in">
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-                    {{ msg }}</div>
+                    {{ msg }}
+				</div>
             {% endfor -%}
         {% endif %}
     {% endwith %}
@@ -114,7 +115,6 @@
                                                         data-project="{{ proj.project_id }}"
                                                         >
                                                         #}
-
 
                                                 <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
                                                     <label for="proj-{{ proj.project_id }}-allcheck">
@@ -185,6 +185,7 @@
 				$(child).addClass('collapsed');
 		});
 
+		// TODO: this should be refactored
 		// All selector checkbox
 		$('.proj-checkbox').on('click', function(event) {
 
@@ -192,18 +193,40 @@
 			var allcheck = '#' + check.attr('id');
 			var pid = allcheck.split('-')[1];
 			var gscheck = '.proj-' + pid + '-check';
+            var pbid = '#project-body-' + pid;
+			var allclass = '#proj-' + pid + '-allcheck';
+			var chkclass = '.proj-' + pid + '-check';
 
-			if ($(allcheck).attr('checked')) {
+            // Check to see if we haven't made an AJAX call for this project
+			if ($(pbid).children().length === 0) {
 
-				$(gscheck).each(function (index) {
-					$(this).attr('checked', false);
+				var data = {'project': pid};
+
+				$.get(url, data).done(function (data) {
+
+					$(pbid).append(data);
+
+					$(chkclass).each(function (index) {
+						console.log('checking');
+						$(this).attr('checked', true);
+					});
 				});
 
 			} else {
 
-				$(gscheck).each(function (index) {
-					$(this).attr('checked', true);
-				});
+				if ($(allcheck).attr('checked')) {
+
+					$(gscheck).each(function (index) {
+						$(this).attr('checked', false);
+					});
+
+				} else {
+
+					$(gscheck).each(function (index) {
+						console.log('checking2');
+						$(this).attr('checked', true);
+					});
+				}
 			}
 		});
 
