@@ -14,7 +14,7 @@ from flask import session
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '/Users/group2admin/geneweaver/results'
+RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
