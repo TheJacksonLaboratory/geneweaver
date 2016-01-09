@@ -104,6 +104,17 @@
 		<div class="filter-title">Filter by Species</div>
 
 		<ul class="tree">
+			{% for tup in searchFilters.tierList|dictsort %}
+				<li class="tree root">
+					{% if tup[1] > 1 %}
+						<label class="filter-checkbox filter-root">
+							{{tup[0]}}
+						</label>
+					{% endif %}
+					
+				</li>
+			{% endfor %}
+
 			{% if searchFilters.tierList.noTier > 1 %}
 			<li class="tree root">
 				<label class="filter-checkbox filter-root">
