@@ -336,7 +336,8 @@ def getSearchFilterValues(query):
 			tsa_counts, 'sp_counts': sp_counts, 'st_counts': st_counts,
 			'sta_counts': sta_counts, 'att_counts': att_counts, 'at_counts':
 			at_counts, 'ats_counts': ats_counts, 'status_counts': 
-			status_counts, 'spmap': spmap, 'attrmap': attrmap}
+			status_counts, 'spmap': spmap, 'attrmap': attrmap, 'tiermap': 
+			tiermap}
 
 
 '''
