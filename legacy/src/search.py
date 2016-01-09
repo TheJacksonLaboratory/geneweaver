@@ -184,7 +184,6 @@ def getSearchFilterValues(query):
 	client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
 	client.SetLimits(0, 1000, 1000)
 
-	#Query for GS min and max gene size counts
 	sphinxSelect = '*'
 	sphinxSelect += ', MIN(gs_count) low, MAX(gs_count) high, 0 as OneRow'
 
@@ -202,6 +201,9 @@ def getSearchFilterValues(query):
 	client.SetGroupBy('attribution', sphinxapi.SPH_GROUPBY_ATTR)
 	client.AddQuery(query, 'geneset, geneset_delta')
 
+	## Generates a six digit number representing all combinations of tier,
+	## species, and attributions. Every two characters represent these three
+	## values.
 	sphinxSelect += ', (cur_id*10000 + sp_id*100 + attribution) AS tsa_group'
 
 	client.SetSelect(sphinxSelect)
@@ -222,17 +224,6 @@ def getSearchFilterValues(query):
 	deps = status['matches'][1]['attrs']['@count']
 
 	status_counts = {'provisional': provs, 'deprecated': deps}
-
-	#atts = {}
-	## Stores everything in the attributions dict where attribution names
-	## are the keys
-	#for match in grp['matches']:
-	#	att = match['attrs']['@groupby']
-
-	#	## Rare but sometimes there are nonexistant attribution IDs
-	#	if attmap.get(att, None) != None:
-	#		attname = attmap[att]
-	#		atts[attname] = match['attrs']['@count']
 
 	tier_counts = defaultdict(int)
 	sp_counts = defaultdict(int)
@@ -261,13 +252,47 @@ def getSearchFilterValues(query):
 			nl.append(l[i:i+n])
 
 		return nl
+	#for sp_id,sp_name in speciesListFromDB.items():
+	#	speciesList['sp'+str(sp_id)] = 0
+	##Perform a sphinx query
+	#client.SetGroupBy('sp_id', sphinxapi.SPH_GROUPBY_ATTR);
+	#results = client.Query(query)
+	##Count all of the results
+	#if (results['total']>0):
+	#	for match in results['matches']:
+	#		speciesList['sp'+str(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
+
+	#Query for attribution counts
+	#First, get the list of attributions and ID's from the database
+	#attributionsListFromDB = geneweaverdb.get_all_attributions()
+	#attributionsList = {}
+	##Build the default list
+	#for at_id, at_name in attributionsListFromDB.items():
+	#	attributionsList['at'+str(at_id)] = 0
+	##TODO remove this after updating the database
+	#attributionsList['at0'] = 0
+	##Perform a sphinx query
+	#client.SetGroupBy('attribution', sphinxapi.SPH_GROUPBY_ATTR);
+	#results = client.Query(query)
+	##Count all of the results
+	#if (results['total']>0):
+	#	for match in results['matches']:
+	#		attributionsList['at'+str(match['attrs']['attribution'])] = int(match['attrs']['@count'])
 
 	## Now begin the process of converting useless IDs into names
-	attmap = geneweaverdb.get_all_attributions()
-	attmap[0] = 'No Attribution' ## The function doesn't add No Att. idk why
+	attrmap = geneweaverdb.get_all_attributions()
+	attrmap[0] = 'No Attribution' ## The function doesn't add No Att. idk why
+
+	for atid, atname in attrmap.items():
+		attrmap['at' + str(atid)] = atname
+		del attrmap[atid]
 
 	spmap = geneweaverdb.get_all_species()
 	spmap[0] = 'No Species'
+
+	for spid, spname in spmap.items():
+		spmap['sp' + str(spid)] = spname
+		del spmap[spid]
 
 	tiermap = {0: 'No Tier', 1: 'I: Resources', 2: 'II: Pro-Curated', 
 			   3: 'III: Curated', 4: 'IV: Provisional', 5: 'V: Private'}
@@ -276,6 +301,7 @@ def getSearchFilterValues(query):
 	for match in filt['matches']:
 		keys = str(match['attrs']['@groupby'])
 
+		## See comment above about the two character codes
 		if len(keys) < 6:
 			keys = ('0' * (6 - len(keys))) + keys
 
@@ -285,10 +311,14 @@ def getSearchFilterValues(query):
 		attr = int(keys[2]) ## The attribution tag for this match
 		cnt = match['attrs']['@count']
 
+		## Convert to the weird string keys, only here b/c otherwise I'd have
+		## to rewrite a shit ton more code :(
+		spec = 'sp' + str(spec)
+		attr = 'at' + str(attr)
+
 		#tier = tiermap.get(tier, 'No Tier')
-		spec = spmap.get(spec, 'No Species')
-		attr = attmap.get(attr, 'No Attribution')
-		print attr
+		#spec = spmap.get(spec, 'No Species')
+		#attr = attmap.get(attr, 'No Attribution')
 
 		tier_counts[tier] += cnt
 		ts_counts[tier][spec] += cnt
@@ -305,7 +335,8 @@ def getSearchFilterValues(query):
 	return {'tier_counts': tier_counts, 'ts_counts': ts_counts, 'tsa_counts': 
 			tsa_counts, 'sp_counts': sp_counts, 'st_counts': st_counts,
 			'sta_counts': sta_counts, 'att_counts': att_counts, 'at_counts':
-			at_counts, 'ats_counts': ats_counts, 'status_counts': status_counts}
+			at_counts, 'ats_counts': ats_counts, 'status_counts': 
+			status_counts, 'spmap': spmap, 'attrmap': attrmap}
 
 
 '''
@@ -315,7 +346,7 @@ counts, ie how many of each species, in search_filters_panel.html
 The function performs a query to a separate sphinx server connection, so it will not have any previously applied user
 search filters.
 '''
-def getSearchFilterValues2(query):
+def getSearchFilterValuesOld(query):
 	'''
 	Create an initial sphinx server connection
 	'''
@@ -654,7 +685,7 @@ def keyword_paginated_search(terms, pagination_page,
 	Perform the second search that gets the total filter counts for display in search_filters_panel.html
 	'''
 	#Get a dictionary representing the search filter values present. Use the full search results to do this.
-	getSearchFilterValues2(query)
+	getSearchFilterValuesOld(query)
 	searchFilters = getSearchFilterValues(query)
 	'''
 	Get filter label information, ie species names.

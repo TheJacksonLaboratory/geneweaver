@@ -269,7 +269,7 @@
                                     {% for spID, spName in searchFilters.sp_counts.iteritems()| sort %}
                                         {% if searchFilters.sp_counts[spID] >0 %}
                                             <input type="checkbox"
-                                                    {% if userFilters is not defined or userFilters.sp_counts[spID] == "yes" %}
+                                                    {% if userFilters is not defined or userFilters.speciesList[spID] == "yes" %}
                                                    checked="checked"
                                                     {% else %}
 
@@ -279,7 +279,7 @@
                                                 {% if spName == "" %}
                                                     No Species
                                                 {% else %}
-                                                    {{ spID }}
+                                                    {{ searchFilters.spmap[spID] }}
                                                 {% endif %}
                                                 ({{ searchFilters.sp_counts[spID] }}) </label>
                                         {% endif %}
@@ -301,7 +301,7 @@
                                                     name="{{ atID }}" id="{{ atID }}Checkbox">
 
                                             <label class="filter-checkbox" for="{{ atID }}Checkbox">
-                                                {{ atID }}
+                                                {{ searchFilters.attrmap[atID] }}
                                                 ({{ searchFilters.att_counts[atID] }}) </label>
 
                                         {% endif %}
