@@ -172,7 +172,7 @@ def applyUserRestrictions(client):
 		client.SetSelect(access)
 		client.SetFilter('isReadable', [1])
 
-def getSearchFilterValues2(query):
+def getSearchFilterValues(query):
 	"""
 	Rewrite of getSearchFilterValues because the original wasn't returning the
 	proper counts for the sidebar filters. This function more closely matches
@@ -221,7 +221,7 @@ def getSearchFilterValues2(query):
 	provs = status['matches'][0]['attrs']['@count']
 	deps = status['matches'][1]['attrs']['@count']
 
-	stat_counts = {'Provisional': provs, 'Deprecated': deps}
+	status_counts = {'provisional': provs, 'deprecated': deps}
 
 	#atts = {}
 	## Stores everything in the attributions dict where attribution names
@@ -285,9 +285,10 @@ def getSearchFilterValues2(query):
 		attr = int(keys[2]) ## The attribution tag for this match
 		cnt = match['attrs']['@count']
 
-		tier = tiermap.get(tier, 'No Tier')
+		#tier = tiermap.get(tier, 'No Tier')
 		spec = spmap.get(spec, 'No Species')
 		attr = attmap.get(attr, 'No Attribution')
+		print attr
 
 		tier_counts[tier] += cnt
 		ts_counts[tier][spec] += cnt
@@ -305,21 +306,6 @@ def getSearchFilterValues2(query):
 			tsa_counts, 'sp_counts': sp_counts, 'st_counts': st_counts,
 			'sta_counts': sta_counts, 'att_counts': att_counts, 'at_counts':
 			at_counts, 'ats_counts': ats_counts, 'status_counts': status_counts}
-	#'''
-	#Create dictionaries with names that search_filters_panel.html understands and return the resulting dictionary
-	#'''
-	#statusList = {'provisional': statusCountArray[1], 'deprecated': statusCountArray[2]}
-	#tierList = {'noTier': tierCountArray[0], 'tier1': tierCountArray[1],'tier2': tierCountArray[2],'tier3': tierCountArray[3],'tier4': tierCountArray[4],'tier5': tierCountArray[5]}
-	#geneCounts = {'geneCountMin': minGeneCount, 'geneCountMax': maxGeneCount}
-	### Used to prettify the output later on
-	#tierMap = {'noTier': 'No Tier', 'tier1': 'I: Resources', 'tier2': 
-	#		'II: Pro-Curated', 'tier3': 'III: Curated', 'tier4': 
-	#		'IV: Provisional', 'tier5': 'V: Private'}
-	##Combine various dictionaries into a single search results dictionary and return
-	#return {'statusList': statusList,'tierList': tierList, 'speciesList': speciesList,
-	#		'attributionsList': attributionsList, 'geneCounts': geneCounts,
-	#		'tierMap': tierMap}
-
 
 
 '''
@@ -329,7 +315,7 @@ counts, ie how many of each species, in search_filters_panel.html
 The function performs a query to a separate sphinx server connection, so it will not have any previously applied user
 search filters.
 '''
-def getSearchFilterValues(query):
+def getSearchFilterValues2(query):
 	'''
 	Create an initial sphinx server connection
 	'''

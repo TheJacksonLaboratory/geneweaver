@@ -5,7 +5,7 @@
     <script>
 
         $(document).ready(function () {
-
+{#
 //Set up the slider for gene count values, and change value on slider update
 // $( "#slider-range" ).slider({
 //range: true,
@@ -49,6 +49,7 @@
 //$( "#geneCountMax" ).val( "" + $( "#slider-range" ).slider( "values", 1 ));
 ////Update the label
 //$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#slider-range" ).slider( "values", 0 )+" to " + $( "#slider-range" ).slider( "values", 1 ));
+#}
 
             // On filter form change, update the page, performing a new search.
             // This script calls a new paginated search anytime a filter option is
@@ -176,7 +177,7 @@
                                            name="provisional" id="provisionalCheckbox"> <label class="filter-checkbox"
                                                                                                for="provisionalCheckbox">Include
                                     <span class="gs_provisional"> Provisional </span>
-                                    ({{ searchFilters.statusList.provisional }}) </label>
+                                    ({{ searchFilters.status_counts.provisional }}) </label>
 
                                     <input type="checkbox"
                                             {% if userFilters is not defined or userFilters.statusList.deprecated == "yes" %}
@@ -187,7 +188,7 @@
                                            name="deprecated" id="deprecatedCheckbox"> <label class="filter-checkbox"
                                                                                              for="deprecatedCheckbox">Include
                                     <span class="gs_deprecated"> Deprecated </span>
-                                    ({{ searchFilters.statusList.deprecated }}) </label>
+                                    ({{ searchFilters.status_counts.deprecated }}) </label>
 
                                     <div id="genesetCountLabel"></div>
                                     <br/>
@@ -212,7 +213,7 @@
                                             {% endif %}
                                            name="noTier" id="noTierCheckbox"> <label class="filter-checkbox"
                                                                                      for="noTierCheckbox"> No Tier
-                                    ({{ searchFilters.tierList.noTier }}) </label>
+                                    ({{ searchFilters.tier_counts.0 }}) </label>
                                     <input type="checkbox"
                                             {% if userFilters is not defined or userFilters.tierList.tier1 == "yes" %}
                                            checked="checked"
@@ -220,8 +221,8 @@
 
                                             {% endif %}
                                            name="tier1" id="tier1Checkbox"> <label class="filter-checkbox"
-                                                                                   for="tier1Checkbox"> Tier 1
-                                    ({{ searchFilters.tierList.tier1 }}) </label>
+                                                                                   for="tier1Checkbox"> I: Resources
+                                    ({{ searchFilters.tier_counts.1 }}) </label>
                                     <input type="checkbox"
                                             {% if userFilters is not defined or userFilters.tierList.tier2 == "yes" %}
                                            checked="checked"
@@ -229,8 +230,8 @@
 
                                             {% endif %}
                                            name="tier2" id="tier2Checkbox"> <label class="filter-checkbox"
-                                                                                   for="tier2Checkbox"> Tier 2
-                                    ({{ searchFilters.tierList.tier2 }}) </label>
+                                                                                   for="tier2Checkbox"> II: Pro-Curated
+                                    ({{ searchFilters.tier_counts.2 }}) </label>
                                     <input type="checkbox"
                                             {% if userFilters is not defined or userFilters.tierList.tier3 == "yes" %}
                                            checked="checked"
@@ -238,8 +239,8 @@
 
                                             {% endif %}
                                            name="tier3" id="tier3Checkbox"> <label class="filter-checkbox"
-                                                                                   for="tier3Checkbox"> Tier 3
-                                    ({{ searchFilters.tierList.tier3 }}) </label>
+                                                                                   for="tier3Checkbox"> III: Curated
+                                    ({{ searchFilters.tier_counts.3 }}) </label>
                                     <input type="checkbox"
                                             {% if userFilters is not defined or userFilters.tierList.tier4 == "yes" %}
                                            checked="checked"
@@ -247,8 +248,8 @@
 
                                             {% endif %}
                                            name="tier4" id="tier4Checkbox"> <label class="filter-checkbox"
-                                                                                   for="tier4Checkbox"> Tier 4
-                                    ({{ searchFilters.tierList.tier4 }}) </label>
+                                                                                   for="tier4Checkbox"> IV: Provisional
+                                    ({{ searchFilters.tier_counts.4 }}) </label>
                                     <input type="checkbox"
                                             {% if userFilters is not defined or userFilters.tierList.tier5 == "yes" %}
                                            checked="checked"
@@ -256,8 +257,8 @@
 
                                             {% endif %}
                                            name="tier5" id="tier5Checkbox"> <label class="filter-checkbox"
-                                                                                   for="tier5Checkbox"> Tier 5
-                                    ({{ searchFilters.tierList.tier5 }}) </label>
+                                                                                   for="tier5Checkbox"> V: Private
+                                    ({{ searchFilters.tier_counts.5 }}) </label>
                                     <!-- Species Filters -->
 
                                     <br/>
@@ -265,10 +266,10 @@
                                     <div class="filter-title">Species</div>
                                     <br/>
 
-                                    {% for spID, spName in filterLabels.speciesList.iteritems()| sort %}
-                                        {% if searchFilters.speciesList[spID] >0 %}
+                                    {% for spID, spName in searchFilters.sp_counts.iteritems()| sort %}
+                                        {% if searchFilters.sp_counts[spID] >0 %}
                                             <input type="checkbox"
-                                                    {% if userFilters is not defined or userFilters.speciesList[spID] == "yes" %}
+                                                    {% if userFilters is not defined or userFilters.sp_counts[spID] == "yes" %}
                                                    checked="checked"
                                                     {% else %}
 
@@ -278,9 +279,9 @@
                                                 {% if spName == "" %}
                                                     No Species
                                                 {% else %}
-                                                    {{ spName }}
+                                                    {{ spID }}
                                                 {% endif %}
-                                                ({{ searchFilters.speciesList[spID] }}) </label>
+                                                ({{ searchFilters.sp_counts[spID] }}) </label>
                                         {% endif %}
                                     {% endfor %}
 
@@ -290,8 +291,8 @@
                                     <div class="filter-title">Attribution</div>
                                     <br/>
 
-                                    {% for atID, atName in filterLabels.attributionsList.iteritems()| sort %}
-                                        {% if searchFilters.attributionsList[atID] > 0 %}
+                                    {% for atID, atName in searchFilters.att_counts.iteritems()| sort %}
+                                        {% if searchFilters.att_counts[atID] > 0 %}
                                             <input
                                                     type="checkbox"
                                                     {% if userFilters is not defined or userFilters.attributionsList[atID] == "yes" %}
@@ -300,8 +301,8 @@
                                                     name="{{ atID }}" id="{{ atID }}Checkbox">
 
                                             <label class="filter-checkbox" for="{{ atID }}Checkbox">
-                                                {{ atName }}
-                                                ({{ searchFilters.attributionsList[atID] }}) </label>
+                                                {{ atID }}
+                                                ({{ searchFilters.att_counts[atID] }}) </label>
 
                                         {% endif %}
 
@@ -313,11 +314,13 @@
 
                             </div>
 
+							{#
                             {% include 'search/tab_tiers.html' %}
 
                             {% include 'search/tab_species.html' %}
 
                             {% include 'search/tab_attributions.html' %}
+							#}
                             <!--
                             <div id="tab1_2" class="tab-pane">
                                 Tiers
