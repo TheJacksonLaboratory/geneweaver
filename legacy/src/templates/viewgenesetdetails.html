@@ -251,6 +251,7 @@
         }
 
         $(document).ready(function () {
+
             var gs_id = {{ geneset.geneset_id }};
 			var user_id = {{ user_id }};
 
@@ -258,16 +259,27 @@
 
 				var modal = $('#myModalValue').val();
 				var npn = $('#newProjName').val();
+				var geneset = 'GS' + gs_id;
 
-				if ($.isEmptyObject(npn)) {
+				// Alter the modal text a bit since we're only adding a single
+				// geneset, not several which is the default.
+				$('#addToProjectModal').find('.modal-title')
+					.html('Add GeneSet to Projects');
+				$('#addToProjectModal').find('h4')
+					.html('Add ' + geneset + ' to the following project(s):');
+				$('#myModalLabel').html(geneset);
+				$('#myModalValue').val(geneset);
+				$('#addToProjectModal').modal('show');
 
-					$("#result").html(
-						'<div class="alert alert-danger fade in"> ' +
-						'<button type="button" class="close" ' +
-						'data-dismiss="alert" aria-hidden="true">x' +
-						'</button>No Projects Were Selected</div>'
-					);
-				}
+				//if ($.isEmptyObject(npn)) {
+
+				//	$("#result").html(
+				//		'<div class="alert alert-danger fade in"> ' +
+				//		'<button type="button" class="close" ' +
+				//		'data-dismiss="alert" aria-hidden="true">x' +
+				//		'</button>No Projects Were Selected</div>'
+				//	);
+				//}
 
                 //window.open('../exportGeneList/' + gs_id);
             });
