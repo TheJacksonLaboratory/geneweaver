@@ -44,7 +44,7 @@
 </style>
 
 
-{% if g.user.user_id == 0 %}
+{% if not g.user or g.user.user_id == 0 %}
 
     {% include 'htmlfragments/permissionError.html' %}
 
@@ -117,7 +117,6 @@
 
     {% endblock %}
 
-{% endif %}
 
 {% if g.user is defined %}
 
@@ -129,7 +128,6 @@
 
 {% endif %}
 
-{% include 'footer.html' %}
 
 <script type="text/javascript">
 
@@ -396,3 +394,7 @@
     });
 
 </script>
+
+{% endif %}
+
+{% include 'footer.html' %}
