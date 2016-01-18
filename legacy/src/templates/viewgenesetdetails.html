@@ -366,6 +366,7 @@
                     url: "../updateAltGeneSymbol",
                     data: {"altSymbol": val, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
                     success: function (data) {
+						console.log(data);
                         location.reload();
                     }
                 })

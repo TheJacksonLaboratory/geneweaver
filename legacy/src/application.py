@@ -1760,6 +1760,8 @@ def update_alternate_gene_symbol():
 			session['extsrc'] = 1
 		elif val == 'EnsemblID':
 			session['extsrc'] = 2
+		elif val == 'UniGene':
+			session['extsrc'] = 5
 		elif val == 'GeneSymbol':
 			session['extsrc'] = 7
 		elif val == 'MGIID':
