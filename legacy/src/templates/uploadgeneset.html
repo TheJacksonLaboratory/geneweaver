@@ -3,7 +3,7 @@
 {% import 'macros.html' as macros %}
 
 
-<body onload="myFunction('{{ gidts }}')">
+<body onload="myFunction('{{ gidts }}');">
 
 
 <style type="text/css">
@@ -427,7 +427,9 @@
         }
 
         // populate the form
-        document.getElementById('genesetName').value = title;
+		// The title includes the full URL for some reason, removed for now
+        //document.getElementById('genesetName').value = title;
+        document.getElementById('genesetName').value = desc;
         document.getElementById('genesetDescription').value = desc;
         document.getElementById('file_text').value = tmpGeneStr;
     }
@@ -480,7 +482,7 @@
 
 				reader.readAsText(file);
 			} else {
-				fileDisplayArea.innerText = "File not supported!"
+				fileDisplayArea.innerText = "File not supported!";
 			}
 		});
 

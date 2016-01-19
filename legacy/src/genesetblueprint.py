@@ -62,7 +62,7 @@ def render_batchuploadgeneset(genes=None):
     return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts)
 
 
-@geneset_blueprint.route('/batchuploadgeneset.html/<genes>')
+@geneset_blueprint.route('/batchuploadgeneset/<genes>')
 def render_batchuploadgeneset_ba(genes):
     gidts = []
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
