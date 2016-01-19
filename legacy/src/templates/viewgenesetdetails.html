@@ -86,6 +86,9 @@
 					<button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject" style="margin-bottom: 10px;">
 						<i class="fa fa-folder-o pull-left"></i> Add to Project
 					</button>
+					<button type="button" class="btn btn-lg btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;" onclick="addNewGS();">
+						<i class="fa fa-list-ul pull-left"></i> Add to New Geneset
+					</button>
 					{% endif %}
                 </div>
             </div>
@@ -387,6 +390,73 @@
 
 
         //});
+
+	function addNewGS() {
+
+		var checkedArray = [];
+		$("input:checkbox[name='gsoptions[]']:checked").each(function(){
+			checkedArray.push($(this).val());
+		});
+
+		if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
+
+			{# Assign the needed async_results variables #}
+			var numGS = 0;
+			// add in the title and the description
+			var getStr = 'Genes dervied from the geneset: {{ geneset.name }}';
+			// add in all the checked boxes gene names
+			checkedArray.forEach(function (entry) {
+				getStr += "?";
+				getStr += entry;
+				getStr += "?";
+
+				// grab the value
+				var tmpString = '';
+				// conver the string to an array by looping
+				var values = [];
+				var t_length = tmpString.length;
+				for (var i = 0; i < t_length; i++){
+					var tmpName = "";
+					var tmpValue = "";
+					while (tmpString[i] !== '?' && i < t_length){
+						tmpName += tmpString[i];
+						i++;
+					}
+					tmpName = String(tmpName);
+					values.push(tmpName);
+					// skip over '?'
+					i++;
+					while(tmpString[i] !== '?' && i < t_length) {
+						tmpValue += tmpString[i];
+						i++;
+					}
+					tmpValue = parseInt(tmpValue);
+					values.push(tmpValue);
+				}
+				var currVal = 1;
+				// find the current value we need
+				var arrayLen = values.length;
+				for (var j = 0; j < arrayLen; ){
+					if (values[j] === entry){
+						j = (j + 1);
+						currVal = values[j];
+					}
+					j = (j + 1);
+				}
+				// assign the current value for the gene name
+				getStr += currVal;
+
+			});
+
+			// Load the new page with the extra url bit
+			setTimeout(function(){
+				window.location = "/batchuploadgeneset/" + getStr;
+			}, 1000);
+		}
+		else{
+			window.alert("No checkboxes selected.")
+		}
+	}
 
 
     </script>
