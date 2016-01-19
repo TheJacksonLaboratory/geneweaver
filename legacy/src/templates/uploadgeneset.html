@@ -395,7 +395,11 @@
 
     // process the url to remove the heading, make spaces, and split into an array based on the ? delim. if there is
     // data after the heading
-    queryString = queryString.replace("http://127.0.0.1:5000/batchuploadgeneset.html/",'');
+	var searchString = 'batchuploadgeneset/';
+	var paramIndex = queryString.search(searchString);
+
+	paramIndex = paramIndex + searchString.length;
+	queryString = queryString.slice(paramIndex);
 
     var queryLength = queryString.length
 
