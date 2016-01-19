@@ -1,34 +1,33 @@
-    {# insert section about metadata #}
-    {% include 'genesetMeta.html' %}
+{# insert section about metadata #}
+{% include 'genesetMeta.html' %}
 
-            {# Right Side List of Buttons #}
+{# Right Side List of Buttons #}
 
-        <div class="col-xs-6 col-md-3">
+<div class="col-xs-6 col-md-3">
+	<button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
+		<i class="fa fa-download pull-left"></i> Export Genes
+	</button>
+	<button type="button" class="btn btn-lg btn-block btn-warning" id="viewSimilarGenesets">
+		<i class="fa fa-eye pull-left"></i> Similar GeneSets
+	</button>
 
-            <button type="button" class="btn btn-lg btn-block btn-warning" id="exportData">
-                <i class="fa fa-download pull-left"></i> Export Genes
-            </button>
-            <button type="button" class="btn btn-lg btn-block btn-warning" id="viewSimilarGenesets">
-                <i class="fa fa-eye pull-left"></i> Similar GeneSets
-            </button>
-            {% if view == 'True' %}
-                <button type="button" class="btn btn-lg btn-block btn-warning" id="setThreshold">
-                    <i class="fa fa-signal pull-left"></i> Set Threshold
-                </button>
-                <button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
-                    <i class="fa fa-edit pull-left"></i> Edit MetaData
-                </button>
-                <button type="button" class="btn btn-lg btn-block btn-warning" id="editGenesetGenes">
-                    <i class="fa fa-edit pull-left"></i> Edit Genes
-                </button>
-                <button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
-                    <i class="fa fa-trash-o pull-left"></i> Delete GeneSet
-                </button>
-            {% endif %}
-        </div>
+	{% if view == 'True' %}
+	<button type="button" class="btn btn-lg btn-block btn-warning" id="setThreshold">
+		<i class="fa fa-signal pull-left"></i> Set Threshold
+	</button>
+	<button type="button" class="btn btn-lg btn-block btn-warning" id="editGeneset">
+		<i class="fa fa-edit pull-left"></i> Edit MetaData
+	</button>
+	<button type="button" class="btn btn-lg btn-block btn-warning" id="editGenesetGenes">
+		<i class="fa fa-edit pull-left"></i> Edit Genes
+	</button>
+	<button type="button" class="btn btn-lg btn-block btn-danger" id="deleteGeneset">
+		<i class="fa fa-trash-o pull-left"></i> Delete GeneSet
+	</button>
+	{% endif %}
+</div>
 
-    </div>
-
-
+{# What are these for? #}
+</div>
 
 </div>

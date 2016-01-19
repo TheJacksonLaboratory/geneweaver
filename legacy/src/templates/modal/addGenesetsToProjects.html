@@ -26,6 +26,7 @@
                     </div>
                     <div class="row" id="reveal-if-active"></div>
                     <div class="row" style="padding-top: 10px">
+						{% if g.user is defined %}
                         {% for currProj in g.user.projects %}
                             <label for="addProjects{{ currProj.project_id }}"
                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off">
@@ -36,6 +37,7 @@
                                     id="addProjects{{ currProj.project_id }}"
                                     value="{{ currProj.project_id }}">
                         {% endfor %}
+                        {% endif %}
                         <input type="hidden" id="myModalValue" name="gs_id" value=""/>
                     </div>
                 </div>

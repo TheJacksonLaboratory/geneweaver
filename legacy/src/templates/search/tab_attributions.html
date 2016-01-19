@@ -101,149 +101,72 @@
 <!-- Supposed to be a tree-like structure, a series of lists ul/li/ul... -->
 <div id="tab_attributions" class="tab-pane">
 	<form action="/searchFilter.json">
-		<div class="filter-title">Filter by Tier</div>
+		<div class="filter-title">Filter by Attributions</div>
 
 		<ul class="tree">
-			{% if searchFilters.tierList.noTier > 1 %}
+			{% for atid, atcount in searchFilters.att_counts.iteritems() | sort %}
 			<li class="tree root">
+				{% if atcount >= 1 %}
 				<label class="filter-checkbox filter-root">
 					<input type="checkbox"
 						{% if userFilters is not defined or 
-						userFilters.tierList.noTier == "yes" %}
+						userFilters.attributionsList[atid] == "yes" %}
 							checked="checked"
-						{% else %}
 						{% endif %}
-							name="onTier" id="noTierCheckbox1" />
+							name="{{atid}}" id="{{atid}}Checkbox" />
 
-					No Tier ({{searchFilters.tierList.noTier}})
+						{{searchFilters.attrmap[atid]}} ({{atcount}})
 				</label>
 				<ul class="tree">
-				{% for spid, spname in filterLabels.speciesList.iteritems() |
-				sort %}
-					{% if searchFilters.speciesList[spid] > 0 %}
-						<li class="tree">
-							<label class="filter-checkbox">
-								<input type="checkbox"
-									{% if userFilters is not defined or 
-									userFilters.speciesList[spid] == "yes" %}
-										checked="checked"
-									{% else %}
-									{% endif %}
-										name="onTier" id="noTierCheckbox1" />
+					{% for tid, tcount in searchFilters.at_counts[atid].iteritems() | sort %}
+					{% if tcount > 0 %}
+					<li class="tree">
+						<label class="filter-checkbox" for="{{atid}}Checkbox">
+							<input type="checkbox"
+								{% if userFilters is not defined or 
+								userFilters.tierList[tid] == "yes" %}
+									checked="checked"
+								{% else %}
+								{% endif %}
+								name="{{tid}}" id="{{tid}}Checkbox" />
 
-									{% if spname == "" %}
-										No Species
-									{% else %}
-										{{spname}}
-									{% endif %}
-							</label>
-						</li>
+								{% if searchFilters.tiermap[tid] == "" %}
+									No Species
+								{% else %}
+									{{searchFilters.tiermap[tid]}} ({{tcount}})
+								{% endif %}
+						</label>
+						<ul class="tree">
+							{% for spid, spcount in searchFilters.ats_counts[atid][tid].iteritems() | sort %}
+							{% if spcount > 0 %}
+							<li class="tree">
+								<label class="filter-checkbox" for="{{atid}}Checkbox">
+									<input type="checkbox"
+										{% if userFilters is not defined or 
+										userFilters.speciesList[spid] == "yes" %}
+											checked="checked"
+										{% else %}
+										{% endif %}
+											name="{{spid}}" id="{{spid}}Checkbox" />
+
+										{% if searchFilters.spmap[spid] == "" %}
+											No Species
+										{% else %}
+											{{searchFilters.spmap[spid]}} ({{spcount}})
+										{% endif %}
+								</label>
+							</li>
+							{% endif %}
+							{% endfor %}
+						</ul>
+					</li>
 					{% endif %}
-
-				{% endfor %}
+					{% endfor %}
 				</ul>
+				{% endif %}
+				
 			</li>
-			{% endif %}
-			{% if searchFilters.tierList.tier1 > 1 %}
-			<li class="tree root">
-				<label class="filter-checkbox filter-root">
-					<input type="checkbox"
-						{% if userFilters is not defined or 
-						userFilters.tierList.noTier == "yes" %}
-							checked="checked"
-						{% else %}
-						{% endif %}
-							name="onTier" id="noTierCheckbox1" />
-
-					I: Resources ({{searchFilters.tierList.noTier}})
-				</label>
-				<ul class="tree">
-				{% for spid, spname in filterLabels.speciesList.iteritems() |
-				sort %}
-					{% if searchFilters.speciesList[spid] > 0 %}
-						<li class="tree">
-							<label class="filter-checkbox">
-								<input type="checkbox"
-									{% if userFilters is not defined or 
-									userFilters.speciesList[spid] == "yes" %}
-										checked="checked"
-									{% else %}
-									{% endif %}
-										name="onTier" id="noTierCheckbox1" />
-
-									{% if spname == "" %}
-										No Species
-									{% else %}
-										{{spname}}
-									{% endif %}
-							</label>
-						</li>
-					{% endif %}
-
-				{% endfor %}
-				</ul>
-			</li>
-			{% endif %}
-			{% if searchFilters.tierList.tier2 > 1 %}
-			<li>
-				<label class="filter-checkbox filter-root">
-					<input type="checkbox"
-						{% if userFilters is not defined or 
-						userFilters.tierList.noTier == "yes" %}
-							checked="checked"
-						{% else %}
-						{% endif %}
-							name="onTier" id="noTierCheckbox1" />
-
-					II: Pro-Curated ({{searchFilters.tierList.noTier}})
-				</label>
-			</li>
-			{% endif %}
-			{% if searchFilters.tierList.tier3 > 1 %}
-			<li>
-				<label class="filter-checkbox filter-root">
-					<input type="checkbox"
-						{% if userFilters is not defined or 
-						userFilters.tierList.noTier == "yes" %}
-							checked="checked"
-						{% else %}
-						{% endif %}
-							name="onTier" id="noTierCheckbox1" />
-
-					III: Curated ({{searchFilters.tierList.noTier}})
-				</label>
-			</li>
-			{% endif %}
-			{% if searchFilters.tierList.tier4 > 1 %}
-			<li>
-				<label class="filter-checkbox filter-root">
-					<input type="checkbox"
-						{% if userFilters is not defined or 
-						userFilters.tierList.noTier == "yes" %}
-							checked="checked"
-						{% else %}
-						{% endif %}
-							name="onTier" id="noTierCheckbox1" />
-
-					IV: Provisional ({{searchFilters.tierList.noTier}})
-				</label>
-			</li>
-			{% endif %}
-			{% if searchFilters.tierList.tier5 > 1 %}
-			<li>
-				<label class="filter-checkbox filter-root">
-					<input type="checkbox"
-						{% if userFilters is not defined or 
-						userFilters.tierList.noTier == "yes" %}
-							checked="checked"
-						{% else %}
-						{% endif %}
-							name="onTier" id="noTierCheckbox1" />
-
-					V: Private ({{searchFilters.tierList.noTier}})
-				</label>
-			</li>
-			{% endif %}
+		{% endfor %}
 		</ul>
 	</form>
 </div>
