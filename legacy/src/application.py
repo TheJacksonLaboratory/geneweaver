@@ -700,6 +700,13 @@ def viewStoredResults_by_runhash():
 				tool=geneweaverdb.get_tool('JaccardClustering'),
 				list=geneweaverdb.get_all_projects(user_id))
 
+		elif results['res_tool'] == 'Boolean Algebra':
+			return flask.render_template(
+				'tool/BooleanAlgebra_result.html',
+				async_result=json.loads(results['res_data']),
+				tool=geneweaverdb.get_tool('BooleanAlgebra'),
+				list=geneweaverdb.get_all_projects(user_id))
+
 
 @app.route('/reruntool.json', methods=['POST', 'GET'])
 def rerun_tool():
