@@ -1761,7 +1761,7 @@ def render_user_results():
 
 @app.route('/updateAltGeneSymbol')
 def update_alternate_gene_symbol():
-	if 'user_id' in flask.session:
+	#if 'user_id' in flask.session:
 		val = request.args['altSymbol']
 		if val == 'EntrezID':
 			session['extsrc'] = 1

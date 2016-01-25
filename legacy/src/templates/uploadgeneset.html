@@ -398,12 +398,18 @@
 	var searchString = 'batchuploadgeneset/';
 	var paramIndex = queryString.search(searchString);
 
-	paramIndex = paramIndex + searchString.length;
-	queryString = queryString.slice(paramIndex);
+	if (paramIndex != -1) {
+
+		paramIndex = paramIndex + searchString.length;
+		queryString = queryString.slice(paramIndex);
+	}
 
     var queryLength = queryString.length
 
-    if (queryLength != 0) {
+	console.log(queryString);
+	console.log(paramIndex);
+
+    if (queryLength != 0 && paramIndex != -1) {
 
         queryString = queryString.replace(/%20/g, " ");
         var values = queryString.split('?');
