@@ -1775,24 +1775,42 @@ def render_user_results():
 def update_alternate_gene_symbol():
 	val = request.args['altSymbol']
 
-	if val == 'EntrezID':
+	if type(val) != str:
+		val = str(val)
+
+	## Spaces are replaced with '_' client side prior to sending to server
+	val = val.replace('_', ' ')
+
+	genetypes = geneweaverdb.get_gene_id_types()
+	genedict = {}
+
+	for gtype in genetypes:
+		genedict[gtype['gdb_name']] = gtype['gdb_id']
+
+	if genedict.get(val, None):
+		session['extsrc'] = genedict[val]
+
+	else:
 		session['extsrc'] = 1
-	elif val == 'EnsemblID':
-		session['extsrc'] = 2
-	elif val == 'UniGene':
-		session['extsrc'] = 5
-	elif val == 'GeneSymbol':
-		session['extsrc'] = 7
-	elif val == 'MGIID':
-		session['extsrc'] = 10
-	elif val == 'FlyBaseID':
-		session['extsrc'] = 14
-	elif val == 'WormBaseID':
-		session['extsrc'] = 15
-	elif val == 'RGDID':
-		session['extsrc'] = 12
-	elif val == 'ZFinID':
-		session['extsrc'] = 13
+
+	#if val == 'EntrezID':
+	#	session['extsrc'] = 1
+	#elif val == 'EnsemblID':
+	#	session['extsrc'] = 2
+	#elif val == 'UniGene':
+	#	session['extsrc'] = 5
+	#elif val == 'GeneSymbol':
+	#	session['extsrc'] = 7
+	#elif val == 'MGIID':
+	#	session['extsrc'] = 10
+	#elif val == 'FlyBaseID':
+	#	session['extsrc'] = 14
+	#elif val == 'WormBaseID':
+	#	session['extsrc'] = 15
+	#elif val == 'RGDID':
+	#	session['extsrc'] = 12
+	#elif val == 'ZFinID':
+	#	session['extsrc'] = 13
 
 	return json.dumps(request.args)
 

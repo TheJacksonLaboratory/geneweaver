@@ -360,9 +360,12 @@
             });
 
             $('#selectGeneType').on('click', function (e) {
-                var val = $('.dropdown-menu li a').parents('.btn-group').find('[data-bind="label"]' ).text().replace(/[\n\s\xA0]+/g, '');
+                var val = $('.dropdown-menu li a').parents('.btn-group')
+					.find('[data-bind="label"]' )
+					.text().replace(/[\n\s\xA0]+/g, '_');
 
                 $.trim(val);
+
 
                 $.ajax({
                     type: "GET",
