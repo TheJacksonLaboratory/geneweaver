@@ -3,7 +3,7 @@
 {% import 'macros.html' as macros %}
 
 
-<body onload="myFunction('{{ gidts }}')">
+<body onload="myFunction('{{ gidts }}');">
 
 
 <style type="text/css">
@@ -395,11 +395,21 @@
 
     // process the url to remove the heading, make spaces, and split into an array based on the ? delim. if there is
     // data after the heading
-    queryString = queryString.replace("http://127.0.0.1:5000/batchuploadgeneset.html/",'');
+	var searchString = 'batchuploadgeneset/';
+	var paramIndex = queryString.search(searchString);
+
+	if (paramIndex != -1) {
+
+		paramIndex = paramIndex + searchString.length;
+		queryString = queryString.slice(paramIndex);
+	}
 
     var queryLength = queryString.length
 
-    if (queryLength != 0) {
+	console.log(queryString);
+	console.log(paramIndex);
+
+    if (queryLength != 0 && paramIndex != -1) {
 
         queryString = queryString.replace(/%20/g, " ");
         var values = queryString.split('?');
@@ -427,7 +437,9 @@
         }
 
         // populate the form
-        document.getElementById('genesetName').value = title;
+		// The title includes the full URL for some reason, removed for now
+        //document.getElementById('genesetName').value = title;
+        document.getElementById('genesetName').value = desc;
         document.getElementById('genesetDescription').value = desc;
         document.getElementById('file_text').value = tmpGeneStr;
     }
@@ -480,7 +492,7 @@
 
 				reader.readAsText(file);
 			} else {
-				fileDisplayArea.innerText = "File not supported!"
+				fileDisplayArea.innerText = "File not supported!";
 			}
 		});
 

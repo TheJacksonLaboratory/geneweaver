@@ -86,6 +86,9 @@
 					<button type="button" class="btn btn-lg btn-block btn-warning" id="addToProject" style="margin-bottom: 10px;">
 						<i class="fa fa-folder-o pull-left"></i> Add to Project
 					</button>
+					<button type="button" class="btn btn-lg btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+						<i class="fa fa-list-ul pull-left"></i> Add to New Geneset
+					</button>
 					{% endif %}
                 </div>
             </div>
@@ -357,9 +360,12 @@
             });
 
             $('#selectGeneType').on('click', function (e) {
-                var val = $('.dropdown-menu li a').parents('.btn-group').find('[data-bind="label"]' ).text().replace(/[\n\s\xA0]+/g, '');
+                var val = $('.dropdown-menu li a').parents('.btn-group')
+					.find('[data-bind="label"]' )
+					.text().replace(/[\n\s\xA0]+/g, '_');
 
                 $.trim(val);
+
 
                 $.ajax({
                     type: "GET",
@@ -387,6 +393,42 @@
 
 
         //});
+
+	$('#addNewGeneset').on('click', function () {
+	//function blah() {
+
+		var checkedArray = [];
+		$("input:checkbox[name='gsoptions[]']:checked").each(function(){
+			//console.log($(this));
+			checkedArray.push($(this).val());
+		});
+
+		if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
+
+			{# Assign the needed async_results variables #}
+			var numGS = 0;
+			var getStr = 'Genes dervied from the geneset: {{ geneset.name }}';
+			getStr += '?' + getStr;
+
+			// add in all the checked boxes gene names
+			checkedArray.forEach(function (entry) {
+
+				getStr += "?";
+				getStr += entry;
+				getStr += "?";
+				getStr += '1';
+
+			});
+
+			// Load the new page with the extra url bit
+			setTimeout(function(){
+				window.location = "/batchuploadgeneset/" + getStr;
+			}, 1000);
+		}
+		else{
+			window.alert("No genes selected.")
+		}
+	});
 
 
     </script>

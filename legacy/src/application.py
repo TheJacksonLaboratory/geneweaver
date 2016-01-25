@@ -700,6 +700,13 @@ def viewStoredResults_by_runhash():
 				tool=geneweaverdb.get_tool('JaccardClustering'),
 				list=geneweaverdb.get_all_projects(user_id))
 
+		elif results['res_tool'] == 'Boolean Algebra':
+			return flask.render_template(
+				'tool/BooleanAlgebra_result.html',
+				async_result=json.loads(results['res_data']),
+				tool=geneweaverdb.get_tool('BooleanAlgebra'),
+				list=geneweaverdb.get_all_projects(user_id))
+
 
 @app.route('/reruntool.json', methods=['POST', 'GET'])
 def rerun_tool():
@@ -753,24 +760,36 @@ def render_viewgeneset(gs_id):
 					session['dir'] = 'ASC'
 			else:
 				session['dir'] = 'ASC'
+	
+	genetypes = geneweaverdb.get_gene_id_types()
+	genedict = {}
+
+	for gtype in genetypes:
+		genedict[gtype['gdb_id']] = gtype['gdb_name']
+
 	# get value for the alt-gene-id column
 	if 'extsrc' in session:
-		if session['extsrc'] == 2:
-			altGeneSymbol = 'Ensembl'
-		elif session['extsrc'] == 7:
-			altGeneSymbol = 'Symbol'
-		elif session['extsrc'] == 10:
-			altGeneSymbol = 'MGD'
-		elif session['extsrc'] == 12:
-			altGeneSymbol = 'RGD'
-		elif session['extsrc'] == 13:
-			altGeneSymbol = 'ZFin'
-		elif session['extsrc'] == 14:
-			altGeneSymbol = 'FlyBase'
-		elif session['extsrc'] == 15:
-			altGeneSymbol = 'WormBase'
+		if genedict.get(session['extsrc'], None):
+			altGeneSymbol = genedict[session['extsrc']]
+
 		else:
 			altGeneSymbol = 'Entrez'
+		#if session['extsrc'] == 2:
+		#	altGeneSymbol = 'Ensembl'
+		#elif session['extsrc'] == 7:
+		#	altGeneSymbol = 'Symbol'
+		#elif session['extsrc'] == 10:
+		#	altGeneSymbol = 'MGD'
+		#elif session['extsrc'] == 12:
+		#	altGeneSymbol = 'RGD'
+		#elif session['extsrc'] == 13:
+		#	altGeneSymbol = 'ZFin'
+		#elif session['extsrc'] == 14:
+		#	altGeneSymbol = 'FlyBase'
+		#elif session['extsrc'] == 15:
+		#	altGeneSymbol = 'WormBase'
+		#else:
+		#	altGeneSymbol = 'Entrez'
 	else:
 		altGeneSymbol = 'Entrez'
 
@@ -1754,27 +1773,46 @@ def render_user_results():
 
 @app.route('/updateAltGeneSymbol')
 def update_alternate_gene_symbol():
-	if 'user_id' in flask.session:
-		val = request.args['altSymbol']
-		if val == 'EntrezID':
-			session['extsrc'] = 1
-		elif val == 'EnsemblID':
-			session['extsrc'] = 2
-		elif val == 'UniGene':
-			session['extsrc'] = 5
-		elif val == 'GeneSymbol':
-			session['extsrc'] = 7
-		elif val == 'MGIID':
-			session['extsrc'] = 10
-		elif val == 'FlyBaseID':
-			session['extsrc'] = 14
-		elif val == 'WormBaseID':
-			session['extsrc'] = 15
-		elif val == 'RGDID':
-			session['extsrc'] = 12
-		elif val == 'ZFinID':
-			session['extsrc'] = 13
-		return json.dumps(request.args)
+	val = request.args['altSymbol']
+
+	if type(val) != str:
+		val = str(val)
+
+	## Spaces are replaced with '_' client side prior to sending to server
+	val = val.replace('_', ' ')
+
+	genetypes = geneweaverdb.get_gene_id_types()
+	genedict = {}
+
+	for gtype in genetypes:
+		genedict[gtype['gdb_name']] = gtype['gdb_id']
+
+	if genedict.get(val, None):
+		session['extsrc'] = genedict[val]
+
+	else:
+		session['extsrc'] = 1
+
+	#if val == 'EntrezID':
+	#	session['extsrc'] = 1
+	#elif val == 'EnsemblID':
+	#	session['extsrc'] = 2
+	#elif val == 'UniGene':
+	#	session['extsrc'] = 5
+	#elif val == 'GeneSymbol':
+	#	session['extsrc'] = 7
+	#elif val == 'MGIID':
+	#	session['extsrc'] = 10
+	#elif val == 'FlyBaseID':
+	#	session['extsrc'] = 14
+	#elif val == 'WormBaseID':
+	#	session['extsrc'] = 15
+	#elif val == 'RGDID':
+	#	session['extsrc'] = 12
+	#elif val == 'ZFinID':
+	#	session['extsrc'] = 13
+
+	return json.dumps(request.args)
 
 
 @app.route('/updateGenesetSpecies', methods=['GET'])
