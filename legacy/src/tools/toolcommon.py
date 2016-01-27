@@ -1,14 +1,17 @@
 from celery import Celery
 import flask
+import config
 
-BROKER_URL = 'amqp://guest@localhost//'
-CELERY_RESULT_BACKEND = 'amqp'
+#BROKER_URL = 'amqp://guest@localhost//'
+#CELERY_RESULT_BACKEND = 'amqp'
 #CELERY_RESULT_BACKEND = 'db+postgres://odeadmin:odeadmin@crick.ecs.baylor.edu/celery'
 
 celery_app = Celery(
     'geneweaver.tools',
-    broker=BROKER_URL,
-    backend=CELERY_RESULT_BACKEND,
+    #broker=BROKER_URL,
+    #backend=CELERY_RESULT_BACKEND,
+    broker=config.get('celery', 'url'),
+    backend=config.get('celery', 'backend'),
 )
 
 # Optional configuration, see the application user guide.
