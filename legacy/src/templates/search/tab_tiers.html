@@ -1,0 +1,172 @@
+<style>
+
+	/* This should eventually have it's own file or something. */
+
+	.filter-title {
+
+		border-bottom: 4px solid #006400;
+		font-family: "Open Sans", verdana, arial;
+		font-size: 14px;
+		font-weight: bold;
+		text-transform: uppercase;
+	}
+
+	.filter-root {
+
+		font-weight: bold;
+	}
+
+	.tree ul {
+
+	  margin: 0px 0px 0px 20px;
+	  list-style: none;
+	  line-height: 2em;
+	  font-family: Arial;
+	}
+
+	.tree ul li {
+
+	  font-size: 16px;
+	  position: relative;
+	}
+
+	.tree ul li:before {
+
+	  position: absolute;
+	  left: -15px;
+	  top: 0px;
+	  content: '';
+	  display: block;
+	  border-left: 1px solid #ddd;
+	  height: 1em;
+	  border-bottom: 1px solid #ddd;
+	  width: 10px;
+	}
+
+	.tree ul li:after {
+
+	  position: absolute;
+	  left: -15px;
+	  bottom: -7px;
+	  content: '';
+	  display: block;
+	  border-left: 1px solid #ddd;
+	  height: 100%;
+	}
+
+	.tree ul li.root {
+
+	  margin: 0px 0px 0px -20px;
+	}
+
+	.tree ul li.root:before {
+
+	  display: none;
+	}
+
+	.tree ul li.root:after {
+
+	  display: none;
+	}
+
+	.tree ul li:last-child:after {
+
+	  display: none;
+	}
+
+
+</style>
+
+{#
+	An example filter tree for tiers looks like this.
+
+	No Tier
+	|
+	|-- No species
+	|	|
+	|	|-- No attribution
+	|	|
+	|	|-- ABA
+	|
+	|-- Mouse
+	|	|
+	|	|-- No attribution
+	|	|
+	|	|-- ABA
+	.	.
+	.	.
+	.	.
+
+#}
+<!-- Supposed to be a tree-like structure, a series of lists ul/li/ul... -->
+<div id="tab_tiers" class="tab-pane">
+	<form action="/searchFilter.json">
+		<div class="filter-title">Filter by Tier</div>
+
+		<ul class="tree">
+			{% for tier, count in searchFilters.tier_counts.iteritems() | sort %}
+			<li class="tree root">
+				{% if count >= 1 %}
+				<label class="filter-checkbox filter-root">
+					<input type="checkbox"
+						{% if userFilters is not defined or 
+						userFilters.tierList[tier] == "yes" %}
+							checked="checked"
+						{% endif %}
+							name="onTier" id="noTierCheckbox1" />
+
+						{{searchFilters.tiermap[tier]}} ({{count}})
+				</label>
+				<ul class="tree">
+					{% for spid, spcount in searchFilters.ts_counts[tier].iteritems() | sort %}
+					{% if spcount > 0 %}
+					<li class="tree">
+						<label class="filter-checkbox" for="{{spid}}Checkbox">
+							<input type="checkbox"
+								{% if userFilters is not defined or 
+								userFilters.speciesList[spid] == "yes" %}
+									checked="checked"
+								{% else %}
+								{% endif %}
+								name="{{spid}}" id="{{spid}}Checkbox" />
+
+								{% if searchFilters.spmap[spid] == "" %}
+									No Species
+								{% else %}
+									{{searchFilters.spmap[spid]}} ({{spcount}})
+								{% endif %}
+						</label>
+						<ul class="tree">
+							{% for atid, atcount in searchFilters.tsa_counts[tier][spid].iteritems() | sort %}
+							{% if atcount > 0 %}
+							<li class="tree">
+								<label class="filter-checkbox" for="{{atid}}Checkbox">
+									<input type="checkbox"
+										{% if userFilters is not defined or 
+										userFilters.attributionsList[atid] == "yes" %}
+											checked="checked"
+										{% else %}
+										{% endif %}
+											name="{{atid}}" id="{{atid}}Checkbox" />
+
+										{% if searchFilters.attrmap[atid] == "" %}
+											No Species
+										{% else %}
+											{{searchFilters.attrmap[atid]}} ({{atcount}})
+										{% endif %}
+								</label>
+							</li>
+							{% endif %}
+							{% endfor %}
+						</ul>
+					</li>
+					{% endif %}
+					{% endfor %}
+				</ul>
+				{% endif %}
+				
+			</li>
+		{% endfor %}
+		</ul>
+	</form>
+</div>
