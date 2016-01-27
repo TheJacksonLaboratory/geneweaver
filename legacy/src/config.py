@@ -8,7 +8,8 @@ import os
 CONFIG_PATH = './geneweaver.cfg'
 ## Global config object, sholudn't be accessed directly but using the helper
 ## functions found below.
-CONFIG = ConfigParser.RawConfigParser(allow_no_value=True)
+CONFIG = None
+
 
 def createConfig():
 	"""
@@ -68,6 +69,14 @@ def get(section, option):
 	"""
 
 	return CONFIG.get(section, option)
+
+
+## This config module should be included prior to any others since other parts
+## of the app may need to access its variables. The config will attempt to load
+## and parse everything as soon as it's imported.
+if not CONFIG:
+	CONFIG = ConfigParser.RawConfigParser(allow_no_value=True)
+	loadConfig()
 
 if __name__ == '__main__':
 	loadConfig()

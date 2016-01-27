@@ -10,11 +10,12 @@ from tools import toolcommon as tc
 import os
 import flask
 from flask import session
+import config
 
 
 app = flask.Flask(__name__)
 
-RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
+#RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
 
 
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
@@ -37,11 +38,16 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
 # the global threaded connection pool that should be used for all DB connections in this application
 pool = GeneWeaverThreadedConnectionPool(
 	5, 20,
-	database='geneweaver',
-	user='odeadmin',
-	password='odeadmin',
-	host='crick.ecs.baylor.edu',
-	port=5432,
+	#database='geneweaver',
+	#user='odeadmin',
+	#password='odeadmin',
+	#host='crick.ecs.baylor.edu',
+	#port=5432,
+	database=config.get('db', 'database'),
+	user=config.get('db', 'user'),
+	password=config.get('db', 'password'),
+	host=config.get('db', 'host'),
+	port=config.get('db', 'port')
 )
 
 
@@ -2767,7 +2773,8 @@ def get_file(apikey, task_id, file_type):
 
 	# if exists
 	rel_path = task_id + "." + file_type
-	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
+	#abs_file_path = os.path.join(RESULTS_PATH, rel_path)
+	abs_file_path = os.path.join(config.get('application', 'results'), rel_path)
 	#print(abs_file_path)
 	if (os.path.exists(abs_file_path)):
 		return flask.redirect("/results/" + rel_path)
@@ -2786,7 +2793,8 @@ def get_link(apikey, task_id, file_type):
 
 	# if exists
 	rel_path = task_id + "." + file_type
-	abs_file_path = os.path.join(RESULTS_PATH, rel_path)
+	#abs_file_path = os.path.join(RESULTS_PATH, rel_path)
+	abs_file_path = os.path.join(config.get('application', 'results'), rel_path)
 	#print(abs_file_path)
 	if (os.path.exists(abs_file_path)):
 		return "/results/" + rel_path

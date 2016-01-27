@@ -5,6 +5,7 @@ from flask.ext import restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from urlparse import parse_qs, urlparse
+import config
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -21,7 +22,6 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import config
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -2294,16 +2294,17 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 
 if __name__ == '__main__':
 
-	config.loadConfig()
+	#config.loadConfig()
+	#print config.CONFIG.sections()
 
 	# TODO this key must be changed to something secret (ie. not committed to the repo).
 	# Comment out the print message when this is done
-	print '==================================================='
-	print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
-	print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
-	print '"How to generate good secret keys" AT			  '
-	print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
-	print '==================================================='
+	#print '==================================================='
+	#print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
+	#print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
+	#print '"How to generate good secret keys" AT			  '
+	#print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
+	#print '==================================================='
 
 	app.secret_key = config.get('application', 'secret')
 	app.debug = True
