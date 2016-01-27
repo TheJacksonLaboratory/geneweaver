@@ -65,10 +65,20 @@ def get(section, option):
 	"""
 	Returns the value of a section, key pair from the global config object.
 
-	:ret: some config value
+	:ret str: some config value
 	"""
 
 	return CONFIG.get(section, option)
+
+def getInt(section, option):
+	"""
+	Returns the value of a section, key pair from the global config object as
+	an int.
+
+	:ret str: some config value
+	"""
+
+	return int(get(section, option))
 
 
 ## This config module should be included prior to any others since other parts
