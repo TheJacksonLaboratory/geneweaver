@@ -1,3 +1,7 @@
+# The GW config file which contains sensitive info
+geneweaver.cfg
+
+# OSX stuff
 .idea
 .DS_Store
 

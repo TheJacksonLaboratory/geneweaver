@@ -2,11 +2,14 @@ from collections import defaultdict
 import flask
 import geneweaverdb
 import sphinxapi
+import config
 
 #Sphinx server connection information
-sphinx_server = 'bepo.ecs.baylor.edu'
+#sphinx_server = 'bepo.ecs.baylor.edu'
+sphinx_server = config.get('sphinx', 'host')
 #sphinx_server = 'localhost'
-sphinx_port = 9312
+#sphinx_port = 9312
+sphinx_port = config.getInt('sphinx', 'port')
 #The number of maximum search results to return (not by page, but in total)
 max_matches=1000
 #The total number of genesets to conider in counting results in the filter set on the side bar

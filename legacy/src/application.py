@@ -5,6 +5,7 @@ from flask.ext import restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from urlparse import parse_qs, urlparse
+import config
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -33,15 +34,6 @@ app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 
-# TODO this key must be changed to something secret (ie. not committed to the repo).
-# Comment out the print message when this is done
-print '==================================================='
-print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
-print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
-print '"How to generate good secret keys" AT			  '
-print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
-print '==================================================='
-app.secret_key = '\x91\xe6\x1e \xb2\xc0\xb7\x0e\xd4f\x058q\xad\xb0V\xe1\xf22\xa5\xec\x1e\x905'
 
 
 # *************************************
@@ -101,7 +93,9 @@ SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rer
 
 @app.route('/results/<path:filename>')
 def static_results(filename):
-	return flask.send_from_directory(RESULTS_PATH, filename)
+	#return flask.send_from_directory(RESULTS_PATH, filename)
+	return flask.send_from_directory(config.get('application', 'results'), 
+									 filename)
 
 
 # TODO the newsArray should probably be moved to a configuration file
@@ -1710,9 +1704,12 @@ def cancel_edit_by_id():
 def check_results():
 	if 'user_id' in flask.session:
 		runhash = request.args.get('runHash', type=str)
+		resultpath = config.get('application', 'results')
 
-		files = os.listdir(RESULTS_PATH)
-		files = filter(lambda f: path.isfile(path.join(RESULTS_PATH, f)), files)
+		#files = os.listdir(RESULTS_PATH)
+		#files = filter(lambda f: path.isfile(path.join(RESULTS_PATH, f)), files)
+		files = os.listdir(resultpath)
+		files = filter(lambda f: path.isfile(path.join(resultpath, f)), files)
 		found = False
 
 		for f in files:
@@ -1730,17 +1727,21 @@ def delete_result():
 	if 'user_id' in flask.session:
 		results = geneweaverdb.delete_results_by_runhash(request.args)
 		runhash = request.args.get('runHash', type=str)
+		resultpath = config.get('application', 'results')
 
 		## Delete the files from the results folder too--traverse the results
 		## folder and match based on runhash
-		files = os.listdir(RESULTS_PATH)
-		files = filter(lambda f: path.isfile(path.join(RESULTS_PATH, f)), files)
+		#files = os.listdir(RESULTS_PATH)
+		#files = filter(lambda f: path.isfile(path.join(RESULTS_PATH, f)), files)
+		files = os.listdir(resultpath)
+		files = filter(lambda f: path.isfile(path.join(resultpath, f)), files)
 
 		for f in files:
 			rh = f.split('.')[0]
 
 			if rh == runhash:
-				os.remove(path.join(RESULTS_PATH, f))
+				#os.remove(path.join(RESULTS_PATH, f))
+				os.remove(path.join(resultpath, f))
 
 		return json.dumps(results)
 
@@ -2292,7 +2293,24 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 
 
 if __name__ == '__main__':
+
+	#config.loadConfig()
+	#print config.CONFIG.sections()
+
+	# TODO this key must be changed to something secret (ie. not committed to the repo).
+	# Comment out the print message when this is done
+	#print '==================================================='
+	#print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
+	#print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
+	#print '"How to generate good secret keys" AT			  '
+	#print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
+	#print '==================================================='
+
+	app.secret_key = config.get('application', 'secret')
 	app.debug = True
 
-	#app.run(host='129.62.151.37')
-	app.run()
+	if config.get('application', 'host'):
+		app.run(host=config.get('application', 'host'))
+	
+	else:
+		app.run()
