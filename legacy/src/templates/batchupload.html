@@ -64,7 +64,7 @@
     <div class="row" id="result"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
-        <h2 class="panel-title"><strong>Batch GeneSet Upload</strong></h2>
+        <h2 class="panel-title"><strong>Batch Geneset Upload</strong></h2>
     </div>
 
     <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
@@ -73,20 +73,138 @@
     <div class="row">
         <div class="col-md-4 pull-left">
             <p>(<strong>*</strong>) = mandatory</p>
+            <p>
+                Use this page when you have many genesets to upload.
+                The file format, including examples, is given below.
+            </p>
         </div>
     </div>
 
     <form id="upload-geneset-form" enctype="multipart/form-data" method="POST">
 
-        {# Geneset Metadata #}
-        <div class="panel-heading panel-underline">
-            <h2 class="panel-title">
-                GeneSet Metadata
-            </h2>
+        <div id="file_uploader" class="col-md-4" style="">
+            <div class="btn btn-warning btn-file">Batch Upload File
+                <input id="file_data" type="file" name="selected_file" required=""" accept="text/plain"/>
+            </div>
         </div>
 
-        <div style="margin-left: 1em;">
+        <br />
+        <br />
+        {# Geneset Metadata #}
+        <div class="panel-heading panel-underline">
+        </div>
+
+        <div style="">
             <br>
+            {#  <code style="white-space: pre;"> #}
+            {# The text in code isn't indented because <pre> preserves whitespace. #}
+            <pre style="border: 1px solid #337700; border-left: 11px solid #337700;"><code>
+    Metadata (header) format is as follows:
+    # comments start with '#'
+    : GeneSet Abbreviation starts with ':' (required)
+    = GeneSet Name starts with '=' (required)
+    + GeneSet Description (required)
+    +   starts with '+' and can span multiple lines
+    P PubmedID (optional)
+    A Public or Private (opt, default private)
+
+    ! score type starts with '!' (required)
+    ! Binary
+    ! P-Value < 0.05
+    ! Q-Value < 0.05
+    ! 0.40 < Correlation < 0.90
+    ! 6.0 < Effect < 22.50
+
+    @ Species Scientific Name (required) (List updated daily)
+    @
+    @ Mus musculus
+    @ Homo sapiens
+    @ Rattus norvegicus
+    @ Danio rerio
+    @ Drosophila melanogaster
+    @ Macaca mulatta
+    @ Caenorhabditis elegans
+    @ Saccharomyces cerevisiae
+    @ Gallus gallus
+    @ Canis familiaris
+
+    % Gene ID Type (required) (List updated daily)
+    % Entrez
+    % Ensembl Gene
+    % Ensembl Protein
+    % Ensembl Transcript
+    % Unigene
+    % Gene Symbol
+    % Unannotated
+    % MGI
+    % HGNC
+    % RGD
+    % ZFIN
+    % FlyBase
+    % Wormbase
+    % SGD
+    % miRBase
+    % CGNC
+    % microarray Affymetrix C. elegans Genome Array
+    % microarray Affymetrix Drosophila Genome 2.0
+    % microarray Affymetrix HT Human Genome U133A
+    % microarray Affymetrix Human 35K Set
+    % microarray Affymetrix Human 35K SubA
+    % microarray Affymetrix Human 35K SubB
+    % microarray Affymetrix Human 35K SubC
+    % microarray Affymetrix Human 35K SubD
+    % microarray Affymetrix Human Genome U133A
+    % microarray Affymetrix Human Genome U133A 2.0
+    % microarray Affymetrix Human Genome U133B
+    % microarray Affymetrix Human Genome U133 Plus 2.0
+    % microarray Affymetrix Human Genome U133 Set
+    % microarray Affymetrix Human HG-Focus Target
+    % microarray Affymetrix Mouse Exon 1.0 ST
+    % microarray Affymetrix Mouse Expression 430A
+    % microarray Affymetrix Mouse Expression 430B
+    % microarray Affymetrix Mouse Expression 430 Set
+    % microarray Affymetrix Mouse Gene 1.0 ST Array
+    % microarray Affymetrix Mouse Genome 430 2.0
+    % microarray Affymetrix Mouse Genome 430A 2.0
+    % microarray Affymetrix Murine 11K Set
+    % microarray Affymetrix Murine 11K SubA
+    % microarray Affymetrix Murine 11K SubB
+    % microarray Affymetrix Murine Genome U74A
+    % microarray Affymetrix Murine Genome U74B
+    % microarray Affymetrix Murine Genome U74C
+    % microarray Affymetrix Murine Genome U74 Set
+    % microarray Affymetrix Murine Genome U74 Version 2
+    % microarray Affymetrix Murine Genome U74 Version 2
+    % microarray Affymetrix Murine Genome U74 Version 2
+    % microarray Affymetrix Murine Genome U74 Version 2 Set
+    % microarray Affymetrix Rat Exon 1.0 ST
+    % microarray Affymetrix Rat Expression 230A
+    % microarray Affymetrix Rat Expression 230B
+    % microarray Affymetrix Rat Expression 230 Set
+    % microarray Affymetrix Rat Genome 230 2.0
+    % microarray Affymetrix Rhesus Macaque Genome
+    % microarray Affymetrix Yeast Genome 2.0 Array
+    % microarray Affymetrix Yeast Genome S98 Array
+    % microarray Affymetrix Zebrafish Genome
+    % microarray Agilent Mouse G4121A (Toxicogenomics)
+    % microarray Agilent Mouse Whole Genome G4122F
+    % microarray Illumina Human-6 v2.0
+    % microarray Illumina MouseRef-8 v2.0
+    % microarray Illumina MouseWG-6 v1.1
+    % microarray Illumina MouseWG-6 v2.0
+
+    After the metadata, leave a blank line. Then list all data points in
+    the following format: gene id <tab> data value <enter>.
+
+    At the end of the data points leave another blank line.  Then you may start
+    another metadata section and keep repeating for all datasets in the same file.
+    The 'P', 'A', '!', '@', and '%' sections may be ommitted in later sections if
+    they do not differ from the first, they will default to the last seen value.
+    The ':', '=', and '+' sections are required for all datasets.
+
+    A example batch file with descriptive comments is available here.
+            </code></pre>
+            {#  </code> #}
 
             <p>
                 Please enter some descriptive info about this GeneSet. please confirm that your GeneSet Metadata meets the
@@ -349,16 +467,6 @@
                                   placeholder="gene1[tab]value[newline]"
                                   required></textarea>
                     {% endif %}
-
-                </div>
-                <div id="file_uploader" class="col-md-4" style="display: none">
-                    <span id="clickableManual" onclick="toggle_pasting()"><strong>Switch to Manual Upload <i class="fa fa-keyboard-o"></i>
-                        </strong></span>
-
-                    <br><br>
-                    <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
-                        <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
-                    </span>
 
                 </div>
 
@@ -677,18 +785,18 @@
 
 
     //toggles between the file or paste uploaders and toggle's enable/disable on inputs
-    function toggle_pasting() {
+    //function toggle_pasting() {
 
-        $("#file_uploader").toggle();
-        $("#paste_uploader").toggle();
+    //    $("#file_uploader").toggle();
+    //    $("#paste_uploader").toggle();
 
-        $('#file_text').prop('disabled', function () {
-            return !$(this).prop('disabled')
-        })
-        $('#file_data').prop('disabled', function () {
-            return !$(this).prop('disabled')
-        })
-    }
+    //    $('#file_text').prop('disabled', function () {
+    //        return !$(this).prop('disabled')
+    //    })
+    //    $('#file_data').prop('disabled', function () {
+    //        return !$(this).prop('disabled')
+    //    })
+    //}
 
 </script>
 

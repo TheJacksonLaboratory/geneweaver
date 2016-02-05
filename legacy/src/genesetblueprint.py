@@ -61,6 +61,25 @@ def render_batchuploadgeneset(genes=None):
 
     return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts)
 
+@geneset_blueprint.route('/batchupload')
+def render_batchupload(genes=None):
+    gidts = []
+    for gene_id_type_record in geneweaverdb.get_gene_id_types():
+        gidts.append((
+            'gene_{0}'.format(gene_id_type_record['gdb_id']),
+            gene_id_type_record['gdb_name']))
+
+    microarray_id_sources = []
+    for microarray_id_type_record in geneweaverdb.get_microarray_types():
+        microarray_id_sources.append((
+            'ma_{0}'.format(microarray_id_type_record['pf_id']),
+            microarray_id_type_record['pf_name']))
+    gidts.append(('MicroArrays', microarray_id_sources))
+
+    all_species = geneweaverdb.get_all_species()
+
+    return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts)
+
 
 @geneset_blueprint.route('/batchuploadgeneset/<genes>')
 def render_batchuploadgeneset_ba(genes):
