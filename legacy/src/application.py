@@ -1781,12 +1781,17 @@ def update_alternate_gene_symbol():
 
 	## Spaces are replaced with '_' client side prior to sending to server
 	val = val.replace('_', ' ')
+	## Incoming data has a _ prepended to it for some reason, should look at
+	## client code and see what's going on
+	val = val.strip()
+	## Lowercase comparisons because there were capitalization problems
+	val = val.lower()
 
 	genetypes = geneweaverdb.get_gene_id_types()
 	genedict = {}
 
 	for gtype in genetypes:
-		genedict[gtype['gdb_name']] = gtype['gdb_id']
+		genedict[gtype['gdb_name'].lower()] = gtype['gdb_id']
 
 	if genedict.get(val, None):
 		session['extsrc'] = genedict[val]
