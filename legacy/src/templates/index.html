@@ -1,4 +1,44 @@
 {% include 'header.html' %}
+
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/animate.css') }}" rel="stylesheet">
+{# <link href="{{ url_for('static', filename='pixit/frontend/assets/css/bootstrap.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/bootstrap.min.css') }}" rel="stylesheet"> #}
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/bootstrap-theme.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/isotope.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/normalize.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/overwrite.css') }}" rel="stylesheet">
+{#<link href="{{ url_for('static', filename='pixit/frontend/assets/css/style.css') }}" rel="stylesheet">  #}
+<link href="{{ url_for('static', filename='pixit/frontend/assets/plugins/owl-carousel/owl.carousel.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/owl-carousel/owl.theme.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/revolution/revolution.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-circliful/css/jquery.circliful.css') }}" rel="stylesheet">
+
+
+<script src="{{ url_for('static', filename='pixit/frontend/assets/plugins/owl-carousel/owl.carousel.min.js') }}"></script>
+{#
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/visible/jquery.visible.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-d3/d3.v3.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-d3/nv.d3.js') }}"></script>
+
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-flot/jquery.flot.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-flot/jquery.flot.animator.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-flot/jquery.flot.resize.js') }}"></script> #}
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-circliful/js/jquery.circliful.min.js') }}"></script>
+{#
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-morris/raphael-2.1.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-morris/morris.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-sparkline/sparkline.min.js') }}"></script>
+#}
+<script src="{{ url_for('static', filename='pixit/admin/assets/js/charts.js') }}"></script>
+#}
+
+
+
+
+
+
+
+
 <style>
 
 	/* Autocomplete theming */
@@ -18,9 +58,33 @@
 		visibility: hidden;
 		display: hidden;
 	}
+.section-txt{text-align:center;padding:40px 0;}
+.bg-light-gray {background-color:#eaeaea}
+.bg-light-green {background-color: #f2ffe5;}
+.p-t-40 {padding-top:40px !important;}
+.p-t-50 {padding-top:50px !important;}
+    .p-b-40 {padding-bottom:30px !important;}
+
+
 
 </style>
 <script>
+    $(document).ready(function() {
+
+        $("#testimonials").owlCarousel({
+            slideSpeed: 3000,
+            paginationSpeed: 400,
+            singleItem: true
+        });
+
+        $('#pie_chart1').circliful();
+        $('#pie_chart2').circliful();
+        $('#pie_chart3').circliful();
+        $('#pie_chart4').circliful();
+
+
+    });
+
     $(function () {
 //Get the search suggestions from the server
 
@@ -50,6 +114,11 @@
     });
 
 </script>
+
+
+
+<section>
+
 <div class="jumbotron" style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px">
     <h1><img src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="GeneWeaver Logo" style="vertical-align: top">GeneWeaver</h1>
 
@@ -76,8 +145,10 @@
 </div>
 <br/>
 <br/>
+</section>
 
 
+<section class="section-txt">
 <div class="row">
     <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
         <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
@@ -114,8 +185,160 @@
     </a>
 </div>
 
-<br>
+</section>
 
+
+
+
+
+<section class="section-txt bg-light-gray">
+    <div class="container">
+        <div class="row">
+    <div id="testimonials" class="owl-carousel col-md-6 col-md-offset-3" style="width: 50%;">
+                <div class="owl-item">
+                        <h3 class="normal text-center">
+                            I have been very impressed with your friendliness and responsiveness. Thank you so much and
+                            I'm waiting for the next theme!
+                        </h3>
+                        <p class="text-center">
+                            <img src="static/images/GW2-logo.png" class="img-circle" alt="Testimonial 1">Steve Mac
+                            Queen, client, New York City
+                        </p>
+                </div>
+                <div class="owl-item">
+                        <h3 class="normal text-center">
+                            I have been very impressed with your friendliness and responsiveness. Thank you so much and
+                            I'm waiting for the next theme!
+                        </h3>
+                        <p class="text-center">
+                            <img src="assets/img/testimonial2.jpg" class="img-circle" alt="Testimonial 2">Steve Mac
+                            Queen, client, New York City
+                        </p>
+                </div>
+                <div class="owl-item">
+                        <h3 class="normal text-center">
+                            I have been very impressed with your friendliness and responsiveness. Thank you so much and
+                            I'm waiting for the next theme!
+                        </h3>
+                        <p class="text-center">
+                            <img src="assets/img/testimonial3.jpg" class="img-circle" alt="Testimonial 3">Steve Mac
+                            Queen, client, New York City
+                        </p>
+                </div>
+    </div>
+            </div>
+        </div>
+</section>
+
+
+
+
+<section class="section-txt">
+    <div class="container">
+    <div class="col-md-4">
+                    <div class="panel no-bd bd-9 panel-stat">
+                        <div class="panel-body bg-light">
+                            <div class="icon"><i class="fa fa-file-text-o"></i>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="stat-num">New User Publication</div>
+                                    <h3 style="color: #336600;">October, 2013</h3>
+                                    <p><a href="http://www.ncbi.nlm.nih.gov/pubmed/23123364">Potential translational
+	targets revealed by linking mouse grooming behavioral phenotypes to gene
+	expression using public databases</a> Andrew Roth, Evan J. Kyzar, Jonathan Cachat,
+	Adam Michael Stewart, Jeremy Green, Siddharth Gaikwad, Timothy P. O'Leary,
+	Boris Tabakoff, Richard E. Brown, Allan V. Kalueff. Progress in Neuro-Psychopharmacology
+	& Biological Psychiatry 40:313-325.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    </div>
+    <div class="col-md-4">
+                    <div class="panel no-bd bd-9 panel-stat">
+                        <div class="panel-body bg-light">
+                            <div class="icon"><i class="fa fa-comments-o"></i>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="stat-num">GeneWeaver News</div>
+                                    <h3 style="color: #336600;">January, 2016</h3>
+                                    <p>The NEW GeneWeaver site is continuing to move forward. We are scheduled to
+                                        release the new site by May, 2016.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    </div>
+    <div class="col-md-4">
+                    <div class="panel no-bd bd-9 panel-stat">
+                        <div class="panel-body bg-light">
+                            <div class="icon"><i class="fa fa-desktop"></i>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="stat-num">New GeneWeaver Presentation</div>
+                                    <h3 style="color: #336600;">February, 2016</h3>
+                                    <p>Catch the new GeneWeaver presentation at blah. The NEW GeneWeaver site is continuing
+                                        to move forward. We are scheduled to release the new site by May, 2016.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    </div>
+</div>
+</section>
+
+
+<section class="section-txt bg-light-green">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 col-md-offset-3 bg-light-green">
+                    <div class="align-center">
+                        <h2 class="slogan">The fox knows many things, but the hedgehog knows one big thing.</h2>
+                        <p>- Archilochus -</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+</section>
+
+
+    <div class="panel-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <h3><strong>GeneSets</strong></h3>
+                                    <p>Number of Publicily Available GeneSets</p>
+                                    <br>
+                                    <div id="pie_chart1" data-dimension="200" data-text="35%" data-info="New Clients" data-width="30" data-fontsize="38" data-percent="35" data-fgcolor="#7ea568" data-bgcolor="#eee" data-type="half" data-fill="#ddd" class="circliful" style="width: 200px;"><span class="circle-text-half" style="line-height: 137.931px; font-size: 38px;"></span><span class="circle-info-half" style="line-height: 180px;">New Clients</span><canvas width="200" height="200"></canvas></div>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3><strong>Genes</strong></h3>
+                                    <p>Number of Genes</p>
+                                    <br>
+                                    <div id="pie_chart2" data-dimension="200" data-text="35%" data-info="New Clients" data-width="30" data-fontsize="38" data-percent="35" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-fill="#ddd" class="circliful" style="width: 200px;"><span class="circle-text" style="line-height: 200px; font-size: 38px;"></span><span class="circle-info" style="line-height: 250px;">New Clients</span><canvas width="200" height="200"></canvas></div>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3><strong>Analysis</strong></h3>
+                                    <p>Number of Analysis Run</p>
+                                    <br>
+                                    <div id="pie_chart3" data-dimension="200" data-text="72" data-info="New Users" data-width="30" data-fontsize="38" data-percent="46" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-total="150" data-part="72" data-border="inline" data-icon="fa-group" data-icon-size="28" data-icon-color="#ccc" class="circliful" style="width: 200px;"><span class="circle-text" style="line-height: 200px; font-size: 38px;"><i class="fa fa-group"></i>72</span><span class="circle-info" style="line-height: 250px;">New Users</span><canvas width="200" height="200"></canvas></div>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3><strong>GeneSets by Speices</strong></h3>
+                                    <p>Number of GeneSets</p>
+                                    <br>
+                                    <div id="pie_chart4" data-dimension="200" data-text="35%" data-info="New Clients" data-width="30" data-fontsize="38" data-percent="35" data-fgcolor="#C9625F" data-bgcolor="#eee" class="circliful" style="width: 200px;"><span class="circle-text" style="line-height: 200px; font-size: 38px;"></span><span class="circle-info" style="line-height: 250px;">New Clients</span><canvas width="200" height="200"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+
+
+{#
 <h3 class="page-header">News and Notes:</h3>
 
 <!-- all news items -->
@@ -124,5 +347,7 @@
         <p><strong>{{ key|safe }}:</strong><br/>{{ value|safe }}</p>
     </div>
 {% endfor %}
+
+ #}
 
 {% include 'footer.html' %}

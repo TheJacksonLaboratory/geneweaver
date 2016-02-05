@@ -5,7 +5,8 @@ import os
 ## included in version control, especially if it has any usernames, passwords,
 ## or API keys.
 
-CONFIG_PATH = './geneweaver.cfg'
+#CONFIG_PATH = './geneweaver.cfg'
+CONFIG_PATH = '/Users/baker/PycharmProjects/website-py/src/geneweaver.cfg'
 ## Global config object, sholudn't be accessed directly but using the helper
 ## functions found below.
 CONFIG = None
