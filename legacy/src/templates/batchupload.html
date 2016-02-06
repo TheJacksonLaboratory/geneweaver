@@ -52,6 +52,16 @@
         display: block;
     }
 
+    .required {
+        color: #ee0000;
+        font-weight: bold;
+    }
+
+    .optional {
+        color: #5Cb85C;
+        font-weight: bold;
+    }
+
 </style>
 
 
@@ -71,130 +81,145 @@
 
 
     <div class="row">
-        <div class="col-md-4 pull-left">
-            <p>(<strong>*</strong>) = mandatory</p>
-            <p>
+        <div class="col-md-5 pull-left">
+            <p><strong>
                 Use this page when you have many genesets to upload.
+            </strong></p>
+            <p><strong>
                 The file format, including examples, is given below.
-            </p>
+            </strong></p>
         </div>
     </div>
+    <br />
 
-    <form id="upload-geneset-form" enctype="multipart/form-data" method="POST">
+    <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST">
 
-        <div id="file_uploader" class="col-md-4" style="">
-            <div class="btn btn-warning btn-file">Batch Upload File
-                <input id="file_data" type="file" name="selected_file" required=""" accept="text/plain"/>
+            <div class="pull-left">
+                <div class="btn btn-warning btn-file">Batch Upload File
+                    <input id="file_data" type="file" name="selected_file" required="" accept="text/plain"/>
+                </div>
             </div>
+            <span id="fileDisplayArea" style="color: #337700; vertical-align: middle; padding: 10px 0 0 10px;">
+                No file selected
+            </span>
+
+            <input id="fileContents" name="fileContents" type="hidden" />
+
+        <div class="row">
+            <div class="col-md-2"></div>
+        </div>
+
+        <br />
+
+        <div class="pull-left">
+            <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning fa" type="submit" value="Review Geneset Upload &#xf04e;" />
         </div>
 
         <br />
         <br />
-        {# Geneset Metadata #}
-        <div class="panel-heading panel-underline">
-        </div>
+
+        <div class="panel-heading panel-underline"></div>
 
         <div style="">
             <br>
-            {#  <code style="white-space: pre;"> #}
-            {# The text in code isn't indented because <pre> preserves whitespace. #}
-            <pre style="border: 1px solid #337700; border-left: 11px solid #337700;"><code>
+            {# Keep this indentation since <pre> preserves whitespace. #}
+            <pre style="border-radius: 10px; border: 1px solid #337700; border-left: 11px solid #337700;">
     Metadata (header) format is as follows:
-    # comments start with '#'
-    : GeneSet Abbreviation starts with ':' (required)
-    = GeneSet Name starts with '=' (required)
-    + GeneSet Description (required)
-    +   starts with '+' and can span multiple lines
-    P PubmedID (optional)
-    A Public or Private (opt, default private)
+        # comments start with '#'
+        : GeneSet Abbreviation starts with ':' <span class="required">(required)</span>
+        = GeneSet Name starts with '=' <span class="required">(required)</span>
+        + GeneSet Description <span class="required">(required)</span>
+        +   starts with '+' and can span multiple lines
+        P PubmedID (optional)
+        A Public or Private (optional, default private)
 
-    ! score type starts with '!' (required)
-    ! Binary
-    ! P-Value < 0.05
-    ! Q-Value < 0.05
-    ! 0.40 < Correlation < 0.90
-    ! 6.0 < Effect < 22.50
+        ! score type starts with '!' <span class="required">(required)</span>
+        ! Binary
+        ! P-Value < 0.05
+        ! Q-Value < 0.05
+        ! 0.40 < Correlation < 0.90
+        ! 6.0 < Effect < 22.50
 
-    @ Species Scientific Name (required) (List updated daily)
-    @
-    @ Mus musculus
-    @ Homo sapiens
-    @ Rattus norvegicus
-    @ Danio rerio
-    @ Drosophila melanogaster
-    @ Macaca mulatta
-    @ Caenorhabditis elegans
-    @ Saccharomyces cerevisiae
-    @ Gallus gallus
-    @ Canis familiaris
+        @ Species Scientific Name <span class="required">(required)</span>
+        @
+        @ Mus musculus
+        @ Homo sapiens
+        @ Rattus norvegicus
+        @ Danio rerio
+        @ Drosophila melanogaster
+        @ Macaca mulatta
+        @ Caenorhabditis elegans
+        @ Saccharomyces cerevisiae
+        @ Gallus gallus
+        @ Canis familiaris
 
-    % Gene ID Type (required) (List updated daily)
-    % Entrez
-    % Ensembl Gene
-    % Ensembl Protein
-    % Ensembl Transcript
-    % Unigene
-    % Gene Symbol
-    % Unannotated
-    % MGI
-    % HGNC
-    % RGD
-    % ZFIN
-    % FlyBase
-    % Wormbase
-    % SGD
-    % miRBase
-    % CGNC
-    % microarray Affymetrix C. elegans Genome Array
-    % microarray Affymetrix Drosophila Genome 2.0
-    % microarray Affymetrix HT Human Genome U133A
-    % microarray Affymetrix Human 35K Set
-    % microarray Affymetrix Human 35K SubA
-    % microarray Affymetrix Human 35K SubB
-    % microarray Affymetrix Human 35K SubC
-    % microarray Affymetrix Human 35K SubD
-    % microarray Affymetrix Human Genome U133A
-    % microarray Affymetrix Human Genome U133A 2.0
-    % microarray Affymetrix Human Genome U133B
-    % microarray Affymetrix Human Genome U133 Plus 2.0
-    % microarray Affymetrix Human Genome U133 Set
-    % microarray Affymetrix Human HG-Focus Target
-    % microarray Affymetrix Mouse Exon 1.0 ST
-    % microarray Affymetrix Mouse Expression 430A
-    % microarray Affymetrix Mouse Expression 430B
-    % microarray Affymetrix Mouse Expression 430 Set
-    % microarray Affymetrix Mouse Gene 1.0 ST Array
-    % microarray Affymetrix Mouse Genome 430 2.0
-    % microarray Affymetrix Mouse Genome 430A 2.0
-    % microarray Affymetrix Murine 11K Set
-    % microarray Affymetrix Murine 11K SubA
-    % microarray Affymetrix Murine 11K SubB
-    % microarray Affymetrix Murine Genome U74A
-    % microarray Affymetrix Murine Genome U74B
-    % microarray Affymetrix Murine Genome U74C
-    % microarray Affymetrix Murine Genome U74 Set
-    % microarray Affymetrix Murine Genome U74 Version 2
-    % microarray Affymetrix Murine Genome U74 Version 2
-    % microarray Affymetrix Murine Genome U74 Version 2
-    % microarray Affymetrix Murine Genome U74 Version 2 Set
-    % microarray Affymetrix Rat Exon 1.0 ST
-    % microarray Affymetrix Rat Expression 230A
-    % microarray Affymetrix Rat Expression 230B
-    % microarray Affymetrix Rat Expression 230 Set
-    % microarray Affymetrix Rat Genome 230 2.0
-    % microarray Affymetrix Rhesus Macaque Genome
-    % microarray Affymetrix Yeast Genome 2.0 Array
-    % microarray Affymetrix Yeast Genome S98 Array
-    % microarray Affymetrix Zebrafish Genome
-    % microarray Agilent Mouse G4121A (Toxicogenomics)
-    % microarray Agilent Mouse Whole Genome G4122F
-    % microarray Illumina Human-6 v2.0
-    % microarray Illumina MouseRef-8 v2.0
-    % microarray Illumina MouseWG-6 v1.1
-    % microarray Illumina MouseWG-6 v2.0
+        % Gene ID Type <span class="required">(required)</span>
+        % Entrez
+        % Ensembl Gene
+        % Ensembl Protein
+        % Ensembl Transcript
+        % Unigene
+        % Gene Symbol
+        % Unannotated
+        % MGI
+        % HGNC
+        % RGD
+        % ZFIN
+        % FlyBase
+        % Wormbase
+        % SGD
+        % miRBase
+        % CGNC
+        % microarray Affymetrix C. elegans Genome Array
+        % microarray Affymetrix Drosophila Genome 2.0
+        % microarray Affymetrix HT Human Genome U133A
+        % microarray Affymetrix Human 35K Set
+        % microarray Affymetrix Human 35K SubA
+        % microarray Affymetrix Human 35K SubB
+        % microarray Affymetrix Human 35K SubC
+        % microarray Affymetrix Human 35K SubD
+        % microarray Affymetrix Human Genome U133A
+        % microarray Affymetrix Human Genome U133A 2.0
+        % microarray Affymetrix Human Genome U133B
+        % microarray Affymetrix Human Genome U133 Plus 2.0
+        % microarray Affymetrix Human Genome U133 Set
+        % microarray Affymetrix Human HG-Focus Target
+        % microarray Affymetrix Mouse Exon 1.0 ST
+        % microarray Affymetrix Mouse Expression 430A
+        % microarray Affymetrix Mouse Expression 430B
+        % microarray Affymetrix Mouse Expression 430 Set
+        % microarray Affymetrix Mouse Gene 1.0 ST Array
+        % microarray Affymetrix Mouse Genome 430 2.0
+        % microarray Affymetrix Mouse Genome 430A 2.0
+        % microarray Affymetrix Murine 11K Set
+        % microarray Affymetrix Murine 11K SubA
+        % microarray Affymetrix Murine 11K SubB
+        % microarray Affymetrix Murine Genome U74A
+        % microarray Affymetrix Murine Genome U74B
+        % microarray Affymetrix Murine Genome U74C
+        % microarray Affymetrix Murine Genome U74 Set
+        % microarray Affymetrix Murine Genome U74 Version 2
+        % microarray Affymetrix Murine Genome U74 Version 2
+        % microarray Affymetrix Murine Genome U74 Version 2
+        % microarray Affymetrix Murine Genome U74 Version 2 Set
+        % microarray Affymetrix Rat Exon 1.0 ST
+        % microarray Affymetrix Rat Expression 230A
+        % microarray Affymetrix Rat Expression 230B
+        % microarray Affymetrix Rat Expression 230 Set
+        % microarray Affymetrix Rat Genome 230 2.0
+        % microarray Affymetrix Rhesus Macaque Genome
+        % microarray Affymetrix Yeast Genome 2.0 Array
+        % microarray Affymetrix Yeast Genome S98 Array
+        % microarray Affymetrix Zebrafish Genome
+        % microarray Agilent Mouse G4121A (Toxicogenomics)
+        % microarray Agilent Mouse Whole Genome G4122F
+        % microarray Illumina Human-6 v2.0
+        % microarray Illumina MouseRef-8 v2.0
+        % microarray Illumina MouseWG-6 v1.1
+        % microarray Illumina MouseWG-6 v2.0
 
     After the metadata, leave a blank line. Then list all data points in
-    the following format: gene id <tab> data value <enter>.
+    the following format: gene id [tab] data value [enter].
 
     At the end of the data points leave another blank line.  Then you may start
     another metadata section and keep repeating for all datasets in the same file.
@@ -203,294 +228,15 @@
     The ':', '=', and '+' sections are required for all datasets.
 
     A example batch file with descriptive comments is available here.
-            </code></pre>
+        </pre>
             {#  </code> #}
 
-            <p>
-                Please enter some descriptive info about this GeneSet. please confirm that your GeneSet Metadata meets the
-                guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards" target="_blank">
-                <strong>Curation Standards <i class="fa fa-mail-forward"></i></strong></a> to ensure rapid acceptance by
-                our curation team, or, in the case of private data, maximum integration into available GeneWeaver datasets.
-
-            </p>
-            <br>
-
-
-            <div class="row">
-                <div class="col-md-2">
-                    GeneSet Name <strong>*</strong>:
-                </div>
-                <div class="col-md-8">
-                    <input id="genesetName" type="text" name="gs_name" size="50"
-                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
-                           required>
-                </div>
-            </div>
-
-            <br>
-
-            <div class="row">
-                <div class="col-md-2">
-                    GeneSet Figure Label <strong>*</strong>:
-                </div>
-                <div class="col-md-8">
-                    <input id="genesetLabel" type="text" name="gs_abbreviation" size="50"
-                           style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
-                           required>
-                </div>
-            </div>
-
-            <br>
-
-            <div class="row">
-                <div class="col-md-2">
-                    GeneSet Description <strong>*</strong>:
-                </div>
-                <div class="col-md-8">
-                    <textarea id="genesetDescription" rows="10" cols="50" name="gs_description"
-                              style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
-                              required></textarea>
-                </div>
-            </div>
-
-        </div>
-
-
-        {# Permissions #}
-        <div class="panel-heading panel-underline">
-            <h2 class="panel-title">
-                Access Permissions
-            </h2>
-        </div>
-
-        <div style="margin-left: 1em;">
-            <br>
-            <br>
-
-            <div class="row">
-                <div class="col-md-2">
-                    Access Restrictions <strong>*</strong>:
-                </div>
-                <div class="col-xs-2">
-
-                    <select name="permissions" class="form-control" required>
-                        <option value="private" selected>Private</option>
-                        <option value="public">Public</option>
-                    </select>
-
-                </div>
-            </div>
-        </div>
-        <br>
-
-
-        {# Reference Information #}
-        <div class="panel-heading panel-underline">
-            <h2 class="panel-title">
-                Reference Information
-            </h2>
-        </div>
-        <div style="margin-left: 1em;">
-            <br>
-
-            <p>
-                If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to
-                automatically fill in the publication info, otherwise you may manually enter publication information.
-                Providing this will allow others to discover and use your data more quickly, provide a means to link
-                here directly from PubMed, and streamline our curation efforts.
-            </p>
+    </div>
 
 
 
-            <div class="row">
-                <div class="col-md-2">
-                    PubMed ID:
-                </div>
-                <div class="col-md-4">
-                    <input id="pub_pubmed" type="text" name="pub_pubmed" size="10">&nbsp;
-                    <i id="clickablePubmed" class="fa fa-refresh"></i>
-                </div>
-                <br><br>
-
-                <div id="pubmed_manual" style="display:none">
-                    <div class="col-md-2">Title:</div>
-                    <div class="col-md-8">
-                        <input type="text" name="pub_title" id="pub_title" size="50"
-                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
-                    </div>
-                    <br><br>
-
-                    <div class="col-md-2">Authors:</div>
-                    <div class="col-md-8">
-                        <input type="text" name="pub_authors" id="pub_authors" size="50"
-                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
-                    </div>
-                    <br><br>
-
-                    <div class="col-md-2">Journal:</div>
-                    <div class="col-md-8">
-                        <input type="text" name="pub_journal" id="pub_journal" size="50"
-                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
-                    </div>
-                    <br><br>
-
-                    <div class="col-md-2">Volume:</div>
-                    <div class="col-md-2">
-                        <input type="text" name="pub_volume" id="pub_volume" size="10" maxlength="10"
-                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
-                    </div>
-                    <br><br>
-
-                    <div class="col-md-2">Pages:</div>
-                    <div class="col-md-2">
-                        <input type="text" name="pub_pages" id="pub_pages" size="15" maxlength="15"
-                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
-                    </div>
-                    <br><br>
-
-                    <div class="col-md-2">Month:</div>
-                    <div class="col-md-2">
-                        <input type="text" name="pub_month" id="pub_month" size="3" maxlength="3"
-                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
-                    </div>
-                    <br><br>
-
-                    <div class="col-md-2">Year:</div>
-                    <div class="col-md-2">
-                        <input type="text" name="pub_year" id="pub_year" size="4" maxlength="4"
-                               style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">
-                    </div>
-                    <br><br>
-
-                    <div class="col-md-2">Abstract:</div>
-                    <div class="col-md-4">
-                    <textarea name="pub_abstract" id="pub_abstract" cols="50" rows="10"
-                              style="color: #808080;" onmouseover="formFocus(this)"
-                              onmouseout="noFormFocus(this)"></textarea>
-                    </div>
-                    <br><br>
-                </div>
-            </div>
-            <br>
-
-            <div id="pubmed_button_div">
-                <span id="pubmed_manual_button"><b>Manual Entry <i class="fa fa-angle-down"></i></b></span><br>
-            </div>
-            <div id="pubmed_button_div_minus" style="display: none;">
-                <span id="pubmed_manual_button_minus"><b>Less <i class="fa fa-angle-up"></i></b></span><br>
-            </div>
-        </div>
-
-        <br>
-
-        {# Annotation Information #}
-        <div class="panel-heading panel-underline">
-            <h2 class="panel-title">
-                Annotation Information
-            </h2>
-        </div>
-        <div style="margin-left: 1em;">
-            <br>
-            {% if onts %}
-
-            {% else %}
-
-                <div class="row">
-                    <div class="alert bg-gray-light">No Annotation Information is Associated with this GeneSet</div>
-                </div>
-
-            {% endif %}
-
-        </div>
-
-        {# Geneset Gene Information #}
-        <div class="panel-heading panel-underline">
-            <h2 class="panel-title">
-                Gene Information
-            </h2>
-        </div>
-
-        <div style="margin-left: 1em;">
-            <br>
-
-            <div class="row">
-                <div class="col-md-2">
-                    Species <strong>*</strong>:
-                </div>
-                <div class="col-xs-6 col-sm-4">
-                    <select class="form-control" name="sp_id" required>
-                        {% for spec in all_species %}
-                            <option label="{{ all_species[spec] }}" value="{{ spec }}">{{ all_species[spec] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <br>
-
-            <div class="row">
-                <div class="col-md-2">
-                    Gene Identifiers <strong>*</strong>:
-                </div>
-                <div class="col-xs-6 col-sm-4">
-                    <select name="gene_identifier" class="form-control" required>
-                        <option value="0"></option>
-                        {% for id in gidts %}
-                            {% if id[0] != "MicroArrays" %}
-                                <option label="{{ id[1] }}" value="{{ id[0] }}">{{ id[1] }}</option>
-                            {% else %}
-                                <optgroup label="MicroArrays">
-                                    {% for val in id[1] %}
-                                        <option label="{{ val[1] }}" value="{{ val[0] }}">{{ val[1] }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <br>
-
-            <div class="row">
-                <div class="col-md-2">
-                    Gene List <span id="clickableGenes"><i class="fa fa-info-circle"></i></span>
-                </div>
-                <div id="paste_uploader" class="col-md-4" style="display: block">
-                    <span id="clickableUpload" onclick="toggle_pasting()"><strong> Switch to File Upload <i class="fa fa-upload"></i>
-                        </strong></span>
-                    <br>
-                    {% if genes %}
-                        <textarea id="file_text" rows="15" cols="40" name="file_text" style="color: #808080;"
-                                  onmouseover="formFocus(this)" onmouseout="noFormFocus(this)">{{ genes }}</textarea>
-                    {% else %}
-                        <textarea id="file_text" rows="15" cols="40" name="file_text" style="color: #808080;"
-                                  onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
-                                  placeholder="gene1[tab]value[newline]"
-                                  required></textarea>
-                    {% endif %}
-
-                </div>
-
-
-            </div>
-                <div class="row">
-                    <div class="col-md-2"></div>
-                    <div id="fileDisplayArea" class="col-md-4" style="color: grey; padding-top: 2em;"></div>
-                </div>
-
-        </div>
-        <br>
-
-
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
-
-        <div class="panel-heading">
-            <div class="pull-right">
-                <input id="upload-geneset-button" class="btn btn-warning fa" type="submit" value="Review Geneset Upload &#xf04e;" />
-            </div>
-        </div>
 
     </form>
-
 
 
 {% endif %}
@@ -513,9 +259,6 @@
 	}
 
     var queryLength = queryString.length
-
-	console.log(queryString);
-	console.log(paramIndex);
 
     if (queryLength != 0 && paramIndex != -1) {
 
@@ -583,22 +326,30 @@
             }
         });
 
-        //Display uploaded file to page
+        // Display uploaded file to page
         var fileInput = document.getElementById('file_data');
-		var fileDisplayArea = document.getElementById('fileDisplayArea');
+        var fileDisplayArea = $('#fileDisplayArea');
+        var fileContents = $('#fileContents');
 
 		fileInput.addEventListener('change', function(e) {
 			var file = fileInput.files[0];
 			var textType = /text.*/;
 
+            // After reading the file, the filename and size are displayed
+            // to the user. The contents goes under a hidden input for
+            // submission later.
 			if (file.type.match(textType)) {
 				var reader = new FileReader();
 
 				reader.onload = function(e) {
-					fileDisplayArea.innerText = reader.result;
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' kB';
+
+                    fileDisplayArea.text(file.name + ' (' + size + ')');
+                    fileContents.val(reader.result);
 				};
 
 				reader.readAsText(file);
+
 			} else {
 				fileDisplayArea.innerText = "File not supported!";
 			}
@@ -607,23 +358,15 @@
         //Function to upload genesets
         //Ths AJAX POST loading is not working...leaving me perplexed. I stripped the text from the
         //div and passed it to application via get
-        $('#upload-geneset-form').submit(function (event) {
+        //$('#upload-geneset-form').submit(function (event) {
+        $('#upload-geneset-form').on('submit', function (event) {
             event.preventDefault();
-            var fileDisplayArea = document.getElementById('fileDisplayArea');
-            var fileSelect = document.getElementById('file_data');
-            //var reader = new FileReader();
-            if (!fileSelect.disabled) {
-                //var file = fileSelect.files;
-                var fileData = fileDisplayArea.innerText;
-                //data.append('selected_file', file[0], file[0].name);
-                //reader.onload = createReaderHandler(file[0].name);
-                //reader.readAsText(file[0]);
-                //alert(data['selected_file']);
-            }
 
-            var d = $("#upload-geneset-form").serialize();
-            var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
-            var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
+            var formData = $(this).serialize();
+            console.log(formData);
+
+            //var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
+            //var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
 
             $.ajax({
                 type: "GET",
