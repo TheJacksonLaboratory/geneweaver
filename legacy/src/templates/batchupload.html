@@ -370,8 +370,9 @@
 
             $.ajax({
                 type: "GET",
-                url: "../createtempgeneset",
-                data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
+                url: "../createBatchGeneset",
+                //data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
+                data: {"formData": formData},
                 success: function (data) {
                     var v = JSON.parse(data);
                     if (v["error"] == 'None') {
@@ -386,7 +387,7 @@
                             }
                         ]);
                     }
-                    },
+                },
                 error: function(){
                     $('html, body').animate({ scrollTop: 0 }, 'slow');
                     $(document).trigger("add-alerts", [
