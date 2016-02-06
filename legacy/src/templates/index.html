@@ -30,7 +30,6 @@
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-sparkline/sparkline.min.js') }}"></script>
 #}
 <script src="{{ url_for('static', filename='pixit/admin/assets/js/charts.js') }}"></script>
-#}
 
 
 
@@ -59,7 +58,7 @@
 		display: hidden;
 	}
 .section-txt{text-align:center;padding:40px 0;}
-.bg-light-gray {background-color:#eaeaea}
+.bg-light-gray {background-color:#f6f6f6}
 .bg-light-green {background-color: #f2ffe5;}
 .p-t-40 {padding-top:40px !important;}
 .p-t-50 {padding-top:50px !important;}
@@ -197,32 +196,29 @@
     <div id="testimonials" class="owl-carousel col-md-6 col-md-offset-3" style="width: 50%;">
                 <div class="owl-item">
                         <h3 class="normal text-center">
-                            I have been very impressed with your friendliness and responsiveness. Thank you so much and
-                            I'm waiting for the next theme!
+                            New to GeneWeaver? Watch a short video describing the main features available and how to
+                            rapidly analyze your set of genes.
                         </h3>
                         <p class="text-center">
-                            <img src="static/images/GW2-logo.png" class="img-circle" alt="Testimonial 1">Steve Mac
-                            Queen, client, New York City
+                            <i class="fa fa-film fa-2x"></i> Watch the Quick Start Video.
                         </p>
                 </div>
                 <div class="owl-item">
                         <h3 class="normal text-center">
-                            I have been very impressed with your friendliness and responsiveness. Thank you so much and
-                            I'm waiting for the next theme!
+                            Can't remember GeneWeaver features? Try downloading our Quick Start CheatSheet of common
+                            commands and functions.
                         </h3>
                         <p class="text-center">
-                            <img src="assets/img/testimonial2.jpg" class="img-circle" alt="Testimonial 2">Steve Mac
-                            Queen, client, New York City
+                            <i class="fa fa-columns fa-2x"></i> Download a Cheatsheet of commands.
                         </p>
                 </div>
                 <div class="owl-item">
                         <h3 class="normal text-center">
-                            I have been very impressed with your friendliness and responsiveness. Thank you so much and
-                            I'm waiting for the next theme!
+                            Interested in working with the GeneWeaver team to include your data or find our more about
+                            our web services?
                         </h3>
                         <p class="text-center">
-                            <img src="assets/img/testimonial3.jpg" class="img-circle" alt="Testimonial 3">Steve Mac
-                            Queen, client, New York City
+                            <i class="fa fa-envelope-o fa-2x"></i> Contact the GeneWeaver Team.
                         </p>
                 </div>
     </div>
@@ -304,36 +300,27 @@
         </div>
 </section>
 
-
-    <div class="panel-body">
+<section class="section-txt">
+    <div class="container">
                             <div class="row">
                                 <div class="col-md-3">
-                                    <h3><strong>GeneSets</strong></h3>
-                                    <p>Number of Publicily Available GeneSets</p>
-                                    <br>
-                                    <div id="pie_chart1" data-dimension="200" data-text="35%" data-info="New Clients" data-width="30" data-fontsize="38" data-percent="35" data-fgcolor="#7ea568" data-bgcolor="#eee" data-type="half" data-fill="#ddd" class="circliful" style="width: 200px;"><span class="circle-text-half" style="line-height: 137.931px; font-size: 38px;"></span><span class="circle-info-half" style="line-height: 180px;">New Clients</span><canvas width="200" height="200"></canvas></div>
+                                    <div id="pie_chart1" data-dimension="220" data-text="35 000" data-info="Public GeneSets" data-width="30" data-fontsize="38" data-percent="35" data-fgcolor="#7ea568" data-bgcolor="#eee" data-fill="#ddd" class="circliful" style="width: 200px;"></div>
                                 </div>
+
                                 <div class="col-md-3">
-                                    <h3><strong>Genes</strong></h3>
-                                    <p>Number of Genes</p>
-                                    <br>
-                                    <div id="pie_chart2" data-dimension="200" data-text="35%" data-info="New Clients" data-width="30" data-fontsize="38" data-percent="35" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-fill="#ddd" class="circliful" style="width: 200px;"><span class="circle-text" style="line-height: 200px; font-size: 38px;"></span><span class="circle-info" style="line-height: 250px;">New Clients</span><canvas width="200" height="200"></canvas></div>
+                                    <div id="pie_chart2" data-dimension="220" data-text="1 234 200" data-info="Genes" data-width="30" data-fontsize="30" data-percent="55" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-fill="#ddd" class="circliful" style="width: 200px;"></div>
                                 </div>
+
                                 <div class="col-md-3">
-                                    <h3><strong>Analysis</strong></h3>
-                                    <p>Number of Analysis Run</p>
-                                    <br>
-                                    <div id="pie_chart3" data-dimension="200" data-text="72" data-info="New Users" data-width="30" data-fontsize="38" data-percent="46" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-total="150" data-part="72" data-border="inline" data-icon="fa-group" data-icon-size="28" data-icon-color="#ccc" class="circliful" style="width: 200px;"><span class="circle-text" style="line-height: 200px; font-size: 38px;"><i class="fa fa-group"></i>72</span><span class="circle-info" style="line-height: 250px;">New Users</span><canvas width="200" height="200"></canvas></div>
+                                    <div id="pie_chart3" data-dimension="220" data-text="72" data-info="Analysis" data-width="30" data-fontsize="38" data-percent="46" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-total="150" data-part="72" data-border="inline" data-icon="fa-bar-chart-o" data-icon-size="28" data-icon-color="#ccc" class="circliful" style="width: 200px;"></div>
                                 </div>
+
                                 <div class="col-md-3">
-                                    <h3><strong>GeneSets by Speices</strong></h3>
-                                    <p>Number of GeneSets</p>
-                                    <br>
-                                    <div id="pie_chart4" data-dimension="200" data-text="35%" data-info="New Clients" data-width="30" data-fontsize="38" data-percent="35" data-fgcolor="#C9625F" data-bgcolor="#eee" class="circliful" style="width: 200px;"><span class="circle-text" style="line-height: 200px; font-size: 38px;"></span><span class="circle-info" style="line-height: 250px;">New Clients</span><canvas width="200" height="200"></canvas></div>
+                                    <div id="pie_chart4" data-dimension="220" data-info="Species" data-width="30" data-fontsize="38" data-percent="100" data-fgcolor="#C9625F" data-bgcolor="#eee" class="circliful" style="width: 200px;"></div>
                                 </div>
                             </div>
-                        </div>
-
+    </div>
+</section>
 
 
 
