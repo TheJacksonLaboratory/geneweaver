@@ -362,8 +362,9 @@
         $('#upload-geneset-form').on('submit', function (event) {
             event.preventDefault();
 
-            var formData = $(this).serialize();
-            console.log(formData);
+            var batchFile = $('#fileContents').val();
+            // Encodes spaces, quotes, and other crap prior to sending
+            batchFile = encodeURIComponent(batchFile);
 
             //var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
             //var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
@@ -371,8 +372,7 @@
             $.ajax({
                 type: "GET",
                 url: "../createBatchGeneset",
-                //data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
-                data: {"formData": formData},
+                data: {"batchFile": batchFile},
                 success: function (data) {
                     var v = JSON.parse(data);
                     if (v["error"] == 'None') {

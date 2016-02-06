@@ -32,7 +32,8 @@ import psycopg2
 import random
 import re
 import urllib2 as url2
-import geneweaverdb
+import config
+#import geneweaverdb
 
 #### TheDB
 ##
@@ -41,8 +42,16 @@ import geneweaverdb
 ##
 class TheDB():
     def __init__(self, db='geneweaver', user='odeadmin', password='odeadmin'):
-        cs = ("host='crick' dbname='%s' user='%s' password='%s'"
-              % (db, user, password))
+        #cs = ("host='crick' dbname='%s' user='%s' password='%s'"
+        #      % (db, user, password))
+
+        db = config.get('db', 'database')
+        user = config.get('db', 'user')
+        password = config.get('db', 'password')
+        host = config.get('db', 'host')
+        port = config.getInt('db', 'port')
+
+        cs = "host='%s' dbname='%s' user='%s' password='%s'" % (host, db, user, password)
 
         try:
             self.conn = psycopg2.connect(cs)
@@ -723,11 +732,16 @@ def parseBatchFile(lns, usr=0, cur=5):
                 ## the one with the best match
                 best = 0.70
                 for plat, pid in plats.items():
+                    print 'p:'
+                    print plat
                     sim = calcStringSimilarity(plat.lower(), gene.lower())
 
                     if sim > best:
                         best = sim
-                        gene = pid
+                        gene = plat
+
+                ## Convert to the ID, gene will now be an integer
+                gene = plats[gene]
 
                 if type(gene) != int:
                     cerr = ('Critical error! We aren\'t sure what microarray '
