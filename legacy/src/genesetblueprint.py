@@ -108,7 +108,28 @@ def create_batch_geneset():
     #return {'error': 'lol no upload for you'}
     batchFile = batch.parseBatchFile(batchFile, user_id)
 
-    print batchFile
+    ## sets
+    print batchFile[0]
+    ## warnings
+    print batchFile[1]
+    ## errors
+    print batchFile[2]
+
+    batchErrors = ''
+    batchWarns = ''
+
+    ## Concatenate error/warning messages so we only return a single string
+    for e in batchFile[2]:
+        batchErrors += e
+        batchErrors += '\n'
+
+    for w in batchFile[1]:
+        batchWarns += w
+        batchWarns += '\n'
+
+    ## If there were critical errors, no need to continue on making genesets
+    if batchErrors:
+        return flask.jsonify({'error': batchErrors})
 
     file_text = ""
     file_lines = ""

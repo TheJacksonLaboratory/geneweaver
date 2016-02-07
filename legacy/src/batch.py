@@ -604,7 +604,7 @@ def parseBatchFile(lns, usr=0, cur=5):
     :param list: list of strings, one per line of the batch file
     :param int: user ID to associate with the parsed genesets
     :param int: curation ID
-    :return:
+    :ret tuple: triplet (list of gensets, list of warnings, list of errors)
     """
 
     genesets = []
@@ -822,8 +822,11 @@ def parseBatchFile(lns, usr=0, cur=5):
                 #cerr = ('Critical error! Looks like one of the required '
                 #        'fields is missing.')
                 #break
-                #err = 'One or more of the required fields are missing.'
-                pass
+                err = 'One or more of the required fields are missing.'
+                ## Otherwise this string will get appended a bajillion times
+                if err not in errors:
+                    errors.append(err)
+                #pass
 
 
             #ln = ln.split()

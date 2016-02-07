@@ -71,10 +71,20 @@
 
 {% else %}
 
-    <div class="row" id="result"></div>
+    <div class="row" id="result">
+    </div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
         <h2 class="panel-title"><strong>Batch Geneset Upload</strong></h2>
+    </div>
+
+    <div class="row" id="upload-error" style="display: none;">
+        <div class="alert alert-danger fade in" id="upload-error-alert">
+        </div>
+    </div>
+    <div class="row" id="upload-warn" style="display: none;">
+        <div class="alert alert-warning fade in" id="upload-warn-alert">
+        </div>
     </div>
 
     <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
@@ -377,15 +387,36 @@
                     // The data is returned already parsed out of JSON
                     if ('error' in data) {
 
-                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        var error = data['error'].replace('\n', '<br />', 'mg');
+                        error = '<strong>There were some errors with your ' +
+                                'batch file.</strong><br />' + error;
 
-                        $(document).trigger("add-alerts", [{
-                            'message': "An Error Occurred. " + data["error"],
-                            'priority': 'danger'
-                        }]);
+                        var closeButton = '<button type="button" ' +
+                            'class="close" data-dismiss="alert" ' +
+                            'aria-hidden="true">x</button>';
+
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $('#upload-error-alert').html(closeButton + error);
+                        $('#upload-error').toggle(true);
                     }
+
+                    if ('warn' in data) {
+
+                        var warn = data['warn'].replace('\n', '<br />', 'mg');
+                        warn = '<strong>There were some non-critical issues ' +
+                                'with your batch file.</strong><br />' + warn;
+
+                        var closeButton = '<button type="button" ' +
+                                'class="close" data-dismiss="alert" ' +
+                                'aria-hidden="true">x</button>';
+
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $('#upload-warn-alert').html(closeButton + warn);
+                        $('#upload-warn').toggle(true);
+                    }
+
                     if (data["error"] == 'None') {
-                        window.location.href = '../editgenesetgenes/' + v["gs_id"];
+                        //window.location.href = '../editgenesetgenes/' + v["gs_id"];
                     }
                 },
                 error: function(){
