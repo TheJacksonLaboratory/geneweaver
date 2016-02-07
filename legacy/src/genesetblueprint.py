@@ -131,6 +131,9 @@ def create_batch_geneset():
     if batchErrors:
         return flask.jsonify({'error': batchErrors})
 
+    if batchWarns:
+        return flask.jsonify({'warn': batchWarns})
+
     file_text = ""
     file_lines = ""
     if 'file_text' in form.keys():

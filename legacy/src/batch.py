@@ -833,6 +833,7 @@ def parseBatchFile(lns, usr=0, cur=5):
             else:
                 lns[i] = lns[i].split()
 
+                ## I don't think this code can ever be reached...
                 if len(lns[i]) < 2:
                     err = 'LINE %s: Skipping invalid gene, value formatting' \
                           % (i + 1)
@@ -862,7 +863,7 @@ def parseBatchFile(lns, usr=0, cur=5):
         ## Who knows what the fuck this line is, just skip it
         else:
             #ncerr.append('BAD LINE: ' + ln)
-            err = 'LINE %s: Skipping unknown identifiers'
+            err = 'LINE %s: Skipping unknown identifiers' % (i + 1)
             warns.append(err)
 
     ## awwww shit, we're finally finished! Check for critical errors and
