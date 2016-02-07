@@ -374,18 +374,18 @@
                 url: "../createBatchGeneset",
                 data: {"batchFile": batchFile},
                 success: function (data) {
-                    var v = JSON.parse(data);
-                    if (v["error"] == 'None') {
-                        window.location.href = '../editgenesetgenes/' + v["gs_id"];
-                    }
-                    else {
+                    // The data is returned already parsed out of JSON
+                    if ('error' in data) {
+
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "An Error Occurred. " + v["error"],
-                                'priority': 'danger'
-                            }
-                        ]);
+
+                        $(document).trigger("add-alerts", [{
+                            'message': "An Error Occurred. " + data["error"],
+                            'priority': 'danger'
+                        }]);
+                    }
+                    if (data["error"] == 'None') {
+                        window.location.href = '../editgenesetgenes/' + v["gs_id"];
                     }
                 },
                 error: function(){

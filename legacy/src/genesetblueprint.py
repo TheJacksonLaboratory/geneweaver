@@ -86,12 +86,13 @@ def render_batchupload(genes=None):
 def create_batch_geneset():
     """
     Attempts to parse a batch file and create a temporary geneset for review.
+
+    TODO: The batch upload module should use geneweaverdb functions instead of
+          its own database calls.
     """
 
-    #try:
     if not request or not request.args or not request.args['batchFile']:
-        print '0'
-        return {'error': 'No batch file was provided.'}
+        return flask.jsonify({'error': 'No batch file was provided.'})
 
     ## The data sent to us should be URL encoded
     batchFile = urllib2.unquote(request.args['batchFile'])
@@ -102,7 +103,7 @@ def create_batch_geneset():
 
     if user_id == None:
         print '1'
-        return {"error": "You must be signed in to upload a geneset."}
+        return flask.jsonify({"error": "You must be signed in to upload a geneset."})
 
     #return {'error': 'lol no upload for you'}
     batchFile = batch.parseBatchFile(batchFile, user_id)
