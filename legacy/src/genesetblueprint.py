@@ -1,7 +1,9 @@
 import flask
 import geneweaverdb
 import pubmedsvc
+import urllib2
 import re
+import batch
 from flask import request
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
@@ -61,6 +63,111 @@ def render_batchuploadgeneset(genes=None):
 
     return flask.render_template('uploadgeneset.html', gs=dict(), all_species=all_species, gidts=gidts)
 
+@geneset_blueprint.route('/batchupload')
+def render_batchupload(genes=None):
+    gidts = []
+    for gene_id_type_record in geneweaverdb.get_gene_id_types():
+        gidts.append((
+            'gene_{0}'.format(gene_id_type_record['gdb_id']),
+            gene_id_type_record['gdb_name']))
+
+    microarray_id_sources = []
+    for microarray_id_type_record in geneweaverdb.get_microarray_types():
+        microarray_id_sources.append((
+            'ma_{0}'.format(microarray_id_type_record['pf_id']),
+            microarray_id_type_record['pf_name']))
+    gidts.append(('MicroArrays', microarray_id_sources))
+
+    all_species = geneweaverdb.get_all_species()
+
+    return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts)
+
+@geneset_blueprint.route('/createBatchGeneset')
+def create_batch_geneset():
+    """
+    Attempts to parse a batch file and create a temporary geneset for review.
+
+    TODO: The batch upload module should use geneweaverdb functions instead of
+          its own database calls.
+    """
+
+    if not request or not request.args or not request.args['batchFile']:
+        return flask.jsonify({'error': 'No batch file was provided.'})
+
+    ## The data sent to us should be URL encoded
+    batchFile = urllib2.unquote(request.args['batchFile'])
+    batchFile = batchFile.split('\n')
+    batchFile = map(lambda s: s.encode('ascii', 'ignore'), batchFile)
+
+    user_id = flask.g.user.user_id if 'user' in flask.g else None
+
+    if user_id == None:
+        print '1'
+        return flask.jsonify({"error": "You must be signed in to upload a geneset."})
+
+    #return {'error': 'lol no upload for you'}
+    batchFile = batch.parseBatchFile(batchFile, user_id)
+
+    ## sets
+    print batchFile[0]
+    ## warnings
+    print batchFile[1]
+    ## errors
+    print batchFile[2]
+
+    batchErrors = ''
+    batchWarns = ''
+
+    ## Concatenate error/warning messages so we only return a single string
+    for e in batchFile[2]:
+        batchErrors += e
+        batchErrors += '\n'
+
+    for w in batchFile[1]:
+        batchWarns += w
+        batchWarns += '\n'
+
+    ## If there were critical errors, no need to continue on making genesets
+    if batchErrors:
+        return flask.jsonify({'error': batchErrors})
+
+    if batchWarns:
+        return flask.jsonify({'warn': batchWarns})
+
+    file_text = ""
+    file_lines = ""
+    if 'file_text' in form.keys():
+        file_text = form['file_text']
+        file_lines = file_text.splitlines()
+    else:
+        return "File currently not implemented."
+    # get lines from the file here
+
+        candidate_sep_regexes = ['\t', ',', ' +']
+
+        all_results = []
+        invalid_genes = []
+        unique_gene_ids = []
+
+    #except e:
+    #    print str(e)
+
+    gidts = []
+    for gene_id_type_record in geneweaverdb.get_gene_id_types():
+        gidts.append((
+            'gene_{0}'.format(gene_id_type_record['gdb_id']),
+            gene_id_type_record['gdb_name']))
+
+    microarray_id_sources = []
+    for microarray_id_type_record in geneweaverdb.get_microarray_types():
+        microarray_id_sources.append((
+            'ma_{0}'.format(microarray_id_type_record['pf_id']),
+            microarray_id_type_record['pf_name']))
+    gidts.append(('MicroArrays', microarray_id_sources))
+
+    all_species = geneweaverdb.get_all_species()
+
+    return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts)
 
 @geneset_blueprint.route('/batchuploadgeneset/<genes>')
 def render_batchuploadgeneset_ba(genes):
