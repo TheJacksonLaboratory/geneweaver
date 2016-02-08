@@ -560,6 +560,18 @@ def get_microarray_types(sp_id=0):
 			{'sp_id': sp_id})
 		return list(dictify_cursor(cursor))
 
+def get_news():
+	"""
+	get the top three stories from the news feed.
+	:return: array of stories
+	"""
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''SELECT nf_title, nf_date, nf_text, nf_type FROM odestatic.news_feed ORDER BY nf_timestamp DESC;'''
+		)
+		news = list(dictify_cursor(cursor))
+		return news
+
 
 # *************************************
 

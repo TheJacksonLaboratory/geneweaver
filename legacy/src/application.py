@@ -97,53 +97,53 @@ def static_results(filename):
 
 
 # TODO the newsArray should probably be moved to a configuration file
-newsArray = [
-    (
-        "2013: GeneWeaver user publication",
-        '''
-        <a href="http://www.ncbi.nlm.nih.gov/pubmed/23123364">Potential translational
-        targets revealed by linking mouse grooming behavioral phenotypes to gene
-        expression using public databases</a> Andrew Roth, Evan J. Kyzar, Jonathan Cachat,
-        Adam Michael Stewart, Jeremy Green, Siddharth Gaikwad, Timothy P. O'Leary,
-        Boris Tabakoff, Richard E. Brown, Allan V. Kalueff. Progress in Neuro-Psychopharmacology
-        & Biological Psychiatry 40:313-325.
-        '''
-    ),
-    (
-        "2013: GeneWeaver user publication (Includes Deposited Data)",
-        '''
-        <a href="http://www.ncbi.nlm.nih.gov/pubmed/23329330">Mechanistic basis of infertility
-        of mouse intersubspecific hybrids</a> Bhattacharyya T, Gregorova S, Mihola O, Anger M,
-        Sebestova J, Denny P, Simecek P, Forejt J. PNAS 2013 110 (6) E468-E477.
-        '''
-    ),
-    (
-        "2012: GeneWeaver Publication",
-        '''
-        <a href="http://www.ncbi.nlm.nih.gov/pubmed/23195309">Cross species integration of
-        functional genomics experiments.</a>Jay, JJ. Int Rev Neurobiol 104:1-24.
-        '''
-    ),
-    (
-        "Oct 2012: GeneWeaver user publication",
-        '''
-        <a href="http://www.ncbi.nlm.nih.gov/pubmed/22961259">The Mammalian Phenotype Ontology
-        as a unifying standard for experimental and high-throughput phenotyping data.</a>
-        Smith CL, Eppig JT. Mamm Genome. 23(9-10):653-68
-        '''
-    ),
-]
+# newsArray = [
+#     (
+#         "2013: GeneWeaver user publication",
+#         '''
+#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/23123364">Potential translational
+#         targets revealed by linking mouse grooming behavioral phenotypes to gene
+#         expression using public databases</a> Andrew Roth, Evan J. Kyzar, Jonathan Cachat,
+#         Adam Michael Stewart, Jeremy Green, Siddharth Gaikwad, Timothy P. O'Leary,
+#         Boris Tabakoff, Richard E. Brown, Allan V. Kalueff. Progress in Neuro-Psychopharmacology
+#         & Biological Psychiatry 40:313-325.
+#         '''
+#     ),
+#     (
+#         "2013: GeneWeaver user publication (Includes Deposited Data)",
+#         '''
+#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/23329330">Mechanistic basis of infertility
+#         of mouse intersubspecific hybrids</a> Bhattacharyya T, Gregorova S, Mihola O, Anger M,
+#         Sebestova J, Denny P, Simecek P, Forejt J. PNAS 2013 110 (6) E468-E477.
+#         '''
+#     ),
+#     (
+#         "2012: GeneWeaver Publication",
+#         '''
+#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/23195309">Cross species integration of
+#         functional genomics experiments.</a>Jay, JJ. Int Rev Neurobiol 104:1-24.
+#         '''
+#     ),
+#     (
+#         "Oct 2012: GeneWeaver user publication",
+#         '''
+#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/22961259">The Mammalian Phenotype Ontology
+#         as a unifying standard for experimental and high-throughput phenotyping data.</a>
+#         Smith CL, Eppig JT. Mamm Genome. 23(9-10):653-68
+#         '''
+#     ),
+# ]
 
 
 # the context processor will inject global variables for us so
 # that we can refer to them from our flask templates
-@app.context_processor
-def inject_globals():
-    global_map = {
-        'newsArray': newsArray
-    }
-
-    return global_map
+# @app.context_processor
+# def inject_globals():
+#     global_map = {
+#         'newsArray': newsArray
+#     }
+#
+#     return global_map
 
 
 @app.before_request
@@ -1987,7 +1987,8 @@ def generate_api_key():
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
-    return flask.render_template('index.html')
+    news_array = geneweaverdb.get_news()
+    return flask.render_template('index.html', news_array=news_array)
 
 
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
