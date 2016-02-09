@@ -1992,7 +1992,8 @@ def generate_api_key():
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
     news_array = geneweaverdb.get_news()
-    return flask.render_template('index.html', news_array=news_array)
+    stats = geneweaverdb.get_stats()
+    return flask.render_template('index.html', news_array=news_array, stats=stats)
 
 
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])

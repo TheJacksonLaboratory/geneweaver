@@ -61,50 +61,6 @@
 
 </style>
 
-<script>
-    $(document).ready(function () {
-
-        $("#testimonials").owlCarousel({
-            slideSpeed: 3000,
-            paginationSpeed: 400,
-            singleItem: true
-        });
-            $('#pie_chart1').circliful();
-            $('#pie_chart2').circliful();
-            $('#pie_chart3').circliful();
-            $('#pie_chart4').circliful();
-
-    });
-
-    $(function () {
-//Get the search suggestions from the server
-
-        var suggestedSearchTermsData = (function () {
-            var terms = null;
-            $.ajax({
-                'async': false,
-                'global': false,
-                'url': "/searchsuggestionterms.json",
-                'dataType': "json",
-                'success': function (data) {
-                    terms = data;
-                }
-            });
-            return terms;
-        })();
-
-        $("#searchbar").autocomplete({
-            source: suggestedSearchTermsData,
-            response: function (event, ui) {
-
-                // this shit looks ugly and kept messing up the layout
-                if (ui.content.length === 0)
-                    $('.ui-helper-hidden-accessible').remove();
-            }
-        });
-    });
-
-</script>
 
 <!--Begin Section for main header and search bar -->
 <section>
@@ -132,7 +88,7 @@
 </section>
 
 <!--Begin Section for main action icons-->
-<section class="section-txt p-b-40">
+<section class="section-txt" style="padding-bottom: 80px">
     <div class="row">
         <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
             <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
@@ -257,35 +213,94 @@
 </section>
 
 <!--Begin Section for Graph Stats-->
-<section id="circle-graphs" class="section-txt">
+<section id="circle-graphs" class="section-txt circles" style="padding-top: 80px;">
     <div class="container">
         <div class="row">
             <div class="col-md-3">
-                <div id="pie_chart1" data-dimension="220" data-text="35 000" data-info="Public GeneSets" data-width="30"
-                     data-fontsize="38" data-percent="35" data-fgcolor="#7ea568" data-bgcolor="#eee" data-fill="#ddd"
+                <div id="pie_chart1" data-dimension="220" data-text="{{ stats[0]|safe }}" data-info="Public GeneSets" data-width="25"
+                     data-fontsize="30" data-percent="55" data-fgcolor="#7ea568" data-bgcolor="#eee" data-fill="#ddd"
                      class="circliful" style="width: 200px;"></div>
             </div>
 
             <div class="col-md-3">
-                <div id="pie_chart2" data-dimension="220" data-text="1 234 200" data-info="Genes" data-width="30"
-                     data-fontsize="30" data-percent="55" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-fill="#ddd"
+                <div id="pie_chart2" data-dimension="220" data-text="{{ stats[1]|safe }}" data-info="Genes" data-width="25"
+                     data-fontsize="30" data-percent="75" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-fill="#ddd"
                      class="circliful" style="width: 200px;"></div>
             </div>
 
             <div class="col-md-3">
-                <div id="pie_chart3" data-dimension="220" data-text="72" data-info="Analysis" data-width="30"
-                     data-fontsize="38" data-percent="46" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-total="150"
+                <div id="pie_chart3" data-dimension="220" data-text="{{ stats[2]|safe }}" data-info="Analysis" data-width="25"
+                     data-fontsize="30" data-percent="46" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-total="150"
                      data-part="72" data-border="inline" data-icon="fa-bar-chart-o" data-icon-size="28"
                      data-icon-color="#ccc" class="circliful" style="width: 200px;"></div>
             </div>
 
             <div class="col-md-3">
-                <div id="pie_chart4" data-dimension="220" data-info="Species" data-width="30" data-fontsize="38"
-                     data-percent="100" data-fgcolor="#C9625F" data-bgcolor="#eee" class="circliful"
+                <div id="pie_chart4" data-dimension="220" data-text="{{ stats[3]|safe }}" data-info="Users" data-width="25"
+                     data-fontsize="30" data-icon="fa-group" data-icon-size="28"
+                     data-icon-color="#ccc"
+                     data-percent="30" data-fgcolor="#C9625F" data-bgcolor="#eee" class="circliful"
                      style="width: 200px;"></div>
             </div>
         </div>
     </div>
 </section>
 
+
 {% include 'footer.html' %}
+
+<script>
+    $(document).ready(function () {
+
+        $("#testimonials").owlCarousel({
+            slideSpeed: 3000,
+            paginationSpeed: 400,
+            singleItem: true
+        });
+
+        var circleTriggered = false;
+        $(window).scroll(function() {
+            if($(window).scrollTop() + $(window).height() > $(document).height() - 1) {
+                if (circleTriggered == false) {
+                    $('#pie_chart1').circliful();
+                    $('#pie_chart2').circliful();
+                    $('#pie_chart3').circliful();
+                    $('#pie_chart4').circliful();
+                    circleTriggered = true;
+                    }
+            }
+        });
+
+    });
+
+
+
+    $(function () {
+//Get the search suggestions from the server
+
+        var suggestedSearchTermsData = (function () {
+            var terms = null;
+            $.ajax({
+                'async': false,
+                'global': false,
+                'url': "/searchsuggestionterms.json",
+                'dataType': "json",
+                'success': function (data) {
+                    terms = data;
+                }
+            });
+            return terms;
+        })();
+
+        $("#searchbar").autocomplete({
+            source: suggestedSearchTermsData,
+            response: function (event, ui) {
+
+                // this shit looks ugly and kept messing up the layout
+                if (ui.content.length === 0)
+                    $('.ui-helper-hidden-accessible').remove();
+            }
+        });
+    });
+
+</script>
