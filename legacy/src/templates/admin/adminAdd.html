@@ -3,75 +3,81 @@
 
 {% block body %}
 
-	
- <script >
-    $( document ).ready(function() {
-	var table = '{{table}}';
-	
-	$('#add-form').submit(function(event) {   	    
-  	    event.preventDefault(); 	
 
-	    var data = $("#add-form").serialize() + "&table="+table;	 
-   	    $.ajax({
-          	   type: "POST",
-           	   url: "../../admin/adminAdd",
-           	   data: data, 
-           	   success: function(data)
-           	   {
-               	      alert(data);
-           	   }
+    <script>
+        $(document).ready(function () {
+            var table = '{{table}}';
+
+            $('#add-form').submit(function (event) {
+                event.preventDefault();
+
+                var data = $("#add-form").serialize() + "&table=" + table;
+                $.ajax({
+                    type: "POST",
+                    url: "../../admin/adminAdd",
+                    data: data,
+                    success: function (data) {
+                        alert(data);
+                    }
+                });
             });
-	});  
 
-	$("#cancel-button").click(function() {
-		
-	    history.back();	    
-	    
-	});
+            $("#cancel-button").click(function () {
 
-	String.prototype.capitalize = function() {
-	   return this.charAt(0).toUpperCase() + this.slice(1);
-	}	
-    });   
+                history.back();
+
+            });
+
+            String.prototype.capitalize = function () {
+                return this.charAt(0).toUpperCase() + this.slice(1);
+            }
+        });
     </script>
 
-	<h3 align=left>Add {{toadd}}</h3>
-	 <p>
-	
-	<form id="add-form">     
-	   <div>
-	     {% for col in requiredCols %}
-		<div class="form-group">
-	    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}} (required)</label>
-		    <div class="col-sm-9">
-	    		<input name={{col.column_name}} style="width:100%" class="form-control" type="text"></input>	    		
-		   </div>
-		</div>
-	    {% endfor %}
-	     {% for col in columns %}
-	     {% if col.column_name != '_searchtext' %}
-		<div class="form-group">
-	    	  <label class="col-sm-3 control-label">{{col.column_name.replace("_"," ").capitalize()}}</label>
-		    <div class="col-sm-9">
-	    		<input name={{col.column_name}} style="width:100%" class="form-control" type="text"></input>	    		
-		   </div>
-		</div>
-	    {% endif %}
-	    {% endfor %}
-	  <p><p>
-	  <div class="col-sm-9 col-sm-offset-3">
-	    <div class="pull-left">
-		<input class="btn btn-primary" type="submit" value="Add"></input>
-	        <input id="cancel-button" class="btn btn-primary" type="button" value="Cancel"></input>
-	    </div>
-	  </div>  
-	<div>
-	 <label id="result-label" class="col-sm-3"></label>
-	</div>
-	</form>
-	
+    <h3 align=left>Add {{ toadd }}</h3>
+    <p>
+
+        <form id="add-form">
+            <div>
+                {% for col in requiredCols %}
+                    <br><br>
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">{% if col.column_name == 'nf_type' %}[presentation | news | publication]
+                            {% else %}{{ col.column_name.replace("_"," ").capitalize() }}(required)
+                            {% endif %}</label>
+                        <div class="col-sm-9">
+                            <input name={{ col.column_name }} style="width:100%" class="form-control"
+                                   type="text"/>
+                        </div>
+                    </div>
+                {% endfor %}
+                {% for col in columns %}
+                    <br><br>
+                    {% if col.column_name != '_searchtext' %}
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label">{{ col.column_name.replace("_"," ").capitalize() }}</label>
+                            <div class="col-sm-9">
+                                <input name={{ col.column_name }} style="width:100%" class="form-control"
+                                       type="text"></input>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+    <p><p>
+    <br>
+    <div class="col-sm-9 col-sm-offset-3">
+        <div class="pull-left">
+            <input class="btn btn-primary" type="submit" value="Add"></input>
+            <input id="cancel-button" class="btn btn-primary" type="button" value="Cancel"></input>
+        </div>
+    </div>
+    <div>
+        <label id="result-label" class="col-sm-3"></label>
+    </div>
+    </form>
 
 
 
 
-	{% endblock %}
+
+{% endblock %}

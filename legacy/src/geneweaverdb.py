@@ -560,6 +560,39 @@ def get_microarray_types(sp_id=0):
 			{'sp_id': sp_id})
 		return list(dictify_cursor(cursor))
 
+def get_news():
+	"""
+	get the top three stories from the news feed.
+	:return: array of stories
+	"""
+	with PooledCursor() as cursor:
+		cursor.execute(
+			'''SELECT nf_title, nf_date, nf_text, nf_type FROM odestatic.news_feed ORDER BY nf_timestamp DESC limit 3;'''
+		)
+		news = list(dictify_cursor(cursor))
+		return news
+
+def get_stats():
+    """
+    get the number of tier I, II, III, IV genesets
+    :return:
+    """
+    final_stats = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT stat_geneset, stat_genes, stat_res, stat_users
+              FROM (SELECT count(*) FROM result) AS stat_res,
+              (SELECT count(DISTINCT usr_id) FROM result) AS stat_users,
+              (SELECT count(*) FROM gene) AS stat_genes,
+              (SELECT count(*) FROM geneset WHERE cur_id in (1,2,3,4)) AS stat_geneset;
+            '''
+        )
+        stats = dictify_cursor(cursor)
+        for k in stats:
+            for v in k:
+                final_stats.append(k[v][1:-1])
+        return final_stats
 
 # *************************************
 
