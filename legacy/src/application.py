@@ -60,6 +60,8 @@ admin.add_view(adminviews.Viewers(
     name='Gene Info', endpoint='viewGeneInfo', category='Gene Tools'))
 admin.add_view(adminviews.Viewers(
     name='Geneset Value', endpoint='viewGenesetVals', category='Gene Tools'))
+admin.add_view(adminviews.Viewers(
+    name='News', endpoint='viewNewsFeed', category='User Tools'))
 
 admin.add_view(adminviews.Add(name='User', endpoint='newUser', category='Add'))
 admin.add_view(
@@ -75,6 +77,8 @@ admin.add_view(
     adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
 admin.add_view(
     adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
+admin.add_view(
+    adminviews.Add(name='News Item', endpoint='newNewsItem', category='Add'))
 
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 

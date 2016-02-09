@@ -1,87 +1,96 @@
 {% import 'admin/layout.html' as layout with context -%}
 {% import 'admin/static.html' as admin_static with context %}
+<style>
+    .brand {
+        cursor: pointer;
+    }
+</style>
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>{% block title %}{% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }} - {{ admin_view.admin.name }}{% endblock %}</title>
+<head>
+    <title>{% block title %}{% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }} -
+        {{ admin_view.admin.name }}{% endblock %}</title>
     {% block head_meta %}
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="">
         <meta name="author" content="">
     {% endblock %}
-    {% block head_css %}	
-        <!--<link href="{{ admin_static.url(filename='bootstrap/css/bootstrap.css') }}" rel="stylesheet">-->
+    {% block head_css %}
+        {#
+        <link href="{{ admin_static.url(filename='bootstrap/css/bootstrap.css') }}" rel="stylesheet">
         <link href="{{ url_for('static', filename='bootstrap-3.1.1-dist/css/bootstrap.css') }}" rel="stylesheet">
-        <!--<link href="{{ admin_static.url(filename='bootstrap/css/bootstrap-responsive.css') }}" rel="stylesheet">-->
-        <!--<link href="{{ admin_static.url(filename='admin/css/admin.css') }}" rel="stylesheet">-->
+        <link href="{{ url_for('static', filename='bootstrap/css/bootstrap-responsive.css') }}" rel="stylesheet">
+        <link href="{{ admin_static.url(filename='admin/css/admin.css') }}" rel="stylesheet">
 
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">        
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.css') }}">
-	
-	<!--<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>-->
 
-	<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-1.11.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
+        #}
+        <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-1.11.js') }}"></script>
         <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-migrate-1.2.1.js') }}"></script>
-    	<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-ui/jquery-ui-1.10.4.min.js') }}"></script>
-    	<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-mobile/jquery.mobile-1.4.2.js') }}"></script>
+        <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-ui/jquery-ui-1.10.4.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-mobile/jquery.mobile-1.4.2.js') }}"></script>
+        <script src="{{ url_for('static', filename='select2/select2.min.js') }}" type="text/javascript"></script>
+        <script src="{{ url_for('static', filename='js/jquery.dataTables.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script>
+        <!-- BEGIN PIXIT STYLE -->
 
-	<script src="{{ admin_static.url(filename='select2/select2.min.js') }}" type="text/javascript"></script>
-        <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.dataTables.js') }}"></script>  
-        <script type="text/javascript" src="{{ url_for('static', filename='js/dataTables.bootstrap.js') }}"></script> 
-
-    <!-- BEGIN PIXIT STYLE -->
-
-    	<!--<link href="{{ url_for('static', filename='pixit/admin/assets/css/bootstrap.min.css') }}" rel="stylesheet">-->
-    	<!--<link href="{{ url_for('static', filename='pixit/admin/assets/css/icons/icons.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='pixit/admin/assets/css/bootstrap.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='pixit/admin/assets/css/icons/icons.min.css') }}" rel="stylesheet">
     	<link href="{{ url_for('static', filename='pixit/admin/assets/css/plugins.min.css') }}" rel="stylesheet">
     	<link href="{{ url_for('static', filename='pixit/admin/assets/css/style.min.css') }}" rel="stylesheet">
     	<link href="{{ url_for('static', filename='pixit/admin/assets/css/colors/color-blue.css') }}" rel="stylesheet">
-    	<link href="{{ url_for('static', filename='pixit/admin/assets/css/custom.css') }}" rel="stylesheet">-->
-    <!-- END  MANDATORY STYLE -->
+    	<link href="{{ url_for('static', filename='pixit/admin/assets/css/custom.css') }}" rel="stylesheet">
+
+        <!-- END  MANDATORY STYLE -->
     {% endblock %}
     {% block head %}
     {% endblock %}
     {% block head_tail %}
     {% endblock %}
-  </head>
+</head>
 <body style="background-color:#FFFFFF">
-    {% block page_body %}
-    <div class="container" >
-      <div class="navbar" >
-        <div class="navbar-inner">
-          {% block brand %}
-          <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
-          {% endblock %}
-          {% block main_menu %}
-          <ul class="nav">
-            {{ layout.menu() }}
-          </ul>
-          {% endblock %}
-          {% block menu_links %}
-          <ul class="nav pull-right">
-            {{ layout.menu_links() }}
-          </ul>
-          {% endblock %}
-          {% block access_control %}
-          {% endblock %}
+{% block page_body %}
+    <div class="container">
+        <div class="navbar navbar-default">
+            <div class="container-fluid">
+                <a class="navbar-brand">
+                    <span class="brand" onclick="location.href='/'">{{ admin_view.admin.name }}</span>
+                </a>
+            </div>
+
+            <div class="navbar-inner">
+                {% block main_menu %}
+                    <ul class="nav navbar-nav">
+                        {{ layout.menu() }}
+                    </ul>
+                {% endblock %}
+                {% block menu_links %}
+                    <ul class="nav pull-right">
+                        {{ layout.menu_links() }}
+                    </ul>
+                {% endblock %}
+                {% block access_control %}
+                {% endblock %}
+            </div>
         </div>
-      </div>
 
-      {% block messages %}
-      {{ layout.messages() }}
-      {% endblock %}
+        {% block messages %}
+            {{ layout.messages() }}
+        {% endblock %}
 
-      {% set render_ctx = h.resolve_ctx() %}
+        {% set render_ctx = h.resolve_ctx() %}
 
-      {% block body %}{% endblock %}
+        {% block body %}{% endblock %}
     </div>
-    {% endblock %}
+{% endblock %}
 
-    {% block tail_js %}
-    
+{% block tail_js %}
 
-<!-- BEGIN MANDATORY SCRIPTS -->   
-    
+
+    <!-- BEGIN MANDATORY SCRIPTS -->
+
     <!--<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-dropdown/bootstrap-hover-dropdown.min.js') }}"></script>
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-select/bootstrap-select.js') }}"></script>
@@ -95,11 +104,12 @@
     <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery.cookie.min.js') }}" type="text/javascript"></script>-->
     <!-- END MANDATORY SCRIPTS -->
     <script src="{{ url_for('static', filename='bootstrap-3.1.1-dist/js/bootstrap.min.js') }}"></script>
-    <!--<script src="{{ admin_static.url(filename='bootstrap/js/bootstrap.min.js') }}" type="text/javascript"></script>-->
+    <!--<script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}" type="text/javascript"></script>-->
     <!--<script src="{{ url_for('static', filename='pixit/admin/assets/js/application.js') }}"></script>-->
-    {% endblock %}
 
-    {% block tail %}
-    {% endblock %}
+{% endblock %}
+
+{% block tail %}
+{% endblock %}
 </body>
 </html>
