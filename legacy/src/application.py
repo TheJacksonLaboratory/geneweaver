@@ -1985,7 +1985,7 @@ def change_password():
 @app.route('/generate_api_key', methods=['POST'])
 def generate_api_key():
     geneweaverdb.generate_api_key(flask.session.get('user_id'))
-    return flask.redirect('accountsettings.html')
+    return flask.redirect('accountsettings')
 
 
 @app.route('/index.html', methods=['GET', 'POST'])
