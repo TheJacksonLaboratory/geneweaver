@@ -458,7 +458,6 @@ def toggle_group_active(group_id, user_id):
 # Only let owners of groups call this function
 def delete_group(group_name, owner_id):
     if int(flask.session['user_id']) != int(owner_id):
-        print "here"
         return {'error': 'You do not have permission to delete this group'}
     else:
         with PooledCursor() as cursor:
@@ -483,6 +482,23 @@ def delete_group(group_name, owner_id):
             )
             cursor.connection.commit()
         return {'error': 'None'}
+
+
+# Remove yourself as a member of a group
+def remove_member_from_group(group_name, owner_id):
+    if int(flask.session['user_id']) != int(owner_id):
+        return {'error': 'You do not have permission to exit this group'}
+    else:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                '''
+                DELETE FROM production.usr2grp
+                WHERE grp_id=%s AND usr_id=%s AND u2g_privileges=0;
+                ''',
+                    (group_name, owner_id,)
+            )
+            cursor.connection.commit()
+    return {'error': 'None'}
 
 
 # End group block

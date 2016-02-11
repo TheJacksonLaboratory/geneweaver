@@ -1,5 +1,6 @@
 # The GW config file which contains sensitive info
 geneweaver.cfg
+src/config.py
 
 # OSX stuff
 .idea

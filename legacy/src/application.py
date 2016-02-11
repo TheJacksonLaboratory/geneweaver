@@ -297,6 +297,12 @@ def delete_group(group_name, user_id):
     return json.dumps(results)
 
 
+@app.route("/gwdb/remove_member/<group_name>/<user_id>/")
+def remove_member(group_name, user_id):
+    results = geneweaverdb.remove_member_from_group(group_name, user_id)
+    return json.dumps(results)
+
+
 @app.route('/share_projects.html')
 def render_shareprojects():
     active_tools = geneweaverdb.get_active_tools()

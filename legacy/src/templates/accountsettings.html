@@ -78,8 +78,9 @@
                             <div class="page-header2">
                                 <h4>Groups That I Own</h4>
                             </div>
-                            <table class="table table-striped">
-                                {% if groupsOwnerOf | length > 0 %}
+                            {% if groupsOwnerOf | length > 0 %}
+                                <table class="table table-striped">
+
                                     {% for grpO in groupsOwnerOf %}
                                         <tr>
                                             <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
@@ -98,7 +99,8 @@
                                                 </span>
                                             </td>
                                             <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Date Create" type="button" title="Date Created"
+                                                      data-original-title="Date Create" type="button"
+                                                      title="Date Created"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                     {{ grpO.grp_created }}
                                             </td>
@@ -109,26 +111,26 @@
                                                       data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
                                                       <i class="fa fa-trash-o"></i></span>
                                                 </span>
-                                            &nbsp;
+                                                &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="View" type="button" title="View Members"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable" id="view_{{ grpO.grp_id }}"
-                                                            data-grp="{{ grpO.grp_id }}"><i class="fa fa-external-link"></i>
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-external-link"></i>
                                                 </span></span>
-                                            &nbsp;
+                                                &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Edit" type="button" title="Edit Group"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
-                                                        data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
+                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
                                                             <i class="fa fa-pencil"></i></span></span>
-                                            &nbsp;
+                                                &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Add" type="button" title="Add Members"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
-                                                        data-grp="{{ grpO.grp_id }}"><i class="fa fa-plus"></i></span>
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-plus"></i></span>
                                                 </span>
                                             </td>
                                         </tr>
@@ -139,16 +141,13 @@
 
 
                                     {% endfor %}
+                                </table>
 
-                                    </table>
+                            {% else %}
 
-                                {% else %}
+                                <div class="alert alert-warning">You do not own any groups.</div>
 
-                                <div class="row">
-                                    <div class="alert alert-warning">You do not own any groups.</div>
-                                </div>
-
-                                {% endif %}
+                            {% endif %}
 
                         </div>
 
@@ -180,7 +179,8 @@
                             </form>
                         </div>
 
-                        <br/><hr>
+                        <br/>
+                        <hr>
                         <div class="row">
                             <div class="page-header2">
                                 <h4>Groups That I Am a Member Of</h4>
@@ -191,10 +191,39 @@
                                 <table class="table table-striped">
                                     {% for grpM in groupsMemberOf %}
                                         <tr>
-                                            <td>
-                                                {{ grpM.grp_name }}
+                                        <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                      {{ grpM.grp_name }}</span>
                                             </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Privacy" type="button" title="Privacy Status"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                    {% if grpM.grp_private %}
+                                                        <span class="label label-danger">Private</span>
+                                                    {% else %}
+                                                        <span class="label label-info">Public</span>
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Member Since" type="button"
+                                                      title="Member Since"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                    {{ grpM.grp_created }}
+                                            </td>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Delete" type="button" title="Exit Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_member" id="deleteMemberGroupModal_{{ grpM.grp_id }}"
+                                                      data-grp="{{ grpM.grp_id }}" data-grp-name="{{ grpM.grp_name }}"
+                                                        style="color: #E95753">
+                                                      <i class="fa fa-times"></i></span>
+                                                </span>
+
                                         </tr>
+                                        {% include 'modal/deleteMemberGroup.html' %}
+
                                     {% endfor %}
                                 </table>
 
@@ -221,7 +250,8 @@
                                 <strong>API Key:</strong> {{ user.api_key }}
                             </div>
                             <button id="generate_api_key" class="btn btn-success btn-transparent pull-right">
-                                <i class="fa fa-repeat"></i> Generate New Key</button>
+                                <i class="fa fa-repeat"></i> Generate New Key
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -246,7 +276,8 @@
                                        value="{{ user.email }}">
                             </div>
                             <br>
-                            <button class="ui-state-disabled btn btn-success btn-transparent pull-right">Save Changes</button>
+                            <button class="ui-state-disabled btn btn-success btn-transparent pull-right">Save Changes
+                            </button>
                             <br><br>
                         </form>
                     </div>
@@ -273,7 +304,9 @@
                                 <input class="form-control input-lg" type="password" name="conf_new" id="password_2">
                             </div>
                             <br>
-                            <button id="change_password" class="ui-state-disabled btn btn-success btn-transparent pull-right">Change Password</button>
+                            <button id="change_password"
+                                    class="ui-state-disabled btn btn-success btn-transparent pull-right">Change Password
+                            </button>
                         </form>
 
                     </div>
@@ -295,11 +328,11 @@
         $("#password_2").keyup(validate);
 
         $(function () {
-			$("[data-toggle='tooltip']").tooltip();
-		});
+            $("[data-toggle='tooltip']").tooltip();
+        });
 
-        $("#confirmDelete").on('click', function() {
-           var p = $(this).attr("#grp_id");
+        $("#confirmDelete").on('click', function () {
+            var p = $(this).attr("#grp_id");
         });
 
         $('#clickableGroupCreate').on('click', function () {
@@ -331,7 +364,7 @@
             });
         });
 
-        $('.clickable').on('click', function() {
+        $('.clickable').on('click', function () {
             var grp_id = ($(this).attr("data-grp"));
             $("#del_user_id_" + grp_id).val({{ user.user_id }});
             $("#del_grp_id_" + grp_id).val(grp_id);
@@ -339,10 +372,10 @@
         });
 
 
-        $('.delGroupUsers').on('click', function() {
+        $('.delGroupUsers').on('click', function () {
             var g = $(this).attr("data-modal-id");
             var checked = [];
-            $("input[name='options_"+g+"[]']:checked").each(function () {
+            $("input[name='options_" + g + "[]']:checked").each(function () {
                 checked.push($(this).val());
             });
             var emails = checked.toString();
@@ -375,7 +408,7 @@
         });
 
 
-        $('.clickable_addUsr').on('click', function() {
+        $('.clickable_addUsr').on('click', function () {
             var grp_id = ($(this).attr("data-grp"));
             $("#add_user_id_" + grp_id).val({{ user.user_id }});
             $("#add_grp_id_" + grp_id).val(grp_id);
@@ -422,7 +455,7 @@
             })
         });
 
-        $('.clickable_edit').on('click', function() {
+        $('.clickable_edit').on('click', function () {
             var grp_name = ($(this).attr("data-grp-name"));
             var grp_id = ($(this).attr("data-grp"));
             $("#groupName_" + grp_id).val(grp_name);
@@ -469,13 +502,22 @@
         });
 
 
-        $('.clickable_delete').on('click', function() {
+        $('.clickable_delete').on('click', function () {
             var grp_name = ($(this).attr("data-grp-name"));
             var grp_id = ($(this).attr("data-grp"));
             $("#myModalLabel_" + grp_id).html(grp_name);
             $("#user_id_" + grp_id).val({{ user.user_id }});
             $("#grp_id_" + grp_id).val(grp_id);
             $('#delModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+        $('.clickable_member').on('click', function () {
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#myModalLabel_" + grp_id).html(grp_name);
+            $("#user_id_" + grp_id).val({{ user.user_id }});
+            $("#grp_id_" + grp_id).val(grp_id);
+            $('#delMemberModal_' + $(this).attr("data-grp")).modal('show');
         });
 
 
@@ -498,7 +540,7 @@
                         //$("#groups").load(location.href + " #groups");
                         window.location.reload();
                     }
-                    else{
+                    else {
                         $(document).trigger("add-alerts", [
                             {
                                 'message': "An Error occurred while deleting group " + groupID + ".",
@@ -509,6 +551,39 @@
                 }
             });
         });
+
+        $('.deleteMemberFromGroup').on('click', function () {
+            var formID = $(this).attr("data-modal-id");
+            var groupID = $("#grp_id_" + formID).val();
+            var userID = $("#user_id_" + formID).val();
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/remove_member/" + groupID + "/" + userID + "/",
+                success: function (data) {
+                    var v = JSON.parse(data);
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Group Successfully Exited.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        //$("#groups").load(location.href + " #groups");
+                        window.location.reload();
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error occurred while exiting group " + groupID + ".",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                }
+            });
+        });
+
+
     });
 
 
@@ -522,8 +597,6 @@
             $("#change_password").addClass("ui-state-disabled");
         }
     }
-
-
 
 
 </script>
