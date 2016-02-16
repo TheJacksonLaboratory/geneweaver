@@ -26,6 +26,10 @@
         color: #0090D9;
     }
 
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
     .panel-underline {
         border-bottom-width: thick;
         border-bottom-color: #006400;
@@ -75,7 +79,8 @@
     </div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
-        <h2 class="panel-title"><strong>Batch Geneset Upload</strong></h2>
+        <h3 class="panel-title"><strong>Batch Geneset Upload</strong>
+        <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
     </div>
 
     <div class="row" id="upload-error" style="display: none;">
@@ -90,21 +95,9 @@
     <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
 
-    <div class="row">
-        <div class="col-md-5 pull-left">
-            <p><strong>
-                Use this page when you have many genesets to upload.
-            </strong></p>
-            <p><strong>
-                The file format, including examples, is given below.
-            </strong></p>
-        </div>
-    </div>
-    <br />
-
     <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST">
 
-            <div class="pull-left">
+            <div class="md-col-6 pull-left">
                 <div class="btn btn-warning btn-file">Batch Upload File
                     <input id="file_data" type="file" name="selected_file" required="" accept="text/plain"/>
                 </div>
@@ -119,16 +112,19 @@
             <div class="col-md-2"></div>
         </div>
 
-        <br />
 
-        <div class="pull-left">
-            <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning fa" type="submit" value="Review Geneset Upload &#xf04e;" />
+        <div class="panel-heading panel-underline">
+            <div class="row">
+                <div class="md-col-6 pull-left">
+                    <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning fa" type="submit"
+                           value="Review Geneset Upload &#xf04e;"/>
+                </div>
+                <div class="md-col-6 pull-right">
+                    <a href="static/text/batch-geneset-a.txt"><i class="fa fa-file-text-o"></i> Sample File</a>
+                </div>
+            </div>
         </div>
 
-        <br />
-        <br />
-
-        <div class="panel-heading panel-underline"></div>
 
         <div style="">
             <br>
@@ -237,7 +233,6 @@
     they do not differ from the first, they will default to the last seen value.
     The ':', '=', and '+' sections are required for all datasets.
 
-    A example batch file with descriptive comments is available here.
         </pre>
             {#  </code> #}
 
@@ -313,6 +308,16 @@
 
 <script>
     $(document).ready(function () {
+
+        $(function () {
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+
+        $('#clickableFontAwesome').popover({
+            title: 'When to Use Batch Upload?', content: 'Use this page when you have many gene sets to ' +
+            'upload. The proper file format and examples are listed below.'
+        });
 
         // Function to allow tabs in the textarea
         $("textarea").keydown(function (e) {

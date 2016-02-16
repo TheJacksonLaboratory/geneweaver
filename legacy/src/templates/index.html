@@ -1,26 +1,280 @@
 {% include 'header.html' %}
+
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/animate.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/bootstrap-theme.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/isotope.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/normalize.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/overwrite.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/plugins/owl-carousel/owl.carousel.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/owl-carousel/owl.theme.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/frontend/assets/css/revolution/revolution.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-circliful/css/jquery.circliful.css') }}" rel="stylesheet">
+<script src="{{ url_for('static', filename='pixit/frontend/assets/plugins/owl-carousel/owl.carousel.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-circliful/js/jquery.circliful.min.js') }}"></script>
+<script src="{{ url_for('static', filename='pixit/admin/assets/js/charts.js') }}"></script>
+
+
 <style>
 
-	/* Autocomplete theming */
-	.ui-autocomplete {
+    /* Autocomplete theming */
+    .ui-autocomplete {
 
-		position: relative;
-		background-color: white;
-		opacity: 1.0;
-		z-index: 666;
-		border: 1px solid #000;
-		width: 50%;
-		text-align: left;
-	}
+        position: relative;
+        background-color: white;
+        opacity: 1.0;
+        z-index: 666;
+        border: 1px solid #000;
+        width: 50%;
+        text-align: left;
+    }
 
-	.ui-helper-hidden-accessible {
-		position: relative;
-		visibility: hidden;
-		display: hidden;
-	}
+    .ui-helper-hidden-accessible {
+        position: relative;
+        visibility: hidden;
+        display: hidden;
+    }
+
+    .section-txt {
+        text-align: center;
+        padding: 40px 0;
+    }
+
+    .bg-light-gray {
+        background-color: #f6f6f6
+    }
+
+    .bg-light-green {
+        background-color: #f2ffe5;
+    }
+
+    .p-t-40 {
+        padding-top: 40px !important;
+    }
+
+    .p-t-50 {
+        padding-top: 50px !important;
+    }
+
+    .p-b-40 {
+        padding-bottom: 50px !important;
+    }
 
 </style>
+
+
+<!--Begin Section for main header and search bar -->
+<section>
+    <div class="jumbotron" style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px">
+        <h1><img src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="GeneWeaver Logo"
+                 style="vertical-align: top">GeneWeaver</h1>
+        <p class="lead">
+            A system for the integration of functional genomics experiments.
+            <br/>
+            {% if "user" not in g %}
+                You can <a href="{{ url_for('render_login')|safe }}">sign in</a>,
+                <a href="{{ url_for('render_register')|safe }}">create an account</a>, or continue to use GeneWeaver
+                anonymously.
+                <br/>
+            {% endif %}
+        </p>
+    </div>
+    <div class="row">
+        <form action="/search/" method="GET">
+            {% include'search/search_bar.html' %}
+        </form>
+    </div>
+    <br/>
+    <br/>
+</section>
+
+<!--Begin Section for main action icons-->
+<section class="section-txt" style="padding-bottom: 80px">
+    <div class="row">
+        <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
+            <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+                <img src="{{ url_for('static', filename='images/GW2-upload.png')|safe }}" style="width:50%"/>
+                <br/>
+                <strong>Upload Genesets</strong>
+            </div>
+        </a>
+
+        <a class="link-panel" href="{{ url_for('render_shareprojects')|safe }}">
+            <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+                <img src="{{ url_for('static', filename='images/GW2-project.png')|safe }}" style="width:50%"/>
+                <br/>
+                <strong>Manage Projects</strong>
+            </div>
+        </a>
+
+        <a class="link-panel" href="{{ url_for('render_analyze')|safe }}">
+            <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+                <img src="{{ url_for('static', filename='images/GW2-analyze.png')|safe }}" style="width:50%"/>
+                <br/>
+                <strong>Analyze and Discover GeneSet Relations</strong>
+            </div>
+        </a>
+
+        <a class="link-panel" href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Documentation">
+            <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
+                <img src="{{ url_for('static', filename='images/GW2-help.png')|safe }}" style="width:50%"/>
+                <br/>
+                <strong>
+                    Help
+                </strong>
+            </div>
+        </a>
+    </div>
+</section>
+
+<!--Begin Section for rotating owl carousel-->
+<section class="section-txt bg-light-gray">
+    <div class="container">
+        <div class="row">
+            <div id="testimonials" class="owl-carousel col-md-6 col-md-offset-3" style="width: 50%;">
+                <div class="owl-item">
+                    <h3 class="normal text-center">
+                        New to GeneWeaver? Watch a short video describing the main features available and how to
+                        rapidly analyze your set of genes.
+                    </h3>
+                    <p class="text-center">
+                        <a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Movie"><i
+                                class="fa fa-film fa-2x"></i>
+                            Watch the Quick Start Video.</a>
+                    </p>
+                </div>
+                <div class="owl-item">
+                    <h3 class="normal text-center">
+                        Can't remember GeneWeaver features? Try downloading our Quick Start Guide of common
+                        commands and functions.
+                    </h3>
+                    <p class="text-center">
+                        <a href="http://geneweaver.org/wiki/index.php?title=Quick_Start_Guide"><i
+                                class="fa fa-columns fa-2x"></i>
+                            Download a Cheatsheet of commands.</a>
+                    </p>
+                </div>
+                <div class="owl-item">
+                    <h3 class="normal text-center">
+                        Interested in working with the GeneWeaver team to include your data or find our more about
+                        our web services?
+                    </h3>
+                    <p class="text-center">
+                        <a href="mailto:geneweaver@gmail.com"><i class="fa fa-envelope-o fa-2x"></i> Contact the
+                            GeneWeaver Team.</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!--Begin Dynamic News Seciont-->
+<section class="section-txt">
+    <div class="container">
+        {% for key in news_array %}
+            <div class="col-md-4">
+                <div class="panel no-bd bd-9 panel-stat">
+                    <div class="panel-body bg-light">
+                        <div class="icon">
+                            {% if key['nf_type'] == 'publication' %}
+                                <i class="fa fa-file-text-o"></i>
+                            {% elif key['nf_type'] == 'news' %}
+                                <i class="fa fa-comments-o"></i>
+                            {% else %}
+                                <i class="fa fa-desktop"></i>
+                            {% endif %}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="stat-num">{{ key['nf_title']|safe }}</div>
+                                <h3 style="color: #336600;">{{ key['nf_date']|safe }}</h3>
+                                <p>{{ key['nf_text']|safe }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!--Begin Section for quoted text-->
+<section class="section-txt bg-light-green">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3 bg-light-green">
+                <div class="align-center">
+                    <h2 class="slogan">The fox knows many things, but the hedgehog knows one big thing.</h2>
+                    <p>- Archilochus -</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!--Begin Section for Graph Stats-->
+<section id="circle-graphs" class="section-txt circles" style="padding-top: 80px;">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div id="pie_chart1" data-dimension="220" data-text="{{ stats[0]|safe }}" data-info="Public GeneSets" data-width="25"
+                     data-fontsize="30" data-percent="55" data-fgcolor="#7ea568" data-bgcolor="#eee" data-fill="#ddd"
+                     class="circliful" style="width: 200px;"></div>
+            </div>
+
+            <div class="col-md-3">
+                <div id="pie_chart2" data-dimension="220" data-text="{{ stats[1]|safe }}" data-info="Genes" data-width="25"
+                     data-fontsize="30" data-percent="75" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-fill="#ddd"
+                     class="circliful" style="width: 200px;"></div>
+            </div>
+
+            <div class="col-md-3">
+                <div id="pie_chart3" data-dimension="220" data-text="{{ stats[2]|safe }}" data-info="Analysis" data-width="25"
+                     data-fontsize="30" data-percent="46" data-fgcolor="#61a9dc" data-bgcolor="#eee" data-total="150"
+                     data-part="72" data-border="inline" data-icon="fa-bar-chart-o" data-icon-size="28"
+                     data-icon-color="#ccc" class="circliful" style="width: 200px;"></div>
+            </div>
+
+            <div class="col-md-3">
+                <div id="pie_chart4" data-dimension="220" data-text="{{ stats[3]|safe }}" data-info="Users" data-width="25"
+                     data-fontsize="30" data-icon="fa-group" data-icon-size="28"
+                     data-icon-color="#ccc"
+                     data-percent="30" data-fgcolor="#C9625F" data-bgcolor="#eee" class="circliful"
+                     style="width: 200px;"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{% include 'footer.html' %}
+
 <script>
+    $(document).ready(function () {
+
+        $("#testimonials").owlCarousel({
+            slideSpeed: 3000,
+            paginationSpeed: 400,
+            singleItem: true
+        });
+
+        var circleTriggered = false;
+        $(window).scroll(function() {
+            if($(window).scrollTop() + $(window).height() > $(document).height() - 1) {
+                if (circleTriggered == false) {
+                    $('#pie_chart1').circliful();
+                    $('#pie_chart2').circliful();
+                    $('#pie_chart3').circliful();
+                    $('#pie_chart4').circliful();
+                    circleTriggered = true;
+                    }
+            }
+        });
+
+    });
+
+
+
     $(function () {
 //Get the search suggestions from the server
 
@@ -40,89 +294,13 @@
 
         $("#searchbar").autocomplete({
             source: suggestedSearchTermsData,
-			response: function(event, ui) {
-				
-				// this shit looks ugly and kept messing up the layout
-				if (ui.content.length === 0)
-					$('.ui-helper-hidden-accessible').remove();
-			}
+            response: function (event, ui) {
+
+                // this shit looks ugly and kept messing up the layout
+                if (ui.content.length === 0)
+                    $('.ui-helper-hidden-accessible').remove();
+            }
         });
     });
 
 </script>
-<div class="jumbotron" style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px">
-    <h1><img src="{{ url_for('static', filename='images/GW2-logo.png') }}" alt="GeneWeaver Logo" style="vertical-align: top">GeneWeaver</h1>
-
-    <p class="lead">
-        A system for the integration of functional genomics experiments.
-        <br/>
-        {% if "user" not in g %}
-            You can <a href="{{ url_for('render_login')|safe }}">sign in</a>,
-            <a href="{{ url_for('render_register')|safe }}">create an account</a>, or continue to use GeneWeaver anonymously.
-            <br/>
-        {% endif %}
-        <!--
-        If you would like <a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Documentation">help</a> getting started with GeneWeaver you can consult our
-        <a href="http://geneweaver.org/wiki/index.php?title=Tutorial#Introduction_to_web-based_analysis_with_Gene_Weaver">crash course tutorial</a>,
-        <a href="http://geneweaver.org/wiki/index.php?title=Quick_Start_Guide">quick reference</a>, or comprehensive
-        <a href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Movie">demo video</a>.
-        -->
-    </p>
-</div>
-<div class="row">
-    <form action="/search/" method="GET">
-        {% include'search/search_bar.html' %}
-    </form>
-</div>
-<br/>
-<br/>
-
-
-<div class="row">
-    <a class="link-panel" href="{{ url_for('geneset.render_uploadgeneset')|safe }}">
-        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
-            <img src="{{ url_for('static', filename='images/GW2-upload.png')|safe }}" style="width:50%"/>
-            <br/>
-            <strong>Upload Genesets</strong>
-        </div>
-    </a>
-
-    <a class="link-panel" href="{{ url_for('render_shareprojects')|safe }}">
-        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
-            <img src="{{ url_for('static', filename='images/GW2-project.png')|safe }}" style="width:50%"/>
-            <br/>
-            <strong>Manage Projects</strong>
-        </div>
-    </a>
-
-    <a class="link-panel" href="{{ url_for('render_analyze')|safe }}">
-        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
-            <img src="{{ url_for('static', filename='images/GW2-analyze.png')|safe }}" style="width:50%"/>
-            <br/>
-            <strong>Analyze and Discover GeneSet Relations</strong>
-        </div>
-    </a>
-
-    <a class="link-panel" href="http://geneweaver.org/wiki/index.php?title=GeneWeaver_Documentation">
-        <div class="col-md-3 link-panel" style="text-align: center;width:25%;height:25%">
-            <img src="{{ url_for('static', filename='images/GW2-help.png')|safe }}" style="width:50%"/>
-            <br/>
-            <strong>
-                Help
-            </strong>
-        </div>
-    </a>
-</div>
-
-<br>
-
-<h3 class="page-header">News and Notes:</h3>
-
-<!-- all news items -->
-{% for key, value in newsArray %}
-    <div>
-        <p><strong>{{ key|safe }}:</strong><br/>{{ value|safe }}</p>
-    </div>
-{% endfor %}
-
-{% include 'footer.html' %}

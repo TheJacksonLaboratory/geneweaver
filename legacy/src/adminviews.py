@@ -129,6 +129,16 @@ class Viewers(Authentication, BaseView):
             return self.render('admin/adminViewer.html', jcolumns=jcolumns, columns=columns, route="newGene",
                                table=table)
 
+        elif self.endpoint == 'viewNewsFeed':
+            table = 'odestatic.news_feed'
+            dbcols = geneweaverdb.get_all_columns(table)
+            columns = []
+            for col in dbcols:
+                columns.append({'name': col['column_name']})
+            jcolumns = json.dumps(columns)
+            return self.render('admin/adminViewer.html', jcolumns=jcolumns, columns=columns, route="newNewsItem",
+                               table=table)
+
         else:
             return self.render('admin/adminindex.html')
 
@@ -191,6 +201,13 @@ class Add(Authentication, BaseView):
             columns = geneweaverdb.get_nullable_columns(table)
             requiredCols = geneweaverdb.get_required_columns(table)
             return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Gene Info",
+                               table=table)
+
+        elif self.endpoint == 'newNewsItem':
+            table = "odestatic.news_feed"
+            columns = geneweaverdb.get_nullable_columns(table)
+            requiredCols = geneweaverdb.get_required_columns(table)
+            return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="News Item",
                                table=table)
 
         else:

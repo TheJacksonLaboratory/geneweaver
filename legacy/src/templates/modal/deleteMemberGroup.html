@@ -1,0 +1,25 @@
+{# Modal to remove yourself as a memeber from as group by usr_id #}
+
+<div class="modal fade" id="delMemberModal_{{ grpM.grp_id }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="delForm_{{ grpM.grp_id }}" name="deleteGroupByID" method="post" action="#" class="form-horizontal">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5" id="delLabel">Exit Group</h3>
+                </div>
+                <div class="modal-body">
+                    <h4>Are you sure that you want to remove yourself from
+                        <strong style="color: #006400;"><span class="rows" id="myModalLabel_{{ grpM.grp_id }}"></span></strong>?
+                        This will permanently remove you from the group. The group owner will have to re-add you.</h4>
+                </div>
+                <input type="hidden" name="user_id" id="user_id_{{ grpM.grp_id }}"/>
+                <input type="hidden" name="grp_id" id="grp_id_{{ grpM.grp_id }}"/>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning deleteMemberFromGroup"
+                            data-dismiss="modal" data-modal-id={{ grpM.grp_id }} id="deleteMemberFromGroup">Exit Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
