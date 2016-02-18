@@ -3218,7 +3218,7 @@ def get_ontology_by_id(ont_id):
             ''', (ont_id,)
         )
     ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
-    return ontology
+    return ontology[0]
 
 # call by API only
 def get_genesets_by_projects(apikey, projectids):

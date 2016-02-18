@@ -419,6 +419,16 @@ def init_ont_tree():
             for i in range(len(ontpath), 0, -1):
                 i -= 1
 
+                ## Last term in the path is the most granular child and
+                ## shouldn't expand or be a folder
+                if i == (len(ontpath) - 1):
+                    ontpath[i]['isFolder'] = False
+                    ontpath[i]['select'] = True
+                    ontpath[i]['expand'] = False
+
+                else:
+                    ontpath[i]['expand'] = True
+
                 if i == 0:
                     break
 
@@ -429,8 +439,10 @@ def init_ont_tree():
                 ## Might not be necessary if shallow copy above
                 ontpath[i - 1] = broad
 
+
             info.append(ontpath[0])
-            return info
+
+    return json.dumps(info)
 
     #for ont in onts:
     #    data = dict()
@@ -442,7 +454,7 @@ def init_ont_tree():
     #    data["hideCheckbox"] = True
     #    data["unselectable"] = True
 
-    return info
+    return json.dumps(info)
 
     for i in range(0, len(result)):
         data = dict()
