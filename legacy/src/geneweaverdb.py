@@ -648,16 +648,17 @@ def delete_project_by_id(rargs):
         return
 
 
-def add_project_by_name(rargs):
-    name = rargs
+def add_project_by_name(name, comment):
+    name = name
+    comment = comment
     if name == '':
         return {'error': 'You must provide a valid Project Name'}
     else:
         user_id = flask.session['user_id']
         if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
             with PooledCursor() as cursor:
-                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created) VALUES (%s, %s, now())''', (user_id,
-                                                                                                                name,))
+                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created, pj_notes) VALUES
+                                (%s, %s, now(), %s)''', (user_id, name, comment,))
                 # print cursor.statusmessage
                 cursor.connection.commit()
             return {'error': 'None'}
@@ -668,13 +669,14 @@ def add_project_by_name(rargs):
 def change_project_by_id(rargs):
     id = rargs['projid']
     name = rargs['projname']
+    notes = rargs['comments']
     if name == '':
         return {'error': 'You must provide a valid Project Name'}
     else:
         user_id = flask.session['user_id']
         if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
             with PooledCursor() as cursor:
-                cursor.execute('''UPDATE project SET pj_name=%s WHERE pj_id=%s''', (name, id,))
+                cursor.execute('''UPDATE project SET pj_name=%s, pj_notes=%s WHERE pj_id=%s''', (name, notes, id,))
                 # print cursor.statusmessage
                 cursor.connection.commit()
             return {'error': 'None'}

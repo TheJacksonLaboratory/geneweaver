@@ -146,11 +146,12 @@
 
         // Update project set to new name
         $('#projectSubmit').on('click', function () {
-           var n = $('#projectName').val();
+            var n = $('#projectName').val();
+            var c = $('#projectComment').val();
             $.ajax({
                 type: "GET",
                 url: "/addProjectByName",
-                data: {"name": n},
+                data: {"name": n, "comment": c},
                 success: function (data) {
                     var v = JSON.parse(data);
                 $("html, body").animate({ scrollTop: 0 }, "slow");

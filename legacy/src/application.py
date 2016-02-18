@@ -635,8 +635,10 @@ def delete_projects():
 @app.route('/addProjectByName', methods=['GET'])
 def add_projects():
     if 'user_id' in flask.session:
-        results = geneweaverdb.add_project_by_name(flask.request.args['name'])
+        results = geneweaverdb.add_project_by_name(flask.request.args['name'], flask.request.args['comment'])
         return json.dumps(results)
+    else:
+        return json.dumps({"error": "You do not have permission to add a Project"})
 
 
 @app.route('/changeProjectNameById', methods=['GET'])

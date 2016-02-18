@@ -16,6 +16,10 @@
         content: "\f0d7";
     }
 
+    .panel-heading {
+        max-height: 60px;
+        border: none;
+    }
 
 </style>
 
@@ -54,7 +58,7 @@
                                     {{ proj.name }}
                                 </a>
                                 <span class="clickableEdit" id="edit-{{ proj.project_id }}" data-proj-name="{{ proj.name }}"
-                                      data-proj-id="{{ proj.project_id }}">
+                                      data-proj-id="{{ proj.project_id }}" data-proj-notes="{{ proj.notes }}">
                                     <i class="fa fa-pencil"></i></span>
 
                             </div>
@@ -85,8 +89,10 @@
         $('.clickableEdit').on('click', function () {
            var projId = $(this).attr('data-proj-id');
             var projName = $(this).attr('data-proj-name');
+            var editComment = $(this).attr('data-proj-notes');
             $("#projName").val(projName);
             $("#projId").val(projId);
+            $("#editComment").val(editComment);
             $("#editModal").modal('show');
         });
 
@@ -94,10 +100,11 @@
         $('#editSubmit').on('click', function () {
            var n = $('#projName').val();
             var i = $('#projId').val();
+            var c = $('#editComment').val();
             $.ajax({
                 type: "GET",
                 url: "/changeProjectNameById",
-                data: {"projid": i, "projname": n},
+                data: {"projid": i, "projname": n, "comments": c},
                 success: function (data) {
                     var v = JSON.parse(data);
                     if (v["error"] == 'None') {
