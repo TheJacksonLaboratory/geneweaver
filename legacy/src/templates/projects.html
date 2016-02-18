@@ -348,35 +348,10 @@
             }
         });
 
+
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
         $('.project-link').on('click', function (event) {
-
-            $('.panel').find('.fa-caret-down:visible').each(function(e){
-                $(this).toggleClass('fa-caret-down');
-                $(this).toggleClass('fa-caret-right');
-            });
-
-            // Change chevron when project info is displayed
-            //var chev = $(this).children('.fa-caret-right').length ?
-            //        $(this).children('.fa-caret-right') :
-            //        $(this).children('.fa-caret-down');
-
-            var chevRight = $(this).children('.fa-caret-right');
-            var chevDown = $(this).children('.fa-caret-down');
-
-
-            if (chevRight.is(':visible')) {
-                chevRight.toggleClass('fa-caret-down');
-                chevRight.toggleClass('fa-caret-right');
-            }
-
-            if ($(this).children('.fa-caret-right').is(':visible')) {
-                alert('test');
-            }
-
-            //chev.toggleClass('fa-caret-down');
-            //chev.toggleClass('fa-caret-right');
 
             // Get the project ID from the link href, but gotta strip out
             // '#genesets-' first

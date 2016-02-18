@@ -5,6 +5,17 @@
         color: #d3d3d3;
     }
 
+    /* CSS added to change chevrons on accordion select. */
+    .panel-heading a.collapsed:before {
+        font-family: FontAwesome;
+        content: "\f0da";
+    }
+
+    .panel-heading a:before {
+        font-family: FontAwesome;
+        content: "\f0d7";
+    }
+
 
 </style>
 
@@ -13,7 +24,7 @@
     {% if "user" in g %}
 
         {% for proj in g.user.projects %}
-            <div id="project-{{ proj.project_id }}" class="panel">
+            <div id="project-{{ proj.project_id }}" class="panel panel-default">
                 <div class="panel-heading">
                     <h2 class="panel-title">
                         <div class="row">
@@ -40,7 +51,6 @@
                             <div class="col-xs-10" style="vertical-align: bottom;">
                                 <a class="project-link" data-toggle="collapse"
                                    data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
-                                    <i class="fa fa-caret-right"></i>
                                     {{ proj.name }}
                                 </a>
                                 <span class="clickableEdit" id="edit-{{ proj.project_id }}" data-proj-name="{{ proj.name }}"
