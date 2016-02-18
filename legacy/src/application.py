@@ -388,14 +388,61 @@ def init_ont_tree():
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
 
     parents = []
+    parentdict = {}
     used_dbs = set()
     for ont in onts:
-        parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
+        ## Path is a list of lists since there may be more than one
+        ## root -> term path for a particular ontology term
+        path = geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id)
+        #parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
+        parents.extend(path)
+        parentdict[ont.ontology_id] = path
+        #parentdict[ont.ontology_id] = map(lambda p: geneweaverdb.get_ontology_by_id(p), rents)
         if ont.ontdb_id not in used_dbs:
             used_dbs.add(ont.ontdb_id)
 
-    result = geneweaverdb.get_all_ontologydb()
+    #result = geneweaverdb.get_all_ontologydb()
     info = []
+
+    for ontid, paths in parentdict.items():
+        for path in paths:
+            ontpath = []
+
+            for p in path:
+                p = geneweaverdb.get_ontology_by_id(p)
+                node = create_new_child_dict(p, gso_ref_type)
+
+                ontpath.append(node)
+
+            ## Add things in reverse order because it makes things easier
+            #for p in ontpath[::-1]:
+            for i in range(len(ontpath), 0, -1):
+                i -= 1
+
+                if i == 0:
+                    break
+
+                broad = ontpath[i - 1]
+                granular = ontpath[i]
+
+                broad['children'] = [granular]
+                ## Might not be necessary if shallow copy above
+                ontpath[i - 1] = broad
+
+            info.append(ontpath[0])
+            return info
+
+    #for ont in onts:
+    #    data = dict()
+    #    data["title"] = ont.name
+    #    data["isFolder"] = True
+    #    data["isLazy"] = True
+    #    data["key"] = ont.ontdb_idAdd function to get ontologies by id
+    #    data["db"] = True
+    #    data["hideCheckbox"] = True
+    #    data["unselectable"] = True
+
+    return info
 
     for i in range(0, len(result)):
         data = dict()

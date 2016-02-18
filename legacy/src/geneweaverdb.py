@@ -3208,6 +3208,17 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
     ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return ontology
 
+def get_ontology_by_id(ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+                SELECT *
+                FROM extsrc.ontology
+                WHERE ont_id = %s
+            ''', (ont_id,)
+        )
+    ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
+    return ontology
 
 # call by API only
 def get_genesets_by_projects(apikey, projectids):
