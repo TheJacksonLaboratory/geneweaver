@@ -105,16 +105,8 @@ def create_batch_geneset():
         print '1'
         return flask.jsonify({"error": "You must be signed in to upload a geneset."})
 
-    #return {'error': 'lol no upload for you'}
+    ## Returns a triplet (geneset list, warnings, errors)
     batchFile = batch.parseBatchFile(batchFile, user_id)
-
-    ## sets
-    print batchFile[0]
-    ## warnings
-    print batchFile[1]
-    ## errors
-    print batchFile[2]
-
     batchErrors = ''
     batchWarns = ''
 
@@ -123,16 +115,60 @@ def create_batch_geneset():
         batchErrors += e
         batchErrors += '\n'
 
-    for w in batchFile[1]:
-        batchWarns += w
-        batchWarns += '\n'
 
     ## If there were critical errors, no need to continue on making genesets
     if batchErrors:
         return flask.jsonify({'error': batchErrors})
 
+    added = []
+
+    for gs in batchFile[0]:
+        ## If a PMID was provided, we get the info from NCBI
+        if gs['pub_id']:
+            pub = batch.getPubmedInfo(gs['pub_id'])
+            gs['pub_id'] = pub[0]
+
+            ## Non-critical pubmed retrieval errors
+            if pub[1]:
+                batchFile[1].append(pub[1])
+
+            ## New row in the publication table
+            if gs['pub_id']:
+                gs['pub_id'] = batch.db.insertPublication(gs['pub_id'])
+            else:
+                gs['pub_id'] = 1  # empty pub
+
+        else:
+            gs['pub_id'] = 1  # empty pub
+
+        ## Insert the data into the file table
+        gs['file_id'] = batch.buFile(gs['values'])
+        ## Insert new genesets and geneset_values
+        gs['gs_id'] = batch.db.insertGeneset(gs)
+        gsverr = batch.buGenesetValues(gs)
+
+        # Update gs_count if some geneset_values were found to be invalid
+        if gsverr[0] != len(gs['values']):
+            batch.db.updateGenesetCount(gs['gs_id'], gsverr[0])
+
+        added.append(gs['gs_id'])
+
+        # Non-critical errors discovered during geneset_value creation
+        if gsverr[1]:
+            batchFile[1].extend(gsverr[1])
+
+    batch.db.commit()
+
+    for w in batchFile[1]:
+        batchWarns += w
+        batchWarns += '\n'
+
     if batchWarns:
-        return flask.jsonify({'warn': batchWarns})
+        return flask.jsonify({'genesets': added, 'warn': batchWarns})
+
+    else:
+        return flask.jsonify({'genesets': added})
+
 
     file_text = ""
     file_lines = ""
