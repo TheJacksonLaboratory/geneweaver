@@ -550,7 +550,7 @@ def _convertTree(parent, child):
         if ck == 'node':
             continue
 
-        newchild = _convertTree(child, child[ck])
+        child = _convertTree(child, child[ck])
 
         if not doesChildExist(child['node'], parent['node']['children']):
             parent['node']['children'].append(child['node'])
