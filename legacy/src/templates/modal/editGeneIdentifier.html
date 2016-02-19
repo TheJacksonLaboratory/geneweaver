@@ -1,5 +1,7 @@
 {# This modal allows you to edit the identifier of a gene #}
 
+{% if geneset is defined and geneset.geneset_id is defined and pidts is defined %}
+
 <div class="modal fade" id="editIdentifierByGSID">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -44,8 +46,4 @@
     </div>
 </div>
 
-
-
-
-
-
+{% endif %}

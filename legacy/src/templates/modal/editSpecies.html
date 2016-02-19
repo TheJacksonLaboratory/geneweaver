@@ -1,5 +1,7 @@
 {# This modal allows you to edit the geneset species #}
 
+{% if species is defined %}
+
 <div class="modal fade" id="editSpeciesByGSID">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -33,3 +35,5 @@
         </div>
     </div>
 </div>
+
+{% endif %}
