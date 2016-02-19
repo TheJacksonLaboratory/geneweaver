@@ -870,22 +870,6 @@ def render_viewgeneset(gs_id):
 
         else:
             altGeneSymbol = 'Entrez'
-        # if session['extsrc'] == 2:
-        #	altGeneSymbol = 'Ensembl'
-        # elif session['extsrc'] == 7:
-        #	altGeneSymbol = 'Symbol'
-        # elif session['extsrc'] == 10:
-        #	altGeneSymbol = 'MGD'
-        # elif session['extsrc'] == 12:
-        #	altGeneSymbol = 'RGD'
-        # elif session['extsrc'] == 13:
-        #	altGeneSymbol = 'ZFin'
-        # elif session['extsrc'] == 14:
-        #	altGeneSymbol = 'FlyBase'
-        # elif session['extsrc'] == 15:
-        #	altGeneSymbol = 'WormBase'
-        # else:
-        #	altGeneSymbol = 'Entrez'
     else:
         altGeneSymbol = 'Entrez'
 
@@ -899,6 +883,14 @@ def render_viewgeneset(gs_id):
 
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
+
+    ## Nothing is ever deleted but that doesn't mean users should be able
+    ## to see them
+    if geneset.status == 'deleted':
+        return flask.render_template('viewgenesetdetails.html', geneset=None,
+            emphgeneids=None, user_id=user_id, colors=HOMOLOGY_BOX_COLORS,
+            tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=None)
+
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
