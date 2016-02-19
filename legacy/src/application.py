@@ -516,11 +516,23 @@ def init_ont_tree():
         info.append(data)
     return json.dumps(info)
 
+def doesChildExist(child, children):
+    """
+    Given a list of children, checks to see if a child node already exists
+    in the given list. Used to prevent duplicates from cropping up in the
+    ontology tree.
+    """
+
+    children = map(lambda c: c['key'], children)
+
+    return child['key'] in children
+
 def _convertTree(parent, child):
 
     ## This means it's a leaf node as its only key should be 'node'
     if len(child.keys()) <= 1:
-        parent['node']['children'].append(child['node'])
+        if not doesChildExist(child['node'], parent['node']['children']):
+            parent['node']['children'].append(child['node'])
 
         return parent
 
@@ -531,7 +543,8 @@ def _convertTree(parent, child):
 
         newchild = _convertTree(child, child[ck])
 
-        parent['node']['children'].append(newchild['node'])
+        if not doesChildExist(child['node'], parent['node']['children']):
+            parent['node']['children'].append(child['node'])
 
     return parent
 
@@ -601,6 +614,7 @@ def create_new_child_dict(ontology_node, grt):
     new_child_dict["key"] = ontology_node.ontology_id
     new_child_dict["db"] = False
     new_child_dict["children"] = []
+    #new_child_dict["children"] = set()
     if grt == "All Reference Types":
         new_child_dict["unselectable"] = True
     if ontology_node.children == 0:
