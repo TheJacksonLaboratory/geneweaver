@@ -1440,6 +1440,11 @@ def render_searchFromHome():
     # If there is an error render a blank search page
     if (search_values['STATUS'] == 'ERROR'):
         return flask.render_template('search.html', paginationValues=None)
+
+    if (search_values['STATUS'] == 'NO MATCHES'):
+        return flask.render_template('search.html', paginationValues=None,
+                noResults=True)
+
     # print 'debug genesets: ' + str(search_values['genesets'][0])
     # render the template if there is no error, passing in data used in display
     return flask.render_template('search.html', searchresults=search_values['searchresults'],

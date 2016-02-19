@@ -66,6 +66,18 @@
         {% include'search/search_bar.html' %}
     </form>
 
+	{% if noResults is defined and noResults == True %}
+
+		<div class="row">
+			<div class="alert alert-warning fade in">
+				<button type="button" class="close" data-dismiss="alert" 
+					aria-hidden="true">x</button>
+				<strong>Your search returned 0 results.</strong>
+			</div>
+		</div>
+
+	{% endif %}
+
 {% endif %}
 
 {% if paginationValues != None %}
