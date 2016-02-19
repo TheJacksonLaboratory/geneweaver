@@ -387,22 +387,14 @@ def init_ont_tree():
     gso_ref_type = request.args['universe']
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
 
-    parents = []
     parentdict = {}
-    used_dbs = set()
+
     for ont in onts:
         ## Path is a list of lists since there may be more than one
         ## root -> term path for a particular ontology term
         path = geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id)
-        #parents.append(geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id))
-        parents.extend(path)
         parentdict[ont.ontology_id] = path
-        #parentdict[ont.ontology_id] = map(lambda p: geneweaverdb.get_ontology_by_id(p), rents)
-        if ont.ontdb_id not in used_dbs:
-            used_dbs.add(ont.ontdb_id)
 
-    #result = geneweaverdb.get_all_ontologydb()
-    info = []
     tree = {}
 
     for ontid, paths in parentdict.items():
@@ -414,11 +406,6 @@ def init_ont_tree():
                 node = create_new_child_dict(p, gso_ref_type)
 
                 ontpath.append(node)
-
-            #mt = mergeTreePath({}, ontpath)
-            #mt = convertTree(mt)
-            #print mt
-            #return 1
 
             ## Add things in reverse order because it makes things easier
             #for p in ontpath[::-1]:
@@ -438,83 +425,11 @@ def init_ont_tree():
                 if i == 0:
                     break
 
-                #broad = ontpath[i - 1]
-                #granular = ontpath[i]
-
-                #broad['children'] = [granular]
-                ## Might not be necessary if shallow copy above
-
-                #ontpath[i - 1] = broad
-
             tree = mergeTreePath(tree, ontpath)
-            #info.append(ontpath[0])
 
     tree = convertTree(tree)
 
-    #return json.dumps(info)
     return json.dumps(tree)
-
-    #for ont in onts:
-    #    data = dict()
-    #    data["title"] = ont.name
-    #    data["isFolder"] = True
-    #    data["isLazy"] = True
-    #    data["key"] = ont.ontdb_idAdd function to get ontologies by id
-    #    data["db"] = True
-    #    data["hideCheckbox"] = True
-    #    data["unselectable"] = True
-
-    return json.dumps(info)
-
-    for i in range(0, len(result)):
-        data = dict()
-        data["title"] = result[i].name
-        data["isFolder"] = True
-        data["isLazy"] = True
-        data["key"] = result[i].ontologydb_id
-        data["db"] = True
-        data["hideCheckbox"] = True
-        data["unselectable"] = True
-        if result[i].ontologydb_id in used_dbs:
-            data["children"] = []
-            data["expand"] = True
-            if gso_ref_type == "All Reference Types":
-                data["unselectable"] = True
-            result2 = geneweaverdb.get_all_root_ontology_for_database(result[i].ontologydb_id)
-            for i in range(0, len(result2)):
-                data2 = dict()
-                data2["title"] = result2[i].name
-                data2["isLazy"] = True
-                data2["key"] = result2[i].ontology_id
-                data2["db"] = False
-                if gso_ref_type == "All Reference Types":
-                    data2["unselectable"] = True
-                data2["children"] = []
-                if (result2[i].children == 0):
-                    data2["isFolder"] = False
-                else:
-                    data2["isFolder"] = True
-                for a in range(0, len(parents)):
-                    for b in range(0, len(parents[a])):
-                        if len(parents[a][b]) > 0:
-                            if result2[i].ontology_id == parents[a][b][0]:
-                                if (result2[i].ontology_id == parents[a][b][len(parents[a][b]) - 1]):
-                                    data2["select"] = True
-                                else:
-                                    data2["expand"] = True
-                                    child_list = geneweaverdb.get_all_children_for_ontology(result2[i].ontology_id)
-                                    for child in child_list:
-                                        if child.ontology_id in parents[a][b]:
-                                            new_child_dict = create_new_expanded_child_dict(child, parents[a][b],
-                                                                                            parents[a][b][
-                                                                                                len(parents[a][b]) - 1],
-                                                                                            gso_ref_type)
-                                        else:
-                                            new_child_dict = create_new_child_dict(child, gso_ref_type)
-                                        data2["children"].append(new_child_dict)
-                data["children"].append(data2)
-        info.append(data)
-    return json.dumps(info)
 
 def doesChildExist(child, children):
     """
@@ -603,7 +518,6 @@ def mergeTreePath(tree, path):
     t = tree
 
     for node in path:
-        #key = node.ont_id
         key = node['key']
 
         if not t.get(key, None):
