@@ -519,7 +519,7 @@ def init_ont_tree():
 def _convertTree(parent, child):
 
     ## This means it's a leaf node as its only key should be 'node'
-    if child.keys() <= 1:
+    if len(child.keys()) <= 1:
         parent['node']['children'].append(child['node'])
 
         return parent
