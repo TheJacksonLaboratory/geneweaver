@@ -887,7 +887,7 @@ def add_project(usr_id, pj_name):
                 RETURNING pj_id;
                 ''', (usr_id, pj_name,))
         cursor.connection.commit()
-    return
+    return cursor.fetchone()[0]
 
 
 def add_geneset2project(pj_id, gs_id):
@@ -910,12 +910,11 @@ def add_genesets_to_projects(rargs):
     npn = rargs.get('npn', type=str)
     gs_ids = rargs.get('gs_id', type=str)
     checked = json.loads(rargs.get('option', type=str))
-    if (gs_ids is not None):
-        if (npn is not None):
+    if gs_ids is not None:
+        if npn is not None:
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
-        # print gs_id
         for pj_id in checked:
             for g in gs_id:
                 g = g.strip()

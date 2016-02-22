@@ -35,15 +35,7 @@
                     <h2 class="panel-title">
                         <div class="row">
                             <div class="col-xs-2">
-                                {#
-                                                <input
-                                                        type="checkbox"
-                                                        class="proj-checkbox"
-                                                        id="proj-{{ proj.project_id }}-allcheck"
-                                                        name="project_{{ proj.project_id }}"
-                                                        data-project="{{ proj.project_id }}"
-                                                        >
-                                                        #}
+
 
                                 <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
                                     <label for="proj-{{ proj.project_id }}-allcheck">
@@ -59,7 +51,8 @@
                                    data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
                                     {{ proj.name }}
                                 </a>
-                                <span class="clickableEdit" id="edit-{{ proj.project_id }}" data-proj-name="{{ proj.name }}"
+                                <span class="clickableEdit" id="edit-{{ proj.project_id }}"
+                                      data-proj-name="{{ proj.name }}"
                                       data-proj-id="{{ proj.project_id }}" data-proj-notes="{{ proj.notes }}">
                                     <i class="fa fa-pencil"></i></span>
 

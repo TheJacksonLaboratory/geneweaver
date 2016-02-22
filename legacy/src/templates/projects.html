@@ -126,6 +126,9 @@
 
     {% include 'modal/combineGenesets.html' %}
 
+    {% include 'modal/addGenesetsToProjects.html' %}
+
+
 {% endif %}
 
 
@@ -277,46 +280,46 @@
         });
 
         //function to add row for a new project name
-        $('#addNewProject').on('click', function () {
-            $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-                    '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
-        });
+        //$('#addNewProject').on('click', function () {
+        //    $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+        //            '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+        //});
 
 
         // Add genesets to projects
-        $('#addGenesetsToProjects').on('click', function (e) {
-            var checked = [];
-            $("input[name='options[]']:checked").each(function () {
-                checked.push(parseInt($(this).val()));
-            });
-            var option = JSON.stringify(checked);
-            var g = $('#myCombineGSValue').val();
-            var npn = $('#newProjName').val();
-            if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "No Projects were selected.",
-                        'priority': 'danger'
-                    }
-                ]);
-            }
-            else {
-                $.ajax({
-                    type: "GET",
-                    url: "../addGenesetsToProjects",
-                    data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
-                    success: function (data) {
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "Genesets Successfully Added to Selected Projects.",
-                                'priority': 'success'
-                            }
-                        ]);
-                        window.location.reload();
-                    }
-                });
-            }
-        });
+        //$('#addGenesetsToProjects').on('click', function (e) {
+        //    var checked = [];
+        //    $("input[name='options[]']:checked").each(function () {
+        //        checked.push(parseInt($(this).val()));
+        //    });
+        //    var option = JSON.stringify(checked);
+        //    var g = $('#myCombineGSValue').val();
+        //    var npn = $('#newProjName').val();
+        //    if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+        //        $(document).trigger("add-alerts", [
+        //            {
+        //                'message': "No Projects were selected.",
+        //                'priority': 'danger'
+        //            }
+        //        ]);
+        //    }
+        //    else {
+        //        $.ajax({
+        //            type: "GET",
+        //            url: "../addGenesetsToProjects",
+        //            data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
+        //            success: function (data) {
+        //                $(document).trigger("add-alerts", [
+        //                    {
+        //                        'message': "Genesets Successfully Added to Selected Projects.",
+        //                        'priority': 'success'
+        //                    }
+        //                ]);
+        //                window.location.reload();
+        //            }
+        //        });
+        //    }
+        //});
 
 
         //help checkbox
