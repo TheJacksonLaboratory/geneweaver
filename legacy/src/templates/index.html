@@ -260,7 +260,7 @@
 
         var circleTriggered = false;
         $(window).scroll(function() {
-            if($(window).scrollTop() + $(window).height() > $(document).height() - 1) {
+            if($(window).scrollTop() + $(window).height() > $(document).height() - 40) {
                 if (circleTriggered == false) {
                     $('#pie_chart1').circliful();
                     $('#pie_chart2').circliful();
