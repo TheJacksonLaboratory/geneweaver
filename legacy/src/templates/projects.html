@@ -87,6 +87,9 @@
                         <button type="button" class="btn btn-lg btn-block btn-danger" id="callDeleteProjects">
                             <i class="fa fa-times pull-left"></i> Delete Projects
                         </button>
+                        <button type="button" class="btn btn-lg btn-block btn-danger" id="callRemoveGenesets">
+                            <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
+                        </button>
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="newBlankProject">
                             <i class="fa fa-folder-o pull-left"></i> New Blank Project
                         </button>
@@ -221,6 +224,29 @@
             }
         });
 
+
+        // Call modal for delete of all projects
+        $('#callRemoveGenesets').on('click', function () {
+            var gsid = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("id"));
+                gsid.push(v.split('_')[1]);
+            });
+            if (gsid.length == 0) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must select at least one gene set.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else{
+                var p = gsid.join(",");
+                window.location.href = '../removegenesetsfromproject/' + p;
+            }
+        });
+
         //Process the deletion of the projects
         $('#confirmDelete').on('click', function (e) {
            var projids = $('#myModalValue').val();
@@ -324,16 +350,6 @@
             }
         });
 
-        $('input[type=checkbox]').on('change', function() {
-            var gsname = [];
-            var gsid = [];
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("id"));
-                gsid.push(v.split('_')[1]);
-                gsname.push('GS'+ v.split('_')[1]);
-            });
-            $('#selectedGenesets').html(gsname);
-        });
 
 
         //help checkbox
