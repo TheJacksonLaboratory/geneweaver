@@ -897,7 +897,7 @@ def render_viewgeneset(gs_id):
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Also some sets have a NULL status so that MUST be checked
     ## for, otherwise sad times ahead :(
-    if geneset.status and geneset.status == 'deleted':
+    if geneset and geneset.status == 'deleted':
         return flask.render_template('viewgenesetdetails.html', geneset=None)#,
             #emphgeneids=None, user_id=user_id, colors=HOMOLOGY_BOX_COLORS,
             #tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=None)
