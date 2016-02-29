@@ -774,6 +774,9 @@ def parseBatchFile(lns, usr=0, cur=5):
 
             ## Otherwise the user specified one of the gene types, not a
             ## microarray platform
+            ## :IMPORTANT: Expression platforms have positive (+)
+            ## gs_gene_id_types while all other types (e.g. symbols) should
+            ## have negative (-) integer ID types.
             else:
                 types = db.getGeneTypes()
 
@@ -787,6 +790,8 @@ def parseBatchFile(lns, usr=0, cur=5):
                 else:
                     ## gene is now an integer (gdb_id)
                     gene = types[gene.lower()]
+                    ## Negate, see comment tagged important above
+                    gene = -gene
 
 
         ## Lines beginning with 'P ' are PubMed IDs (OPTIONAL)

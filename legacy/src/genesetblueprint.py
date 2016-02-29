@@ -157,6 +157,7 @@ def create_batch_geneset():
         if gsverr[1]:
             batchFile[1].extend(gsverr[1])
 
+    return flask.jsonify({'error': 'shit happens'})
     batch.db.commit()
 
     for w in batchFile[1]:
