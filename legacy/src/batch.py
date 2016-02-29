@@ -220,6 +220,68 @@ class TheDB():
 
         return d
 
+    def getPlatformProbes(self, pfid, refs):
+        """
+        Returns a mapping of prb_ref_ids -> prb_ids for the given platform
+        and probe references.
+
+        :arg int: platform ID (pf_id)
+        :arg list: list of platform probes (prb_ref_id)
+        :ret dict: reference to ID mapping
+        """
+
+        if type(refs) == list:
+            refs = tuple(refs)
+
+        qu = '''SELECT prb_ref_id, prb_id
+                FROM odestatic.probe
+                WHERE pf_id = %s AND
+                      prb_ref_id IN %s;'''
+
+        self.cur.execute(qu, [pfid, refs])
+
+        ## Returns a list of tuples [(pf_id, pf_name)]
+        res = self.cur.fetchall()
+        d = dd(long)
+
+        ## We return a dict of pf_names --> pf_ids
+        for tup in res:
+            d[tup[0]] = tup[1]
+
+        return d
+
+    def getProbe2Gene(self, prbids):
+        """
+        Returns a mapping of prb_ids -> ode_gene_ids for the given set
+        of prb_ids.
+
+
+        :arg int: platform ID (pf_id)
+        :arg list: list of platform probes (prb_ref_id)
+        :return:
+        """
+
+        if type(prbids) == list:
+            prbids = tuple(prbids)
+
+        qu = '''SELECT prb_id, ode_gene_id
+                FROM extsrc.probe2gene
+                WHERE prb_id IN %s;'''
+
+        self.cur.execute(qu, [prbids])
+
+        ## Returns a list of tuples [(pf_id, pf_name)]
+        res = self.cur.fetchall()
+        d = dd(list)
+
+        ## We return a dict of prb_ids -> ode_gene_ids. This is a list since
+        ## there may be 1:many associations.
+        for tup in res:
+            d[tup[0]].append(tup[1])
+
+        return d
+
+
     #### getSpecies
     ##
     #### Queries the DB for a list of species and returns the result as a
@@ -931,7 +993,23 @@ def buGenesetValues(gs):
     ## Geneset values should be a list of tuples (symbol, pval)
     ## First we attempt to map them to the internal ode_gene_ids
     symbols = map(lambda x: x[0], gs['values'])
-    sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
+
+    ## Negative numbers indicate normal genetypes (found in genedb) while
+    ## positive numbers indicate expression platforms and more work :(
+    if gs['gs_gene_id_type'] < 0:
+        sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
+
+    else:
+        sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
+        prbids = []
+
+        for sym in symbols:
+            prbids.append(sym2probe[sym])
+
+        prbids = list(set(prbids))
+        prb2odes = db.getProbe2Gene(prbids)
+
+
     # non-critical errors we will inform the user about
     noncrit = []
     # duplicate detection
@@ -939,6 +1017,41 @@ def buGenesetValues(gs):
     total = 0
 
     for tup in gs['values']:
+
+        ## Platform handling
+        if gs['gs_gene_id_type'] > 0:
+            sym = tup[0]
+            value = tup[1]
+            prbid = sym2probe[sym]
+            odes = prb2odes[prbid]
+
+            if not prbid or not odes:
+                err = ("Error! There doesn't seem to be any gene/locus data for "
+                       "%s in the database." % sym)
+                noncrit.append(err)
+                continue
+
+            for ode in odes:
+                ## Check for duplicate ode_gene_ids, otherwise postgres bitches
+                if not dups[ode]:
+                    dups[ode] = tup[0]
+
+                else:
+                    err = ('Error! Seems that %s is a duplicate of %s. %s was not '
+                           'added to the geneset.' %
+                           (sym, dups[ode], sym))
+                    noncrit.append(err)
+                    continue
+
+                db.insertGenesetValue(gs['gs_id'], ode, value, sym,
+                                      'true')
+                                      #gs['gs_threshold'])
+
+                total += 1
+
+            continue
+
+        ## Not platform stuff
         if not sym2ode[tup[0].lower()]:
             err = ("Error! There doesn't seem to be any gene/locus data for "
                    "%s in the database." % tup[0])
