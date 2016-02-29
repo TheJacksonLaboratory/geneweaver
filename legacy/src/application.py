@@ -555,12 +555,15 @@ def render_editgeneset_genes(gs_id):
                                  gidts=gidts, pidts=pidts, view=view, meta=meta)
 
 
-@app.route('/removegenesetsfromproject/<str:gs_id>')
+@app.route('/removegenesetsfromproject/<gs_id>')
 def render_remove_genesets(gs_id):
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
-    if (user_id is not 0):
+    if user_id is not 0:
         gs_and_proj = geneweaverdb.get_selected_genesets_by_projects(gs_id)
-    return flask.render_template('removegenesets.html', user_id=user_id, gs_and_proj=gs_and_proj)
+        for x in gs_and_proj:
+            print x
+    return flask.render_template('uploadgeneset.html', user_id=user_id)
+    #return flask.render_template('removegenesets.html', user_id=user_id, gs_and_proj=gs_and_proj)
 
 
 @app.route('/setthreshold/<int:gs_id>')
