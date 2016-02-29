@@ -1051,13 +1051,18 @@ def get_server_side_genesets(rargs):
     order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
 
     # joins all clauses together as a query
-    where_clause = ' AND %s' % search_clause if search_clause else ''
+    if search_clause:
+        where_clause = ' AND (%s' % search_clause
+        where_clause += ') '
+
+    else:
+        where_clause = ''
+
     # print where_clause
     sql = ' '.join([select_clause,
                     where_clause,
                     order_clause,
                     limit_clause]) + ';'
-    # print sql
 
     with PooledCursor() as cursor:
         # cursor.execute(sql, ac_patterns + pc_patterns)
