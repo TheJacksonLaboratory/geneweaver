@@ -1985,9 +1985,46 @@ def render_register():
 def render_reset():
     return flask.render_template('reset.html')
 
+@app.route('/reset_submit.html', methods=['GET', 'POST'])
+def reset_password():
+    form = flask.request.form
+    user = geneweaverdb.get_user_byemail(form['usr_email'])
+    if user is None:
+        return flask.render_template('reset.html', reset_failed=True)
+    else:
+        new_password = geneweaverdb.reset_password(user.email)
+        send_mail(user.email, "Password Reset Request",
+                  "Your new temporary password is: " + new_password)
+        return flask.render_template('index.html')
 
-# render home if register is successful
 
+@app.route('/change_password', methods=['POST'])
+def change_password():
+    form = flask.request.form
+    if form is None:
+        return flask.render_template('accountsettings.html')
+    else:
+        user = geneweaverdb.get_user(flask.session.get('user_id'))
+
+        if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
+            return flask.render_template('accountsettings.html', user=user)
+        else:
+            success = geneweaverdb.change_password(
+                user.user_id, form['new_pass'])
+            return flask.render_template('accountsettings.html', user=user)
+
+
+@app.route('/generate_api_key', methods=['POST'])
+def generate_api_key():
+    geneweaverdb.generate_api_key(flask.session.get('user_id'))
+    return flask.redirect('accountsettings')
+
+@app.route('/index.html', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
+def render_home():
+    news_array = geneweaverdb.get_news()
+    stats = geneweaverdb.get_stats()
+    return flask.render_template('index.html', news_array=news_array, stats=stats)
 
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
@@ -2045,51 +2082,8 @@ def json_register_successful():
             flask.session['remote_addr'] = remote_addr
 
     flask.g.user = user
-    return flask.render_template('index.html')
 
-
-@app.route('/reset_submit.html', methods=['GET', 'POST'])
-def reset_password():
-    form = flask.request.form
-    user = geneweaverdb.get_user_byemail(form['usr_email'])
-    if user is None:
-        return flask.render_template('reset.html', reset_failed=True)
-    else:
-        new_password = geneweaverdb.reset_password(user.email)
-        send_mail(user.email, "Password Reset Request",
-                  "Your new temporary password is: " + new_password)
-        return flask.render_template('index.html')
-
-
-@app.route('/change_password', methods=['POST'])
-def change_password():
-    form = flask.request.form
-    if form is None:
-        return flask.render_template('accountsettings.html')
-    else:
-        user = geneweaverdb.get_user(flask.session.get('user_id'))
-
-        if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
-            return flask.render_template('accountsettings.html', user=user)
-        else:
-            success = geneweaverdb.change_password(
-                user.user_id, form['new_pass'])
-            return flask.render_template('accountsettings.html', user=user)
-
-
-@app.route('/generate_api_key', methods=['POST'])
-def generate_api_key():
-    geneweaverdb.generate_api_key(flask.session.get('user_id'))
-    return flask.redirect('accountsettings')
-
-
-@app.route('/index.html', methods=['GET', 'POST'])
-@app.route('/', methods=['GET', 'POST'])
-def render_home():
-    news_array = geneweaverdb.get_news()
-    stats = geneweaverdb.get_stats()
-    return flask.render_template('index.html', news_array=news_array, stats=stats)
-
+    return render_home()
 
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def add_geneset_to_project(project_id, geneset_id):
