@@ -1043,6 +1043,8 @@ def buGenesetValues(gs):
                     noncrit.append(err)
                     continue
 
+                print value
+                print type(value)
                 db.insertGenesetValue(gs['gs_id'], ode, value, sym,
                                       'true')
                                       #gs['gs_threshold'])
