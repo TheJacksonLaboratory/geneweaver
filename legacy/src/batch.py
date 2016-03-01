@@ -350,9 +350,9 @@ class TheDB():
     def insertGenesetValue(self, gs_id, gene_id, value, name, thresh):
         query = ('INSERT INTO extsrc.geneset_value (gs_id, ode_gene_id, '
                  'gsv_value, gsv_hits, gsv_source_list, gsv_value_list, '
-                 'gsv_in_threshold, gsv_date) VALUES (%s, %s, %s, 0, %s, ARRAY[0], '
+                 'gsv_in_threshold, gsv_date) VALUES (%s, %s, %s, 0, %s, %s, '
                  '%s, NOW());')
-        vals = [gs_id, gene_id, value, [name], thresh]
+        vals = [gs_id, gene_id, value, [name], [value], thresh]
 
         self.cur.execute(query, vals)
 
