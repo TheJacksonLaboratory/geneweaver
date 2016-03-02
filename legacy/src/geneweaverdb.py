@@ -932,11 +932,11 @@ def get_selected_genesets_by_projects(gs_ids):
         gs_id = gs_ids.split(',')
         with PooledCursor() as cursor:
             cursor.execute(
-                '''SELECT p2g.pj_id, p2g.gs_id FROM project2geneset p2g, project pj
+                '''SELECT p2g.pj_id, p2g.gs_id, pj.pj_name FROM project2geneset p2g, project pj
                     WHERE p2g.pj_id=pj.pj_id AND pj.usr_id=%s AND p2g.gs_id IN (%s)''' % (user_id, ",".join(str(x) for x in gs_id),)
             )
             genesets = list(dictify_cursor(cursor))
-            return genesets if len(genesets) == 1 else None
+            return genesets if len(genesets) > 0 else None
     else:
         return None
 
