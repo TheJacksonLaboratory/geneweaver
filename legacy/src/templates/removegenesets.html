@@ -2,6 +2,10 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+{# Add bootstrap switch #}
+<link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-switch.css') }}"
+          rel="stylesheet">
+
 <style type="text/css">
 
     #clickableGenes {
@@ -66,10 +70,16 @@
             <form id="deleteGenesetsFromProjects" name="deleteGenesetsFromProjects" method="post" action="#"
                   class="form-horizontal form-inline" novalidate="novalidate">
 
-            <div class="pull-right">
+            <div class="pull-right">Set All
+                <input type="checkbox" name="my-checkbox" class="switch"
+                       data-on-label="<i class='fa fa-thumbs-up'></i>"
+                       data-on-color="danger" data-off-color="default" checked>
+
+                {#
                 <label>
                     <input type="checkbox" class="checkItem" id="checkAll" checked="checked"> Check All
                 </label>
+                 #}
                 {# <span id="clickableSelectAll">Select All <i class="fa fa-check-square-o"></i></span>  #}
             </div>
                 <table class="table table-hover table-striped" id="projectGenesets" cellpadding="0" cellspacing="0">
@@ -87,13 +97,16 @@
                             <td><a href="../viewgenesetdetails/{{ i.gs_id }}">{{ i.gs_name }}</a></td>
                             <td>GS{{ i.gs_id }}</td>
                             <td width="10">
+                                <input type="checkbox" name="my-checkbox" data-size="small"
+                                       class="switch small" data-off-color="danger" checked>
+                                {#
                                 <div class="ui-checkbox" style="padding: 0; border: 0;">
                                     <label>
                                     <input type="checkbox" class="checkItem" checked="checked"
                                            id="proj-{{ i.pj_id }}-{{ i.gs_id }}"/>
                                     </label>
                                 </div>
-
+                                 #}
                             </td>
                             </tr>
                         {% endfor %}
@@ -106,6 +119,8 @@
 {% endif %}
 
 <script>
+
+    $('input:checkbox').bootstrapSwitch();
 
     $(window).load(function () {
         $(".loader").fadeOut("slow");
