@@ -115,7 +115,6 @@ def create_batch_geneset():
         batchErrors += e
         batchErrors += '\n'
 
-
     ## If there were critical errors, no need to continue on making genesets
     if batchErrors:
         return flask.jsonify({'error': batchErrors})
@@ -147,7 +146,14 @@ def create_batch_geneset():
         gs['gs_id'] = batch.db.insertGeneset(gs)
         gsverr = batch.buGenesetValues(gs)
 
-        # Update gs_count if some geneset_values were found to be invalid
+        ## If no values were uploaded (empty set), return a critical error
+        if not gsverr[0]:
+            ce = ('The geneset "%s" has no valid genes/loci and could not be '
+                    'uploaded\n' % gs['gs_name'])
+
+            return flask.jsonify({'error': ce})
+
+        ## Update gs_count if some geneset_values were found to be invalid
         if gsverr[0] != len(gs['values']):
             batch.db.updateGenesetCount(gs['gs_id'], gsverr[0])
 
