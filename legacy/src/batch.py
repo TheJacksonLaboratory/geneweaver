@@ -816,7 +816,7 @@ def parseBatchFile(lns, usr=0, cur=5):
                 ## the one with the best match
                 best = 0.70
                 for plat, pid in plats.items():
-                    sim = calcStringSimilarity(plat.lower(), gene.lower())
+                    sim = calcStringSimilarity(plat.lower(), origplat.lower())
 
                     if sim > best:
                         best = sim
@@ -1000,6 +1000,7 @@ def buGenesetValues(gs):
         sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
 
     else:
+        print 'gt: %s' % gs['gs_gene_id_type']
         sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
         prbids = []
 
@@ -1024,6 +1025,11 @@ def buGenesetValues(gs):
             value = tup[1]
             prbid = sym2probe[sym]
             odes = prb2odes[prbid]
+
+            print sym
+            print prbid
+            print odes
+            return (0, 0)
 
             if not prbid or not odes:
                 err = ("Error! There doesn't seem to be any gene/locus data for "

@@ -149,7 +149,7 @@ def create_batch_geneset():
         ## If no values were uploaded (empty set), return a critical error
         if not gsverr[0]:
             ce = ('The geneset "%s" has no valid genes/loci and could not be '
-                    'uploaded\n' % gs['gs_name'])
+                    'uploaded.\n' % gs['gs_name'])
 
             return flask.jsonify({'error': ce})
 
