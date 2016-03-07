@@ -135,10 +135,10 @@ def create_batch_geneset():
             if gs['pub_id']:
                 gs['pub_id'] = batch.db.insertPublication(gs['pub_id'])
             else:
-                gs['pub_id'] = 1  # empty pub
+                gs['pub_id'] = None  # empty pub
 
         else:
-            gs['pub_id'] = 1  # empty pub
+            gs['pub_id'] = None  # empty pub
 
         ## Insert the data into the file table
         gs['file_id'] = batch.buFile(gs['values'])

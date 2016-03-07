@@ -675,7 +675,7 @@ def parseBatchFile(lns, usr=0, cur=5):
     name = ''  # geneset name
     desc = ''  # geneset description
     gene = ''  # gene type (gs_gene_id_type)
-    pub = ''  # pubmed ID
+    pub = None  # pubmed ID
     group = 'private'  # group (public or private)
     stype = ''  # score type (gs_threshold_type)
     thresh = '0.05'  # threshold value for scores
@@ -1117,10 +1117,10 @@ def buGenesets(fp, usr_id=0, cur_id=5):
             if gs['pub_id']:
                 gs['pub_id'] = db.insertPublication(gs['pub_id'])
             else:
-                gs['pub_id'] = 1  # empty pub
+                gs['pub_id'] = None  # empty pub
 
         else:
-            gs['pub_id'] = 1  # empty pub
+            gs['pub_id'] = None  # empty pub
 
         ## Insert the data into the file table
         gs['file_id'] = buFile(gs['values'])

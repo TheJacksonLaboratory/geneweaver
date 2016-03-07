@@ -1720,6 +1720,7 @@ class Geneset:
         self.name = gs_dict['gs_name']
         self.abbreviation = gs_dict['gs_abbreviation']
         self.pub_id = gs_dict['pub_id']
+        print self.pub_id
         if self.pub_id is not None:
             try:
                 self.publication = Publication(gs_dict)
