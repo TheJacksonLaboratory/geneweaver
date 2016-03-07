@@ -1026,11 +1026,6 @@ def buGenesetValues(gs):
             prbid = sym2probe[sym]
             odes = prb2odes[prbid]
 
-            print sym
-            print prbid
-            print odes
-            return (0, 0)
-
             if not prbid or not odes:
                 err = ("Error! There doesn't seem to be any gene/locus data for "
                        "%s in the database." % sym)
@@ -1049,8 +1044,6 @@ def buGenesetValues(gs):
                     noncrit.append(err)
                     continue
 
-                print value
-                print type(value)
                 db.insertGenesetValue(gs['gs_id'], ode, value, sym,
                                       'true')
                                       #gs['gs_threshold'])
