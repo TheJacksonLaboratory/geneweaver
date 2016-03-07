@@ -1000,7 +1000,6 @@ def buGenesetValues(gs):
         sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
 
     else:
-        print 'gt: %s' % gs['gs_gene_id_type']
         sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
         prbids = []
 

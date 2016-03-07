@@ -626,7 +626,6 @@ def render_editgeneset_genes(gs_id):
         view = None
 
     if not geneset:
-        print 'fucked'
         return flask.render_template('editgenesetsgenes.html', geneset=geneset,
                                      user_id=user_id)
 
@@ -641,8 +640,10 @@ def render_editgeneset_genes(gs_id):
     pidts = {}
     for id in idTypes:
         gidts[id['gdb_id']] = id['gdb_shortname']
+
     for p in platform:
-        pidts[p['pf_shortname']] = p['pf_name']
+        pidts[p['pf_id']] = p['pf_name']
+
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
                                  gidts=gidts, pidts=pidts, view=view, meta=meta)
 
