@@ -2415,6 +2415,11 @@ def page_not_found(e):
 
 @app.errorhandler(Exception)
 def internal_server_error(e):
+    print e
+    print flask.request
+    print flask.request.args
+    print flask.request.headers
+    print session
     return error.internal_server_error(e)
 
 if __name__ == '__main__':
@@ -2431,11 +2436,13 @@ if __name__ == '__main__':
 	#print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
 	#print '==================================================='
 
-	app.secret_key = config.get('application', 'secret')
-	app.debug = True
+    app.secret_key = config.get('application', 'secret')
+    app.debug = True
 
-	if config.get('application', 'host'):
-		app.run(host=config.get('application', 'host'))
+    app.logger.addHandler(error.stream_handler)
+
+    if config.get('application', 'host'):
+        app.run(host=config.get('application', 'host'))
 	
-	else:
+    else:
 		app.run()

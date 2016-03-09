@@ -4,10 +4,67 @@
 ## administrator about the nature of the error.
 #
 import flask
-from application import app
+import logging
+import sys
+from datetime import datetime
+from flask import request, session
+from logging import StreamHandler
+from logging import Formatter
+
+stream_handler = StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.WARNING)
+stream_handler.setFormatter(Formatter('''
+Message type:       %(levelname)s
+Location:           %(pathname)s:%(lineno)d
+Module:             %(module)s
+Function:           %(funcName)s
+Time:               %(asctime)s
+
+Message:
+
+%(message)s
+'''))
 
 #app = flask.Flask(__name__)
 
+def format_error_message(e):
+    """
+    Formats message containing information about the exception that
+    occurred and the circumstances that caused it.
+    """
+    info = '''
+URL:            %s
+Request type:   %s
+IP:             %s
+User agent:     %s
+Time:           %s
+User ID:        %s
+Exception:      %s
+'''
+    args = ''
+    form = ''
+
+    if session and 'usr_id' in session:
+        usr_id = session['usr_id']
+    else:
+        usr_id = 'Guest'
+
+    info = info % (request.url, request.method, request.remote_addr,
+                   request.headers['User-Agent'], datetime.now(), usr_id, e)
+
+    if not request.args:
+        args = 'Request args: None'
+    else:
+        args = 'Request args: ' + str(request.args)
+
+    if not request.form:
+        form = 'Form data: None'
+    else:
+        form = 'Form data: ' + str(request.form)
+
+    msg = info + '\n' + args + '\n\n' + form
+
+    return msg
 
 def bad_request(e):
     """
@@ -50,5 +107,7 @@ def internal_server_error(e):
     application component has shit the bed), the function shoots off a couple
     emails containing urls, stack traces, and user information.
     """
+
+    print format_error_message(e)
 
     return flask.render_template('error/500.html')
