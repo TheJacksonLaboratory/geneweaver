@@ -51,4 +51,4 @@ def internal_server_error(e):
     emails containing urls, stack traces, and user information.
     """
 
-    return flask.render_template('error/404.html')
+    return flask.render_template('error/500.html')

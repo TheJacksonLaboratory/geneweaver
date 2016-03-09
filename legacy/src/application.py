@@ -2413,6 +2413,10 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 def page_not_found(e):
     return error.page_not_found(e)
 
+@app.errorhandler(Exception)
+def internal_server_error(e):
+    return error.internal_server_error(e)
+
 if __name__ == '__main__':
 
 	#config.loadConfig()
