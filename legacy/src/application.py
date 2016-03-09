@@ -9,6 +9,7 @@ import config
 import adminviews
 import genesetblueprint
 import geneweaverdb
+import error
 import uploadfiles
 import json
 import os
@@ -2404,6 +2405,13 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 # END API BLOCK
 # ********************************************
 
+# ********************************************
+# EXCEPTION HANDLING
+# ********************************************
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return error.page_not_found(e)
 
 if __name__ == '__main__':
 
