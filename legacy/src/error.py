@@ -85,6 +85,10 @@ Exception:      %s
 
     if asciisession and 'usr_id' in asciisession:
         usr_id = asciisession['usr_id']
+    ## There's seriously a fucking page somewhere that puts user_id instead
+    ## of usr_id. I have yet to find it.
+    elif asciisession and 'user_id' in asciisession:
+        usr_id = asciisession['user_id']
     else:
         usr_id = 'Guest'
 
