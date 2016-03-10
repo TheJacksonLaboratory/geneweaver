@@ -2474,7 +2474,7 @@ if __name__ == '__main__':
     app.secret_key = config.get('application', 'secret')
     app.debug = True
 
-    app.register_error_handler('404', error.page_not_found)
+    app.register_error_handler(404, error.page_not_found)
     app.register_error_handler(Exception, error.internal_server_error)
     #if not app.debug:
     #    app.register_error_handler('404', error.page_not_found)

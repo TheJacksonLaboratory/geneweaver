@@ -169,7 +169,7 @@ def internal_server_error(e):
     ## later print it.
     exc = exc_info()
 
-    errmsg = format_error_message(e)
+    errmsg = format_error_message(exc)
     send_sos(errmsg)
 
     return flask.render_template('error/500.html')
