@@ -4,6 +4,7 @@ from flask.ext.admin.base import MenuLink
 from flask.ext import restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
+from sys import exc_info
 from urlparse import parse_qs, urlparse
 import config
 import adminviews
@@ -2415,7 +2416,14 @@ def page_not_found(e):
 
 @app.errorhandler(Exception)
 def internal_server_error(e):
-    return error.internal_server_error(e)
+
+    ## This grabs the exception info and traceback for the last exception
+    ## that occurred. If we give the exception/traceback passed to this
+    ## function (argument e), the stack trace will be incorrect when we
+    ## later print it.
+    exc = exc_info()
+
+    return error.internal_server_error(exc)
 
 if __name__ == '__main__':
 

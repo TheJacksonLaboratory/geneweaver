@@ -4,10 +4,36 @@
 ## administrator about the nature of the error.
 #
 import flask
+import smtplib
 import traceback
-import os
 from datetime import datetime
+from email.mime.text import MIMEText
 from flask import request, session
+
+## List of people to email about errors
+HELPERS = ['timothy_reynolds@baylor.edu']
+
+def send_sos(msg):
+    """
+    Sends an email to a list of people with details about an error that
+    occurred.
+    """
+
+    me = 'sos@geneweaver.org'
+
+    msg = MIMEText(msg)
+    msg['Subject'] = 'GeneWeaver needs your help!'
+    msg['From'] = me
+    msg['To'] = ', '.join(HELPERS)
+
+    try:
+        s = smtplib.SMTP('localhost')
+        s.sendmail(me, HELPERS, msg.as_string())
+        s.quit()
+
+    ## The most common reason for this failing is the SMTP server isn't running
+    except smtplib.SMTPException:
+        pass
 
 def format_error_message(e):
     """
@@ -106,5 +132,6 @@ def internal_server_error(e):
     """
 
     errmsg = format_error_message(e)
+    send_sos(errmsg)
 
     return flask.render_template('error/500.html')
