@@ -172,20 +172,24 @@
                 </div>
                 <div class="row">
                     <div style="">
-                        <ul>
+                        <ul style="list-style-type:disc">
                             {% for ont in ontology %}
                                 <li>
-                                    <div class="row">
-                                        <div class="col-md-2" style="text-align:left;">
-                                            {{ ont.reference_id }}
-                                        </div>
-                                        <div class="col-md-3" style="text-align:left;">
-                                            {{ ont.name }}
-                                        </div>
-                                        <div class="col-md-3" style="text-align:left;">
-                                            {{ ont.dbname }}
-                                        </div>
-                                    </div>
+                                    <!--
+                                    <span style="color:#006400;">
+                                    -->
+                                    <span style="color:#000;">
+                                        {{ ont.reference_id }}:
+                                    </span>
+                                    <span style="color:#000;font-weight:bold;">
+                                        {{ ont.name }}
+                                    </span>
+                                    <!--
+                                    <span style="color:#5cb85c;">
+                                    -->
+                                    <span style="color:#777;">
+                                        ({{ ont.dbname }})
+                                    </span>
                                 </li>
                             {% endfor %}
                         </ul>
@@ -240,6 +244,7 @@
                         }
                     })
                 });
+                 */
 
                 //Popover that gives Geneset Ontology functionality overview for the user
                 //Displayed when ontologies are linked with the geneset
@@ -248,6 +253,5 @@
                         'shown below as the highlighted nodes within the ontology databases. Only available to edit ' +
                         'on Edit MetaData page.'
                 });
-                */
             </script>
         </div>

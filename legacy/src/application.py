@@ -372,8 +372,8 @@ def update_geneset_ontology_db():
 
 
 @app.route('/initOntTree')
-def init_ont_tree():
-#def init_ont_tree(gsid):
+#def init_ont_tree():
+def init_ont_tree(gsid):
     # ##########################################
     # Initializes the ontology dynatree. If
     #	there are no geneset-ontology links, the
@@ -388,10 +388,10 @@ def init_ont_tree():
     # ##########################################
 
     ## These two variables were obtained this way when this was an AJAX call
-    gs_id = request.args['gs_id']
-    gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
-    #gs_id = gsid
-    #gso_ref_type = 'All Reference Types'
+    #gs_id = request.args['gs_id']
+    #gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
+    gs_id = gsid
+    gso_ref_type = 'All Reference Types'
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
     ontdb = geneweaverdb.get_all_ontologydb()
     ontdbdict = {}
@@ -403,11 +403,6 @@ def init_ont_tree():
 
     ## Format ontologies for display, only send the min. requirements
     for ont in onts:
-        if ont.name == 'Polymerase Chain Reaction':
-            print ont.name
-            print ont.ontdb_id
-            print ont.reference_id
-
         o = {'reference_id': ont.reference_id, 'name': ont.name,
              'dbname': ontdbdict[ont.ontdb_id].name }
 
