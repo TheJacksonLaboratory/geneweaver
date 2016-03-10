@@ -2417,6 +2417,7 @@ def page_not_found(e):
 @app.errorhandler(Exception)
 def internal_server_error(e):
 
+    print 'wut'
     ## This grabs the exception info and traceback for the last exception
     ## that occurred. If we give the exception/traceback passed to this
     ## function (argument e), the stack trace will be incorrect when we

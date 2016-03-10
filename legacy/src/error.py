@@ -13,6 +13,16 @@ from flask import request, session
 ## List of people to email about errors
 HELPERS = ['timothy_reynolds@baylor.edu']
 
+def write_sos(msg):
+    """
+    A backup function that is called when sending an error email fails.
+    Appends the error message to a file.
+    """
+
+    with open('gw-exceptions.txt', 'a') as fl:
+        print >> fl, ''
+        print >> fl, msg
+
 def send_sos(msg):
     """
     Sends an email to a list of people with details about an error that
@@ -21,19 +31,20 @@ def send_sos(msg):
 
     me = 'sos@geneweaver.org'
 
-    msg = MIMEText(msg)
-    msg['Subject'] = 'GeneWeaver needs your help!'
-    msg['From'] = me
-    msg['To'] = ', '.join(HELPERS)
+    emsg = MIMEText(msg)
+    emsg['Subject'] = 'GeneWeaver needs your help!'
+    emsg['From'] = me
+    emsg['To'] = ', '.join(HELPERS)
 
     try:
         s = smtplib.SMTP('localhost')
-        s.sendmail(me, HELPERS, msg.as_string())
+        s.sendmail(me, HELPERS, emsg.as_string())
         s.quit()
 
     ## The most common reason for this failing is the SMTP server isn't running
-    except smtplib.SMTPException:
-        pass
+    except Exception, e:
+        write_sos('Email failed with ' + str(e))
+        write_sos(msg)
 
 def format_error_message(e):
     """
@@ -53,6 +64,33 @@ Exception:      %s
     args = ''
     form = ''
     stack = 'Stack trace:\n'
+    exception = traceback.format_exception_only(e[0], e[1])[0]
+
+    #for ln in traceback.format_stack(limit=40):
+    #for ln in traceback.format_exception(*e):
+    for ln in traceback.format_tb(e[2]):
+        stack += '\t' + ln
+
+    asciisession = {}
+
+    ## Damn unicode shitting over everything
+    for key, val in session.items():
+        if type(key) == unicode:
+            key = key.encode('ascii', 'ignore')
+
+        if type(val) == unicode:
+            val = val.encode('ascii', 'ignore')
+
+        asciisession[key] = val
+
+    if asciisession and 'usr_id' in asciisession:
+        usr_id = asciisession['usr_id']
+    else:
+        usr_id = 'Guest'
+
+    info = info % (request.url, request.method, request.remote_addr,
+                   request.headers['User-Agent'], datetime.now(), usr_id,
+                   exception)
 
     for ln in traceback.format_stack():
         stack += '\t' + ln
