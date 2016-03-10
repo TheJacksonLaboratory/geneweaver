@@ -92,17 +92,6 @@ Exception:      %s
                    request.headers['User-Agent'], datetime.now(), usr_id,
                    exception)
 
-    for ln in traceback.format_stack():
-        stack += '\t' + ln
-
-    if session and 'usr_id' in session:
-        usr_id = session['usr_id']
-    else:
-        usr_id = 'Guest'
-
-    info = info % (request.url, request.method, request.remote_addr,
-                   request.headers['User-Agent'], datetime.now(), usr_id, e)
-
     if not request.args:
         args = 'Request args: None'
     else:
