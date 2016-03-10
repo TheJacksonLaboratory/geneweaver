@@ -2442,20 +2442,20 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 # EXCEPTION HANDLING
 # ********************************************
 
-@app.errorhandler(404)
-def page_not_found(e):
-    return error.page_not_found(e)
-
-@app.errorhandler(Exception)
-def internal_server_error(e):
-
-    ## This grabs the exception info and traceback for the last exception
-    ## that occurred. If we give the exception/traceback passed to this
-    ## function (argument e), the stack trace will be incorrect when we
-    ## later print it.
-    exc = exc_info()
-
-    return error.internal_server_error(exc)
+#@app.errorhandler(404)
+#def page_not_found(e):
+#    return error.page_not_found(e)
+#
+#@app.errorhandler(Exception)
+#def internal_server_error(e):
+#
+#    ## This grabs the exception info and traceback for the last exception
+#    ## that occurred. If we give the exception/traceback passed to this
+#    ## function (argument e), the stack trace will be incorrect when we
+#    ## later print it.
+#    exc = exc_info()
+#
+#    return error.internal_server_error(exc)
 
 if __name__ == '__main__':
 
@@ -2474,6 +2474,8 @@ if __name__ == '__main__':
     app.secret_key = config.get('application', 'secret')
     app.debug = True
 
+    app.register_error_handler('404', error.page_not_found)
+    app.register_error_handler(Exception, error.internal_server_error)
     #if not app.debug:
     #    app.register_error_handler('404', error.page_not_found)
     #    app.register_error_handler(Exception, error.internal_server_error)

@@ -9,6 +9,7 @@ import traceback
 from datetime import datetime
 from email.mime.text import MIMEText
 from flask import request, session
+from sys import exc_info
 
 ## List of people to email about errors
 HELPERS = ['timothy_reynolds@baylor.edu']
@@ -161,6 +162,12 @@ def internal_server_error(e):
     application component has shit the bed), the function shoots off a couple
     emails containing urls, stack traces, and user information.
     """
+
+    ## This grabs the exception info and traceback for the last exception
+    ## that occurred. If we give the exception/traceback passed to this
+    ## function (argument e), the stack trace will be incorrect when we
+    ## later print it.
+    exc = exc_info()
 
     errmsg = format_error_message(e)
     send_sos(errmsg)
