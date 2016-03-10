@@ -171,13 +171,33 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div style="border: 1px solid #afafaf;">
+                    <div style="">
+                        <ul>
+                            {% for ont in ontology %}
+                                <li>
+                                    <div class="row">
+                                        <div class="col-md-2" style="text-align:left;">
+                                            {{ ont.reference_id }}
+                                        </div>
+                                        <div class="col-md-3" style="text-align:left;">
+                                            {{ ont.name }}
+                                        </div>
+                                        <div class="col-md-3" style="text-align:left;">
+                                            {{ ont.dbname }}
+                                        </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <!--
                         <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
+                        -->
                     </div>
                 </div>
             </div>
 
             <script>
+                /*
                 $(function(){
                     //Initialize dynatree data and functions
                     $("#tree").dynatree({
@@ -228,5 +248,6 @@
                         'shown below as the highlighted nodes within the ontology databases. Only available to edit ' +
                         'on Edit MetaData page.'
                 });
+                */
             </script>
         </div>

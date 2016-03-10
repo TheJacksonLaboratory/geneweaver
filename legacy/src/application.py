@@ -373,6 +373,7 @@ def update_geneset_ontology_db():
 
 @app.route('/initOntTree')
 def init_ont_tree():
+#def init_ont_tree(gsid):
     # ##########################################
     # Initializes the ontology dynatree. If
     #	there are no geneset-ontology links, the
@@ -385,9 +386,39 @@ def init_ont_tree():
     #		 gso_ref_type)
     # return: JSON object containing init info
     # ##########################################
+
+    ## These two variables were obtained this way when this was an AJAX call
     gs_id = request.args['gs_id']
-    gso_ref_type = request.args['universe']
+    gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
+    #gs_id = gsid
+    #gso_ref_type = 'All Reference Types'
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
+    ontdb = geneweaverdb.get_all_ontologydb()
+    ontdbdict = {}
+    ontret = []
+
+    ## Convert ontdb references to a dict so they're easier to lookup
+    for ont in ontdb:
+        ontdbdict[ont.ontologydb_id] = ont
+
+    ## Format ontologies for display, only send the min. requirements
+    for ont in onts:
+        if ont.name == 'Polymerase Chain Reaction':
+            print ont.name
+            print ont.ontdb_id
+            print ont.reference_id
+
+        o = {'reference_id': ont.reference_id, 'name': ont.name,
+             'dbname': ontdbdict[ont.ontdb_id].name }
+
+        ontret.append(o)
+
+    ## Prior to these changes, this function was called by an AJAX call which
+    ## then loaded everything into DynaTree. Since, we're just exporting a list
+    ## now, it's easier to have render_viewgeneset call this function and pass
+    ## the data through to the template. The code below is left just in case we
+    ## want to use the DynaTree implementation some other time or modify it.
+    return ontret
 
     parentdict = {}
 
@@ -912,8 +943,14 @@ def render_viewgeneset(gs_id):
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
-    return flask.render_template('viewgenesetdetails.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view)
+
+    ontology = init_ont_tree(gs_id)
+
+    return flask.render_template('viewgenesetdetails.html', geneset=geneset,
+                                 emphgeneids=emphgeneids, user_id=user_id,
+                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
+                                 altGeneSymbol=altGeneSymbol, view=view,
+                                 ontology=ontology)
 
 
 # Function that calls the overlap page
@@ -2441,6 +2478,10 @@ if __name__ == '__main__':
 
     app.secret_key = config.get('application', 'secret')
     app.debug = True
+
+    #if not app.debug:
+    #    app.register_error_handler('404', error.page_not_found)
+    #    app.register_error_handler(Exception, error.internal_server_error)
 
     if config.get('application', 'host'):
         app.run(host=config.get('application', 'host'))
