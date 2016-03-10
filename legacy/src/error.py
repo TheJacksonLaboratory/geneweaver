@@ -4,9 +4,8 @@
 ## administrator about the nature of the error.
 #
 import flask
-import logging
-import sys
 import traceback
+import os
 from datetime import datetime
 from flask import request, session
 
@@ -15,6 +14,7 @@ def format_error_message(e):
     Formats message containing information about the exception that
     occurred and the circumstances that caused it.
     """
+
     info = '''
 URL:            %s
 Request type:   %s
@@ -59,7 +59,6 @@ Exception:      %s
             val = val.encode('ascii', 'ignore')
             form += '\t%s: %s\n' % (key, val)
 
-    #msg = stack + '\n' + info + '\n\n' + args + '\n\n' + form
     msg = info + '\n' + args + '\n\n' + form + '\n\n' + stack
 
     return msg
@@ -106,6 +105,6 @@ def internal_server_error(e):
     emails containing urls, stack traces, and user information.
     """
 
-    print format_error_message(e)
+    errmsg = format_error_message(e)
 
     return flask.render_template('error/500.html')

@@ -2415,11 +2415,6 @@ def page_not_found(e):
 
 @app.errorhandler(Exception)
 def internal_server_error(e):
-    print e
-    print flask.request
-    print flask.request.args
-    print flask.request.headers
-    print session
     return error.internal_server_error(e)
 
 if __name__ == '__main__':
