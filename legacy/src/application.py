@@ -2439,8 +2439,6 @@ if __name__ == '__main__':
     app.secret_key = config.get('application', 'secret')
     app.debug = True
 
-    app.logger.addHandler(error.stream_handler)
-
     if config.get('application', 'host'):
         app.run(host=config.get('application', 'host'))
 	

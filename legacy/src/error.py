@@ -6,26 +6,9 @@
 import flask
 import logging
 import sys
+import traceback
 from datetime import datetime
 from flask import request, session
-from logging import StreamHandler
-from logging import Formatter
-
-stream_handler = StreamHandler(sys.stdout)
-stream_handler.setLevel(logging.WARNING)
-stream_handler.setFormatter(Formatter('''
-Message type:       %(levelname)s
-Location:           %(pathname)s:%(lineno)d
-Module:             %(module)s
-Function:           %(funcName)s
-Time:               %(asctime)s
-
-Message:
-
-%(message)s
-'''))
-
-#app = flask.Flask(__name__)
 
 def format_error_message(e):
     """
@@ -43,6 +26,10 @@ Exception:      %s
 '''
     args = ''
     form = ''
+    stack = 'Stack trace:\n'
+
+    for ln in traceback.format_stack():
+        stack += '\t' + ln
 
     if session and 'usr_id' in session:
         usr_id = session['usr_id']
@@ -55,14 +42,25 @@ Exception:      %s
     if not request.args:
         args = 'Request args: None'
     else:
-        args = 'Request args: ' + str(request.args)
+        args = 'Request args:\n'
+
+        for key, val in request.args.items():
+            key = key.encode('ascii', 'ignore')
+            val = val.encode('ascii', 'ignore')
+            args += '\t%s: %s\n' % (key, val)
 
     if not request.form:
         form = 'Form data: None'
     else:
-        form = 'Form data: ' + str(request.form)
+        form = 'Form data:\n'
 
-    msg = info + '\n' + args + '\n\n' + form
+        for key, val in request.form.items():
+            key = key.encode('ascii', 'ignore')
+            val = val.encode('ascii', 'ignore')
+            form += '\t%s: %s\n' % (key, val)
+
+    #msg = stack + '\n' + info + '\n\n' + args + '\n\n' + form
+    msg = info + '\n' + args + '\n\n' + form + '\n\n' + stack
 
     return msg
 
