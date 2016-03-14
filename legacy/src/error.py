@@ -12,7 +12,7 @@ from flask import request, session
 from sys import exc_info
 
 ## List of people to email about errors
-HELPERS = ['timothy_reynolds@baylor.edu']
+DEVS = ['timothy_reynolds@baylor.edu']
 
 def write_sos(msg):
     """
@@ -35,7 +35,7 @@ def send_sos(msg):
     emsg = MIMEText(msg)
     emsg['Subject'] = 'GeneWeaver needs your help!'
     emsg['From'] = me
-    emsg['To'] = ', '.join(HELPERS)
+    emsg['To'] = ', '.join(DEVS)
 
     try:
         s = smtplib.SMTP('localhost')

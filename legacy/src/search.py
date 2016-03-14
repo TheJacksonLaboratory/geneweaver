@@ -220,11 +220,15 @@ def getSearchFilterValues(query):
     glow = srange['matches'][0]['attrs']['low']
     ghigh = srange['matches'][0]['attrs']['high']
 
-    ## Status counts, the first match are deprecateds, the second provisionals
-    ## the third are all other statuses.
-    ## (gs_status = 1) == provisional; 2 == deprecated
-    provs = status['matches'][0]['attrs']['@count']
-    deps = status['matches'][1]['attrs']['@count']
+    provs = 0
+    deps = 0
+
+    ## Status counts: 1 == provisional, 2 == deprecated, 0 = everything else
+    for match in status['matches']:
+        if match['attrs']['gs_status'] == 1:
+            provs = match['attrs']['@count']
+        elif match['attrs']['gs_status'] == 2:
+            deps = match['attrs']['@count']
 
     status_counts = {'provisional': provs, 'deprecated': deps}
 
