@@ -230,6 +230,12 @@ def download_bmp(task_id):
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
+
+    if async_result.state == states.FAILURE:
+        ## No bicliques were found
+        if str(async_result.result) == 'No bicliques':
+            return flask.render_template('analyze.html')
+
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     resultpath = config.get('application', 'results')
     if async_result.state in states.PROPAGATE_STATES:

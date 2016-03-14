@@ -21,6 +21,7 @@ celery_app.conf.update(
     CELERY_TASK_RESULT_EXPIRES=None,
     CELERYD_TASK_SOFT_TIME_LIMIT=600,
     CELERYD_TASK_TIME_LIMIT=600,
+    CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
 )
 
 geneset_html_id_prefix = "geneset_"
