@@ -2474,11 +2474,14 @@ if __name__ == '__main__':
     app.secret_key = config.get('application', 'secret')
     app.debug = True
 
-    app.register_error_handler(404, error.page_not_found)
-    app.register_error_handler(Exception, error.internal_server_error)
-    #if not app.debug:
-    #    app.register_error_handler('404', error.page_not_found)
-    #    app.register_error_handler(Exception, error.internal_server_error)
+    ## Register error handlers, should be turned off during debugging since
+    ## stack traces are printed then
+    if not app.debug:
+        app.register_error_handler(400, error.bad_request)
+        app.register_error_handler(401, error.unauthorized)
+        app.register_error_handler(403, error.forbidden)
+        app.register_error_handler(404, error.page_not_found)
+        app.register_error_handler(Exception, error.internal_server_error)
 
     if config.get('application', 'host'):
         app.run(host=config.get('application', 'host'))
