@@ -236,20 +236,9 @@ def view_result(task_id):
     ## doing this is really, REALLY shady. The exception handling for this
     ## tool seriously needs to be rewritten.
     if async_result.state == states.FAILURE:
-            new_location = flask.url_for('render_analyze')
-            print new_location
-            response = flask.make_response(flask.render_template('analyze.html'))
-            response.status_code = 303
-            response.headers['location'] = '/analyze' #new_location
-
-            print async_result.result
-            return flask.render_template(
-                'tool/PhenomeMap_result.html',
-                state='FAILURE',
-                async_result=json.loads(str(async_result.result)),
-                tool=tool)
-            #return response
-            #return flask.render_template('analyze.html')
+            return flask.render_template('tool/PhenomeMap_result.html',
+                state='FAILURE', tool=tool
+                async_result=json.loads(str(async_result.result)))
 
     resultpath = config.get('application', 'results')
     if async_result.state in states.PROPAGATE_STATES:
