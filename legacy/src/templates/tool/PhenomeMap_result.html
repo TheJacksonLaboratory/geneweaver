@@ -98,6 +98,16 @@
 {% endif %}
 
 
+{% if state == 'FAILURE' %}
+    <div class="panel-body bg-red p-15" style="text-align:center">
+        <strong>
+            No bicliques were found during the analysis. Try running the
+            tool again using different parameters.
+        </strong>
+    </div>
+    <br />
+{% endif %}
+
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">
@@ -182,6 +192,7 @@
         </div>
     </div>
 </form>
+
 
 {#
     TEAM HISIM GRAPH NOTES:

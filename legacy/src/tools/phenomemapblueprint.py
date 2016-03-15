@@ -230,13 +230,27 @@ def download_bmp(task_id):
 def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
-
-    if async_result.state == states.FAILURE:
-        ## No bicliques were found
-        if str(async_result.result) == 'No bicliques':
-            return flask.render_template('analyze.html')
-
     tool = gwdb.get_tool(TOOL_CLASSNAME)
+
+    ## If HiSim fails, it's most likely because no bicliques were found but
+    ## doing this is really, REALLY shady. The exception handling for this
+    ## tool seriously needs to be rewritten.
+    if async_result.state == states.FAILURE:
+            new_location = flask.url_for('render_analyze')
+            print new_location
+            response = flask.make_response(flask.render_template('analyze.html'))
+            response.status_code = 303
+            response.headers['location'] = '/analyze' #new_location
+
+            print async_result.result
+            return flask.render_template(
+                'tool/PhenomeMap_result.html',
+                state='FAILURE',
+                async_result=json.loads(str(async_result.result)),
+                tool=tool)
+            #return response
+            #return flask.render_template('analyze.html')
+
     resultpath = config.get('application', 'results')
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
