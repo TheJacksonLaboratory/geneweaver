@@ -237,7 +237,7 @@ def view_result(task_id):
     ## tool seriously needs to be rewritten.
     if async_result.state == states.FAILURE:
             return flask.render_template('tool/PhenomeMap_result.html',
-                state='FAILURE', tool=tool
+                state='FAILURE', tool=tool,
                 async_result=json.loads(str(async_result.result)))
 
     resultpath = config.get('application', 'results')
