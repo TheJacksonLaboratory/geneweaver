@@ -98,11 +98,13 @@
 {% endif %}
 
 
+{#
 {% if state == 'FAILURE' %}
+ #}
+{% if async_result.error %}
     <div class="panel-body bg-red p-15" style="text-align:center">
         <strong>
-            No bicliques were found during the analysis. Try running the
-            tool again using different parameters.
+            {{ async_result.error }}
         </strong>
     </div>
     <br />
