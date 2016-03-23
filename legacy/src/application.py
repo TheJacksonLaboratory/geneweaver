@@ -415,7 +415,19 @@ def init_ont_tree(gsid):
     ## want to use the DynaTree implementation some other time or modify it.
     return ontret
 
+@app.route('/initOntTree2')
+def init_ont_tree2():
     parentdict = {}
+    gs_id = request.args['gs_id']
+    gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
+    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
+    ontdb = geneweaverdb.get_all_ontologydb()
+    ontdbdict = {}
+    ontret = []
+
+    ## Convert ontdb references to a dict so they're easier to lookup
+    for ont in ontdb:
+        ontdbdict[ont.ontologydb_id] = ont
 
     for ont in onts:
         ## Path is a list of lists since there may be more than one
@@ -672,8 +684,10 @@ def render_editgeneset_genes(gs_id):
     for p in platform:
         pidts[p['pf_id']] = p['pf_name']
 
+    ontology = init_ont_tree(gs_id)
+
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
-                                 gidts=gidts, pidts=pidts, view=view, meta=meta)
+                                 gidts=gidts, pidts=pidts, view=view, meta=meta, ontology=ontology)
 
 
 @app.route('/setthreshold/<int:gs_id>')
