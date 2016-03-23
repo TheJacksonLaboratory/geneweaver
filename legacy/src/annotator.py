@@ -221,7 +221,8 @@ def filter_monarch_annotations(annots, onts):
 
 def annotate_text(text, onts):
     """
-    Annotates a chunk of text to various ontologies.
+    Annotates a chunk of text to various ontologies using the NCBO and MI
+    annotation services.
 
     :arg str: the text to annotate
     :arg list: ontologies to use during the annotation
@@ -244,6 +245,58 @@ def annotate_text(text, onts):
     ncbo_onts = list(set(ncbo_onts) - set(mi_onts))
 
     return (mi_onts, ncbo_onts)
+
+def insert_annotations(dbcur, gsid, desc, abstract):
+    """
+
+    :arg obj:
+    :arg int:
+    :arg str:
+    :arg str:
+    :ret:
+    """
+
+    ## We annotate descriptions and publications separately to mark them as
+    ## such.
+    for refsrc in ['Description', 'Publication']:
+        if refsrc == 'Description':
+            text = desc
+
+        elif abstract and refsrc == 'Publication':
+            text = abstract
+
+        else:
+            continue
+
+        ## ONT_IDS should eventually be changed to a DB call that retrieves a
+        ## list of available ontologies instead of hardcoded values
+        (mi_annos, ncbo_annos) = annotate_text(text, ONT_IDS)
+
+        ## SQL taken from the curation_server to insert new annotations
+        ## Should eventually be moved into geneweaverdb
+        mi_sql = '''INSERT INTO
+                        extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
+                    SELECT %s, ont_id, %s||', MI Annotator'
+                    FROM extsrc.ontology
+                    WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));'''
+        ncbo_sql = '''INSERT INTO
+                          extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
+                      SELECT %s, ont_id, %s||', NCBO Annotator'
+                      FROM extsrc.ontology
+                      WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));'''
+        black_sql = '''SELECT ont_id
+                       FROM extsrc.geneset_ontology
+                       WHERE gs_id=%s AND gso_ref_type='Blacklist';'''
+
+        dbcur.execute(black_sql, (gsid,))
+        blacklisted = [str(x[0]) for x in dbcur]
+
+        mi_data = (gsid, refsrc, '{'+','.join(mi_annos)+'}', '{'+','.join(blacklisted)+'}')
+        ncbo_data = (gsid, refsrc, '{'+','.join(ncbo_annos)+'}', '{'+','.join(blacklisted)+'}')
+
+        dbcur.execute(mi_sql, mi_data)
+        dbcur.execute(ncbo_sql, ncbo_data)
+        dbcur.connection.commit()
 
     ## SQL taken from the curation_server
     #mi_sql = '''INSERT INTO
