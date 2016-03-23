@@ -34,6 +34,9 @@ def fetch_ncbo_annotations(text, ncboids):
     :ret list: list of annotation IDs
     """
 
+    ## Only ascii!
+    text = text.encode('ascii', 'ignore')
+
     ncboids = list(set(ncboids))
     ncboids = map(str, ncboids)
     ncboids = ','.join(ncboids)
@@ -149,6 +152,9 @@ def fetch_monarch_annotations(text):
     :arg str: the text to annotate
     :ret list: list of annotation IDs
     """
+
+    ## Only ascii!
+    text = text.encode('ascii', 'ignore')
 
     ## If longestOnly == true, the annotator will always use the longest match
     params = {'content': text, 'longestOnly': 'false'}
