@@ -9,6 +9,7 @@ import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 from urlparse import parse_qs, urlparse
 from flask import session
+import batch
 
 
 
@@ -121,9 +122,12 @@ def create_new_geneset(args):
 
     try:
         if form_text is not None:
+            ## REMEMBER TO UNCOMMENT LOL
             file_id = insert_new_contents_to_file(form_text)
+            pass
     except:
         return {'error': 'File upload text is empty'}
+
 
     ## Set permissions and cur id
     permissions = formData['permissions'][0]
@@ -152,6 +156,28 @@ def create_new_geneset(args):
             print 'Inserted gs_id: ' + str(gs_id)
     except psycopg2.Error as e:
         return {'error': e}
+
+    ## For some reason this function was missing the part where geneset values
+    ## are inserted, so I'm just using the batch upload's version of this.
+    gs_values = form_text.split('\n')
+    gs_values = map(lambda s: s.encode('ascii', 'ignore'), gs_values)
+    gs_values = map(lambda s: s.split(), gs_values)
+
+    ## Generate a minimal geneset for the batch system's value upload
+    gs = {'gs_id': gs_id,
+          'gs_gene_id_type': gene_identifier,
+          'sp_id': formData['sp_id'][0],
+          'values': gs_values,
+          'gs_threshold': 1}
+
+    ## TODO
+    ## Doesn't do error checking or ensuring the number of genes added matches
+    ## the current gs_count
+    vals = batch.buGenesetValues(gs)
+
+    batch.db.commit()
+    #print vals
+
     return {'error': 'None', 'gs_id': gs_id}
 
 def create_temp_geneset_from_value(gsid):
