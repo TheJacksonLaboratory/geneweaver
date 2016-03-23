@@ -10,6 +10,7 @@ from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_
 from urlparse import parse_qs, urlparse
 from flask import session
 import batch
+import annotator as ann
 
 
 
@@ -170,6 +171,9 @@ def create_new_geneset(args):
           'values': gs_values,
           'gs_threshold': 1}
 
+    with PooledCursor() as cursor:
+        ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
+                               pubDict['pub_abstract'])
     ## TODO
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
