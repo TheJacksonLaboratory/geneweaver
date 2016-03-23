@@ -352,7 +352,7 @@ class TheDB():
                  'gsv_value, gsv_hits, gsv_source_list, gsv_value_list, '
                  'gsv_in_threshold, gsv_date) VALUES (%s, %s, %s, 0, %s, %s, '
                  '%s, NOW());')
-        vals = [gs_id, gene_id, value, [name], [float(value)], thresh]
+        vals = [gs_id, gene_id, value, [name], [float(value)], value < thresh]
 
         self.cur.execute(query, vals)
 

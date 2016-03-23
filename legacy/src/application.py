@@ -2438,10 +2438,6 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 # END API BLOCK
 # ********************************************
 
-# ********************************************
-# EXCEPTION HANDLING
-# ********************************************
-
 #@app.errorhandler(404)
 #def page_not_found(e):
 #    return error.page_not_found(e)

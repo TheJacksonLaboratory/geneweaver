@@ -4,6 +4,7 @@ import pubmedsvc
 import urllib2
 import re
 import batch
+import annotator as ann
 from flask import request
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
@@ -120,6 +121,7 @@ def create_batch_geneset():
         return flask.jsonify({'error': batchErrors})
 
     added = []
+    pub = None
 
     for gs in batchFile[0]:
         ## If a PMID was provided, we get the info from NCBI
@@ -159,9 +161,55 @@ def create_batch_geneset():
 
         added.append(gs['gs_id'])
 
-        # Non-critical errors discovered during geneset_value creation
+        ## Non-critical errors discovered during geneset_value creation
         if gsverr[1]:
             batchFile[1].extend(gsverr[1])
+            continue
+
+        ## Annotate the newly added geneset
+        for refsrc in ['Description', 'Publication']:
+            if refsrc == 'Description':
+                text = gs['gs_description']
+
+            elif pub and refsrc == 'Publication':
+                text += pub[0]['pub_abstract']
+
+            else:
+                continue
+
+            ## ONT_IDS should eventually be changed to a DB call that retrieves a
+            ## list of available ontologies instead of hardcoded values
+            (mi_annos, ncbo_annos) = ann.annotate_text(text, ann.ONT_IDS)
+
+            ## SQL taken from the curation_server to insert new annotations
+            ## Should eventually be moved into geneweaverdb
+            mi_sql = '''INSERT INTO
+                          extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
+                        SELECT %s, ont_id, %s||', MI Annotator'
+                        FROM extsrc.ontology
+                        WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));'''
+            ncbo_sql = '''INSERT INTO
+                            extsrc.geneset_ontology (gs_id, ont_id, gso_ref_type)
+                          SELECT %s, ont_id, %s||', NCBO Annotator'
+                          FROM extsrc.ontology
+                          WHERE ont_ref_id=ANY(%s) AND NOT (ont_id=ANY(%s));'''
+            black_sql = '''SELECT ont_id
+                           FROM extsrc.geneset_ontology
+                           WHERE gs_id=%s AND gso_ref_type='Blacklist';'''
+
+            with geneweaverdb.PooledCursor() as cursor:
+                gs_id = gs['gs_id']
+
+                cursor.execute(black_sql, (gs_id,))
+                blacklisted = [str(x[0]) for x in cursor]
+
+                mi_data = (gs_id, refsrc, '{'+','.join(mi_annos)+'}', '{'+','.join(blacklisted)+'}')
+                ncbo_data = (gs_id, refsrc, '{'+','.join(ncbo_annos)+'}', '{'+','.join(blacklisted)+'}')
+
+                cursor.execute(mi_sql, mi_data)
+                cursor.execute(ncbo_sql, ncbo_data)
+                cursor.connection.commit()
+
 
     batch.db.commit()
 
