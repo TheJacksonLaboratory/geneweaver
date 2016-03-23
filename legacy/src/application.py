@@ -1262,7 +1262,7 @@ def get_pubmed_data():
             pmid = args['pmid']
             PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
             # response = http.urlopen('GET', PM_DATA % (','.join([str(x) for x in pmid]),)).read()
-            response = http.urlopen('GET', PM_DATA % (pmid), ).read()
+            response = http.urlopen('GET', PM_DATA % (pmid), preload_content=False).read()
 
             for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
                 article_ids = {}
@@ -1285,7 +1285,7 @@ def get_pubmed_data():
                     fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
                 pmid = article_ids['pubmed'].strip()
 
-                author_matches = re.finditer('<Author [^>]*>(.*?)</Author>', article, re.S)
+                author_matches = re.finditer('<Author[^>]*>(.*?)</Author>', article, re.S)
                 authors = []
                 for match in author_matches:
                     name = ''
@@ -1299,9 +1299,15 @@ def get_pubmed_data():
 
                 authors = ', '.join(authors)
                 v = re.search('<Volume>([^<]*)</Volume>', article, re.S)
-                vol = v.group(1).strip()
+                if v:
+                    vol = v.group(1).strip()
+                else:
+                    vol = ''
                 p = re.search('<MedlinePgn>([^<]*)</MedlinePgn>', article, re.S)
-                pages = p.group(1).strip()
+                if p:
+                    pages = p.group(1).strip()
+                else:
+                    pages = ''
                 pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
                 year = pubdate.group(1).strip()
                 journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
