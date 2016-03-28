@@ -423,13 +423,6 @@ def init_ont_tree2():
     gs_id = request.args['gs_id']
     gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
-    ontdb = geneweaverdb.get_all_ontologydb()
-    ontdbdict = {}
-    ontret = []
-
-    ## Convert ontdb references to a dict so they're easier to lookup
-    for ont in ontdb:
-        ontdbdict[ont.ontologydb_id] = ont
 
     for ont in onts:
         ## Path is a list of lists since there may be more than one
