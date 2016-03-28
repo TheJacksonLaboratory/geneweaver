@@ -340,7 +340,9 @@ def render_editgenesets(gs_id):
         view = None
     if not (user_info.is_admin or user_info.is_curator):
         ref_types = ["Publication, NCBO Annotator",
-                     "Description, NCBO ANnotator",
+                     "Description, NCBO Annotator",
+                     "Publication, MI Annotator",
+                     "Description, MI Annotator",
                      "GeneWeaver Primary Inferred",
                      "Manual Association", ]
     return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
@@ -684,6 +686,7 @@ def render_editgeneset_genes(gs_id):
     for p in platform:
         pidts[p['pf_id']] = p['pf_name']
 
+    ## Ontologies associated with this geneset
     ontology = init_ont_tree(gs_id)
 
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
@@ -953,6 +956,7 @@ def render_viewgeneset(gs_id):
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
 
+    ## Ontologies associated with this geneset
     ontology = init_ont_tree(gs_id)
 
     return flask.render_template('viewgenesetdetails.html', geneset=geneset,
