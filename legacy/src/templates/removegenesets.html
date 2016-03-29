@@ -3,16 +3,22 @@
 {% import 'macros.html' as macros %}
 
 {# Add bootstrap switch #}
-<link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-switch.css') }}"
+{#  <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-switch.css') }}"
           rel="stylesheet">
+          #}
 
 <style type="text/css">
+
+    .center {
+        text-align: center;
+        vertical-align: middle;
+    }
 
     #clickableGenes {
         cursor: pointer;
     }
 
-    #clickableSelectAll{
+    #clickableSelectAll {
         cursor: pointer;
         font-size: smaller;
         color: #006400;
@@ -70,57 +76,51 @@
             <form id="deleteGenesetsFromProjects" name="deleteGenesetsFromProjects" method="post" action="#"
                   class="form-horizontal form-inline" novalidate="novalidate">
 
-            <div class="pull-right">Set All
-                <input type="checkbox" name="my-checkbox" class="switch"
-                       data-on-label="<i class='fa fa-thumbs-up'></i>"
-                       data-on-color="danger" data-off-color="default" checked>
-
-                {#
-                <label>
-                    <input type="checkbox" class="checkItem" id="checkAll" checked="checked"> Check All
-                </label>
-                 #}
-                {# <span id="clickableSelectAll">Select All <i class="fa fa-check-square-o"></i></span>  #}
-            </div>
+                <div class="pull-right">
+                    <label><span>Select All</span>
+                        <input type="checkbox" class="checkItem pull-right" checked="checked" id="mainCheck"/>
+                    </label>
+                </div>
                 <table class="table table-hover table-striped" id="projectGenesets" cellpadding="0" cellspacing="0">
                     <tbody>
-                        <tr>
-                            <th>Project Name</th>
-                            <th>Gene Set Name</th>
-                            <th>Gene Set ID</th>
-                            <th>&nbsp;</th>
-                        </tr>
+                    <tr>
+                        <th>Project Name</th>
+                        <th>Gene Set Name</th>
+                        <th>Gene Set ID</th>
+                        <th>&nbsp;</th>
+                    </tr>
 
-                        {% for i in gs_and_proj %}
-                            <tr>
+                    {% for i in gs_and_proj %}
+                        <tr>
                             <td><strong>{{ i.pj_name }}</strong></td>
                             <td><a href="../viewgenesetdetails/{{ i.gs_id }}">{{ i.gs_name }}</a></td>
                             <td>GS{{ i.gs_id }}</td>
-                            <td width="10">
-                                <input type="checkbox" name="my-checkbox" data-size="small"
-                                       class="switch small" data-off-color="danger" checked>
-                                {#
-                                <div class="ui-checkbox" style="padding: 0; border: 0;">
-                                    <label>
-                                    <input type="checkbox" class="checkItem" checked="checked"
-                                           id="proj-{{ i.pj_id }}-{{ i.gs_id }}"/>
-                                    </label>
-                                </div>
-                                 #}
+                            <td width="50" class="center">
+                                <input type="checkbox" class="checkItem" checked="checked"
+                                       id="proj-{{ i.pj_id }}-{{ i.gs_id }}"/>
                             </td>
-                            </tr>
-                        {% endfor %}
+                        </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </form>
         </div>
+
+        <div class="row">
+            <div class="col-xs-6 col-md-3 pull-right">
+                <button type="button" class="btn btn-lg btn-block btn-warning" id="callRemoveGenesets">
+                    <i class="fa fa-trash-o pull-left"></i> Remove Selected
+                </button>
+            </div>
+        </div>
+
+
     </div>
 
 {% endif %}
 
 <script>
 
-    $('input:checkbox').bootstrapSwitch();
 
     $(window).load(function () {
         $(".loader").fadeOut("slow");
@@ -133,21 +133,20 @@
     $(document).ready(function () {
 
 
-        $("#checkAll").click(function () {
+        $("#mainCheck").on('click', function () {
             //$(".checkItem").prop('checked', $(this).prop('checked'));
-            $('input[type="checkbox"].checkItem').checkbox({checked: false});
+            $(".checkItem").prop('checked', $(this).prop('checked'));
         });
 
     });
 
     $('#clickableGenes').popover({
         title: 'Remove Gene Sets from Selected Projects', content: 'This will remove Gene Sets from Projects. It will' +
-                ' not delete them from your gene set list or the database.'
+        ' not delete them from your gene set list or the database.'
     });
 
 
 </script>
-
 
 
 {% include 'footer.html' %}
