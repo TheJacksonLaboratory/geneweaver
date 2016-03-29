@@ -45,6 +45,20 @@ def createConfig():
         print >> fl, 'port = '
         print >> fl, ''
 
+def checkIntegrity():
+    """
+    Checks to make sure all the key-value pairs have values and fills in any
+    missing spots so the app won't crash later.
+    """
+
+    sections = ['application', 'celery', 'db', 'sphinx']
+
+    for sec in sections:
+        for key, val in CONFIG.items(sec):
+            if not val:
+                val = '0'
+
+                CONFIG.set(sec, key, val)
 
 def loadConfig():
     """
@@ -61,6 +75,7 @@ def loadConfig():
     ## later anyway if any of the parameters are wrong.
     CONFIG.read(CONFIG_PATH)
 
+    checkIntegrity()
 
 def get(section, option):
     """
@@ -80,7 +95,7 @@ def getInt(section, option):
     :ret str: some config value
     """
 
-    return int(get(section, option))
+    return CONFIG.getint(section, option)
 
 ## This config module should be included prior to any others since other parts
 ## of the app may need to access its variables. The config will attempt to load
