@@ -307,7 +307,7 @@
             checkbox: true,
             selectMode: 2,
             initAjax: {
-                url: "/initOntTree2",
+                url: "/initOntTree",
                 data: {
                     "gs_id": $(location).attr("href").split('/').pop(),
                     universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
@@ -349,7 +349,7 @@
     //This refreshes all tree data based on changing gso_ref_type (universe) seen in the gso_ref_type select tag
     $($("#gso_ref_type").change(function () {
         $("#tree").dynatree("option", "initAjax", {
-            url: "/initOntTree2",
+            url: "/initOntTree",
             data: {
                 "gs_id": $(location).attr("href").split('/').pop(),
                 universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML

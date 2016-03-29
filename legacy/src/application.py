@@ -373,25 +373,16 @@ def update_geneset_ontology_db():
     return json.dumps(True)
 
 
-@app.route('/initOntTree')
-#def init_ont_tree():
-def init_ont_tree(gsid):
-    # ##########################################
-    # Initializes the ontology dynatree. If
-    #	there are no geneset-ontology links, the
-    #	intial data consists only of the ontology
-    #	databases.	Otherwise, initial data
-    #	consists, for all geneset-ontology links,
-    #	expansion from the originating database
-    #	down to the geneset-ontology linked node.
-    # param: passed in by ajax data (gs_id,
-    #		 gso_ref_type)
-    # return: JSON object containing init info
-    # ##########################################
+def get_ontology_terms(gsid):
+    """
+    Retrieves ontology terms and metadata for a particular gs_id. For each term
+    the function returns the term name, unique ID (from the ontology), and
+    ontology name.
 
-    ## These two variables were obtained this way when this was an AJAX call
-    #gs_id = request.args['gs_id']
-    #gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
+    :arg int:
+    :ret:
+    """
+
     gs_id = gsid
     gso_ref_type = 'All Reference Types'
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
@@ -410,15 +401,10 @@ def init_ont_tree(gsid):
 
         ontret.append(o)
 
-    ## Prior to these changes, this function was called by an AJAX call which
-    ## then loaded everything into DynaTree. Since, we're just exporting a list
-    ## now, it's easier to have render_viewgeneset call this function and pass
-    ## the data through to the template. The code below is left just in case we
-    ## want to use the DynaTree implementation some other time or modify it.
     return ontret
 
-@app.route('/initOntTree2')
-def init_ont_tree2():
+@app.route('/initOntTree')
+def init_ont_tree():
     parentdict = {}
     gs_id = request.args['gs_id']
     gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
@@ -431,13 +417,20 @@ def init_ont_tree2():
         parentdict[ont.ontology_id] = path
 
     tree = {}
+    ontcache = {}
 
     for ontid, paths in parentdict.items():
         for path in paths:
             ontpath = []
 
             for p in path:
-                p = geneweaverdb.get_ontology_by_id(p)
+                if p not in ontcache:
+                    p = geneweaverdb.get_ontology_by_id(p)
+                    ontcache[p.ontology_id] = p
+
+                else:
+                    p = ontcache[p]
+
                 node = create_new_child_dict(p, gso_ref_type)
 
                 ontpath.append(node)
@@ -680,7 +673,7 @@ def render_editgeneset_genes(gs_id):
         pidts[p['pf_id']] = p['pf_name']
 
     ## Ontologies associated with this geneset
-    ontology = init_ont_tree(gs_id)
+    ontology = get_ontology_terms(gs_id)
 
     return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
                                  gidts=gidts, pidts=pidts, view=view, meta=meta, ontology=ontology)
@@ -950,7 +943,7 @@ def render_viewgeneset(gs_id):
         emphgeneids.append(str(row['ode_gene_id']))
 
     ## Ontologies associated with this geneset
-    ontology = init_ont_tree(gs_id)
+    ontology = get_ontology_terms(gs_id)
 
     return flask.render_template('viewgenesetdetails.html', geneset=geneset,
                                  emphgeneids=emphgeneids, user_id=user_id,
