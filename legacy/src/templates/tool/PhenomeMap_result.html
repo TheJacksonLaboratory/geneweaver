@@ -110,6 +110,10 @@
     <br />
 {% endif %}
 
+<div class="">
+    <a id="dl" class="btn btn-success">Download Image</a>
+</div>
+
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">
@@ -267,6 +271,8 @@
     </script>
     #}
 </div>
+<div id="viz-clone" style="display: none;">
+</div>
 
 <div id="stats" align="left" style="float: left; margin: 10px;">
     <h3>Stats</h3>
@@ -300,13 +306,10 @@
         </tr>
     </table>
 </div>
-<div class="">
-    <a id="dl" class="btn btn-success">Download Image</a>
-</div>
-<canvas id="save-canvas" style="display:none;">
+<canvas id="save-canvas" width="1000" height="1000" style="display:none;">
 </canvas>
-<div id="pngdataurl"></div>
-<div id="svgdataurl" class="svg-saver">
+<div id="pngdataurl" style="display:none;"></div>
+<div id="svgdataurl" style="display:none;" class="svg-saver">
 </div>
 
 <script>
@@ -991,17 +994,49 @@
 
     d3.select('#dl').on('click', function() {
 
+        var dlurl = '/downloadResult';
+
         var html = d3.select("svg")
                 .attr("version", 1.1)
                 .attr("xmlns", "http://www.w3.org/2000/svg")
                 .node().parentNode.innerHTML;
 
+
+        var htmlcopy = d3.select('#viz-clone').html(html);
+        var htmlcopy2 = d3.select('#viz-clone')
+                .select('svg')
+                //.node()
+                .attr('height', '3000')
+                .attr('width', '3000')
+                //.attr('transform', 'scale(2)')
+                .attr("translate(-600, -500)")
+                .attr('overflow', 'visible')
+                //.attr('viewBox', '0 0 600 500')
+                .attr('viewBox', '0 0 600 500')
+                .attr('preserveAspectRatio', 'xMidYMid')
+                //.attr('preserveAspectRatio', 'xMinYMin meet')
+                .style('display', 'block')
+                .style('display', 'hide')
+                .node()
+                .parentNode.innerHTML;
+
+        html = htmlcopy2;
+
+        $.post(dlurl, {svg: html}).done(function(data) {
+
+            console.log('done');
+            return;
+        });
+
+        return;
+
+
         var imgsrc = 'data:image/svg+xml;base64,'+ btoa(html);
         var img = '<img src="'+imgsrc+'">';
         d3.select("#svgdataurl").html(img);
 
-        var canvas = document.querySelector('canvas');
-        var context = canvas.getContext('2d');
+        var canvas = document.querySelector('canvas'),
+        context = canvas.getContext('2d');
         var image = new Image;
 
         image.src = imgsrc;
@@ -1015,7 +1050,6 @@
 
             var pngimg = '<img src="' + canvasdata + '">';
             d3.select("#pngdataurl").html(pngimg);
-            //$("#pngdataurl").html(pngimg);
 
             var a = document.createElement("a");
             a.download = "sample.png";

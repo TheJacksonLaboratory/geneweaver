@@ -24,6 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
+import cairosvg
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -794,6 +795,30 @@ def render_login_error():
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
 
+@app.route('/downloadResult', methods=['POST'])
+def download_result():
+    """
+    Used when a user requests to download a hi-res result image. The SVG data
+    is posted to the server, upscaled, converted to a PNG, and sent back to the
+    user.
+
+    :ret:
+    """
+
+    form = flask.request.form
+    #svg = form['svg'].encode('ascii', 'ignore').strip()
+    svg = form['svg']
+    svg = svg.strip()
+    #svg = svg.encode('utf-8')
+    resultpath = config.get('application', 'results')
+
+    #with open(path.join(resultpath, 'super-test.png'), 'w') as fl:
+    with open(path.join(resultpath, 'super-test.png'), 'wb') as fl:
+        #png = cairosvg.svg2png(bytestring=svg, write_to=fl, dpi=650)
+        png = cairosvg.svg2png(bytestring=svg, write_to=fl)
+
+    print 'done'
+    return ''
 
 #### viewStoredResults
 ##
