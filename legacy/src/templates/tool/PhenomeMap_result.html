@@ -16,7 +16,9 @@
         }
 
         .node text {
-            font: 12px sans-serif;
+            /*font: 12px sans-serif;*/
+            font-size: 12px;
+            font-family: "Arial", sans-serif;
             pointer-events: none;
             text-shadow: -1px -1px 0 #FFF,
             1px -1px 0 #FFF,
@@ -378,8 +380,8 @@
     //initialization
     $(function () {
 
-        var width = 1200,
-                height = 1000,
+        var width = '900',
+                height = '700',
                 select2_data;
 
         var r = 6,
@@ -391,10 +393,11 @@
                 .append("svg")
                 .attr("width", width)
                 .attr("height", height)
-                .call(d3.behavior.zoom()
-                        .on("zoom", function () {
-                            svg.attr("transform", "translate(" + d3.event.translate + ")" + "scale(" + d3.event.scale + ")")
-                        }))
+                //.attr('viewBox', function() {return '0 0 ' + width + ' ' + height;})
+                //.call(d3.behavior.zoom()
+                //        .on("zoom", function () {
+                //            svg.attr("transform", "translate(" + d3.event.translate + ")" + "scale(" + d3.event.scale + ")")
+                //        }))
                 .append("g");
 
         g.link = svg.selectAll("path.link"),
@@ -552,7 +555,7 @@
                 })
                 .attr("dx", "30")
                 .attr("text-anchor", "start")
-                .style("font:", "12px sans-serif")
+                .style("font", "12px sans-serif")
                 .style("fill", "black");
     });
 
@@ -626,6 +629,8 @@
 
         //text within the single node group:
         nodeEnter.append("text")
+                .style('font-family', 'Helvetica, Arial, sans-serif')
+                .style('font-size', '12px')
                 .attr("dy", "-.2em")
                 .attr("dx", "1em")
                 .attr("text-anchor", "start")
@@ -638,6 +643,8 @@
                     }
                 });
         nodeEnter.append("text")
+                .style('font-family', 'Helvetica, Arial, sans-serif')
+                .style('font-size', '12px')
                 .attr("dy", "1em")
                 .attr("dx", function (d) {
                     return (d.children.length > 0) ? "-1em" : "1em";
@@ -996,6 +1003,15 @@
 
         var dlurl = '/downloadResult';
 
+        // Gives our SVG a white background color prior to conversion
+        // This actually changes the image the user is seeing, but they
+        // shouldn't be able to notice
+        d3.select('svg')
+            .insert('rect', 'g')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('fill', 'white');
+
         var html = d3.select("svg")
                 .attr("version", 1.1)
                 .attr("xmlns", "http://www.w3.org/2000/svg")
@@ -1006,21 +1022,26 @@
         var htmlcopy2 = d3.select('#viz-clone')
                 .select('svg')
                 //.node()
-                .attr('height', '3000')
-                .attr('width', '3000')
-                //.attr('transform', 'scale(2)')
-                .attr("translate(-600, -500)")
-                .attr('overflow', 'visible')
-                //.attr('viewBox', '0 0 600 500')
-                .attr('viewBox', '0 0 600 500')
-                .attr('preserveAspectRatio', 'xMidYMid')
+                //.attr('height', '100%')
+                //.attr('width', '100%')
+                ////.attr('transform', 'scale(2)')
+                //.attr("translate(-600, -500)")
+                //.attr('overflow', 'visible')
+                //.attr('viewBox', '0 0 1200 1000')
+                ////.attr('viewBox', '0 0 600 500')
+                //.attr('preserveAspectRatio', 'xMidYMid')
                 //.attr('preserveAspectRatio', 'xMinYMin meet')
-                .style('display', 'block')
-                .style('display', 'hide')
+                //.style('display', 'block')
+                //.style('display', 'hide')
                 .node()
                 .parentNode.innerHTML;
 
         html = htmlcopy2;
+        html = '<?xml version="1.0" standalone="no"?> ' +
+               '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" ' +
+               '"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"> ' +
+                html;
+
 
         $.post(dlurl, {svg: html}).done(function(data) {
 

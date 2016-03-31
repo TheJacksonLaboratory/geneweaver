@@ -804,6 +804,7 @@ def download_result():
 
     :ret:
     """
+    import cStringIO
 
     form = flask.request.form
     #svg = form['svg'].encode('ascii', 'ignore').strip()
@@ -812,10 +813,22 @@ def download_result():
     #svg = svg.encode('utf-8')
     resultpath = config.get('application', 'results')
 
-    #with open(path.join(resultpath, 'super-test.png'), 'w') as fl:
+    #with open(path.join(resultpath, 'suptest.svg'), 'r') as flo:
+    #    bs = flo.read()
+    #    bs = bs.encode('utf-8')
+    #    ps = path.join(resultpath, 'suptest.svg')
+    #    with open(path.join(resultpath, 'suptest.png'), 'wb') as fl:
+    #        png = cairosvg.svg2png(url=ps, write_to=fl, dpi=400)
+
     with open(path.join(resultpath, 'super-test.png'), 'wb') as fl:
+        svgfile = cStringIO.StringIO()
+        cairosvg.svg2svg(bytestring=svg, write_to=svgfile)
+        cairosvg.svg2png(bytestring=svgfile.getvalue(), write_to=fl, dpi=800)
+
+    with open(path.join(resultpath, 'super-test.pdf'), 'wb') as fl:
         #png = cairosvg.svg2png(bytestring=svg, write_to=fl, dpi=650)
-        png = cairosvg.svg2png(bytestring=svg, write_to=fl)
+        #png = cairosvg.svg2png(bytestring=svg, write_to=fl)
+        pdf = cairosvg.svg2pdf(bytestring=svg, write_to=fl, dpi=600)
 
     print 'done'
     return ''
