@@ -28,7 +28,7 @@ long-running jobs and would otherwise block the web application from
 responding to requests. After you have installed and configured an instance of
 RabbitMQ you can start the RabbitMQ service with a command like:
 
-    rabbitmqctl start
+    rabbitmq-server
 
 Before we start up celery we need to make sure that it points to our RabbitMQ
 instance. For my development instance this meant editing `tools/celeryapp.py` with
