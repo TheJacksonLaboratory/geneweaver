@@ -28,10 +28,10 @@ long-running jobs and would otherwise block the web application from
 responding to requests. After you have installed and configured an instance of
 RabbitMQ you can start the RabbitMQ service with a command like:
 
-    sudo rabbitmq-server start
+    rabbitmqctl start
 
 Before we start up celery we need to make sure that it points to our RabbitMQ
-instance. For my development instance this meant editing `tools/celery.py` with
+instance. For my development instance this meant editing `tools/celeryapp.py` with
 the following values:
 
     BROKER_URL = 'amqp://guest@localhost//'
@@ -83,4 +83,3 @@ You should see the server start up with no error messages like:
 You can now visit the main page of the test server by going to
 <http://localhost:5000/index.html>
 This is Felix's
-
