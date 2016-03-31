@@ -1020,7 +1020,6 @@
         $.post(dlurl, {svg: html}).done(function(data) {
 
             var png = 'data:image/png;base64,' + data;
-            var pngimg = '<img src="' + png + '">';
 
             var a = document.createElement("a");
             a.download = "result.png";

@@ -7,6 +7,7 @@ import flask
 import json
 import uuid
 import os.path
+import config
 
 from geneweaverdb import *
 import toolcommon as tc
@@ -16,6 +17,7 @@ from decimal import Decimal
 TOOL_CLASSNAME = 'TricliqueViewer'
 triclique_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 #RESULTS_PATH = 'Users/group6admin/geneweaver/results/'
+RESULTS_PATH = config.get('application', 'results')
 
 # Melissa 9/14/15 Removed .html from route URI
 @triclique_viewer_blueprint.route('/run-triclique-viewer', methods=['POST'])
