@@ -25,6 +25,7 @@ import sphinxapi
 import search
 import math
 import cairosvg
+from cStringIO import StringIO
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -804,34 +805,26 @@ def download_result():
 
     :ret:
     """
-    import cStringIO
 
     form = flask.request.form
-    #svg = form['svg'].encode('ascii', 'ignore').strip()
     svg = form['svg']
     svg = svg.strip()
-    #svg = svg.encode('utf-8')
+    svgout = StringIO()
+    pngout = StringIO()
     resultpath = config.get('application', 'results')
 
-    #with open(path.join(resultpath, 'suptest.svg'), 'r') as flo:
-    #    bs = flo.read()
-    #    bs = bs.encode('utf-8')
-    #    ps = path.join(resultpath, 'suptest.svg')
-    #    with open(path.join(resultpath, 'suptest.png'), 'wb') as fl:
-    #        png = cairosvg.svg2png(url=ps, write_to=fl, dpi=400)
-
     with open(path.join(resultpath, 'super-test.png'), 'wb') as fl:
-        svgfile = cStringIO.StringIO()
-        cairosvg.svg2svg(bytestring=svg, write_to=svgfile)
-        cairosvg.svg2png(bytestring=svgfile.getvalue(), write_to=fl, dpi=800)
+        ## This is incredibly stupid, but must be done. cairosvg (for some
+        ## awful, unknown reason) will not scale any SVG produced by d3. So
+        ## we convert our d3js produced SVG to an SVG...then convert to PNG
+        ## with a reasonably high DPI.
+        ## Also, if any fonts are rendering incorrectly, it's because cairosvg
+        ## doesn't parse CSS attributes correctly and you need to append each
+        ## font attribute to the text element itself.
+        cairosvg.svg2svg(bytestring=svg, write_to=svgout)
+        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=pngout, dpi=600)
 
-    with open(path.join(resultpath, 'super-test.pdf'), 'wb') as fl:
-        #png = cairosvg.svg2png(bytestring=svg, write_to=fl, dpi=650)
-        #png = cairosvg.svg2png(bytestring=svg, write_to=fl)
-        pdf = cairosvg.svg2pdf(bytestring=svg, write_to=fl, dpi=600)
-
-    print 'done'
-    return ''
+    return pngout.getvalue().encode('base64')
 
 #### viewStoredResults
 ##

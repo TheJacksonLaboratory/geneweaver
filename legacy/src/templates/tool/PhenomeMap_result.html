@@ -1003,9 +1003,9 @@
 
         var dlurl = '/downloadResult';
 
-        // Gives our SVG a white background color prior to conversion
+        // Gives our SVG a white background color prior to conversion.
         // This actually changes the image the user is seeing, but they
-        // shouldn't be able to notice
+        // shouldn't be able to notice.
         d3.select('svg')
             .insert('rect', 'g')
             .attr('width', '100%')
@@ -1013,73 +1013,22 @@
             .attr('fill', 'white');
 
         var html = d3.select("svg")
-                .attr("version", 1.1)
-                .attr("xmlns", "http://www.w3.org/2000/svg")
-                .node().parentNode.innerHTML;
-
-
-        var htmlcopy = d3.select('#viz-clone').html(html);
-        var htmlcopy2 = d3.select('#viz-clone')
-                .select('svg')
-                //.node()
-                //.attr('height', '100%')
-                //.attr('width', '100%')
-                ////.attr('transform', 'scale(2)')
-                //.attr("translate(-600, -500)")
-                //.attr('overflow', 'visible')
-                //.attr('viewBox', '0 0 1200 1000')
-                ////.attr('viewBox', '0 0 600 500')
-                //.attr('preserveAspectRatio', 'xMidYMid')
-                //.attr('preserveAspectRatio', 'xMinYMin meet')
-                //.style('display', 'block')
-                //.style('display', 'hide')
-                .node()
-                .parentNode.innerHTML;
-
-        html = htmlcopy2;
-        html = '<?xml version="1.0" standalone="no"?> ' +
-               '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" ' +
-               '"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"> ' +
-                html;
-
+            .attr("version", 1.1)
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .node().parentNode.innerHTML;
 
         $.post(dlurl, {svg: html}).done(function(data) {
 
-            console.log('done');
-            return;
-        });
-
-        return;
-
-
-        var imgsrc = 'data:image/svg+xml;base64,'+ btoa(html);
-        var img = '<img src="'+imgsrc+'">';
-        d3.select("#svgdataurl").html(img);
-
-        var canvas = document.querySelector('canvas'),
-        context = canvas.getContext('2d');
-        var image = new Image;
-
-        image.src = imgsrc;
-
-        image.onload = function() {
-        //image.addEventListener('load', function() {
-            context.drawImage(image, 0, 0);
-
-            var canvasdata = canvas.toDataURL("image/png");
-            console.log(canvasdata);
-
-            var pngimg = '<img src="' + canvasdata + '">';
-            d3.select("#pngdataurl").html(pngimg);
+            var png = 'data:image/png;base64,' + data;
+            var pngimg = '<img src="' + png + '">';
 
             var a = document.createElement("a");
-            a.download = "sample.png";
-            a.href = canvasdata;
+            a.download = "result.png";
+            a.href = png;
+
             document.body.appendChild(a);
+
             a.click();
-
-            console.log(a);
-        };
-
+        });
     });
 </script>
