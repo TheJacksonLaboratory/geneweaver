@@ -7,7 +7,8 @@ from flask.ext.admin import BaseView, expose, AdminIndexView
 
 
 class Authentication(object):
-    def is_accessible(self):
+    @staticmethod
+    def is_accessible():
         if "user" in flask.g and flask.g.user.is_admin:
             return True
         return False
@@ -87,9 +88,6 @@ class Viewers(Authentication, BaseView):
             table = 'extsrc.gene_info'
             dbcols = geneweaverdb.get_all_columns(table)
             print dbcols
-            columns = []
-            # for col in dbcols:
-            #	columns.append({'name': col['column_name']})
 
             columns = [{'name': 'ode_gene_id'}, {'name': 'gi_accession'}, {'name': 'gi_symbol'}, {'name': 'gi_name'},
                        {'name': 'gi_description'}, {'name': 'gi_type'}, {'name': 'gi_chromosome'},
@@ -166,7 +164,7 @@ class Add(Authentication, BaseView):
             table = "production.geneset"
             columns = geneweaverdb.get_nullable_columns(table)
             requiredCols = geneweaverdb.get_required_columns(table)
-            return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Geneset",
+            return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="GeneSet",
                                table=table)
 
         elif self.endpoint == 'newProject':
@@ -180,7 +178,7 @@ class Add(Authentication, BaseView):
             table = "production.geneset_info"
             columns = geneweaverdb.get_nullable_columns(table)
             requiredCols = geneweaverdb.get_required_columns(table)
-            return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="Geneset Info",
+            return self.render('admin/adminAdd.html', columns=columns, requiredCols=requiredCols, toadd="GeneSet Info",
                                table=table)
 
         elif self.endpoint == 'newGroup':

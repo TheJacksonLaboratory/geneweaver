@@ -1,4 +1,5 @@
-#   file: jaccardsimilarityblueprint2.py
+##
+#    file: jaccardsimilarityblueprint2.py
 #   author: Matthew Santiago
 #   co-author: Felix Herrera
 #   description: development file to insert our tools for celery async
@@ -6,6 +7,7 @@
 #   date modified:
 #       9/18/2015
 #           - File Created
+##
 
 import celery.states as states
 import flask
@@ -20,9 +22,12 @@ from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+
 class result():
     async_result = ''
-    r = result()
+
+
+r = result()
 
 
 @jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html', methods=['POST'])
@@ -38,7 +43,6 @@ def run_tool():
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-
 
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least two GeneSets!")
@@ -71,7 +75,6 @@ def run_tool():
     for row in emphgenes:
         emphgeneids.append(str(row['ode_gene_id']))
     params['EmphasisGenes'] = emphgeneids
-
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -106,6 +109,7 @@ def run_tool():
 
     return response
 
+
 def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     # TODO need to check for read permissions on genesets
 
@@ -123,7 +127,7 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_PairwiseDeletion'):
             params[tool_param.name] = pairwiseDeletion
-            if(params[tool_param.name] != 'Enabled'):
+            if (params[tool_param.name] != 'Enabled'):
                 params[tool_param.name] = 'Disabled'
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = 'Excluded'
@@ -133,9 +137,8 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
                 params[tool_param.name] = 'Included'
         if tool_param.name.endswith('_' + 'p-Value'):
             params[tool_param.name] = p_Value
-            if p_Value not in ['1.0','0.5','0.10','0.05','0.01']:
+            if p_Value not in ['1.0', '0.5', '0.10', '0.05', '0.01']:
                 params[tool_param.name] = '1.0'
-
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -160,8 +163,8 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
         },
         task_id=task_id)
 
-
     return task_id
+
 
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
@@ -193,8 +196,7 @@ def status_json(task_id):
 
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
-        'state': async_result.state,
-    })
+        'state': async_result.state})
 
 
 @jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>.html')
