@@ -179,6 +179,11 @@
 
         <!-- Formatting the buttons in the correct div, Download buttons has a dropdown menu allowing user to select three options -->
          <div class="dropdown middle-cell">
+             <a id="download-image" class="btn btn-lg bt btn-success">
+                 <i class="fa fa-download pull-left"></i>
+                 Download Image
+             </a>
+             <!--
              <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
              <span class="caret"></span></button>
               <ul class="dropdown-menu dropdown-menu-right" id="menudrop" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
@@ -186,6 +191,7 @@
                   <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
                   <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
               </ul>
+              -->
          </div>
       </div>
             <!-- Reset Zoom button for the Venn Diagram view that allows users to view the data in its original display if they zoom or pan too much -->
@@ -202,13 +208,14 @@
 <div id="pvalLeg"> <img src="/static/images/whitedot.png" > = Geneset Did Not Meet Threshold</div></p></div>
 
 
+<!-- Error message displayed when no venn diagrams are displayed due to threshold being set too high -->
+<div id=divError class="alert alert-danger fade in">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+    The p-value threshold is too high, please run the tool again at a lower threshold.
+</div>
+
 <!-- Div(Jaccard), where all the venn diagram D3 is appended to in the JavaScript below -->
 <div id="jaccard">
-    <!-- Error message displayed when no venn diagrams are displayed due to threshold being set too high -->
-    <div id=divError class="alert alert-danger fade in">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-        The p-value threshold is too high, please run the tool again at a lower threshold.
-    </div>
 </div>
 
 <!-- Opacity slider that allows users to change the opacity of the circles based on meeting the p-value threshold on the slider -->
@@ -1405,6 +1412,49 @@ $('#addGenesetsToProjects').on('click', function (e) {
     });
 
 
+    d3.select('#download-image').on('click', function() {
+
+        var dlurl = '/downloadResult';
+
+        // Gives our SVG a white background color prior to conversion.
+        // This actually changes the image the user is seeing, but they
+        // shouldn't be able to notice.
+        d3.select('#jaccard > svg')
+                .insert('rect', 'g')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('fill', 'white');
+
+        var html = d3.select("#jaccard > svg")
+                .attr("version", 1.1)
+                .attr("xmlns", "http://www.w3.org/2000/svg")
+                //.node().parentNode.innerHTML;
+                .node().innerHTML;
+
+        // The jaccard tool appends extra divs inside the SVG container
+        // for tooltips. When we try to convert the image to a PNG, the SVG
+        // parser chokes, because these are picked up along with the SVG. So
+        // we recreate the SVG element.
+        var margin = {top: -5, right: -5, bottom: -5, left: -5},
+                width = 1100 - margin.left - margin.right,
+                height = 900 - margin.top - margin.bottom;
+
+        html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
+               html + '</svg>'
+
+        $.post(dlurl, {svg: html}).done(function (data) {
+
+            var png = 'data:image/png;base64,' + data;
+
+            var a = document.createElement("a");
+            a.download = "result.png";
+            a.href = png;
+
+            document.body.appendChild(a);
+
+            a.click();
+        });
+    });
 
 
 </script>

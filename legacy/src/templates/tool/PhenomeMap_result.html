@@ -113,7 +113,10 @@
 {% endif %}
 
 <div class="">
-    <a id="dl" class="btn btn-success">Download Image</a>
+    <a id="download-image" class="btn btn-success">
+        <i class="fa fa-download pull-left"></i>
+        Download Image
+    </a>
 </div>
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
@@ -999,7 +1002,7 @@
     // load statistics from file
     $(window).load(loadStats);
 
-    d3.select('#dl').on('click', function() {
+    d3.select('#download-image').on('click', function() {
 
         var dlurl = '/downloadResult';
 
