@@ -40,7 +40,7 @@ def run_tool():
 
 
     if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 gene sets!")
+        flask.flash("Warning: You need at least two GeneSets!")
         return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
@@ -114,7 +114,7 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     selected_geneset_ids = genesets.split(':')
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        raise Exception('there must be at least two genesets selected to run this tool')
+        raise Exception('there must be at least two GeneSets selected to run this tool')
 
     # gather the params into a dictionary
     homology_str = 'Homology'

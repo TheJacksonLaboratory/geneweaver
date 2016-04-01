@@ -103,7 +103,7 @@ def create_batch_geneset():
 
     if user_id == None:
         print '1'
-        return flask.jsonify({"error": "You must be signed in to upload a geneset."})
+        return flask.jsonify({"error": "You must be signed in to upload a GeneSet."})
 
     ## Returns a triplet (geneset list, warnings, errors)
     batchFile = batch.parseBatchFile(batchFile, user_id)
@@ -309,7 +309,7 @@ def create_temp_geneset():
 
         user_id = flask.g.user.user_id if 'user' in flask.g else None
         if user_id == None:
-            return {"error": "You must be signed in to upload a geneset."}
+            return {"error": "You must be signed in to upload a GeneSet."}
 
         if sp_id == 0 or sp_id == "0":
             return {"error": "Select a species."}
@@ -465,7 +465,7 @@ def create_temp_geneset():
             gs_id = cursor.fetchone()[0]
             print GS_sql
             if gs_id == None:
-                return "Error getting geneset ID."
+                return "Error getting GeneSet ID."
             if pub_id:
                 pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
                 cursor.execute(pub_sql)
@@ -551,7 +551,7 @@ def create_temp_geneset():
             cursor.connection.commit()
             print gs_update_sql
 
-        return "Geneset Created"
+        return "GeneSet Created"
     except Exception, e:
         return str(e)
 
@@ -658,7 +658,7 @@ def create_geneset():
         # if any genes in the list were not found it will tell the user which were not found
         if len(invalid_genes) > 0:
             return "Unable to find these Genes for specified species:\n" + ', '.join(
-                invalid_genes) + "\n\nEither remove them and resubmit the geneset or contact Geneweaver to have them added."
+                invalid_genes) + "\n\nEither remove them and resubmit the GeneSet or contact Geneweaver to have them added."
         if len(all_results) < 1:
             return "No genes found to enter"
 
@@ -726,7 +726,7 @@ def create_geneset():
             gs_id = cursor.fetchone()[0]
             print GS_sql
             if gs_id == None:
-                return "Error getting geneset ID."
+                return "Error getting GeneSet ID."
             if pub_id:
                 pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
                 cursor.execute(pub_sql)
@@ -812,7 +812,7 @@ def create_geneset():
             cursor.connection.commit()
             print gs_update_sql
 
-        return "Geneset Created"
+        return "GeneSet Created"
     except Exception, e:
         return str(e)
 

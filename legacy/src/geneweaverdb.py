@@ -731,7 +731,7 @@ def add_geneset_gene_to_temp(rargs):
             ##Check to see if the src_id already exists
             cursor.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id=%s''', (gs_id, gene_id,))
             if cursor.rowcount != 0:
-                return {'error': 'The Source Identifier already exists for this geneset'}
+                return {'error': 'The Source Identifier already exists for this GeneSet'}
             ##Insert into temp table
             cursor.execute('''INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id)
 							  VALUES (%s, %s, %s, %s)''', (gs_id, ode_gene_id, value, gene_id,))

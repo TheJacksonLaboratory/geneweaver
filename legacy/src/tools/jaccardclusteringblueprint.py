@@ -29,7 +29,7 @@ def run_tool():
 
 
     if len(selected_geneset_ids) < 3:
-        flask.flash("Warning: You need at least 3 genes!")
+        flask.flash("Warning: You need at least three GeneSets!")
         return flask.redirect('analyze')
 
     # info dictionary
@@ -143,7 +143,7 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
     selected_geneset_ids = genesetsPassed.split(":")
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
-        raise Exception('There must be at least three genesets selected to run this tool')
+        raise Exception('There must be at least three GeneSets selected to run this tool')
 
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)

@@ -1,4 +1,4 @@
-{% set title="Upload Geneset" %}
+{% set title="Upload GeneSet" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -78,7 +78,7 @@
 
     <form id="upload-geneset-form" enctype="multipart/form-data" method="POST">
 
-        {# Geneset Metadata #}
+        {# GeneSet Metadata #}
         <div class="panel-heading panel-underline">
             <h2 class="panel-title">
                 GeneSet Metadata
@@ -285,7 +285,7 @@
 
         </div>
 
-        {# Geneset Gene Information #}
+        {# GeneSet Gene Information #}
         <div class="panel-heading panel-underline">
             <h2 class="panel-title">
                 Gene Information
@@ -377,7 +377,7 @@
 
         <div class="panel-heading">
             <div class="pull-right">
-                <input id="upload-geneset-button" class="btn btn-warning fa" type="submit" value="Review Geneset Upload &#xf04e;" />
+                <input id="upload-geneset-button" class="btn btn-warning fa" type="submit" value="Review GeneSet Upload &#xf04e;" />
             </div>
         </div>
 
@@ -540,7 +540,7 @@
                     $('html, body').animate({ scrollTop: 0 }, 'slow');
                     $(document).trigger("add-alerts", [
                         {
-                            'message': "We could not upload your geneset at this time. Please contact GeneWeaver.",
+                            'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
                             'priority': 'danger'
                         }
                     ]);
@@ -575,7 +575,7 @@
 
     $('#clickableGenes').popover({
         title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
-        'A full description of the gene set format can be found ' +
+        'A full description of the GeneSet format can be found ' +
         '<a href="http://www.geneweaver.org/wiki/index.php?title=Upload#Single_Gene_Sets" target="_blank">' +
         '       <strong>here</strong></a>.',
         html: 'true'

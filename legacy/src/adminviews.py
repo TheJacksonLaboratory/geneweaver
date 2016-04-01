@@ -1,15 +1,14 @@
-from flask import Flask
+import flask
 from flask.ext.admin import Admin, BaseView, expose, AdminIndexView
 import geneweaverdb
-import flask
 import json
 
 
 class Authentication(object):
     def is_accessible(self):
         if "user" in flask.g and flask.g.user.is_admin:
-            return True;
-        return False;
+            return True
+        return False
 
 
 class AdminHome(Authentication, AdminIndexView):

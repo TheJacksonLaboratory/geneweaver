@@ -11,8 +11,8 @@ A Private
 ## this set, respectively.
 #
 : EXAMPLE BGF 1
-= Batch Geneset Upload Example
-+ This is a test of the batch geneset upload system, this is only a test.
+= Batch GeneSet Upload Example
++ This is a test of the batch GeneSet upload system, this is only a test.
 
 Mobp	1
 Mapt	1
@@ -21,8 +21,8 @@ Cry2	1
 Daxx	1
 
 : EXAMPLE BGF 2
-= Batch Geneset Upload Example
-+ This is a test of the batch geneset upload system, this is only a test.
+= Batch GeneSet Upload Example
++ This is a test of the batch GeneSet upload system, this is only a test.
 
 Mobp	1
 Mapt	1

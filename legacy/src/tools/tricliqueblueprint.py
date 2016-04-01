@@ -91,15 +91,15 @@ def run_tool():
         print "Jaccard"
         # Warn the user if the projects selected are too large
         if len(selected_geneset_ids) > 50:
-            flask.flash("Warning: Selecting too many genesets will not return results in a timely fashion")
+            flask.flash("Warning: Selecting too many GeneSets will not return results in a timely fashion")
             return flask.redirect('analyze')
         outOfBounds = create_kpartite_file_from_jaccard_overlap(task_id, RESULTS_PATH, selected_project_ids, thresholds["Triclique_ThresholdValues"])
 
     if outOfBounds == -1:
-        flask.flash("Warning: The genesets for the projects you chose had no intersection")
+        flask.flash("Warning: The GeneSets for the projects you chose had no intersection")
         return flask.redirect('analyze')
     if outOfBounds == -2:
-        flask.flash("Warning: These genesets are too large for timely analysis.")
+        flask.flash("Warning: These GeneSets are too large for timely analysis.")
         return flask.redirect('analyze')
     #print "task_id",task_id
     #print "Wrote file in the results directory"
@@ -205,7 +205,7 @@ def view_result(task_id):
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
-        raise Exception('error while processing: ' + tool.name)
+        raise Exception('Error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
         # Check to see if we are using Exact Gene Overlap or Jaccard
         jfile_name = RESULTS_PATH + '/' + task_id + '.mkcj'
@@ -216,7 +216,7 @@ def view_result(task_id):
         if os.path.isfile(jfile_name):
             triclique_result = create_json_from_triclique_output_jaccard(task_id, RESULTS_PATH)
         if triclique_result == 1:
-            flask.flash("Warning: The genesets for the projects you chose had no maximal triclique")
+            flask.flash("Warning: The GeneSets for the projects you chose had no maximal triclique")
             return flask.redirect('analyze')
         # Open files and pass via template
         f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')

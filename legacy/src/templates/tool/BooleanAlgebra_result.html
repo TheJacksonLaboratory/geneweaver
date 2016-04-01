@@ -53,7 +53,7 @@
                             <tr>
                                 <th><i class="fa fa-sort"></i></a> Default</th>
                                 <th>LinkOuts</th>
-                                <th>In Gene Sets</th>
+                                <th>In GeneSets</th>
                                 <th>Emphasis</th>
                             </tr>
                             {%  for j in range(((async_result.formatPrint[i]|length) - 1), -1, -1) %}
@@ -69,7 +69,7 @@
                                         <td>
                                             {% include 'linkouts.html' %}
                                         </td>
-                                        {# In Gene Sets #}
+                                        {# In GeneSets #}
                                         <td>
                                             {% for gsid in async_result.geneset_from[gene] %}
                                                 {% for ags in async_result.genesets[gsid] %}

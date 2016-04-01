@@ -1,4 +1,4 @@
-{% set title="Edit Geneset" %}
+{% set title="Edit GeneSet" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -57,7 +57,7 @@
     </div>
 
 
-    {# Geneset Metadata #}
+    {# GeneSet Metadata #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
         <h2 class="panel-title">
             GeneSet Metadata &bull; GS{{ geneset.geneset_id }}
@@ -73,7 +73,7 @@
             <i class="fa fa-edit pull-left"></i> Edit MetaData
         </button>
         <button type="button" class="btn btn-lg btn-block btn-warning" id="viewGenesetDetails">
-            <i class="fa fa-eye pull-left"></i> GeneSets Details
+            <i class="fa fa-eye pull-left"></i> GeneSet Details
         </button>
         <button type="button" class="btn btn-lg btn-block btn-danger" id="cancelEdit1">
             <i class="fa fa-times pull-left"></i> Cancel Edit
@@ -252,7 +252,7 @@
 
     $('#clickableGenes').popover({
         title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
-        'A full description of the gene set format can be found ' +
+        'A full description of the GeneSet format can be found ' +
         '<a href="http://www.geneweaver.org/wiki/index.php?title=Upload#Single_Gene_Sets">here</a>.',
         html: 'true'
     });

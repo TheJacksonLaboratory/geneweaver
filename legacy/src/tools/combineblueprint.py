@@ -19,7 +19,7 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        flask.flash("Warning: You need at least 2 gene sets!")
+        flask.flash("Warning: You need at least two GeneSets!")
         return flask.redirect('analyze')
 
     # gather the params into a dictionary
@@ -91,7 +91,7 @@ def run_tool_api(apikey, homology, genesets):
     selected_geneset_ids = genesets.split(":")
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
-        raise Exception('There must be at least three genesets selected to run this tool')
+        raise Exception('There must be at least three GeneSets selected to run this tool')
         
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)

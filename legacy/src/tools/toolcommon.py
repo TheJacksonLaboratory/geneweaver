@@ -29,9 +29,9 @@ project_html_id_prefix = "project_"
 def selected_geneset_ids(form):
     """
     this function takes a submitted form and extracts IDs for
-    all selected geneset checkboxes
+    all selected GeneSet checkboxes
     :param form:    flask form (as in flask.request.form)
-    :return: the list of geneset IDs
+    :return: the list of GeneSet IDs
     """
     prefix_len = len(geneset_html_id_prefix)
     return [
@@ -43,9 +43,9 @@ def selected_geneset_ids(form):
 def selected_project_ids(form):
     """
     this function takes a submitted form and extracts IDs for
-    all selected geneset checkboxes
+    all selected GeneSet checkboxes
     :param form:    flask form (as in flask.request.form)
-    :return: the list of geneset IDs
+    :return: the list of GeneSet IDs
     """
     prefix_len = len(project_html_id_prefix)
     return [

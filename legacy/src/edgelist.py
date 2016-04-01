@@ -441,7 +441,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
     # Get rid of the first two elements in identifiers (project ids)
     print "identifiers before:", identifiers
     genesets = list(identifiers)
-    print "genesets:", genesets
+    print "GeneSets:", genesets
     gs_ids = []
     gi_ids = []
     for item in genesets:
@@ -449,7 +449,7 @@ def create_csv_from_mkc(taskid, results, identifiers, partitions):
             gs_ids.append(item[3:])
         else:
             gi_ids.append(item[3:])
-    print "genesets:", gs_ids
+    print "GeneSets:", gs_ids
     print "genes:", gi_ids
     # Get rid of gs_ and gi
     for x in range(0,len(identifiers)):

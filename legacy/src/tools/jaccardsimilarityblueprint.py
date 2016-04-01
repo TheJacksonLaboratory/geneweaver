@@ -11,9 +11,12 @@ from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+
 class result():
-    async_result=''
+    async_result = ''
+
 r = result()
+
 
 @jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html', methods=['POST'])
 def run_tool():
@@ -28,10 +31,9 @@ def run_tool():
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-        
-        
+
     if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 genes!")
+        flask.flash("Warning: You need at least two GeneSets!")
         return flask.redirect('analyze.html')
 
     # gather the params into a dictionary
@@ -62,7 +64,6 @@ def run_tool():
         emphgeneids.append(str(row['ode_gene_id']))
     params['EmphasisGenes'] = emphgeneids
 
-   
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
@@ -92,16 +93,17 @@ def run_tool():
 
     return response
 
+
 def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
-    
+
     # pull out the selected geneset IDs
     selected_geneset_ids = genesets.split(':')
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        raise Exception('there must be at least two genesets selected to run this tool')
+        raise Exception('there must be at least two GeneSets selected to run this tool')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -109,7 +111,7 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_PairwiseDeletion'):
             params[tool_param.name] = pairwiseDeletion
-            if(params[tool_param.name] != 'Enabled'):
+            if (params[tool_param.name] != 'Enabled'):
                 params[tool_param.name] = 'Disabled'
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = 'Excluded'
@@ -119,10 +121,9 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
                 params[tool_param.name] = 'Included'
         if tool_param.name.endswith('_' + 'p-Value'):
             params[tool_param.name] = p_Value
-            if p_Value not in ['1.0','0.5','0.10','0.05','0.01']:
+            if p_Value not in ['1.0', '0.5', '0.10', '0.05', '0.01']:
                 params[tool_param.name] = '1.0'
-    
-    
+
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
 
@@ -146,15 +147,14 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
         },
         task_id=task_id)
 
-
     return task_id
+
 
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
     r.async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
-
 
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
@@ -168,14 +168,12 @@ def view_result(task_id):
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
-            data = data,
+            data=data,
             async_result=json.loads(r.async_result.result),
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(r.async_result, tool)
-
-
 
 
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
@@ -188,6 +186,7 @@ def status_json(task_id):
         'state': async_result.state,
     })
 
+
 @jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>.html')
 def geneset_intersection(gsID_1, gsID_2, i):
     user_id = flask.session.get('user_id')
@@ -199,11 +198,10 @@ def geneset_intersection(gsID_1, gsID_2, i):
         temp_genes = gwdb.get_gene_sym_by_intersection(gsID_1[2:], gsID_2[2:])
         for j in range(0, len(temp_genes[0])):
             intersect_genes[temp_genes[0][j]] = gwdb.if_gene_has_homology(temp_genes[1][j])
-        list=gwdb.get_all_projects(user_id)
+        list = gwdb.get_all_projects(user_id)
     else:
         geneset1 = geneset2 = None
 
     return flask.render_template(
         "geneset_intersection.html", async_result=json.loads(r.async_result.result),
         index=i, genesets=genesets, gene_sym=intersect_genes, list=list)
-

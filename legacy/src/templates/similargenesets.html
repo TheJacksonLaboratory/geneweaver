@@ -1,4 +1,4 @@
-{% set title="Similar Genesets" %}
+{% set title="Similar GeneSets" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -88,7 +88,7 @@
     <div class="row" id="result"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
-        <h2 class="panel-title"><strong>View Similar Genesets</strong></h2>
+        <h2 class="panel-title"><strong>View Similar GeneSets</strong></h2>
     </div>
 
 
@@ -149,7 +149,7 @@
                     <div class="row">
                         <div class="col-md-4 pull-left">
                             <br><a href="/viewgenesetdetails/{{ gs_id }}">
-                            <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+                            <b><i class="fa fa-step-backward"></i> Return to GeneSet Details</b></a>
                         </div>
                     </div>
 
@@ -498,7 +498,7 @@
                             success: function (data) {
                                 $("#result").html('<div class="alert alert-success fade in"> ' +
                                 '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Genesets Successfully Added to Selected Projects</div>');
+                                '</button>GeneSets Successfully Added to Selected Projects</div>');
                                 window.location.reload();
                             }
                         });
@@ -508,8 +508,8 @@
             });
 
             $('#clickableFontAwesome').popover({
-                title: 'Caution', content: 'Some recently added genesets may ' +
-                'not be on this list due to a lag time in calculating global Jaccard scores between all genesets in our database.'
+                title: 'Caution', content: 'Some recently added GeneSets may ' +
+                'not be on this list due to a lag time in calculating global Jaccard scores between all GeneSets in our database.'
             });
 
             //});
