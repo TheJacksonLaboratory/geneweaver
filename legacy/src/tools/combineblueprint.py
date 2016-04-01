@@ -9,6 +9,7 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'Combine'
 combine_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+
 @combine_blueprint.route('/run-combine.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
@@ -69,11 +70,12 @@ def run_tool():
     response.headers['location'] = new_location
 
     return response
-    
+
+
 def run_tool_api(apikey, homology, genesets):
     user_id = gwdb.get_user_id_by_apikey(apikey)
     # TODO need to check for read permissions on genesets
-	
+
     # gather the params into a dictionary
     homology_str = 'Homology'
     paramsAPI = {homology_str: None}
@@ -85,19 +87,17 @@ def run_tool_api(apikey, homology, genesets):
             if homology != 'Excluded':
                 paramsAPI[homology_str] = 'Included'
                 paramsAPI[tool_param.name] = 'Included'
-                
-    	
+
     # pull out the selected geneset IDs
     selected_geneset_ids = genesets.split(":")
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
         raise Exception('There must be at least three GeneSets selected to run this tool')
-        
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
     # insert result for this run
-    
+
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
@@ -118,10 +118,9 @@ def run_tool_api(apikey, homology, genesets):
             'params': paramsAPI,
         },
         task_id=task_id)
-        
-	# TODO SOON return file istead of just name of file
-    return task_id
 
+    # TODO SOON return file istead of just name of file
+    return task_id
 
 
 @combine_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])

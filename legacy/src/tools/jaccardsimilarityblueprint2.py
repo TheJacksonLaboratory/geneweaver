@@ -21,8 +21,9 @@ TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
 class result():
-    async_result=''
-r = result()
+    async_result = ''
+    r = result()
+
 
 @jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html', methods=['POST'])
 def run_tool():
@@ -195,21 +196,23 @@ def status_json(task_id):
         'state': async_result.state,
     })
 
+
 @jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>.html')
 def geneset_intersection(gsID_1, gsID_2, i):
     user_id = flask.session.get('user_id')
     if user_id:
         geneset1 = gwdb.get_geneset(gsID_1[2:], user_id)
         geneset2 = gwdb.get_geneset(gsID_2[2:], user_id)
-        genesets = [geneset1, geneset2]
+        g_sets = [geneset1, geneset2]
         intersect_genes = {}
         temp_genes = gwdb.get_gene_sym_by_intersection(gsID_1[2:], gsID_2[2:])
         for j in range(0, len(temp_genes[0])):
             intersect_genes[temp_genes[0][j]] = gwdb.if_gene_has_homology(temp_genes[1][j])
-        list=gwdb.get_all_projects(user_id)
+        g_list = gwdb.get_all_projects(user_id)
+
+        return flask.render_template(
+            "geneset_intersection.html", async_result=json.loads(r.async_result.result),
+            index=i, genesets=g_sets, gene_sym=intersect_genes, list=g_list)
     else:
         geneset1 = geneset2 = None
-
-    return flask.render_template(
-        "geneset_intersection.html", async_result=json.loads(r.async_result.result),
-        index=i, genesets=genesets, gene_sym=intersect_genes, list=list)
+        print "Error: geneset_interaction unable to compute due to lack of user_id "

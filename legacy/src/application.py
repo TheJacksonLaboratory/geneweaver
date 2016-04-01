@@ -1,29 +1,27 @@
-import flask
-from flask.ext.admin import Admin, BaseView, expose
-from flask.ext.admin.base import MenuLink
-from flask.ext import restful
-from flask import request, send_file, Response, make_response, session
-from decimal import Decimal
-from sys import exc_info
-from urlparse import parse_qs, urlparse
-import config
-import adminviews
-import genesetblueprint
-import geneweaverdb
-import error
-import uploadfiles
 import json
+import math
+from collections import OrderedDict
+from decimal import Decimal
+
+import geneweaverdb
+
+import adminviews
+import config
+import error
+import flask
+import genesetblueprint
 import os
 import os.path as path
 import re
-import urllib
+import search
+import uploadfiles
 import urllib3
-from collections import OrderedDict, defaultdict
+from flask import request, make_response, session
+from flask.ext import restful
+from flask.ext.admin import Admin, BaseView, expose
+from flask.ext.admin.base import MenuLink
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
     combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
-import sphinxapi
-import search
-import math
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)

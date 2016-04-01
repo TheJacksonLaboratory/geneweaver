@@ -1,7 +1,9 @@
-import flask
-from flask.ext.admin import Admin, BaseView, expose, AdminIndexView
-import geneweaverdb
 import json
+
+import geneweaverdb
+
+import flask
+from flask.ext.admin import BaseView, expose, AdminIndexView
 
 
 class Authentication(object):

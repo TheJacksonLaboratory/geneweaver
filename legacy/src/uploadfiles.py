@@ -5,11 +5,12 @@ This file contains functions to parse and upload files from file_contents. In pa
 create temp tables that hold upload data and map it back to geneweaver
 '''
 
-import re
-from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 from urlparse import parse_qs, urlparse
-from flask import session
 
+from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, get_gdb_id_by_name
+
+import re
+from flask import session
 
 
 def create_temp_geneset():

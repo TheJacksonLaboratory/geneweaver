@@ -1,8 +1,10 @@
 from collections import defaultdict
-import flask
+
 import geneweaverdb
-import sphinxapi
+
 import config
+import flask
+import sphinxapi
 
 #Sphinx server connection information
 #sphinx_server = 'bepo.ecs.baylor.edu'

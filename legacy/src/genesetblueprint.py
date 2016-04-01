@@ -1,9 +1,11 @@
-import flask
-import geneweaverdb
-import pubmedsvc
 import urllib2
-import re
+
+import geneweaverdb
+
 import batch
+import flask
+import pubmedsvc
+import re
 from flask import request
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')

@@ -9,6 +9,7 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'BooleanAlgebra'
 boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+
 @boolean_algebra_blueprint.route('/Boolean-Algebra.html', methods=['POST'])
 # @boolean_algebra_blueprint.route('/run-boolean-algebra.html', methods=['POST'])
 def run_tool():
@@ -53,7 +54,6 @@ def run_tool():
             desc,
             desc)
 
-
         async_result = tc.celery_app.send_task(
             tc.fully_qualified_name(TOOL_CLASSNAME),
             kwargs={
@@ -89,21 +89,21 @@ def run_tool_api(apikey, relation, genesets):
         relationEnd = relation.split(':')
         params = {}
         if len(relationEnd) > 1:
-			try:
-				int(relationEnd[1])
-				params['at_least'] = relationEnd[1]
-			except ValueError:
-				params['at_least'] = '2' 				   
-			for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-				if tool_param.name.endswith('_Relation'):
-					params[tool_param.name] = 'Intersect at least'
+            try:
+                int(relationEnd[1])
+                params['at_least'] = relationEnd[1]
+            except ValueError:
+                params['at_least'] = '2'
+            for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+                if tool_param.name.endswith('_Relation'):
+                    params[tool_param.name] = 'Intersect at least'
         else:
-			params['at_least'] = '0'    
-			for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-				if tool_param.name.endswith('_Relation'):
-					params[tool_param.name] = relation
-					if params[tool_param.name] not in ['Union','Intersect','Except']:
-						params[tool_param.name] = 'Union'
+            params['at_least'] = '0'
+            for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+                if tool_param.name.endswith('_Relation'):
+                    params[tool_param.name] = relation
+                    if params[tool_param.name] not in ['Union', 'Intersect', 'Except']:
+                        params[tool_param.name] = 'Union'
 
         # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -131,9 +131,9 @@ def run_tool_api(apikey, relation, genesets):
 
         return task_id
 
+
 @boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
-
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
