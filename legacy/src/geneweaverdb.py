@@ -780,7 +780,7 @@ def updategeneset(usr_id, form):
     pmid = None
     if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id,
                                                                                                           gs_id) != 1:
-        return 'You do not have permission to update this geneset'
+        return 'You do not have permission to update this GeneSet'
     if gs_abbreviation is None or gs_description is None or gs_name is None:
         return 'Required Field is not provided'
     # if a pubmed id is submitted, insert into the db if it does not exist. Then return the pub_id.

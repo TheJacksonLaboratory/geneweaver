@@ -122,7 +122,7 @@ corresponding to the active tool run. Also notice that `view_result` will
 use `render_tool_pending(...)` to render a status page until the task has
 completed.
 
-## Genesets
+## GeneSets
 
 TODO: fill in description of how genesets work
 
