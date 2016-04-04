@@ -809,9 +809,14 @@ def download_result():
     form = flask.request.form
     svg = form['svg'].strip()
     filetype = form['filetype'].lower().strip()
+    oldver = form['oldver']
     svgout = StringIO()
     imgout = StringIO()
     resultpath = config.get('application', 'results')
+
+    if oldver:
+        with open(os.path.join(resultpath, oldver), 'r') as fl:
+            svg = fl.read()
 
     ## This is incredibly stupid, but must be done. cairosvg (for some
     ## awful, unknown reason) will not scale any SVG produced by d3. So

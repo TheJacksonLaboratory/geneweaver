@@ -121,8 +121,13 @@
             <li><a class="download-image" id="dl-pdf">PDF</a></li>
             <li><a class="download-image" id="dl-png">PNG</a></li>
             <li><a class="download-image" id="dl-svg">SVG</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a class="download-image" id="ol-png">PNG (Old HiSim)</a></li>
         </ul>
     </div>
+    <!--
+    <button type="button" id="old-hisim" class="btn btn-primary">View Old HiSim Graph</button>
+    -->
 </div>
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
@@ -402,11 +407,11 @@
                 .append("svg")
                 .attr("width", width)
                 .attr("height", height)
-                //.attr('viewBox', function() {return '0 0 ' + width + ' ' + height;})
-                //.call(d3.behavior.zoom()
-                //        .on("zoom", function () {
-                //            svg.attr("transform", "translate(" + d3.event.translate + ")" + "scale(" + d3.event.scale + ")")
-                //        }))
+                .attr('viewBox', function() {return '0 0 ' + width + ' ' + height;})
+                .call(d3.behavior.zoom()
+                        .on("zoom", function () {
+                            svg.attr("transform", "translate(" + d3.event.translate + ")" + "scale(" + d3.event.scale + ")")
+                        }))
                 .append("g");
 
         g.link = svg.selectAll("path.link"),
@@ -1008,11 +1013,36 @@
     // load statistics from file
     $(window).load(loadStats);
 
+    // Code for viewing the old hisim graph. Works, but needs size and
+    // orientation adjustments, or should be plugged into cytoscape.
+    //$('#old-hisim').on('click', function(event) {
+
+    //    var runhash = '{{async_result.parameters.output_prefix}}';
+    //    var fp = '/results/' + runhash + '.svg';
+
+    //    d3.xml(fp, "image/svg+xml", function(error, xml) {
+    //        if (error) {
+
+    //            console.log(fp);
+    //            console.log(error);
+    //            return;
+    //        }
+
+    //        var oldsvg = xml.documentElement;
+    //        oldsvg.setAttribute('width', '900');
+    //        oldsvg.setAttribute('height', '700');
+    //
+    //        $('#viz2 > svg').toggle();
+    //        $('#viz2').append(xml.documentElement);
+    //    });
+    //});
+
     $('.download-image').on('click', function(event) {
 
         var dlurl = '/downloadResult';
         // Removes 'dl-' from the id string
         var filetype = event.target.id.slice(3);
+        var isOld = event.target.id.slice(0, 2) == 'ol' ? true : false;
 
         // Gives our SVG a white background color prior to conversion.
         // This actually changes the image the user is seeing, but they
@@ -1028,7 +1058,16 @@
             .attr("xmlns", "http://www.w3.org/2000/svg")
             .node().parentNode.innerHTML;
 
-        $.post(dlurl, {svg: html, filetype: filetype}).done(function(data) {
+        if (isOld) {
+            var runhash = '{{async_result.parameters.output_prefix}}';
+            var fp = runhash + '.svg';
+            var oldver = fp;
+
+        } else {
+           var oldver = '';
+        }
+
+        $.post(dlurl, {svg: html, filetype: filetype, oldver: oldver}).done(function(data) {
 
             if (filetype == 'png')
                 var png = 'data:image/png;base64,' + data;
