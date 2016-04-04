@@ -177,6 +177,7 @@ def create_batch_geneset():
     else:
         return flask.jsonify({'genesets': added})
 
+
 @geneset_blueprint.route('/batchuploadgeneset/<genes>')
 def render_batchuploadgeneset_ba(genes):
     gidts = []
@@ -613,7 +614,8 @@ def create_geneset():
                             (sp_id, curr_id.lower())
                         )
                         gene_results = list(geneweaverdb.dictify_cursor(cursor))
-                        # if there are gene results, add to list of all results and put ode_gene_id into unique gene_id list
+                        # if there are gene results, add to list of all results and
+                        # put ode_gene_id into unique gene_id list
                         if gene_results:
                             gene_results[0].update({'value': curr_val})
 
