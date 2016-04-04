@@ -1,4 +1,4 @@
-{% set title="Edit Geneset" %}
+{% set title="Edit GeneSet" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -75,7 +75,7 @@
         </div>
         <div class="col-md-4 pull-right">
             <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
-            <b>Go to Geneset Details <i class="fa fa-step-forward"></i></b></a>
+            <b>Go to GeneSet Details <i class="fa fa-step-forward"></i></b></a>
         </div>
     </div>
 
@@ -272,7 +272,7 @@
                     </div>
                     <div id="genesetOntologyAlert" class="alert alert-warning fade in col-xs-3">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-                            Geneset-Ontology Link Changes Persist on Select/Deselect.
+                            GeneSet-Ontology Link Changes Persist on Select/Deselect.
                     </div>
                 </div>
 
@@ -543,17 +543,17 @@
     //Popover that gives Geneset Ontology functionality overview for the user
     //Displayed when ontologies are linked with the geneset
     $('#anotologyInformation').popover({
-            title: 'Geneset Ontologies', content: 'Linked geneset ontologies are displayed below as the highlighted ' +
+            title: 'GeneSet Ontologies', content: 'Linked GeneSet ontologies are displayed below as the highlighted ' +
             'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
-            'selection of various geneset ontology reference types.  All selected ontologies may be viewed under the ' +
-            'All Reference Types category.  Geneset-ontology links may be added or removed under any other category'
+            'selection of various GeneSet ontology reference types.  All selected ontologies may be viewed under the ' +
+            'All Reference Types category.  GeneSet-ontology links may be added or removed under any other category'
     });
     //Displayed when NO ontologies are linked with the geneset
     $('#noAnotologyInformation').popover({
-            title: 'Geneset Ontologies', content: 'Linked geneset ontologies are displayed below as the highlighted ' +
+            title: 'GeneSet Ontologies', content: 'Linked GeneSet ontologies are displayed below as the highlighted ' +
             'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
-            'selection of various geneset ontology reference types.  All selected ontologies may be viewed under the ' +
-            'All Reference Types category.  Geneset-ontology links may be added or removed under any other category'
+            'selection of various GeneSet ontology reference types.  All selected ontologies may be viewed under the ' +
+            'All Reference Types category.  GeneSet-ontology links may be added or removed under any other category'
     });
 
 </script>

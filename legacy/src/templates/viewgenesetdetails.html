@@ -1,4 +1,4 @@
-{% set title="Geneset Details" %}
+{% set title="GeneSet Details" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -85,7 +85,7 @@
 						<i class="fa fa-folder-o pull-left"></i> Add to Project
 					</button>
 					<button type="button" class="btn btn-lg btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
-						<i class="fa fa-list-ul pull-left"></i> Add to New Geneset
+						<i class="fa fa-list-ul pull-left"></i> Add to New GeneSet
 					</button>
 					{% endif %}
                 </div>
@@ -302,7 +302,7 @@
 						success: function (data) {
 							$("#result").html('<div class="alert alert-success fade in"> ' +
 									'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-									'</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
+									'</button>GeneSet(s) Successfully Added to Selected Project(s)</div>');
 						}
 					});
 				}
@@ -405,7 +405,7 @@
 
 			{# Assign the needed async_results variables #}
 			var numGS = 0;
-			var getStr = 'Genes dervied from the geneset: {{ geneset.name }}';
+			var getStr = 'Genes dervied from the GeneSet: {{ geneset.name }}';
 			getStr += '?' + getStr;
 
 			// add in all the checked boxes gene names

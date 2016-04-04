@@ -1,4 +1,4 @@
-{% set title="Similar Genesets" %}
+{% set title="Similar GeneSets" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -55,7 +55,7 @@
     <div class="row" id="result"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
-        <h2 class="panel-title"><strong>Genesets with the Same Publication</strong></h2>
+        <h2 class="panel-title"><strong>GeneSets with the Same Publication</strong></h2>
     </div>
 
 
@@ -63,7 +63,7 @@
     <div class="panel panel-default">
 
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Genesets Sharing a Publication with GS{{ gs_id }}
+            <h3 class="panel-title">GeneSets Sharing a Publication with GS{{ gs_id }}
                 <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
         </div>
 
@@ -71,7 +71,7 @@
 
             <div class="alert alert-warning fade in"><button type="button" class="close" data-dismiss="alert"
                                                             aria-hidden="true">x</button>
-                There are no other gene sets annotated to the same publication as GS{{ gs_id }}.
+                There are no other GeneSets annotated to the same publication as GS{{ gs_id }}.
             </div>
 
         {% else %}
@@ -80,7 +80,7 @@
                 <div class="row">
                     <div class="col-md-3 pull-left">
                         <a href="/viewgenesetdetails/{{ gs_id }}">
-                        <b><i class="fa fa-step-backward"></i> Return to Geneset Details</b></a>
+                        <b><i class="fa fa-step-backward"></i> Return to GeneSet Details</b></a>
                     </div>
 
                     <div class="col-md-6"></div>
@@ -311,7 +311,7 @@
                         success: function (data) {
                             $("#result").html('<div class="alert alert-success fade in"> ' +
                                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                    '</button>Genesets Successfully Added to Selected Projects</div>');
+                                    '</button>GeneSets Successfully Added to Selected Projects</div>');
                             window.location.reload();
                         }
                     });
@@ -321,7 +321,7 @@
         });
 
         $('#clickableFontAwesome').popover({
-            title: 'Publications', content: 'Gene set duplications may occur when more than one gene set is annotated with ' +
+            title: 'Publications', content: 'GeneSet duplications may occur when more than one GeneSet is annotated with ' +
                 'to the same publication. Please contact our curatorial team to remove duplications.'
         });
 

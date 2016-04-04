@@ -33,7 +33,9 @@ import random
 import re
 import urllib2 as url2
 import config
-#import geneweaverdb
+
+
+# import geneweaverdb
 
 #### TheDB
 ##
@@ -42,7 +44,7 @@ import config
 ##
 class TheDB():
     def __init__(self, db='geneweaver', user='odeadmin', password='odeadmin'):
-        #cs = ("host='crick' dbname='%s' user='%s' password='%s'"
+        # cs = ("host='crick' dbname='%s' user='%s' password='%s'"
         #      % (db, user, password))
 
         db = config.get('db', 'database')
@@ -281,7 +283,6 @@ class TheDB():
 
         return d
 
-
     #### getSpecies
     ##
     #### Queries the DB for a list of species and returns the result as a
@@ -405,6 +406,7 @@ class TheDB():
 ## DB global, should only be one instance of this class
 db = TheDB()
 
+
 def eatWhiteSpace(s):
     """
     Removes leading + trailing whitespace from a given string.
@@ -414,6 +416,7 @@ def eatWhiteSpace(s):
     """
 
     return s.strip()
+
 
 def readBatchFile(fp):
     """
@@ -426,6 +429,7 @@ def readBatchFile(fp):
 
     with open(fp, 'r') as fl:
         return fl.readlines()
+
 
 def makeDigrams(s):
     """
@@ -442,6 +446,7 @@ def makeDigrams(s):
     b.insert(0, s[:2])
 
     return b
+
 
 def calcStringSimilarity(s1, s2):
     """
@@ -467,6 +472,7 @@ def calcStringSimilarity(s1, s2):
     intersect = list((mset(sd1) & mset(sd2)).elements())
 
     return (2 * len(intersect)) / float(len(sd1) + len(sd2))
+
 
 def parseScoreType(s):
     """
@@ -649,7 +655,7 @@ def getPubmedInfo(pmid):
 
     except:
         er = ('Error! The PubMed info retrieved from NCBI was incomplete. No '
-              'PubMed data will be attributed to this geneset.')
+              'PubMed data will be attributed to this GeneSet.')
         return ({}, er)
 
     return (pinfo, '')
@@ -682,18 +688,18 @@ def parseBatchFile(lns, usr=0, cur=5):
     spec = ''  # species name
     cerr = ''  # critical errors discovered during parsing
     ncerr = []  # non-critical errors discovered during parsing
-    errors = [] # critical errors discovered during parsing
-    warns = [] # non-critical errors discovered during parsing
+    errors = []  # critical errors discovered during parsing
+    warns = []  # non-critical errors discovered during parsing
 
-    #for ln in lns:
+    # for ln in lns:
     for i in range(len(lns)):
-        #ln = eatWhiteSpace(ln)
+        # ln = eatWhiteSpace(ln)
         lns[i] = lns[i].strip()
 
         ## :, =, + are required for all datasets
         #
         ## Lines beginning with ':' are geneset abbreviations (REQUIRED)
-        #if ln[:1] == ':':
+        # if ln[:1] == ':':
         if lns[i][:1] == ':':
             ## This checks to see if we've already read in some geneset_values
             ## If we have, that means we can save the geneset, clear out any
@@ -708,11 +714,11 @@ def parseBatchFile(lns, usr=0, cur=5):
                 gsvals = []
                 genesets.append(gs)
 
-            #abbr = eatWhiteSpace(ln[1:])
+            # abbr = eatWhiteSpace(ln[1:])
             abbr = eatWhiteSpace(lns[i][1:])
 
         ## Lines beginning with '=' are geneset names (REQUIRED)
-        #elif ln[:1] == '=':
+        # elif ln[:1] == '=':
         elif lns[i][:1] == '=':
             ## This checks to see if we've already read in some geneset_values
             ## If we have, that means we can save the geneset, clear out any
@@ -727,11 +733,11 @@ def parseBatchFile(lns, usr=0, cur=5):
                 gsvals = []
                 genesets.append(gs)
 
-            #name = eatWhiteSpace(ln[1:])
+            # name = eatWhiteSpace(ln[1:])
             name = eatWhiteSpace(lns[i][1:])
 
         ## Lines beginning with '+' are geneset descriptions (REQUIRED)
-        #elif ln[:1] == '+':
+        # elif ln[:1] == '+':
         elif lns[i][:1] == '+':
             ## This checks to see if we've already read in some geneset_values
             ## If we have, that means we can save the geneset, clear out any
@@ -746,7 +752,7 @@ def parseBatchFile(lns, usr=0, cur=5):
                 gsvals = []
                 genesets.append(gs)
 
-            #desc += eatWhiteSpace(ln[1:])
+            # desc += eatWhiteSpace(ln[1:])
             desc += eatWhiteSpace(lns[i][1:])
             desc += ' '
 
@@ -754,17 +760,17 @@ def parseBatchFile(lns, usr=0, cur=5):
         ## they don't differ from the first.
         #
         ## Lines beginning with '!' are score types (REQUIRED)
-        #elif ln[:1] == '!':
+        # elif ln[:1] == '!':
         elif lns[i][:1] == '!':
-            #score = eatWhiteSpace(ln[1:])
+            # score = eatWhiteSpace(ln[1:])
             score = eatWhiteSpace(lns[i][1:])
             score = parseScoreType(score)
 
             ## Indicates a critical error has occured (no score type w/ an
             ## error message)
             if not score[0] and score[2]:
-                #cerr = score[2]
-                #break
+                # cerr = score[2]
+                # break
                 errors.append(score[2])
 
             else:
@@ -773,20 +779,20 @@ def parseBatchFile(lns, usr=0, cur=5):
 
             ## Any warnings
             if score[0] and score[2]:
-                #ncerr.append(score[2])
+                # ncerr.append(score[2])
                 warns.append(score[2])
 
         ## Lines beginning with '@' are species types (REQUIRED)
-        #elif ln[:1] == '@':
+        # elif ln[:1] == '@':
         elif lns[i][:1] == '@':
-            #spec = eatWhiteSpace(ln[1:])
+            # spec = eatWhiteSpace(ln[1:])
             spec = eatWhiteSpace(lns[i][1:])
             specs = db.getSpecies()
 
             if spec.lower() not in specs.keys():
-                #cerr = ('Critical error! There is no data for the species (%s) '
+                # cerr = ('Critical error! There is no data for the species (%s) '
                 #        'you specified. ' % spec)
-                #break
+                # break
                 err = 'LINE %s: %s is an invalid species' % (i + 1, spec)
                 errors.append(err)
 
@@ -795,9 +801,9 @@ def parseBatchFile(lns, usr=0, cur=5):
                 spec = specs[spec.lower()]
 
         ## Lines beginning with '%' are gene ID types (REQUIRED)
-        #elif ln[:1] == '%':
+        # elif ln[:1] == '%':
         elif lns[i][:1] == '%':
-            #gene = eatWhiteSpace(ln[1:])
+            # gene = eatWhiteSpace(ln[1:])
             gene = eatWhiteSpace(lns[i][1:])
 
             ## In the PHP source, it looks like the gene type is checked
@@ -829,10 +835,10 @@ def parseBatchFile(lns, usr=0, cur=5):
                     err = 'LINE %s: %s is an invalid platform' % \
                           (i + 1, origplat)
                     errors.append(err)
-                    #cerr = ('Critical error! We aren\'t sure what microarray '
+                    # cerr = ('Critical error! We aren\'t sure what microarray '
                     #        'platform (%s) you specified. Check the list of '
                     #        'supported platforms.' % origplat)
-                    #break
+                    # break
 
             ## Otherwise the user specified one of the gene types, not a
             ## microarray platform
@@ -843,9 +849,9 @@ def parseBatchFile(lns, usr=0, cur=5):
                 types = db.getGeneTypes()
 
                 if gene.lower() not in types.keys():
-                    #cerr = ('Critical error! There is no data for the gene type '
+                    # cerr = ('Critical error! There is no data for the gene type '
                     #        '(%s) you specified.' % gene)
-                    #break
+                    # break
                     err = 'LINE %s: %s is an invalid gene type' % (i + 1, gene)
                     errors.append(err)
 
@@ -857,15 +863,15 @@ def parseBatchFile(lns, usr=0, cur=5):
 
 
         ## Lines beginning with 'P ' are PubMed IDs (OPTIONAL)
-        #elif (ln[:2].lower() == 'p ') and (len(ln.split('\t')) == 1):
+        # elif (ln[:2].lower() == 'p ') and (len(ln.split('\t')) == 1):
         elif (lns[i][:2].lower() == 'p ') and (len(lns[i].split('\t')) == 1):
-            #pub = eatWhiteSpace(ln[1:])
+            # pub = eatWhiteSpace(ln[1:])
             pub = eatWhiteSpace(lns[i][1:])
 
         ## Lines beginning with 'A' are groups, default is private (OPTIONAL)
-        #elif ln[:2].lower() == 'a ' and (len(ln.split('\t')) == 1):
+        # elif ln[:2].lower() == 'a ' and (len(ln.split('\t')) == 1):
         elif lns[i][:2].lower() == 'a ' and (len(lns[i].split('\t')) == 1):
-            #group = eatWhiteSpace(ln[1:])
+            # group = eatWhiteSpace(ln[1:])
             group = eatWhiteSpace(lns[i][1:])
             ## If the user gives something other than private/public,
             ## automatically make it private
@@ -880,23 +886,23 @@ def parseBatchFile(lns, usr=0, cur=5):
 
         ## If the lines are tab separated, we assume it's the gene data that
         ## will become apart of the geneset_values
-        #elif len(ln.split('\t')) == 2:
+        # elif len(ln.split('\t')) == 2:
         elif len(lns[i].split('\t')) == 2:
 
             ## First we check to see if all the required data was specified
             if ((not abbr) or (not name) or (not desc) or (not stype) or
                     (not spec) or (not gene)):
-                #cerr = ('Critical error! Looks like one of the required '
+                # cerr = ('Critical error! Looks like one of the required '
                 #        'fields is missing.')
-                #break
+                # break
                 err = 'One or more of the required fields are missing.'
                 ## Otherwise this string will get appended a bajillion times
                 if err not in errors:
                     errors.append(err)
-                #pass
+                    # pass
 
 
-            #ln = ln.split()
+            # ln = ln.split()
             else:
                 lns[i] = lns[i].split()
 
@@ -909,33 +915,33 @@ def parseBatchFile(lns, usr=0, cur=5):
                 else:
                     gsvals.append((lns[i][0], lns[i][1]))
 
-            #if len(ln) < 2:
-            #    cerr = ("Critical error! Looks like there isn't a value "
-            #            "associated with the gene %s. Or maybe you forgot to "
-            #            "use tabs." % ln[0])
-            #    break
+                    # if len(ln) < 2:
+                    #    cerr = ("Critical error! Looks like there isn't a value "
+                    #            "associated with the gene %s. Or maybe you forgot to "
+                    #            "use tabs." % ln[0])
+                    #    break
 
-            #gsvals.append((ln[0], ln[1]))
+                    # gsvals.append((ln[0], ln[1]))
 
         ## Lines beginning with '#' are comments
-        #elif ln[:1] == '#':
+        # elif ln[:1] == '#':
         elif lns[i][:1] == '#':
             continue
 
         ## Skip blank lines
-        #elif ln[:1] == '':
+        # elif ln[:1] == '':
         elif lns[i][:1] == '':
             continue
 
         ## Who knows what the fuck this line is, just skip it
         else:
-            #ncerr.append('BAD LINE: ' + ln)
+            # ncerr.append('BAD LINE: ' + ln)
             err = 'LINE %s: Skipping unknown identifiers' % (i + 1)
             warns.append(err)
 
     ## awwww shit, we're finally finished! Check for critical errors and
     ## if there were none, make the final geneset and return
-    #if cerr:
+    # if cerr:
     #    return ([], ncerr, cerr)
     if errors:
         return ([], warns, errors)
@@ -945,7 +951,7 @@ def parseBatchFile(lns, usr=0, cur=5):
                          thresh, gene, gsvals, usr, cur)
         genesets.append(gs)
 
-        #return (genesets, ncerr, [])
+        # return (genesets, ncerr, [])
         return (genesets, warns, errors)
 
 
@@ -1009,7 +1015,6 @@ def buGenesetValues(gs):
         prbids = list(set(prbids))
         prb2odes = db.getProbe2Gene(prbids)
 
-
     # non-critical errors we will inform the user about
     noncrit = []
     # duplicate detection
@@ -1045,7 +1050,7 @@ def buGenesetValues(gs):
 
                 db.insertGenesetValue(gs['gs_id'], ode, value, sym,
                                       'true')
-                                      #gs['gs_threshold'])
+                # gs['gs_threshold'])
 
                 total += 1
 
@@ -1152,14 +1157,14 @@ if __name__ == '__main__':
     parse = OptionParser(usage=usage)
 
     parse.add_option('-u', action='store', type='string', dest='usr_id',
-                     help='Specify a usr_id for newly added genesets')
+                     help='Specify a usr_id for newly added GeneSets')
     parse.add_option('-c', action='store', type='string', dest='cur_id',
-                     help='Specify a cur_id for newly added genesets')
+                     help='Specify a cur_id for newly added GeneSets')
 
     (opts, args) = parse.parse_args(argv)
 
     if len(args) < 2:
-        print '[!] You need to provide a batch geneset file.'
+        print '[!] You need to provide a batch GeneSet file.'
         parse.print_help()
         print ''
         exit()
@@ -1172,7 +1177,7 @@ if __name__ == '__main__':
     ## Where all the magic happens
     stuff = buGenesets(args[1], opts.usr_id, opts.cur_id)
 
-    print '[+] The following genesets were added:'
+    print '[+] The following GeneSets were added:'
     print ', '.join(map(str, stuff[0]))
     print ''
 
