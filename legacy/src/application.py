@@ -807,24 +807,31 @@ def download_result():
     """
 
     form = flask.request.form
-    svg = form['svg']
-    svg = svg.strip()
+    svg = form['svg'].strip()
+    filetype = form['filetype'].lower().strip()
     svgout = StringIO()
-    pngout = StringIO()
+    imgout = StringIO()
     resultpath = config.get('application', 'results')
 
-    with open(path.join(resultpath, 'super-test.png'), 'wb') as fl:
-        ## This is incredibly stupid, but must be done. cairosvg (for some
-        ## awful, unknown reason) will not scale any SVG produced by d3. So
-        ## we convert our d3js produced SVG to an SVG...then convert to PNG
-        ## with a reasonably high DPI.
-        ## Also, if any fonts are rendering incorrectly, it's because cairosvg
-        ## doesn't parse CSS attributes correctly and you need to append each
-        ## font attribute to the text element itself.
-        cairosvg.svg2svg(bytestring=svg, write_to=svgout)
-        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=pngout, dpi=600)
+    ## This is incredibly stupid, but must be done. cairosvg (for some
+    ## awful, unknown reason) will not scale any SVG produced by d3. So
+    ## we convert our d3js produced SVG to an SVG...then convert to PNG
+    ## with a reasonably high DPI.
+    ## Also, if any fonts are rendering incorrectly, it's because cairosvg
+    ## doesn't parse CSS attributes correctly and you need to append each
+    ## font attribute to the text element itself.
+    cairosvg.svg2svg(bytestring=svg, write_to=svgout)
 
-    return pngout.getvalue().encode('base64')
+    if filetype == 'pdf':
+        cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=600)
+
+    elif filetype == 'png':
+        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=600)
+
+    else:
+        imgout = svgout
+
+    return imgout.getvalue().encode('base64')
 
 #### viewStoredResults
 ##
