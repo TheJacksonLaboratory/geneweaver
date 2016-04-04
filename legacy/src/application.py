@@ -847,6 +847,7 @@ def viewStoredResults_by_runhash():
         user_id = form['user_id']
         results = geneweaverdb.get_results_by_runhash(form['runHash'])
         results = results[0][0]
+        resultpath = config.get('application', 'results')
 
         if results['res_tool'] == 'Jaccard Similarity':
             return flask.render_template(
@@ -856,8 +857,16 @@ def viewStoredResults_by_runhash():
                 list=geneweaverdb.get_all_projects(user_id))
 
         elif results['res_tool'] == 'HiSim Graph':
+            fp = os.path.join(resultpath, form['runHash'] + '.json')
+
+            with open(fp, 'r') as fl:
+                data = ''
+                for line in fl:
+                    data += str(line)
+
             return flask.render_template(
                 'tool/PhenomeMap_result.html',
+                data=data,
                 async_result=json.loads(results['res_data']),
                 tool=geneweaverdb.get_tool('PhenomeMap'),
                 runhash=form['runHash'])

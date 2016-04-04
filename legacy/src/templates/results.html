@@ -175,11 +175,14 @@
 							};
 							//var serial = 'runHash=' + runhash;
 							//serial += '&user_id=' + user_id;
+                            console.log('checking results');
 
 							// Check to see if the results exist in the results
 							// directory--we don't want to view null results
 							$.get(check_url, data).done(function(data) {
 
+                                console.log('checked');
+                                console.log(data);
 								data = JSON.parse(data);
 
 								if (data.exists) {

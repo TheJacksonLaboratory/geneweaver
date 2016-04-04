@@ -87,8 +87,6 @@
 {% if runhash %}
     <script type="text/javascript">
 
-        console.log('wtf');
-
         var graph_url = '/results/' + '{{async_result.result_image}}';
         var xml = '';
         $.get(graph_url, function (data) {
