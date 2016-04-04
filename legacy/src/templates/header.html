@@ -18,7 +18,7 @@ messages = array of messages
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='images/GW2-logo.ico') }}">
 
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
-    <title>{% if title %}{{ title|e }} :: {% endif %}GeneWeaver</title>
+    <title>{% if title %}{{ title|e }} :: {% endif %}Gene Weaver</title>
     <!-- BEGIN PIXIT STYLE -->
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/icons/icons.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='pixit/admin/assets/css/bootstrap.min.css') }}" rel="stylesheet">
@@ -182,17 +182,17 @@ messages = array of messages
                 <a href="/mygenesets" class="dropdown-toggle" data-hover="dropdown">Manage GeneSets <span
                         class="caret"></span></a>
                 <ul class="dropdown-menu" role="menu">
-                    <li><a href="/mygenesets">My GeneSets</a></li>
-                    <li><a href="/search">Search GeneSets</a></li>
-                    <li><a href="{{ url_for('geneset.render_uploadgeneset') }}">Upload GeneSets</a></li>
-                    <li><a href="/batchupload">Batch Upload GeneSets</a></li>
+                    <li><a href="/mygenesets">My Genesets</a></li>
+                    <li><a href="/search">Search Genesets</a></li>
+                    <li><a href="{{ url_for('geneset.render_uploadgeneset') }}">Upload Gensets</a></li>
+                    <li><a href="/batchupload">Batch Upload Gensets</a></li>
                 </ul>
             </li>
             <li class="dropdown">
                 <a href="{{ url_for('render_analyze')|safe }}" class="dropdown-toggle" data-hover="dropdown">Analyze
-                    GeneSets<span class="caret"></span></a>
+                    Genesets<span class="caret"></span></a>
                 <ul class="dropdown-menu" role="menu">
-                    <li><a href="{{ url_for('render_analyze')|safe }}">Analyze GeneSets</a></li>
+                    <li><a href="{{ url_for('render_analyze')|safe }}">Analyze Genesets</a></li>
                     <li><a href="{{ url_for('render_projects')|safe }}">My Projects</a></li>
                     <li><a href="{{ url_for('render_user_results')|safe }}">Results</a></li>
                     {% if "user" in g %}

@@ -20,7 +20,7 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
-        flask.flash("Warning: You need at least two GeneSets!")
+        flask.flash("Warning: You need at least 2 gene sets!")
         return flask.redirect('analyze')
 
     else:
@@ -83,7 +83,7 @@ def run_tool_api(apikey, relation, genesets):
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
         # there needs to be a min of 2, is there a max?
-        raise Exception('There must be at least two GeneSets selected to run this tool')
+        raise Exception('there must be at least two genesets selected to run this tool')
 
     else:
         relationEnd = relation.split(':')

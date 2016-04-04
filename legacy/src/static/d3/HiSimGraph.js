@@ -489,23 +489,23 @@ function collide(node) {
 //
 var data = {
     "nodes": [
-        {"id": 0, "GeneSets": [1, 2, 3, 4, 5], "Genes": ["I"], "children": [1, 2], "depth": 0},
-        {"id": 1, "GeneSets": [1, 2, 4, 5], "Genes": ["A", "I"], "children": [3, 16], "depth": 1},
-        {"id": 2, "GeneSets": [2, 3, 4, 5], "Genes": ["I", "K"], "children": [6, 16], "depth": 1},
-        {"id": 3, "GeneSets": [1, 2, 4], "Genes": ["A", "E", "I"], "children": [7,8], "depth": 2},
-        {"id": 4, "GeneSets": [1, 2, 3], "Genes": ["G","I"], "children": [9,10], "depth": 2},
-        {"id": 5, "GeneSets": [1, 3, 4], "Genes": ["I","J"], "children": [7, 11], "depth": 2},
-        {"id": 6, "GeneSets": [2, 3, 4], "Genes": ["I", "K", "M"], "children": [9, 11], "depth": 2, "emphasis": true},
-        {"id": 7, "GeneSets": [1, 4], "Genes": ["A", "E", "I", "B", "D", "J"], "children": [12, 15], "depth": 3},
-        {"id": 8, "GeneSets": [1, 2], "Genes": ["A", "C", "E", "G", "I"], "children": [12, 13], "depth": 3},
-        {"id": 9, "GeneSets": [2, 3], "Genes": ["G", "I", "M", "P"], "children": [13, 14], "depth": 3, "emphasis": true},
-        {"id": 10, "GeneSets": [1, 3], "Genes": ["G", "H", "I", "J"], "children": [12, 14], "depth": 3},
-        {"id": 11, "GeneSets": [3, 4], "Genes": ["I", "J", "K", "L", "M", "N"], "children": [14, 15], "depth": 3, "emphasis": true},
-        {"id": 12, "GeneSets": [1], "Genes": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"], "children": [], "depth": 4},
-        {"id": 13, "GeneSets": [2], "Genes": ["A", "C", "E", "G", "I", "K", "M", "P"], "children": [], "depth": 4, "emphasis": true},
-        {"id": 14, "GeneSets": [3], "Genes": ["G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"], "children": [], "depth": 4, "emphasis": true},
-        {"id": 15, "GeneSets": [4], "Genes": ["A", "B", "D", "E", "I", "J", "K", "L", "M", "N"], "children": [], "depth": 4, "emphasis": true},
-        {"id": 16, "GeneSets": [5], "Genes": ["A", "I", "K"], "children": [], "depth": 4}
+        {"id": 0, "Genesets": [1, 2, 3, 4, 5], "Genes": ["I"], "children": [1, 2], "depth": 0},
+        {"id": 1, "Genesets": [1, 2, 4, 5], "Genes": ["A", "I"], "children": [3, 16], "depth": 1},
+        {"id": 2, "Genesets": [2, 3, 4, 5], "Genes": ["I", "K"], "children": [6, 16], "depth": 1},
+        {"id": 3, "Genesets": [1, 2, 4], "Genes": ["A", "E", "I"], "children": [7,8], "depth": 2},
+        {"id": 4, "Genesets": [1, 2, 3], "Genes": ["G","I"], "children": [9,10], "depth": 2},
+        {"id": 5, "Genesets": [1, 3, 4], "Genes": ["I","J"], "children": [7, 11], "depth": 2},
+        {"id": 6, "Genesets": [2, 3, 4], "Genes": ["I", "K", "M"], "children": [9, 11], "depth": 2, "emphasis": true},
+        {"id": 7, "Genesets": [1, 4], "Genes": ["A", "E", "I", "B", "D", "J"], "children": [12, 15], "depth": 3},
+        {"id": 8, "Genesets": [1, 2], "Genes": ["A", "C", "E", "G", "I"], "children": [12, 13], "depth": 3},
+        {"id": 9, "Genesets": [2, 3], "Genes": ["G", "I", "M", "P"], "children": [13, 14], "depth": 3, "emphasis": true},
+        {"id": 10, "Genesets": [1, 3], "Genes": ["G", "H", "I", "J"], "children": [12, 14], "depth": 3},
+        {"id": 11, "Genesets": [3, 4], "Genes": ["I", "J", "K", "L", "M", "N"], "children": [14, 15], "depth": 3, "emphasis": true},
+        {"id": 12, "Genesets": [1], "Genes": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"], "children": [], "depth": 4},
+        {"id": 13, "Genesets": [2], "Genes": ["A", "C", "E", "G", "I", "K", "M", "P"], "children": [], "depth": 4, "emphasis": true},
+        {"id": 14, "Genesets": [3], "Genes": ["G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"], "children": [], "depth": 4, "emphasis": true},
+        {"id": 15, "Genesets": [4], "Genes": ["A", "B", "D", "E", "I", "J", "K", "L", "M", "N"], "children": [], "depth": 4, "emphasis": true},
+        {"id": 16, "Genesets": [5], "Genes": ["A", "I", "K"], "children": [], "depth": 4}
 
 
 
