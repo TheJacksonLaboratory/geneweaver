@@ -142,7 +142,7 @@
 <br>
 
 <!-- Panel for the Geneset Table-->
-<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">Geneset Table Panel</i></div>
+<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">GeneSet Table Panel</i></div>
 <div id="panel" class="badger-left">
 
 <!-- Reset button for the Geneset Table Panel, so user can see original set shown by table -->
@@ -195,11 +195,11 @@
 </div>
 
 <!-- Key for the Venn Diagram, so users can understand the what each color of dot represents -->
-<div id="xaxisLeg"><img src="/static/images/lavenderdot.png" > = X-Axis Geneset</div>
-<div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis Geneset</div>
+<div id="xaxisLeg"><img src="/static/images/lavenderdot.png" > = X-Axis GeneSet</div>
+<div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis GeneSet</div>
 <div id="genesetLeg"> <img src="/static/images/cyandot.png" > = Same Geneset</div>
 <div id="empLeg"> <img src="/static/images/chartreusedot.png" > = Contains Emphasis Gene
-<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = Geneset Did Not Meet Threshold</div></p></div>
+<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div></p></div>
 
 
 <!-- Div(Jaccard), where all the venn diagram D3 is appended to in the JavaScript below -->
@@ -1345,7 +1345,7 @@ $('#addToProject').on('click', function () {
         if (gsname.length == 0) {
             $(document).trigger("add-alerts", [
                 {
-                    'message': "No Gene Sets were selected for combining into the same project.",
+                    'message': "No GeneSets were selected for combining into the same project.",
                     'priority': 'danger'
                 }
             ]);
@@ -1394,7 +1394,7 @@ $('#addGenesetsToProjects').on('click', function (e) {
                 success: function (data) {
                     $(document).trigger("add-alerts", [
                         {
-                            'message': "Genesets Successfully Added to Selected Projects.",
+                            'message': "GeneSets Successfully Added to Selected Projects.",
                             'priority': 'success'
                         }
                     ]);
