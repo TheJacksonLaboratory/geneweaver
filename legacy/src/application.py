@@ -879,8 +879,11 @@ def viewStoredResults_by_runhash():
                 list=geneweaverdb.get_all_projects(user_id))
 
         elif results['res_tool'] == 'Clustering':
+            fp = os.path.join('/results', form['runHash'] + '.json')
+
             return flask.render_template(
-                'tool/GeneSetViewer_result.html',
+                'tool/JaccardClustering_result.html',
+                cluster_data=fp,
                 async_result=json.loads(results['res_data']),
                 tool=geneweaverdb.get_tool('JaccardClustering'),
                 list=geneweaverdb.get_all_projects(user_id))
