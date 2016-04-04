@@ -852,6 +852,7 @@ def viewStoredResults_by_runhash():
         if results['res_tool'] == 'Jaccard Similarity':
             return flask.render_template(
                 'tool/JaccardSimilarity_result.html',
+                data=results['res_data'],
                 async_result=json.loads(results['res_data']),
                 tool=geneweaverdb.get_tool('JaccardSimilarity'),
                 list=geneweaverdb.get_all_projects(user_id))
