@@ -9,7 +9,6 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'GeneSetViewer'
 geneset_viewer_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-
 @geneset_viewer_blueprint.route('/run-geneset-viewer.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
@@ -23,7 +22,7 @@ def run_tool():
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-
+    
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least two GeneSets!")
         return flask.redirect('analyze')
@@ -83,27 +82,27 @@ def run_tool():
     response.headers['location'] = new_location
 
     return response
-
-
-@geneset_viewer_blueprint.route('/run-genesest-viewer-api.html', methods=['POST'])
-def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets):
+    
+@geneset_viewer_blueprint.route('/run-genesest-viewer-api.html', methods=['POST'])  
+def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets ):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
+    
 
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
-
+    
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_' + 'SupressDisconnected'):
-            params[tool_param.name] = supressDisconnected
-            if supressDisconnected not in ['On', 'Off']:
-                params[tool_param.name] = 'On'
+		    params[tool_param.name] = supressDisconnected
+		    if supressDisconnected not in ['On','Off']:
+				params[tool_param.name] = 'On'
         if tool_param.name.endswith('_' + 'MinDegree'):
-            params[tool_param.name] = minDegree
-            if minDegree not in ['Auto', '1', '2', '3', '4', '5', '10', '20']:
-                params[tool_param.name] = 'Auto'
+		    params[tool_param.name] = minDegree
+		    if minDegree not in ['Auto','1','2','3','4','5','10','20']:
+		        params[tool_param.name] = 'Auto'
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = 'Excluded'
             params[tool_param.name] = 'Excluded'
@@ -112,13 +111,16 @@ def run_tool_api(apikey, homology, supressDisconnected, minDegree, genesets):
                 params[tool_param.name] = 'Included'
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
+    
     # pull out the selected geneset IDs
     selected_geneset_ids = genesets.split(":")
     if len(selected_geneset_ids) < 2:
         # TODO add nice error message about missing genesets
         raise Exception('There must be at least two GeneSets selected to run this tool')
 
+    
     # insert result for this run
+
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))

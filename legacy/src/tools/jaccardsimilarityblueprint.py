@@ -2,6 +2,7 @@ import celery.states as states
 import flask
 import json
 import uuid
+import geneweaverdb
 import geneweaverdb as gwdb
 import toolcommon as tc
 from decimal import Decimal
@@ -110,7 +111,7 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_PairwiseDeletion'):
             params[tool_param.name] = pairwiseDeletion
-            if params[tool_param.name] != 'Enabled':
+            if (params[tool_param.name] != 'Enabled'):
                 params[tool_param.name] = 'Disabled'
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = 'Excluded'
@@ -124,6 +125,7 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
                 params[tool_param.name] = '1.0'
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
+
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)

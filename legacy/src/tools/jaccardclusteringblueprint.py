@@ -12,10 +12,10 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'JaccardClustering'
 jaccardclustering_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-
 @jaccardclustering_blueprint.route('/JaccardClustering.html', methods=['POST'])
 def run_tool():
-    # TODO need to check for read permissions on genesets
+
+     # TODO need to check for read permissions on genesets
 
     form = flask.request.form
 
@@ -27,12 +27,14 @@ def run_tool():
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
+
     if len(selected_geneset_ids) < 3:
         flask.flash("Warning: You need at least three GeneSets!")
         return flask.redirect('analyze')
 
     # info dictionary
     gs_dict = {}
+
 
     # retrieve gene symbols
     gene_symbols = {}
@@ -114,8 +116,9 @@ def run_tool():
     return response
 
 
-# @jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['GET'])
+#@jaccardclustering_blueprint.route('/api/tool/JaccardClustering.html', methods=['GET'])
 def run_tool_api(apikey, homology, method, genesetsPassed):
+
     user_id = gwdb.get_user_id_by_apikey(apikey)
     # TODO need to check for read permissions on genesets
 
@@ -125,9 +128,9 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
 
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_' + 'Method'):
-            paramsAPI[tool_param.name] = method
-            if method not in ['Ward', 'Single', 'McQuitty', 'Average', 'Complete', 'Heatmap']:
-                paramsAPI[tool_param.name] = 'Ward'
+		    paramsAPI[tool_param.name] = method
+		    if method not in ['Ward', 'Single', 'McQuitty', 'Average', 'Complete', 'Heatmap']:
+				paramsAPI[tool_param.name] = 'Ward'
         if tool_param.name.endswith('_' + homology_str):
             paramsAPI[homology_str] = 'Excluded'
             paramsAPI[tool_param.name] = 'Excluded'
@@ -135,11 +138,13 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
                 paramsAPI[homology_str] = 'Included'
                 paramsAPI[tool_param.name] = 'Included'
 
+
     # pull out the selected geneset IDs
     selected_geneset_ids = genesetsPassed.split(":")
     if len(selected_geneset_ids) < 3:
         # TODO add nice error message about missing genesets
         raise Exception('There must be at least three GeneSets selected to run this tool')
+
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -166,7 +171,7 @@ def run_tool_api(apikey, homology, method, genesetsPassed):
         },
         task_id=task_id)
 
-    # TODO SOON return file istead of just name of file
+	# TODO SOON return file istead of just name of file
     return task_id
 
 
@@ -176,7 +181,7 @@ def view_result(task_id):
     # really debug here
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
-    path_to_result = '/results/' + task_id + '.json'
+    path_to_result = '/results/'+task_id+'.json'
 
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
@@ -191,7 +196,6 @@ def view_result(task_id):
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
-
 
 @jaccardclustering_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):

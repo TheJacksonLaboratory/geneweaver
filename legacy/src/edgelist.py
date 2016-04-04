@@ -28,14 +28,15 @@ y is in the third partite set, z is in the fifth partite set.
 
 '''
 
-import copy
-
-from geneweaverdb import PooledCursor, dictify_cursor, get_genes_by_geneset_id, \
+from geneweaverdb import PooledCursor, dictify_cursor, get_genesets_for_project, get_genes_by_geneset_id, \
     get_genesets_for_project
-
+from flask import session
+from flask import redirect
+from flask import flash
 import os.path
 import re
-from flask import session
+import copy
+
 
 
 def get_genes_from_proj_intersection(proj1, proj2, hom=True):
