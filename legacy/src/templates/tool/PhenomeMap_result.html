@@ -113,18 +113,18 @@
 {% endif %}
 
 <div class="">
-        <div class="btn-group">
-            <button type="button" class="btn btn-primary">Download as...</button>
-            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="caret"></span>
-                <span class="sr-only">Toggle Dropdown</span>
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="download-image" id="dl-pdf">PDF</a></li>
-                <li><a class="download-image" id="dl-png">PNG</a></li>
-                <li><a class="download-image" id="dl-svg">SVG</a></li>
-            </ul>
-        </div>
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary">Download as...</button>
+        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span class="caret"></span>
+            <span class="sr-only">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="download-image" id="dl-pdf">PDF</a></li>
+            <li><a class="download-image" id="dl-png">PNG</a></li>
+            <li><a class="download-image" id="dl-svg">SVG</a></li>
+        </ul>
+    </div>
 </div>
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
@@ -1010,7 +1010,6 @@
     // load statistics from file
     $(window).load(loadStats);
 
-    //d3.select('#download-image').on('click', function() {
     $('.download-image').on('click', function(event) {
 
         var dlurl = '/downloadResult';
@@ -1033,7 +1032,14 @@
 
         $.post(dlurl, {svg: html, filetype: filetype}).done(function(data) {
 
-            var png = 'data:image/png;base64,' + data;
+            if (filetype == 'png')
+                var png = 'data:image/png;base64,' + data;
+
+            else if (filetype == 'pdf')
+                var png = 'data:application/pdf;base64,' + data;
+
+            else
+                var png = 'data:xml/svg;base64,' + data;
 
             var a = document.createElement("a");
             a.download = 'result.' + filetype;

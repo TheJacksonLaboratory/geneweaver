@@ -178,21 +178,20 @@
       <div class="container middle-cell">
 
         <!-- Formatting the buttons in the correct div, Download buttons has a dropdown menu allowing user to select three options -->
-         <div class="dropdown middle-cell">
-             <a id="download-image" class="btn btn-lg bt btn-success">
-                 <i class="fa fa-download pull-left"></i>
-                 Download Image
-             </a>
-             <!--
-             <button class="btn btn-primary dropdown-toggle" id="menu1" type="button" data-toggle="dropdown"><i class="fa fa-download pull-left">   Download as</i>
-             <span class="caret"></span></button>
-              <ul class="dropdown-menu dropdown-menu-right" id="menudrop" role="menu" aria-labelledby="menu1" onChange="download(this.value)">
-                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.svg">SVG</a></li>
-                  <li role="presentation"><a role="menuitem" tabindex="-1" value="a_file.pdf" >PDF</a></li>
-                  <li role="presentation"><a role="menuitem" tabindex="-1"  value="a_file.png"  href="https://www.google.com">PNG</a></li>
-              </ul>
-              -->
-         </div>
+        <div class="">
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary">Download as...</button>
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="caret"></span>
+                    <span class="sr-only">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="download-image" id="dl-pdf">PDF</a></li>
+                    <li><a class="download-image" id="dl-png">PNG</a></li>
+                    <li><a class="download-image" id="dl-svg">SVG</a></li>
+                </ul>
+            </div>
+        </div>
       </div>
             <!-- Reset Zoom button for the Venn Diagram view that allows users to view the data in its original display if they zoom or pan too much -->
             <div class="right-cell">
@@ -996,23 +995,6 @@ $(document).ready(function(){
       chev.toggleClass('fa-plus') });
 
 });
-// Incomplete download svg 
-// function getSVG() {
-//     var html = d3.select("svg")
-//             .attr("title", "test2")
-//             .attr("version", 1.1)
-//             .attr("xmlns", "http://www.w3.org/2000/svg")
-//             .node().parentNode.innerHTML;
-
-
-//     d3.select("body")
-//             .append("div")
-//             .attr("id", "download")
-//             .html("Right-click on this preview and choose Save as<br />Left-Click to dismiss<br />")
-//             .append("img")
-//             .attr("src", "data:image/svg+xml;base64," + btoa(html));
-// }
-// getSVG();
 </script>
 
 
@@ -1412,9 +1394,11 @@ $('#addGenesetsToProjects').on('click', function (e) {
     });
 
 
-    d3.select('#download-image').on('click', function() {
+    $('.download-image').on('click', function(event) {
 
         var dlurl = '/downloadResult';
+        // Removes 'dl-' from the id string
+        var filetype = event.target.id.slice(3);
 
         // Gives our SVG a white background color prior to conversion.
         // This actually changes the image the user is seeing, but they
@@ -1441,12 +1425,19 @@ $('#addGenesetsToProjects').on('click', function (e) {
         html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
                html + '</svg>'
 
-        $.post(dlurl, {svg: html}).done(function (data) {
+        $.post(dlurl, {svg: html, filetype: filetype}).done(function (data) {
 
-            var png = 'data:image/png;base64,' + data;
+            if (filetype == 'png')
+                var png = 'data:image/png;base64,' + data;
+
+            else if (filetype == 'pdf')
+                var png = 'data:application/pdf;base64,' + data;
+
+            else
+                var png = 'data:xml/svg;base64,' + data;
 
             var a = document.createElement("a");
-            a.download = "result.png";
+            a.download = 'result.' + filetype;
             a.href = png;
 
             document.body.appendChild(a);
