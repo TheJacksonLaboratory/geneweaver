@@ -4,8 +4,6 @@ import json
 import string
 import random
 from psycopg2.pool import ThreadedConnectionPool
-import distutils.sysconfig
-from distutils.util import strtobool
 from tools import toolcommon as tc
 import os
 import flask
@@ -37,17 +35,17 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
 
 # the global threaded connection pool that should be used for all DB connections in this application
 pool = GeneWeaverThreadedConnectionPool(
-    5, 20,
-    # database='geneweaver',
-    # user='odeadmin',
-    # password='odeadmin',
-    # host='crick.ecs.baylor.edu',
-    # port=5432,
-    database=config.get('db', 'database'),
-    user=config.get('db', 'user'),
-    password=config.get('db', 'password'),
-    host=config.get('db', 'host'),
-    port=config.getInt('db', 'port')
+        5, 20,
+        # database='geneweaver',
+        # user='odeadmin',
+        # password='odeadmin',
+        # host='crick.ecs.baylor.edu',
+        # port=5432,
+        database=config.get('db', 'database'),
+        user=config.get('db', 'user'),
+        password=config.get('db', 'password'),
+        host=config.get('db', 'host'),
+        port=config.getInt('db', 'port')
 )
 
 
@@ -152,7 +150,7 @@ def get_genesets_for_project(project_id, auth_user_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT *
             FROM
                 (
@@ -171,10 +169,10 @@ def get_genesets_for_project(project_id, auth_user_id):
                 -- right to view the geneset
                 geneset_is_readable(%(auth_user_id)s, gs.gs_id);
             ''',
-            {
-                'project_id': project_id,
-                'auth_user_id': auth_user_id,
-            }
+                {
+                    'project_id': project_id,
+                    'auth_user_id': auth_user_id,
+                }
         )
         return [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
 
@@ -182,12 +180,12 @@ def get_genesets_for_project(project_id, auth_user_id):
 def insert_geneset_to_project(project_id, geneset_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             INSERT INTO project2geneset (pj_id, gs_id, modified_on)
             VALUES (%s, %s, now())
             RETURNING pj_id;
             ''',
-            (project_id, geneset_id,)
+                (project_id, geneset_id,)
         )
         cursor.connection.commit()
 
@@ -202,12 +200,12 @@ def create_project(project_name, user_id):
     if user_id > 0:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''
+                    '''
                 INSERT INTO project (pj_name, usr_id, pj_created)
                 VALUES (%s, %s, now())
                 RETURNING pj_id;
                 ''',
-                (project_name, user_id,)
+                    (project_name, user_id,)
             )
             cursor.connection.commit()
             # return the primary ID for the insert that we just performed
@@ -215,12 +213,12 @@ def create_project(project_name, user_id):
     else:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''
+                    '''
                 INSERT INTO project (pj_name, pj_created)
                 VALUES (%s, now())
                 RETURNING pj_id;
                 ''',
-                (project_name,)
+                    (project_name,)
             )
             cursor.connection.commit()
             # return the primary ID for the insert that we just performed
@@ -233,7 +231,7 @@ def get_all_projects(usr_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             (SELECT p.*, p.pj_id, x.* FROM project p, (select CAST(NULL AS BIGINT) as count,
                 CAST(NULL AS BIGINT) as deprecated, CAST(NULL AS VARCHAR) as group) x
                 WHERE p.usr_id=%(usr_id)s AND p.pj_id not in
@@ -259,7 +257,7 @@ def get_all_projects(usr_id):
                 GROUP BY p2g.pj_id, x.count, g.group
             ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
             ''',
-            {'usr_id': usr_id}
+                {'usr_id': usr_id}
         )
 
         return [Project(d) for d in dictify_cursor(cursor)]
@@ -276,7 +274,7 @@ def get_all_members_of_group(usr_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT u2g.grp_id, u.usr_email FROM usr2grp u2g, usr u WHERE u2g.grp_id IN
             (SELECT grp_id FROM usr2grp WHERE usr_id=%s) AND u.usr_id=u2g.usr_id''', (usr_id,)
         )
@@ -290,7 +288,7 @@ def get_all_owned_groups(usr_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
+                '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
                FROM production.usr2grp
                WHERE usr_id = %s and u2g_privileges = 1)''', (usr_id,)
         )
@@ -304,7 +302,7 @@ def get_all_member_groups(usr_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
+                '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
                FROM production.usr2grp
                WHERE usr_id = %s and (u2g_privileges = 0 or u2g_privileges IS NULL))''', (usr_id,)
         )
@@ -324,12 +322,12 @@ def create_group(group_name, group_private, user_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             INSERT INTO production.grp (grp_name, grp_private, grp_created)
             VALUES (%s, %s, now())
             RETURNING grp_id;
             ''',
-            (group_name, priv,)
+                (group_name, priv,)
         )
         cursor.connection.commit()
         # return the primary ID for the insert that we just performed
@@ -337,11 +335,11 @@ def create_group(group_name, group_private, user_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges)
             VALUES (%s, %s, 1 );
             ''',
-            (grp_id, user_id,)
+                (grp_id, user_id,)
         )
         cursor.connection.commit()
         print cursor.statusmessage
@@ -368,9 +366,9 @@ def edit_group_name(group_name, group_id, group_private, user_id):
 
 
 # adds a user to the group specified.
-# permision should be passed as 0 if it is a normal user
-# permision should be passed as 1 if it is an admin
-# permision is defaulted to 0					
+# permission should be passed as 0 if it is a normal user
+# permission should be passed as 1 if it is an admin
+# permission is defaulted to 0
 def add_user_to_group(group_id, owner_id, usr_email, permission=0):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT usr_email FROM usr WHERE usr_email=%s''', (usr_email,))
@@ -378,7 +376,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
             return {'error': 'No User'}
         else:
             cursor.execute(
-                '''
+                    '''
                 INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
                 VALUES ((SELECT grp_id
                          FROM production.usr2grp
@@ -388,7 +386,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
                          WHERE usr_email = %s LIMIT 1), %s, 2, now())
                 RETURNING grp_id;
                 ''',
-                (group_id, owner_id, usr_email, permission,)
+                    (group_id, owner_id, usr_email, permission,)
             )
             cursor.connection.commit()
             # return the primary ID for the insert that we just performed
@@ -399,7 +397,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
 def remove_user_from_group(group_name, owner_id, usr_email):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             DELETE FROM production.usr2grp
             WHERE (grp_id = (SELECT grp_id
                             FROM production.usr2grp
@@ -415,7 +413,7 @@ def remove_user_from_group(group_name, owner_id, usr_email):
                                WHERE usr_email = %s LIMIT 1);
 
             ''',
-            (group_name, owner_id, group_name, usr_email, usr_email,)
+                (group_name, owner_id, group_name, usr_email, usr_email,)
         )
         cursor.connection.commit()
     # return the primary ID for the insert that we just performed
@@ -427,15 +425,15 @@ def remove_selected_users_from_group(user_id, user_emails, grp_id):
     for e in user_email:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''
+                    '''
                 DELETE FROM production.usr2grp
                 WHERE grp_id=%s AND usr_id = (SELECT usr_id FROM production.usr WHERE usr_email=%s limit 1) AND
                   EXISTS (SELECT 1 FROM production.usr2grp WHERE grp_id=%s AND usr_id=%s AND u2g_privileges=1)
                 ''',
-                (grp_id, e, grp_id, user_id,))
+                    (grp_id, e, grp_id, user_id,))
             cursor.connection.commit()
             print cursor.statusmessage
-        # return the primary ID for the insert that we just performed
+            # return the primary ID for the insert that we just performed
     return {'error': 'None'}
 
 
@@ -443,18 +441,18 @@ def remove_selected_users_from_group(user_id, user_emails, grp_id):
 def toggle_group_active(group_id, user_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             UPDATE production.usr2grp
             SET u2g_active = not u2gactive
             WHERE grp_id = %s and usr_id = %s;
             ''',
-            (group_id, user_id,)
+                (group_id, user_id,)
         )
         cursor.connection.commit()
         return
 
 
-# Be Careful with this fucntion
+# Be Careful with this function
 # Only let owners of groups call this function
 def delete_group(group_name, owner_id):
     if int(flask.session['user_id']) != int(owner_id):
@@ -462,23 +460,23 @@ def delete_group(group_name, owner_id):
     else:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''
+                    '''
                 DELETE FROM production.usr2grp
                 WHERE grp_id = (SELECT grp_id
                                 FROM production.usr2grp
                                 WHERE grp_id = %s AND  usr_id = %s AND u2g_privileges = 1)
                 RETURNING grp_id;
                 ''',
-                (group_name, owner_id,)
+                    (group_name, owner_id,)
             )
             cursor.connection.commit()
         with PooledCursor() as cursor:
             cursor.execute(
-                '''
+                    '''
                 DELETE FROM production.grp
                 WHERE grp_id = %s;
                 ''',
-                (group_name,)
+                    (group_name,)
             )
             cursor.connection.commit()
         return {'error': 'None'}
@@ -491,7 +489,7 @@ def remove_member_from_group(group_name, owner_id):
     else:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''
+                    '''
                 DELETE FROM production.usr2grp
                 WHERE grp_id=%s AND usr_id=%s AND u2g_privileges=0;
                 ''',
@@ -523,6 +521,18 @@ def get_all_publications(gs_id):
         return publications[0] if len(publications) == 1 else None
 
 
+def get_project_groups():
+    """
+    returns: all group ids and group names for projects belonging to user_id and group priv = 1
+    """
+    user_id = flask.session['user_id']
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT g.grp_id, g.grp_name, u.u2g_privileges, u.usr_id FROM grp g, usr2grp u
+                          WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
+        results = list(dictify_cursor(cursor))
+    return results
+
+
 def get_all_attributions():
     """
     returns an ordered mapping from attribution ID to attribution name for all available attributions
@@ -534,7 +544,7 @@ def get_all_attributions():
     with PooledCursor() as cursor:
         # TODO resolve issue of the null at_abbrev. For now this is truncated for the search feature, but could be
         # enabled in the future.
-        cursor.execute('''select at_id, at_abbrev from attribution WHERE at_abbrev IS NOT NULL ORDER BY at_id;''')
+        cursor.execute('''SELECT at_id, at_abbrev FROM attribution WHERE at_abbrev IS NOT NULL ORDER BY at_id;''')
         return OrderedDict(cursor)
 
 
@@ -550,12 +560,12 @@ def resolve_feature_id(sp_id, feature_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT ode_gene_id, gdb_id, ode_ref_id
             FROM gene
             WHERE sp_id=%(sp_id)s AND LOWER(ode_ref_id)=%(feature_id)s;
             ''',
-            {'sp_id': sp_id, 'feature_id': feature_id})
+                {'sp_id': sp_id, 'feature_id': feature_id})
 
         return list(cursor)
 
@@ -563,8 +573,8 @@ def resolve_feature_id(sp_id, feature_id):
 def get_gene_id_types(sp_id=0):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM genedb WHERE %(sp_id)s=0 OR sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
-            {'sp_id': sp_id})
+                '''SELECT * FROM genedb WHERE %(sp_id)s=0 OR sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
+                {'sp_id': sp_id})
 
         return list(dictify_cursor(cursor))
 
@@ -577,8 +587,8 @@ def get_microarray_types(sp_id=0):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM platform WHERE (sp_id=%(sp_id)s OR 0=%(sp_id)s) ORDER BY pf_name;''',
-            {'sp_id': sp_id})
+                '''SELECT * FROM platform WHERE (sp_id=%(sp_id)s OR 0=%(sp_id)s) ORDER BY pf_name;''',
+                {'sp_id': sp_id})
         return list(dictify_cursor(cursor))
 
 
@@ -589,7 +599,7 @@ def get_news():
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT nf_title, nf_date, nf_text, nf_type FROM odestatic.news_feed ORDER BY nf_timestamp DESC limit 3;'''
+                '''SELECT nf_title, nf_date, nf_text, nf_type FROM odestatic.news_feed ORDER BY nf_timestamp DESC LIMIT 3;'''
         )
         news = list(dictify_cursor(cursor))
         return news
@@ -603,12 +613,12 @@ def get_stats():
     final_stats = []
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT stat_geneset, stat_genes, stat_res, stat_users
               FROM (SELECT count(*) FROM result) AS stat_res,
               (SELECT count(DISTINCT usr_id) FROM result) AS stat_users,
               (SELECT count(*) FROM gene) AS stat_genes,
-              (SELECT count(*) FROM geneset WHERE cur_id in (1,2,3,4)) AS stat_geneset;
+              (SELECT count(*) FROM geneset WHERE cur_id IN (1,2,3,4)) AS stat_geneset;
             '''
         )
         stats = dictify_cursor(cursor)
@@ -625,12 +635,12 @@ def delete_geneset_by_gsid(rargs):
     gs_id = rargs.get('gs_id', type=int)
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             UPDATE geneset
             SET gs_status = 'deleted'
             WHERE gs_id =%s AND usr_id =%s;
             ''',
-            (gs_id, usr_id,)
+                (gs_id, usr_id,)
         )
         cursor.connection.commit()
         return
@@ -648,16 +658,17 @@ def delete_project_by_id(rargs):
         return
 
 
-def add_project_by_name(rargs):
-    name = rargs
+def add_project_by_name(name, comment):
+    name = name
+    comment = comment
     if name == '':
         return {'error': 'You must provide a valid Project Name'}
     else:
         user_id = flask.session['user_id']
         if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
             with PooledCursor() as cursor:
-                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created) VALUES (%s, %s, now())''', (user_id,
-                                                                                                                name,))
+                cursor.execute('''INSERT INTO project (usr_id, pj_name, pj_created, pj_notes) VALUES
+                                (%s, %s, now(), %s)''', (user_id, name, comment,))
                 # print cursor.statusmessage
                 cursor.connection.commit()
             return {'error': 'None'}
@@ -668,13 +679,14 @@ def add_project_by_name(rargs):
 def change_project_by_id(rargs):
     id = rargs['projid']
     name = rargs['projname']
+    notes = rargs['comments']
     if name == '':
         return {'error': 'You must provide a valid Project Name'}
     else:
         user_id = flask.session['user_id']
         if user_id != 0 or get_user(user_id).is_admin is not False or get_user(user_id).is_curator is not False:
             with PooledCursor() as cursor:
-                cursor.execute('''UPDATE project SET pj_name=%s WHERE pj_id=%s''', (name, id,))
+                cursor.execute('''UPDATE project SET pj_name=%s, pj_notes=%s WHERE pj_id=%s''', (name, notes, id,))
                 # print cursor.statusmessage
                 cursor.connection.commit()
             return {'error': 'None'}
@@ -819,8 +831,9 @@ def updategeneset(usr_id, form):
         else:
             with PooledCursor() as cursor:
                 cursor.execute(
-                    '''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                    (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
+                        '''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
+                        (
+                        pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
                 cursor.connection.commit()
             with PooledCursor() as cursor:
                 cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
@@ -856,11 +869,11 @@ def byteify(input):
 def clear_geneset_ontology(gs_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             DELETE FROM geneset_ontology
             WHERE gs_id=%s;
             ''',
-            (gs_id,)
+                (gs_id,)
         )
     cursor.connection.commit()
     return
@@ -870,7 +883,7 @@ def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
     print(gs_id, ", ", ont_id)
     with PooledCursor() as cursor:
         cursor.execute(
-            '''INSERT INTO geneset_ontology
+                '''INSERT INTO geneset_ontology
             (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, %s);
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
@@ -880,12 +893,12 @@ def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' INSERT INTO production.project
+                ''' INSERT INTO production.project
                 (usr_id, pj_name) VALUES (%s, %s)
                 RETURNING pj_id;
                 ''', (usr_id, pj_name,))
         cursor.connection.commit()
-    return
+    return cursor.fetchone()[0]
 
 
 def add_geneset2project(pj_id, gs_id):
@@ -893,7 +906,7 @@ def add_geneset2project(pj_id, gs_id):
         gs_id = gs_id[2:]
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' INSERT INTO project2geneset
+                ''' INSERT INTO project2geneset
                 (pj_id, gs_id) SELECT %s, %s
                 WHERE NOT EXISTS
                 (SELECT pj_id, gs_id FROM project2geneset WHERE pj_id=%s AND gs_id=%s)
@@ -908,12 +921,11 @@ def add_genesets_to_projects(rargs):
     npn = rargs.get('npn', type=str)
     gs_ids = rargs.get('gs_id', type=str)
     checked = json.loads(rargs.get('option', type=str))
-    if (gs_ids is not None):
-        if (npn is not None):
+    if gs_ids is not None:
+        if npn is not None:
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
-        # print gs_id
         for pj_id in checked:
             for g in gs_id:
                 g = g.strip()
@@ -921,22 +933,27 @@ def add_genesets_to_projects(rargs):
     return
 
 
-# def add_genesets_to_projects(rargs):
-#	  usr_id = rargs.get('user_id', type=int)
-#	  npn = rargs.get('npn', type=str)
-#	  gs_ids = rargs.get('gs_id', type=str)
-#	  checked = json.loads(rargs.get('option', type=str))
-#	  if (gs_ids is not None):
-#		  if (npn is not None):
-#			  new_pj_id = add_project(usr_id, npn)
-#			  checked.append(new_pj_id)
-#		  gs_id = gs_ids.split(',')
-#		  print gs_id
-#		  for pj_id in checked:
-#			 for g in gs_id:
-#				 g = g.strip()
-#				 add_geneset2project(pj_id, g)
-#	  return
+def get_selected_genesets_by_projects(gs_ids):
+    """
+    :param gs_ids:
+    :return: all genesets and projects associated with gs_ids
+    """
+    if flask.session['user_id']:
+        user_id = flask.session['user_id']
+        gs_id = gs_ids.split(',')
+        with PooledCursor() as cursor:
+            cursor.execute(
+                    '''SELECT p2g.pj_id, p2g.gs_id, pj.pj_name, gs.gs_name FROM
+                        project2geneset p2g, project pj, geneset gs
+                    WHERE p2g.pj_id=pj.pj_id AND pj.usr_id=%s AND gs.gs_id=p2g.gs_id AND
+                    p2g.gs_id IN (%s)''' % (
+                    user_id, ",".join(str(x) for x in gs_id),)
+            )
+            genesets = list(dictify_cursor(cursor))
+            return genesets if len(genesets) > 0 else None
+    else:
+        return None
+
 
 def user_is_project_owner(user_id, proj_id):
     with PooledCursor() as cursor:
@@ -955,10 +972,24 @@ def remove_geneset_from_project(rargs):
             return
 
 
+def remove_genesets_from_multiple_projects(rargs):
+    user_id = flask.session['user_id']
+    pjgs = rargs.get('pjgs', type=str)
+    ids = pjgs.split(',')
+    for i in ids:
+        pj = i.split('-')[0]
+        gs = i.split('-')[1]
+        if get_user(user_id).is_admin or user_is_project_owner(user_id, pj):
+            with PooledCursor() as cursor:
+                cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (pj, gs,))
+                cursor.connection.commit()
+    return {'error': 'None'}
+
+
 def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             DELETE FROM geneset_ontology
             WHERE gs_id=%s AND ont_id=%s AND gso_ref_type=%s
             ''', (gs_id, ont_id, gso_ref_type)
@@ -973,11 +1004,11 @@ def delete_results_by_runhash(rargs):
     runHash = rargs.get('runHash', type=str)
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             DELETE FROM result
             WHERE usr_id=%s AND res_runhash=%s;
             ''',
-            (user_id, runHash,)
+                (user_id, runHash,)
         )
         cursor.connection.commit()
         return
@@ -989,11 +1020,11 @@ def edit_results_by_runhash(rargs):
     editName = rargs.get('editName', type=str)
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             UPDATE result SET res_name=%s
             WHERE usr_id=%s AND res_runhash=%s;
             ''',
-            (editName, user_id, runHash,)
+                (editName, user_id, runHash,)
         )
         cursor.connection.commit()
         return
@@ -1498,7 +1529,7 @@ def monthly_tool_stats():
     tools = [];
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT DISTINCT res_tool FROM production.result WHERE res_created >= now() - interval '30 days';''')
+                '''SELECT DISTINCT res_tool FROM production.result WHERE res_created >= now() - INTERVAL '30 days';''')
     tools = list(dictify_cursor(cursor))
 
     try:
@@ -1506,8 +1537,8 @@ def monthly_tool_stats():
             response = OrderedDict()
             for tool in tools:
                 cursor.execute(
-                    '''SELECT res_created, count(*) FROM production.result WHERE res_created >= now() - interval '30 days' AND res_tool=%s GROUP BY res_created ORDER BY res_created desc;''',
-                    (tool['res_tool'],))
+                        '''SELECT res_created, count(*) FROM production.result WHERE res_created >= now() - interval '30 days' AND res_tool=%s GROUP BY res_created ORDER BY res_created desc;''',
+                        (tool['res_tool'],))
                 response.update({tool['res_tool']: OrderedDict(cursor)})
         return response
     except Exception, e:
@@ -1525,7 +1556,7 @@ def user_tool_stats():
     try:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''SELECT usr_id, count(*) FROM production.result WHERE res_created >= now() - interval '6 months' GROUP BY usr_id ORDER BY count(*) desc limit 20;''')
+                    '''SELECT usr_id, count(*) FROM production.result WHERE res_created >= now() - INTERVAL '6 months' GROUP BY usr_id ORDER BY count(*) DESC LIMIT 20;''')
         return OrderedDict(cursor)
     except Exception, e:
         return str(e)
@@ -1547,7 +1578,7 @@ def currently_running_tools():
     try:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''SELECT res_id, usr_id, res_tool, res_status FROM production.result WHERE res_completed is NULL;''')
+                    '''SELECT res_id, usr_id, res_tool, res_status FROM production.result WHERE res_completed IS NULL;''')
         return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)
@@ -1557,7 +1588,7 @@ def size_of_genesets():
     try:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''SELECT gs_id, gs_count FROM production.geneset WHERE gs_status not like 'de%' ORDER BY gs_count DESC limit 1000;''')
+                    '''SELECT gs_id, gs_count FROM production.geneset WHERE gs_status not like 'de%' ORDER BY gs_count DESC limit 1000;''')
         return OrderedDict(cursor)
     except Exception, e:
         return str(e)
@@ -1590,7 +1621,7 @@ def gs_in_tool_run():
     try:
         with PooledCursor() as cursor:
             cursor.execute(
-                '''SELECT res_id, res_tool, gs_ids, res_completed FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_completed DESC LIMIT 500;''')
+                    '''SELECT res_id, res_tool, gs_ids, res_completed FROM production.result WHERE res_completed IS NOT NULL ORDER BY res_completed DESC LIMIT 500;''')
         return list(dictify_cursor(cursor))
     except Exception, e:
         return str(e)
@@ -1610,21 +1641,21 @@ def tools():
 def create_usr2gene(user_id, ode_gene_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             INSERT INTO extsrc.usr2gene (usr_id, ode_gene_id)
             VALUES (%s, %s)
             ''',
-            (user_id, ode_gene_id,)
+                (user_id, ode_gene_id,)
         )
         cursor.connection.commit()
-    # return the primary ID for the insert that we just performed
+        # return the primary ID for the insert that we just performed
 
 
 # insert delete all  with usr id
 def delete_usr2gene_by_user(user_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''DELETE FROM usr2gene WHERE usr_id=%s;''', (user_id,)
+                '''DELETE FROM usr2gene WHERE usr_id=%s;''', (user_id,)
         )
 
         cursor.connection.commit()
@@ -1635,7 +1666,7 @@ def delete_usr2gene_by_user(user_id):
 def delete_usr2gene_by_user_and_gene(user_id, ode_gene_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''DELETE FROM usr2gene WHERE usr_id=%s AND ode_gene_id=%s;''', (user_id, ode_gene_id,)
+                '''DELETE FROM usr2gene WHERE usr_id=%s AND ode_gene_id=%s;''', (user_id, ode_gene_id,)
         )
         cursor.connection.commit()
         return
@@ -1645,9 +1676,9 @@ def delete_usr2gene_by_user_and_gene(user_id, ode_gene_id):
 def get_gene_and_species_info_by_user(user_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT gene.*, species.* FROM (extsrc.gene INNER JOIN odestatic.species USING (sp_id))
+                '''SELECT gene.*, species.* FROM (extsrc.gene INNER JOIN odestatic.species USING (sp_id))
               INNER JOIN usr2gene USING (ode_gene_id) WHERE gene.ode_pref and usr2gene.usr_id = (%s);''',
-            (user_id,))
+                (user_id,))
     return list(dictify_cursor(cursor))
 
 
@@ -1655,9 +1686,9 @@ def get_gene_and_species_info_by_user(user_id):
 def get_gene_and_species_info(ode_ref_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT gene.*, species.* FROM extsrc.gene INNER JOIN odestatic.species USING (sp_id)
+                '''SELECT gene.*, species.* FROM extsrc.gene INNER JOIN odestatic.species USING (sp_id)
               WHERE lower(ode_ref_id)=lower(%s);''',
-            (ode_ref_id,))
+                (ode_ref_id,))
     return list(dictify_cursor(cursor))
 
 
@@ -1830,11 +1861,11 @@ def authenticate_user(email, password):
             password_md5.update(password)
             try:
                 cursor.execute(
-                    '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',
-                    {
-                        'email': email,
-                        'password_md5': password_md5.hexdigest(),
-                    }
+                        '''SELECT * FROM usr WHERE usr_email=%(email)s AND usr_password=%(password_md5)s;''',
+                        {
+                            'email': email,
+                            'password_md5': password_md5.hexdigest(),
+                        }
                 )
                 users = [User(row_dict) for row_dict in dictify_cursor(cursor)]
                 return users[0] if len(users) == 1 else None
@@ -1846,7 +1877,7 @@ def authenticate_user(email, password):
 def get_results_by_runhash(runhash):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM production.result
                         WHERE res_runhash = %s
@@ -1892,14 +1923,14 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
     with PooledCursor() as cursor:
         password_md5 = md5(user_password).hexdigest()
         cursor.execute(
-            '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
+                '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
                         VALUES (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s)''',
-            {
-                'user_first_name': user_first_name,
-                'user_last_name': user_last_name,
-                'user_email': user_email,
-                'user_password': password_md5
-            }
+                {
+                    'user_first_name': user_first_name,
+                    'user_last_name': user_last_name,
+                    'user_email': user_email,
+                    'user_password': password_md5
+                }
         )
         cursor.connection.commit()
         return get_user_byemail(user_email)
@@ -1909,7 +1940,6 @@ def reset_password(user_email):
     """
     Update a user password
     :param user_email:		the user's email address, if not provided use "" as default
-    :param user_password:	the user's password, if not provided use "" as default
     """
 
     char_set = string.ascii_lowercase + string.ascii_uppercase + string.digits
@@ -1917,7 +1947,7 @@ def reset_password(user_email):
     with PooledCursor() as cursor:
         password_md5 = md5(new_password).hexdigest()
         cursor.execute(
-            '''UPDATE usr
+                '''UPDATE usr
                SET usr_password = %s
                WHERE usr_email = %s''', (password_md5, user_email)
         )
@@ -1928,14 +1958,13 @@ def reset_password(user_email):
 def change_password(user_id, new_password):
     """
     Update a user password
-    :param user_email:		the user's email address, if not provided use "" as default
-    :param new_password_1:	 the user's password, if not provided use "" as default
-    :param new_password_2:	 the user's password, if not provided use "" as default
+    :param user_id:		the user's id as default
+    :param new_password:	 the user's password, if not provided use "" as default
     """
     with PooledCursor() as cursor:
         password_md5 = md5(new_password).hexdigest()
         cursor.execute(
-            '''UPDATE usr
+                '''UPDATE usr
                SET usr_password = %s
                WHERE usr_id = %s''', (password_md5, user_id)
         )
@@ -1959,15 +1988,15 @@ def get_geneset(geneset_id, user_id=None, temp=None):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT *
             FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
-            {
-                'geneset_id': geneset_id,
-                'user_id': user_id,
-            }
+                {
+                    'geneset_id': geneset_id,
+                    'user_id': user_id,
+                }
         )
         if temp is None:
             genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
@@ -1996,7 +2025,7 @@ def get_similar_genesets(geneset_id, user_id):
         # I have simplified to return the top 150 of left and right ode_gene_ids. Worst case all are from
         # either partition of the list. I will clean up duplicates in the application.
         cursor.execute(
-            '''SELECT * FROM
+                '''SELECT * FROM
                 ((SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
                     WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
                     AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150) UNION
@@ -2004,14 +2033,14 @@ def get_similar_genesets(geneset_id, user_id):
                     WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
                     AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150)) as tmp ORDER BY jac_value DESC;
             ''',
-            {
-                'geneset_id': geneset_id,
-                'user_id': user_id,
-                'geneset_id': geneset_id,
-                'geneset_id': geneset_id,
-                'user_id': user_id,
-                'geneset_id': geneset_id,
-            }
+                {
+                    'geneset_id': geneset_id,
+                    'user_id': user_id,
+                    'geneset_id': geneset_id,
+                    'geneset_id': geneset_id,
+                    'user_id': user_id,
+                    'geneset_id': geneset_id,
+                }
         )
         simgc = [SimGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return simgc
@@ -2046,7 +2075,7 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
 
         # s = ','.join(gs_ids_clean)
         cursor.execute(cursor.mogrify(
-            '''SELECT geneset.* FROM geneset WHERE geneset.gs_id IN (%s)''' % ",".join(str(x) for x in gs_ids)))
+                '''SELECT geneset.* FROM geneset WHERE geneset.gs_id IN (%s)''' % ",".join(str(x) for x in gs_ids)))
 
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets
@@ -2067,13 +2096,13 @@ def compare_geneset_jac(gs_id1, gs_id2):
         gs2 = gs_id2
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT jac_value FROM geneset_jaccard
+                '''SELECT jac_value FROM geneset_jaccard
               WHERE gs_id_left=%(gs_id1)s AND gs_id_right=%(gs_id2)s AND jac_value > 0.95;
               ''',
-            {
-                'gs_id1': gs1,
-                'gs_id2': gs2,
-            }
+                {
+                    'gs_id1': gs1,
+                    'gs_id2': gs2,
+                }
         )
     if cursor.fetchone():
         return 1
@@ -2085,21 +2114,20 @@ def get_geneset_no_user(geneset_id):
     """
     Gets the Geneset regardless of whether the user has permission to view it
     :param geneset_id:	the geneset ID
-    :param user_id:		the user ID that needs permission
     :return:			the Geneset corresponding to the given ID if the
                         user has read permission, None otherwise
     """
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT *
             FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             WHERE gs_id=%(geneset_id)s;
             ''',
-            {
-                'geneset_id': geneset_id,
-            }
+                {
+                    'geneset_id': geneset_id,
+                }
         )
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
@@ -2114,14 +2142,14 @@ def get_user_groups(usr_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT grp_id
             FROM usr2grp
             WHERE usr_id=%(usr_id)s;
             ''',
-            {
-                'usr_id': usr_id,
-            }
+                {
+                    'usr_id': usr_id,
+                }
         )
         grp_ids = [row_dict['grp_id'] for row_dict in dictify_cursor(cursor)]
         return grp_ids
@@ -2136,14 +2164,14 @@ def get_group_users(grp_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT usr_id
             FROM usr2grp
             WHERE grp_id=%(grp_id)s;
             ''',
-            {
-                'grp_id': grp_id,
-            }
+                {
+                    'grp_id': grp_id,
+                }
         )
         usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
         return usr_ids
@@ -2165,15 +2193,15 @@ def get_geneset_brief(geneset_id, user_id=None):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
-            SELECT geneset.cur_id, geneset.sp_id, geneset.attribution, geneset.gs_count, geneset.gs_status, geneset.gs_id, geneset.gs_name
+                '''
+            SELECT geneset.cur_id, geneset.sp_id, geneset.gs_abbreviation, geneset.gs_count, geneset.gs_status, geneset.gs_id, geneset.gs_name
             FROM geneset
             WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
-            {
-                'geneset_id': geneset_id,
-                'user_id': user_id,
-            }
+                {
+                    'geneset_id': geneset_id,
+                    'user_id': user_id,
+                }
         )
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
@@ -2193,14 +2221,14 @@ def get_genesets_by_user_id(user_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT *
             FROM production.geneset
             WHERE usr_id=%(user_id)s;
             ''',
-            {
-                'user_id': user_id,
-            }
+                {
+                    'user_id': user_id,
+                }
         )
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets if len(genesets) > 0 else None
@@ -2214,7 +2242,7 @@ def get_all_parents_for_ontology(ont_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
             FROM ontology ont1 INNER JOIN ontology_relation ont2
             ON ont2.right_ont_id = ont1.ont_id
@@ -2248,7 +2276,7 @@ def get_all_parents_to_root_for_ontology(ont_id):
 
         with PooledCursor() as cursor:
             cursor.execute(
-                '''
+                    '''
                 SELECT count(*)
                 FROM ontology
                 WHERE ont_id = %s AND ont_parents = 0
@@ -2272,9 +2300,9 @@ def get_all_parents_to_root_for_ontology(ont_id):
             # those multiple paths of parents onto the path_list
             for ont in get_all_parents_for_ontology(ont_cur_id):
                 parent_path_list.append([parent_cur_path_list, ont.ontology_id])
-            # print "==================="
-            # print parent_path_list
-            # print "==================="
+                # print "==================="
+                # print parent_path_list
+                # print "==================="
 
 
 def get_all_children_for_ontology(ont_id):
@@ -2285,7 +2313,7 @@ def get_all_children_for_ontology(ont_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             SELECT ont1.ont_id, ont_ref_id, ont_name, ont_description, ont_children, ont_parents, ontdb_id
             FROM ontology ont1 INNER JOIN ontology_relation ont2
             ON ont2.left_ont_id = ont1.ont_id
@@ -2306,7 +2334,7 @@ def get_all_ontologydb():
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT * FROM ontologydb;'''
+                '''SELECT * FROM ontologydb;'''
         )
         return [Ontologydb(row_dict) for row_dict in dictify_cursor(cursor)]
 
@@ -2320,7 +2348,7 @@ def get_all_gso_ref_type():
     with PooledCursor() as cursor:
         gso_ref_types = []
         cursor.execute(
-            '''SELECT gso_ref_type FROM geneset_ontology GROUP BY gso_ref_type'''
+                '''SELECT gso_ref_type FROM geneset_ontology GROUP BY gso_ref_type'''
         )
         result = cursor.fetchall()
         for type in result:
@@ -2336,7 +2364,7 @@ def get_all_root_ontology_for_database(ontdb_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
                SELECT *
                FROM ontology
                WHERE ont_parents = 0 AND ontdb_id = %s;
@@ -2387,7 +2415,7 @@ def get_temp_geneset_values(geneset_id):
 										   array_accum(src_value) as gsv_value_list,'t' as gsv_in_threshold, now() as gsv_date
 										   FROM production.temp_geneset_value
 										   WHERE gs_id=%s GROUP BY gs_id, ode_gene_id ORDER BY ode_gene_id;''' % (
-        geneset_id,))
+            geneset_id,))
         return [TempGenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
@@ -2504,8 +2532,8 @@ def get_tool_params(tool_classname, only_visible=False):
     with PooledCursor() as cursor:
         if only_visible:
             cursor.execute(
-                '''SELECT * FROM tool_param WHERE tool_classname=%s AND tp_visible ORDER BY tp_name;''',
-                (tool_classname,))
+                    '''SELECT * FROM tool_param WHERE tool_classname=%s AND tp_visible ORDER BY tp_name;''',
+                    (tool_classname,))
         else:
             cursor.execute('''SELECT * FROM tool_param WHERE tool_classname=%s ORDER BY tp_name;''',
                            (tool_classname,))
@@ -2567,7 +2595,7 @@ def get_run_status(run_hash):
 
         # finds the number of runs ahead of us that are waiting to run
         cursor.execute(
-            '''
+                '''
             SELECT count(*)
             FROM
                 result AS r1
@@ -2593,12 +2621,12 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
         #	 (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status, res_api)
         # )
         cursor.execute(
-            '''
+                '''
             INSERT INTO result (usr_id, res_runhash, gs_ids, res_data, res_tool, res_description, res_status, res_started)
             VALUES (%s, %s, %s, %s, %s, %s, %s, now())
             RETURNING res_id;
             ''',
-            (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
+                (usr_id, res_runhash, ','.join(gs_ids), res_data, res_tool, res_description, res_status)
         )
         cursor.connection.commit()
 
@@ -2609,7 +2637,7 @@ def insert_result(usr_id, res_runhash, gs_ids, res_data, res_tool, res_descripti
 def get_all_userids():
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT usr_id, usr_email FROM production.usr limit 15;'''),
+                '''SELECT usr_id, usr_email FROM production.usr LIMIT 15;'''),
     return list(dictify_cursor(cursor))
 
 
@@ -2642,7 +2670,7 @@ def export_results_by_gs_id(gs_id):
     gene = {}
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT gsv_source_list[1], gsv_value from geneset_value
+                '''SELECT gsv_source_list[1], gsv_value from geneset_value
               WHERE gs_id=%s;''', (gs_id,)
         )
         for gid in cursor:
@@ -2660,14 +2688,14 @@ def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
     intersect_sym = []
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT ode_gene_id
+                '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
             ''', (geneset_id1,))
         for gid in cursor:
             gene_id1.append(gid[0])
         cursor.execute(
-            '''SELECT ode_gene_id
+                '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
             ''', (geneset_id2,))
@@ -2679,7 +2707,7 @@ def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
 
         for gene_id in intersect_id:
             cursor.execute(
-                '''SELECT gi_symbol
+                    '''SELECT gi_symbol
                    FROM extsrc.gene_info
                    where ode_gene_id = %s;
                 ''', (gene_id,))
@@ -2698,7 +2726,7 @@ def if_gene_has_homology(gene_id):
     """
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT hom_id
+                '''SELECT hom_id
                FROM extsrc.homology
                where ode_gene_id = %s;
             ''', (gene_id,))
@@ -2718,14 +2746,14 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
     # Get all gene ids from both genesets
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT ode_gene_id
+                '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
             ''', (geneset_id1,))
         for gid in cursor:
             gene_id1.append(gid[0])
         cursor.execute(
-            '''SELECT ode_gene_id
+                '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
             ''', (geneset_id2,))
@@ -2739,7 +2767,7 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
     # Find all homology ids within both genesets
     for gid in gene_id1:
         cursor.execute(
-            '''SELECT hom_id
+                '''SELECT hom_id
                FROM extsrc.homology
                where ode_gene_id = %s;
             ''', (gid,))
@@ -2755,7 +2783,7 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
 
     for gid in gene_id2:
         cursor.execute(
-            '''SELECT hom_id
+                '''SELECT hom_id
                FROM extsrc.homology
                where ode_gene_id = %s;
             ''', (gid,))
@@ -2777,7 +2805,7 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
     # Creates a dictionary of ode_ref_ids for the homologous genes
     for gene_id in homology_genes:
         cursor.execute(
-            '''SELECT gi_symbol
+                '''SELECT gi_symbol
                FROM extsrc.gene_info
                where ode_gene_id = %s;
             ''', (gene_id,))
@@ -2796,14 +2824,14 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
     # Create lists for each gene in each geneset
     with PooledCursor() as cursor:
         cursor.execute(
-            '''SELECT ode_gene_id
+                '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
             ''', (geneset_id1,))
         for gid in cursor:
             gene_id1.append(gid[0])
         cursor.execute(
-            '''SELECT ode_gene_id
+                '''SELECT ode_gene_id
                FROM extsrc.geneset_value
                where gs_id = %s;
             ''', (geneset_id2,))
@@ -2818,7 +2846,7 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
     # Find the homology ids in each geneset
     for gid in gene_id1:
         cursor.execute(
-            '''SELECT hom_id
+                '''SELECT hom_id
                FROM extsrc.homology
                where ode_gene_id = %s;
             ''', (gid,))
@@ -2828,7 +2856,7 @@ def get_geneset_intersect(geneset_id1, geneset_id2):
 
     for gid in gene_id2:
         cursor.execute(
-            '''SELECT hom_id
+                '''SELECT hom_id
                FROM extsrc.homology
                where ode_gene_id = %s;
             ''', (gid,))
@@ -2847,7 +2875,7 @@ def check_emphasis(gs_id, em_gene):
     # Find all the genes in a geneset
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT *
+                ''' SELECT *
                 FROM geneset_value
                 WHERE gs_id = %s;
             ''', (gs_id,)
@@ -2944,7 +2972,7 @@ def get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, homology):
         if not homology:
             with PooledCursor() as cursor:
                 cursor.execute(
-                    ''' SELECT row_to_json(row, true)
+                        ''' SELECT row_to_json(row, true)
                         FROM (	SELECT geneset.*
                                 FROM production.geneset
                                 WHERE geneset.gs_id in
@@ -2958,7 +2986,7 @@ def get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, homology):
         else:
             with PooledCursor() as cursor:
                 cursor.execute(
-                    ''' SELECT row_to_json(row, true)
+                        ''' SELECT row_to_json(row, true)
                         FROM (	SELECT geneset.*
                                 FROM production.geneset
                                 WHERE geneset.gs_id in
@@ -2983,7 +3011,7 @@ def get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, homology):
         if not homology:
             with PooledCursor() as cursor:
                 cursor.execute(
-                    ''' SELECT row_to_json(row, true)
+                        ''' SELECT row_to_json(row, true)
                         FROM (	SELECT geneset.*
                                 FROM production.geneset
                                 WHERE geneset.gs_id in
@@ -2997,7 +3025,7 @@ def get_genesets_by_gene_id(apikey, gene_ref_id, gdb_name, homology):
         else:
             with PooledCursor() as cursor:
                 cursor.execute(
-                    ''' SELECT row_to_json(row, true)
+                        ''' SELECT row_to_json(row, true)
                         FROM (	SELECT geneset.*
                                 FROM production.geneset
                                 WHERE geneset.gs_id in
@@ -3029,7 +3057,7 @@ def get_genes_by_geneset_id(geneset_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM (	SELECT gene.*
                         FROM extsrc.gene join extsrc.geneset_value using(ode_gene_id)
                         where gs_id = %s) row; ''', (geneset_id,))
@@ -3045,7 +3073,7 @@ def get_gene_by_id(gene_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM (	SELECT *
                         FROM extsrc.gene_info
                         where ode_gene_id = %s) row; ''', (gene_id,))
@@ -3061,7 +3089,7 @@ def get_geneset_by_geneset_id(geneset_id):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM (	SELECT *
                         FROM production.geneset
                         where gs_id = %s) row; ''', (geneset_id,))
@@ -3078,7 +3106,7 @@ def get_geneset_by_user(apikey):
     if (apiUsrId):
         with PooledCursor() as cursor:
             cursor.execute(
-                ''' SELECT row_to_json(row, true)
+                    ''' SELECT row_to_json(row, true)
                     FROM (	SELECT *
                             FROM production.geneset
                             WHERE usr_id = %s) row; ''', (apiUsrId,))
@@ -3090,7 +3118,7 @@ def get_geneset_by_user(apikey):
 def get_projects_by_user(apikey):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM production.project
                         WHERE usr_id = (SELECT usr_id
@@ -3103,7 +3131,7 @@ def get_projects_by_user(apikey):
 def get_probes_by_gene(apikey, ode_ref_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM odestatic.probe
                         WHERE prb_id IN (	SELECT prb_id
@@ -3118,78 +3146,78 @@ def get_probes_by_gene(apikey, ode_ref_id):
 def get_platform_by_id(apikey, pf_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM odestatic.platform
                         WHERE pf_id = %s
                     ) row; ''', (pf_id,))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_snp_by_geneid(apikey, ode_ref_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM extsrc.snp
                         WHERE ode_gene_id IN (	SELECT ode_gene_id
                                                 FROM extsrc.gene
                                                 WHERE ode_ref_id = %s)
                     ) row; ''', (ode_ref_id,))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_publication_by_id(apikey, pub_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM production.publication
                         WHERE pub_id = %s
                     ) row; ''', (pub_id,))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_species_by_id(apikey, sp_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM odestatic.species
                         WHERE sp_id = %s
                     ) row; ''', (sp_id,))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_results_by_user(apikey):
     usr_id = get_user_id_by_apikey(apikey)
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT res_created, res_runhash
                         FROM production.result
                         WHERE usr_id = %s ORDER BY res_created DESC
                     ) row; ''', (usr_id,))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_result_by_runhash(apikey, res_runhash):
     usr_id = get_user_id_by_apikey(apikey)
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM production.result
                         WHERE usr_id = %s and res_runhash = %s
                     ) row; ''', (usr_id, res_runhash))
-    return cursor.fetchall();
+    return cursor.fetchall()
 
 
 def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
     with PooledCursor() as cursor:
         if gso_ref_type == "All Reference Types":
             cursor.execute(
-                '''
+                    '''
                     SELECT *
                                 FROM extsrc.ontology natural join odestatic.ontologydb
                                 WHERE ont_id in (	SELECT ont_id
@@ -3201,7 +3229,7 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
             )
         else:
             cursor.execute(
-                '''
+                    '''
                     SELECT *
                                 FROM extsrc.ontology natural join odestatic.ontologydb
                                 WHERE ont_id in (	SELECT ont_id
@@ -3240,7 +3268,8 @@ def get_genesets_by_projects(apikey, projectids):
         projects += proj
     projects += ')'
 
-    query = 'SELECT gs_id FROM production.project2geneset WHERE pj_id in (SELECT pj_id FROM production.geneset WHERE pj_id in '
+    query = 'SELECT gs_id FROM production.project2geneset WHERE pj_id IN ' \
+            '(SELECT pj_id FROM production.geneset WHERE pj_id IN '
     query += projects
     query += ' and usr_id = '
     query += str(user[0])
@@ -3263,7 +3292,7 @@ def get_geneset_by_project_id(apikey, projectid):
     user = get_user_id_by_apikey(apikey)
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT gs_id
                         FROM production.project2geneset
                         WHERE pj_id in (SELECT pj_id
@@ -3277,7 +3306,7 @@ def get_gene_database_by_id(apikey, gdb_id):
     user = get_user_id_by_apikey(apikey)
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' SELECT row_to_json(row, true)
+                ''' SELECT row_to_json(row, true)
                 FROM(	SELECT *
                         FROM odestatic.genedb
                         WHERE gdb_id = %s
@@ -3288,7 +3317,7 @@ def get_gene_database_by_id(apikey, gdb_id):
 def get_genesymbols_by_gs_id(gs_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             select g.ode_ref_id from gene g, geneset_value gv where gv.gs_id= %s and gv.ode_gene_id=g.ode_gene_id and g.gdb_id=7 and ode_pref='t';
             ''', (gs_id,)
         )
@@ -3299,7 +3328,7 @@ def get_genesymbols_by_gs_id(gs_id):
 def get_gsinfo_by_gs_id(gs_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             select gs_name, gs_abbreviation, sp_id from geneset where gs_id = %s;
             ''', (gs_id,)
         )
@@ -3310,7 +3339,7 @@ def get_gsinfo_by_gs_id(gs_id):
 def get_species_name_by_sp_id(sp_id):
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
+                '''
             select sp_name from species where sp_id = %s;
             ''', (sp_id,)
         )
@@ -3323,7 +3352,7 @@ def add_project_for_user(apikey, pj_name):
     user = get_user_id_by_apikey(apikey)
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' INSERT INTO production.project
+                ''' INSERT INTO production.project
                 (usr_id, pj_name) VALUES (%s, %s)
                 RETURNING pj_id;
                 ''', (user, pj_name,))
@@ -3336,7 +3365,7 @@ def add_geneset_to_project(apikey, pj_id, gs_id):
     user = get_user_id_by_apikey(apikey)
     with PooledCursor() as cursor:
         cursor.execute(
-            ''' INSERT INTO production.project2geneset
+                ''' INSERT INTO production.project2geneset
                         (pj_id, gs_id) VALUES ((SELECT pj_id
                                                 FROM production.project
                                                 WHERE usr_id = %s AND pj_id = %s),
@@ -3355,7 +3384,7 @@ def delete_geneset_from_project(apikey, pj_id, gs_id):
     user = get_user_id_by_apikey(apikey)
     with PooledCursor() as cursor:
         cursor.execute(
-            '''DELETE FROM production.project2geneset
+                '''DELETE FROM production.project2geneset
                         WHERE pj_id = ( SELECT pj_id
                                         FROM production.project
                                         WHERE usr_id = %s AND pj_id = %s)
@@ -3371,7 +3400,7 @@ def generate_api_key(user_id):
     new_api_key = ''.join(random.sample(char_set, 24))
     with PooledCursor() as cursor:
         cursor.execute(
-            '''UPDATE usr
+                '''UPDATE usr
                SET apikey = %s
                WHERE usr_id = %s''', (new_api_key, user_id)
         )
@@ -3383,7 +3412,7 @@ def checkJaccardResultExists(setSize1, setSize2):
     try:
         with PooledCursor() as cursor:
             cursor.execute(
-                ''' SELECT *
+                    ''' SELECT *
                     FROM jaccard_distribution_results
                     WHERE set_size1 = %s and set_size2 = %s;
                 ''', (setSize1, setSize2)
@@ -3399,7 +3428,7 @@ def getPvalue(setSize1, setSize2, jaccard):
     try:
         with PooledCursor() as cursor:
             cursor.execute(
-                ''' SELECT *
+                    ''' SELECT *
                     FROM jaccard_distribution_results
                     WHERE set_size1 = %s and set_size2 = %s and jaccard_coef = %s;
                 ''', (setSize1, setSize2, jaccard)

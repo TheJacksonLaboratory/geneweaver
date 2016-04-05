@@ -128,15 +128,13 @@
     {% if g.user is defined %}
         {% if proj is defined %}
             <td>
-                <span id="add-{{ gs.geneset_id }}-button" data-toggle="modal"
+                <span id="add-{{ gs.geneset_id }}-button" data-toggle="tooltip"
+                      data-rel="tooltip" data-original-title="Add GeneSet to Projects"
                       data-target="#addModal_{{ gs.geneset_id }}"
-                      style="cursor: pointer; color: #808080; margin: 2px; padding: 0px 2px;">
+                      data-proj-id="{{ proj.project_id }}" data-gs-id="{{ gs.geneset_id }}"
+                      class="addgs-to-project">
                     <i class="fa fa-folder-o"></i>
                 </span>
-
-                {% include 'modal/addGenesetsToProjectsFromAnalysis.html' %}
-
-
             </td>
         {% endif %}
     {% endif %}
@@ -147,9 +145,11 @@
         {% if g.user is defined %}
             {% if proj is defined %}
                 <td>
-                    <span id="remove-geneset-{{ gs.geneset_id }}" data-toggle="modal"
+                    <span id="remove-geneset-{{ gs.geneset_id }}" data-toggle="tooltip"
+                          data-rel="tooltip" data-original-title="Remove GeneSet From Project"
                           data-target="#removeModal_{{ gs.geneset_id }}"
-                          style="cursor: pointer; color: #808080; margin: 2px; padding: 0px 2px;">
+                          data-proj-id="{{ proj.project_id }}" data-gs-id="{{ gs.geneset_id }}"
+                          class="remove-from-project">
                         <i class="fa fa-trash-o"></i>
                     </span>
 
@@ -161,11 +161,7 @@
     {% endif %}
 
     <td>
-        <!--
-			<a id="genesetChevron" onclick="toggleDetails('genesetDetails_{{gs.geneset_id}}')">
-				<span class="fa fa-chevron-down"></span>
-			</a>
-			-->
+
         {% if proj is defined %}
 
             <span class="rExpand" data-placement="top" data-toggle="tooltip"
@@ -223,8 +219,25 @@
 
 
 
-<!-- Script for hiding or displaying geneset details -->
-<script type="text/javascript">function toggleDetails(id) {
+<style type="text/css">
+
+    .rowExpand, .rExpand {
+        cursor: pointer;
+    }
+
+    .addgs-to-project, .remove-from-project {
+        cursor: pointer;
+        color: #808080;
+        margin: 2px;
+        padding: 0px 2px;"
+    }
+
+</style>
+
+<!-- Script for adding geneset to selected projects-->
+<script type="text/javascript">
+
+    function toggleDetails(id) {
     var element = document.getElementById(id);
 
     if (element.style.display == "none")
@@ -235,29 +248,59 @@
 
     else
         element.style.display = "none";
-}
-</script>
-
-<style type="text/css">
-
-    .rowExpand, .rExpand {
-        cursor: pointer;
     }
 
-</style>
 
-<!-- Script for adding geneset to selected projects-->
-<script type="text/javascript">
-    function addToSelected(geneset_id) {
-        var selector = ".modal_checkbox_" + geneset_id;
-        $(selector).each(function () {
-            if (this.checked) {
-                var route = "/add_geneset_to_project/" + this.name + "/" + geneset_id + ".html";
-                $.get(route, function (data, status) {
-                });
-            }
-        });
-    }
+    $('.remove-from-project').on('click', function() {
+        var projID = $(this).attr('data-proj-id');
+        var gsID = $(this).attr('data-gs-id');
+        $("#projID").html(projID);
+        $("#gsID").html(gsID);
+        $("#removeModal").modal('show');
+    });
+
+    $('.addgs-to-project').on('click', function () {
+        var projId = $(this).attr('data-proj-id');
+        var gsId = $(this).attr('data-gs-id');
+
+        //var modal = $('#myModalValue').val();
+        //var npn = $('#newProjName').val();
+        var geneset = 'GS' + $(this).attr('data-gs-id');
+
+        // Alter the modal text a bit since we're only adding a single
+        // geneset, not several which is the default.
+        //$('#addToProjectModal').find('.modal-title')
+        //        .html('Add GeneSet to Projects');
+        //$('#addToProjectModal').find('h4')
+        //        .html('Add ' + geneset + ' to the following project(s):');
+        $("#myModalLabel").val(geneset);
+        $("#gsID").val(gsId);
+        $("#projID").val(projId);
+        $("#addToProjectModal").modal('show');
+
+    });
+
+
+
+
+
+    //   var projID = $(this).attr('data-proj-id');
+    //    var gsID = $(this).attr('data-gs-id');
+    //    $("#projID").html(projID);
+    //    $("#gsID").html(gsID);
+    //    $("#addToProjectModal").modal('show');
+    //});
+
+    //function addToSelected(geneset_id) {
+    //    var selector = ".modal_checkbox_" + geneset_id;
+    //    $(selector).each(function () {
+    //        if (this.checked) {
+    //            var route = "/add_geneset_to_project/" + this.name + "/" + geneset_id + ".html";
+    //            $.get(route, function (data, status) {
+    //            });
+    //        }
+    //    });
+    //}
 
     //pass remove modal values to function
     function removeSelected(geneset_id, proj_id) {

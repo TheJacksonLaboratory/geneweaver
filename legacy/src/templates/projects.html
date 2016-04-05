@@ -87,15 +87,21 @@
                         <button type="button" class="btn btn-lg btn-block btn-danger" id="callDeleteProjects">
                             <i class="fa fa-times pull-left"></i> Delete Projects
                         </button>
+                        <button type="button" class="btn btn-lg btn-block btn-danger" id="callRemoveGenesets">
+                            <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
+                        </button>
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="newBlankProject">
                             <i class="fa fa-folder-o pull-left"></i> New Blank Project
                         </button>
-                        <button type="button" class="btn btn-lg btn-block btn-warning" id="shareProjects">
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="callShareProjects">
                             <i class="fa fa-share-alt pull-left"></i> Share Projects
                         </button>
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="callCombineGeneSets">
                             <i class="fa fa-chain pull-left"></i> Combine Gene Sets
                         </button>
+                    </div>
+                    <div class="panel-group pull-right" id="selectedGenesets">
+
                     </div>
                     <div class="panel-group pull-right">
                         <span id="help"><i class="fa fa-caret-left"></i> help</span>
@@ -126,6 +132,11 @@
 
     {% include 'modal/combineGenesets.html' %}
 
+    {% include 'modal/addGenesetsToProjects.html' %}
+
+    {% include 'modal/addProjectToGroup.html' %}
+
+
 {% endif %}
 
 
@@ -146,11 +157,12 @@
 
         // Update project set to new name
         $('#projectSubmit').on('click', function () {
-           var n = $('#projectName').val();
+            var n = $('#projectName').val();
+            var c = $('#projectComment').val();
             $.ajax({
                 type: "GET",
                 url: "/addProjectByName",
-                data: {"name": n},
+                data: {"name": n, "comment": c},
                 success: function (data) {
                     var v = JSON.parse(data);
                 $("html, body").animate({ scrollTop: 0 }, "slow");
@@ -211,6 +223,95 @@
                 $("#myModalLabel").html(q);
                 $("#myModalValue").val(p);
                 $("#delProjects").modal('show');
+            }
+        });
+
+
+        // Call modal for delete of all projects
+        $('#callRemoveGenesets').on('click', function () {
+            var gsid = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("id"));
+                gsid.push(v.split('_')[1]);
+            });
+            if (gsid.length == 0) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must select at least one gene set.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else{
+                var p = gsid.join(",");
+                window.location.href = '../removegenesetsfromproject/' + p;
+            }
+        });
+
+        // Call modal to share selected projects
+        //TODO: Fix this mess. Need to add groups to usr class and call it here. HTML injection sucks
+        $('#callShareProjects').on('click', function () {
+            var projid = [];
+            var projname = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project-name"));
+                projname.push(v);
+            });
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project"));
+                projid.push(v);
+            });
+            if (projid.length == 0) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must select at least one project.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else{
+                $.ajax({
+                    type: "GET",
+                    url: "/get_project_groups_by_user_id",
+                    success: function (data) {
+                        var arr = $.parseJSON(data);
+                        var p = projid.join(",");
+                        var q = projname.join(", ");
+                        $("#myProjNames").html(q);
+                        $("#myProjValues").val(p);
+                        //report error if no users
+                        if (arr.length == 0) {
+                            var text = '<div class="alert alert-danger fade in">You do not own any groups. '
+                                    + 'You can create them from your <a href="/accountsettings">Account</a> page. </div>';
+                            $('#group_info').append(text);
+                        }
+                        //create and populate table
+                        else {
+                            $('#group_info').append(  '<table table-striped />' );
+                            var innertext = '';
+                            for (var i in arr) {
+                                innertext += '<tr>';
+                                for (var j in arr[i]) {
+                                    innertext += '<td>' + arr[i][j] + '</td>';
+                                }
+                                innertext += '</tr>';
+                            }
+                            $('#group_info table').append(innertext);
+                        }
+                        $("#addProjToGroup").modal('show');
+                    },
+                    error: function (data) {
+                        $("html, body").animate({ scrollTop: 0 }, "slow");
+                            $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error occurred while getting your groups.",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                });
             }
         });
 
@@ -275,15 +376,15 @@
             }
         });
 
-        //function to add row for a new project name
-        $('#addNewProject').on('click', function () {
+        //function to add row for a new project name for combine genesets
+        $('#addNewProjectCombineGeneset').on('click', function () {
             $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
                     '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
         });
 
 
         // Add genesets to projects
-        $('#addGenesetsToProjects').on('click', function (e) {
+        $('#addCombineGenesets').on('click', function (e) {
             var checked = [];
             $("input[name='options[]']:checked").each(function () {
                 checked.push(parseInt($(this).val()));
@@ -318,6 +419,7 @@
         });
 
 
+
         //help checkbox
         $( "#help" ).click(function() {
             if($('#help-text:visible').length)
@@ -348,17 +450,10 @@
             }
         });
 
+
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
         $('.project-link').on('click', function (event) {
-
-            // Change chevron when project info is displayed
-            var chev = $(this).children('.fa-caret-right').length ?
-                    $(this).children('.fa-caret-right') :
-                    $(this).children('.fa-caret-down');
-
-            chev.toggleClass('fa-caret-down');
-            chev.toggleClass('fa-caret-right');
 
             // Get the project ID from the link href, but gotta strip out
             // '#genesets-' first
