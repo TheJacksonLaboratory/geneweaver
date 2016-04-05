@@ -2,10 +2,6 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-{# Add bootstrap switch #}
-{#  <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-switch.css') }}"
-          rel="stylesheet">
-          #}
 
 <style type="text/css">
 
@@ -57,6 +53,9 @@
     <div class="panel panel-default panel-heading bg-gray-light">
         <h2 class="panel-title"><strong>Remove Gene Sets From Selected Projects</strong></h2>
     </div>
+
+    {# error bar #}
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
 
     {# Project - Gene List Information #}
@@ -117,7 +116,10 @@
 
     </div>
 
+    {% include 'modal/verifyRemoveGenesets.html' %}
+
 {% endif %}
+
 
 <script>
 
@@ -132,10 +134,57 @@
 
     $(document).ready(function () {
 
-
+        // select all genesets
         $("#mainCheck").on('click', function () {
-            //$(".checkItem").prop('checked', $(this).prop('checked'));
             $(".checkItem").prop('checked', $(this).prop('checked'));
+        });
+
+        // call modal to verify remove genesets
+        $('#callRemoveGenesets').on('click', function () {
+            //get all checked gene sets
+            //also split off the name from the number
+            var pjgsid = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("id"));
+                var fields = v.split('-');
+                pjgsid.push(fields[1] + '-' + fields[2]);
+            });
+            //display error if no genesets are selected
+            if (pjgsid.length == 0) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "No Gene Sets were selected for removal.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            // send the list to the modal.
+            else{
+                $("#confirmRemoveGenesets").modal('show');
+            }
+        });
+
+        // process information from model
+        $('#processRemoveGenesets').on('click', function () {
+            //get all checked gene sets
+            //also split off the name from the number
+            var pjgsid = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("id"));
+                var fields = v.split('-');
+                if (fields[1] != undefined) {
+                    pjgsid.push(fields[1] + '-' + fields[2]);
+                }
+            });
+            var i = pjgsid.join(',');
+            $.ajax({
+                    type: "GET",
+                    url: "../removeGenesetsFromMultipleProjects",
+                    data: {"user_id": {{ g.user.user_id }}, "pjgs": i},
+                    success: function () {
+                        window.location.href = '../projects';
+                    }
+                });
         });
 
     });

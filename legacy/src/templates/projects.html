@@ -93,7 +93,7 @@
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="newBlankProject">
                             <i class="fa fa-folder-o pull-left"></i> New Blank Project
                         </button>
-                        <button type="button" class="btn btn-lg btn-block btn-warning" id="shareProjects">
+                        <button type="button" class="btn btn-lg btn-block btn-warning" id="callShareProjects">
                             <i class="fa fa-share-alt pull-left"></i> Share Projects
                         </button>
                         <button type="button" class="btn btn-lg btn-block btn-warning" id="callCombineGeneSets">
@@ -133,6 +133,8 @@
     {% include 'modal/combineGenesets.html' %}
 
     {% include 'modal/addGenesetsToProjects.html' %}
+
+    {% include 'modal/addProjectToGroup.html' %}
 
 
 {% endif %}
@@ -244,6 +246,72 @@
             else{
                 var p = gsid.join(",");
                 window.location.href = '../removegenesetsfromproject/' + p;
+            }
+        });
+
+        // Call modal to share selected projects
+        //TODO: Fix this mess. Need to add groups to usr class and call it here. HTML injection sucks
+        $('#callShareProjects').on('click', function () {
+            var projid = [];
+            var projname = [];
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project-name"));
+                projname.push(v);
+            });
+            jQuery("input[type=checkbox]:checked").each(function () {
+                var v = ($(this).attr("data-project"));
+                projid.push(v);
+            });
+            if (projid.length == 0) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must select at least one project.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else{
+                $.ajax({
+                    type: "GET",
+                    url: "/get_project_groups_by_user_id",
+                    success: function (data) {
+                        var arr = $.parseJSON(data);
+                        var p = projid.join(",");
+                        var q = projname.join(", ");
+                        $("#myProjNames").html(q);
+                        $("#myProjValues").val(p);
+                        //report error if no users
+                        if (arr.length == 0) {
+                            var text = '<div class="alert alert-danger fade in">You do not own any groups. '
+                                    + 'You can create them from your <a href="/accountsettings">Account</a> page. </div>';
+                            $('#group_info').append(text);
+                        }
+                        //create and populate table
+                        else {
+                            $('#group_info').append(  '<table table-striped />' );
+                            var innertext = '';
+                            for (var i in arr) {
+                                innertext += '<tr>';
+                                for (var j in arr[i]) {
+                                    innertext += '<td>' + arr[i][j] + '</td>';
+                                }
+                                innertext += '</tr>';
+                            }
+                            $('#group_info table').append(innertext);
+                        }
+                        $("#addProjToGroup").modal('show');
+                    },
+                    error: function (data) {
+                        $("html, body").animate({ scrollTop: 0 }, "slow");
+                            $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error occurred while getting your groups.",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                });
             }
         });
 

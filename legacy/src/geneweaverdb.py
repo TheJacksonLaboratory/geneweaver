@@ -521,6 +521,18 @@ def get_all_publications(gs_id):
         return publications[0] if len(publications) == 1 else None
 
 
+def get_project_groups():
+    """
+    returns: all group ids and group names for projects belonging to user_id and group priv = 1
+    """
+    user_id = flask.session['user_id']
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT g.grp_id, g.grp_name, u.u2g_privileges, u.usr_id FROM grp g, usr2grp u
+                          WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
+        results = list(dictify_cursor(cursor))
+    return results
+
+
 def get_all_attributions():
     """
     returns an ordered mapping from attribution ID to attribution name for all available attributions
@@ -958,6 +970,20 @@ def remove_geneset_from_project(rargs):
             cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
             cursor.connection.commit()
             return
+
+
+def remove_genesets_from_multiple_projects(rargs):
+    user_id = flask.session['user_id']
+    pjgs = rargs.get('pjgs', type=str)
+    ids = pjgs.split(',')
+    for i in ids:
+        pj = i.split('-')[0]
+        gs = i.split('-')[1]
+        if get_user(user_id).is_admin or user_is_project_owner(user_id, pj):
+            with PooledCursor() as cursor:
+                cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (pj, gs,))
+                cursor.connection.commit()
+    return {'error': 'None'}
 
 
 def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):

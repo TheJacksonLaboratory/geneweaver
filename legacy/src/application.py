@@ -303,6 +303,7 @@ def remove_member(group_name, user_id):
     return json.dumps(results)
 
 
+# This function should be deprecated
 @app.route('/share_projects.html')
 def render_shareprojects():
     active_tools = geneweaverdb.get_active_tools()
@@ -648,6 +649,16 @@ def add_projects():
         return json.dumps(results)
     else:
         return json.dumps({"error": "You do not have permission to add a Project"})
+
+
+@app.route('/get_project_groups_by_user_id')
+def get_project_groups_by_user_id():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.get_project_groups()
+        print results
+        return json.dumps(results)
+    else:
+        return json.dumps({"error": "An error occurred while retrieving groups"})
 
 
 @app.route('/changeProjectNameById', methods=['GET'])
@@ -1662,7 +1673,7 @@ def date_handler(obj):
 def render_manage():
     return flask.render_template('mygenesets.html')
 
-
+# This function should be deprecated
 @app.route('/share_projects.html')
 def render_share_projects():
     active_tools = geneweaverdb.get_active_tools()
@@ -1680,6 +1691,13 @@ def add_genesets_projects():
 def remove_geneset_from_project():
     if 'user_id' in flask.session:
         results = geneweaverdb.remove_geneset_from_project(request.args)
+        return json.dumps(results)
+
+
+@app.route('/removeGenesetsFromMultipleProjects')
+def remove_genesets_from_multiple_projects():
+    if 'user_id' in flask.session:
+        results = geneweaverdb.remove_genesets_from_multiple_projects(request.args)
         return json.dumps(results)
 
 
