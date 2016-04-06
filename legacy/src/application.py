@@ -2107,7 +2107,7 @@ def reset_password():
         new_password = geneweaverdb.reset_password(user.email)
         send_mail(user.email, "Password Reset Request",
                   "Your new temporary password is: " + new_password)
-        return flask.render_template('index.html')
+        return flask.redirect("index.html")
 
 
 @app.route('/change_password', methods=['POST'])
