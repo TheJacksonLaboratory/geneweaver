@@ -12,6 +12,7 @@ def get_pubmed_info(pub_med_id):
         root = ET.fromstring(resp.text.encode('utf-8'))
 
         pubmed_info = dict()
+
         def add_if_some_val(name, val):
             if val is not None:
                 pubmed_info[name] = val
@@ -60,6 +61,7 @@ def get_pubmed_info(pub_med_id):
         return pubmed_info
     else:
         raise Exception('unexpected response status code from pubmed service: {0}'.format(resp.status_code))
+
 
 
 # run a little test code if this is the main module

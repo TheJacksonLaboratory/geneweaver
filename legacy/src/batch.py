@@ -1,29 +1,26 @@
-__author__ = 'baker'
-__author__ = 'reynolds'
+#
+# file: batch.py
+# desc: Rewrite of the PHP batch geneset upload function.
+# version: 0.2.1
+# author(s): Erich Baker, Tim Reynolds, Astrid Moore
 
-# !/usr/bin/python
+# TODO:
+# 1. The regex taken from the PHP code for effect and correlation
+#   scores doesn't work on all input cases. It breaks for cases such
+#   as "0.75 < Correlation." For almost all cases now though, it works.
 
-#### file: batch.py
-#### desc: Rewrite of the PHP batch geneset upload function.
-#### vers: 0.2.1
-#### auth: TR
-##
-#### TODO:	1. The regex taken from the PHP code for effect and correlation
-####		scores doesn't work on all input cases. It breaks for cases such
-####		as "0.75 < Correlation." For almost all cases now though, it works.
-##
-####		2. Genesets still need to be associated with a usr_id. This isn't
-#### 		done now because there's no point in getting usr_ids offline.
-####		However, one of the cmd line args allows you to specify a usr_id.
-##
-####		3. Actually determine gsv_in_threshold insead of just setting it
-####		to be true lol.
-##
-####		4. Better messages for duplicate/missing genes and pubmed errors
-####		(i.e. provide the gs_name these failures are associated with).
-##
+# 2. Genesets still need to be associated with a usr_id. This isn't
+# 	done now because there's no point in getting usr_ids offline.
+#   However, one of the cmd line args allows you to specify a usr_id.
 
-## multisets because regular sets remove duplicates, requires python 2.7
+# 3. Actually determine gsv_in_threshold insead of just setting it
+#   to be true lol.
+
+# 4. Better messages for duplicate/missing genes and pubmed errors
+#   (i.e. provide the gs_name these failures are associated with).
+
+
+# multisets because regular sets remove duplicates, requires python 2.7
 from collections import Counter as mset
 from collections import defaultdict as dd
 import datetime
@@ -37,158 +34,257 @@ import config
 
 # import geneweaverdb
 
-#### TheDB
-##
-#### Class for interfacing with the DB. Attempts to create a connection during
-#### object initialization. Only one of these objects should be instantiated.
-##
-class TheDB():
-    def __init__(self, db='geneweaver', user='odeadmin', password='odeadmin'):
-        # cs = ("host='crick' dbname='%s' user='%s' password='%s'"
-        #      % (db, user, password))
+class TheDB:
+    """ Class for interfacing with the DB. Attempts to create a connection
+        during object init. Only one of these objects should be instantiated,
+        so assigned to a global variable (self.conn).  """
 
+    def __init__(self, db='geneweaver', user='odeadmin', password='odeadmin'):
+
+        # Global variables
+        self.conn = None  # psycopg2 connection obj
+        self.cur = None  # psycopg2 cursor obj
+
+        # fix this - checking the above params first? the names are shadowing otherwise...
+        # are these still getting the right information?
         db = config.get('db', 'database')
         user = config.get('db', 'user')
         password = config.get('db', 'password')
         host = config.get('db', 'host')
         port = config.getInt('db', 'port')
 
-        cs = "host='%s' dbname='%s' user='%s' password='%s'" % (host, db, user, password)
+        # set up connection information
+        cs = 'host=\'%s\' dbname=\'%s\' user=\'%s\' password=\'%s\'' % (host, db, user, password)
 
         try:
+            # connect to geneweaver database, assign to global variable
             self.conn = psycopg2.connect(cs)
         except:
-            print '[!] Oh noes, failed to connect to the db.'
-            print ''
+            # add more detail / improve this error exception
+            print "[!] Oh no, failed to connect to the db." and "\n"
             exit()
 
+        # assign psycopg2 cursor for connection obj to a global variable, for querying db
         self.cur = self.conn.cursor()
 
-    #### getGeneTypes
-    ##
-    #### Queries the DB for a list of gene types and returns the result
-    #### as a dict. The keys are gdb_names and values gdb_ids. All gdb_names
-    #### are converted to lowercase.
-    ##
     def getGeneTypes(self):
-        query = 'SELECT gdb_id, gdb_name FROM odestatic.genedb;'
+        """ Queries the DB for a list of gene types and returns the result
+            as a dict. The keys are gdb_names and values gdb_ids. All gdb_names
+            are converted to lowercase.
 
+        Returns
+        -------
+        d: dict of gdb names -> gdb ids
+
+        """
+
+        # set up SQL query to get a list of gene types by id + name
+        query = 'SELECT gdb_id, gdb_name ' \
+                'FROM odestatic.genedb;'
+
+        # execute query
         self.cur.execute(query, [])
 
-        ## Returns a list of tuples [(gdb_id, gdb_name)]
+        # gather result of query, for mapping
         res = self.cur.fetchall()
         d = {}
 
-        ## We return a dict of gdb_names --> gdb_ids
+        # we return a dict of gdb_names --> gdb_ids
         for tup in res:
             d[tup[1].lower()] = tup[0]
 
+        # returns a list of tuples [(gdb_id, gdb_name)]
         return d
 
-    #### getOdeGeneIdsNonPref
-    ##
-    #### Attempts to retrieve find ode_gene_ids for ode_ref_ids by mapping
-    #### non-preferred ode_ref_ids to the preferred ones (ode_pref == true).
-    #### This can be done in a single query, but since we want to map
-    #### nonpref_ref --> ode_gene_id --> pref_ref, it's done as two separate
-    #### queries. Plus it allows us to return a list of ode_ref_ids that can
-    #### be added to gsv_source_list.
-    ##
-    #### update, nevermind fuck all that. I'm just gonna map non-preferred
-    #### ode_ref_ids to ode_gene_ids and make things easy. Choosing the quick
-    #### way over the not-even-sure-if-correct way for now. If gsv_value_list
-    #### is really important I can just write a separate script to update
-    #### those values or code that functionality here later on.
-    ##
     def getOdeGeneIdsNonPref(self, sp, syms):
-        if type(syms) == list:
-            syms = tuple(syms)
+        """ Attempts to retrieve ode_gene_ids for ode_ref_ids by mapping
+            non-preferred ode_ref_ids to the preferred ode_gene_ids (ode_pref == true).
+            This can be done in a single query, but since we want to map
+            nonpref_ref --> ode_gene_id --> pref_ref, it's done as two separate
+            queries. Plus it allows us to return a list of ode_ref_ids that can
+            be added to gsv_source_list.
 
-        # query = ('SELECT ode_ref_id, ode_gene_id FROM extsrc.gene WHERE '
-        #		 'sp_id = %s AND ode_ref_id IN %s;')
-        # query2 = ('SELECT ode_ref_id, ode_gene_id FROM extsrc.gene WHERE '
-        #		 'sp_id = %s AND ode_pref = true AND ode_gene_id IN %s;')
-        query = ('SELECT ode_ref_id, ode_gene_id FROM extsrc.gene WHERE '
-                 'sp_id = %s AND ode_ref_id IN %s;')
+        Parameters
+        ----------
+        sp: Species ID (int)
+        syms: ode reference IDs (list)
 
-        self.cur.execute(query, [sp, syms])
+        Returns
+        -------
+        res: list of tuples containing ode reference IDs
 
-        ## Returns a list of tuples [(ode_ref_id, ode_gene_id)]
-        res = self.cur.fetchall()
+        """
         d = {}
+        output = []
 
-        found = map(lambda x: x[0], res)
-
-        ## Map symbols that weren't found to None
-        for nf in (set(syms) - set(found)):
-            res.append((nf, None))
-
-        return res
-
-    ## This can be uncommented later if I want/need to fix this
-    ## functionality and attempt to do what I was going to do before--map
-    ## non-pref ode_ref_ids --> ode_gene_ids --> pref ode_ref_ids and add
-    ## both refs to gsv_source_list.
-    #
-    ## First dict of ode_ref_id --> ode_gene_ids
-    ## First dict of ode_gene_id --> ode_ref_id
-    # for tup in res:
-    #	#d0[tup[0].lower()] = tup[1]
-    #	d[tup[1]] = tup[0]
-
-    ### Now the second query, to map ode_gene_ids to the preferred ode_refs
-    ##self.cur.execute(query2, [sp, d0.values()])
-    # self.cur.execute(query2, [sp, d.keys()])
-
-    # res = self.cur.fetchall()
-    # fin = []
-
-    ### Appends triplets (user given symbol, ode_gene_id, pref. ode_ref_id)
-    # for tup in res:
-    #	fin.append((d[tup[1]], tup[1], tup[0]))
-
-    ### Any user provided ode_ref_ids we didn't find are mapped to None
-    # for nf in (set(syms) - set(map(lambda x: x[0], fin))):
-    #	fin.append(nf, None)
-
-    # return fin
-    # if not res:
-    #	return (sym, None)
-
-    # else: # Should only be a single element in the list, if not oh well!
-    #	return (res[0][0], res[0][1])
-
-    #### getOdeGeneIds
-    ##
-    #### Given a list of gene symbols or whatever the hell the user is using
-    #### in the batch file, this function returns symbol mapping,
-    #### (ode_ref_id) --> ode_gene_ids. If the symbol doesn't exist in the DB
-    #### or can't be found, it is mapped to None.
-    #### All ode_ref_ids are converted to lowercase.
-    ##
-    def getOdeGeneIds(self, sp, syms):
+        # type check syms to make sure it's a list
         if type(syms) == list:
+            # if it is a list, cast to tuple
             syms = tuple(syms)
 
-        query = ('SELECT DISTINCT ode_ref_id, ode_gene_id FROM extsrc.gene '
-                 'WHERE sp_id = %s AND ode_pref = true AND ode_ref_id IN %s;')
+        # put ode_ref_id(s) in a dict, initally mapped to an empty list
+        for sym in syms:
+            d[sym] = []
 
+        print "syms: ", syms, "\n"
+        # print "dict: ", d, "\n"
+
+        # QUERY 1: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
+        #   of a specified species (sp_id), regardless of user preference (ode_pref)
+        #   + are in the list of ode reference IDs of interest to the user
+        query1 = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
+                 'FROM extsrc.gene ' \
+                 'WHERE sp_id = %s ' \
+                 'AND ode_ref_id IN %s;'
+
+        # execute first db query, using params
+        self.cur.execute(query1, [sp, syms])
+
+        # gather result of first query
+        res1 = self.cur.fetchall()
+        print "results of query 1: ", res1, "\n"
+
+        # isolate the ode_ref_ids pulled from database
+        found1 = map(lambda x: x[0], res1)
+        print "found1: ", found1, "\n"
+
+        # print "difference in sets: ", set(syms) - set(found1), "\n"
+
+        # map symbols that weren't found to None
+        for nf in (set(syms) - set(found1)):
+            print "symbols that weren't found: ", nf, "\n"
+            res1.append((nf, None))
+
+        # returns a list of tuples [(ode_ref_id, ode_gene_id),]
+        print "res1: ", res1, "\n"
+
+        geneType = None
+        for gene in res1:
+            d[gene[0]].append((gene[1], gene[2]))  # add ode_gene_id and ode_pref for each ode_ref_id instance
+            geneType = gene[3]  # not the most efficient way to grab gbd_id, but keep until class Batch implemented
+
+        # go through each returned result (remembering that sometimes they can
+        #   double up with ode_ref_id(s) in addition to multiplicity of ode_gene_id(s))
+        gene_ids = []
+        for item in d:
+            for ref in d[item]:  # for each possible option for ode_ref_id
+                if str(ref[1]) == 'True':  # if one of ode_prefs is true for ode_ref_id, remap to that one!
+                    output.append([item, ref[0]])  # remap to ode_gene_id with positive ode_pref associated ode_ref_id
+                    break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
+                elif str(ref[1]) == 'False':  # if false, need to run QUERY 2 for that ode_gene_id, so store id for now
+                    gene_ids.append(ref[0])
+
+        # remove any ode_pref = True items from dictionary, to avoid later duplication
+        if output:
+            for o in output:
+                del d[o[0]]
+                print "deleted ", o[0]
+
+        # make sure that none of the ode_gene_id(s) shared between ode_ref_id(s)
+        #   remove duplicates, as wouldn't keep both regardless
+        gene_ids_query2 = set(gene_ids)  # removes any duplicates... (immutable)
+        gene_ids = tuple(gene_ids_query2)  # add back to gene_ids
+
+        # QUERY 2: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
+        #   of a specified species (sp_id), that are user preferred (ode_pref)
+        #   + are in the list of ode reference IDs of interest to the user
+        while gene_ids:
+            query2 = 'SELECT ode_ref_id, ode_gene_id ' \
+                     'FROM extsrc.gene ' \
+                     'WHERE sp_id = %s ' \
+                     'AND gdb_id = %s ' \
+                     'AND ode_pref = TRUE ' \
+                     'AND ode_gene_id IN %s;'
+
+            # execute second db query
+            self.cur.execute(query2, [sp, geneType, gene_ids])
+
+            # gather result of second query
+            res2 = self.cur.fetchall()
+            print "results of query 2: ", res2, "\n"
+
+            temp = {}  # {ode_gene_id: ode_ref_id,}
+            for x in res2:
+                temp[x[1]] = x[0]
+
+            print temp
+
+            # identify which ode_gene_id(s) are legit, isolate
+            found2 = map(lambda x: x[1], res2)
+            print "found2: ", found2, "\n"
+
+            # compare legit ode_gene_id(s) with those associated with initial ode_ref_id(s)
+            for opt in found2:
+                if d:
+                    for item in d:
+                        for ref in d[item]:
+                            if ref[0] == opt:
+                                output.append([temp[ref[0]], ref[0]])
+                                print "yes!\n"
+                                break
+                            break
+                        break
+
+            # write to output
+            # cast output as a tuple before returning
+            # test file without any genes added for error catching
+
+        print output
+
+        # print "gene_ids: ", gene_ids, "\n"
+        # print "dict: ", d, "\n"
+
+        # [make a test file based on 16844 to test, based on gdb_id=5 (Unigene)]
+        # [query 2 wrong, bc should really be a reallocation of ode_gene_id towards a
+        # ode_ref_id with ode_pref=true]
+
+
+
+    def getOdeGeneIds(self, sp, syms):
+        """ [Tim] Given a list of gene symbols from the users' batch file, if the symbol doesn't
+            exist in the DB or can't be found, it is mapped to None.  The first query
+            finds all ode_ref_ids that are preferred (ode_pref == true). All ode_ref_ids are
+            converted to lowercase. Not all the genes provided by a user will be preferred
+            though (e.g. 147189_at). For these cases, we find the ode_gene_id they are mapped
+            to, then query the DB for the preferred ode_gene_id for the species given. This
+            way we add the preferred symbol, and the one provided by the user, to the
+            gsv_source_list. If we still can't find it, then all hope is lost. (clarify)
+
+        Parameters
+        ----------
+        sp: Species ID (int)
+        syms: ode reference IDs (list)
+
+        Returns
+        -------
+        d: dict of ode reference IDs -> ode gene IDs
+
+        """
+        # type check syms to make sure it's a list
+        if type(syms) == list:
+            # if it is, then cast to a tuple
+            syms = tuple(syms)
+
+        # set up query to gather ode_ref_id + ode_gene_id for genes
+        #   of a specified species (sp_id), that are user preferred (ode_pref)
+        #   + are in the list of ode reference IDs of interest to the user
+        query = 'SELECT DISTINCT ode_ref_id, ode_gene_id ' \
+                'FROM extsrc.gene ' \
+                'WHERE sp_id = %s ' \
+                'AND ode_pref = true ' \
+                'AND ode_ref_id IN %s;'
+
+        # execute query, using params
         self.cur.execute(query, [sp, syms])
 
-        ## Returns a list of tuples [(ode_ref_id, ode_gene_id)]
+        # returns a list of tuples [(ode_ref_id, ode_gene_id)]
         res = self.cur.fetchall()
         d = {}
 
         ## Ignore this wall of bullshit for now, unless you want to read
         ## about my failures.
         #
-        ## The first query (above) finds all ode_ref_ids that are preferred
-        ## (ode_pref == true). Not all the genes provided by a user will be
-        ## preferred though (e.g. 147189_at). For these cases, we find the
-        ## ode_gene_id they are mapped to, then query the DB for the preferred
-        ## ode_gene_id for the species given. This way we add the pref. symbol
-        ## and the user provided one to the gsv_source_list. If we still can't
-        ## find it, then all hope is lost.
+
         found = map(lambda x: x[0], res)
         notfound = list(set(syms) - set(found))
 
@@ -201,96 +297,114 @@ class TheDB():
 
         return d
 
-    #### getMicroarrayTypes
-    ##
-    #### Queries the DB for a list of microarray platforms and returns the
-    #### result as a dict. The keys are pf_names and values are pf_ids.
-    #### All pf_names are converted to lowercase.
-    ##
     def getMicroarrayTypes(self):
-        query = 'SELECT pf_id, pf_name FROM odestatic.platform;'
+        """ Queries the DB for a list of microarray platforms and returns the
+            result as a dict. The keys are pf_names and values are pf_ids. All pf_names
+            are converted to lowercase.
+
+        Returns
+        -------
+        d: dict of pf_names -> pf_ids
+
+        """
+        query = 'SELECT pf_id, pf_name ' \
+                'FROM odestatic.platform;'
 
         self.cur.execute(query, [])
 
-        ## Returns a list of tuples [(pf_id, pf_name)]
+        # returns a list of tuples [(pf_id, pf_name)]
         res = self.cur.fetchall()
         d = {}
 
-        ## We return a dict of pf_names --> pf_ids
+        # we return a dict of pf_names --> pf_ids
         for tup in res:
             d[tup[1].lower()] = tup[0]
 
         return d
 
     def getPlatformProbes(self, pfid, refs):
-        """
-        Returns a mapping of prb_ref_ids -> prb_ids for the given platform
-        and probe references.
+        """ Returns a mapping of prb_ref_ids -> prb_ids for the given platform
+            and probe references.
 
-        :arg int: platform ID (pf_id)
-        :arg list: list of platform probes (prb_ref_id)
-        :ret dict: reference to ID mapping
+        Parameters
+        ----------
+        pfid: platform ID (int)
+        refs: list of platform probes
+
+        Returns
+        -------
+        d: dict of prb_ref_ids -> prb_ids
+
         """
 
         if type(refs) == list:
             refs = tuple(refs)
 
-        qu = '''SELECT prb_ref_id, prb_id
-                FROM odestatic.probe
-                WHERE pf_id = %s AND
-                      prb_ref_id IN %s;'''
+        query = 'SELECT prb_ref_id, prb_id ' \
+                'FROM odestatic.probe ' \
+                'WHERE pf_id = %s ' \
+                'AND prb_ref_id IN %s;'
 
-        self.cur.execute(qu, [pfid, refs])
+        self.cur.execute(query, [pfid, refs])
 
-        ## Returns a list of tuples [(pf_id, pf_name)]
+        # returns a list of tuples [(pf_id, pf_name)]
         res = self.cur.fetchall()
         d = dd(long)
 
-        ## We return a dict of pf_names --> pf_ids
+        # we return a dict of pf_names --> pf_ids
         for tup in res:
             d[tup[0]] = tup[1]
 
         return d
 
     def getProbe2Gene(self, prbids):
-        """
-        Returns a mapping of prb_ids -> ode_gene_ids for the given set
-        of prb_ids.
+        """ Returns a mapping of platform IDs against ode gene IDs, for the given set
+            of platform probes.
 
+        Parameters
+        ----------
+        prbids: list of platform probes
 
-        :arg int: platform ID (pf_id)
-        :arg list: list of platform probes (prb_ref_id)
-        :return:
+        Returns
+        -------
+        d: dict of prb_ids -> ode_gene_ids
+
         """
 
         if type(prbids) == list:
             prbids = tuple(prbids)
 
-        qu = '''SELECT prb_id, ode_gene_id
-                FROM extsrc.probe2gene
-                WHERE prb_id IN %s;'''
+        # prb_id: platform prob ID
+        query = 'SELECT prb_id, ode_gene_id ' \
+                'FROM extsrc.probe2gene ' \
+                'WHERE prb_id IN %s;'
 
-        self.cur.execute(qu, [prbids])
+        self.cur.execute(query, [prbids])
 
-        ## Returns a list of tuples [(pf_id, pf_name)]
+        # returns a list of tuples [(pf_id, pf_name)]
         res = self.cur.fetchall()
         d = dd(list)
 
-        ## We return a dict of prb_ids -> ode_gene_ids. This is a list since
-        ## there may be 1:many associations.
+        # we return a dict of prb_ids -> ode_gene_ids. This is a list since
+        # there may be 1:many associations.
         for tup in res:
             d[tup[0]].append(tup[1])
 
         return d
 
-    #### getSpecies
-    ##
-    #### Queries the DB for a list of species and returns the result as a
-    #### dict. The keys are sp_names and values are sp_ids. All sp_names are
-    #### converted to lowercase.
-    ##
     def getSpecies(self):
-        query = 'SELECT sp_id, sp_name FROM odestatic.species;'
+        """ Queries the DB for a list of species and returns the result as a
+            dict. The keys are sp_names and values are sp_ids. All sp_names are
+            converted to lowercase.
+
+        Returns
+        -------
+        d: dict of sp_names -> sp_ids
+
+        """
+        # sp_id:
+        query = 'SELECT sp_id, sp_name ' \
+                'FROM odestatic.species;'
 
         self.cur.execute(query, [])
 
@@ -304,36 +418,59 @@ class TheDB():
 
         return d
 
-    #### insertFile
-    ##
-    #### Inserts a new row into the file table. Most of the columns for the file
-    #### table are required as arguments.
-    ##
     def insertFile(self, size, uri, contents, comments):
-        query = ('INSERT INTO production.file (file_size, file_uri, '
-                 'file_contents, file_comments, file_created, file_changes) '
-                 'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;')
+        """ Inserts a new row into the file table. Most of the columns for the file
+            table are required as arguments.
+
+        Parameters
+        ----------
+        size: file size
+        uri: file uri
+        contents: file contents
+        comments: file comments
+
+        Returns
+        -------
+        r: (clarify - why is this returning anything?)
+
+        """
+        # check to see if 'RETURNING' is a legit call in SQL
+        query = 'INSERT INTO production.file ' \
+                    '(file_size, file_uri, file_contents, file_comments, ' \
+                    'file_created, file_changes) ' \
+                'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
+
         vals = [size, uri, contents, comments]
 
         self.cur.execute('set search_path = extsrc,production,odestatic;')
         self.cur.execute(query, vals)
 
-        ## Returns a list of tuples [(file_id)]
+        # returns a list of tuples [(file_id)]
         res = self.cur.fetchall()
+        #
+        r = res[0][0]
 
-        return res[0][0]
+        return r
 
-    #### insertPublication
-    ##
-    #### Given a dict whose keys are refer to columns of the publication table,
-    #### this function inserts a new publication into the db.
-    #### Don't forget to commit changes after calling this function.
-    ##
     def insertPublication(self, pd):
-        query = ('INSERT INTO production.publication (pub_authors, pub_title, '
-                 'pub_abstract, pub_journal, pub_volume, pub_pages, '
-                 'pub_pubmed) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING '
-                 'pub_id;')
+        """ Given a dict whose keys refer to columns of the publication table,
+            this function inserts a new publication into the db.
+            Don't forget to commit changes after calling this function.
+
+        Parameters
+        ----------
+        pd: (clarify)
+
+        Returns
+        -------
+        r: (clarify - why is this returning anything?)
+
+        """
+
+        query = 'INSERT INTO production.publication ' \
+                    '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
+                    'pub_volume, pub_pages, pub_pubmed) ' \
+                'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
 
         vals = [pd['pub_authors'], pd['pub_title'], pd['pub_abstract'],
                 pd['pub_journal'], pd['pub_volume'], pd['pub_pages'],
@@ -341,36 +478,64 @@ class TheDB():
 
         self.cur.execute(query, vals)
 
-        ## Returns a list of tuples [(pub_id)]
+        # returns a list of tuples [(pub_id)]
         res = self.cur.fetchall()
+        #
+        r = res[0][0]
 
-        return res[0][0]
+        return r
 
-    #### insertGenesetValue
-    ##
     def insertGenesetValue(self, gs_id, gene_id, value, name, thresh):
-        query = ('INSERT INTO extsrc.geneset_value (gs_id, ode_gene_id, '
-                 'gsv_value, gsv_hits, gsv_source_list, gsv_value_list, '
-                 'gsv_in_threshold, gsv_date) VALUES (%s, %s, %s, 0, %s, %s, '
-                 '%s, NOW());')
+        """ Given GeneSet ID, Gene ID, GeneSet value... (clarify - params)
+            this function inserts a new GeneSet value into the db.
+            Don't forget to commit changes after calling this function.
+
+        Parameters
+        ----------
+        gs_id: GeneSet ID
+        gene_id: Gene ID
+        value: (clarify)
+        name: (clarify)
+        thresh: (clarify)
+
+        Returns
+        -------
+        (clarify - if this should return something, like neighboring functions)
+
+        """
+
+        query = 'INSERT INTO extsrc.geneset_value ' \
+                    '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
+                    'gsv_value_list, gsv_in_threshold, gsv_date) ' \
+                'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
+
         vals = [gs_id, gene_id, value, [name], [float(value)], thresh]
 
         self.cur.execute(query, vals)
 
-    #### insertGeneset
-    ##
-    #### Given a dict whose keys are refer to columns of the geneset table,
-    #### this function inserts a new geneset into the db.
-    #### Don't forget to commit changes after calling this function.
-    ##
+
     def insertGeneset(self, gd):
-        query = ('INSERT INTO geneset (file_id, usr_id, cur_id, sp_id, '
-                 'gs_threshold_type, gs_threshold, gs_created, '
-                 'gs_updated, gs_status, gs_count, gs_uri, gs_gene_id_type, '
-                 'gs_name, gs_abbreviation, gs_description, gs_attribution, '
-                 'gs_groups, pub_id) '
-                 'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', '
-                 '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;')
+        """ Given a dict whose keys are refer to columns of the geneset table,
+            this function inserts a new geneset into the db.
+            Don't forget to commit changes after calling this function.
+
+        Parameters
+        ----------
+        gd: (clarify)
+
+        Returns
+        -------
+        r: (clarify)
+
+        """
+        query = 'INSERT INTO geneset ' \
+                    '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
+                    'gs_threshold, gs_created, gs_updated, gs_status, ' \
+                    'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
+                    'gs_abbreviation, gs_description, gs_attribution, ' \
+                    'gs_groups, pub_id) ' \
+                'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
+                    '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
 
         vals = [gd['file_id'], gd['usr_id'], gd['cur_id'], gd['sp_id'],
                 gd['gs_threshold_type'], gd['gs_threshold'], gd['gs_count'],
@@ -382,61 +547,84 @@ class TheDB():
 
         ## Returns a list of tuples [(gs_id)]
         res = self.cur.fetchall()
+        #
+        r = res[0][0]
 
-        return res[0][0]
+        return r
 
-    #### updateGenesetCount
-    ##
-    #### Updates gs_count for a given gs_id. Required since genesets are first
-    #### made, then geneset_values are validated and added.
-    ##
     def updateGenesetCount(self, gsid, count):
-        query = 'UPDATE geneset SET gs_count = %s WHERE gs_id = %s'
+        """ Updates gs_count for a given gs_id. Required since genesets are first
+            made, then geneset_values are validated and added.
+
+        Parameters
+        ----------
+        gsid: GeneSet ID
+        count: GeneSet count
+
+        """
+
+        query = 'UPDATE geneset ' \
+                'SET gs_count = %s ' \
+                'WHERE gs_id = %s'
+
         self.cur.execute(query, [count, gsid])
 
-    #### commit
-    ##
-    #### Commits changes made to the DB. Only required if we've inserted new
-    #### genesets, geneset_values, or publications.
-    ##
     def commit(self):
+        """ Commits changes made to the DB. Only required if we've inserted new
+            genesets, geneset_values, or publications. """
         self.conn.commit()
 
 
 ## DB global, should only be one instance of this class
 db = TheDB()
 
+def eatWhiteSpace(input_string):
+    """ Removes leading + trailing whitespace from a given string.
 
-def eatWhiteSpace(s):
+    Parameters
+    ----------
+    input_string: string for whitespace removal
+
+    Returns
+    -------
+    output_string: string with whitespace removed
+
     """
-    Removes leading + trailing whitespace from a given string.
 
-    :arg string:
-    :ret string:
-    """
+    output_string = input_string.strip()
 
-    return s.strip()
-
+    return output_string
 
 def readBatchFile(fp):
+    """ Reads the file at the given filepath and returns all the lines that
+        comprise the file.
+
+    Parameters
+    ----------
+    fp: filepath to read (string)
+
+    Returns
+    -------
+    lines: list of strings containing each line of the file
+
     """
-    Reads the file at the given filepath and returns all the lines that
-    comprise the file.
 
-    :arg string: filepath to read
-    :ret list: a list of strings--each line in the file
-    """
+    with open(fp, 'r') as file_path:
+        lines = file_path.readlines()
 
-    with open(fp, 'r') as fl:
-        return fl.readlines()
-
+    return lines
 
 def makeDigrams(s):
-    """
-    Recursively creates an exhaustive list of digrams from the given string.
+    """ Recursively creates an exhaustive list of digrams from the given string.
 
-    :arg string:
-    :ret list: list of strings, each string is a digram
+    Parameters
+    ----------
+    s: (clarify)
+
+    Returns
+    -------
+    b: list of strings where each string is a digram
+
     """
 
     if len(s) <= 2:
@@ -447,50 +635,65 @@ def makeDigrams(s):
 
     return b
 
-
 def calcStringSimilarity(s1, s2):
-    """
-    Calculates the percent similarity between two strings. Meant to be a
-    replacement for PHP's similar_text function, which old GeneWeaver uses
-    to determine the right microarray platform to use.
-    Couldn't find how similar_text was implemented (just that it used some
-    algorithm in the book 'Programming Classics' by Oliver) so this function
-    is fairly different but achieves the same result. This algorithm uses
-    digrams and their intersections to determine percent similarity. It is
-    calculated as:
+    """ Calculates the percent similarity between two strings.
 
-    sim(s1, s2) = (2 * intersection(digrams(s1), digrams(s2)) /
+        Meant to be a replacement for PHP's similar_text function, which old
+        GeneWeaver uses to determine the right microarray platform to use.
+
+        [Tim] Couldn't find how similar_text was implemented (just that it used some
+        algorithm in the book 'Programming Classics' by Oliver) so this function
+        is fairly different but achieves the same result. This algorithm uses
+        digrams and their intersections to determine percent similarity. It is
+        calculated as:
+
+        sim(s1, s2) = (2 * intersection(digrams(s1), digrams(s2)) /
                    |digrams(s1) + digrams(s2)|
 
-    :param string:
-    :param string:
-    :ret float: percent similarity
+    Parameters
+    ----------
+    s1: first input string for comparison
+    s2: second input string for comparison
+
+    Returns
+    -------
+    perc_sim: calculated result of the percent similarty between two strings
+
     """
 
     sd1 = makeDigrams(s1)
     sd2 = makeDigrams(s2)
     intersect = list((mset(sd1) & mset(sd2)).elements())
 
-    return (2 * len(intersect)) / float(len(sd1) + len(sd2))
+    perc_sim = (2 * len(intersect)) / float(len(sd1) + len(sd2))
 
+    return perc_sim
 
 def parseScoreType(s):
-    """
-    Attempts to parse out the score type and any threshold value
-    from a given string.
-    Acceptable score types and threshold values include:
-        Binary
-        P-Value < 0.05
-        Q-Value < 0.05
-        0.40 < Correlation < 0.05
-        6.0 < Effect < 22.50
-    The numbers can vary and if they can't be parsed, default values
-    (e.g. 0.05) are used.
-    There is an issue with the regexs in this function. See the TODO list
-    at the top of the file for a description.
+    """ Attempts to parse out the score type and any threshold value
+        from a given string.
 
-    :param string: string containing score type and possibly threshold value
-    :return tuple: (gs_threshold_type, gs_threshold, errors)
+        Acceptable score types and threshold values include:
+            Binary
+            P-Value < 0.05
+            Q-Value < 0.05
+            0.40 < Correlation < 0.05
+            6.0 < Effect < 22.50
+
+        The numbers can vary and if they can't be parsed, default values
+        (e.g. 0.05) are used.
+
+        [Tim] There is an issue with the regexs in this function.
+        See the TODO list at the top of the file for a description.
+
+    Parameters
+    ----------
+    s: string containing score type + possibly threshold value (clarify)
+
+    Returns
+    -------
+    groomed: tuple containing (gs_threshold_type, gs_threshold, errors)
+
     """
 
     stype = ''
@@ -552,66 +755,64 @@ def parseScoreType(s):
     else:
         error = 'An unknown score type (%s) was provided.' % s
 
-    return (stype, thresh, error)
+    groomed = (stype, thresh, error)
 
+    return groomed
 
-#### makeGeneset
-##
-##
 def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
                 usr=0, cur_id=5):
+    """ Given a bunch of arguments, this function returns a dictionary
+        representation of a single geneset. Each key is a different column found
+        in the geneset table. Not all columns are (or need to be) represented.
+
+        [Tim] TODO:	Need to retrieve the user's id and attach it, right now
+        it just uses a placeholder.
+
+    Parameters
+    ----------
+    name: GeneSet name
+    abbr: GeneSet abbreviation
+    desc: GeneSet description
+    spec: Species ID (later converted to an int if a string)
+    pub: Publication ID
+    grp: Group ID (later converted to a string if an int)
+    ttype: threshold type
+    thresh: GeneSet threshold (see parseScoreType for a description)
+    gtype: Gene ID type
+    vals: GeneSet values, tuple containing (gene, value)
+    usr: User ID
+    cur_id: Curation ID (unless specified it defaults to private (5))
+
+    Returns
+    -------
+    gs: dict representative of GeneSet
+
     """
-    Given a shitload of arguments, this function returns a dictionary
-    representation of a single geneset. Each key is a different column found
-    in the geneset table. Not all columns are (or need to be) represented.
 
-    TODO:	Need to retrieve the user's id and attach it, right now it just
-            uses a placeholder.
-
-    :arg string: geneset name
-    :arg string: geneset abbreviation
-    :arg string: geneset description
-    :arg int: species ID, converted to an int if a string
-    :arg int: publication ID
-    :arg string: group ID, should be a string not an int
-    :arg int: threshold type
-    :arg string: geneset threshold, see parseScoreType for a description
-    :arg int: gene ID type
-    :arg list: geneset_values, a list of tuples (gene, value)
-    :arg int: user ID
-    :arg int: curation ID, unless specified it defaults to private (5)
-    :ret dict: geneset
-    """
-
-    gs = {}
-
-    gs['gs_name'] = name
-    gs['gs_abbreviation'] = abbr
-    gs['gs_description'] = desc
-    gs['sp_id'] = int(spec)
-    gs['gs_groups'] = grp
-    gs['pub_id'] = pub  # The pubmed article still needs to retrieved
-    gs['gs_threshold_type'] = int(ttype)
-    gs['gs_threshold'] = thresh
-    gs['gs_gene_id_type'] = int(gtype)
-    gs['usr_id'] = int(usr)
-    gs['values'] = vals  # Not a column in the geneset table; processed later
-
-    ## Other fields we can fill out
-    gs['gs_count'] = len(vals)
-    gs['cur_id'] = cur_id  # auto private tier?
+    gs = {'gs_name': name, 'gs_abbreviation': abbr, 'gs_description': desc,
+          'sp_id': int(spec), 'gs_groups': grp, 'pub_id': pub,
+          'gs_threshold_type': int(ttype), 'gs_threshold': thresh,
+          'gs_gene_id_type': int(gtype), 'usr_id': int(usr), 'values': vals,
+          'gs_count': len(vals), 'cur_id': cur_id}
 
     return gs
 
-
-#### getPubmedInfo
-##
-#### Retrieves Pubmed article info from the NCBI servers using the NCBI eutils.
-#### The result is a dictionary whose keys are the same as the publication
-#### table. The actualy return value for this function though is a tuple. The
-#### first member is the dict, the second is any error message.
-##
 def getPubmedInfo(pmid):
+    """ Retrieves Pubmed article info from the NCBI servers using the NCBI eutils.
+        The result is a dictionary whose keys are the same as the publication
+        table. The actual return value for this function though is a tuple. The
+        first member is the dict, the second is any error message.
+
+    Parameters
+    ----------
+    pmid: Publication ID
+
+    Returns
+    -------
+    (clarify)
+
+    """
+
     ## URL for pubmed article summary info
     url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
            'retmode=json&db=pubmed&id=%s') % pmid
@@ -630,7 +831,6 @@ def getPubmedInfo(pmid):
               'PubMed info for the PMID you provided could be retrieved.')
         return ({}, er)
 
-    pinfo = {}
     res = json.loads(res)
 
     ## In case of KeyErrors...
@@ -638,13 +838,10 @@ def getPubmedInfo(pmid):
         pub = res['result']
         pub = pub[pmid]
 
-        pinfo['pub_title'] = pub['title']
-        pinfo['pub_abstract'] = res2
-        pinfo['pub_journal'] = pub['fulljournalname']
-        pinfo['pub_volume'] = pub['volume']
-        pinfo['pub_pages'] = pub['pages']
-        pinfo['pub_pubmed'] = pmid
-        pinfo['pub_authors'] = ''
+        pinfo = {'pub_title': pub['title'], 'pub_abstract': res2,
+                 'pub_journal': pub['fulljournalname'],
+                 'pub_volume': pub['volume'], 'pub_pages': pub['pages'],
+                 'pub_pubmed': pmid, 'pub_authors': ''}
 
         ## Author struct {name, authtype, clustid}
         for auth in pub['authors']:
@@ -661,18 +858,20 @@ def getPubmedInfo(pmid):
     return (pinfo, '')
 
 
-#### parseBatchFile
-##
-##
 def parseBatchFile(lns, usr=0, cur=5):
-    """
-    Parses the batch file according to the format listed on
-    http://geneweaver.org/index.php?action=manage&cmd=batchgeneset
+    """ Parses the batch file according to the format listed on:
+        http://geneweaver.org/index.php?action=manage&cmd=batchgeneset
 
-    :param list: list of strings, one per line of the batch file
-    :param int: user ID to associate with the parsed genesets
-    :param int: curation ID
-    :ret tuple: triplet (list of gensets, list of warnings, list of errors)
+    Parameters
+    ----------
+    lns: list of strings, one per line of the batch file
+    usr: User ID, to associate with the parsed GeneSets
+    cur: Curation ID
+
+    Returns
+    -------
+    triplet: tuple containing (list of GeneSets, list of warnings, list of errors)
+
     """
 
     genesets = []
@@ -694,6 +893,7 @@ def parseBatchFile(lns, usr=0, cur=5):
     # for ln in lns:
     for i in range(len(lns)):
         # ln = eatWhiteSpace(ln)
+
         lns[i] = lns[i].strip()
 
         ## :, =, + are required for all datasets
@@ -888,6 +1088,7 @@ def parseBatchFile(lns, usr=0, cur=5):
         ## will become apart of the geneset_values
         # elif len(ln.split('\t')) == 2:
         elif len(lns[i].split('\t')) == 2:
+            print lns[i].split('\t'), "\n"
 
             ## First we check to see if all the required data was specified
             if ((not abbr) or (not name) or (not desc) or (not stype) or
@@ -935,6 +1136,7 @@ def parseBatchFile(lns, usr=0, cur=5):
 
         ## Who knows what the fuck this line is, just skip it
         else:
+            # print lns[i]
             # ncerr.append('BAD LINE: ' + ln)
             err = 'LINE %s: Skipping unknown identifiers' % (i + 1)
             warns.append(err)
@@ -944,7 +1146,8 @@ def parseBatchFile(lns, usr=0, cur=5):
     # if cerr:
     #    return ([], ncerr, cerr)
     if errors:
-        return ([], warns, errors)
+        triplet = ([], warns, errors)
+        return triplet
 
     else:
         gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
@@ -952,20 +1155,23 @@ def parseBatchFile(lns, usr=0, cur=5):
         genesets.append(gs)
 
         # return (genesets, ncerr, [])
-        return (genesets, warns, errors)
+        triplet = (genesets, warns, errors)
+        return triplet
 
-
-#### makeRandomFilename
-##
-#### Generates a random filename for the file_uri column in the file table. The
-#### PHP version of this function (getRandomFilename) combines the user's
-#### email, the string '_ODE_', the current date, and a random number. Since
-#### this script is offline right now, I'm just using 'GW_' + date + '_' + a
-#### random six letter alphanumeric string. Looking at the file_uri contents
-#### currently in the db though, there seems to be a ton of variation in the
-#### naming schemes.
-##
 def makeRandomFilename():
+    """ Generates a random filename for the file_uri column in the file table. The
+        PHP version of this function (getRandomFilename) combines the user's
+        email, the string '_ODE_', the current date, and a random number. Since
+        this script is offline right now, I'm just using 'GW_' + date + '_' + a
+        random six letter alphanumeric string. Looking at the file_uri contents
+        currently in the db though, there seems to be a ton of variation in the
+        naming schemes.
+
+    Returns
+    -------
+    (clarify)
+
+    """
     lets = 'abcdefghijklmnopqrstuvwxyz1234567890'
     rstr = ''
     now = datetime.datetime.now()
@@ -976,13 +1182,19 @@ def makeRandomFilename():
     return ('GW_' + str(now.year) + '-' + str(now.month) + '-' +
             str(now.day) + '_' + rstr)
 
-
-#### buFile
-##
-#### Parses geneset content into the proper format and inserts it into the file
-#### table. The proper format is gene\tvalue\n .
-##
 def buFile(genes):
+    """ Parses geneset content into the proper format and inserts it into the file
+        table. The proper format is gene\tvalue\n .
+
+    Parameters
+    ----------
+    genes: (clarify)
+
+    Returns
+    -------
+    (clarify)
+
+    """
     conts = ''
     ## Geneset values should be a list of tuples (symbol, pval)
     for tup in genes:
@@ -990,12 +1202,18 @@ def buFile(genes):
 
     return db.insertFile(len(conts), makeRandomFilename(), conts, '')
 
-
-#### buGenesetValues
-##
-#### Batch upload geneset values.
-##
 def buGenesetValues(gs):
+    """ Batch upload geneset values.
+
+    Parameters
+    ----------
+    gs: (clarify)
+
+    Returns
+    -------
+    (clarify)
+
+    """
     ## Geneset values should be a list of tuples (symbol, pval)
     ## First we attempt to map them to the internal ode_gene_ids
     symbols = map(lambda x: x[0], gs['values'])
@@ -1083,22 +1301,31 @@ def buGenesetValues(gs):
     return (total, noncrit)
 
 
-#### buGenesets
-##
-#### Batch upload genesets. Requires the filepath to the batch upload file.
-#### Takes two additional (optional) parameters, a usr_id and cur_id, which
-#### are provided as command line arguments. This allows the person running
-#### the script to change usr_ids and cur_ids, which are currently set to 0
-#### and 5 (private) respectively, for this "offline" version of the script.
-##
 def buGenesets(fp, usr_id=0, cur_id=5):
+    """ Batch upload genesets. Requires the filepath to the batch upload file.
+        Takes two additional (optional) parameters, a usr_id and cur_id, which
+        are provided as command line arguments. This allows the person running
+        the script to change usr_ids and cur_ids, which are currently set to 0
+        and 5 (private) respectively, for this "offline" version of the script.
+
+    Parameters
+    ----------
+    fp: (clarify)
+    usr_id: (clarify)
+    cur_id: (clarify)
+
+    Returns
+    -------
+    (clarify)
+
+    """
     noncrits = []  # non-critical errors we will inform the user about
     added = []  # list of gs_ids successfully added to the db
 
-    ## returns (genesets, non-critical errors, critical errors)
+    # returns (genesets, non-critical errors, critical errors)
     b = parseBatchFile(readBatchFile(fp), usr_id, cur_id)
 
-    ## A critical error has occurred
+    # A critical error has occurred
     if b[2]:
         print b[2]
         print ''
@@ -1109,16 +1336,16 @@ def buGenesets(fp, usr_id=0, cur_id=5):
         noncrits = b[1]
 
     for gs in genesets:
-        ## If a PMID was provided, we get the info from NCBI
+        # If a PMID was provided, we get the info from NCBI
         if gs['pub_id']:
             pub = getPubmedInfo(gs['pub_id'])
             gs['pub_id'] = pub[0]
 
-            ## Non-crit pubmed retrieval errors
+            # Non-crit pubmed retrieval errors
             if pub[1]:
                 noncrits.append(pub[1])
 
-            ## New row in the publication table
+            # New row in the publication table
             if gs['pub_id']:
                 gs['pub_id'] = db.insertPublication(gs['pub_id'])
             else:
@@ -1127,9 +1354,9 @@ def buGenesets(fp, usr_id=0, cur_id=5):
         else:
             gs['pub_id'] = None  # empty pub
 
-        ## Insert the data into the file table
+        # Insert the data into the file table
         gs['file_id'] = buFile(gs['values'])
-        ## Insert new genesets and geneset_values
+        # Insert new genesets and geneset_values
         gs['gs_id'] = db.insertGeneset(gs)
         gsverr = buGenesetValues(gs)
 
@@ -1147,12 +1374,20 @@ def buGenesets(fp, usr_id=0, cur_id=5):
 
     return (added, noncrits)
 
+# ----------------------------TESTING FUNCTIONS---------------------------- #
 
-if __name__ == '__main__':
+
+def batch_file_test():
+    """ Tests the capabilities of batch.py to parse a user-input batch
+    GeneSet file, add GeneSets, and batch upload. Prints errors
+    identified as 'non-critical' to the command line.
+
+    [previously found under __main__; isolated for ease of testing]
+    """
     from optparse import OptionParser
     from sys import argv
 
-    # cmd line shit
+    # cmd line prompt for batch test
     usage = 'usage: %s [options] <batch_file>' % argv[0]
     parse = OptionParser(usage=usage)
 
@@ -1174,7 +1409,7 @@ if __name__ == '__main__':
     if not opts.cur_id:
         opts.cur_id = 5
 
-    ## Where all the magic happens
+    # where all the magic happens
     stuff = buGenesets(args[1], opts.usr_id, opts.cur_id)
 
     print '[+] The following GeneSets were added:'
@@ -1186,3 +1421,57 @@ if __name__ == '__main__':
         for er in stuff[1]:
             print er
         print ''
+
+
+def getOdeGeneIdsNonPrefTest():
+    """ Tests the capabilities of function: getOdeGeneIdsNonPrefTest()"""
+    # database already randomly defined above
+    # getOdeGeneIdsNonPref(species id, list of ode ref ids)
+
+    from optparse import OptionParser
+    from sys import argv
+
+    # cmd line prompt for batch test
+    usage = 'usage: %s [options] <batch_file>' % argv[0]
+    parse = OptionParser(usage=usage)
+
+    parse.add_option('-u', action='store', type='string', dest='usr_id',
+                     help='Specify a usr_id for newly added GeneSets')
+    parse.add_option('-c', action='store', type='string', dest='cur_id',
+                     help='Specify a cur_id for newly added GeneSets')
+
+    (opts, args) = parse.parse_args(argv)
+
+    genesets = {}  # genesets we are working with
+
+    # returns (genesets, non-critical errors, critical errors)
+    b = parseBatchFile(readBatchFile(args[1]), 0, 0)
+
+    # A critical error has occurred
+    if b[2]:
+        print b[2]
+        print ''
+        exit()
+    else:
+        genesets = b[0]
+        noncrits = b[1]
+
+    # print "test geneset: ", genesets, "\n"
+
+    results = []
+    for geneset in genesets:
+        symbols = map(lambda x: x[0], geneset['values'])
+        print "symbols: ", symbols, "\n"
+        #results.append(db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols))
+        db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols)
+        break
+
+    # print results[0], "\n", results[1]
+
+
+if __name__ == '__main__':
+    # print 'batch file test'
+    # batch_file_test()
+
+    print '\n TEST: getOdeGeneIdsNonPref() \n'
+    getOdeGeneIdsNonPrefTest()

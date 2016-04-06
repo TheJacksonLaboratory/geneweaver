@@ -47,7 +47,7 @@ def insertPublication(pubDict):
     :return: pub_id
     '''
     pmid = False
-    ## Get pub_id from publication if a pmid exists
+    # Get pub_id from publication if a pmid exists
     if pubDict['pub_pubmed'] != '':
         with PooledCursor() as cursor:
             cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pubDict['pub_pubmed'],))
@@ -57,7 +57,7 @@ def insertPublication(pubDict):
                 return pub_id
             else:
                 pmid = True
-    ## Insert new values otherwise and return id to pub_id
+    # Insert new values otherwise and return id to pub_id
     if pmid or pubDict['pub_pubmed'] == '':
         with PooledCursor() as cursor:
             cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume,

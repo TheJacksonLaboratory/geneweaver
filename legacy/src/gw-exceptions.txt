@@ -78,3 +78,28 @@ Stack trace:
 	  File "/Users/Asti/geneweaver/jax/lib/python2.7/sphinxapi/__init__.py", line 206, in _Connect
     raise socket.error
 
+
+Email failed with [Errno 61] Connection refused
+
+
+URL:            http://localhost:5000/ABBA-result/bf134168-6f94-46ba-9a45-48b25300f39d.html
+Request type:   GET
+IP:             127.0.0.1
+User agent:     Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/601.4.4 (KHTML, like Gecko) Version/9.0.3 Safari/601.4.4
+Time:           2016-04-05 09:35:16.757562
+User ID:        5495989
+Exception:      Exception: error while processing: ABBA Gene-Centered Search
+
+
+Request args: None
+
+Form data: None
+
+Stack trace:
+	  File "/Users/Asti/geneweaver/jax/lib/python2.7/site-packages/flask/app.py", line 1475, in full_dispatch_request
+    rv = self.dispatch_request()
+	  File "/Users/Asti/geneweaver/jax/lib/python2.7/site-packages/flask/app.py", line 1461, in dispatch_request
+    return self.view_functions[rule.endpoint](**req.view_args)
+	  File "/Users/Asti/geneweaver/website-py/src/tools/abbablueprint.py", line 104, in view_result
+    raise Exception('error while processing: ' + tool.name)
+
