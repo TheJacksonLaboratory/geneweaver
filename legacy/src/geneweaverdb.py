@@ -521,18 +521,6 @@ def get_all_publications(gs_id):
         return publications[0] if len(publications) == 1 else None
 
 
-def get_project_groups():
-    """
-    returns: all group ids and group names for projects belonging to user_id and group priv = 1
-    """
-    user_id = flask.session['user_id']
-    with PooledCursor() as cursor:
-        cursor.execute('''SELECT g.grp_id, g.grp_name, u.u2g_privileges, u.usr_id FROM grp g, usr2grp u
-                          WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
-        results = list(dictify_cursor(cursor))
-    return results
-
-
 def get_all_attributions():
     """
     returns an ordered mapping from attribution ID to attribution name for all available attributions
@@ -1712,13 +1700,36 @@ class User:
         self.ip_addr = usr_dict['ip_addr']
 
         self.__projects = None
+        self.__get_groups_by_user = None
 
     @property
     def projects(self):
         if self.__projects is None:
             self.__projects = get_all_projects(self.user_id)
-
         return self.__projects
+
+    @property
+    def get_groups_by_user(self):
+        if self.__get_groups_by_user is None:
+            self.__get_groups_by_user = get_groups_owned_by_user(self.user_id)
+        return self.__get_groups_by_user
+
+
+def get_groups_owned_by_user(user_id):
+    """
+    returns: all group ids and group names for projects belonging to user_id and group priv = 1
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, u.u2g_privileges AS priv FROM grp g, usr2grp u
+                          WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
+    return [Groups(row_dict) for row_dict in dictify_cursor(cursor)]
+
+
+class Groups:
+    def __init__(self, grp_dict):
+        self.grp_id = grp_dict['grp_id']
+        self.grp_name = grp_dict['grp_name']
+        self.privileges = grp_dict['priv']
 
 
 class Publication:

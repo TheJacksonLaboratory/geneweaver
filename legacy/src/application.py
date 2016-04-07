@@ -24,7 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import cairosvg
+#import cairosvg
 from cStringIO import StringIO
 
 app = flask.Flask(__name__)
@@ -2559,4 +2559,4 @@ if __name__ == '__main__':
         app.run(host=config.get('application', 'host'))
 
     else:
-		app.run()
+        app.run()

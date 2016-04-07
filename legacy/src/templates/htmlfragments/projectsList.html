@@ -5,6 +5,11 @@
         color: #d3d3d3;
     }
 
+    .clickableShare {
+        cursor: pointer;
+        color: #d3d3d3;
+    }
+
     /* CSS added to change chevrons on accordion select. */
     .panel-heading a.collapsed:before {
         padding-left: 10px;
@@ -45,15 +50,36 @@
                                 </div>
 
                             </div>
-                            <div class="col-xs-10" style="vertical-align: bottom;">
+                            <div class="col-xs-15" style="vertical-align: bottom;">
                                 <a class="project-link" data-toggle="collapse"
                                    data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
                                     {{ proj.name }}
                                 </a>
-                                <span class="clickableEdit" id="edit-{{ proj.project_id }}"
-                                      data-proj-name="{{ proj.name }}"
-                                      data-proj-id="{{ proj.project_id }}" data-proj-notes="{{ proj.notes }}">
-                                    <i class="fa fa-pencil"></i></span>
+                                {% if proj.group_id != '-1' %}
+                                <span data-placement="right" data-toggle="tooltip" data-rel="tooltip"
+                                      data-original-title="Shared" type="button" title="Shared"
+                                      style="margin: 2px; padding: 0px 2px;">
+                                    <i class="fa fa-star" style="color: #006400"></i>
+                                </span>
+                                {% endif %}
+                                <span data-placement="right" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Share" type="button" title="Share Project"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                    <span class="clickableShare" id="share-{{ proj.project_id }}"
+                                          data-proj-name="{{ proj.name }}"
+                                          data-proj-id="{{ proj.project_id }}" data-proj-grp="{{ proj.group_id }}">
+                                        <i class="fa fa-share-alt"></i>
+                                    </span>
+                                </span>
+                                <span data-placement="right" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Edit" type="button" title="Edit Name"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                    <span class="clickableEdit" id="edit-{{ proj.project_id }}"
+                                          data-proj-name="{{ proj.name }}"
+                                          data-proj-id="{{ proj.project_id }}" data-proj-notes="{{ proj.notes }}">
+                                        <i class="fa fa-pencil"></i>
+                                    </span>
+                                </span>
 
                             </div>
                         </div>
@@ -66,6 +92,10 @@
                     </div>
                 </div>
             </div>
+
+            {% include 'modal/addProjectToGroup.html' %}
+
+
         {% endfor %}
     {% else %}
         <div class="alert alert-warning fade in">
@@ -129,5 +159,17 @@
                 }
             })
         });
+
+        // Call modal to share selected projects
+        $('.clickableShare').on('click', function () {
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            var projGrp = $(this).attr('data-proj-grp');
+            $("#myProjName").html(projName);
+            $("#myProjId").val(projId);
+            $("#myProjGrp").html(projGrp);
+            $("#addProjToGroup-" + projId).modal('show');
+        });
+
 
     </script>
