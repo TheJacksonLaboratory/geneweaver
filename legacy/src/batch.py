@@ -61,7 +61,7 @@ class TheDB:
             self.conn = psycopg2.connect(cs)
         except:
             # add more detail / improve this error exception
-            print "[!] Oh no, failed to connect to the db." and "\n"
+            print "[!] Oh no, failed to connect to the db.\n"
             exit()
 
         # assign psycopg2 cursor for connection obj to a global variable, for querying db
@@ -114,81 +114,85 @@ class TheDB:
         res: list of tuples containing ode reference IDs
 
         """
-        d = {}
         output = []
+        d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} - dict reference to user input
 
-        # type check syms to make sure it's a list
-        if type(syms) == list:
-            # if it is a list, cast to tuple
+        try:
             syms = tuple(syms)
-
-        # put ode_ref_id(s) in a dict, initally mapped to an empty list
-        for sym in syms:
-            d[sym] = []
+        except TypeError:
+            print "Error: Input list of ode_ref_ids was not entered as a list.\n"
+            exit()
 
         print "syms: ", syms, "\n"
-        # print "dict: ", d, "\n"
+        print "dict: ", d, "\n"
 
         # QUERY 1: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
         #   of a specified species (sp_id), regardless of user preference (ode_pref)
         #   + are in the list of ode reference IDs of interest to the user
-        query1 = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
-                 'FROM extsrc.gene ' \
-                 'WHERE sp_id = %s ' \
-                 'AND ode_ref_id IN %s;'
+        try:
+            query1 = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
+                     'FROM extsrc.gene ' \
+                     'WHERE sp_id = %s ' \
+                     'AND ode_ref_id IN %s;'
 
-        # execute first db query, using params
-        self.cur.execute(query1, [sp, syms])
+            # execute first db query, using params
+            self.cur.execute(query1, [sp, syms])
 
-        # gather result of first query
-        res1 = self.cur.fetchall()
-        print "results of query 1: ", res1, "\n"
+            # gather result of first query
+            res1 = self.cur.fetchall()
+            print "results of query 1: ", res1, "\n"
 
-        # isolate the ode_ref_ids pulled from database
-        found1 = map(lambda x: x[0], res1)
-        print "found1: ", found1, "\n"
+            # isolate the ode_ref_ids pulled from database
+            found1 = map(lambda x: x[0], res1)
+            print "found1: ", found1, "\n"
 
-        # print "difference in sets: ", set(syms) - set(found1), "\n"
+            # print "difference in sets: ", set(syms) - set(found1), "\n"
 
-        # map symbols that weren't found to None
-        for nf in (set(syms) - set(found1)):
-            print "symbols that weren't found: ", nf, "\n"
-            res1.append((nf, None))
+            # map symbols that weren't found to None
+            for nf in (set(syms) - set(found1)):
+                print "symbols that weren't found: ", nf, "\n"
+                res1.append((nf, None))
 
-        # returns a list of tuples [(ode_ref_id, ode_gene_id),]
-        print "res1: ", res1, "\n"
+            # returns a list of tuples [(ode_ref_id, ode_gene_id),]
+            print "res1: ", res1, "\n"
 
-        geneType = None
-        for gene in res1:
-            d[gene[0]].append((gene[1], gene[2]))  # add ode_gene_id and ode_pref for each ode_ref_id instance
-            geneType = gene[3]  # not the most efficient way to grab gbd_id, but keep until class Batch implemented
+            geneType = None
+            for gene in res1:
+                d[gene[0]].append((gene[1], gene[2]))  # add ode_gene_id and ode_pref for each ode_ref_id instance
+                geneType = gene[3]  # not the most efficient way to grab gbd_id, but keep until class Batch implemented
 
-        # go through each returned result (remembering that sometimes they can
-        #   double up with ode_ref_id(s) in addition to multiplicity of ode_gene_id(s))
-        gene_ids = []
-        for item in d:
-            for ref in d[item]:  # for each possible option for ode_ref_id
-                if str(ref[1]) == 'True':  # if one of ode_prefs is true for ode_ref_id, remap to that one!
-                    output.append([item, ref[0]])  # remap to ode_gene_id with positive ode_pref associated ode_ref_id
-                    break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
-                elif str(ref[1]) == 'False':  # if false, need to run QUERY 2 for that ode_gene_id, so store id for now
-                    gene_ids.append(ref[0])
+            print 'd ', d
 
-        # remove any ode_pref = True items from dictionary, to avoid later duplication
-        if output:
-            for o in output:
-                del d[o[0]]
-                print "deleted ", o[0]
+            # go through each returned result (remembering that sometimes they can
+            #   double up with ode_ref_id(s) in addition to multiplicity of ode_gene_id(s))
+            gene_ids = []
+            for key, values in d.iteritems():
+                for val in values:  # for each possible option for ode_ref_id
+                    if str(val[1]) == 'True':  # if one of ode_prefs is true for ode_ref_id, remap to that one!
+                        output.append([key, val[0]])  # remap to ode_gene_id with pref gene id associated ode_ref_id
+                        break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
+                    elif str(val[1]) == 'False':  # if false, need to run QUERY 2 for that ode_gene_id, store for now
+                        gene_ids.append(val[0])
 
-        # make sure that none of the ode_gene_id(s) shared between ode_ref_id(s)
-        #   remove duplicates, as wouldn't keep both regardless
-        gene_ids_query2 = set(gene_ids)  # removes any duplicates... (immutable)
-        gene_ids = tuple(gene_ids_query2)  # add back to gene_ids
+            # remove any ode_pref = True items from dictionary, to avoid later duplication
+            if output:
+                for o in output:
+                    del d[o[0]]
+                    print "deleted ", o[0]
+
+            # make sure that none of the ode_gene_id(s) shared between ode_ref_id(s)
+            #   remove duplicates, as wouldn't keep both regardless
+            gene_ids_query2 = set(gene_ids)  # removes any duplicates... (immutable)
+            gene_ids = tuple(gene_ids_query2)  # add back to gene_ids
+
+        except psycopg2.ProgrammingError:
+            print "Error: Unable to upload batch file as no genes found.\n" \
+                  "Check text file input before attempting batch upload again.\n"
 
         # QUERY 2: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
         #   of a specified species (sp_id), that are user preferred (ode_pref)
         #   + are in the list of ode reference IDs of interest to the user
-        while gene_ids:
+        try:
             query2 = 'SELECT ode_ref_id, ode_gene_id ' \
                      'FROM extsrc.gene ' \
                      'WHERE sp_id = %s ' \
@@ -227,18 +231,11 @@ class TheDB:
 
             # write to output
             # cast output as a tuple before returning
-            # test file without any genes added for error catching
+            # make test file without any genes added for error catching
+        except:
+            print 'for now...'
 
         print output
-
-        # print "gene_ids: ", gene_ids, "\n"
-        # print "dict: ", d, "\n"
-
-        # [make a test file based on 16844 to test, based on gdb_id=5 (Unigene)]
-        # [query 2 wrong, bc should really be a reallocation of ode_gene_id towards a
-        # ode_ref_id with ode_pref=true]
-
-
 
     def getOdeGeneIds(self, sp, syms):
         """ [Tim] Given a list of gene symbols from the users' batch file, if the symbol doesn't
@@ -295,6 +292,7 @@ class TheDB:
         for tup in res:
             d[tup[0].lower()] = tup[1]
 
+        print d
         return d
 
     def getMicroarrayTypes(self):
