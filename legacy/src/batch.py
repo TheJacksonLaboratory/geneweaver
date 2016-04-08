@@ -55,25 +55,24 @@ class TheDB:
 
         try:
             self.conn = psycopg2.connect(cs)  # connect to geneweaver database
+            self.cur = self.conn.cursor()
         except SyntaxError:  # cs probably wouldn't be a useable string if wasn't able to connect
             print "Error: Unable to connect to database."
             exit()
 
-        self.cur = self.conn.cursor()
-
     def getGeneTypes(self):
-        """ Queries the DB for a list of gene types and returns the result
-            as a dict. The keys are gdb_names and values gdb_ids. All gdb_names
+        """ Queries the DB for a list of gene types and returns the result as a dict.
+            Gene type name is mapped against gene type id. All gene type names
             are converted to lowercase.
 
         Returns
         -------
-        d: dict of gdb names -> gdb ids
+        d: dict of gdb_name -> gdb_id
 
         """
         d = {}  # empty dict for return val
 
-        # set up SQL query to get a list of gene types by id + name
+        # QUERY: get a list of gene types by id + name
         query = 'SELECT gdb_id, gdb_name ' \
                 'FROM odestatic.genedb;'
 
@@ -81,11 +80,11 @@ class TheDB:
         res = self.cur.fetchall()  # gather result of query
 
         for tup in res:
-            d[tup[1].lower()] = tup[0]  # such that {gdb_name: gbd_id,}
+            d[tup[1].lower()] = tup[0]  # USEAGE: {gdb_name: gbd_id,} - dict ref for gene types
 
-        return d  # returns a list of tuples [(gdb_id, gdb_name)]
+        return d  # RETURNS: list of tuples [(gdb_name, gdb_id)]
 
-    def getOdeGeneIdsNonPref(self, sp, syms):
+    def getOdeGeneIdsNonPref(self, sp, syms, gtype):
         """ Attempts to retrieve ode_gene_ids for ode_ref_ids by mapping
             non-preferred ode_ref_ids to the preferred ode_gene_ids (ode_pref == true).
             This can be done in a single query, but since we want to map
@@ -96,15 +95,19 @@ class TheDB:
         Parameters
         ----------
         sp: Species ID (int)
-        syms: ode reference IDs (list)
+        syms: Reference IDs (list)
+        gtype: Gene Type (int)
 
         Returns
         -------
         res: list of tuples containing ode reference IDs
 
         """
-        output = []
-        d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} - dict reference to user input
+        output = []  # returned list
+        gene_type = abs(gtype)
+        print gene_type
+        gene_ids = []  # list of genes that were ode_pref=False following the first search
+        d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} - dict ref to user input
 
         try:
             syms = tuple(syms)
@@ -122,29 +125,26 @@ class TheDB:
             query1 = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
                      'FROM extsrc.gene ' \
                      'WHERE sp_id = %s ' \
+                     'AND gdb_id = %s ' \
                      'AND ode_ref_id IN %s;'
 
-            self.cur.execute(query1, [sp, syms])  # execute query
+            self.cur.execute(query1, [sp, gene_type, syms])  # execute query
             res1 = self.cur.fetchall()  # gather result of first query
             print "results of query 1: ", res1, "\n"
 
             found1 = map(lambda m: m[0], res1)  # isolate the ode_ref_ids pulled from database
             print "found1: ", found1, "\n"
 
-            # map symbols that weren't found to None
-            for nf in (set(syms) - set(found1)):
+            for nf in (set(syms) - set(found1)):  # map symbols that weren't found to None
                 print "Warning: Some symbols were not found: ", nf, "\n"
-                res1.append((nf, None))
+                output.append((nf, None))
             print "res1: ", res1, "\n"  # list of tuples [(ode_ref_id, ode_gene_id),]
 
-            geneType = []
             for gene in res1:
                 d[gene[0]].append((gene[1], gene[2]))  # add ode_gene_id and ode_pref for each ode_ref_id instance
-                geneType.append(gene[3])  # not the most efficient way to grab gbd_id, but keep until class Batch implemented
 
             # go through each returned result (remembering that sometimes they can
             #   double up with ode_ref_id(s) in addition to multiplicity of ode_gene_id(s))
-            gene_ids = []
             for key, values in d.iteritems():
                 for val in values:  # for each possible option for ode_ref_id
                     if str(val[1]) == 'True':  # if one of ode_prefs is true for ode_ref_id, remap to that one!
@@ -152,15 +152,16 @@ class TheDB:
                         break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
                     elif str(val[1]) == 'False':  # if false, need to run QUERY 2 for that ode_gene_id, store for now
                         gene_ids.append(val[0])
+                    break
+
+            gene_ids_query2 = set(gene_ids)  # removes any duplicates... wouldn't keep both regardless (immutable)
+            gene_ids = tuple(gene_ids_query2)  # add back to gene_ids
 
             if output:  # remove any ode_pref=True items from dictionary, to avoid later duplication
                 for o in output:
                     del d[o[0]]
                     print "deleted ", o[0]
-
-            # make sure that none of the ode_gene_id(s) are shared between ode_ref_id(s)
-            gene_ids_query2 = set(gene_ids)  # removes any duplicates... wouldn't keep both regardless (immutable)
-            gene_ids = tuple(gene_ids_query2)  # add back to gene_ids
+            # make a list of headers above instead of controlling it this way
 
         except psycopg2.ProgrammingError:
             print "Error: Unable to upload batch file as no genes found.\n" \
@@ -177,39 +178,33 @@ class TheDB:
                      'AND ode_pref = TRUE ' \
                      'AND ode_gene_id IN %s;'
 
-            # execute second db query
-            self.cur.execute(query2, [sp, geneType, gene_ids])
+            self.cur.execute(query2, [sp, gene_type, gene_ids])  # execute second db query
 
-            # gather result of second query
-            res2 = self.cur.fetchall()
+            res2 = self.cur.fetchall()  # gather result of second query
             print "results of query 2: ", res2, "\n"
 
-            temp = {}  # {ode_gene_id: ode_ref_id,}
+            temp = {}  # USEAGE: {ode_gene_id: ode_ref_id,}
             for x in res2:
                 temp[x[1]] = x[0]
 
-            print temp
-
-            # identify which ode_gene_id(s) are legit, isolate
-            found2 = map(lambda x: x[1], res2)
+            found2 = map(lambda l: l[1], res2)  # isolate ode_gene_id(s) that are legit (ode_pref=True)
             print "found2: ", found2, "\n"
 
             # compare legit ode_gene_id(s) with those associated with initial ode_ref_id(s)
             for opt in found2:
-                if d:
-                    for item in d:
-                        for ref in d[item]:
-                            if ref[0] == opt:
-                                output.append([temp[ref[0]], ref[0]])
-                                print "yes!\n"
-                                break
+                for item in d:
+                    for ref in d[item]:
+                        if ref[0] == opt:
+                            output.append([temp[ref[0]], ref[0]])  # USAGE: [(ode_ref_id, ode_gene_id),]
+                            print "yes!\n"
                             break
                         break
+                    break
 
             # write to output
             # cast output as a tuple before returning
-            # make test file without any genes added for error catching
-        except:
+
+        except psycopg2.ProgrammingError:
             print 'for now...'
 
         print output
@@ -484,7 +479,6 @@ class TheDB:
 
         self.cur.execute(query, vals)
 
-
     def insertGeneset(self, gd):
         """ Given a dict whose keys are refer to columns of the geneset table,
             this function inserts a new geneset into the db.
@@ -577,6 +571,7 @@ def eatWhiteSpace(input_string):
     output_string = input_string.strip()
     return output_string
 
+
 def readBatchFile(fp):
     """ Reads the file at the given filepath and returns all the lines that
         comprise the file.
@@ -595,6 +590,7 @@ def readBatchFile(fp):
         lines = file_path.readlines()
 
     return lines
+
 
 def makeDigrams(s):
     """ Recursively creates an exhaustive list of digrams from the given string.
@@ -616,6 +612,7 @@ def makeDigrams(s):
     b.insert(0, s[:2])
 
     return b
+
 
 def calcStringSimilarity(s1, s2):
     """ Calculates the percent similarity between two strings.
@@ -650,6 +647,7 @@ def calcStringSimilarity(s1, s2):
     perc_sim = (2 * len(intersect)) / float(len(sd1) + len(sd2))
 
     return perc_sim
+
 
 def parseScoreType(s):
     """ Attempts to parse out the score type and any threshold value
@@ -741,6 +739,7 @@ def parseScoreType(s):
 
     return groomed
 
+
 def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
                 usr=0, cur_id=5):
     """ Given a bunch of arguments, this function returns a dictionary
@@ -778,6 +777,7 @@ def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
           'gs_count': len(vals), 'cur_id': cur_id}
 
     return gs
+
 
 def getPubmedInfo(pmid):
     """ Retrieves Pubmed article info from the NCBI servers using the NCBI eutils.
@@ -1140,6 +1140,7 @@ def parseBatchFile(lns, usr=0, cur=5):
         triplet = (genesets, warns, errors)
         return triplet
 
+
 def makeRandomFilename():
     """ Generates a random filename for the file_uri column in the file table. The
         PHP version of this function (getRandomFilename) combines the user's
@@ -1164,6 +1165,7 @@ def makeRandomFilename():
     return ('GW_' + str(now.year) + '-' + str(now.month) + '-' +
             str(now.day) + '_' + rstr)
 
+
 def buFile(genes):
     """ Parses geneset content into the proper format and inserts it into the file
         table. The proper format is gene\tvalue\n .
@@ -1183,6 +1185,7 @@ def buFile(genes):
         conts += (tup[0] + '\t' + tup[1] + '\n')
 
     return db.insertFile(len(conts), makeRandomFilename(), conts, '')
+
 
 def buGenesetValues(gs):
     """ Batch upload geneset values.
@@ -1445,7 +1448,8 @@ def getOdeGeneIdsNonPrefTest():
         symbols = map(lambda x: x[0], geneset['values'])
         print "symbols: ", symbols, "\n"
         #results.append(db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols))
-        db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols)
+        db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols, geneset["gs_gene_id_type"])
+        # maybe find a way to manage errors at this point - e.g. [('Mm.100974', None), ['Mobp', 5105L], ['Mapt', 1835L]]
         break
 
     # print results[0], "\n", results[1]
