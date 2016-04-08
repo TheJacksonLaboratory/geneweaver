@@ -39,32 +39,26 @@ class TheDB:
         during object init. Only one of these objects should be instantiated,
         so assigned to a global variable (self.conn).  """
 
-    def __init__(self, db='geneweaver', user='odeadmin', password='odeadmin'):
+    def __init__(self):
 
         # Global variables
         self.conn = None  # psycopg2 connection obj
         self.cur = None  # psycopg2 cursor obj
 
-        # fix this - checking the above params first? the names are shadowing otherwise...
-        # are these still getting the right information?
-        db = config.get('db', 'database')
+        data = config.get('db', 'database')
         user = config.get('db', 'user')
         password = config.get('db', 'password')
         host = config.get('db', 'host')
-        port = config.getInt('db', 'port')
 
         # set up connection information
-        cs = 'host=\'%s\' dbname=\'%s\' user=\'%s\' password=\'%s\'' % (host, db, user, password)
+        cs = 'host=\'%s\' dbname=\'%s\' user=\'%s\' password=\'%s\'' % (host, data, user, password)
 
         try:
-            # connect to geneweaver database, assign to global variable
-            self.conn = psycopg2.connect(cs)
-        except:
-            # add more detail / improve this error exception
-            print "[!] Oh no, failed to connect to the db.\n"
+            self.conn = psycopg2.connect(cs)  # connect to geneweaver database
+        except SyntaxError:  # cs probably wouldn't be a useable string if wasn't able to connect
+            print "Error: Unable to connect to database."
             exit()
 
-        # assign psycopg2 cursor for connection obj to a global variable, for querying db
         self.cur = self.conn.cursor()
 
     def getGeneTypes(self):
@@ -77,24 +71,19 @@ class TheDB:
         d: dict of gdb names -> gdb ids
 
         """
+        d = {}  # empty dict for return val
 
         # set up SQL query to get a list of gene types by id + name
         query = 'SELECT gdb_id, gdb_name ' \
                 'FROM odestatic.genedb;'
 
-        # execute query
-        self.cur.execute(query, [])
+        self.cur.execute(query, [])  # execute query
+        res = self.cur.fetchall()  # gather result of query
 
-        # gather result of query, for mapping
-        res = self.cur.fetchall()
-        d = {}
-
-        # we return a dict of gdb_names --> gdb_ids
         for tup in res:
-            d[tup[1].lower()] = tup[0]
+            d[tup[1].lower()] = tup[0]  # such that {gdb_name: gbd_id,}
 
-        # returns a list of tuples [(gdb_id, gdb_name)]
-        return d
+        return d  # returns a list of tuples [(gdb_id, gdb_name)]
 
     def getOdeGeneIdsNonPref(self, sp, syms):
         """ Attempts to retrieve ode_gene_ids for ode_ref_ids by mapping
@@ -135,33 +124,23 @@ class TheDB:
                      'WHERE sp_id = %s ' \
                      'AND ode_ref_id IN %s;'
 
-            # execute first db query, using params
-            self.cur.execute(query1, [sp, syms])
-
-            # gather result of first query
-            res1 = self.cur.fetchall()
+            self.cur.execute(query1, [sp, syms])  # execute query
+            res1 = self.cur.fetchall()  # gather result of first query
             print "results of query 1: ", res1, "\n"
 
-            # isolate the ode_ref_ids pulled from database
-            found1 = map(lambda x: x[0], res1)
+            found1 = map(lambda m: m[0], res1)  # isolate the ode_ref_ids pulled from database
             print "found1: ", found1, "\n"
-
-            # print "difference in sets: ", set(syms) - set(found1), "\n"
 
             # map symbols that weren't found to None
             for nf in (set(syms) - set(found1)):
-                print "symbols that weren't found: ", nf, "\n"
+                print "Warning: Some symbols were not found: ", nf, "\n"
                 res1.append((nf, None))
+            print "res1: ", res1, "\n"  # list of tuples [(ode_ref_id, ode_gene_id),]
 
-            # returns a list of tuples [(ode_ref_id, ode_gene_id),]
-            print "res1: ", res1, "\n"
-
-            geneType = None
+            geneType = []
             for gene in res1:
                 d[gene[0]].append((gene[1], gene[2]))  # add ode_gene_id and ode_pref for each ode_ref_id instance
-                geneType = gene[3]  # not the most efficient way to grab gbd_id, but keep until class Batch implemented
-
-            print 'd ', d
+                geneType.append(gene[3])  # not the most efficient way to grab gbd_id, but keep until class Batch implemented
 
             # go through each returned result (remembering that sometimes they can
             #   double up with ode_ref_id(s) in addition to multiplicity of ode_gene_id(s))
@@ -174,15 +153,13 @@ class TheDB:
                     elif str(val[1]) == 'False':  # if false, need to run QUERY 2 for that ode_gene_id, store for now
                         gene_ids.append(val[0])
 
-            # remove any ode_pref = True items from dictionary, to avoid later duplication
-            if output:
+            if output:  # remove any ode_pref=True items from dictionary, to avoid later duplication
                 for o in output:
                     del d[o[0]]
                     print "deleted ", o[0]
 
-            # make sure that none of the ode_gene_id(s) shared between ode_ref_id(s)
-            #   remove duplicates, as wouldn't keep both regardless
-            gene_ids_query2 = set(gene_ids)  # removes any duplicates... (immutable)
+            # make sure that none of the ode_gene_id(s) are shared between ode_ref_id(s)
+            gene_ids_query2 = set(gene_ids)  # removes any duplicates... wouldn't keep both regardless (immutable)
             gene_ids = tuple(gene_ids_query2)  # add back to gene_ids
 
         except psycopg2.ProgrammingError:
@@ -400,21 +377,17 @@ class TheDB:
         d: dict of sp_names -> sp_ids
 
         """
-        # sp_id:
+        d = {}  # empty dict to hold return val
         query = 'SELECT sp_id, sp_name ' \
                 'FROM odestatic.species;'
 
         self.cur.execute(query, [])
+        res = self.cur.fetchall()  # returns a list of tuples [(sp_id, sp_name)]
 
-        ## Returns a list of tuples [(sp_id, sp_name)]
-        res = self.cur.fetchall()
-        d = {}
-
-        ## We return a dict of sp_names --> sp_ids
         for tup in res:
             d[tup[1].lower()] = tup[0]
 
-        return d
+        return d  # we return a dict of sp_names --> sp_ids
 
     def insertFile(self, size, uri, contents, comments):
         """ Inserts a new row into the file table. Most of the columns for the file
@@ -576,6 +549,18 @@ class TheDB:
 ## DB global, should only be one instance of this class
 db = TheDB()
 
+
+class Batch:
+    """ Extracts raw text from a user-input file and, following identification
+        of gene variables, queries
+
+    """
+
+    def __init__(self, db_obj):
+
+        self.database = db_obj
+
+
 def eatWhiteSpace(input_string):
     """ Removes leading + trailing whitespace from a given string.
 
@@ -590,7 +575,6 @@ def eatWhiteSpace(input_string):
     """
 
     output_string = input_string.strip()
-
     return output_string
 
 def readBatchFile(fp):
