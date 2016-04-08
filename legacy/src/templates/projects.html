@@ -385,23 +385,35 @@
 
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
-        $('.project-link').on('click', function (event) {
-
-            // Get the project ID from the link href, but gotta strip out
-            // '#genesets-' first
-            var pid = $(this).attr('href').slice('#genesets-'.length);
+        $('.toggler').click(function (e) {
+            e.preventDefault();
+            //the data stored in the data-prod
+            var pid = ($(this).attr("data-prod"));
             var pbid = '#project-body-' + pid;
             var data = {'project': pid};
 
             // Check to see if we've already made an AJAX call for this project
-            if ($(pbid).children().length !== 0)
+            if ($(pbid).children().length !== 0) {
+                $(".gsid" + pid).toggle();
+                    //select the parent and find the span so you can
+                    //toggle the "plus" class
+                    $(this).parent().find("span").toggleClass("plus");
+                    //toggle the minus class
+                    $(this).toggleClass("plus");
+                    $(this).toggleClass("minus");
                 return;
+            }
 
             // Flask should return the rendered HTML, inject it into the DOM
             $.get(url, data).done(function (data) {
 
                 var tbody = pbid + ' tbody';
                 $(pbid).append(data);
+                //toggle the link clicked on
+                $(".gsid" + pid).toggle();
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $('#proj-'+pid).toggleClass("minus");
 
                 var allclass = '#proj-' + pid + '-allcheck';
                 var chkclass = '.proj-' + pid + '-check';
