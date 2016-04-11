@@ -378,8 +378,8 @@ class TheDB:
         """
         # check to see if 'RETURNING' is a legit call in SQL
         query = 'INSERT INTO production.file ' \
-                    '(file_size, file_uri, file_contents, file_comments, ' \
-                    'file_created, file_changes) ' \
+                '(file_size, file_uri, file_contents, file_comments, ' \
+                'file_created, file_changes) ' \
                 'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
 
         vals = [size, uri, contents, comments]
@@ -410,8 +410,8 @@ class TheDB:
         """
 
         query = 'INSERT INTO production.publication ' \
-                    '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
-                    'pub_volume, pub_pages, pub_pubmed) ' \
+                '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
+                'pub_volume, pub_pages, pub_pubmed) ' \
                 'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
 
         vals = [pd['pub_authors'], pd['pub_title'], pd['pub_abstract'],
@@ -447,8 +447,8 @@ class TheDB:
         """
 
         query = 'INSERT INTO extsrc.geneset_value ' \
-                    '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
-                    'gsv_value_list, gsv_in_threshold, gsv_date) ' \
+                '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
+                'gsv_value_list, gsv_in_threshold, gsv_date) ' \
                 'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
 
         vals = [gs_id, gene_id, value, [name], [float(value)], thresh]
@@ -476,7 +476,7 @@ class TheDB:
                 'gs_abbreviation, gs_description, gs_attribution, ' \
                 'gs_groups, pub_id) ' \
                 'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
-                    '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
+                '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
 
         vals = [gd['file_id'], gd['usr_id'], gd['cur_id'], gd['sp_id'],
                 gd['gs_threshold_type'], gd['gs_threshold'], gd['gs_count'],
@@ -486,7 +486,7 @@ class TheDB:
         self.cur.execute('set search_path = extsrc,production,odestatic;')
         self.cur.execute(query, vals)
 
-        ## Returns a list of tuples [(gs_id)]
+        # Returns a list of tuples [(gs_id)]
         res = self.cur.fetchall()
         #
         r = res[0][0]
@@ -516,13 +516,13 @@ class TheDB:
         self.conn.commit()
 
 
-## DB global, should only be one instance of this class
+# DB global, should only be one instance of this class # put this in Main later, once class Batch established
 db = TheDB()
 
 # ADD LATER -----------------------------]
 # class Batch:
 #     """ Extracts raw text from a user-input file and, following identification
-#         of gene variables, queries
+#         of gene identifiers, queries sql database using psycopg2.
 #
 #     """
 #
@@ -543,7 +543,6 @@ def eatWhiteSpace(input_string):
     output_string: string with whitespace removed
 
     """
-
     output_string = input_string.strip()
     return output_string
 
@@ -561,7 +560,6 @@ def readBatchFile(fp):
     lines: list of strings containing each line of the file
 
     """
-
     with open(fp, 'r') as file_path:
         lines = file_path.readlines()
 
@@ -580,7 +578,6 @@ def makeDigrams(s):
     b: list of strings where each string is a digram
 
     """
-
     if len(s) <= 2:
         return [s]
 
@@ -615,7 +612,6 @@ def calcStringSimilarity(s1, s2):
     perc_sim: calculated result of the percent similarty between two strings
 
     """
-
     sd1 = makeDigrams(s1)
     sd2 = makeDigrams(s2)
     intersect = list((mset(sd1) & mset(sd2)).elements())
@@ -651,7 +647,6 @@ def parseScoreType(s):
     groomed: tuple containing (gs_threshold_type, gs_threshold, errors)
 
     """
-
     stype = ''
     thresh = '0.05'
     thresh2 = '0.05'
@@ -745,7 +740,6 @@ def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
     gs: dict representative of GeneSet
 
     """
-
     gs = {'gs_name': name, 'gs_abbreviation': abbr, 'gs_description': desc,
           'sp_id': int(spec), 'gs_groups': grp, 'pub_id': pub,
           'gs_threshold_type': int(ttype), 'gs_threshold': thresh,
@@ -770,7 +764,6 @@ def getPubmedInfo(pmid):
     (clarify)
 
     """
-
     # URL for pubmed article summary info
     url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
            'retmode=json&db=pubmed&id=%s') % pmid
@@ -831,7 +824,6 @@ def parseBatchFile(lns, usr=0, cur=5):
     triplet: tuple containing (list of GeneSets, list of warnings, list of errors)
 
     """
-
     genesets = []
     gsvals = []  # geneset_values, here as a list of tuples (sym, pval)
     abbr = ''  # geneset abbreviation
@@ -850,8 +842,6 @@ def parseBatchFile(lns, usr=0, cur=5):
 
     # for ln in lns:
     for i in range(len(lns)):
-        # ln = eatWhiteSpace(ln)
-
         lns[i] = lns[i].strip()
 
         # :, =, + are required for all datasets
@@ -881,7 +871,7 @@ def parseBatchFile(lns, usr=0, cur=5):
             if gsvals:
                 gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
                                  thresh, gene, gsvals, usr, cur)
-                ## Start a new dataset
+                # Start a new dataset
                 abbr = ''
                 desc = ''
                 name = ''
@@ -1176,8 +1166,6 @@ def buGenesetValues(gs):
 
                 db.insertGenesetValue(gs['gs_id'], ode, value, sym,
                                       'true')
-                # gs['gs_threshold'])
-
                 total += 1
 
             continue
@@ -1203,7 +1191,6 @@ def buGenesetValues(gs):
         # Remember to lower that shit, forgot earlier :(
         db.insertGenesetValue(gs['gs_id'], sym2ode[tup[0].lower()], tup[1],
                               tup[0], gs['gs_threshold'])
-
         total += 1
 
     return (total, noncrit)
@@ -1364,8 +1351,6 @@ def getOdeGeneIdsNonPrefTest():
         genesets = b[0]
         noncrits = b[1]
 
-    # print "test geneset: ", genesets, "\n"
-
     results = []
     for geneset in genesets:
         symbols = map(lambda x: x[0], geneset['values'])
@@ -1373,8 +1358,6 @@ def getOdeGeneIdsNonPrefTest():
         db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols, geneset["gs_gene_id_type"])
         # maybe find a way to manage errors at this point - e.g. [('Mm.100974', None), ['Mobp', 5105L], ['Mapt', 1835L]]
         break
-
-    # print results[0], "\n", results[1]
 
 
 if __name__ == '__main__':
