@@ -124,11 +124,11 @@ class TheDB:
                      'WHERE sp_id = %s ' \
                      'AND ode_ref_id IN %s;'
 
-            self.cur.execute(query1, [sp, syms])  # execute query
-            res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id),]  -  gather result of first query
-            found1 = map(lambda m: m[0], res1)  # isolate the ode_ref_ids pulled from database
-            revList = map(lambda t: t[1], res1)  # list of all ode_gene_ids found in QUERY 1
-            revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - from QUERY 1
+            self.cur.execute(query1, [sp, syms])  # execute QUERY 1
+            res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id),]  -  gather result of QUERY 1
+            found1 = map(lambda m: m[0], res1)  # USAGE: [ode_ref_id,] - isolate the ref ids pulled in QUERY 1
+            revList = map(lambda t: t[1], res1)  # USAGE: [ode_gene_ids,] - list of all ode_gene_ids found in QUERY 1
+            revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - reverse dict lookup for QUERY 1
 
             for nf in (set(syms) - set(found1)):  # map symbols that weren't found to None
                 print "Warning: Symbol '%s\' was not found.\n" \
@@ -137,14 +137,14 @@ class TheDB:
                       % (nf, int(sp), int(gene_type), nf)
                 output[nf] = None
 
-            for ref, id, pref, gdb in res1:
-                d[ref].append((id, pref, gdb))  # add ode_gene_id, ode_pref, gdb_id for each ode_ref_id
-                revDict[id].append(ref)  # ode_ref_id added for each ode_gene_id (reverse lookup of above)
+            for ref, gID, pref, gdb in res1:
+                d[ref].append((gID, pref, gdb))  # add ode_gene_id, ode_pref, gdb_id for each ode_ref_id
+                revDict[gID].append(ref)  # ode_ref_id added for each ode_gene_id (reverse lookup of above)
                 if str(pref) == 'True' and int(gdb) == gene_type:
-                    output[ref] = id
+                    output[ref] = gID
                     break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
                 elif str(pref) == 'False' or int(gdb) != gene_type:  # need to run QUERY 2 for that ode_gene_id
-                    gene_ids.append(id)
+                    gene_ids.append(gID)
                 break
 
             gene_ids = tuple(set(gene_ids))  # removes any duplicates... wouldn't keep both regardless (immutable)
@@ -164,11 +164,11 @@ class TheDB:
                      'AND ode_pref = TRUE ' \
                      'AND ode_gene_id IN %s;'
 
-            self.cur.execute(query2, [sp, gene_type, gene_ids])  # execute second db query
-            res2 = self.cur.fetchall()  # gather result of second query
+            self.cur.execute(query2, [sp, gene_type, gene_ids])  # execute QUERY 2
+            res2 = self.cur.fetchall()  # gather result of QUERY 2
             
             temp = {x[1]: x[0] for x in res2}  # USEAGE: {ode_gene_id: ode_ref_id,}
-            found2 = map(lambda l: l[1], res2)  # isolate ode_gene_id(s) that are legit (ode_pref=True)
+            found2 = map(lambda l: l[1], res2)  # USAGE: [ode_gene_id,] - isolate gene ids that are legit (pref=True)
             notFound = set(gene_ids) - set(found2)  # items not found in QUERY 2
             success = set(found2) - notFound  # items successfully found in QUERY 2
 
@@ -181,7 +181,7 @@ class TheDB:
                       "match gene info for '%s\'. \n" \
                       % (notFound, int(sp), int(gene_type), notFound)
                 for n in notFound:
-                    output[revDict[n]] = None
+                    output[revDict[n]] = None  # not concerned about duplicates here, still mapped to zero
 
         return output
 
