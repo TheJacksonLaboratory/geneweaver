@@ -24,7 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-#import cairosvg
+import cairosvg
 from cStringIO import StringIO
 
 app = flask.Flask(__name__)
@@ -835,10 +835,13 @@ def download_result():
     svgout = StringIO()
     imgout = StringIO()
     resultpath = config.get('application', 'results')
+    dpi = 600
 
     if oldver:
         with open(os.path.join(resultpath, oldver), 'r') as fl:
             svg = fl.read()
+
+        dpi = 300
 
     ## This is incredibly stupid, but must be done. cairosvg (for some
     ## awful, unknown reason) will not scale any SVG produced by d3. So
@@ -850,10 +853,10 @@ def download_result():
     cairosvg.svg2svg(bytestring=svg, write_to=svgout)
 
     if filetype == 'pdf':
-        cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=600)
+        cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
 
     elif filetype == 'png':
-        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=600)
+        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
 
     else:
         imgout = svgout
