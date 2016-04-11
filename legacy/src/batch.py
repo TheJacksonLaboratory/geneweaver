@@ -100,23 +100,20 @@ class TheDB:
 
         Returns
         -------
-        res: list of tuples containing ode reference IDs
+        output: dictionary of Reference IDs -> Gene IDs such that {ode_ref_id: ode_gene_id,}
 
         """
-        output = []  # returned list
-        gene_type = abs(gtype)
-        print gene_type
-        gene_ids = []  # list of genes that were ode_pref=False following the first search
-        d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} - dict ref to user input
+        gene_type = abs(gtype)  # gene type stripped of sign ('-' = symbol)
+        gene_ids = []  # list of genes that were ode_pref=False following QUERY 1, for QUERY 2
+        d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} -  dict ref to results QUERY 1
+        revDict = {}  # USAGE: {ode_gene_id: [ode_ref_id,],}  -  reverse dictionary to d, from QUERY 1
+        output = {}  # USAGE: {ode_ref_id: ode_gene_id, } - final dictionary
 
         try:
             syms = tuple(syms)
         except TypeError:
             print "Error: Input list of ode_ref_ids was not entered as a list.\n"
             exit()
-
-        print "syms: ", syms, "\n"
-        print "dict: ", d, "\n"
 
         # QUERY 1: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
         #   of a specified species (sp_id), regardless of user preference (ode_pref)
@@ -125,43 +122,32 @@ class TheDB:
             query1 = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
                      'FROM extsrc.gene ' \
                      'WHERE sp_id = %s ' \
-                     'AND gdb_id = %s ' \
                      'AND ode_ref_id IN %s;'
 
-            self.cur.execute(query1, [sp, gene_type, syms])  # execute query
-            res1 = self.cur.fetchall()  # gather result of first query
-            print "results of query 1: ", res1, "\n"
-
+            self.cur.execute(query1, [sp, syms])  # execute query
+            res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id),]  -  gather result of first query
             found1 = map(lambda m: m[0], res1)  # isolate the ode_ref_ids pulled from database
-            print "found1: ", found1, "\n"
+            revList = map(lambda t: t[1], res1)  # list of all ode_gene_ids found in QUERY 1
+            revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - from QUERY 1
 
             for nf in (set(syms) - set(found1)):  # map symbols that weren't found to None
-                print "Warning: Some symbols were not found: ", nf, "\n"
-                output.append((nf, None))
-            print "res1: ", res1, "\n"  # list of tuples [(ode_ref_id, ode_gene_id),]
+                print "Warning: Symbol '%s\' was not found.\n" \
+                      "Check that the text file parameters [Species ID = %i, Gene Type = %i] " \
+                      "match gene info for '%s\'. \n" \
+                      % (nf, int(sp), int(gene_type), nf)
+                output[nf] = None
 
-            for gene in res1:
-                d[gene[0]].append((gene[1], gene[2]))  # add ode_gene_id and ode_pref for each ode_ref_id instance
+            for ref, id, pref, gdb in res1:
+                d[ref].append((id, pref, gdb))  # add ode_gene_id, ode_pref, gdb_id for each ode_ref_id
+                revDict[id].append(ref)  # ode_ref_id added for each ode_gene_id (reverse lookup of above)
+                if str(pref) == 'True' and int(gdb) == gene_type:
+                    output[ref] = id
+                    break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
+                elif str(pref) == 'False' or int(gdb) != gene_type:  # need to run QUERY 2 for that ode_gene_id
+                    gene_ids.append(id)
+                break
 
-            # go through each returned result (remembering that sometimes they can
-            #   double up with ode_ref_id(s) in addition to multiplicity of ode_gene_id(s))
-            for key, values in d.iteritems():
-                for val in values:  # for each possible option for ode_ref_id
-                    if str(val[1]) == 'True':  # if one of ode_prefs is true for ode_ref_id, remap to that one!
-                        output.append([key, val[0]])  # remap to ode_gene_id with pref gene id associated ode_ref_id
-                        break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
-                    elif str(val[1]) == 'False':  # if false, need to run QUERY 2 for that ode_gene_id, store for now
-                        gene_ids.append(val[0])
-                    break
-
-            gene_ids_query2 = set(gene_ids)  # removes any duplicates... wouldn't keep both regardless (immutable)
-            gene_ids = tuple(gene_ids_query2)  # add back to gene_ids
-
-            if output:  # remove any ode_pref=True items from dictionary, to avoid later duplication
-                for o in output:
-                    del d[o[0]]
-                    print "deleted ", o[0]
-            # make a list of headers above instead of controlling it this way
+            gene_ids = tuple(set(gene_ids))  # removes any duplicates... wouldn't keep both regardless (immutable)
 
         except psycopg2.ProgrammingError:
             print "Error: Unable to upload batch file as no genes found.\n" \
@@ -170,7 +156,7 @@ class TheDB:
         # QUERY 2: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
         #   of a specified species (sp_id), that are user preferred (ode_pref)
         #   + are in the list of ode reference IDs of interest to the user
-        try:
+        if gene_ids:
             query2 = 'SELECT ode_ref_id, ode_gene_id ' \
                      'FROM extsrc.gene ' \
                      'WHERE sp_id = %s ' \
@@ -179,35 +165,25 @@ class TheDB:
                      'AND ode_gene_id IN %s;'
 
             self.cur.execute(query2, [sp, gene_type, gene_ids])  # execute second db query
-
             res2 = self.cur.fetchall()  # gather result of second query
-            print "results of query 2: ", res2, "\n"
-
-            temp = {}  # USEAGE: {ode_gene_id: ode_ref_id,}
-            for x in res2:
-                temp[x[1]] = x[0]
-
+            
+            temp = {x[1]: x[0] for x in res2}  # USEAGE: {ode_gene_id: ode_ref_id,}
             found2 = map(lambda l: l[1], res2)  # isolate ode_gene_id(s) that are legit (ode_pref=True)
-            print "found2: ", found2, "\n"
+            notFound = set(gene_ids) - set(found2)  # items not found in QUERY 2
+            success = set(found2) - notFound  # items successfully found in QUERY 2
 
-            # compare legit ode_gene_id(s) with those associated with initial ode_ref_id(s)
-            for opt in found2:
-                for item in d:
-                    for ref in d[item]:
-                        if ref[0] == opt:
-                            output.append([temp[ref[0]], ref[0]])  # USAGE: [(ode_ref_id, ode_gene_id),]
-                            print "yes!\n"
-                            break
-                        break
-                    break
+            for item in success:  # if any found2 ode_gene_ids in gene_ids, then add to output
+                output[temp[item]] = item
 
-            # write to output
-            # cast output as a tuple before returning
+            if notFound:  # map to zero, if still can't find
+                print "Warning: Symbol(s) '%s\' not found.\n" \
+                      "Check that the text file parameters [Species ID = %i, Gene Type = %i] " \
+                      "match gene info for '%s\'. \n" \
+                      % (notFound, int(sp), int(gene_type), notFound)
+                for n in notFound:
+                    output[revDict[n]] = None
 
-        except psycopg2.ProgrammingError:
-            print 'for now...'
-
-        print output
+        return output
 
     def getOdeGeneIds(self, sp, syms):
         """ [Tim] Given a list of gene symbols from the users' batch file, if the symbol doesn't
@@ -1446,7 +1422,6 @@ def getOdeGeneIdsNonPrefTest():
     results = []
     for geneset in genesets:
         symbols = map(lambda x: x[0], geneset['values'])
-        print "symbols: ", symbols, "\n"
         #results.append(db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols))
         db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols, geneset["gs_gene_id_type"])
         # maybe find a way to manage errors at this point - e.g. [('Mm.100974', None), ['Mobp', 5105L], ['Mapt', 1835L]]
