@@ -1,4 +1,3 @@
-#
 # file: batch.py
 # desc: Rewrite of the PHP batch geneset upload function.
 # version: 0.2.1
@@ -185,63 +184,64 @@ class TheDB:
 
         return output
 
-    def getOdeGeneIds(self, sp, syms):
-        """ [Tim] Given a list of gene symbols from the users' batch file, if the symbol doesn't
-            exist in the DB or can't be found, it is mapped to None.  The first query
-            finds all ode_ref_ids that are preferred (ode_pref == true). All ode_ref_ids are
-            converted to lowercase. Not all the genes provided by a user will be preferred
-            though (e.g. 147189_at). For these cases, we find the ode_gene_id they are mapped
-            to, then query the DB for the preferred ode_gene_id for the species given. This
-            way we add the preferred symbol, and the one provided by the user, to the
-            gsv_source_list. If we still can't find it, then all hope is lost. (clarify)
-
-        Parameters
-        ----------
-        sp: Species ID (int)
-        syms: ode reference IDs (list)
-
-        Returns
-        -------
-        d: dict of ode reference IDs -> ode gene IDs
-
-        """
-        # type check syms to make sure it's a list
-        if type(syms) == list:
-            # if it is, then cast to a tuple
-            syms = tuple(syms)
-
-        # set up query to gather ode_ref_id + ode_gene_id for genes
-        #   of a specified species (sp_id), that are user preferred (ode_pref)
-        #   + are in the list of ode reference IDs of interest to the user
-        query = 'SELECT DISTINCT ode_ref_id, ode_gene_id ' \
-                'FROM extsrc.gene ' \
-                'WHERE sp_id = %s ' \
-                'AND ode_pref = true ' \
-                'AND ode_ref_id IN %s;'
-
-        # execute query, using params
-        self.cur.execute(query, [sp, syms])
-
-        # returns a list of tuples [(ode_ref_id, ode_gene_id)]
-        res = self.cur.fetchall()
-        d = {}
-
-        ## Ignore this wall of bullshit for now, unless you want to read
-        ## about my failures.
-        #
-
-        found = map(lambda x: x[0], res)
-        notfound = list(set(syms) - set(found))
-
-        if notfound:
-            res.extend(db.getOdeGeneIdsNonPref(sp, notfound))
-
-        ## We return a dict of ode_ref_id --> ode_gene_ids
-        for tup in res:
-            d[tup[0].lower()] = tup[1]
-
-        print d
-        return d
+# FIX: make below a shorter version of above, call above when we don't find what we originally thought we wanted...
+    # def getOdeGeneIds(self, sp, syms):
+    #     """ [Tim] Given a list of gene symbols from the users' batch file, if the symbol doesn't
+    #         exist in the DB or can't be found, it is mapped to None.  The first query
+    #         finds all ode_ref_ids that are preferred (ode_pref == true). All ode_ref_ids are
+    #         converted to lowercase. Not all the genes provided by a user will be preferred
+    #         though (e.g. 147189_at). For these cases, we find the ode_gene_id they are mapped
+    #         to, then query the DB for the preferred ode_gene_id for the species given. This
+    #         way we add the preferred symbol, and the one provided by the user, to the
+    #         gsv_source_list. If we still can't find it, then all hope is lost. (clarify)
+    #
+    #     Parameters
+    #     ----------
+    #     sp: Species ID (int)
+    #     syms: ode reference IDs (list)
+    #
+    #     Returns
+    #     -------
+    #     d: dict of ode reference IDs -> ode gene IDs
+    #
+    #     """
+    #     # type check syms to make sure it's a list
+    #     if type(syms) == list:
+    #         # if it is, then cast to a tuple
+    #         syms = tuple(syms)
+    #
+    #     # set up query to gather ode_ref_id + ode_gene_id for genes
+    #     #   of a specified species (sp_id), that are user preferred (ode_pref)
+    #     #   + are in the list of ode reference IDs of interest to the user
+    #     query = 'SELECT DISTINCT ode_ref_id, ode_gene_id, gdb_id ' \
+    #             'FROM extsrc.gene ' \
+    #             'WHERE sp_id = %s ' \
+    #             'AND ode_pref = TRUE ' \
+    #             'AND ode_ref_id IN %s;'
+    #
+    #     # execute query, using params
+    #     self.cur.execute(query, [sp, syms])
+    #
+    #     # returns a list of tuples [(ode_ref_id, ode_gene_id)]
+    #     res = self.cur.fetchall()
+    #     d = {}
+    #
+    #     ## Ignore this wall of bullshit for now, unless you want to read
+    #     ## about my failures.
+    #     #
+    #
+    #     found = map(lambda x: x[0], res)
+    #     notfound = list(set(syms) - set(found))
+    #
+    #     if notfound:
+    #         res.extend(db.getOdeGeneIdsNonPref(sp, notfound))
+    #
+    #     ## We return a dict of ode_ref_id --> ode_gene_ids
+    #     for tup in res:
+    #         d[tup[0].lower()] = tup[1]
+    #
+    #     print d
+    #     return d
 
     def getMicroarrayTypes(self):
         """ Queries the DB for a list of microarray platforms and returns the
@@ -470,11 +470,11 @@ class TheDB:
 
         """
         query = 'INSERT INTO geneset ' \
-                    '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
-                    'gs_threshold, gs_created, gs_updated, gs_status, ' \
-                    'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
-                    'gs_abbreviation, gs_description, gs_attribution, ' \
-                    'gs_groups, pub_id) ' \
+                '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
+                'gs_threshold, gs_created, gs_updated, gs_status, ' \
+                'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
+                'gs_abbreviation, gs_description, gs_attribution, ' \
+                'gs_groups, pub_id) ' \
                 'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
                     '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
 
@@ -519,16 +519,16 @@ class TheDB:
 ## DB global, should only be one instance of this class
 db = TheDB()
 
-
-class Batch:
-    """ Extracts raw text from a user-input file and, following identification
-        of gene variables, queries
-
-    """
-
-    def __init__(self, db_obj):
-
-        self.database = db_obj
+# ADD LATER -----------------------------]
+# class Batch:
+#     """ Extracts raw text from a user-input file and, following identification
+#         of gene variables, queries
+#
+#     """
+#
+#     def __init__(self, db_obj):
+#
+#         self.database = db_obj
 
 
 def eatWhiteSpace(input_string):
@@ -657,14 +657,14 @@ def parseScoreType(s):
     thresh2 = '0.05'
     error = ''
 
-    ## Binary threshold is left at the default of 0.05
+    # Binary threshold is left at the default of 0.05
     if s.lower() == 'binary':
         stype = '3'
         thresh = '1'
 
     elif s.lower().find('p-value') != -1:
-        ## Try to find the threshold, this regex is from the PHP func.
-        ## my regex: ([0-9]?\.[0-9]+)
+        # Try to find the threshold, this regex is from the PHP func.
+        # my regex: ([0-9]?\.[0-9]+)
         m = re.search(r"([0-9.-]{2,})", s.lower())
         stype = '1'
 
@@ -683,9 +683,9 @@ def parseScoreType(s):
             error = 'No threshold specified for Q-Value data. Using q < 0.05.'
 
     elif s.lower().find('correlation') != -1:
-        ## This disgusting regex is from the PHP function
-        ## And it sucks. It breaks on some input, might have to change this
-        ## later.
+        # This disgusting regex is from the PHP function
+        # And it sucks. It breaks on some input, might have to change this
+        # later.
         m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
         stype = '4'
 
@@ -697,7 +697,7 @@ def parseScoreType(s):
                      ' Using -0.75 < value < 0.75.')
 
     elif s.lower().find('effect') != -1:
-        ## Again, PHP regex
+        # Again, PHP regex
         m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
         stype = '5'
 
@@ -771,15 +771,15 @@ def getPubmedInfo(pmid):
 
     """
 
-    ## URL for pubmed article summary info
+    # URL for pubmed article summary info
     url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
            'retmode=json&db=pubmed&id=%s') % pmid
-    ## NCBI eFetch URL that only retrieves the abstract
+    # NCBI eFetch URL that only retrieves the abstract
     url_abs = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
                '?rettype=abstract&retmode=text&db=pubmed&id=%s') % pmid
 
-    ## Sometimes the NCBI servers shit the bed and return errors that kill
-    ## the python script, we catch these and just return blank pubmed info
+    # Sometimes the NCBI servers shit the bed and return errors that kill
+    # the python script, we catch these and just return blank pubmed info
     try:
         res = url2.urlopen(url).read()
         res2 = url2.urlopen(url_abs).read()
@@ -791,7 +791,7 @@ def getPubmedInfo(pmid):
 
     res = json.loads(res)
 
-    ## In case of KeyErrors...
+    # In case of KeyErrors...
     try:
         pub = res['result']
         pub = pub[pmid]
@@ -801,11 +801,11 @@ def getPubmedInfo(pmid):
                  'pub_volume': pub['volume'], 'pub_pages': pub['pages'],
                  'pub_pubmed': pmid, 'pub_authors': ''}
 
-        ## Author struct {name, authtype, clustid}
+        # Author struct {name, authtype, clustid}
         for auth in pub['authors']:
             pinfo['pub_authors'] += auth['name'] + ', '
 
-        ## Delete the last comma + space
+        # Delete the last comma + space
         pinfo['pub_authors'] = pinfo['pub_authors'][:-2]
 
     except:
@@ -854,33 +854,30 @@ def parseBatchFile(lns, usr=0, cur=5):
 
         lns[i] = lns[i].strip()
 
-        ## :, =, + are required for all datasets
+        # :, =, + are required for all datasets
         #
-        ## Lines beginning with ':' are geneset abbreviations (REQUIRED)
-        # if ln[:1] == ':':
+        # Lines beginning with ':' are geneset abbreviations (REQUIRED)
         if lns[i][:1] == ':':
-            ## This checks to see if we've already read in some geneset_values
-            ## If we have, that means we can save the geneset, clear out any
-            ## REQUIRED fields before we do more parsing, and start over
+            # This checks to see if we've already read in some geneset_values
+            # If we have, that means we can save the geneset, clear out any
+            # REQUIRED fields before we do more parsing, and start over
             if gsvals:
                 gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
                                  thresh, gene, gsvals, usr, cur)
-                ## Start a new dataset
+                # Start a new dataset
                 abbr = ''
                 desc = ''
                 name = ''
                 gsvals = []
                 genesets.append(gs)
 
-            # abbr = eatWhiteSpace(ln[1:])
             abbr = eatWhiteSpace(lns[i][1:])
 
-        ## Lines beginning with '=' are geneset names (REQUIRED)
-        # elif ln[:1] == '=':
+        # Lines beginning with '=' are geneset names (REQUIRED)
         elif lns[i][:1] == '=':
-            ## This checks to see if we've already read in some geneset_values
-            ## If we have, that means we can save the geneset, clear out any
-            ## REQUIRED fields before we do more parsing, and start over
+            # This checks to see if we've already read in some geneset_values
+            # If we have, that means we can save the geneset, clear out any
+            # REQUIRED fields before we do more parsing, and start over
             if gsvals:
                 gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
                                  thresh, gene, gsvals, usr, cur)
@@ -891,93 +888,78 @@ def parseBatchFile(lns, usr=0, cur=5):
                 gsvals = []
                 genesets.append(gs)
 
-            # name = eatWhiteSpace(ln[1:])
             name = eatWhiteSpace(lns[i][1:])
 
-        ## Lines beginning with '+' are geneset descriptions (REQUIRED)
-        # elif ln[:1] == '+':
+        # Lines beginning with '+' are geneset descriptions (REQUIRED)
         elif lns[i][:1] == '+':
-            ## This checks to see if we've already read in some geneset_values
-            ## If we have, that means we can save the geneset, clear out any
-            ## REQUIRED fields before we do more parsing, and start over
+            # This checks to see if we've already read in some geneset_values
+            # If we have, that means we can save the geneset, clear out any
+            # REQUIRED fields before we do more parsing, and start over
             if gsvals:
                 gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
                                  thresh, gene, gsvals, usr, cur)
-                ## Start a new dataset
+                # Start a new dataset
                 abbr = ''
                 desc = ''
                 name = ''
                 gsvals = []
                 genesets.append(gs)
 
-            # desc += eatWhiteSpace(ln[1:])
             desc += eatWhiteSpace(lns[i][1:])
             desc += ' '
 
-        ## !, @, %, are required but can be omitted from later sections if
-        ## they don't differ from the first.
+        # !, @, %, are required but can be omitted from later sections if
+        # they don't differ from the first.
         #
-        ## Lines beginning with '!' are score types (REQUIRED)
-        # elif ln[:1] == '!':
+        # Lines beginning with '!' are score types (REQUIRED)
         elif lns[i][:1] == '!':
-            # score = eatWhiteSpace(ln[1:])
             score = eatWhiteSpace(lns[i][1:])
             score = parseScoreType(score)
 
-            ## Indicates a critical error has occured (no score type w/ an
-            ## error message)
+            # Indicates a critical error has occured (no score type w/ an
+            # error message)
             if not score[0] and score[2]:
-                # cerr = score[2]
-                # break
                 errors.append(score[2])
 
             else:
                 stype = score[0]
                 thresh = score[1]
 
-            ## Any warnings
+            # Any warnings
             if score[0] and score[2]:
-                # ncerr.append(score[2])
                 warns.append(score[2])
 
-        ## Lines beginning with '@' are species types (REQUIRED)
-        # elif ln[:1] == '@':
+        # Lines beginning with '@' are species types (REQUIRED)
         elif lns[i][:1] == '@':
-            # spec = eatWhiteSpace(ln[1:])
             spec = eatWhiteSpace(lns[i][1:])
             specs = db.getSpecies()
 
             if spec.lower() not in specs.keys():
-                # cerr = ('Critical error! There is no data for the species (%s) '
-                #        'you specified. ' % spec)
-                # break
                 err = 'LINE %s: %s is an invalid species' % (i + 1, spec)
                 errors.append(err)
 
             else:
-                ## spec is now an integer (sp_id)
+                # spec is now an integer (sp_id)
                 spec = specs[spec.lower()]
 
-        ## Lines beginning with '%' are gene ID types (REQUIRED)
-        # elif ln[:1] == '%':
+        # Lines beginning with '%' are gene ID types (REQUIRED)
         elif lns[i][:1] == '%':
-            # gene = eatWhiteSpace(ln[1:])
             gene = eatWhiteSpace(lns[i][1:])
 
-            ## In the PHP source, it looks like the gene type is checked
-            ## to see if it's a microarray first, if it is then the pf_id is
-            ## used, otherwise gdb_id is used. Doesn't make much sense because
-            ## some pf_ids overlap with gdb_ids. On second glance the PHP code
-            ## for gene id types makes no fucking sense but whatever.
+            # In the PHP source, it looks like the gene type is checked
+            # to see if it's a microarray first, if it is then the pf_id is
+            # used, otherwise gdb_id is used. Doesn't make much sense because
+            # some pf_ids overlap with gdb_ids. On second glance the PHP code
+            # for gene id types makes no fucking sense but whatever.
             if gene.lower().find('microarray') != -1:
                 plats = db.getMicroarrayTypes()
                 origplat = gene
                 gene = gene[len('microarray '):]  # delete 'microarray ' text
 
-                ## Determine the closest microarry platform match. The PHP
-                ## function calculated % string similarity between the user
-                ## supplied platform and the list of plats in the db, choosing
-                ## the one with the best match
+                # Determine the closest microarry platform match. The PHP
+                # function calculated % string similarity between the user
+                # supplied platform and the list of plats in the db, choosing
+                # the one with the best match
                 best = 0.70
                 for plat, pid in plats.items():
                     sim = calcStringSimilarity(plat.lower(), origplat.lower())
@@ -986,53 +968,41 @@ def parseBatchFile(lns, usr=0, cur=5):
                         best = sim
                         gene = plat
 
-                ## Convert to the ID, gene will now be an integer
+                # Convert to the ID, gene will now be an integer
                 gene = plats.get(gene, 'unknown')
 
                 if type(gene) != int:
                     err = 'LINE %s: %s is an invalid platform' % \
                           (i + 1, origplat)
                     errors.append(err)
-                    # cerr = ('Critical error! We aren\'t sure what microarray '
-                    #        'platform (%s) you specified. Check the list of '
-                    #        'supported platforms.' % origplat)
-                    # break
 
-            ## Otherwise the user specified one of the gene types, not a
-            ## microarray platform
-            ## :IMPORTANT: Expression platforms have positive (+)
-            ## gs_gene_id_types while all other types (e.g. symbols) should
-            ## have negative (-) integer ID types.
+            # Otherwise the user specified one of the gene types, not a
+            # microarray platform
+            # :IMPORTANT: Expression platforms have positive (+)
+            # gs_gene_id_types while all other types (e.g. symbols) should
+            # have negative (-) integer ID types.
             else:
                 types = db.getGeneTypes()
 
                 if gene.lower() not in types.keys():
-                    # cerr = ('Critical error! There is no data for the gene type '
-                    #        '(%s) you specified.' % gene)
-                    # break
                     err = 'LINE %s: %s is an invalid gene type' % (i + 1, gene)
                     errors.append(err)
 
                 else:
-                    ## gene is now an integer (gdb_id)
+                    # gene is now an integer (gdb_id)
                     gene = types[gene.lower()]
-                    ## Negate, see comment tagged important above
+                    # Negate, see comment tagged important above
                     gene = -gene
 
-
-        ## Lines beginning with 'P ' are PubMed IDs (OPTIONAL)
-        # elif (ln[:2].lower() == 'p ') and (len(ln.split('\t')) == 1):
+        # Lines beginning with 'P ' are PubMed IDs (OPTIONAL)
         elif (lns[i][:2].lower() == 'p ') and (len(lns[i].split('\t')) == 1):
-            # pub = eatWhiteSpace(ln[1:])
             pub = eatWhiteSpace(lns[i][1:])
 
-        ## Lines beginning with 'A' are groups, default is private (OPTIONAL)
-        # elif ln[:2].lower() == 'a ' and (len(ln.split('\t')) == 1):
+        # Lines beginning with 'A' are groups, default is private (OPTIONAL)
         elif lns[i][:2].lower() == 'a ' and (len(lns[i].split('\t')) == 1):
-            # group = eatWhiteSpace(ln[1:])
             group = eatWhiteSpace(lns[i][1:])
-            ## If the user gives something other than private/public,
-            ## automatically make it private
+            # If the user gives something other than private/public,
+            # automatically make it private
             if group.lower() != 'private' and group.lower() != 'public':
                 group = '-1'
 
@@ -1042,30 +1012,23 @@ def parseBatchFile(lns, usr=0, cur=5):
             else:  # private
                 group = '-1'
 
-        ## If the lines are tab separated, we assume it's the gene data that
-        ## will become apart of the geneset_values
-        # elif len(ln.split('\t')) == 2:
+        # If the lines are tab separated, we assume it's the gene data that
+        # will become apart of the geneset_values
         elif len(lns[i].split('\t')) == 2:
             print lns[i].split('\t'), "\n"
 
-            ## First we check to see if all the required data was specified
+            # First we check to see if all the required data was specified
             if ((not abbr) or (not name) or (not desc) or (not stype) or
                     (not spec) or (not gene)):
-                # cerr = ('Critical error! Looks like one of the required '
-                #        'fields is missing.')
-                # break
                 err = 'One or more of the required fields are missing.'
-                ## Otherwise this string will get appended a bajillion times
+                # Otherwise this string will get appended a bajillion times
                 if err not in errors:
                     errors.append(err)
-                    # pass
 
-
-            # ln = ln.split()
             else:
                 lns[i] = lns[i].split()
 
-                ## I don't think this code can ever be reached...
+                # I don't think this code can ever be reached...
                 if len(lns[i]) < 2:
                     err = 'LINE %s: Skipping invalid gene, value formatting' \
                           % (i + 1)
@@ -1074,35 +1037,21 @@ def parseBatchFile(lns, usr=0, cur=5):
                 else:
                     gsvals.append((lns[i][0], lns[i][1]))
 
-                    # if len(ln) < 2:
-                    #    cerr = ("Critical error! Looks like there isn't a value "
-                    #            "associated with the gene %s. Or maybe you forgot to "
-                    #            "use tabs." % ln[0])
-                    #    break
-
-                    # gsvals.append((ln[0], ln[1]))
-
-        ## Lines beginning with '#' are comments
-        # elif ln[:1] == '#':
+        # Lines beginning with '#' are comments
         elif lns[i][:1] == '#':
             continue
 
-        ## Skip blank lines
-        # elif ln[:1] == '':
+        # Skip blank lines
         elif lns[i][:1] == '':
             continue
 
-        ## Who knows what the fuck this line is, just skip it
+        # Who knows what the fuck this line is, just skip it
         else:
-            # print lns[i]
-            # ncerr.append('BAD LINE: ' + ln)
             err = 'LINE %s: Skipping unknown identifiers' % (i + 1)
             warns.append(err)
 
-    ## awwww shit, we're finally finished! Check for critical errors and
-    ## if there were none, make the final geneset and return
-    # if cerr:
-    #    return ([], ncerr, cerr)
+    # awwww shit, we're finally finished! Check for critical errors and
+    # if there were none, make the final geneset and return
     if errors:
         triplet = ([], warns, errors)
         return triplet
@@ -1112,7 +1061,6 @@ def parseBatchFile(lns, usr=0, cur=5):
                          thresh, gene, gsvals, usr, cur)
         genesets.append(gs)
 
-        # return (genesets, ncerr, [])
         triplet = (genesets, warns, errors)
         return triplet
 
@@ -1131,7 +1079,6 @@ def makeRandomFilename():
     (clarify)
 
     """
-    lets = 'abcdefghijklmnopqrstuvwxyz1234567890'
     rstr = ''
     now = datetime.datetime.now()
 
@@ -1156,7 +1103,7 @@ def buFile(genes):
 
     """
     conts = ''
-    ## Geneset values should be a list of tuples (symbol, pval)
+    # Geneset values should be a list of tuples (symbol, pval)
     for tup in genes:
         conts += (tup[0] + '\t' + tup[1] + '\n')
 
@@ -1175,14 +1122,14 @@ def buGenesetValues(gs):
     (clarify)
 
     """
-    ## Geneset values should be a list of tuples (symbol, pval)
-    ## First we attempt to map them to the internal ode_gene_ids
+    # Geneset values should be a list of tuples (symbol, pval)
+    # First we attempt to map them to the internal ode_gene_ids
     symbols = map(lambda x: x[0], gs['values'])
 
-    ## Negative numbers indicate normal genetypes (found in genedb) while
-    ## positive numbers indicate expression platforms and more work :(
+    # Negative numbers indicate normal genetypes (found in genedb) while
+    # positive numbers indicate expression platforms and more work :(
     if gs['gs_gene_id_type'] < 0:
-        sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
+        sym2ode = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'])
 
     else:
         sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
@@ -1202,7 +1149,7 @@ def buGenesetValues(gs):
 
     for tup in gs['values']:
 
-        ## Platform handling
+        # Platform handling
         if gs['gs_gene_id_type'] > 0:
             sym = tup[0]
             value = tup[1]
@@ -1216,7 +1163,7 @@ def buGenesetValues(gs):
                 continue
 
             for ode in odes:
-                ## Check for duplicate ode_gene_ids, otherwise postgres bitches
+                # Check for duplicate ode_gene_ids, otherwise postgres bitches
                 if not dups[ode]:
                     dups[ode] = tup[0]
 
@@ -1235,14 +1182,14 @@ def buGenesetValues(gs):
 
             continue
 
-        ## Not platform stuff
+        # Not platform stuff
         if not sym2ode[tup[0].lower()]:
             err = ("Error! There doesn't seem to be any gene/locus data for "
                    "%s in the database." % tup[0])
             noncrit.append(err)
             continue
 
-        ## Check for duplicate ode_gene_ids, otherwise postgres bitches
+        # Check for duplicate ode_gene_ids, otherwise postgres bitches
         if not dups[sym2ode[tup[0].lower()]]:
             dups[sym2ode[tup[0].lower()]] = tup[0]
 
@@ -1253,7 +1200,7 @@ def buGenesetValues(gs):
             noncrit.append(err)
             continue
 
-        ## Remember to lower that shit, forgot earlier :(
+        # Remember to lower that shit, forgot earlier :(
         db.insertGenesetValue(gs['gs_id'], sym2ode[tup[0].lower()], tup[1],
                               tup[0], gs['gs_threshold'])
 
