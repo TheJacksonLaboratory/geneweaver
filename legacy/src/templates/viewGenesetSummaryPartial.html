@@ -185,6 +185,11 @@
         {% endif %}
     </td>
 
+    {# Used to select genesets from the search results page.  #}
+    <td>
+        <input type="checkbox" class="search-check" id="gs-check-{{ gs.geneset_id }}">
+        <label class="checkbox" for="gs-check-{{ gs.geneset_id }}"></label>
+    </td>
 
 </tr>
 

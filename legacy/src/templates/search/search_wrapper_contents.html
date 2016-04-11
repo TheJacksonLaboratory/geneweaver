@@ -94,6 +94,7 @@
             {% include'search/search_bar.html' %}
         </form>
 
+
         <br/>
 
         {% if paginationValues.totalFound == 0 %}
@@ -119,6 +120,15 @@
 
             {% endif %}
 
+
+            <div class="row">
+                <div class="col-md-8"></div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-md btn-block btn-warning" id="addToProject" style="margin-bottom: 10px">
+                        <i class="fa fa-folder-o pull-left" style="padding-top: 1px;"></i> Add GeneSet(s) to Project
+                    </button>
+                </div>
+            </div>
 
 
             <!-- Show the panel heading with pagination, found in the search_results_header.html partial -->
@@ -168,6 +178,20 @@
                                     Geneset
                                 </nobr>
                             </th>
+                            <th>
+                                <nobr>
+                                    <a id="gs-expand" href="#">
+                                        <i id="gs-expand" class="fa"></i>
+                                    </a>
+                                </nobr>
+                            </th>
+                            <th>
+                                <nobr>
+                                    <a id="search-select" href="#">
+                                        <i id="geneset" class="fa"></i>
+                                    </a>
+                                </nobr>
+                            </th>
                         </tr>
                         {% for gs in genesets %}
                             <!--<tr>-->
@@ -186,3 +210,85 @@
 {% endif %}
 </div>
 
+{% include 'modal/addGenesetsToProjects.html' %}
+
+<script type="text/javascript">
+
+    //var user_id = {{ user_id }};
+    // gs_ids in the results that are checked and ready to add to a project
+    var gschecked = {};
+
+    // Determines what search result checkboxes have been selected to add to
+    // a new project.
+    var determineChecks = function() {
+
+    };
+
+    $('input[type=checkbox]').on('click', function(event) {
+
+        // The element object this event is referring to
+        var box = event.target;
+
+        if (box.className == 'search-check') {
+
+            var idlen = 'gs-check-'.length;
+            var gsid = box.id.slice(idlen);
+
+            if (box.checked)
+                gschecked[gsid] = gsid;
+            else
+                delete gschecked[gsid];
+        }
+    });
+
+    // The right side button 'Add to Project'
+    $('#addToProject').on('click', function (e) {
+
+        var modal = $('#myModalValue').val();
+        var npn = $('#newProjName').val();
+        //var geneset = 'GS' + gs_id;
+        var geneset = Object.keys(gschecked);
+
+        // Alter the modal text a bit since we're only adding a single
+        // geneset, not several which is the default.
+        $('#addToProjectModal').find('.modal-title')
+            .html('Add GeneSet to Projects');
+        $('#addToProjectModal').find('h4')
+        //    .html('Add ' + geneset + ' to the following project(s):');
+            .html('Add ' + geneset.join(', ') + ' to the following project(s):');
+        $("#myModalValue").val(geneset);
+        $('#addToProjectModal').modal('show');
+    });
+
+    // The 'add to selected projects' button on the modal
+    $('#addGenesetsToProjects').on('click', function (e) {
+        var checked = [];
+
+        $("input[name='options[]']:checked").each(function () {
+            checked.push(parseInt($(this).val()));
+        });
+
+        var option = JSON.stringify(checked);
+        var g = $('#myModalValue').val();
+        if ($('#newProjName').val().length > 0) {
+            var npn = $('#newProjName').val();
+        }
+
+        if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
+            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                    '</button>No Projects Were Selected</div>');
+        } else {
+            $.ajax({
+                type: "GET",
+                url: "../addGenesetsToProjects",
+                data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
+                success: function (data) {
+                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
+                }
+            });
+        }
+    });
+</script>

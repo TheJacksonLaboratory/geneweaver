@@ -205,7 +205,7 @@ def _form_login():
 
 
 def send_mail(to, subject, body):
-    print to, subject, body
+    #print to, subject, body
     sendmail_location = "/usr/bin/mail"  # sendmail location
     p = os.popen("%s -t" % sendmail_location, "w")
     p.write("From: NoReply@geneweaver.org\n")
@@ -316,7 +316,7 @@ def render_shareprojects():
 
 @app.route('/analyze_new_project/<string:pj_name>.html')
 def render_analyze_new_project(pj_name):
-    print 'dbg analyze proj'
+    #print 'dbg analyze proj'
     args = flask.request.args
     active_tools = geneweaverdb.get_active_tools()
     user = geneweaverdb.get_user(flask.session.get('user_id'))
@@ -825,7 +825,7 @@ def download_result():
     is posted to the server, upscaled, converted to a PNG, and sent back to the
     user.
 
-    :ret:
+    :ret str: base64 encoded image
     """
 
     form = flask.request.form
@@ -1519,7 +1519,6 @@ def deemphasize(rm_gene):
 
 @app.route('/search.html')
 def new_search():
-    print 'debug new_search'
     paginationValues = {'numResults': 0, 'numPages': 1, 'currentPage':
         1, 'resultsPerPage': 10, 'search_term': '', 'end_page_number': 1}
     return flask.render_template('search.html', paginationValues=None)
@@ -1589,7 +1588,7 @@ def render_search_json():
     # print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     # Get a sphinx search
-    print userValues['userFilters']
+    #print userValues['userFilters']
     search_values = search.keyword_paginated_search(userValues['search_term'],
                                                     userValues['pagination_page'], userValues['search_fields'],
                                                     userValues['userFilters'], userValues['sort_by'])
