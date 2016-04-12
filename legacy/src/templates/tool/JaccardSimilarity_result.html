@@ -119,8 +119,9 @@
 {% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 <!-- Panel for reruning tool, similar to the analyze genesets panel -->
-<div class="panel panel-default panel-heading bg-gray-light">
-    <h3 class="panel-title"><strong>{{ title }} </strong> <span id="what" data-toggle="tooltip"><i class="fa fa-info-circle"></i></span></h3>
+<div class="page-header">
+    <h1>{{ title }}
+        {{ runhash }} </h1>
 </div>
 
 <div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
