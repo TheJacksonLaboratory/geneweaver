@@ -100,18 +100,21 @@ class TheDB:
         Returns
         -------
         output: dictionary of Reference IDs -> Gene IDs such that {ode_ref_id: ode_gene_id,}
+        noncrit: list of non-criticl errors to inform the user about
 
         """
+        print "\n--------------------START of getOdeGeneIdsNonPref---------------------\n"
         gene_type = abs(gtype)  # gene type stripped of sign ('-' = symbol)
         gene_ids = []  # list of genes that were ode_pref=False following QUERY 1, for QUERY 2
         d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} -  dict ref to results QUERY 1
         revDict = {}  # USAGE: {ode_gene_id: [ode_ref_id,],}  -  reverse dictionary to d, from QUERY 1
         output = {}  # USAGE: {ode_ref_id: ode_gene_id, } - final dictionary
+        noncrit = []  # list of errors and warnings
 
         try:
             syms = tuple(syms)
         except TypeError:
-            print "Error: Input list of ode_ref_ids was not entered as a list.\n"
+            noncrit.append("Error: Input list of ode_ref_ids was not entered as a list.\n")
             exit()
 
         # QUERY 1: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
@@ -125,32 +128,50 @@ class TheDB:
 
             self.cur.execute(query1, [sp, syms])  # execute QUERY 1
             res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id),]  -  gather result of QUERY 1
+            print "res1: %s \n" % res1
             found1 = map(lambda m: m[0], res1)  # USAGE: [ode_ref_id,] - isolate the ref ids pulled in QUERY 1
+            print "found1: %s \n" % found1
             revList = map(lambda t: t[1], res1)  # USAGE: [ode_gene_ids,] - list of all ode_gene_ids found in QUERY 1
+            print "revList: %s \n" % revList
             revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - reverse dict lookup for QUERY 1
+            print "revDict: %s \n" % revDict
 
             for nf in (set(syms) - set(found1)):  # map symbols that weren't found to None
-                print "Warning: Symbol '%s\' was not found.\n" \
+                noncrit.append("Warning: Symbol '%s\' was not found.\n" \
                       "Check that the text file parameters [Species ID = %i, Gene Type = %i] " \
                       "match gene info for '%s\'. \n" \
-                      % (nf, int(sp), int(gene_type), nf)
+                      % (nf, int(sp), int(gene_type), nf))
                 output[nf] = None
 
             for ref, gID, pref, gdb in res1:
                 d[ref].append((gID, pref, gdb))  # add ode_gene_id, ode_pref, gdb_id for each ode_ref_id
                 revDict[gID].append(ref)  # ode_ref_id added for each ode_gene_id (reverse lookup of above)
                 if str(pref) == 'True' and int(gdb) == gene_type:
-                    output[ref] = gID
-                    break  # if any ode_pref == 'True', break loop bc ode_gene_id already remapped!
+                    output[ref] = gID  # if any ode_pref == 'True', remap ode_gene_id
                 elif str(pref) == 'False' or int(gdb) != gene_type:  # need to run QUERY 2 for that ode_gene_id
                     gene_ids.append(gID)
-                break
 
-            gene_ids = tuple(set(gene_ids))  # removes any duplicates... wouldn't keep both regardless (immutable)
+            print "d: %s \n" % d
+            print "revDict: %s \n" % revDict
+            print "output: %s \n" % output
+            print "gene_ids: %s \n" % gene_ids
+
+            comp = tuple(set(gene_ids))  # removes any duplicates... wouldn't keep both regardless (immutable)
+            duplicates = []
+            for err in (set(gene_ids)-set(comp)):
+                # want to show them the original ode_ref_id(s) duplicated following mapping to ode_gene_id(s)
+                try:
+
+                    # use revDict!
+
+
+                noncrit.append("Warning: Duplicates ")
+
 
         except psycopg2.ProgrammingError:
-            print "Error: Unable to upload batch file as no genes found.\n" \
-                  "Check text file input before attempting batch upload again.\n"
+            noncrit.append("Error: Unable to upload batch file as no genes found.\n"
+                           "Check text file input before attempting batch upload again.\n")
+            exit()
 
         # QUERY 2: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
         #   of a specified species (sp_id), that are user preferred (ode_pref)
@@ -165,27 +186,34 @@ class TheDB:
 
             self.cur.execute(query2, [sp, gene_type, gene_ids])  # execute QUERY 2
             res2 = self.cur.fetchall()  # gather result of QUERY 2
+            print "res2: %s \n" % res2
             
             temp = {x[1]: x[0] for x in res2}  # USEAGE: {ode_gene_id: ode_ref_id,}
+            print "temp: %s \n" % temp
             found2 = map(lambda l: l[1], res2)  # USAGE: [ode_gene_id,] - isolate gene ids that are legit (pref=True)
+            print "found2: %s \n" % found2
             notFound = set(gene_ids) - set(found2)  # items not found in QUERY 2
+            print "notFound: %s \n" % notFound
             success = set(found2) - notFound  # items successfully found in QUERY 2
+            print "success: %s \n" % success
 
             for item in success:  # if any found2 ode_gene_ids in gene_ids, then add to output
+                print "item: %s \n" % item
+                print "temp[item]: %s \n" % temp[item]
                 output[temp[item]] = item
 
             if notFound:  # map to zero, if still can't find
-                print "Warning: Symbol(s) '%s\' not found.\n" \
+                noncrit.append("Warning: Symbol(s) '%s\' not found.\n" \
                       "Check that the text file parameters [Species ID = %i, Gene Type = %i] " \
                       "match gene info for '%s\'. \n" \
-                      % (notFound, int(sp), int(gene_type), notFound)
+                      % (notFound, int(sp), int(gene_type), notFound))
                 for n in notFound:
                     output[revDict[n]] = None  # not concerned about duplicates here, still mapped to zero
 
         output = self.lower_headers(output)
-        print output
+        print output, "\n ---------------END of getOdeGeneIdsNonPref---------------- \n"
 
-        return output
+        return output, noncrit
 
     @staticmethod
     def lower_headers(ref):
@@ -205,7 +233,7 @@ class TheDB:
             key_map = {x: x.lower() for x in ref.iterkeys()}  # map old keys -> lowercase keys
             output = {key_map[key]: value for key, value in ref.iteritems()}
         else:
-            print "Error: No dictionary was input for lower_headers().\n "
+            print "Error: No dictionary was input to lower_headers().\n "
 
         return output
 
@@ -459,16 +487,11 @@ class TheDB:
 
         Parameters
         ----------
-        gs_id: GeneSet ID
-        gene_id: Gene ID
-        value: (clarify)
-        name: (clarify)
-        thresh: (clarify)
-
-        Returns
-        -------
-        (clarify - if this should return something, like neighboring functions)
-
+        gs_id: GeneSet ID (gs_id)
+        gene_id: Gene ID (ode_gene_id)
+        value: GeneSet Value (gsv_value)
+        name: GeneSet Value Source List (gsv_source_list)
+        thresh: GeneSet Value in Threshold (gsv_in_threshold)
         """
 
         query = 'INSERT INTO extsrc.geneset_value ' \
@@ -528,7 +551,6 @@ class TheDB:
         count: GeneSet count
 
         """
-
         query = 'UPDATE geneset ' \
                 'SET gs_count = %s ' \
                 'WHERE gs_id = %s'
@@ -1130,24 +1152,31 @@ def buGenesetValues(gs):
 
     Parameters
     ----------
-    gs: (clarify)
+    gs: dict representing GeneSet info
 
     Returns
     -------
     (clarify)
 
     """
+    print "\n--------------------START of buGenesetValues---------------------\n"
     # Geneset values should be a list of tuples (symbol, pval)
     # First we attempt to map them to the internal ode_gene_ids
     symbols = map(lambda x: x[0], gs['values'])
+    gsID = None
+    geneID = None
+    value = None
+    name = None
+    thresh = None
 
     # Negative numbers indicate normal genetypes (found in genedb) while
     # positive numbers indicate expression platforms and more work :(
     if gs['gs_gene_id_type'] < 0:
-        print "SYMBOL \n"
-        sym2ode = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'])
+        print "SYMBOL HANDLING\n"
+        gsID, geneID, value, name, thresh = handle_symbols(gs, symbols)
+        # sym2ode = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'])
     else:
-        print "NOT SYMBOL \n"
+        print "PLATFORM HANDLING\n"
         sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
         prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
         prbids = list(set(prbids))  # get rid of any duplicates
@@ -1160,13 +1189,14 @@ def buGenesetValues(gs):
     dups = dd(str)
     total = 0
 
-    for tup in gs['values']:
-        print tup
-
-        # Platform handling - input was not a symbol
-        if gs['gs_gene_id_type'] > 0:
+    # Platform handling - input was not a symbol
+    if gs['gs_gene_id_type'] > 0:
+        for tup in gs['values']:
+            print tup
             sym = tup[0]
+            print "sym (buGenesetValues): %s \n" % sym
             value = tup[1]
+            print "value (buGenesetValues): %s \n" % value
             prbid = sym2probe[sym]
             odes = prb2odes[prbid]
 
@@ -1194,8 +1224,11 @@ def buGenesetValues(gs):
 
             continue
 
-        # Not platform stuff
-        if not sym2ode[tup[0].lower()]:
+
+        # Non-platform stuff / symbols
+        try:
+            sym2ode[tup[0].lower()]
+        except KeyError:
             err = ("Error! There doesn't seem to be any gene/locus data for "
                    "%s in the database." % tup[0])
             noncrit.append(err)
@@ -1217,7 +1250,54 @@ def buGenesetValues(gs):
                               tup[0], gs['gs_threshold'])
         total += 1
 
+    print "\n-----------------------END of buGenesetValues---------------------\n"
     return (total, noncrit)
+
+def handle_symbols(gs, symbols):
+    """ Handles the condition during batch uploading where the data type of
+        gene information input was a symbol (not platform). Returns all necessary
+        information to upload the GeneSet.
+
+    Parameters
+    ----------
+    gs: dict representing GeneSet info
+    symbols: gs['values'] - input ode_gene_ids from text file
+
+    Returns
+    -------
+    gs_id: GeneSet ID (gs_id)
+    gene_id: Gene ID (ode_gene_id)
+    value: GeneSet Value (gsv_value)
+    name: GeneSet Value Source List (gsv_source_list)
+    thresh: GeneSet Value in Threshold (gsv_in_threshold)
+
+    """
+    sym2ode, noncrit = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'])
+    if not noncrit:
+        noncrit = []
+
+    dups = dd(str)  # duplicate detection
+    total = 0
+
+    for tup in gs['values']:  # check to see if user ended up with what they started, alert if not found
+        try:  # see whether
+            sym2ode[tup[0].lower()]
+        except KeyError:
+            err = ("Error: There doesn't seem to be any gene/locus data for "
+                   "%s in the database." % tup[0])
+            noncrit.append(err)
+            continue
+
+        # Check for duplicate ode_gene_ids, otherwise postgres bitches
+        if not dups[sym2ode[tup[0].lower()]]:
+            dups[sym2ode[tup[0].lower()]] = tup[0]
+
+        else:
+            err = ('Error: Seems that %s is a duplicate of %s. %s was not '
+                   'added to the geneset.' %
+                   (tup[0], dups[sym2ode[tup[0].lower()]], tup[0]))
+            noncrit.append(err)
+            continue
 
 
 def buGenesets(fp, usr_id=0, cur_id=5):
@@ -1385,8 +1465,8 @@ def getOdeGeneIdsNonPrefTest():
 
 
 if __name__ == '__main__':
-    # print 'batch file test'
-    # batch_file_test()
+    print 'batch file test'
+    batch_file_test()
 
-    print '\n TEST: getOdeGeneIdsNonPref() \n'
-    getOdeGeneIdsNonPrefTest()
+    # print '\n TEST: getOdeGeneIdsNonPref() \n'
+    # getOdeGeneIdsNonPrefTest()
