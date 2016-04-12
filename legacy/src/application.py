@@ -1875,6 +1875,9 @@ def render_share_projects():
 
 @app.route('/addGenesetsToProjects')
 def add_genesets_projects():
+    print request.args['npn']
+    print request.args['gs_id']
+    print flask.session
     if 'user_id' in flask.session:
         results = geneweaverdb.add_genesets_to_projects(request.args)
         return json.dumps(results)

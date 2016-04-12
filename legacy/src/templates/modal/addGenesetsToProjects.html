@@ -24,7 +24,10 @@
                             </button>
                         </div>
                     </div>
-                    <div class="row" id="reveal-if-active"></div>
+                    <div class="row" id="reveal-if-active" style="display:none;">
+                        <label for="newProjName"><h4>New Project Name: </h4></label>
+                        <input type="text" id="newProjName" name="newProjName" class="form-control input-lg">
+                    </div>
                     <div class="row" style="padding-top: 10px">
 						{% if g.user is defined %}
                         {% for currProj in g.user.projects %}

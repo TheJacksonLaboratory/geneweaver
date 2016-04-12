@@ -125,7 +125,7 @@
                 <div class="col-md-8"></div>
                 <div class="col-md-4">
                     <button type="button" class="btn btn-md btn-block btn-warning" id="addToProject" style="margin-bottom: 10px">
-                        <i class="fa fa-folder-o pull-left" style="padding-top: 1px;"></i> Add GeneSet(s) to Project
+                        <i class="fa fa-folder-o pull-left" style="padding-top: 1px;"></i> Add Selected to Project
                     </button>
                 </div>
             </div>
@@ -211,6 +211,7 @@
 </div>
 
 {% include 'modal/addGenesetsToProjects.html' %}
+{% include 'modal/showGenericMessage.html' %}
 
 <script type="text/javascript">
 
@@ -224,11 +225,14 @@
 
     };
 
+    // Called every time a checkbox is clicked and updates the list of
+    // checked search results.
     $('input[type=checkbox]').on('click', function(event) {
 
         // The element object this event is referring to
         var box = event.target;
 
+        // All search result checkboxes can be distinguished with this class
         if (box.className == 'search-check') {
 
             var idlen = 'gs-check-'.length;
@@ -241,23 +245,35 @@
         }
     });
 
-    // The right side button 'Add to Project'
+    // The right side button 'Add GeneSet(s) to Project'
     $('#addToProject').on('click', function (e) {
 
         var modal = $('#myModalValue').val();
         var npn = $('#newProjName').val();
-        //var geneset = 'GS' + gs_id;
-        var geneset = Object.keys(gschecked);
+        var genesets = Object.keys(gschecked);
 
-        // Alter the modal text a bit since we're only adding a single
-        // geneset, not several which is the default.
-        $('#addToProjectModal').find('.modal-title')
-            .html('Add GeneSet to Projects');
-        $('#addToProjectModal').find('h4')
-        //    .html('Add ' + geneset + ' to the following project(s):');
-            .html('Add ' + geneset.join(', ') + ' to the following project(s):');
-        $("#myModalValue").val(geneset);
-        $('#addToProjectModal').modal('show');
+        if (genesets.length === 0) {
+
+            $('#showGenericModal').find('.modal-header')
+                .removeClass('bg-green')
+                .addClass('bg-red');
+            $('#showGenericModal').find('.modal-title')
+                    .html('Error!');
+            $('#showGenericModal').find('#genericMessage')
+                    .html('You must first select GeneSets to add.');
+            $('#showGenericModal').modal('show');
+
+        } else {
+
+            var gstr = genesets.map(function(s){ return 'GS' + s; }).join(', ');
+
+            $('#addToProjectModal').find('.modal-title')
+                    .html('Add Selected to Project(s)');
+            $('#addToProjectModal').find('h4')
+                    .html('Add ' + gstr + ' to the following project(s):');
+            $("#myModalValue").val(genesets.join(','));
+            $('#addToProjectModal').modal('show');
+        }
     });
 
     // The 'add to selected projects' button on the modal
@@ -270,8 +286,10 @@
 
         var option = JSON.stringify(checked);
         var g = $('#myModalValue').val();
+        var npn = null;
+
         if ($('#newProjName').val().length > 0) {
-            var npn = $('#newProjName').val();
+            npn = $('#newProjName').val();
         }
 
         if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
@@ -282,7 +300,7 @@
             $.ajax({
                 type: "GET",
                 url: "../addGenesetsToProjects",
-                data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
+                data: {"npn": npn, "gs_id": g, "option": option},
                 success: function (data) {
                     $("#result").html('<div class="alert alert-success fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
@@ -290,5 +308,13 @@
                 }
             });
         }
+    });
+
+    // This chunk of code always needs to go with the addGenesetsToProjects
+    // click handler
+    $('#addNewProject').on('click', function () {
+        $('#reveal-if-active').toggle();
+        //$('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+        //        '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
     });
 </script>

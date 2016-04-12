@@ -906,11 +906,16 @@ def add_geneset2project(pj_id, gs_id):
 
 def add_genesets_to_projects(rargs):
     usr_id = rargs.get('user_id', type=int)
+    ## Will occur when adding genesets to a project from search, since the
+    ## user ID isn't sent in the request
+    if not usr_id:
+        usr_id = flask.session['user_id']
+
     npn = rargs.get('npn', type=str)
     gs_ids = rargs.get('gs_id', type=str)
     checked = json.loads(rargs.get('option', type=str))
     if gs_ids is not None:
-        if npn is not None:
+        if npn:
             new_pj_id = add_project(usr_id, npn)
             checked.append(new_pj_id)
         gs_id = gs_ids.split(',')
@@ -1762,7 +1767,7 @@ class Geneset:
         self.name = gs_dict['gs_name']
         self.abbreviation = gs_dict['gs_abbreviation']
         self.pub_id = gs_dict['pub_id']
-        print self.pub_id
+        #print self.pub_id
         if self.pub_id is not None:
             try:
                 self.publication = Publication(gs_dict)
