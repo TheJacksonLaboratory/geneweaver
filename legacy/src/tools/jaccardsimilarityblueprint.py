@@ -11,9 +11,9 @@ from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 TOOL_CLASSNAME = 'JaccardSimilarity'
 jaccardsimilarity_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-class result():
-    async_result=''
-r = result()
+#class result():
+#    async_result=''
+#r = result()
 
 @jaccardsimilarity_blueprint.route('/run-jaccard-similarity.html', methods=['POST'])
 def run_tool():
@@ -29,10 +29,10 @@ def run_tool():
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
         
-        
+
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least 2 genes!")
-        return flask.redirect('analyze.html')
+        return flask.redirect('analyze')
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -74,7 +74,7 @@ def run_tool():
         tool.name,
         desc,
         desc)
-    r.async_result = tc.celery_app.send_task(
+    async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
         kwargs={
             'gsids': selected_geneset_ids,
@@ -86,7 +86,7 @@ def run_tool():
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
-    response = flask.make_response(tc.render_tool_pending(r.async_result, tool))
+    response = flask.make_response(tc.render_tool_pending(async_result, tool))
     response.status_code = 303
     response.headers['location'] = new_location
 
@@ -152,28 +152,28 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
-    r.async_result = tc.celery_app.AsyncResult(task_id)
+    async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
 
 
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-    if r.async_result.state in states.PROPAGATE_STATES:
+    if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
-    elif r.async_result.state in states.READY_STATES:
-        data = r.async_result.result
+    elif async_result.state in states.READY_STATES:
+        data = async_result.result
         json.dumps(data, indent=4)
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
             data = data,
-            async_result=json.loads(r.async_result.result),
+            async_result=json.loads(async_result.result),
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending
-        return tc.render_tool_pending(r.async_result, tool)
+        return tc.render_tool_pending(async_result, tool)
 
 
 
@@ -204,6 +204,6 @@ def geneset_intersection(gsID_1, gsID_2, i):
         geneset1 = geneset2 = None
 
     return flask.render_template(
-        "geneset_intersection.html", async_result=json.loads(r.async_result.result),
+        "geneset_intersection.html", async_result=json.loads(async_result.result),
         index=i, genesets=genesets, gene_sym=intersect_genes, list=list)
 
