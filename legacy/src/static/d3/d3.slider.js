@@ -68,6 +68,7 @@ d3.slider = function module() {
 
       if (axis) {
         createAxis(div);
+        div.attr("transform", "translate(" + margin + ",0)")
       }
 
 
@@ -108,7 +109,8 @@ d3.slider = function module() {
             svg.style("top", -margin);
             //g.attr("transform", "translate(" + margin + "," + margin + ")")
           } else { // bottom
-            //g.attr("transform", "translate(" + margin + ",0)")
+            // a hack
+            g.attr("transform", "translate(" + 2 + ",0)")
           }
 
         } else { // Vertical
