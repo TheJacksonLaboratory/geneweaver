@@ -110,39 +110,20 @@
     <br />
 {% endif %}
 
-<div class="">
-    <div class="btn-group">
-        <button type="button" class="btn btn-primary">Download as...</button>
-        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <span class="caret"></span>
-            <span class="sr-only">Toggle Dropdown</span>
-        </button>
-        <ul class="dropdown-menu">
-            <li><a class="download-image" id="dl-pdf">PDF</a></li>
-            <li><a class="download-image" id="dl-png">PNG</a></li>
-            <li><a class="download-image" id="dl-svg">SVG</a></li>
-            <li role="separator" class="divider"></li>
-            <li><a class="download-image" id="ol-png">PNG (Old HiSim)</a></li>
-        </ul>
-    </div>
-    <!--
-    <button type="button" id="old-hisim" class="btn btn-primary">View Old HiSim Graph</button>
-    -->
-</div>
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="row">
         <div class="col-md-12">
             <div class="panel panel-info">
-                <div class="panel-heading">
+                <div class="panel-heading bg-green">
                     <h2 class="panel-title">
                         <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-                            Rerun Tool Options
+                            Tool Options
                         </a>
                     </h2>
                 </div>
                 <div id="jcCollapse" class="panel-collapse collapse">
-                    <div class="panel-body">
+                    <div class="panel-body" style="font-size:12px;">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
@@ -194,18 +175,20 @@
                             <div class="col-md-4">
                                 <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
                             </div>
+                            <div class="span12">
+                                <a class="btn btn-success"
+                                   href='/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv'>
+                                    Download csv</a>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-4">
                                 <button class="btn btn-primary"
                                         type='submit'
                                         value='run'
                                         onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
-                                    Run
+                                    Re-Run Tool
                                 </button>
-                            </div>
-                            <div class="span12">
-                                <a class="btn btn-success"
-                                   href='/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv'>
-                                    Download csv</a>
                             </div>
                         </div>
                     </div>
@@ -288,6 +271,21 @@
     #}
 </div>
 <div id="viz-clone" style="display: none;">
+</div>
+<div class="">
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Download as...
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="download-image" id="dl-pdf">PDF</a></li>
+            <li><a class="download-image" id="dl-png">PNG</a></li>
+            <li><a class="download-image" id="dl-svg">SVG</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a class="download-image" id="ol-png">PNG (Old HiSim)</a></li>
+        </ul>
+    </div>
 </div>
 
 <div id="stats" align="left" style="float: left; margin: 10px;">
