@@ -48,14 +48,14 @@
 
             <h3>Statistics</h3><br>
             <select id="stat_select" class="form-control" style="width:auto">
-                <option label="Genesets Per Tier" value="genesets_per_tier">Genesets Per Tier</option>
-                <option label="Genesets Per Species Per Tier" value="genesets_per_species_per_tier">Genesets Per Species
+                <option label="GeneSets Per Tier" value="genesets_per_tier">GeneSets Per Tier</option>
+                <option label="GeneSets Per Species Per Tier" value="genesets_per_species_per_tier">GeneSets Per Species
                     Per Tier
                 </option>
                 <option label="Monthly Tool Stats" value="monthly_tool_stats">Monthly Tool Stats</option>
                 <option label="Tools Ran Per User" value="user_tools_ran">Tools Ran Per User</option>
                 <option label="Currently Running Tools" value="currently_running_tools">Currently Running Tools</option>
-                <option label="Size of Genesets" value="size_of_genesets">Size of Genesets</option>
+                <option label="Size of GeneSets" value="size_of_genesets">Size of GeneSets</option>
                 <option label="Relative Time to Run Tools" value="time_to_run_tools">Relative Time to Run Tools</option>
             </select><br><br>
         </div>
@@ -167,7 +167,7 @@
                     $("#spinner").hide();
                     var data = JSON.parse(return_data);
 
-                    if (title == "Genesets Per Species Per Tier") {
+                    if (title == "GeneSets Per Species Per Tier") {
                         var legend = "";
                         for (var key in data["species"]) {
                             if (data["species"][key]) {
@@ -188,7 +188,7 @@
                         generate_bar_chart(data["all"]['Tier 4'], element + "4all", title + " 4 (All)", "#Genesets");
                         generate_bar_chart(data["all"]['Tier 5'], element + "5all", title + " 5 (All)", "#Genesets");
                     }
-                    else if (title == "Genesets Per Tier") {
+                    else if (title == "GeneSets Per Tier") {
                         var legend = "";
                         for (var key in data["species"]) {
                             if (data["species"][key]) {
@@ -200,11 +200,11 @@
 
                         var id = "all";
                         $('#div-one').append("<svg id=" + id + " class='chart'></svg>")
-                        generate_bar_chart(data[id], '#' + id, "Genesets Per Tier (All)", "#Times Ran");
+                        generate_bar_chart(data[id], '#' + id, "GeneSets Per Tier (All)", "#Times Ran");
 
                         id = "nondeleted";
                         $('#div-one').append("<svg id=" + id + " class='chart'></svg>")
-                        generate_bar_chart(data[id], '#' + id, "Genesets Per Tier (Non-Deleted)", "#Times Ran");
+                        generate_bar_chart(data[id], '#' + id, "GeneSets Per Tier (Non-Deleted)", "#Times Ran");
                     }
                     else if (title == "Monthly Tool Stats") {
                         for (var key in data) {
@@ -224,7 +224,7 @@
                             "order": [[4, "desc"]]
                         });
                     }
-                    else if (title == "Size of Genesets") {
+                    else if (title == "Size of GeneSets") {
                         var keys = [];
                         for (var key in data) {
                             keys.push(key);
@@ -340,7 +340,7 @@
             function mousemove() {
                 var x0 = Math.floor(d3.mouse(this)[0]);
                 focus.attr("transform", "translate(" + x(data[x0].key) + "," + y(data[x0].value) + ")");
-                focus.select("text").text("Geneset ID: " + data[x0].key + ", Size: " + data[x0].value);
+                focus.select("text").text("GeneSet ID: " + data[x0].key + ", Size: " + data[x0].value);
             }
         }
 

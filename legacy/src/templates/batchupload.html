@@ -1,4 +1,4 @@
-{% set title="Batch Geneset Upload" %}
+{% set title="Batch GeneSet Upload" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -79,7 +79,7 @@
     </div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
-        <h3 class="panel-title"><strong>Batch Geneset Upload</strong>
+        <h3 class="panel-title"><strong>Batch GeneSet Upload</strong>
         <span id="clickableFontAwesome"><i class="fa fa-info-circle"></i></span></h3>
     </div>
 
@@ -121,7 +121,7 @@
             <div class="row">
                 <div class="md-col-6 pull-left">
                     <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning fa" type="submit"
-                           value="Review Geneset Upload &#xf04e;"/>
+                           value="Review GeneSet Upload &#xf04e;"/>
                 </div>
                 <div class="md-col-6 pull-right">
                     <a href="static/text/batch-geneset-a.txt"><i class="fa fa-file-text-o"></i> Sample File</a>
@@ -429,14 +429,14 @@
                     if ('genesets' in data) {
 
                         var genesets = data['genesets'];
-                        var success = '<strong>Success! Your genesets ' +
+                        var success = '<strong>Success! Your GeneSets ' +
                                 'were uploaded: </strong><br />';
 
                         for (var i = 0; i < genesets.length; i++)
                             success += 'GS' + genesets[i] + '<br />';
 
                         success = success + '<br /> <strong>You will be ' +
-                                'redirected to the edit geneset page shortly.' +
+                                'redirected to the edit GeneSet page shortly.' +
                                 '<br /> If you aren\'t redirected, check and ' +
                                 'reconfigure your pop-up blocker settings.' +
                                 '</strong>';
@@ -467,7 +467,7 @@
                     $('html, body').animate({ scrollTop: 0 }, 'slow');
                     $(document).trigger("add-alerts", [
                         {
-                            'message': "We could not upload your geneset at this time. Please contact GeneWeaver.",
+                            'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
                             'priority': 'danger'
                         }
                     ]);

@@ -40,7 +40,7 @@ app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 
 # *************************************
 
-admin = Admin(app, name='Geneweaver', index_view=adminviews.AdminHome(
+admin = Admin(app, name='GeneWeaver', index_view=adminviews.AdminHome(
     url='/admin', name='Admin'))
 
 admin.add_view(
@@ -55,15 +55,15 @@ admin.add_view(adminviews.Viewers(
     name='Files', endpoint='viewFiles', category='User Tools'))
 
 admin.add_view(adminviews.Viewers(
-    name='Genesets', endpoint='viewGenesets', category='Gene Tools'))
+    name='GeneSets', endpoint='viewGenesets', category='Gene Tools'))
 admin.add_view(
     adminviews.Viewers(name='Genes', endpoint='viewGenes', category='Gene Tools'))
 admin.add_view(adminviews.Viewers(
-    name='Geneset Info', endpoint='viewGenesetInfo', category='Gene Tools'))
+    name='GeneSet Info', endpoint='viewGenesetInfo', category='Gene Tools'))
 admin.add_view(adminviews.Viewers(
     name='Gene Info', endpoint='viewGeneInfo', category='Gene Tools'))
 admin.add_view(adminviews.Viewers(
-    name='Geneset Value', endpoint='viewGenesetVals', category='Gene Tools'))
+    name='GeneSet Value', endpoint='viewGenesetVals', category='Gene Tools'))
 admin.add_view(adminviews.Viewers(
     name='News', endpoint='viewNewsFeed', category='User Tools'))
 
@@ -75,10 +75,10 @@ admin.add_view(
 admin.add_view(
     adminviews.Add(name='Project', endpoint='newProject', category='Add'))
 admin.add_view(
-    adminviews.Add(name='Geneset', endpoint='newGeneset', category='Add'))
+    adminviews.Add(name='GeneSet', endpoint='newGeneset', category='Add'))
 admin.add_view(adminviews.Add(name='Gene', endpoint='newGene', category='Add'))
 admin.add_view(
-    adminviews.Add(name='Geneset Info', endpoint='newGenesetInfo', category='Add'))
+    adminviews.Add(name='GeneSet Info', endpoint='newGenesetInfo', category='Add'))
 admin.add_view(
     adminviews.Add(name='Gene Info', endpoint='newGeneInfo', category='Add'))
 admin.add_view(

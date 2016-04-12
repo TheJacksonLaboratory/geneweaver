@@ -1,4 +1,4 @@
-{% set title="Upload Geneset" %}
+{% set title="Upload GeneSet" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -377,7 +377,7 @@
 
         <div class="panel-heading">
             <div class="pull-right">
-                <input id="upload-geneset-button" class="btn btn-warning fa" type="submit" value="Review Geneset Upload &#xf04e;" />
+                <input id="upload-geneset-button" class="btn btn-warning fa" type="submit" value="Review GeneSet Upload &#xf04e;" />
             </div>
         </div>
 
@@ -540,7 +540,7 @@
                     $('html, body').animate({ scrollTop: 0 }, 'slow');
                     $(document).trigger("add-alerts", [
                         {
-                            'message': "We could not upload your geneset at this time. Please contact GeneWeaver.",
+                            'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
                             'priority': 'danger'
                         }
                     ]);

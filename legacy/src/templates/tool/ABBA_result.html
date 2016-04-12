@@ -192,7 +192,7 @@
                             }
                         }
                         else {
-                            window.alert("Please select gene set(s) to add first!")
+                            window.alert("Please select GeneSet(s) to add first!")
                         }
                     });
                 }
@@ -209,7 +209,7 @@
                         }
                     }
                     else {
-                        window.alert("Please select gene set(s) to add first!")
+                        window.alert("Please select GetSet(s) to add first!")
                     }
                 }
             }
@@ -232,7 +232,7 @@
 			{% endif %}
             </table>
             {% elif async_result.GSResultCount>400 %}
-                <div class="message">More than 400 genesets, not listing them all for brevity. Increase the thresholds on the left to get a more manageable result.</div>
+                <div class="message">More than 400 GeneSets, not listing them all for brevity. Increase the thresholds on the left to get a more manageable result.</div>
             {% else %}
                 <div class="message">No results. Try decreasing the thresholds on the left...</div>
             {% endif %}

@@ -10,6 +10,7 @@ from collections import defaultdict, OrderedDict
 TOOL_CLASSNAME = 'ABBA'
 abba_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+
 @abba_blueprint.route('/run-abba.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
@@ -20,9 +21,9 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
 
     params = {}
-    if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1 :
+    if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1:
         # TODO add nice error message about missing genesets
-        flask.flash("Warning: You need to have input or/and at least a gene set selected!")
+        flask.flash("Warning: You need to have input or/and at least a GeneSet selected!")
         return flask.redirect('analyze')
 
     params['ABBA_InputGenes'] = form['ABBA_InputGenes']
@@ -45,13 +46,13 @@ def run_tool():
     user_id = None
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-	projects = gwdb.get_all_projects(user_id)
-	projectDict = OrderedDict()
-	for proj in projects:
-		projectDict[proj.project_id] = {'id': proj.project_id, 'name': proj.name, 'count': proj.count}
-	params['UserProjects'] = projectDict
-	
-	params['UserId'] = user_id
+        projects = gwdb.get_all_projects(user_id)
+        projectDict = OrderedDict()
+        for proj in projects:
+            projectDict[proj.project_id] = {'id': proj.project_id, 'name': proj.name, 'count': proj.count}
+        params['UserProjects'] = projectDict
+
+        params['UserId'] = user_id
     else:
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze')

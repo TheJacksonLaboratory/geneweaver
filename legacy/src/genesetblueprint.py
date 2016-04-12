@@ -86,7 +86,7 @@ def render_batchupload(genes=None):
 @geneset_blueprint.route('/createBatchGeneset')
 def create_batch_geneset():
     """
-    Attempts to parse a batch file and create a temporary geneset for review.
+    Attempts to parse a batch file and create a temporary GeneSet for review.
 
     TODO: The batch upload module should use geneweaverdb functions instead of
           its own database calls.
@@ -104,7 +104,8 @@ def create_batch_geneset():
 
     if user_id == None:
         print '1'
-        return flask.jsonify({"error": "You must be signed in to upload a geneset."})
+        return flask.jsonify({"Error": "You must be signed in to upload a GeneSet."})
+
 
     ## Returns a triplet (geneset list, warnings, errors)
     batchFile = batch.parseBatchFile(batchFile, user_id)
@@ -150,7 +151,7 @@ def create_batch_geneset():
 
         ## If no values were uploaded (empty set), return a critical error
         if not gsverr[0]:
-            ce = ('The geneset "%s" has no valid genes/loci and could not be '
+            ce = ('The GeneSet "%s" has no valid genes/loci and could not be '
                     'uploaded.\n' % gs['gs_name'])
 
             return flask.jsonify({'error': ce})
@@ -187,6 +188,7 @@ def create_batch_geneset():
 
     else:
         return flask.jsonify({'genesets': added})
+
 
 @geneset_blueprint.route('/batchuploadgeneset/<genes>')
 def render_batchuploadgeneset_ba(genes):
@@ -322,10 +324,11 @@ def create_temp_geneset():
 
         user_id = flask.g.user.user_id if 'user' in flask.g else None
         if user_id == None:
-            return {"error": "You must be signed in to upload a geneset."}
+            return {"Error": "You must be signed in to upload a GeneSet."}
+
 
         if sp_id == 0 or sp_id == "0":
-            return {"error": "Select a species."}
+            return {"Error": "Select a species."}
 
         file_text = ""
         file_lines = ""
@@ -410,7 +413,7 @@ def create_temp_geneset():
         # if any genes in the list were not found it will tell the user which were not found
         if len(invalid_genes) > 0:
             return "Unable to find these Genes for specified species:\n" + ', '.join(
-                invalid_genes) + "\n\nEither remove them and resubmit the geneset or contact Geneweaver to have them added."
+                invalid_genes) + "\n\nEither remove them and resubmit the GeneSet or contact GeneWeaver to have them added."
         if len(all_results) < 1:
             return "No genes found to enter"
 
@@ -461,7 +464,7 @@ def create_temp_geneset():
             print file_sql
 
         if file_id == None:
-            return "Error creating file"
+            return "Error: Cannot create file"
 
         cur_id = None
         if public_private == "public":
@@ -478,7 +481,8 @@ def create_temp_geneset():
             gs_id = cursor.fetchone()[0]
             print GS_sql
             if gs_id == None:
-                return "Error getting geneset ID."
+                return "Error: Unable to get GeneSet ID."
+
             if pub_id:
                 pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
                 cursor.execute(pub_sql)
@@ -564,7 +568,7 @@ def create_temp_geneset():
             cursor.connection.commit()
             print gs_update_sql
 
-        return "Geneset Created"
+        return "GeneSet Created"
     except Exception, e:
         return str(e)
 
@@ -583,7 +587,7 @@ def create_geneset():
 
         user_id = flask.g.user.user_id if 'user' in flask.g else None
         if user_id == None:
-            return "You must be signed in to upload a geneset."
+            return "You must be signed in to upload a GeneSet."
 
         if sp_id == 0 or sp_id == "0":
             return "Select a species."
@@ -624,7 +628,8 @@ def create_geneset():
                             (sp_id, curr_id.lower())
                         )
                         gene_results = list(geneweaverdb.dictify_cursor(cursor))
-                        # if there are gene results, add to list of all results and put ode_gene_id into unique gene_id list
+                        # if there are gene results, add to list of all results and
+                        # put ode_gene_id into unique gene_id list
                         if gene_results:
                             gene_results[0].update({'value': curr_val})
 
@@ -671,7 +676,7 @@ def create_geneset():
         # if any genes in the list were not found it will tell the user which were not found
         if len(invalid_genes) > 0:
             return "Unable to find these Genes for specified species:\n" + ', '.join(
-                invalid_genes) + "\n\nEither remove them and resubmit the geneset or contact Geneweaver to have them added."
+                invalid_genes) + "\n\nEither remove them and resubmit the GeneSet or contact GeneWeaver to have them added."
         if len(all_results) < 1:
             return "No genes found to enter"
 
@@ -722,7 +727,7 @@ def create_geneset():
             print file_sql
 
         if file_id == None:
-            return "Error creating file"
+            return "Error: Cannot create file"
 
         cur_id = None
         if public_private == "public":
@@ -739,7 +744,8 @@ def create_geneset():
             gs_id = cursor.fetchone()[0]
             print GS_sql
             if gs_id == None:
-                return "Error getting geneset ID."
+                return "Error: Unable to get GeneSet ID."
+
             if pub_id:
                 pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
                 cursor.execute(pub_sql)
@@ -825,7 +831,7 @@ def create_geneset():
             cursor.connection.commit()
             print gs_update_sql
 
-        return "Geneset Created"
+        return "GeneSet Created"
     except Exception, e:
         return str(e)
 

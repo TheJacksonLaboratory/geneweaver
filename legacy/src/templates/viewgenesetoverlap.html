@@ -1,4 +1,4 @@
-{% set title="Similar Genesets" %}
+{% set title="Similar GeneSets" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
@@ -99,7 +99,7 @@
                                 }
                             }
                             else {
-                                window.alert("Please select gene set(s) to add first!")
+                                window.alert("Please select GeneSet(s) to add first!")
                             }
                         });
                     }
@@ -116,7 +116,7 @@
                             }
                         }
                         else {
-                            window.alert("Please select gene set(s) to add first!")
+                            window.alert("Please select GeneSet(s) to add first!")
                         }
                     }
                 }
@@ -125,7 +125,7 @@
 
     <!-- Location for where the d3 is appended to in the html -->
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h3 class="panel-title">Geneset Intersect</h3>
+        <h3 class="panel-title">GeneSet Intersect</h3>
     </div>
 
     <!-- Displays the jaccard results for the intersection -->
@@ -152,7 +152,7 @@
 <p style="font-size: 1em; font-weight: normal;">
 <img src="/static/images/greendot.png" /> = Exact same gene in all sets<br />
 <img src="/static/images/purpledot.png" /> = Homologous gene cluster<br />
-<img src="/static/images/yellowdot.png" /> = Only in one Geneset</p><br />
+<img src="/static/images/yellowdot.png" /> = Only in one GeneSet</p><br />
 Gene Symbol
 </th><th width="20%" rowspan="2" valign="bottom">Links
 
@@ -551,8 +551,8 @@ Gene Symbol
 
     //Adds the help icon text to the help button
     $('#clickableFontAwesome').popover({
-        title: 'Caution', content: 'Some recently added genesets may ' +
-        'not be on this list due to a lag time in calculating global Jaccard scores between all genesets in our database.'
+        title: 'Caution', content: 'Some recently added GeneSets may ' +
+        'not be on this list due to a lag time in calculating global Jaccard scores between all GeneSets in our database.'
     });
 
     $( "rExpand" ).click(function() {
