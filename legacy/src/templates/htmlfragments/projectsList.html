@@ -131,6 +131,7 @@
                                 <i class="fa fa-share-alt"></i>
                             </span>
                         </span>
+                        {% include 'modal/addProjectToGroup.html' %}
                     </td>
                     {# remove #}
                     <td>
@@ -154,8 +155,8 @@
                             </span>
                         </span>
                     </td>
-
                 </tr>
+
                 <tr class="gsid{{ proj.project_id }}" id="genesets-{{ proj.project_id }}" style="display: none;">
                     <td colspan="9">
                         <table id="project-body-{{ proj.project_id }}" class="table table-hover">
@@ -193,6 +194,15 @@
             $("#projId").val(projId);
             $("#editComment").val(editComment);
             $("#editModal").modal('show');
+        });
+
+    // Delete Individual Project
+        $('.clickableDelete').on('click', function () {
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            $("#myModalLabel").html(projName);
+            $("#myModalValue").val(projId);
+            $("#delProjects").modal('show');
         });
 
     // Process the project name change
@@ -244,6 +254,32 @@
             $("#myProjId").val(projId);
             $("#myProjGrp").html(projGrp);
             $("#addProjToGroup-" + projId).modal('show');
+        });
+
+        //Process usr to group
+        $('.addProjToGroup').on('click', function () {
+            var checked = [];
+            var projId = $(this).attr('data-proj-id');
+            $("#addProjToGroup-" + projId + " input[name='grpOptions[]']:checked").each(function () {
+               checked.push($(this).val());
+            });
+                var i = checked.join(",");
+                JSON.stringify(i);
+                $.ajax({
+                    type: "GET",
+                    url: "../updateProjectGroups",
+                    data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": i },
+                    success: function (data) {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project Group permissions successfully updated.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.location.reload();
+                    }
+                });
+
         });
 
 
