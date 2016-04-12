@@ -112,80 +112,76 @@
 
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="panel panel-info">
-                <div class="panel-heading bg-green">
-                    <h2 class="panel-title">
-                        <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
-                            Tool Options
-                        </a>
-                    </h2>
+    <div class="panel panel-info" >
+        <div class="panel-heading bg-green">
+            <h2 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+                    Tool Options
+                </a>
+            </h2>
+        </div>
+        <div id="jcCollapse" class="panel-collapse collapse" style="">
+            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}
+                    </div>
                 </div>
-                <div id="jcCollapse" class="panel-collapse collapse">
-                    <div class="panel-body" style="font-size:12px;">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_NodeCutoff']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_radio(tool.params['PhenomeMap_Homology']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">{{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <button class="btn btn-primary"
-                                        type='submit'
-                                        value='run'
-                                        onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
-                                    Re-Run Tool
-                                </button>
-                            </div>
-                        </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_GenesInNode']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_UseFDR']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_HideUnEmphasized']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_p-Value']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MinOverlap']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MinGenes']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_PermutationTimeLimit']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MaxInNode']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_Permutations']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['PhenomeMap_MaxLevel']) }}
+                    </div>
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('PhenomeMap.run_tool') }}";'>
+                            Re-Run Tool
+                        </button>
                     </div>
                 </div>
             </div>
@@ -274,11 +270,11 @@
             <span class="caret"></span>
         </button>
         <ul class="dropdown-menu">
-            <li><a class="download-image" id="dl-pdf">PDF</a></li>
-            <li><a class="download-image" id="dl-png">PNG</a></li>
-            <li><a class="download-image" id="dl-svg">SVG</a></li>
+            <li><a class="download-image" id="dl-pdf" href="">PDF</a></li>
+            <li><a class="download-image" id="dl-png" href="">PNG</a></li>
+            <li><a class="download-image" id="dl-svg" href="">SVG</a></li>
             <li role="separator" class="divider"></li>
-            <li><a class="download-image" id="ol-png">PNG (Old HiSim)</a></li>
+            <li><a class="download-image" id="ol-png" href="">PNG (Old HiSim)</a></li>
             <li role="separator" class="divider"></li>
             <li><a class="download-text" id="dl-csv" href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
                 CSV
@@ -1035,6 +1031,9 @@
     //});
 
     $('.download-image').on('click', function(event) {
+
+        // Prevent the button from doing anything (i.e. reloading the page)
+        event.preventDefault();
 
         var dlurl = '/downloadResult';
         // Removes 'dl-' from the id string

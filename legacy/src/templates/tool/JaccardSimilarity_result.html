@@ -64,9 +64,6 @@
   display: table;
   width: 90%;
 }
-.form-group{
- padding-right: 300px;
- }
 
 #addToProject, #exportData {
     float: left;
@@ -78,11 +75,6 @@
 
 #checkall{
     float: left;
-}
-
-.page-header {
-    border-bottom-width: thick;
-    border-bottom-color: #006400;
 }
 
 .axis path,
@@ -103,14 +95,7 @@
 
 </style>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
-<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-<script src="//code.jquery.com/jquery-1.10.2.js"></script>
-<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 
 
 {% if g.user is defined %}
@@ -124,6 +109,50 @@
         {{ runhash }} </h1>
 </div>
 
+<form id="todo-id" class="form-horizontal" role="form" method="post">
+    <div class="panel panel-info" >
+        <div class="panel-heading bg-green">
+            <h2 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse">
+                    Tool Options
+                </a>
+            </h2>
+        </div>
+        <div id="jcCollapse" class="panel-collapse collapse" style="">
+            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                    <div class="col-md-8">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
+                            Re-Run Tool
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{#
 <div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
 
 <div id="rerunPanel" >
@@ -140,6 +169,7 @@
         </button>
      </form>
 </div>
+ #}
 <br>
 
 <!-- Panel for the Geneset Table-->
@@ -168,7 +198,6 @@
         </button>
 </div>
 
-<div class="page-header"> </div>
 <p>
 <div class="box-header clearfix">
       <!-- Venn Diagram view the users intially see -->
