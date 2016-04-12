@@ -175,11 +175,6 @@
                             <div class="col-md-4">
                                 <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
                             </div>
-                            <div class="span12">
-                                <a class="btn btn-success"
-                                   href='/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv'>
-                                    Download csv</a>
-                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-4">
@@ -284,6 +279,10 @@
             <li><a class="download-image" id="dl-svg">SVG</a></li>
             <li role="separator" class="divider"></li>
             <li><a class="download-image" id="ol-png">PNG (Old HiSim)</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a class="download-text" id="dl-csv" href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
+                CSV
+            </a></li>
         </ul>
     </div>
 </div>
