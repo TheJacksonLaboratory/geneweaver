@@ -182,6 +182,31 @@ class TheDB:
                 for n in notFound:
                     output[revDict[n]] = None  # not concerned about duplicates here, still mapped to zero
 
+        output = self.lower_headers(output)
+        print output
+
+        return output
+
+    @staticmethod
+    def lower_headers(ref):
+        """ Takes in a dictionary and sets all the keys to lowercase. Returns the result.
+
+        Parameters
+        ----------
+        ref: dict
+
+        Returns
+        -------
+        output: dict with lowercase keys
+
+        """
+        output = {}
+        if ref:
+            key_map = {x: x.lower() for x in ref.iterkeys()}  # map old keys -> lowercase keys
+            output = {key_map[key]: value for key, value in ref.iteritems()}
+        else:
+            print "Error: No dictionary was input for lower_headers().\n "
+
         return output
 
 # FIX: make below a shorter version of above, call above when we don't find what we originally thought we wanted...
@@ -279,7 +304,7 @@ class TheDB:
 
         Returns
         -------
-        d: dict of prb_ref_ids -> prb_ids
+        d: dict of prb_ref_id(s) -> prb_id(s)
 
         """
 
@@ -297,7 +322,7 @@ class TheDB:
         res = self.cur.fetchall()
         d = dd(long)
 
-        # we return a dict of pf_names --> pf_ids
+        # we return a dict of prb_ref_id --> prb_id
         for tup in res:
             d[tup[0]] = tup[1]
 
@@ -1119,17 +1144,15 @@ def buGenesetValues(gs):
     # Negative numbers indicate normal genetypes (found in genedb) while
     # positive numbers indicate expression platforms and more work :(
     if gs['gs_gene_id_type'] < 0:
+        print "SYMBOL \n"
         sym2ode = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'])
-
     else:
-        sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
-        prbids = []
+        print "NOT SYMBOL \n"
+        sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
+        prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
+        prbids = list(set(prbids))  # get rid of any duplicates
 
-        for sym in symbols:
-            prbids.append(sym2probe[sym])
-
-        prbids = list(set(prbids))
-        prb2odes = db.getProbe2Gene(prbids)
+        prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
 
     # non-critical errors we will inform the user about
     noncrit = []
@@ -1138,8 +1161,9 @@ def buGenesetValues(gs):
     total = 0
 
     for tup in gs['values']:
+        print tup
 
-        # Platform handling
+        # Platform handling - input was not a symbol
         if gs['gs_gene_id_type'] > 0:
             sym = tup[0]
             value = tup[1]

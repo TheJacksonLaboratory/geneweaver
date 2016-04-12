@@ -1,0 +1,23 @@
+## Example batch geneset file 
+## Should succeed during upload
+#
+
+! Binary
+@ Mus musculus
+% Gene Symbol
+A Public
+P 19958391
+
+#
+## The following lines give the label, name, and description of
+## this set, respectively.
+#
+: BGF Gene Symbol Test
+= BGF Gene Symbol Test
++ Testing batch geneset upload using gene symbols.
+
+Mobp	1
+Ccr4	1
+Mapt	1
+Daxx	1
+Cry2	1
