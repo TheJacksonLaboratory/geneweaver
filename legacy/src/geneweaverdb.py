@@ -103,6 +103,7 @@ def _dictify_row(cursor, row):
         # This prevents exceptions when non-ascii chars show up in a jinja2 template variable
         # but I'm not sure if it's the correct solution
         d[col[0]] = row[i].decode('utf-8') if type(row[i]) == str else row[i]
+        OrderedDict(sorted(d.items()))
     return d
 
 
@@ -113,9 +114,9 @@ def dictify_cursor(cursor):
 
 class Project:
     def __init__(self, proj_dict):
+        self.name = proj_dict['pj_name']
         self.project_id = proj_dict['pj_id']
         self.user_id = proj_dict['usr_id']
-        self.name = proj_dict['pj_name']
 
         # TODO in the database this is column 'pj_groups'. The name suggests
         # that this field can contain multiple groups but it looks like
@@ -130,6 +131,7 @@ class Project:
         #		query param)
         self.created = proj_dict['pj_created']
         self.notes = proj_dict['pj_notes']
+        self.star = proj_dict['pj_star']
 
         # depending on if/how the project table is joined the following may be available
         self.count = proj_dict.get('count')
@@ -259,9 +261,9 @@ def get_all_projects(usr_id):
             ''',
                 {'usr_id': usr_id}
         )
-
-        return [Project(d) for d in dictify_cursor(cursor)]
-
+        list = [Project(d) for d in dictify_cursor(cursor)]
+        newlist = sorted(list, key=lambda x: x.name, reverse=False)
+        return newlist
 
 ####################################################################################
 # Begin group block, Getting specific groups for a user, and creating/modifying them
@@ -970,11 +972,13 @@ def update_project_groups(proj_id, groups, user_id):
 
 
 def update_stared_project(proj_id, user_id):
-    if user_id == flask.session['user_id']:
+    if int(user_id) == int(flask.session['user_id']):
         with PooledCursor() as cursor:
-            cursor.execute('''UPDATE project SET pj_star="t" WHERE pj_id=%s''', (proj_id,))
+            cursor.execute('''SELECT pj_star FROM project WHERE pj_id=%s''', (proj_id,))
+            star = 't' if cursor.fetchone()[0] == 'f' else 'f'
+            cursor.execute('''UPDATE project SET pj_star=%s WHERE pj_id=%s''', (star, proj_id,))
             cursor.connection.commit()
-            return
+        return {'error': 'None'}
 
 
 def remove_genesets_from_multiple_projects(rargs):

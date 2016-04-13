@@ -764,11 +764,12 @@ def update_project_groups():
 
 @app.route('/updateStaredProject', methods=['GET'])
 def update_star_project():
-    if flask.session['user_id'] == request.args['user_id']:
+    if int(flask.session['user_id']) == int(request.args['user_id']):
         proj_id = request.args['proj_id']
         user_id = request.args['user_id']
         if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.user_is_project_owner(user_id, proj_id):
-            return geneweaverdb.update_stared_project(proj_id, user_id)
+            results = geneweaverdb.update_stared_project(proj_id, user_id)
+            return json.dumps(results)
 
 
 @app.route('/removeUsersFromGroup', methods=['GET'])
