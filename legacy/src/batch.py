@@ -83,7 +83,7 @@ class TheDB:
 
         return d  # RETURNS: list of tuples [(gdb_name, gdb_id)]
 
-    def getOdeGeneIdsNonPref(self, sp, syms, gtype):
+    def getOdeGeneIdsNonPref(self, sp, syms, gtype, gs):
         """ Attempts to retrieve ode_gene_ids for ode_ref_ids by mapping
             non-preferred ode_ref_ids to the preferred ode_gene_ids (ode_pref == true).
             This can be done in a single query, but since we want to map
@@ -96,21 +96,27 @@ class TheDB:
         sp: Species ID (int)
         syms: Reference IDs (list)
         gtype: Gene Type (int)
+        gs: GeneSet information (dict)
 
         Returns
         -------
         output: dictionary of Reference IDs -> Gene IDs such that {ode_ref_id: ode_gene_id,}
         noncrit: list of non-criticl errors to inform the user about
+        final_values: list of ode_ref_ids representative of the keys in output
+        id_to_value: output dict that maps ode_gene_id(s) to associated gsv_value(s)
 
         """
         print "\n--------------------START of getOdeGeneIdsNonPref---------------------\n"
         gene_type = abs(gtype)  # gene type stripped of sign ('-' = symbol)
-        headers = []  # list of ode_gene_refs from input parameter 'syms'
         gene_ids = []  # list of genes that were ode_pref=False following QUERY 1, for QUERY 2
         d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} -  dict ref to results QUERY 1
         revDict = {}  # USAGE: {ode_gene_id: [ode_ref_id,],}  -  reverse dictionary to d, from QUERY 1
         output = {}  # USAGE: {ode_ref_id: ode_gene_id, } - final dictionary
         noncrit = []  # list of errors and warnings
+        value_dict = {x[0]: x[1] for x in gs["values"]}  # USAGE: {ode_ref_id: gsv_value,} - dict of gs["values"]
+        id_to_value = {}  # USAGE: {ode_gene_id: gsv_value,}  -  track the gsv_value associated with each ode_gene_id
+
+        print "syms: %s\n" % syms
 
         try:
             syms = tuple(syms)
@@ -149,8 +155,10 @@ class TheDB:
                 revDict[gID].append(ref)  # ode_ref_id added for each ode_gene_id (reverse lookup of above)
                 if str(pref) == 'True' and int(gdb) == gene_type:
                     output[ref] = gID  # if any ode_pref == 'True', remap ode_gene_id
+                    # map gID to relative gsv_value (works bc Q1 searches based on primary ode_ref_id list)
+                    id_to_value[gID] = value_dict[ref]
                 elif str(pref) == 'False' or int(gdb) != gene_type:  # need to run QUERY 2 for that ode_gene_id
-                    gene_ids.append(gID)  # add to gene id list for QUERY 2
+                    gene_ids.append(gID)  # add genes with non-pref properties to gene id list, for QUERY 2
 
             print "d: %s \n" % d
             print "revDict: %s \n" % revDict
@@ -197,11 +205,13 @@ class TheDB:
                 print "item: %s \n" % item
                 print "temp[item]: %s \n" % temp[item]
                 output[temp[item]] = item
-
-                t = [temp[item]]
+                # in Q2, iterative factor for mapping ode_gene_id to associated value is ode_gene_id list (gene_ids)
+                for o in revDict[item]:
+                    id_to_value[item] = value_dict[o]
+                t = [temp[item]]  # put ode_gene_id of interest in a list for quick set based comparison
                 newref = set(t) - (set(syms) - set(t))  # get any new references following QUERY 1
-                if newref:  # if there is a new gene references that did not existed to start with
-                    # try:
+
+                if newref:  # if this is a new gene references that did not exist to start with
                     noncrit.append("Warning: Gene(s) %s not found. An associated Gene '%s' "
                                    "with a shared Gene ID [%s] was found for the same parameters, "
                                    "and will be added to the GeneSet instead of %s."
@@ -215,10 +225,16 @@ class TheDB:
                         noncrit.append("Warning: Gene %s not found, even after checked associated Gene IDs."
                                        "As a result, %s has subsequently been mapped to zero," % (rev, rev))
 
+        final_values = list(output.keys())
+        not_found = set(syms) - set(final_values)
+        print "not_found: %s\n" % not_found
+        new_values = set(final_values) - set(not_found)
+        print "new_values: %s\n" % new_values
         output = self.lower_headers(output)
         print output, "\n ---------------END of getOdeGeneIdsNonPref---------------- \n"
 
-        return output, noncrit
+        print "id_to_value: %s\n" % id_to_value
+        return output, noncrit, final_values, id_to_value
 
     @staticmethod
     def lower_headers(ref):
@@ -495,7 +511,7 @@ class TheDB:
         gs_id: GeneSet ID (gs_id)
         gene_id: Gene ID (ode_gene_id)
         value: GeneSet Value (gsv_value)
-        name: GeneSet Value Source List (gsv_source_list)
+        name: GeneSet Value Source List (ode_ref_id -> gsv_source_list)
         thresh: GeneSet Value in Threshold (gsv_in_threshold)
         """
 
@@ -1161,33 +1177,31 @@ def buGenesetValues(gs):
 
     Returns
     -------
-    (clarify)
+    total: number Geneset gsv_values inserted (int)
+    noncrit: list of errors (strings) raised when adding GeneSet
 
     """
     print "\n--------------------START of buGenesetValues---------------------\n"
     # Geneset values should be a list of tuples (symbol, pval)
     # First we attempt to map them to the internal ode_gene_ids
     symbols = map(lambda x: x[0], gs['values'])
+    total = 0  # number Geneset gsv_values inserted (int)
+    noncrit = []  # non-critical errors we will inform the user about
 
     # Negative numbers indicate normal genetypes (found in genedb) while
     # positive numbers indicate expression platforms and more work :(
     if gs['gs_gene_id_type'] < 0:
         print "SYMBOL HANDLING\n"
-        errors = handle_symbols(gs, symbols)
-        # sym2ode = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'])
+        total, noncrit = handle_symbols(gs, symbols)
     else:
         print "PLATFORM HANDLING\n"
         sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
         prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
         prbids = list(set(prbids))  # get rid of any duplicates
-
         prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
 
-    # non-critical errors we will inform the user about
-    noncrit = [] # need to add errors from above
     # duplicate detection
     dups = dd(str)
-    total = 0
 
     # Platform handling - input was not a symbol
     if gs['gs_gene_id_type'] > 0:
@@ -1225,7 +1239,7 @@ def buGenesetValues(gs):
             continue
 
     print "\n-----------------------END of buGenesetValues---------------------\n"
-    return (total, noncrit)
+    return total, noncrit
 
 
 def handle_symbols(gs, symbols):
@@ -1239,26 +1253,20 @@ def handle_symbols(gs, symbols):
 
     Returns
     -------
-    noncrit: list of errors raised when calling getOdeGeneIdsNonPref
+    total: number Geneset gsv_values inserted (int)
+    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
 
     """
-    total = []  # number of values added
-    sym2ode, noncrit = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'])
+    total = 0  # number of values added to database
+    sym2ode, noncrit, final_refs, id_to_value = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'], gs)
     if not noncrit:
         noncrit = []
 
-    # FIND A BETTER WAY TO DO THIS!
-    # for item in sym2ode:
-    #     for value in gs["values"]:
-    #         if item == value[0].lower():  # check to see if it existed in the original symbols
-    #             # if it did, then use the gs for value
-    #             db.insertGenesetValue(gs['gs_id'], sym2ode[item], value[1], item, gs['gs_threshold'])
-    #             total += 1
-    #         else:
-    #             # if it didn't, then set value to 1 for now
-    #             db.insertGenesetValue(gs['gs_id'], sym2ode[item], 1, item, gs['gs_threshold'])
+    for ref in final_refs:
+        db.insertGenesetValue(gs['gs_id'], sym2ode(ref.lower()), id_to_value(sym2ode(ref.lower())), ref, 'true')
+        total += 1
 
-    return noncrit
+    return total, noncrit
 
 
 def buGenesets(fp, usr_id=0, cur_id=5):
@@ -1421,7 +1429,6 @@ def getOdeGeneIdsNonPrefTest():
         symbols = map(lambda x: x[0], geneset['values'])
         #results.append(db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols))
         db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols, geneset["gs_gene_id_type"])
-        # maybe find a way to manage errors at this point - e.g. [('Mm.100974', None), ['Mobp', 5105L], ['Mapt', 1835L]]
         break
 
 
