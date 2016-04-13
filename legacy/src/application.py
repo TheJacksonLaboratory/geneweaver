@@ -753,15 +753,22 @@ def update_geneset_genes():
 
 @app.route('/updateProjectGroups', methods=['GET'])
 def update_project_groups():
-    #if 'user_id' in flask.session:
-    #    user_id = request.args['user_id']
-    #    proj_id = request.args['proj_id']
-    #    groups = (request.args['groups']) if request.args['groups'] != '' else '-1'
-    #    print groups
-        return
-        #if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.user_is_project_owner(user_id, proj_id):
-        #    results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
-        #    return json.dumps(results)
+    if 'user_id' in flask.session:
+        user_id = request.args['user_id']
+        proj_id = request.args['proj_id']
+        groups = (json.loads(request.args['groups'])) if json.loads(request.args['groups']) != '' else '-1'
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.user_is_project_owner(user_id, proj_id):
+            results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
+            return json.dumps(results)
+
+
+@app.route('/updateStaredProject', methods=['GET'])
+def update_star_project():
+    if flask.session['user_id'] == request.args['user_id']:
+        proj_id = request.args['proj_id']
+        user_id = request.args['user_id']
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.user_is_project_owner(user_id, proj_id):
+            return geneweaverdb.update_stared_project(proj_id, user_id)
 
 
 @app.route('/removeUsersFromGroup', methods=['GET'])

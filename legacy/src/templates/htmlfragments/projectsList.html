@@ -15,6 +15,22 @@
         content: "\f068";
     }
 
+    .openstar:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f006";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+        color: #006400;
+    }
+
+    .closedstar .openstar:before {
+        content: "\f005";
+    }
+
     .clickableEdit {
         cursor: pointer;
         color: #d3d3d3;
@@ -148,11 +164,17 @@
                     <td>
                         <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                               data-original-title="Star" type="button" title="Star Project">
+                            <span id="proj-{{ proj.project_id }}" class="starToggler" data-prod="{{ proj.project_id }}">
+                                <span class="openstar"></span>
+                                <span class="closedstar"></span>
+                            </span>
+                            {#
                             <span class="clickableStar" id="star-{{ proj.project_id }}"
                                   data-proj-name="{{ proj.name }}"
                                   data-proj-id="{{ proj.project_id }}">
                                 <i class="fa fa-star-o" style="color: #006400"></i>
                             </span>
+                            #}
                         </span>
                     </td>
                 </tr>
@@ -263,12 +285,11 @@
             $("#addProjToGroup-" + projId + " input[name='grpOptions[]']:checked").each(function () {
                checked.push($(this).val());
             });
-                var i = checked.join(",");
-                JSON.stringify(i);
+            var i = checked.join(",");
                 $.ajax({
                     type: "GET",
                     url: "../updateProjectGroups",
-                    data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": i },
+                    data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": JSON.stringify(i) },
                     success: function (data) {
                         $(document).trigger("add-alerts", [
                             {
@@ -281,6 +302,69 @@
                 });
 
         });
+
+        // Update stared projects.
+        $('.starToggler').click(function (e) {
+            e.preventDefault();
+            //the data stored in the data-prod
+            var pid = ($(this).attr("data-prod"));
+            //var pbid = '#project-body-' + pid;
+            //var data = {'project': pid};
+
+            $.ajax({
+                    type: "GET",
+                    url: "../updateStaredProject",
+                    data: {"user_id": {{ g.user.user_id }}, "proj_id": pid},
+                    success: function (data) {
+                        $(this).parent().find("span").toggleClass("openstar");
+                        $(this).toggleClass("openstar");
+                        $(this).toggleClass("closedstar");
+                    }
+                });
+
+
+
+            // Check to see if we've already made an AJAX call for this project
+            /*
+            if ($(pbid).children().length !== 0) {
+                $(".gsid" + pid).toggle();
+                    //select the parent and find the span so you can
+                    //toggle the "plus" class
+                    $(this).parent().find("span").toggleClass("plus");
+                    //toggle the minus class
+                    $(this).toggleClass("plus");
+                    $(this).toggleClass("minus");
+                return;
+            }
+            */
+
+            // Flask should return the rendered HTML, inject it into the DOM
+            /*
+            $.get(url, data).done(function (data) {
+
+                var tbody = pbid + ' tbody';
+                $(pbid).append(data);
+                //toggle the link clicked on
+                $(".gsid" + pid).toggle();
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $('#proj-'+pid).toggleClass("minus");
+
+                var allclass = '#proj-' + pid + '-allcheck';
+                var chkclass = '.proj-' + pid + '-check';
+
+                // Now start checking to see if we need to mark the checkboxes
+                // under this particular project
+                if ($(allclass).attr('checked')) {
+
+                    $(chkclass).each(function (index) {
+                        $(this).attr('checked', true);
+                    });
+                }
+            });
+            */
+        });
+
 
 
     </script>

@@ -17,21 +17,27 @@
                             {% for n in g.user.get_groups_by_user %}
                                 <tr>
                                     <td>
+
+
                                         <label for="addProjects{{ n.grp_id }}"
-                                                {% if proj.group_id == n.grp_id %}
-                                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-on"
-                                                {% else %}
-                                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off"
-                                                {% endif %}
-                                        >
-                                        {{ n.grp_name }}</label>
+                                                    {% for i in proj.group_id.split(',') %}
+                                                        {% if n.grp_id|string() == i|string() %}
+                                                            class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-on"
+                                                        {% else %}
+                                                            class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off"
+                                                        {% endif %}
+                                                    {%  endfor %}>
+                                            {{ n.grp_name }}
+                                        </label>
                                     <input
                                         type="checkbox"
                                         name="grpOptions[]"
                                         id="addProjects{{ n.grp_id }}"
-                                                {% if proj.group_id|string() == n.grp_id|string() %}
-                                                    checked
-                                                {% endif %}
+                                                {% for i in proj.group_id.split(',') %}
+                                                    {% if n.grp_id|string() == i|string() %}
+                                                        checked
+                                                    {% endif %}
+                                                {% endfor %}
                                         value="{{ n.grp_id }}">
                                     </td>
                                 </tr>

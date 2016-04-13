@@ -251,7 +251,7 @@ def get_all_projects(usr_id):
                     LEFT JOIN (
                         SELECT pj_id, grp_name AS GROUP
                         FROM project p, grp g
-                        WHERE p.usr_id=%(usr_id)s AND g.grp_id=CAST(p.pj_groups AS INTEGER)
+                        WHERE p.usr_id=%(usr_id)s AND g.grp_id=CAST((split_part(p.pj_groups, ',', 1) ) AS INTEGER)
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
@@ -963,11 +963,18 @@ def remove_geneset_from_project(rargs):
 def update_project_groups(proj_id, groups, user_id):
     usr_id = flask.session['user_id']
     if int(user_id) == int(usr_id):
-        print groups
         with PooledCursor() as cursor:
             cursor.execute('''UPDATE project SET pj_groups=%s WHERE pj_id=%s''', (groups, proj_id,))
             cursor.connection.commit()
             return {'error': 'None'}
+
+
+def update_stared_project(proj_id, user_id):
+    if user_id == flask.session['user_id']:
+        with PooledCursor() as cursor:
+            cursor.execute('''UPDATE project SET pj_star="t" WHERE pj_id=%s''', (proj_id,))
+            cursor.connection.commit()
+            return
 
 
 def remove_genesets_from_multiple_projects(rargs):
