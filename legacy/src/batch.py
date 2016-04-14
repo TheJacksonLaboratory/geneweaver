@@ -104,12 +104,12 @@ class TheDB:
         noncrit: list of non-criticl errors to inform the user about
         final_values: list of ode_ref_ids representative of the keys in output
         id_to_value: output dict that maps ode_gene_id(s) to associated gsv_value(s)
+        output_gs: GeneSet that reflects any changes made during queries
 
         """
         print "\n--------------------START of getOdeGeneIdsNonPref---------------------\n"
         gene_type = abs(gtype)  # gene type stripped of sign ('-' = symbol)
         gene_ids = []  # list of genes that were ode_pref=False following QUERY 1, for QUERY 2
-        d = {k: [] for k in syms}  # USAGE: {ode_ref_id: [(ode_gene_id, ode_pref),],} -  dict ref to results QUERY 1
         revDict = {}  # USAGE: {ode_gene_id: [ode_ref_id,],}  -  reverse dictionary to d, from QUERY 1
         output = {}  # USAGE: {ode_ref_id: ode_gene_id, } - final dictionary
         noncrit = []  # list of errors and warnings
@@ -135,12 +135,14 @@ class TheDB:
 
             self.cur.execute(query1, [sp, syms])  # execute QUERY 1
             res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id),]  -  gather result of QUERY 1
-            print "res1: %s \n" % res1
+
             found1 = map(lambda m: m[0], res1)  # USAGE: [ode_ref_id,] - isolate the ref ids pulled in QUERY 1
-            print "found1: %s \n" % found1
             revList = map(lambda t: t[1], res1)  # USAGE: [ode_gene_ids,] - list of all ode_gene_ids found in QUERY 1
-            print "revList: %s \n" % revList
             revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - reverse dict lookup for QUERY 1
+
+            print "res1: %s \n" % res1
+            print "found1: %s \n" % found1
+            print "revList: %s \n" % revList
             print "revDict: %s \n" % revDict
 
             for nf in (set(syms) - set(found1)):  # map symbols that weren't found to None
@@ -151,8 +153,7 @@ class TheDB:
                 output[nf] = None
 
             for ref, gID, pref, gdb in res1:
-                d[ref].append((gID, pref, gdb))  # add ode_gene_id, ode_pref, gdb_id for each ode_ref_id
-                revDict[gID].append(ref)  # ode_ref_id added for each ode_gene_id (reverse lookup of above)
+                revDict[gID].append(ref)  # ode_ref_id added for each ode_gene_id
                 if str(pref) == 'True' and int(gdb) == gene_type:
                     output[ref] = gID  # if any ode_pref == 'True', remap ode_gene_id
                     # map gID to relative gsv_value (works bc Q1 searches based on primary ode_ref_id list)
@@ -160,7 +161,6 @@ class TheDB:
                 elif str(pref) == 'False' or int(gdb) != gene_type:  # need to run QUERY 2 for that ode_gene_id
                     gene_ids.append(gID)  # add genes with non-pref properties to gene id list, for QUERY 2
 
-            print "d: %s \n" % d
             print "revDict: %s \n" % revDict
             print "output: %s \n" % output
             print "gene_ids: %s \n" % gene_ids
@@ -190,15 +190,16 @@ class TheDB:
 
             self.cur.execute(query2, [sp, gene_type, gene_ids])  # execute QUERY 2
             res2 = self.cur.fetchall()  # gather result of QUERY 2
-            print "res2: %s \n" % res2
-            
+
             temp = {x[1]: x[0] for x in res2}  # USEAGE: {ode_gene_id: ode_ref_id,}
-            print "temp: %s \n" % temp
             found2 = map(lambda l: l[1], res2)  # USAGE: [ode_gene_id,] - isolate gene ids that are legit (pref=True)
-            print "found2: %s \n" % found2
             notFound = set(gene_ids) - set(found2)  # items not found in QUERY 2
-            print "notFound: %s \n" % notFound
             success = set(found2) - notFound  # items successfully found in QUERY 2
+
+            print "res2: %s \n" % res2
+            print "temp: %s \n" % temp
+            print "found2: %s \n" % found2
+            print "notFound: %s \n" % notFound
             print "success: %s \n" % success
 
             for item in success:  # if any found2 ode_gene_ids in gene_ids, then add to output
@@ -216,25 +217,31 @@ class TheDB:
                                    "with a shared Gene ID [%s] was found for the same parameters, "
                                    "and will be added to the GeneSet instead of %s."
                                    % (revDict[item], temp[item], item, revDict[item]))
-                    break
 
             for n in notFound:  # if a valid ode_ref_id is still not found
                 for rev in revDict[n]:
-                    if rev in syms:  # if it was one of the original ode_ref_ids and still not found
+                    if rev in syms:  # if it was one of the original ode_ref_ids
                         output[rev] = None
                         noncrit.append("Warning: Gene %s not found, even after checked associated Gene IDs."
                                        "As a result, %s has subsequently been mapped to zero," % (rev, rev))
 
         final_values = list(output.keys())
         not_found = set(syms) - set(final_values)
+        new_values = list(set(final_values) - set(not_found))
+        keys_values = map(lambda x: (x, id_to_value[output[x]]), new_values)
+
+        updated_gs = updateGeneset(gs, vals=keys_values, gcount=len(keys_values))
+
+        print "output: %s\n" % output
         print "not_found: %s\n" % not_found
-        new_values = set(final_values) - set(not_found)
         print "new_values: %s\n" % new_values
+        print "id_to_value: %s\n" % id_to_value
+
         output = self.lower_headers(output)
+
         print output, "\n ---------------END of getOdeGeneIdsNonPref---------------- \n"
 
-        print "id_to_value: %s\n" % id_to_value
-        return output, noncrit, final_values, id_to_value
+        return output, noncrit, final_values, id_to_value, updated_gs
 
     @staticmethod
     def lower_headers(ref):
@@ -511,7 +518,7 @@ class TheDB:
         gs_id: GeneSet ID (gs_id)
         gene_id: Gene ID (ode_gene_id)
         value: GeneSet Value (gsv_value)
-        name: GeneSet Value Source List (ode_ref_id -> gsv_source_list)
+        name: GeneSet Value Source List (ode_ref_id)
         thresh: GeneSet Value in Threshold (gsv_in_threshold)
         """
 
@@ -557,8 +564,9 @@ class TheDB:
 
         # Returns a list of tuples [(gs_id)]
         res = self.cur.fetchall()
-        #
         r = res[0][0]
+
+        print "insertGeneset: ", vals, "\n"
 
         return r
 
@@ -800,7 +808,7 @@ def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
     thresh: GeneSet threshold (see parseScoreType for a description)
     gtype: Gene ID type
     vals: GeneSet values, tuple containing (gene, value)
-    usr: User ID
+    usr: User ID (defaults to user (0))
     cur_id: Curation ID (unless specified it defaults to private (5))
 
     Returns
@@ -815,6 +823,50 @@ def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
           'gs_count': len(vals), 'cur_id': cur_id}
 
     return gs
+
+
+def updateGeneset(input_gs, name=None, abbr=None, desc=None, spec=None, pub=None,
+                  grp=None, ttype=None, thresh=None, gtype=None, vals=None,
+                  gcount=None, usr=None, cur_id=None):
+    """ Takes in an input GeneSet, along with any number of parameters, and outputs
+        a GeneSet with the correct specifications.
+
+    Parameters
+    ----------
+    input_gs: input GeneSet for manipulation
+    name: GeneSet name (defaults to None)
+    abbr: GeneSet abbreviation (defaults to None)
+    desc: GeneSet description (defaults to None)
+    spec: Species ID (later converted to an int if string; defaults to None)
+    pub: Publication ID (defaults to None)
+    grp: Group ID (later converted to a string if int; defaults to None)
+    ttype: threshold type (defaults to None)
+    thresh: GeneSet threshold
+    gtype: Gene ID type (defaults to None)
+    vals: GeneSet values, tuple containing (gene, value) (defaults to None)
+    gcount: number of Genes in GeneSet (int)
+    usr: User ID (defaults to user (0))
+    cur_id: Curation ID (defaults to private (5))
+
+    Returns
+    -------
+    output_gs: output GeneSet containing any changes
+
+    """
+    output_gs = {}  # output geneset
+    keys = ['gs_name', 'gs_abbreviation', 'gs_description',
+            'sp_id', 'gs_groups', 'pub_id', 'gs_threshold_type',
+            'gs_threshold', 'gs_gene_id_type', 'usr_id', 'values',
+            'gs_count', 'cur_id']
+    changes = [name, abbr, desc, spec, grp, pub, ttype, thresh, gtype, usr, vals, gcount, cur_id]
+
+    for x in range(len(keys)):
+        if changes[x]:  # if input param is something other than 'default' None
+            output_gs[keys[x]] = changes[x]  # add change to output geneset
+        else:  # if there is no change
+            output_gs[keys[x]] = input_gs[keys[x]]  # transfer from input geneset to output
+
+    return output_gs
 
 
 def getPubmedInfo(pmid):
@@ -1147,6 +1199,135 @@ def makeRandomFilename():
             str(now.day) + '_' + rstr)
 
 
+def handle_symbols(gs, symbols):
+    """ Handles the condition during batch uploading where the data type of
+        gene information input was a symbol (not platform). Uploads geneset values.
+        Returns the total number of GeneSets with recently inserted gsv_values,
+        a list of any errors raised, and updated GeneSet.
+
+    Parameters
+    ----------
+    gs: dict representing GeneSet info
+    symbols: gs['values'] - input ode_gene_ids from text file
+
+    Returns
+    -------
+    total: number Geneset gsv_values inserted (int)
+    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
+    output_gs: GeneSet info updated with any changes
+
+    """
+    total = 0  # number of values added to database
+    sym2ode, noncrit, final_refs, id_to_value, output_gs = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols,
+                                                                                   gs['gs_gene_id_type'], gs)
+    # print "sym2ode %s\n" % sym2ode
+    # print "noncrit %s\n" % noncrit
+    # print "final_refs %s\n" % final_refs
+    # print "id_to_value %s\n" % id_to_value
+    # print "gs: %s\n" % gs
+
+    if not noncrit:
+        noncrit = []
+
+    if output_gs['pub_id']:  # if a PMID was provided, we get the info from NCBI
+        pub = getPubmedInfo(output_gs['pub_id'])
+        output_gs['pub_id'] = pub[0]
+
+        if pub[1]:  # non-crit pubmed retrieval errors
+            noncrit.append(pub[1])
+
+        if output_gs['pub_id']:  # new row in the publication table
+            output_gs['pub_id'] = db.insertPublication(output_gs['pub_id'])
+        else:
+            output_gs['pub_id'] = None  # empty pub
+    else:
+        output_gs['pub_id'] = None  # empty pub
+
+    output_gs['file_id'] = buFile(output_gs['values'])  # insert the data into the file table
+    output_gs['gs_id'] = db.insertGeneset(output_gs)  # insert new genesets
+
+    for ref, val in output_gs['values']:
+        db.insertGenesetValue(output_gs['gs_id'], sym2ode[ref.lower()], val, ref, 'true')
+        total += 1
+
+    return total, noncrit, output_gs
+
+
+def handle_platform(gs, symbols):
+    """ Handles the condition during batch uploading where the data type of
+        gene information input was a not a symbol (platform). Uploads geneset values.
+        Returns the total number of GeneSets with recently inserted gsv_values
+        and a list of any errors raised.
+
+    Parameters
+    ----------
+    gs: dict representing GeneSet info
+    symbols: gs['values'] - input ode_gene_ids from text file
+
+    Returns
+    -------
+    total: number GeneSet gsv_values inserted (int)
+    noncrit: list of errors (strings) raised
+    gs: updated GeneSet info
+
+    """
+    total = 0  # number of values added to database
+    noncrit = []
+    sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
+    prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
+    prbids = list(set(prbids))  # get rid of any duplicates
+    prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
+    dups = dd(str)  # duplicate detection
+
+    if gs['pub_id']:  # if a PMID was provided, we get the info from NCBI
+        pub = getPubmedInfo(gs['pub_id'])
+        gs['pub_id'] = pub[0]
+
+        if pub[1]:  # non-crit pubmed retrieval errors
+            noncrit.append(pub[1])
+
+        if gs['pub_id']:  # new row in the publication table
+            gs['pub_id'] = db.insertPublication(gs['pub_id'])
+        else:
+            gs['pub_id'] = None  # empty pub
+    else:
+        gs['pub_id'] = None  # empty pub
+
+    gs['file_id'] = buFile(gs['values'])  # insert the data into the file table
+    gs['gs_id'] = db.insertGeneset(gs)  # insert new genesets
+
+    for tup in gs['values']:
+        sym = tup[0]
+        print "sym (buGenesetValues): %s \n" % sym
+        value = tup[1]
+        print "value (buGenesetValues): %s \n" % value
+        prbid = sym2probe[sym]
+        odes = prb2odes[prbid]
+
+        if not prbid or not odes:
+            err = ("Error! There doesn't seem to be any gene/locus data for "
+                   "%s in the database." % sym)
+            noncrit.append(err)
+            continue
+
+        for ode in odes:
+            if not dups[ode]:  # check for duplicate ode_gene_ids
+                dups[ode] = tup[0]
+            else:  # otherwise query
+                err = ('Error! Seems that %s is a duplicate of %s. %s was not '
+                       'added to the geneset.' %
+                       (sym, dups[ode], sym))
+                noncrit.append(err)
+                continue
+
+            db.insertGenesetValue(gs['gs_id'], ode, value, sym,
+                                  'true')
+            total += 1
+        continue
+
+    return total, noncrit, gs
+
+
 def buFile(genes):
     """ Parses geneset content into the proper format and inserts it into the file
         table. The proper format is gene\tvalue\n .
@@ -1179,108 +1360,20 @@ def buGenesetValues(gs):
     -------
     total: number Geneset gsv_values inserted (int)
     noncrit: list of errors (strings) raised when adding GeneSet
+    gs: if expression platform (gs); if symbols (updated_gs)
 
     """
-    print "\n--------------------START of buGenesetValues---------------------\n"
     values = gs['values']  # USEAGE: [(symbol, gsv_value),] - should be a list of tuples
     symbols = map(lambda x: x[0], values)  # USAGE: [symbol,] - isolate a list of reference values for querying
 
     if gs['gs_gene_id_type'] < 0:  # negative numbers indicate normal gene types (symbols)
         print "SYMBOL HANDLING\n"
-        total, noncrit = handle_symbols(gs, symbols)
+        total, noncrit, updated_gs = handle_symbols(gs, symbols)
     else:  # positive numbers indicate expression platforms
         print "PLATFORM HANDLING\n"
-        total, noncrit = handle_platform(gs, symbols)
+        total, noncrit, updated_gs = handle_platform(gs, symbols)
 
-    return total, noncrit
-
-
-def handle_symbols(gs, symbols):
-    """ Handles the condition during batch uploading where the data type of
-        gene information input was a symbol (not platform). Uploads geneset values.
-
-    Parameters
-    ----------
-    gs: dict representing GeneSet info
-    symbols: gs['values'] - input ode_gene_ids from text file
-
-    Returns
-    -------
-    total: number Geneset gsv_values inserted (int)
-    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
-
-    """
-    total = 0  # number of values added to database
-    sym2ode, noncrit, final_refs, id_to_value = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'], gs)
-    if not noncrit:
-        noncrit = []
-
-    for ref in final_refs:
-        db.insertGenesetValue(gs['gs_id'], sym2ode(ref.lower()), id_to_value(sym2ode(ref.lower())), ref, 'true')
-        total += 1
-
-    return total, noncrit
-
-
-def handle_platform(gs, symbols):
-    """ Handles the condition during batch uploading where the data type of
-        gene information input was a symbol (not platform). Uploads geneset values.
-
-    Parameters
-    ----------
-    gs: dict representing GeneSet info
-    symbols: gs['values'] - input ode_gene_ids from text file
-
-    Returns
-    -------
-    total: number Geneset gsv_values inserted (int)
-    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
-
-    """
-    total = 0  # number of values added to database
-    noncrit = []
-    sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
-    prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
-    prbids = list(set(prbids))  # get rid of any duplicates
-    prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
-    dups = dd(str)  # duplicate detection
-
-    # Platform handling - input was not a symbol
-    if gs['gs_gene_id_type'] > 0:
-        for tup in gs['values']:
-            print tup
-            sym = tup[0]
-            print "sym (buGenesetValues): %s \n" % sym
-            value = tup[1]
-            print "value (buGenesetValues): %s \n" % value
-            prbid = sym2probe[sym]
-            odes = prb2odes[prbid]
-
-            if not prbid or not odes:
-                err = ("Error! There doesn't seem to be any gene/locus data for "
-                       "%s in the database." % sym)
-                noncrit.append(err)
-                continue
-
-            for ode in odes:
-                # Check for duplicate ode_gene_ids, otherwise postgres bitches
-                if not dups[ode]:
-                    dups[ode] = tup[0]
-
-                else:
-                    err = ('Error! Seems that %s is a duplicate of %s. %s was not '
-                           'added to the geneset.' %
-                           (sym, dups[ode], sym))
-                    noncrit.append(err)
-                    continue
-
-                db.insertGenesetValue(gs['gs_id'], ode, value, sym,
-                                      'true')
-                total += 1
-
-            continue
-
-    return total, noncrit
+    return total, noncrit, updated_gs
 
 
 def buGenesets(fp, usr_id=0, cur_id=5):
@@ -1308,50 +1401,21 @@ def buGenesets(fp, usr_id=0, cur_id=5):
     # returns (genesets, non-critical errors, critical errors)
     b = parseBatchFile(readBatchFile(fp), usr_id, cur_id)
 
-    # A critical error has occurred
-    if b[2]:
+    if b[2]:  # if a critical error has occurred
         print b[2]
         print ''
         exit()
-
     else:
         genesets = b[0]
         noncrits = b[1]
 
     for gs in genesets:
-        # If a PMID was provided, we get the info from NCBI
-        if gs['pub_id']:
-            pub = getPubmedInfo(gs['pub_id'])
-            gs['pub_id'] = pub[0]
+        total, gsverr, output_gs = buGenesetValues(gs)
 
-            # Non-crit pubmed retrieval errors
-            if pub[1]:
-                noncrits.append(pub[1])
+        if gsverr:  # update gs_count if some geneset_values were found to be invalid
+            db.updateGenesetCount(output_gs['gs_id'], total)
 
-            # New row in the publication table
-            if gs['pub_id']:
-                gs['pub_id'] = db.insertPublication(gs['pub_id'])
-            else:
-                gs['pub_id'] = None  # empty pub
-
-        else:
-            gs['pub_id'] = None  # empty pub
-
-        # Insert the data into the file table
-        gs['file_id'] = buFile(gs['values'])
-        # Insert new genesets and geneset_values
-        gs['gs_id'] = db.insertGeneset(gs)
-        gsverr = buGenesetValues(gs)
-
-        # Update gs_count if some geneset_values were found to be invalid
-        if gsverr[0] != len(gs['values']):
-            db.updateGenesetCount(gs['gs_id'], gsverr[0])
-
-        added.append(gs['gs_id'])
-
-        # Non-critical errors discovered during geneset_value creation
-        if gsverr[1]:
-            noncrits.extend(gsverr[1])
+        added.append(output_gs['gs_id'])
 
     db.commit()
 
