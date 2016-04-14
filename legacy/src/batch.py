@@ -1279,6 +1279,7 @@ def handle_platform(gs, symbols):
     prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
     dups = dd(str)  # duplicate detection
 
+    # add below to getPlatformProbes
     if gs['pub_id']:  # if a PMID was provided, we get the info from NCBI
         pub = getPubmedInfo(gs['pub_id'])
         gs['pub_id'] = pub[0]
