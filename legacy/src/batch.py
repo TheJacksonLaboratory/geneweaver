@@ -1182,26 +1182,68 @@ def buGenesetValues(gs):
 
     """
     print "\n--------------------START of buGenesetValues---------------------\n"
-    # Geneset values should be a list of tuples (symbol, pval)
-    # First we attempt to map them to the internal ode_gene_ids
-    symbols = map(lambda x: x[0], gs['values'])
-    total = 0  # number Geneset gsv_values inserted (int)
-    noncrit = []  # non-critical errors we will inform the user about
+    values = gs['values']  # USEAGE: [(symbol, gsv_value),] - should be a list of tuples
+    symbols = map(lambda x: x[0], values)  # USAGE: [symbol,] - isolate a list of reference values for querying
 
-    # Negative numbers indicate normal genetypes (found in genedb) while
-    # positive numbers indicate expression platforms and more work :(
-    if gs['gs_gene_id_type'] < 0:
+    if gs['gs_gene_id_type'] < 0:  # negative numbers indicate normal gene types (symbols)
         print "SYMBOL HANDLING\n"
         total, noncrit = handle_symbols(gs, symbols)
-    else:
+    else:  # positive numbers indicate expression platforms
         print "PLATFORM HANDLING\n"
-        sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
-        prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
-        prbids = list(set(prbids))  # get rid of any duplicates
-        prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
+        total, noncrit = handle_platform(gs, symbols)
 
-    # duplicate detection
-    dups = dd(str)
+    return total, noncrit
+
+
+def handle_symbols(gs, symbols):
+    """ Handles the condition during batch uploading where the data type of
+        gene information input was a symbol (not platform). Uploads geneset values.
+
+    Parameters
+    ----------
+    gs: dict representing GeneSet info
+    symbols: gs['values'] - input ode_gene_ids from text file
+
+    Returns
+    -------
+    total: number Geneset gsv_values inserted (int)
+    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
+
+    """
+    total = 0  # number of values added to database
+    sym2ode, noncrit, final_refs, id_to_value = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'], gs)
+    if not noncrit:
+        noncrit = []
+
+    for ref in final_refs:
+        db.insertGenesetValue(gs['gs_id'], sym2ode(ref.lower()), id_to_value(sym2ode(ref.lower())), ref, 'true')
+        total += 1
+
+    return total, noncrit
+
+
+def handle_platform(gs, symbols):
+    """ Handles the condition during batch uploading where the data type of
+        gene information input was a symbol (not platform). Uploads geneset values.
+
+    Parameters
+    ----------
+    gs: dict representing GeneSet info
+    symbols: gs['values'] - input ode_gene_ids from text file
+
+    Returns
+    -------
+    total: number Geneset gsv_values inserted (int)
+    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
+
+    """
+    total = 0  # number of values added to database
+    noncrit = []
+    sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
+    prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
+    prbids = list(set(prbids))  # get rid of any duplicates
+    prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
+    dups = dd(str)  # duplicate detection
 
     # Platform handling - input was not a symbol
     if gs['gs_gene_id_type'] > 0:
@@ -1238,39 +1280,11 @@ def buGenesetValues(gs):
 
             continue
 
-    print "\n-----------------------END of buGenesetValues---------------------\n"
-    return total, noncrit
-
-
-def handle_symbols(gs, symbols):
-    """ Handles the condition during batch uploading where the data type of
-        gene information input was a symbol (not platform). Uploads geneset values.
-
-    Parameters
-    ----------
-    gs: dict representing GeneSet info
-    symbols: gs['values'] - input ode_gene_ids from text file
-
-    Returns
-    -------
-    total: number Geneset gsv_values inserted (int)
-    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
-
-    """
-    total = 0  # number of values added to database
-    sym2ode, noncrit, final_refs, id_to_value = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols, gs['gs_gene_id_type'], gs)
-    if not noncrit:
-        noncrit = []
-
-    for ref in final_refs:
-        db.insertGenesetValue(gs['gs_id'], sym2ode(ref.lower()), id_to_value(sym2ode(ref.lower())), ref, 'true')
-        total += 1
-
     return total, noncrit
 
 
 def buGenesets(fp, usr_id=0, cur_id=5):
-    """ Batch upload genesets. Requires the filepath to the batch upload file.
+    """ Batch uploads genesets. Requires the filepath to the batch upload file.
         Takes two additional (optional) parameters, a usr_id and cur_id, which
         are provided as command line arguments. This allows the person running
         the script to change usr_ids and cur_ids, which are currently set to 0
@@ -1289,6 +1303,7 @@ def buGenesets(fp, usr_id=0, cur_id=5):
     """
     noncrits = []  # non-critical errors we will inform the user about
     added = []  # list of gs_ids successfully added to the db
+    genesets = []
 
     # returns (genesets, non-critical errors, critical errors)
     b = parseBatchFile(readBatchFile(fp), usr_id, cur_id)
@@ -1340,7 +1355,7 @@ def buGenesets(fp, usr_id=0, cur_id=5):
 
     db.commit()
 
-    return (added, noncrits)
+    return added, noncrits
 
 # ----------------------------TESTING FUNCTIONS---------------------------- #
 
