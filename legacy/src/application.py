@@ -1640,6 +1640,12 @@ def render_project_genesets():
                                  proj={'project_id': pid})
 
 
+@app.route('/getProjectGroups.json', methods=['GET'])
+def render_project_groups():
+    results = geneweaverdb.get_groups_by_project(request.args['proj_id'])
+    return json.dumps(results)
+
+
 @app.route('/changePvalues/<setSize1>/<setSize2>/<jaccard>', methods=["GET"])
 def changePvalues(setSize1, setSize2, jaccard):
     tempDict = geneweaverdb.checkJaccardResultExists(setSize1, setSize2)

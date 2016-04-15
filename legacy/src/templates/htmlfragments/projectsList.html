@@ -141,9 +141,12 @@
                         {% if proj.group_id != '-1' %}
                             <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                   data-original-title="Shared" type="button" title="Shared">
-                                <i class="fa fa-group"></i>
+                                <span class="showProjectGroups" data-proj-id="{{ proj.project_id }}">
+                                    <i class="fa fa-group"></i>
+                                </span>
                             </span>
                         {% endif %}
+                        {% include 'modal/viewProjectGroups.html' %}
                     </td>
                     {# Icon to Share Project #}
                     <td>
@@ -284,6 +287,34 @@
             $("#myProjId").val(projId);
             $("#myProjGrp").html(projGrp);
             $("#addProjToGroup-" + projId).modal('show');
+        });
+
+        // Call modal to show groups associated with projects
+        $('.showProjectGroups').on('click', function () {
+           var projId = $(this).attr('data-proj-id');
+            $.ajax({
+                    type: "GET",
+                    url: "../getProjectGroups.json",
+                    data: {"proj_id": projId},
+                    success: function (data) {
+                        var v = JSON.parse(data);
+                        text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
+                        for (var i in v) {
+                            text += '<tr>';
+                            text += "<td>" + v[i]['grp_name'] + "</td>";
+                            text += "<td>" + v[i]['usr_email'] + "</td>";
+                            if ((v[i]['grp_private']).toString() === 'true') {
+                                text += "<td><span class=\"label label-danger\">Private</span></td>";
+                            } else {
+                                text += "<td><span class=\"label label-info\">Public</span></td>";
+                            }
+                            text += "</tr>";
+                        }
+                        text += "</table>";
+                        $("#groups-"+projId).html(text);
+                        $("#groupsModal-"+projId).modal('show');
+                    }
+                });
         });
 
         //Process usr to group

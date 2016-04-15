@@ -2165,6 +2165,21 @@ def get_geneset_no_user(geneset_id):
         return genesets[0] if len(genesets) == 1 else None
 
 
+def get_groups_by_project(proj_id):
+    """
+    the proj_id returns a string of groups that need to be split
+    :param proj_id: the project id
+    :return a list of lists [[id, group name, email address of owner, private],...]
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT pj_groups FROM project WHERE pj_id=%s''', (proj_id,))
+        groups = (cursor.fetchone()[0]).split(',')
+        cursor.execute('''SELECT g.grp_id, g.grp_name, u.usr_email, g.grp_private FROM grp g, usr u, usr2grp u2g
+                          WHERE g.grp_id=u2g.grp_id AND u2g.usr_id=u.usr_id AND g.grp_id IN (%s)''' % ",".join(str(x) for x in groups))
+        results = list(dictify_cursor(cursor))
+    return results if len(results) > 0 else None
+
+
 def get_user_groups(usr_id):
     """
     Gets a list of groups that the user belongs to
