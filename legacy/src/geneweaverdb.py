@@ -103,6 +103,7 @@ def _dictify_row(cursor, row):
         # This prevents exceptions when non-ascii chars show up in a jinja2 template variable
         # but I'm not sure if it's the correct solution
         d[col[0]] = row[i].decode('utf-8') if type(row[i]) == str else row[i]
+        OrderedDict(sorted(d.items()))
     return d
 
 
@@ -113,9 +114,9 @@ def dictify_cursor(cursor):
 
 class Project:
     def __init__(self, proj_dict):
+        self.name = proj_dict['pj_name']
         self.project_id = proj_dict['pj_id']
         self.user_id = proj_dict['usr_id']
-        self.name = proj_dict['pj_name']
 
         # TODO in the database this is column 'pj_groups'. The name suggests
         # that this field can contain multiple groups but it looks like
@@ -130,6 +131,7 @@ class Project:
         #		query param)
         self.created = proj_dict['pj_created']
         self.notes = proj_dict['pj_notes']
+        self.star = proj_dict['pj_star']
 
         # depending on if/how the project table is joined the following may be available
         self.count = proj_dict.get('count')
@@ -251,17 +253,17 @@ def get_all_projects(usr_id):
                     LEFT JOIN (
                         SELECT pj_id, grp_name AS GROUP
                         FROM project p, grp g
-                        WHERE p.usr_id=%(usr_id)s AND g.grp_id=CAST(p.pj_groups AS INTEGER)
+                        WHERE p.usr_id=%(usr_id)s AND g.grp_id=CAST((split_part(p.pj_groups, ',', 1) ) AS INTEGER)
                     ) g ON (g.pj_id=p2g.pj_id)
                 WHERE p2g.pj_id IN (SELECT pj_id FROM project WHERE usr_id=%(usr_id)s)
                 GROUP BY p2g.pj_id, x.count, g.group
-            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name);
+            ) x WHERE x.pj_id=p.pj_id ORDER BY p.pj_name ASC);
             ''',
                 {'usr_id': usr_id}
         )
-
-        return [Project(d) for d in dictify_cursor(cursor)]
-
+        list = [Project(d) for d in dictify_cursor(cursor)]
+        newlist = sorted(list, key=lambda x: x.name, reverse=False)
+        return newlist
 
 ####################################################################################
 # Begin group block, Getting specific groups for a user, and creating/modifying them
@@ -479,6 +481,7 @@ def delete_group(group_name, owner_id):
                     (group_name,)
             )
             cursor.connection.commit()
+        remove_group_from_all_projects(group_name, owner_id)
         return {'error': 'None'}
 
 
@@ -499,7 +502,21 @@ def remove_member_from_group(group_name, owner_id):
     return {'error': 'None'}
 
 
-# End group block
+# Remove group from all projects
+def remove_group_from_all_projects(grp_id, user_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT pj_groups, pj_id FROM project;''')
+        results = cursor.fetchall()
+        for r in results:
+            g = r[0]
+            h = g.split(',')
+            if grp_id in h:
+                h.remove(grp_id)
+                res = '-1' if len(h) == 0 else str(','.join(h))
+                print res
+                cursor.execute('''UPDATE project SET pj_groups=%s WHERE pj_id=%s''', (res, r[1],))
+                cursor.connection.commit()
+
 
 def get_all_species():
     """
@@ -963,6 +980,25 @@ def remove_geneset_from_project(rargs):
             cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
             cursor.connection.commit()
             return
+
+
+def update_project_groups(proj_id, groups, user_id):
+    usr_id = flask.session['user_id']
+    if int(user_id) == int(usr_id):
+        with PooledCursor() as cursor:
+            cursor.execute('''UPDATE project SET pj_groups=%s WHERE pj_id=%s''', (groups, proj_id,))
+            cursor.connection.commit()
+            return {'error': 'None'}
+
+
+def update_stared_project(proj_id, user_id):
+    if int(user_id) == int(flask.session['user_id']):
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT pj_star FROM project WHERE pj_id=%s''', (proj_id,))
+            star = 't' if cursor.fetchone()[0] == 'f' else 'f'
+            cursor.execute('''UPDATE project SET pj_star=%s WHERE pj_id=%s''', (star, proj_id,))
+            cursor.connection.commit()
+        return {'error': 'None'}
 
 
 def remove_genesets_from_multiple_projects(rargs):
@@ -2147,6 +2183,21 @@ def get_geneset_no_user(geneset_id):
         )
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return genesets[0] if len(genesets) == 1 else None
+
+
+def get_groups_by_project(proj_id):
+    """
+    the proj_id returns a string of groups that need to be split
+    :param proj_id: the project id
+    :return a list of lists [[id, group name, email address of owner, private],...]
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT pj_groups FROM project WHERE pj_id=%s''', (proj_id,))
+        groups = (cursor.fetchone()[0]).split(',')
+        cursor.execute('''SELECT g.grp_id, g.grp_name, u.usr_email, g.grp_private FROM grp g, usr u, usr2grp u2g
+                          WHERE g.grp_id=u2g.grp_id AND u2g.usr_id=u.usr_id AND g.grp_id IN (%s)''' % ",".join(str(x) for x in groups))
+        results = list(dictify_cursor(cursor))
+    return results if len(results) > 0 else None
 
 
 def get_user_groups(usr_id):

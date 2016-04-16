@@ -129,7 +129,7 @@
         {% if proj is defined %}
             <td>
                 <span id="add-{{ gs.geneset_id }}-button" data-toggle="tooltip"
-                      data-rel="tooltip" data-original-title="Add GeneSet to Projects"
+                      data-rel="tooltip" data-original-title="Add Gene Set to Projects"
                       data-target="#addModal_{{ gs.geneset_id }}"
                       data-proj-id="{{ proj.project_id }}" data-gs-id="{{ gs.geneset_id }}"
                       class="addgs-to-project">
@@ -146,7 +146,7 @@
             {% if proj is defined %}
                 <td>
                     <span id="remove-geneset-{{ gs.geneset_id }}" data-toggle="tooltip"
-                          data-rel="tooltip" data-original-title="Remove GeneSet From Project"
+                          data-rel="tooltip" data-original-title="Remove Gene Set From Project"
                           data-target="#removeModal_{{ gs.geneset_id }}"
                           data-proj-id="{{ proj.project_id }}" data-gs-id="{{ gs.geneset_id }}"
                           class="remove-from-project">
@@ -261,7 +261,7 @@
         var gsID = $(this).attr('data-gs-id');
         $("#projID").html(projID);
         $("#gsID").html(gsID);
-        $("#removeModal").modal('show');
+        $("#removeModal-" + projID + "-" + gsID).modal('show');
     });
 
     $('.addgs-to-project').on('click', function () {
@@ -317,7 +317,7 @@
                 location.reload();
                 $(document).trigger("add-alerts", [
                             {
-                                'message': "Project name added successfully.",
+                                'message': "Gene set successfully removed from project.",
                                 'priority': 'success'
                             }
                 ]);

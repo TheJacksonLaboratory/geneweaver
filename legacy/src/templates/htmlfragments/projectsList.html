@@ -1,5 +1,44 @@
 <style type="text/css">
 
+    .plus:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    .minus .plus:before {
+        content: "\f068";
+    }
+
+    .openstar:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f006";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+        color: #006400;
+    }
+
+    .closedstar:before {
+        content: "\f005";
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+        color: #006400;
+    }
+
     .clickableEdit {
         cursor: pointer;
         color: #d3d3d3;
@@ -7,7 +46,6 @@
 
     .clickableShare {
         cursor: pointer;
-        color: #d3d3d3;
     }
 
     /* CSS added to change chevrons on accordion select. */
@@ -28,82 +66,153 @@
         border: none;
     }
 
+    table#allProjects td {
+        vertical-align: middle;
+    }
+
 </style>
 
-<div class="panel-group" id="projAccordion">
+{% if "user" in g %}
 
-    {% if "user" in g %}
+<div class="panel-body">
+    <form id="manageProjects" name="manageProject" method="post" action="#"
+          class="form-horizontal form-inline" novalidate="novalidate">
+        <!-- TODO make the table sortable, show more gene details -->
+        <table class="table table-hover" id="allProjects" cellpadding="0" cellspacing="0">
+            <tbody>
+            <tr style="background: #ececec;">
+                <th>&nbsp;</th>
+                <th>&nbsp;</th>
+                <th>Project Name</th>
+                <th style="text-align: center;">Size</th>
+                <th style="text-align: center;">Date</th>
+                <th>&nbsp;</th>
+                <th>&nbsp;</th>
+                <th>&nbsp;</th>
+                <th>&nbsp;</th>
+            </tr>
 
-        {% for proj in g.user.projects %}
-            <div id="project-{{ proj.project_id }}" class="panel panel-default">
-                <div class="panel-heading">
-                    <h2 class="panel-title">
-                        <div class="row">
-                            <div class="col-xs-2">
-
-                                <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
-                                    <label for="proj-{{ proj.project_id }}-allcheck">
-                                        <input type="checkbox" data-project="{{ proj.project_id }}"
-                                               data-project-name="{{ proj.name }}"
-                                               id="proj-{{ proj.project_id }}-allcheck"/>
-                                    </label>
-                                </div>
-
-                            </div>
-                            <div class="col-xs-15" style="vertical-align: bottom;">
-                                <a class="project-link" data-toggle="collapse"
-                                   data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
-                                    {{ proj.name }}
-                                </a>
-                                {% if proj.group_id != '-1' %}
-                                <span data-placement="right" data-toggle="tooltip" data-rel="tooltip"
-                                      data-original-title="Shared" type="button" title="Shared"
-                                      style="margin: 2px; padding: 0px 2px;">
-                                    <i class="fa fa-star" style="color: #006400"></i>
-                                </span>
-                                {% endif %}
-                                <span data-placement="right" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Share" type="button" title="Share Project"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                    <span class="clickableShare" id="share-{{ proj.project_id }}"
-                                          data-proj-name="{{ proj.name }}"
-                                          data-proj-id="{{ proj.project_id }}" data-proj-grp="{{ proj.group_id }}">
-                                        <i class="fa fa-share-alt"></i>
-                                    </span>
-                                </span>
-                                <span data-placement="right" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Edit" type="button" title="Edit Name"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                    <span class="clickableEdit" id="edit-{{ proj.project_id }}"
-                                          data-proj-name="{{ proj.name }}"
-                                          data-proj-id="{{ proj.project_id }}" data-proj-notes="{{ proj.notes }}">
-                                        <i class="fa fa-pencil"></i>
-                                    </span>
-                                </span>
-
-                            </div>
+            {% for proj in g.user.projects %}
+                <tr>
+                    {# checkbox #}
+                    <td width="18">
+                        <div class="ui-checkbox proj-checkbox">
+                            <label for="proj-{{ proj.project_id }}-allcheck">
+                                <input type="checkbox" data-project="{{ proj.project_id }}"
+                                       data-project-name="{{ proj.name }}"
+                                       id="proj-{{ proj.project_id }}-allcheck"/>
+                            </label>
                         </div>
-                    </h2>
-                </div>
-                <div id="genesets-{{ proj.project_id }}" class="panel-collapse collapse">
-                    <div class="panel-body">
+                    </td>
+                    {# expand button #}
+                    <td width="15">
+                        <span id="proj-{{ proj.project_id }}" class="toggler" data-prod="{{ proj.project_id }}">
+                            <span class="plus"></span>
+                            <span class="minus"></span>
+                        </span>
+                    </td>
+                    {# Project Name #}
+                    <td>
+                        <strong>{{ proj.name }}</strong>
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Edit" type="button" title="Edit Name">
+                            <span class="clickableEdit" id="edit-{{ proj.project_id }}"
+                                  data-proj-name="{{ proj.name }}"
+                                  data-proj-id="{{ proj.project_id }}" data-proj-notes="{{ proj.notes }}">
+                                <i class="fa fa-pencil"></i>
+                            </span>
+                        </span>
+                    </td>
+                    {# Size #}
+                    <td style="text-align: center;">
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Genesets" type="button" title="{{ proj.count }} Gene Sets">
+                            {{ proj.count }}
+                        </span>
+                    </td>
+                    {# Dated Project Created #}
+                    <td style="text-align: center;">
+                        {% if proj.created != None %}
+                            {{ proj.created }}
+                        {% endif %}
+                    </td>
+                    {# Shared #}
+                    <td>
+                        {% if proj.group_id != '-1' %}
+                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                  data-original-title="Shared" type="button" title="Shared">
+                                <span class="showProjectGroups" data-proj-id="{{ proj.project_id }}">
+                                    <i class="fa fa-group"></i>
+                                </span>
+                            </span>
+                        {% endif %}
+                        {% include 'modal/viewProjectGroups.html' %}
+                    </td>
+                    {# Icon to Share Project #}
+                    <td>
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Share" type="button" title="Share Project">
+                            <span class="clickableShare" id="share-{{ proj.project_id }}"
+                                  data-proj-name="{{ proj.name }}"
+                                  data-proj-id="{{ proj.project_id }}" data-proj-grp="{{ proj.group_id }}">
+                                <i class="fa fa-share-alt"></i>
+                            </span>
+                        </span>
+                        {% include 'modal/addProjectToGroup.html' %}
+                    </td>
+                    {# remove #}
+                    <td>
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Delete" type="button" title="Delete Project">
+                            <span class="clickableDelete" id="delete-{{ proj.project_id }}"
+                                  data-proj-name="{{ proj.name }}"
+                                  data-proj-id="{{ proj.project_id }}">
+                                <i class="fa fa-trash-o"></i>
+                            </span>
+                        </span>
+                    </td>
+                    {# star #}
+                    <td>
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Star" type="button" title="Star Project">
+                            {% if proj.star == 'f' %}
+                            <span id="projstar-{{ proj.project_id }}" class="starToggler" data-prod="{{ proj.project_id }}">
+                                <span class="openstar"></span>
+                                <span class="closedstar" style="display: none;"></span>
+                            </span>
+                            {% else %}
+                            <span id="projstar-{{ proj.project_id }}" class="starToggler" data-prod="{{ proj.project_id }}">
+                                <span class="openstar" style="display: none;"></span>
+                                <span class="closedstar"></span>
+                            </span>
+                            {% endif %}
+                        </span>
+                    </td>
+                </tr>
+
+                <tr class="gsid{{ proj.project_id }}" id="genesets-{{ proj.project_id }}" style="display: none;">
+                    <td colspan="9">
                         <table id="project-body-{{ proj.project_id }}" class="table table-hover">
                         </table>
-                    </div>
-                </div>
-            </div>
+                    </td>
+                </tr>
 
-            {% include 'modal/addProjectToGroup.html' %}
+            {% endfor %}
 
-
-        {% endfor %}
-    {% else %}
-        <div class="alert alert-warning fade in">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-            You do not have any projects.
-        </div>
-    {% endif %}
+            </tbody>
+        </table>
+    </form>
 </div>
+
+{% else %}
+
+    <div class="alert alert-warning fade in">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+        You do not have any projects.
+    </div>
+
+{% endif %}
+
 
 {% include 'modal/editProjectName.html' %}
 
@@ -118,6 +227,15 @@
             $("#projId").val(projId);
             $("#editComment").val(editComment);
             $("#editModal").modal('show');
+        });
+
+    // Delete Individual Project
+        $('.clickableDelete').on('click', function () {
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            $("#myModalLabel").html(projName);
+            $("#myModalValue").val(projId);
+            $("#delProjects").modal('show');
         });
 
     // Process the project name change
@@ -170,6 +288,82 @@
             $("#myProjGrp").html(projGrp);
             $("#addProjToGroup-" + projId).modal('show');
         });
+
+        // Call modal to show groups associated with projects
+        $('.showProjectGroups').on('click', function () {
+           var projId = $(this).attr('data-proj-id');
+            $.ajax({
+                    type: "GET",
+                    url: "../getProjectGroups.json",
+                    data: {"proj_id": projId},
+                    success: function (data) {
+                        var v = JSON.parse(data);
+                        text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
+                        for (var i in v) {
+                            text += '<tr>';
+                            text += "<td>" + v[i]['grp_name'] + "</td>";
+                            text += "<td>" + v[i]['usr_email'] + "</td>";
+                            if ((v[i]['grp_private']).toString() === 'true') {
+                                text += "<td><span class=\"label label-danger\">Private</span></td>";
+                            } else {
+                                text += "<td><span class=\"label label-info\">Public</span></td>";
+                            }
+                            text += "</tr>";
+                        }
+                        text += "</table>";
+                        $("#groups-"+projId).html(text);
+                        $("#groupsModal-"+projId).modal('show');
+                    }
+                });
+        });
+
+        //Process usr to group
+        $('.addProjToGroup').on('click', function () {
+            var checked = [];
+            var projId = $(this).attr('data-proj-id');
+            $("#addProjToGroup-" + projId + " input[name='grpOptions[]']:checked").each(function () {
+               checked.push($(this).val());
+            });
+            var i = checked.join(",");
+                $.ajax({
+                    type: "GET",
+                    url: "../updateProjectGroups",
+                    data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": JSON.stringify(i) },
+                    success: function (data) {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project Group permissions successfully updated.",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.location.reload();
+                    }
+                });
+
+        });
+
+        // Update stared projects.
+        $('.starToggler').click(function (e) {
+            e.preventDefault();
+            var pid = ($(this).attr("data-prod"));
+
+            $.ajax({
+                    type: "GET",
+                    url: "../updateStaredProject",
+                    data: {"user_id": {{ g.user.user_id }}, "proj_id": pid},
+                    success: function (data) {
+                        if ($('#projstar-'+pid).find('.openstar').is(":hidden")) {
+                            $('#projstar-'+pid).find('.openstar').show();
+                            $('#projstar-'+pid).find('.closedstar').hide();
+                        }
+                        else {
+                            $('#projstar-'+pid).find('.openstar').hide();
+                            $('#projstar-'+pid).find('.closedstar').show();
+                        }
+                    }
+                });
+        });
+
 
 
     </script>

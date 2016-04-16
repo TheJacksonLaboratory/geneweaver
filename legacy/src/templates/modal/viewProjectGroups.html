@@ -1,0 +1,19 @@
+{# Modal for viewing the names and owners of all groups belonging to a project#}
+
+<div class="modal fade" id="groupsModal-{{ proj.project_id }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-green">
+                <h3 class="modal-title" id="groupLabels" style="color: #f5f5f5">Project Groups</h3>
+            </div>
+            <div class="modal-body">
+                <div id="groups-{{ proj.project_id }}">
+
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
