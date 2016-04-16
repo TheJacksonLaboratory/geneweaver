@@ -481,6 +481,7 @@ def delete_group(group_name, owner_id):
                     (group_name,)
             )
             cursor.connection.commit()
+        remove_group_from_all_projects(group_name, owner_id)
         return {'error': 'None'}
 
 
@@ -501,7 +502,21 @@ def remove_member_from_group(group_name, owner_id):
     return {'error': 'None'}
 
 
-# End group block
+# Remove group from all projects
+def remove_group_from_all_projects(grp_id, user_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT pj_groups, pj_id FROM project;''')
+        results = cursor.fetchall()
+        for r in results:
+            g = r[0]
+            h = g.split(',')
+            if grp_id in h:
+                h.remove(grp_id)
+                res = '-1' if len(h) == 0 else str(','.join(h))
+                print res
+                cursor.execute('''UPDATE project SET pj_groups=%s WHERE pj_id=%s''', (res, r[1],))
+                cursor.connection.commit()
+
 
 def get_all_species():
     """
