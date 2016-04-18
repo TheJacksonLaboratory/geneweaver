@@ -107,10 +107,10 @@ class TheDB:
         output_gs: GeneSet that reflects any changes made during queries
 
         """
-        print "\n--------------------START of getOdeGeneIdsNonPref---------------------\n"
         gene_type = abs(gtype)  # gene type stripped of sign ('-' = symbol)
         gene_ids = []  # list of genes that were ode_pref=False following QUERY 1, for QUERY 2
         revDict = {}  # USAGE: {ode_gene_id: [ode_ref_id,],}  -  reverse dictionary to d, from QUERY 1
+        posDict = {}  # USAGE: {ode_ref_id: [ode_gene_id,],} - results from QUERY 1
         output = {}  # USAGE: {ode_ref_id: ode_gene_id, } - final dictionary
         noncrit = []  # list of errors and warnings
         value_dict = {x[0]: x[1] for x in gs["values"]}  # USAGE: {ode_ref_id: gsv_value,} - dict of gs["values"]
@@ -122,6 +122,7 @@ class TheDB:
             syms = tuple(syms)
         except TypeError:
             noncrit.append("Error: Input list of ode_ref_ids was not entered as a list.\n")
+            self.print_noncrit(noncrit)
             exit()
 
         # QUERY 1: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
@@ -136,14 +137,16 @@ class TheDB:
             self.cur.execute(query1, [sp, syms])  # execute QUERY 1
             res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id),]  -  gather result of QUERY 1
 
+            if not len(res1):
+                noncrit.append("Error: Unable to upload batch file as no genes found.\n"
+                               "Check text file input before attempting batch upload again.\n")
+                self.print_noncrit(noncrit)
+                exit()
+
             found1 = map(lambda m: m[0], res1)  # USAGE: [ode_ref_id,] - isolate the ref ids pulled in QUERY 1
             revList = map(lambda t: t[1], res1)  # USAGE: [ode_gene_ids,] - list of all ode_gene_ids found in QUERY 1
             revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - reverse dict lookup for QUERY 1
-
-            print "res1: %s \n" % res1
-            print "found1: %s \n" % found1
-            print "revList: %s \n" % revList
-            print "revDict: %s \n" % revDict
+            posDict = {d: [] for d in found1}  # USAGE: {ode_gene_id: [ode_ref_id,],} - dict lookup for QUERY 1
 
             for nf in (set(syms) - set(found1)):  # map symbols that weren't found to None
                 noncrit.append("Warning: Symbol '%s\' was not found.\n"
@@ -154,6 +157,7 @@ class TheDB:
 
             for ref, gID, pref, gdb in res1:
                 revDict[gID].append(ref)  # ode_ref_id added for each ode_gene_id
+                posDict[ref].append(gID)  # ode_gene_id added for each ode_ref_id
                 if str(pref) == 'True' and int(gdb) == gene_type:
                     output[ref] = gID  # if any ode_pref == 'True', remap ode_gene_id
                     # map gID to relative gsv_value (works bc Q1 searches based on primary ode_ref_id list)
@@ -161,20 +165,18 @@ class TheDB:
                 elif str(pref) == 'False' or int(gdb) != gene_type:  # need to run QUERY 2 for that ode_gene_id
                     gene_ids.append(gID)  # add genes with non-pref properties to gene id list, for QUERY 2
 
-            print "revDict: %s \n" % revDict
-            print "output: %s \n" % output
-            print "gene_ids: %s \n" % gene_ids
-
             for key, value in revDict.iteritems():
                 if len(value) > 1:
                     noncrit.append("Warning: It appears that there are multiple genes referenced %s that "
                                    "share the same gene ID [%s]." % (value, key))
 
-            gene_ids = tuple(set(gene_ids))  # removes any duplicates... wouldn't keep both regardless
+            gene_ids = set(gene_ids)  # removes any duplicates... wouldn't keep both regardless
+            gene_ids = tuple(gene_ids)
 
         except psycopg2.ProgrammingError:
             noncrit.append("Error: Unable to upload batch file as no genes found.\n"
                            "Check text file input before attempting batch upload again.\n")
+            self.print_noncrit(noncrit)
             exit()
 
         # QUERY 2: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
@@ -196,27 +198,23 @@ class TheDB:
             notFound = set(gene_ids) - set(found2)  # items not found in QUERY 2
             success = set(found2) - notFound  # items successfully found in QUERY 2
 
-            print "res2: %s \n" % res2
-            print "temp: %s \n" % temp
-            print "found2: %s \n" % found2
-            print "notFound: %s \n" % notFound
-            print "success: %s \n" % success
-
             for item in success:  # if any found2 ode_gene_ids in gene_ids, then add to output
-                print "item: %s \n" % item
-                print "temp[item]: %s \n" % temp[item]
                 output[temp[item]] = item
-                # in Q2, iterative factor for mapping ode_gene_id to associated value is ode_gene_id list (gene_ids)
                 for o in revDict[item]:
                     id_to_value[item] = value_dict[o]
                 t = [temp[item]]  # put ode_gene_id of interest in a list for quick set based comparison
                 newref = set(t) - (set(syms) - set(t))  # get any new references following QUERY 1
 
                 if newref:  # if this is a new gene references that did not exist to start with
-                    noncrit.append("Warning: Gene(s) %s not found. An associated Gene '%s' "
-                                   "with a shared Gene ID [%s] was found for the same parameters, "
-                                   "and will be added to the GeneSet instead of %s."
-                                   % (revDict[item], temp[item], item, revDict[item]))
+                    for key, values in posDict.iteritems():
+                        if item in values and len(values) > 1:
+                            noncrit.append("Warning: Gene(s) %s not found. An associated Gene '%s' "
+                                           "with a shared Gene ID [%s] was found for the same parameters, "
+                                           "and will be added to the GeneSet instead of %s."
+                                           % (revDict[item], temp[item], item, revDict[item]))
+                            break
+                        break
+                    break
 
             for n in notFound:  # if a valid ode_ref_id is still not found
                 for rev in revDict[n]:
@@ -229,17 +227,8 @@ class TheDB:
         not_found = set(syms) - set(final_values)
         new_values = list(set(final_values) - set(not_found))
         keys_values = map(lambda x: (x, id_to_value[output[x]]), new_values)
-
         updated_gs = updateGeneset(gs, vals=keys_values, gcount=len(keys_values))
-
-        print "output: %s\n" % output
-        print "not_found: %s\n" % not_found
-        print "new_values: %s\n" % new_values
-        print "id_to_value: %s\n" % id_to_value
-
         output = self.lower_headers(output)
-
-        print output, "\n ---------------END of getOdeGeneIdsNonPref---------------- \n"
 
         return output, noncrit, final_values, id_to_value, updated_gs
 
@@ -264,6 +253,16 @@ class TheDB:
             print "Error: No dictionary was input to lower_headers().\n "
 
         return output
+
+    @staticmethod
+    def print_noncrit(noncrit):
+        """ Prints noncritical messages to the user regarding problems in their
+            batch uploading.
+        """
+        print "The following message(s) were raised during user batch uploading: "
+        for non in noncrit:
+            print non
+
 
 # FIX: make below a shorter version of above, call above when we don't find what we originally thought we wanted...
     # def getOdeGeneIds(self, sp, syms):
@@ -1502,18 +1501,14 @@ def getOdeGeneIdsNonPrefTest():
         exit()
     else:
         genesets = b[0]
-        noncrits = b[1]
 
-    results = []
     for geneset in genesets:
         symbols = map(lambda x: x[0], geneset['values'])
-        #results.append(db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols))
-        db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols, geneset["gs_gene_id_type"])
+        db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols, geneset["gs_gene_id_type"], geneset)
         break
 
-
 if __name__ == '__main__':
-    print 'batch file test'
+    print '\n TEST: batch file upload test \n'
     batch_file_test()
 
     # print '\n TEST: getOdeGeneIdsNonPref() \n'
