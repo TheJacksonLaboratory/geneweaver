@@ -260,7 +260,7 @@ def view_result(task_id):
         csv_file.close()
         f.close()
         # results are ready. render the page for the user
-        print async_result.result
+        print data
         return flask.render_template(
             'tool/PhenomeMap_result.html',
             data=data,

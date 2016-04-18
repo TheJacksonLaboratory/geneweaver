@@ -579,7 +579,6 @@
         //iterate through original nested data, and get one dimensional array of nodes.
         var nodes = flatten(g.data.nodes);
 
-
         //Each node extracted above has an array of children id's.
         //from them, we can use a custom getLinks() layout function in order
         //to build a links selection.
@@ -665,7 +664,7 @@
                         return;
                     }
                     else {
-                        return d.Genes.length <= 3 ? d.Genes : d.Genes.length + " genes...";
+                        return d.Abbreviations[0];
                     }
                 });
         //mouseover information for each node
