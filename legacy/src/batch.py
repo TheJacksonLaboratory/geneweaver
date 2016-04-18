@@ -264,7 +264,8 @@ class TheDB:
             print non
 
 
-# FIX: make below a shorter version of above, call above when we don't find what we originally thought we wanted...
+# FIX: make below a shorter version of above, call above when we don't find what we originally thought we wanted
+# or just separate into two difference query methods [QUERY ref_id, QUERY gene_id] and call both in symbol handler
     # def getOdeGeneIds(self, sp, syms):
     #     """ [Tim] Given a list of gene symbols from the users' batch file, if the symbol doesn't
     #         exist in the DB or can't be found, it is mapped to None.  The first query

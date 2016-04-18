@@ -11,7 +11,6 @@ from urlparse import parse_qs, urlparse
 from flask import session
 
 
-
 def create_temp_geneset():
     '''
     creates a temp table to hold values for geneset_values
@@ -28,6 +27,7 @@ def create_temp_geneset():
     except:
         return 'False'
 
+
 def get_identifier_from_form(ident):
     '''
     This function returns a negative int for a gene db and a positive int for a microarray-based string
@@ -39,6 +39,7 @@ def get_identifier_from_form(ident):
         return int(tmpString[1])
     else:
         return int(tmpString[1]) * -1
+
 
 def insertPublication(pubDict):
     '''
@@ -71,6 +72,7 @@ def insertPublication(pubDict):
             print 'New Pub_id: ' + str(pub_id)
             return pub_id
 
+
 def insert_new_contents_to_file(contents):
     with PooledCursor() as cursor:
         cursor.execute('''INSERT INTO file (file_contents, file_comments, file_created) VALUES (%s, %s, now())
@@ -79,6 +81,7 @@ def insert_new_contents_to_file(contents):
         cursor.connection.commit()
         print 'New File_id: ' + str(file_id)
         return file_id
+
 
 def create_new_geneset(args):
     '''
@@ -154,6 +157,7 @@ def create_new_geneset(args):
         return {'error': e}
     return {'error': 'None', 'gs_id': gs_id}
 
+
 def create_temp_geneset_from_value(gsid):
     '''
     This function creates a temp_geneset_value record for a gs_id if it exists
@@ -173,6 +177,7 @@ def create_temp_geneset_from_value(gsid):
                                 FROM geneset_value WHERE gs_id=%s)''', (gsid,))
                 cursor.connection.commit()
     return
+
 
 def get_file_contents_by_gsid(gsid):
     '''
