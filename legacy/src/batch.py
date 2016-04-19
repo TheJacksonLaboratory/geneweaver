@@ -83,6 +83,7 @@ class TheDB:
 
         return d  # RETURNS: list of tuples [(gdb_name, gdb_id)]
 
+    # groom / pull out any more functions that could be used for other cases [reduction]
     def getOdeGeneIdsNonPref(self, sp, syms, gtype, gs):
         """ Attempts to retrieve ode_gene_ids for ode_ref_ids by mapping
             non-preferred ode_ref_ids to the preferred ode_gene_ids (ode_pref == true).
@@ -198,7 +199,7 @@ class TheDB:
             notFound = set(gene_ids) - set(found2)  # items not found in QUERY 2
             success = set(found2) - notFound  # items successfully found in QUERY 2
 
-            for item in success:  # if any found2 ode_gene_ids in gene_ids, then add to output
+            for item in success:  # if any found2 ode_gene_ids in gene_ids, then add to output (often a short list)
                 output[temp[item]] = item
                 for o in revDict[item]:
                     id_to_value[item] = value_dict[o]
@@ -216,7 +217,7 @@ class TheDB:
                         break
                     break
 
-            for n in notFound:  # if a valid ode_ref_id is still not found
+            for n in notFound:  # if a valid ode_ref_id is still not found (also often a short list - complexity sake)
                 for rev in revDict[n]:
                     if rev in syms:  # if it was one of the original ode_ref_ids
                         output[rev] = None
@@ -929,6 +930,7 @@ def getPubmedInfo(pmid):
     return (pinfo, '')
 
 
+# groom
 def parseBatchFile(lns, usr=0, cur=5):
     """ Parses the batch file according to the format listed on:
         http://geneweaver.org/index.php?action=manage&cmd=batchgeneset
@@ -1220,12 +1222,6 @@ def handle_symbols(gs, symbols):
     total = 0  # number of values added to database
     sym2ode, noncrit, final_refs, id_to_value, output_gs = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols,
                                                                                    gs['gs_gene_id_type'], gs)
-    # print "sym2ode %s\n" % sym2ode
-    # print "noncrit %s\n" % noncrit
-    # print "final_refs %s\n" % final_refs
-    # print "id_to_value %s\n" % id_to_value
-    # print "gs: %s\n" % gs
-
     if not noncrit:
         noncrit = []
 
@@ -1253,6 +1249,7 @@ def handle_symbols(gs, symbols):
     return total, noncrit, output_gs
 
 
+# still need to work on handle_platform and getPlatformProbes [like you did with symbols]
 def handle_platform(gs, symbols):
     """ Handles the condition during batch uploading where the data type of
         gene information input was a not a symbol (platform). Uploads geneset values.
