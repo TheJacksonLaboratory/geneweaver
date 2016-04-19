@@ -104,56 +104,6 @@ def static_results(filename):
                                      filename)
 
 
-# TODO the newsArray should probably be moved to a configuration file
-# newsArray = [
-#     (
-#         "2013: GeneWeaver user publication",
-#         '''
-#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/23123364">Potential translational
-#         targets revealed by linking mouse grooming behavioral phenotypes to gene
-#         expression using public databases</a> Andrew Roth, Evan J. Kyzar, Jonathan Cachat,
-#         Adam Michael Stewart, Jeremy Green, Siddharth Gaikwad, Timothy P. O'Leary,
-#         Boris Tabakoff, Richard E. Brown, Allan V. Kalueff. Progress in Neuro-Psychopharmacology
-#         & Biological Psychiatry 40:313-325.
-#         '''
-#     ),
-#     (
-#         "2013: GeneWeaver user publication (Includes Deposited Data)",
-#         '''
-#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/23329330">Mechanistic basis of infertility
-#         of mouse intersubspecific hybrids</a> Bhattacharyya T, Gregorova S, Mihola O, Anger M,
-#         Sebestova J, Denny P, Simecek P, Forejt J. PNAS 2013 110 (6) E468-E477.
-#         '''
-#     ),
-#     (
-#         "2012: GeneWeaver Publication",
-#         '''
-#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/23195309">Cross species integration of
-#         functional genomics experiments.</a>Jay, JJ. Int Rev Neurobiol 104:1-24.
-#         '''
-#     ),
-#     (
-#         "Oct 2012: GeneWeaver user publication",
-#         '''
-#         <a href="http://www.ncbi.nlm.nih.gov/pubmed/22961259">The Mammalian Phenotype Ontology
-#         as a unifying standard for experimental and high-throughput phenotyping data.</a>
-#         Smith CL, Eppig JT. Mamm Genome. 23(9-10):653-68
-#         '''
-#     ),
-# ]
-
-
-# the context processor will inject global variables for us so
-# that we can refer to them from our flask templates
-# @app.context_processor
-# def inject_globals():
-#     global_map = {
-#         'newsArray': newsArray
-#     }
-#
-#     return global_map
-
-
 @app.before_request
 def lookup_user_from_session():
     # lookup the current user if the user_id is found in the session
@@ -2126,6 +2076,7 @@ def render_register():
 def render_reset():
     return flask.render_template('reset.html')
 
+
 @app.route('/reset_submit.html', methods=['GET', 'POST'])
 def reset_password():
     form = flask.request.form
@@ -2136,7 +2087,12 @@ def reset_password():
         new_password = geneweaverdb.reset_password(user.email)
         send_mail(user.email, "Password Reset Request",
                   "Your new temporary password is: " + new_password)
-        return flask.redirect("index.html")
+        return flask.redirect('reset_success')
+
+
+@app.route('/reset_success')
+def render_success():
+    return flask.render_template('password_reset.html')
 
 
 @app.route('/change_password', methods=['POST'])
