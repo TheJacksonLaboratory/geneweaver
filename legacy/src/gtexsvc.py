@@ -10,15 +10,19 @@
 # [describe format of file input]
 
 from selenium import webdriver
+from selenium import selenium
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
 import time
 
 from bs4 import BeautifulSoup
+import requests
 import zipfile
 import StringIO
 import os
 
-
+# could make this of a superclass - "Batch" to differentiate between PubMed ect
+# treat as if a "Data" object
 class GTEx:
     """ Creates a GTEx object representative of significant 'eGenes' drawn from
         GTEx Portal [http://www.gtexportal.org/home/eqtls]
@@ -28,12 +32,14 @@ class GTEx:
     """
 
     def __init__(self, tissue='All'):
-        # local dataset filepath
-        self.root_dir = '/Users/Asti/geneweaver/gtex/datasets/v6/eGenes/GTEx_Analysis_V6_eQTLs/'  # change later
+        # local dataset filepaths
+        self.ROOT_DIR = '/Users/Asti/geneweaver/gtex/datasets/v6/eGenes/GTEx_Analysis_V6_eQTLs/'  # change later
+        self.SAVE_SEARCH_DIR = "/Users/Asti/geneweaver/gtex/gtex-results"  # change later
+
         # type of execution
         self.SETUP = True
 
-        # urls for download and search
+        # urls for download + search
         self.BASE_URL = 'http://www.gtexportal.org/home/'
         self.DATASETS_INFO_URL = 'http://www.gtexportal.org/home/datasets'
         self.LOOKUP_URL = 'http://www.gtexportal.org/home/eqtls/tissue?tissueName=All'
@@ -45,7 +51,7 @@ class GTEx:
         self.noncrit = []
 
         # data processing fields
-        self.raw = {}
+        self.raw = {}  # {tissue_type, organized per tissue
         self.raw_headers = []
         self.tissue_types = []
 
@@ -182,19 +188,41 @@ class GTEx:
     #     """ Downloads descriptions of each eGene attribute and phenotypic variable.
     #     """
 
-    # def get_tissue_types(self):
-    #     """ Returns a list of current tissue types listed in GTEx portal resource.
-    #
-    #         Returns
-    #         -------
-    #         curr_tissues: tissue types (list)
-    #     """
-    #     prim_url_ext = 'eqtls/tissue?tissueName=All'
-    #
-    #     # find the list of entries for the selection box under prim_url_ext
-    #     # iterate through and add them to a list
-    #     # return the list
-    #
+    def get_tissue_types(self):
+        """ Returns a list of current tissue types listed in GTEx portal resource.
+
+            Returns
+            -------
+            curr_tissues: tissue types (list)
+        """
+        curr_tissues = []  # output
+
+        profile = webdriver.FirefoxProfile()
+        # clean up preference setting through that iterative feature used in CS251
+        profile.set_preference("browser.download.folderList", 2)
+        profile.set_preference("browser.download.dir", self.SAVE_SEARCH_DIR)
+        profile.set_preference("browser.helperApps.neverAsk.openFile", "text/html")
+        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/html")
+        temp = profile.userPrefs
+        print temp
+        profile.update_preferences()
+
+        # search GTEx Portal
+        search = self.TISSUE_LOOKUP_URL + "All"
+        driver = webdriver.Firefox(firefox_profile=profile)
+        driver.get(search)
+        time.sleep(5)  # debugging purposes
+
+        # NOTE: Adapt the below to match your puroses for listbox item selection
+        # select option to show 100 - the fewer rounds of scraping the better!
+        # select = Select(driver.find_element_by_name('GeneTable_length'))
+        # final_option = None
+        # for options in select.options:
+        #     final_option = options
+        # select.select_by_visible_text(final_option.text)
+
+        return curr_tissues
+
     # def get_gtex_info(self, gencode_id):
     #     """ Retrieves GTEx info from GTEx Portal.
     #
@@ -212,33 +240,67 @@ class GTEx:
 
         # depending on 'save' parameter, save under tissue format (give get_data some use)
 
-        # using the inputs, search GTEx Portal using requests
-        # add safety check when connecting (status_code==200)
-        # with requests.Session() as session:
-        #     if tissue and self.check_tissue(tissue):  # must be in the GTEx label format (not even groom GTEx format)
-        #         response = session.get(self.TISSUE_LOOKUP_URL + tissue)
-        #         soup = BeautifulSoup(response.text, "lxml")
-        #         content = soup.find_all('td')
-        #
-        #         print content
-        search = self.TISSUE_LOOKUP_URL + tissue
-        print search
+        # r = requests.get('http://www.gtexportal.org/home/eqtls/tissue?tissueName=Uterus')
+        # print r.headers['Content-Type']
+        # return
 
-        driver = webdriver.Firefox()
+        # prevent download dialog
+        profile = webdriver.FirefoxProfile()
+        # clean up preference setting through that iterative feature used in CS251
+
+        profile.set_preference("browser.download.folderList", 2)
+        profile.set_preference("browser.download.dir", self.SAVE_SEARCH_DIR)
+        # profile.set_preference("browser.download.useDownloadDir", True)
+
+        # profile.set_preference("browser.download.manager.showWhenStarting", False)  # don't need to see download dialog
+        # profile.set_preference("browser.download.dir", self.SAVE_SEARCH_DIR + "/output.csv")
+        # profile.set_preference("browser.download.panel.shown", False)
+        # profile.set_preference("browser.download.manager.retention", 2)
+
+        profile.set_preference("browser.helperApps.neverAsk.openFile", "text/plain")
+        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/plain")
+        temp = profile.userPrefs
+        print temp
+        profile.update_preferences()
+
+        # profile.set_preference("browser.helperApps.neverAsk.openFile", "text/csv,application/vnd.ms-excel")
+        # profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/csv,application/vnd.ms-excel")
+
+        # profile.set_preference("browser.helperApps.neverAsk.openFile", "application/x-shockwave-flash")
+        # profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/x-shockwave-flash")
+
+        # profile.set_preference('browser.download.folderList', 2)
+        # profile.set_preference('browser.download.panel.shown', False)
+        # profile.set_preference('browser.download.dir', self.SAVE_SEARCH_DIR)  # specify where to save search results
+        # # only saving most recent search, for now - later change to make it date/time based or something
+        # profile.set_preference('browser.helperApps.neverAsk.openFile', self.SAVE_SEARCH_DIR + "output.csv")
+        # profile.set_preference('browser.helperApps.neverAsk.saveToDisk', self.SAVE_SEARCH_DIR + "output.csv")
+        # profile.set_preference('browser.download.manager.showWhenStarting', False) # don't need to see download dialog
+
+        # using the inputs, search GTEx Portal using selenium
+        search = self.TISSUE_LOOKUP_URL + tissue  # search url
+
+        driver = webdriver.Firefox(firefox_profile=profile)
         driver.get(search)
         time.sleep(5)  # debugging purposes
-        # search_box = driver.find_element_by_name('q')
-        # search_box.send_keys('ChromeDriver')
-        # search_box.submit()
-        # time.sleep(5)  # Let the user actually see something!
-        driver.quit()
 
+        # select option to show 100 - the fewer rounds of scraping the better!
+        select = Select(driver.find_element_by_name('GeneTable_length'))
+        final_option = None
+        for options in select.options:
+            final_option = options
+        select.select_by_visible_text(final_option.text)
 
-        # driver = webdriver.Chrome()
-        # driver.get(self.TISSUE_LOOKUP_URL + tissue)
-        # elem = driver.find_element_by_class_name("odd")
+        time.sleep(5)  # debugging purposes
 
-        print elem
+        # grab from table - click on the CSV button
+        driver.find_element_by_id('ZeroClipboard_TableToolsMovie_5').click()
+
+        # save file ?
+
+        time.sleep(10)  # debugging purposes
+        driver.close()
+        driver.quit()  # check between 'close' + 'quit' - which you need
 
         return results
 
@@ -248,11 +310,11 @@ class GTEx:
         """
 
         # if dealing with hard files -------------------------------- #
-        for fileList in os.walk(self.root_dir):
+        for fileList in os.walk(self.ROOT_DIR):
             for tissueFile in fileList[2]:
-                if tissueFile == 'Uterus_Analysis.snpgenes':
-                    tissue_name, raw_headers, raw_data = self.readGTExFile(self.root_dir + tissueFile)
-                    self.create_eGenes(tissue_name, raw_headers, raw_data)
+                if tissueFile == 'Uterus_Analysis.snpgenes':  # TEMPORARY: only for testing purposes
+                    tissue_name, raw_headers, raw_data = self.readGTExFile(self.ROOT_DIR + tissueFile)
+                    self.upload data(raw_data, tissue_name, raw_headers)  # REMEMBER: assumes SNPs [documentation+]
 
         # if working with online resources -------------------------- #
         page = None
@@ -260,32 +322,34 @@ class GTEx:
         # depending on 'save' parameter, save under tissue format (give get_data some use)
 
         # using the inputs, search GTEx Portal using requests
-        with requests.Session() as session:
-            page = session.get(self.LOOKUP_URL)
+        # with requests.Session() as session:
+        #     page = session.get(self.LOOKUP_URL)
 
-    def create_eGenes(self, tissue_name, headers, data):
-        """ Creates eGene objects (list global organizational structures too) ##
+    def upload_data(self, data, tissue_name, headers):
+        """ Greates a GTExGeneset object that interfaces with the GeneWeaver database.
 
         Parameters
         ----------
-        tissue_name:
+        tissue_name: type of tissue (string)
         headers:
         data:
         """
         self.update_tissues(tissue_name)  # tissue type checked here, will exit if critical error reached
         self.raw[tissue_name] = data  # store raw data per each tissue
-        eGenes = []  # to store eGene objects
+        egenes = []  # to store eGene objects
 
         if not self.raw_headers:
             self.raw_headers = headers  # store raw headers
 
-        for gene in self.raw[tissue_name]:
-            for pos in range(len(self.raw_headers)):
-                g = eGene(gene, tissue_name)  # create an eGene
-                eGenes.append(g)
-                print g.raw_values
-                break  # for editing purposes only
-            break
+        gtex_upload = GTExGeneset(data, tissue_type=tissue_name)
+
+        # for gene in self.raw[tissue_name]:
+        #     for pos in range(len(self.raw_headers)):
+        #         # g = GTExGeneset(gene, tissue_name)  # create an eGene
+        #         # eGenes.append(g)
+        #         print gene
+        #         break  # for editing purposes only
+        #     break
 
     # -------------------------- FOR BATCH [LATER] -------------------------------------------------------------------#
     @staticmethod
@@ -326,75 +390,92 @@ class GTEx:
 
     # def createGeneset(self):
 
-class eGene:
+# essentailly a model of an Uploader? Uses a "trickle-down" method for uploading ---------------------------------
+class GTExGeneset:
+    def __init__(self, values, tissue_type=None):
+
+        self.raw_values = values
+
+        self.snp, self.gene, self.beta, self.t_stat, self.se, self.p_value, \
+            self.nom_thresh, self.min_p, self.gene_emp_p, self.k, self.n, \
+            self.gene_q_value, self.beta_noNorm, self.snp_chrom, self.snp_pos, \
+            self.minor_allele_samples, self.minor_allele_count, self.maf, \
+            self.ref_factor, self.ref, self.alt, self.snp_id_1kg_project_phaseI_v3, \
+            self.rs_id_dbSNP142_GRCh37p13, self.num_alt_per_site, self.has_best_p, \
+            self.is_chosen_snp, self.gene_name, self.gene_source, self.gene_chr, \
+            self.gene_start, self.gene_stop, self.orientation, self.tss_position, \
+            self.gene_type, self.gencode_attributes, self.tss_distance = None
+
+        # data formatting checked here (decipher entry type - can be a 'tissue' file currently)
+        # check to make sure values is a list, adding error messages as necessary
+        if tissue_type:
+            self.setup_tissue(tissue_type)  # if entry type is per tissue, as tissue type must be provided
+
+            # test variable assignment
+            print "self.gene: %s\n" % self.gene
+            print "self.p_value: %s\n" % self.p_value
+
+        # pull all relevant information from parent, prepare for uploading (as a geneset)
+
+    def setup_tissue(self, tissue):
+
+        # IF: format of file such that values listed as snps, in GTEx formatting (from tissue file)
+        if len(self.raw_values) == 36:
+
+            # additional values (if needed later on)
+            variables = [self.snp, self.gene, self.beta, self.t_stat, self.se, self.p_value,
+                         self.nom_thresh, self.min_p, self.gene_emp_p, self.k, self.n,
+                         self.gene_q_value, self.beta_noNorm, self.snp_chrom, self.snp_pos,
+                         self.minor_allele_samples, self.minor_allele_count, self.maf,
+                         self.ref_factor, self.ref, self.alt, self.snp_id_1kg_project_phaseI_v3,
+                         self.rs_id_dbSNP142_GRCh37p13, self.num_alt_per_site, self.has_best_p,
+                         self.is_chosen_snp, self.gene_name, self.gene_source, self.gene_chr,
+                         self.gene_start, self.gene_stop, self.orientation, self.tss_position,
+                         self.gene_type, self.gencode_attributes, self.tss_distance]
+
+            for v in range(len(self.raw_values)):
+                variables[v] = self.raw_values[v]
+        else:
+            # add error message
+            print "nope\n"
+            pass
+
+            # create one gene and snp at a time, so iterate through each line
+
+class eGene(GTExGeneset):
     """ Creates an eGene object that holds all representative information identified in
         GTEx Portal. Takes a list of values and assigns each value to its respective
         global variable.
     """
 
-    def __init__(self, values, tissue_type):
+    def __init__(self, parent):
+        GTExGeneset.__init__(self, values=None, tissue_type=None)
+
+        self.parent = parent
+
         # core values being used
         self.gencode_id = None
         self.gene_symbol = None
         self.nom_pValue = None
         self.emp_pValue = None
         self.qValue = None
-        self.tissue_name = None  # add tissue_type here, checking type first
+        self.tissue_name = None  # add tissue_type here, make sure to type first
 
         # error handling
         self.crit = []
         self.noncrit = []
 
-        print len(values)
+        # pull all relevant information from parent, prepare for uploading
 
-        # check to make sure values is a list, adding error messages as necessary
-        if len(values) == 36:
-            self.raw_values = values
 
-            # additional values (if needed later on)
-            self.snp = values[0]
-            self.gene = values[1]
-            self.beta = values[2]
-            self.t_stat = values[3]
-            self.se = values[4]
-            self.p_value = values[5]
-            self.nom_thresh = values[6]
-            self.min_p = values[7]
-            self.gene_emp_p = values[8]
-            self.k = values[9]
-            self.n = values[10]
-            self.gene_q_value = values[11]
-            self.beta_noNorm = values[12]
-            self.snp_chrom = values[13]
-            self.snp_pos = values[14]
-            self.minor_allele_samples = values[15]
-            self.minor_allele_count = values[16]
-            self.maf = values[17]
-            self.ref_factor = values[18]
-            self.ref = values[19]
-            self.alt = values[20]
-            self.snp_id_1kg_project_phaseI_v3 = values[21]
-            self.rs_id_dbSNP142_GRCh37p13 = values[22]
-            self.num_alt_per_site = values[23]
-            self.has_best_p = values[24]
-            self.is_chosen_snp = values[25]
-            self.gene_name = values[26]
-            print self.gene_name
-            self.gene_source = values[27]
-            self.gene_chr = values[28]
-            self.gene_start = values[29]
-            self.gene_stop = values[30]
-            self.orientation = values[31]
-            self.tss_position = values[32]
-            self.gene_type = values[33]
-            self.gencode_attributes = values[34]
-            self.tss_distance = values[35]
+class SNP(eGene):
+    def __init__(self, parent):
+        eGene.__init__(self, parent)
 
-        else:
-            # add error message
-            print "nope\n"
-            pass
+        # currently assumes a very specific data entry type if called
+        self.parent = parent
 
+        # pull all relevant information from parent, prepare for uploading
 
 # --------------------------------------------- TESTs ----------------------------------------------------------#
 def test_errors():
@@ -433,5 +514,5 @@ def test_query():
 
 if __name__ == '__main__':
     # test_errors()
-    # test_reading()
-    test_query()
+    test_reading()
+    # test_query()
