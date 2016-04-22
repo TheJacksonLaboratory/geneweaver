@@ -1975,8 +1975,10 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
     with PooledCursor() as cursor:
         password_md5 = md5(user_password).hexdigest()
         cursor.execute(
-                '''INSERT INTO usr (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password)
-                        VALUES (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s)''',
+                '''INSERT INTO usr
+                      (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created)
+                   VALUES
+                      (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW())''',
                 {
                     'user_first_name': user_first_name,
                     'user_last_name': user_last_name,

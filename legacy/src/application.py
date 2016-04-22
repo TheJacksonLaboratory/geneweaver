@@ -2148,13 +2148,13 @@ def json_register_successful():
                                      error="There was a problem with your captcha input. Please try again.")
 
     else:
-        # The only data required by reCAPTCHA is secret and response. An
-        # optional parameter, remoteip, containing the end user's IP can also
-        # be appended.
+        ## The only data required by reCAPTCHA is secret and response. An
+        ## optional parameter, remoteip, containing the end user's IP can also
+        ## be appended.
         pdata = {'secret': RECAP_SECRET, 'response': captcha}
         resp = http.request('POST', RECAP_URL, fields=pdata)
 
-    # 200 = OK
+    ## 200 = OK
     if resp.status != 200:
         return flask.render_template('register.html',
                                      error=("There was a problem with the reCAPTCHA servers. "
@@ -2162,8 +2162,8 @@ def json_register_successful():
 
     rdata = json.loads(resp.data)
 
-    # If success is false, the dict should contain an 'error-code.' This
-    # isn't checked currently.
+    ## If success is false, the dict should contain an 'error-code.' This
+    ## isn't checked currently.
     if not rdata['success']:
         return flask.render_template('register.html',
                                      error="Incorrect captcha. Please try again.")
