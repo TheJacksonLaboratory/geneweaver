@@ -47,6 +47,7 @@ class GTEx:
         #   e.g {"status": 404, "message": "Not Found. You have requested this URI [/v6.3/tissues]
         #           but did you mean /v6.2/tissues or /v6/tissues or /v2/tissues ?"}
         # IDEA: try v6.3 and backtrack?
+        self.GTEx_VERSIONS = ['v6', 'v6.2']
         self.BASE_URL = 'http://www.gtexportal.org/home/'
         self.DATASETS_INFO_URL = 'http://www.gtexportal.org/home/datasets'
         self.LOOKUP_URL = 'http://www.gtexportal.org/home/eqtls/tissue?tissueName=All'
@@ -77,8 +78,16 @@ class GTEx:
 
         # SETUP
         # self.launch_FirefoxProfile()  # REMOVE
-        self.get_tissue_info()  # populate variables: self.STATIC_TISSUES and self.tissue_info
-        self.get_tissue_types()  # populates variable: self.tissue_types
+        self.get_tissue_info()  # populates: 'self.STATIC_TISSUES', + builds 'self.tissue_info'
+        self.get_tissues_nomen()  # populates: self.tissue_types
+
+    def update(self):
+        # sets up all the variables needed [add to init + replace SETUP]
+        pass
+
+    def setup_uploader(self):
+
+        pass
 
     def get_errors(self, critical=False, noncritical=False):
         """ Returns error messages. If no additional parameters are filled, or if both
@@ -146,6 +155,8 @@ class GTEx:
         """ Takes in a tissue label and checks that it is a known GTEx tissue. If it is a known
             tissue, returns 'True'. Otherwise, returns 'False', and adds a critical error message.
 
+            Assumes that global list 'self.STATIC_TISSUES' has been populated (for now).
+
         Parameters
         ----------
         tissue: input tissue type (string)
@@ -160,53 +171,165 @@ class GTEx:
         else:
             self.set_errors(critical="Error: The names of input files should contain the tissue type such"
                                      " that the format mimicks '<tissue_type>_Analysis.snpgenes'. Tissue"
-                                     " must already exist among curated GTEx tissues.\n")
+                                     " must already exist among curated GTEx tissues, and contain no"
+                                     " whitespace.\n")
             exists = False
         return exists
 
-    def get_curr_tissues(self, abbrev=False, full=False):
-        """ Returns a list of tissue names that have been processed for querying. If 'abbrev', returns a list
+    def get_tissues_nomen(self):
+        """ Returns a dictionary of all tissues listed in GTEx portal eQTL resource. For each tissue,
+            an abbreviated 'label' is mapped against a full 'title'.
+
+            Returns
+            -------
+            self.tissue_types: dictionary of GTEx curated tissue types {abbrev_label: full_label,}
+        """
+        for header in self.STATIC_TISSUES:
+            self.tissue_types[header] = self.tissue_info[header]['tissue_name']
+
+        return self.tissue_types
+
+    def list_all_tissues(self, label=False, title=False):
+        """ Returns a list of tissue names that have been processed for querying. If 'label', returns a list
             GTEx tissue labels that contain no whitespace or additional information [e.g. "Whole_Blood"]. If
-            'full', returns a list of fully titled lables that match the options given for GTEx Portal's eQTL
+            'title', returns a list of full titles that match the options given for GTEx Portal's eQTL
             service [e.g. "Whole Blood (n=338)"].
 
-            If no params entered, returns a list of 'abbrev' GTEx tissue labels. If both params set to 'True',
-            returns two lists, one for each respective test.
+            If no params entered, returns a list of GTEx tissue labels. If both params set to 'True',
+            returns two lists, one for each respective name (label, title).
 
             In the case that the user wants a list of the full name tissue type labels [e.g. "Whole Blood (n=338)"]
-            instead of "Whole_Blood"], but 'self.tissue_types' hasn't been populated, calls 'get_tissue_types()'
+            instead of "Whole_Blood"], but 'self.tissue_types' hasn't been populated, calls 'get_tissues_nomen()'
             to build this dictionary.
 
         Parameters
         ----------
-        abbrev: boolean indicative of return type style (tissue labels with no whitespace or additional info)
-        full: boolean indicative of return type style (full tissue labels)
+        label: boolean indicative of return type style (tissue labels with no whitespace or additional info)
+        title: boolean indicative of return type style (full tissue titles)
 
         Returns
         -------
-        output_abbrev: list of current GTEx tissues ['abbrev' type]
-        output_full: list of current GTEx tissues ['full' type]
+        output_labels: list of current GTEx tissues ['label' type]
+        output_titles: list of current GTEx tissues ['title' type]
 
         """
         temp_full = []
 
         # make sure that tissue label reference dictionary is populated
         if not self.tissue_types:
-            self.get_tissue_types()
+            self.get_tissues_nomen()
 
-        if not (abbrev or full) or (abbrev and not full):
-            print 'abbrev: %s' % self.raw_data.keys()
+        if not (label or title) or (label and not title):
             return self.raw_data.keys()
-        elif full and not abbrev:
+        elif title and not label:
             for key in self.raw_data.keys():
                 temp_full.append(self.tissue_types[key])
-            print 'full: %s' % temp_full
             return temp_full
         else:
             for key in self.raw_data.keys():
                 temp_full.append(self.tissue_types[key])
-            print 'abbrev + full! \n abbrev: %s \n full: %s\n' % (self.raw_data.keys(), temp_full)
             return self.raw_data.keys(), temp_full
+
+# --------------------------- ONLINE QUERY FUNCTIONS --------------------------------------------------------------- #
+        # if setup -> create criteria to iterate over
+        # otherwise -> use these to cross check user's file input
+
+    def get_tissue_info(self, tissue=None):
+        """ Retrieves GTEx tissue information. If no tissue is specified in the parameters, it populates
+            'self.STATIC_TISSUES', and builds 'self.tissue_info'. If a tissue is specified, assumes that
+            the tissue is GTEx and the label is abbreviated [e.g. "Whole_Blood"].
+
+            Assumes param 'tissue' is an existing GTEx 'label'. Control a user's functional access at top
+            level.
+
+            Dictionary structure for 'self.tissue_info' is such that:
+                {tissue_name: {'has_genes': boolean, 'expressed_gene_count': int, 'tissue_color_hex': str,
+                'tissue_abbrv': str, 'tissue_name': str, 'tissue_id': str, 'tissue_color_rgb': str,
+                'eGene_count': int, 'rna_seq_sample_count': int, 'rna_seq_and_genotype_sample_count': int},}
+
+        Parameters
+        ----------
+        tissue: string representing GTEx label format
+
+        Returns
+        -------
+        tissue, self.tissue_info[tissue]: input string, tissue info  -  if 'tissue'
+        self.tissue_info: dictionary of all tissues + respective info  -  if not 'tissue'
+        """
+
+        if not self.tissue_info:
+            r = requests.get(self.TISSUE_INFO_URL).content
+            temp = json.loads(r)  # nested dicts
+            self.STATIC_TISSUES = map(lambda l: str(l), list(temp))  # list of headers to iterate through dictionary
+
+            for header in self.STATIC_TISSUES:
+                self.tissue_info[header] = {str(key): str(values) for key, values in temp[header].iteritems()}
+
+        if tissue:
+            return tissue, self.tissue_info[tissue]
+        else:
+            return self.tissue_info  # return complete dictionary unless otherwise specified
+
+    def search_tissues(self, tissue=None):
+        """ Returns a dataset containing all the results for a tissue query search. ##
+
+        Parameters
+        ----------
+        tissue: string representing GTEx label format
+
+        Returns
+        -------
+        tissue: param intput (string)
+        output: dictionary of eGene data for respective tissue input
+        """
+        numResults = int(self.tissue_info[tissue]['eGene_count'])
+        # use the link below to target the exact data you want in json format [tissue label, num results]
+        tissue_search = "http://gtexportal.org/api/v6/egenes/%s?draw=1&columns=&order=&start=0&length=%i" \
+                        "&search=&sortDirection=1&_=1461355517690&v=clversion" % (tissue, numResults)
+        r = requests.get(tissue_search).content
+        temp = json.loads(r)  # nested dicts
+        output = temp['data']
+
+        print "%s data for GTEx release '%s'\n" % (tissue, temp['release'])
+        return tissue, output
+
+    def search_gene_symbol(self, gene_symbol=None):
+        """ ### Uses params to pull gene-associated info: basic gene info, significant single-tissue eQTLs per gene,
+            METASOFT eQTL posterior probabilities for gene, multi-tissue eQTL posterior probabilities for gene,
+            splice QTLs (sQTLSeekeR) for gene, protein truncating variants for gene. [Not all ideas need to be
+            acted upon. ###
+
+            if none, returns all results
+
+            for use when users upload files later
+
+        Parameters
+        ----------
+        gene_symbol: string representing the 'name' of the gene
+        """
+        # grab data from something like this:
+        search = "http://www.gtexportal.org/home/gene/EFCAB2"
+        pass
+
+    def search_GTEx(self, tissue=None, gencode_id=None, gene_symbol=None):
+        """ Direct query search of GTEx, using the params provided ####
+
+        Parameters
+        ----------
+        tissue
+        gencode_id
+        gene_symbol
+
+        Returns
+        -------
+        tissue, temp['data']:
+        """
+        # search GTEx - use constituent methods to help build
+
+        if tissue:  # used for get_data() query pull
+            return self.search_tissues(tissue)
+
+            # elif gencode_id:  # used for other query types
 
     def update_resources(self):
         """ Pulls a list of files to use for GTEx initial setup [from source].
@@ -220,172 +343,19 @@ class GTEx:
         # code above not tested at all
         pass
 
-    def get_annotations(self):
-        """ Downloads descriptions of each eGene attribute and phenotypic variable.
+    def update_annotations(self):
+        """ Downloads annotations for each eGene attribute and phenotypic variable.
         """
+        # need to login to get this feature
+        # pull fileset from v6 release
         pass
 
-    def get_tissue_types(self):
-        """ Returns a dictionary of current tissue types listed in GTEx portal eQTL resource. For each tissue,
-            an abbreviated label is mapped against a full label, which includes the size of the sample.
-
-            Returns
-            -------
-            self.tissue_types: dictionary of GTEx curated tissue types {abbrev_label: full_label,}
-        """
-        for header in self.STATIC_TISSUES:
-            self.tissue_types[header] = self.tissue_info[header]['tissue_name']
-
-        return self.tissue_types
-
-    def get_gtex_info(self, gencode_id):
-        """ Retrieves GTEx info from GTEx Portal.
-
-        Parameters
-        ----------
-        gencode_id: GTEx Gene Identifier
-
-        """
-        pass
-        #     # use 'requests' package to pull info from GTEx
-        #     req = requests.get('http://www.gtexportal.org/home/eqtls/tissue?tissueName=All')
-
-    def get_tissue_info(self, tissue=None):
-        """ Retrieves GTEx tissue information. If no tissue is specified in the parameters, it populates
-            'self.STATIC_TISSUES', and builds 'self.tissue_info'. If a tissue is specified,
-
-            Dictionary structure for 'self.tissue_info' is such that:
-                {tissue_name: {'has_genes': boolean,
-
-       'expressed_gene_count': '28631', 'tissue_color_hex': '99FF00', 'tissue_abbrv': 'LUNG', 'tissue_name': 'Lung', 'tissue_id': 'Lung', 'tissue_color_rgb': '153,255,0', 'eGene_count': '7236', 'rna_seq_sample_count': '320', 'rna_seq_and_genotype_sample_count': '278'
-
-
-        Parameters
-        ----------
-        tissue:
-
-        Returns
-        -------
-        tissue, self.tissue_info[tissue]:
-        self.tissue_info:
-        """
-
-        r = requests.get(self.TISSUE_INFO_URL).content
-        temp = json.loads(r)  # nested dicts
-        self.STATIC_TISSUES = map(lambda l: str(l), list(temp))  # list of headers to iterate through dictionary
-
-        for header in self.STATIC_TISSUES:
-            self.tissue_info[header] = {str(key): str(values) for key, values in temp[header].iteritems()}
-
-        if tissue:
-            return tissue, self.tissue_info[tissue]
-        else:
-            return self.tissue_info  # return complete dictionary unless otherwise specified
-
-    def launch_FirefoxProfile(self):
-        self.profile = wd.FirefoxProfile()
-        # clean up preference setting through that iterative feature used in CS251
-
-        self.profile.set_preference("browser.download.folderList", 2)
-        self.profile.set_preference("browser.download.dir", self.SAVE_SEARCH_DIR)
-        # profile.set_preference("browser.download.useDownloadDir", True)
-
-        self.profile.set_preference("browser.download.manager.showWhenStarting", False)  # don't need to see download
-        # profile.set_preference("browser.download.dir", self.SAVE_SEARCH_DIR + "/output.csv")
-        # profile.set_preference("browser.download.panel.shown", False)
-        # profile.set_preference("browser.download.manager.retention", 2)
-
-        self.profile.set_preference("browser.helperApps.neverAsk.openFile", "application/x-shockwave-flash")
-        self.profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/x-shockwave-flash")
-        self.profile.update_preferences()  # check to make sure that this is necessary
-
-    def search_GTEx(self, save=False, tissue=None, gencode_id=None, gene_symbol=None):
-        results = None
-
-        # depending on 'save' parameter, save under tissue format (give get_data some use)
-
-        # NEW PLAN
-        # use the link below to target the exact data you want in json format
-        search = "http://gtexportal.org/api/v6/egenes/Uterus?draw=1&columns=&order=&start=0&length=10&search=&sortDirection=1&_=1461355517690&v=clversion"
-
-        # first, grab label depicting total number of results, num, or use the tissue name to index into tissue info
-        #   [see get_tissue_info for more details]
-        # ammend the above URL to take length=num
-        # copy and save the data under a sensible title, groom the JSON data with a JSON data handler?
-
-        self.display.start()
-
-        r = requests.get(search)
-        print r.headers
-        return
-
-        # prevent download dialog
-
-
-        # using the inputs, search GTEx Portal using selenium
-        # search = self.TISSUE_LOOKUP_URL + tissue  # search url
-
-        driver = wd.Firefox(firefox_profile=self.profile)
-        driver.get(search)
-
-        print output
-
-        # select option to show 100 - the fewer rounds of scraping the better!
-        sel = Select(driver.find_element_by_name('GeneTable_length'))
-        final_option = None
-        for options in sel.options:
-            final_option = options
-        sel.select_by_visible_text(final_option.text)
-        # selenium.wait_for_page_to_load(sel.select_by_visible_text(final_option.text), "5000")
-
-        # grab from table - click on the CSV button
-        driver.find_element_by_id('ZeroClipboard_TableToolsMovie_5').click()
-        selenium.wait_for_frame_to_load()
-        selenium.wait_for_page_to_load(driver.find_element_by_id('ZeroClipboard_TableToolsMovie_5').
-            find_element_by_link_text(
-            "http://www.gtexportal.org/home/media/DataTables-1.10.3/extensions/TableTools/swf/copy_csv_xls.swf"),
-            "5000")
-
-        driver.switch_to.active_element()
-
-        time.sleep(5)
-
-        # driver.switch_to.active_element.accept()
-
-        # save file ?
-
-        # time.sleep(10)  # debugging purposes
-        driver.close()
-        driver.quit()  # check between 'close' + 'quit' - which you need
-        self.display.stop()
-
-        return results
-
-    def get_data(self):
-        """ Initializes significant eGenes from GTEx Portal. Creates eGene objects for
-            each significant gene. ## add distinct file options
-        """
-
-        # if dealing with hard files -------------------------------- #
-        # for fileList in os.walk(self.ROOT_DIR):
-        #     for tissueFile in fileList[2]:
-        #         if tissueFile == 'Uterus_Analysis.snpgenes':  # TEMPORARY: only for testing purposes
-        #             tissue_name, raw_headers, raw_data = self.readGTExFile(self.ROOT_DIR + tissueFile)
-        #             self.upload data(raw_data, tissue_name, raw_headers)  # REMEMBER: assumes SNPs [documentation+]
-
-        # if working with online resources -------------------------- #
-        page = None
-
-        # depending on 'save' parameter, save under tissue format (give get_data some use)
-
-        # using the inputs, search GTEx Portal using requests
-        # with requests.Session() as session:
-        #     page = session.get(self.LOOKUP_URL)
-
-        pass
+    # -------------------------- UPLOADER HANDLING  ----------------------------------------------------------#
 
     def upload_data(self, data, tissue_name, headers):
         """ Greates a GTExGeneSet object that interfaces with the GeneWeaver database.
+
+            # for uses other than initial db setup
 
         Parameters
         ----------
@@ -413,13 +383,35 @@ class GTEx:
                 #     break
 
     def upload_dataset(self, dataset, tissue_name, headers):
+        """ Initializes significant eGenes from GTEx Portal. Creates eGene objects for
+            each significant gene. ## add distinct file options
 
-        # see get_data() + take a large chunk of the code following "if dealing with hard files"
-        # iterate through each eSNP line of the data, calling upload_data
+            # for uses other than initial db setup
+        """
+        # use get_data to retrieve what you want to upload
 
+        # iterate through each eSNP line of the data, calling upload_data()
+        # if dealing with hard files -------------------------------- #
+        #   SEE - GTEx Data Structure: Dataset in NOTES
+        # for each eSNP line of data
+        # self.upload data(raw_data, tissue_name, raw_headers)  # REMEMBER: assumes SNPs [documentation+]
+
+        # if working with online resources -------------------------- #
+        #   SEE - GTEx Data Structure: Dataset in NOTES
+        page = None
+        # walk through each tissue in tissue_info{}
+        # use search_GTEx to gather info
+
+        # depending on 'save' parameter, save under tissue format (give get_data some use)
+        #   SEE - GTEx Data Structure: Dataset in NOTES
+
+        # using the inputs, search GTEx Portal using requests
+        # with requests.Session() as session:
+        #     page = session.get(self.LOOKUP_URL)
         pass
 
-    # -------------------------- FOR BATCH [LATER] -------------------------------------------------------------------#
+    # -------------------------- DATABASE SETUP  ---------------------------------------------------------------#
+    # use the below to provide additional eQTL? or just update this too?
     @staticmethod
     def readGTExFile(fp):
         """ Reads the file at the given filepath and returns tissue name (provided by the filename),
@@ -456,40 +448,81 @@ class GTEx:
 
         return tissue_name, temp_headers, temp_data
 
-        # def createGeneset(self):
+    def databse_setup(self, hard=None, online=None):
+        """ ### Gathers data from hard files, or from online resources. Returns something that
+            upload_data nad upload_dataset can deal with ###
+
+            only use is to set up geneweaver's database (should be done only once)
+
+        """
+        # if dealing with hard files -------------------------------- #
+        if hard:
+            for fileList in os.walk(self.ROOT_DIR):
+                for tissueFile in fileList[2]:
+                    if tissueFile == 'Uterus_Analysis.snpgenes':  # TEMPORARY: only for testing purposes
+                        tissue_name, raw_headers, raw_data = self.readGTExFile(self.ROOT_DIR + tissueFile)
+
+        # if working with online resources -------------------------- #
+        elif online:
+            pass
+            # walk through each tissue in tissue_info{}
+            # use search_GTEx to gather info
+        pass
 
 
 # essentailly a model of an Uploader? Uses a "trickle-down" method for uploading ---------------------------------
+# add error handling
 class GTExGeneSet:
-    def __init__(self, parent, values, tissue_type=None):
+    """ ### Acts as the uploader interface for GTEx and GW ###
+            specify param types, what happens, and how it passes info along
+
+    """
+    # right now, per tissue for setup hard_file
+
+    def __init__(self, values, tissue_type=None, batch='file'):
+        # file = values are from a user file for SQL upload to GeneWeaver
+        # [DEV] hardFile = values are from a database setup file
+        # online = values are from direct online queries (see GTEx)
+
+        # all the database startup stuff goes here
 
         self.raw_values = values
-        self.GTEx = parent  #
+        self.batch_type = batch  # DELETE? currently - tissues
+        self.eGenes = {}
+        self.eQTLs = {}
+        self.tissue = tissue_type
 
-        self.snp, self.gene, self.beta, self.t_stat, self.se, self.p_value, \
-        self.nom_thresh, self.min_p, self.gene_emp_p, self.k, self.n, \
-        self.gene_q_value, self.beta_noNorm, self.snp_chrom, self.snp_pos, \
-        self.minor_allele_samples, self.minor_allele_count, self.maf, \
-        self.ref_factor, self.ref, self.alt, self.snp_id_1kg_project_phaseI_v3, \
-        self.rs_id_dbSNP142_GRCh37p13, self.num_alt_per_site, self.has_best_p, \
-        self.is_chosen_snp, self.gene_name, self.gene_source, self.gene_chr, \
-        self.gene_start, self.gene_stop, self.orientation, self.tss_position, \
-        self.gene_type, self.gencode_attributes, self.tss_distance = None
-
-        # data formatting checked here (decipher entry type - can be a 'tissue' file currently)
+        # data formatting checked here
         # check to make sure values is a list, adding error messages as necessary
-        if tissue_type:
-            self.setup_tissue(tissue_type)  # if entry type is per tissue, as tissue type must be provided
+        if self.batch_type == 'hard_file':
+            # create eGene objects, storing in self.eGenes
+            # create eQTL objects, storing in self.eQTLs
 
-            # test variable assignment
-            print "self.gene: %s\n" % self.gene
-            print "self.p_value: %s\n" % self.p_value
+            self.snp, self.gene, self.beta, self.t_stat, self.se, self.p_value, \
+                self.nom_thresh, self.min_p, self.gene_emp_p, self.k, self.n, \
+                self.gene_q_value, self.beta_noNorm, self.snp_chrom, self.snp_pos, \
+                self.minor_allele_samples, self.minor_allele_count, self.maf, \
+                self.ref_factor, self.ref, self.alt, self.snp_id_1kg_project_phaseI_v3, \
+                self.rs_id_dbSNP142_GRCh37p13, self.num_alt_per_site, self.has_best_p, \
+                self.is_chosen_snp, self.gene_name, self.gene_source, self.gene_chr, \
+                self.gene_start, self.gene_stop, self.orientation, self.tss_position, \
+                self.gene_type, self.gencode_attributes, self.tss_distance = None
 
+            self.geneweaver_setup_handler()  # if entry type is per tissue, as tissue type must be provided
             # pull all relevant information from parent, prepare for uploading (as a geneset)
 
-    def setup_tissue(self, tissue):
+        elif self.batch_type == 'online':
+            # create eGene objects, storing in self.eGenes
+            self.online_handler()
 
+        elif self.batch_type == 'file':
+            self.file_handler()
+
+    def geneweaver_setup_handler(self):
+        """ Preps upload if using hard files to upload data.
+        """
         # IF: format of file such that values listed as snps, in GTEx formatting (from tissue file)
+        # NOTE: below has not been tested
         if len(self.raw_values) == 36:
 
             # additional values (if needed later on)
@@ -509,9 +542,37 @@ class GTExGeneSet:
             # add error message
             print "nope\n"
             pass
-
             # create one gene and snp at a time, so iterate through each line
 
+    def online_handler(self):
+        """ Preps upload if using GTEx source to upload data. """
+        # slightly different format? or should aim to do it all?
+        # might be useful for making genesets for users - for cross checking?
+        pass
+
+    def file_handler(self):
+        """ Preps upload if using user-input file as a source for data uploading. """
+        # slightly different format? or should aim to do it all?
+        # might be useful for making genesets for users - for cross checking?
+        pass
+
+    def create_genes(self):
+        """ eGene object init
+        """
+        # create eGene
+        pass
+
+    def create_qtls(self):
+        """ eQTL object init"""
+        pass
+
+    def upload_genes(self):
+        """ Uploads to GW DB using SQl"""
+        pass
+
+    def upload_qtls(self):
+        """ Uploads to GW DB using SQL"""
+        pass
 
 class eGene(GTExGeneSet):
     """ Creates an eGene object that holds all representative information identified in
@@ -520,11 +581,11 @@ class eGene(GTExGeneSet):
     """
 
     def __init__(self, parent):
-        GTExGeneSet.__init__(self, parent, values=None, tissue_type=None)
+        GTExGeneSet.__init__(self, values=None, tissue_type=None)
 
         self.parent = parent
 
-        # core values being used
+        # core values being used - REMEMBER: pass along from parent, don't leave these as 'None'
         self.gencode_id = None
         self.gene_symbol = None
         self.nom_pValue = None
@@ -536,8 +597,10 @@ class eGene(GTExGeneSet):
         self.crit = []
         self.noncrit = []
 
-        # pull all relevant information from parent, prepare for uploading
+        # store subsequent eQTLs
+        self.eQTLs = {}  # {name: eQTL obj,}
 
+        # pull all relevant information from parent, prepare for uploading
 
 class eQTL(eGene):
     def __init__(self, parent):
@@ -545,6 +608,13 @@ class eQTL(eGene):
 
         # currently assumes a very specific data entry type if called
         self.parent = parent
+        self.gencode_id = None
+        self.gene_symbol = None
+        self.p_value = None
+        self.effect_size = None
+        self.tissue = None
+
+        self.rsid = None
 
         # pull all relevant information from parent, prepare for uploading
 
@@ -581,8 +651,9 @@ def test_query():
     print "TEST: GTEx data scraping.\n"
 
     g = GTEx()
-    results = g.search_GTEx(tissue="Uterus")  # ammend after full changes are made
+    g.search_GTEx(tissue="Uterus")  # ammend after full changes are made
 
+    # results = g.search_GTEx(tissue="Uterus")  # ammend after full changes are made
     # print results  # add a better final print statement
 
 
@@ -628,10 +699,10 @@ def test_getTissueInfo():
 if __name__ == '__main__':
     # ACTIVELY WRITING / DEBUGGING METHODS
     # test_reading()
-    # test_query()
+    test_query()
 
     # FUNCTIONING METHODS
     # test_errors()
     # test_getTissue()
     # test_getCurrTissue()
-    test_getTissueInfo()
+    # test_getTissueInfo()
