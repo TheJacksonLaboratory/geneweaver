@@ -961,11 +961,14 @@ def render_viewgeneset(gs_id):
     if 'extsrc' in session:
         if genedict.get(session['extsrc'], None):
             altGeneSymbol = genedict[session['extsrc']]
+            alt_gdb_id = session['extsrc']
 
         else:
             altGeneSymbol = 'Entrez'
+            alt_gdb_id = 1
     else:
         altGeneSymbol = 'Entrez'
+        alt_gdb_id = 1
 
     emphgenes = {}
     emphgeneids = []
@@ -1001,7 +1004,7 @@ def render_viewgeneset(gs_id):
                                  emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
                                  altGeneSymbol=altGeneSymbol, view=view,
-                                 ontology=ontology)
+                                 ontology=ontology, alt_gdb_id=alt_gdb_id)
 
 
 # Function that calls the overlap page

@@ -2455,7 +2455,6 @@ class GenesetValue:
         #self.hom = list(set(gsv_dict['hom']))  # had to remove duplicates from list
         self.hom_id = gsv_dict['hom_id']
         self.hom = get_species_homologs(self.hom_id)
-        print self.hom
         self.gene_rank = ((float(gsv_dict['gene_rank']) / 0.15) * 100)
         #self.ode_ref = gsv_dict['ode_ref']
         self.ode_ref = gsv_dict['ode_ref_id']
@@ -2546,7 +2545,7 @@ def get_species_homologs(hom_id):
             FROM homology
             WHERE hom_id = %s''', (hom_id,))
 
-    return map(lambda l: l[0], list(cursor))
+    return map(lambda l: l[0], set(cursor))
 
 def get_geneset_values(geneset_id):
     """

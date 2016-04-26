@@ -118,22 +118,16 @@
                                     </strong>
                                 </td>
                                 <td>
-                                    {# I needed to do some fancy array mapping to determine null values
-                                     if the first and last value of the array are the same, then the value exists;
-                                     otherwise, if they are the same AND altGeneSymbol==Symbol, then it exists. #}
-                                    {% if geneset_value.ode_ref | first == geneset_value.ode_ref | last %}
-                                        {% if altGeneSymbol == 'Symbol' %}
+                                    {# If the alternate ID type the user selected doesn't match the one belonging
+                                       to the geneset_value, it means no alternate type exists for that gene and a
+                                       default was used instead. #}
+                                    {% if geneset_value.gdb_id == alt_gdb_id %}
                                             <strong>
-                                                {#  {{ geneset_value.ode_ref[0] }} #}
                                                 {{ geneset_value.ode_ref }}
                                             </strong>
-                                        {% else %}
-                                            None
-                                        {% endif %}
                                     {% else %}
                                         <strong>
-                                            {#  {{ geneset_value.ode_ref[0] }} #}
-                                            {{ geneset_value.ode_ref }}
+                                            None
                                         </strong>
                                     {% endif %}
                                 </td>
