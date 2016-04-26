@@ -86,7 +86,7 @@ class GTEx:
         pass
 
     def setup_uploader(self):
-
+        # will probably end up containing content in database_setup() test method
         pass
 
     def get_errors(self, critical=False, noncritical=False):
@@ -329,7 +329,9 @@ class GTEx:
         if tissue:  # used for get_data() query pull
             return self.search_tissues(tissue)
 
-            # elif gencode_id:  # used for other query types
+        # elif gencode_id:  # used for other query types
+        # elif gene_symbol:
+        # elif rsid:
 
     def update_resources(self):
         """ Pulls a list of files to use for GTEx initial setup [from source].
@@ -455,19 +457,25 @@ class GTEx:
             only use is to set up geneweaver's database (should be done only once)
 
         """
+        gtex_sets = {}
+        # if this is how you decide to leave it, make sure that you're linking the appropriate headers
+        # and stuff, otherwise this may as well be its own class!
+
         # if dealing with hard files -------------------------------- #
         if hard:
             for fileList in os.walk(self.ROOT_DIR):
                 for tissueFile in fileList[2]:
                     if tissueFile == 'Uterus_Analysis.snpgenes':  # TEMPORARY: only for testing purposes
                         tissue_name, raw_headers, raw_data = self.readGTExFile(self.ROOT_DIR + tissueFile)
+                        g = GTExGeneSet(values=raw_data, tissue_type=tissue_name, batch='hard_file')
+                        gtex_sets[tissue_name] = g
 
         # if working with online resources -------------------------- #
         elif online:
             pass
             # walk through each tissue in tissue_info{}
             # use search_GTEx to gather info
-        pass
+        return gtex_sets
 
 
 # essentailly a model of an Uploader? Uses a "trickle-down" method for uploading ---------------------------------
@@ -479,7 +487,7 @@ class GTExGeneSet:
     """
     # right now, per tissue for setup hard_file
 
-    def __init__(self, values, tissue_type=None, batch='file'):
+    def __init__(self, values, tissue_type=None, batch='file'):  # assumes a user file input
         # file = values are from a user file for SQL upload to GeneWeaver
         # [DEV] hardFile = values are from a database setup file
         # online = values are from direct online queries (see GTEx)
@@ -655,6 +663,12 @@ def test_query():
 
     # results = g.search_GTEx(tissue="Uterus")  # ammend after full changes are made
     # print results  # add a better final print statement
+
+def test_dbSetup():
+    """ Tests the setup process for primary GeneWeaver upload."""
+
+    g = GTEx()
+    result = g.setup
 
 
 def test_getTissue():
