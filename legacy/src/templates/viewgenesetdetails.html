@@ -124,14 +124,16 @@
                                     {% if geneset_value.ode_ref | first == geneset_value.ode_ref | last %}
                                         {% if altGeneSymbol == 'Symbol' %}
                                             <strong>
-                                                {{ geneset_value.ode_ref[0] }}
+                                                {#  {{ geneset_value.ode_ref[0] }} #}
+                                                {{ geneset_value.ode_ref }}
                                             </strong>
                                         {% else %}
                                             None
                                         {% endif %}
                                     {% else %}
                                         <strong>
-                                            {{ geneset_value.ode_ref[0] }}
+                                            {#  {{ geneset_value.ode_ref[0] }} #}
+                                            {{ geneset_value.ode_ref }}
                                         </strong>
                                     {% endif %}
                                 </td>

@@ -2453,7 +2453,9 @@ class GenesetValue:
         self.is_in_threshold = gsv_dict['gsv_in_threshold']
         self.date = gsv_dict['gsv_date']
         #self.hom = list(set(gsv_dict['hom']))  # had to remove duplicates from list
-        self.hom = gsv_dict['hom_id']
+        self.hom_id = gsv_dict['hom_id']
+        self.hom = get_species_homologs(self.hom_id)
+        print self.hom
         self.gene_rank = ((float(gsv_dict['gene_rank']) / 0.15) * 100)
         #self.ode_ref = gsv_dict['ode_ref']
         self.ode_ref = gsv_dict['ode_ref_id']
@@ -2544,7 +2546,7 @@ def get_species_homologs(hom_id):
             FROM homology
             WHERE hom_id = %s''', (hom_id,))
 
-    return list(cursor)
+    return map(lambda l: l[0], list(cursor))
 
 def get_geneset_values(geneset_id):
     """
@@ -2595,15 +2597,22 @@ def get_geneset_values(geneset_id):
                    gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
                    gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
             FROM geneset_value AS gsv
-            INNER JOIN homology AS h
+            LEFT OUTER JOIN homology AS h
             ON gsv.ode_gene_id = h.ode_gene_id
-            INNER JOIN gene_info AS gi
+            LEFT OUTER JOIN gene_info AS gi
             ON gsv.ode_gene_id = gi.ode_gene_id
-            INNER JOIN gene AS g
+            LEFT OUTER JOIN gene AS g
             ON gsv.ode_gene_id = g.ode_gene_id
             WHERE gsv.gs_id = %s AND
-                  g.gdb_id = %s AND
-                  -- Gene symbols (id == 7) always use the preferred reference
+                  -- This checks to see if the alternate symbol the user wants to view actually exists
+                  -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
+                  -- returned then there would be missing genes on the view geneset page.
+                  g.gdb_id = (SELECT COALESCE (
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+                  ))
+                  AND
+                  -- When viewing symbols, always pick the preferred gene symbol
                   CASE WHEN g.gdb_id = 7
                   THEN g.ode_pref = 't'
                   ELSE true
