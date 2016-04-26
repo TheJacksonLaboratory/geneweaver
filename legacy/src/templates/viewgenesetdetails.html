@@ -110,14 +110,14 @@
 
                     {% for geneset_value in geneset.geneset_values %}
                             <tr>
-                                <td>
+                                <td id="defaultSymbol">
                                     <strong>
                                         <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
                                             {{ geneset_value.source_list[0] }}
                                         </a>
                                     </strong>
                                 </td>
-                                <td>
+                                <td id="altSymbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
                                     {# If the alternate ID type the user selected doesn't match the one belonging
                                        to the geneset_value, it means no alternate type exists for that gene and a
                                        default was used instead. #}
@@ -355,19 +355,34 @@
 
             $('#selectGeneType').on('click', function (e) {
                 var val = $('.dropdown-menu li a').parents('.btn-group')
-					.find('[data-bind="label"]' )
-					.text().replace(/[\n\s\xA0]+/g, '_');
+                        .find('[data-bind="label"]').text();
 
-                $.trim(val);
-
+                val = $.trim(val);
 
                 $.ajax({
                     type: "GET",
                     url: "../updateAltGeneSymbol",
                     data: {"altSymbol": val, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
-                    success: function (data) {
-						console.log(data);
-                        location.reload();
+                    success: function (genesetValues) {
+                        genesetValues = JSON.parse(genesetValues);
+
+                        for (var i = 0; i < genesetValues.length; i++) {
+
+                            var gsv = genesetValues[i];
+                            var odeId = gsv['ode_gene_id'];
+                            var gdbId = gsv['gdb_id'];
+                            var refId = gsv['ode_ref_id'];
+                            var altId = gsv['alt_gene_id'];
+                            // Should check if this is null and handle
+                            var altElement = $.find('[ode-gene-id="' + odeId + '"]')[0];
+
+                            // Indicates an alternate ID type does exist for
+                            // this particular gene
+                            if (gdbId == altId)
+                                $(altElement).html('<strong>' + refId + '</strong>');
+                            else
+                                $(altElement).html('<strong>None</strong>');
+                        }
                     }
                 })
 

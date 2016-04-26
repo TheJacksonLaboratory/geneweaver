@@ -1996,18 +1996,15 @@ def render_user_results():
 
 @app.route('/updateAltGeneSymbol')
 def update_alternate_gene_symbol():
-    val = request.args['altSymbol']
+    alt_symbol = request.args['altSymbol']
+    gs_id = request.args['gs_id']
+    user_id = request.args['user_id']
 
-    if type(val) != str:
-        val = str(val)
+    if type(alt_symbol) != str:
+        alt_symbol = str(alt_symbol)
 
-    # Spaces are replaced with '_' client side prior to sending to server
-    val = val.replace('_', ' ')
-    # Incoming data has a _ prepended to it for some reason, should look at
-    # client code and see what's going on
-    val = val.strip()
     # Lowercase comparisons because there were capitalization problems
-    val = val.lower()
+    alt_symbol = alt_symbol.lower()
 
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
@@ -2015,13 +2012,24 @@ def update_alternate_gene_symbol():
     for gtype in genetypes:
         genedict[gtype['gdb_name'].lower()] = gtype['gdb_id']
 
-    if genedict.get(val, None):
-        session['extsrc'] = genedict[val]
-
+    if genedict.get(alt_symbol, None):
+        session['extsrc'] = genedict[alt_symbol]
+        alt_gene_id = session['extsrc']
     else:
         session['extsrc'] = 1
+        alt_gene_id = session['extsrc']
 
-    return json.dumps(request.args)
+    ## Retrieves the geneset but using the new alternate symbol ID
+    gs = geneweaverdb.get_geneset(gs_id, user_id)
+    geneset_values = []
+
+    for gsv in gs.geneset_values:
+        geneset_values.append({'ode_gene_id': gsv.ode_gene_id,
+                               'ode_ref_id': gsv.ode_ref,
+                               'gdb_id': gsv.gdb_id,
+                               'alt_gene_id': alt_gene_id})
+
+    return json.dumps(geneset_values)
 
 
 @app.route('/updateGenesetSpecies', methods=['GET'])
