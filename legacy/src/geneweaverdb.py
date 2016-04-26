@@ -2556,21 +2556,17 @@ def get_geneset_values(geneset_id):
     :returns to geneset class.
     """
     s = ' ORDER BY gsv.gs_id ASC'
-    #s = ' ORDER BY a.gs_id ASC'
+
     if 'sort' in session:
         d = session['dir']
         if session['sort'] == 'value':
             s = ' ORDER BY gsv.gsv_value ' + d
-            #s = ' ORDER BY a.gsv_value ' + d
         elif session['sort'] == 'priority':
             s = ' ORDER BY gi.gene_rank ' + d
-            #s = ' ORDER BY a.gene_rank ' + d
         elif session['sort'] == 'symbol':
             s = ' ORDER BY gsv.gsv_source_list ' + d
-            #s = ' ORDER BY a.gsv_source_list ' + d
         elif session['sort'] == 'alt':
             s = ' ORDER BY g.ode_ref ' + d
-            #s = ' ORDER BY a.ode_ref ' + d
 
     ode_ref = '1'
     if 'extsrc' in session:
@@ -2578,29 +2574,16 @@ def get_geneset_values(geneset_id):
 
 
     with PooledCursor() as cursor:
-         #cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
-        #cursor.execute('''SELECT a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-		#  a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id
-		#  FROM
-		#	(SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id, g.gdb_id) AS hom, gi.gene_rank,
-		#	  array_agg(g.ode_ref_id) OVER (partition BY g.ode_gene_id) AS ode_ref,
-		#	  array_agg(g.gdb_id) OVER (partition BY g.ode_gene_id) AS gdb_id
-		#	  FROM homology h, homology i, geneset_value gsv, gene_info gi, gene g
-		#	  WHERE i.hom_source_id=h.hom_source_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id
-		#	  AND gsv.ode_gene_id=g.ode_gene_id
-		#	  AND (g.gdb_id=%s OR (g.gdb_id=7 AND g.ode_pref='t')) AND gsv.gs_id=%s)
-		#	  AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-		#		a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id''' + s, (ode_ref, geneset_id,))
         cursor.execute('''
             SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
                    gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
                    gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
             FROM geneset_value AS gsv
-            LEFT OUTER JOIN homology AS h
+            INNER JOIN homology AS h
             ON gsv.ode_gene_id = h.ode_gene_id
-            LEFT OUTER JOIN gene_info AS gi
+            INNER JOIN gene_info AS gi
             ON gsv.ode_gene_id = gi.ode_gene_id
-            LEFT OUTER JOIN gene AS g
+            INNER JOIN gene AS g
             ON gsv.ode_gene_id = g.ode_gene_id
             WHERE gsv.gs_id = %s AND
                   -- This checks to see if the alternate symbol the user wants to view actually exists
