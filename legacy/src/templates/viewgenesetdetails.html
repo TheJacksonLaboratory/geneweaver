@@ -97,8 +97,15 @@
                     <tbody>
                     <tr>
                         <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=symbol"><i class="fa fa-sort"></i></a> Default</th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt"><i class="fa fa-sort"></i></a> {{ altGeneSymbol }}
-                            <span id="clickableGeneSymbol"><i class="fa fa-gear"></i></span></th>
+                        <th>
+                            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt">
+                                <i class="fa fa-sort"></i>
+                            </a>
+                            <span id="altSymbolHeader">{{ altGeneSymbol }}</span>
+                            <span id="clickableGeneSymbol">
+                                <i class="fa fa-gear"></i>
+                            </span>
+                        </th>
                         <th>Homology <span id="clickableHomology" data-trigger="hover"><i class="fa fa-info-circle"></i></span></th>
                         <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Value</th>
                         <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority"><i class="fa fa-sort"></i></a> Priority
@@ -375,6 +382,8 @@
                             var altId = gsv['alt_gene_id'];
                             // Should check if this is null and handle
                             var altElement = $.find('[ode-gene-id="' + odeId + '"]')[0];
+
+                            $('#altSymbolHeader').html(val);
 
                             // Indicates an alternate ID type does exist for
                             // this particular gene
