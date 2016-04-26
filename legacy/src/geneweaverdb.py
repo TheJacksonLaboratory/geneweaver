@@ -2452,9 +2452,11 @@ class GenesetValue:
         self.value_list = gsv_dict['gsv_value_list']
         self.is_in_threshold = gsv_dict['gsv_in_threshold']
         self.date = gsv_dict['gsv_date']
-        self.hom = list(set(gsv_dict['hom']))  # had to remove duplicates from list
+        #self.hom = list(set(gsv_dict['hom']))  # had to remove duplicates from list
+        self.hom = gsv_dict['hom_id']
         self.gene_rank = ((float(gsv_dict['gene_rank']) / 0.15) * 100)
-        self.ode_ref = gsv_dict['ode_ref']
+        #self.ode_ref = gsv_dict['ode_ref']
+        self.ode_ref = gsv_dict['ode_ref_id']
         self.gdb_id = gsv_dict['gdb_id']
 
 
@@ -2523,6 +2525,26 @@ def get_all_geneset_values(gs_id):
 							  g.ode_pref='t' ORDER BY gv.gsv_value ASC''', (gs_id,))
         return list(dictify_cursor(cursor)) if cursor.rowcount != 0 else None
 
+def get_species_homologs(hom_id):
+    """
+    Uses a given homology ID to return a list of homologous species.
+
+    :type hom_id: int (const)
+    :param hom_id: Homology ID
+
+    :return:
+    """
+
+    if not hom_id:
+        return []
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT sp_id
+            FROM homology
+            WHERE hom_id = %s''', (hom_id,))
+
+    return list(cursor)
 
 def get_geneset_values(geneset_id):
     """
@@ -2532,38 +2554,61 @@ def get_geneset_values(geneset_id):
     :param geneset_id:
     :returns to geneset class.
     """
-    s = ' ORDER BY a.gs_id ASC'
+    s = ' ORDER BY gsv.gs_id ASC'
+    #s = ' ORDER BY a.gs_id ASC'
     if 'sort' in session:
         d = session['dir']
         if session['sort'] == 'value':
-            s = ' ORDER BY a.gsv_value ' + d
+            s = ' ORDER BY gsv.gsv_value ' + d
+            #s = ' ORDER BY a.gsv_value ' + d
         elif session['sort'] == 'priority':
-            s = ' ORDER BY a.gene_rank ' + d
+            s = ' ORDER BY gi.gene_rank ' + d
+            #s = ' ORDER BY a.gene_rank ' + d
         elif session['sort'] == 'symbol':
-            s = ' ORDER BY a.gsv_source_list ' + d
+            s = ' ORDER BY gsv.gsv_source_list ' + d
+            #s = ' ORDER BY a.gsv_source_list ' + d
         elif session['sort'] == 'alt':
-            s = ' ORDER BY a.ode_ref ' + d
+            s = ' ORDER BY g.ode_ref ' + d
+            #s = ' ORDER BY a.ode_ref ' + d
 
     ode_ref = '1'
     if 'extsrc' in session:
         ode_ref = session['extsrc']
-    # print session['extsrc']
 
 
     with PooledCursor() as cursor:
-        # cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
-        cursor.execute('''SELECT a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-		  a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id
-		  FROM
-			(SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id, g.gdb_id) AS hom, gi.gene_rank,
-			  array_agg(g.ode_ref_id) OVER (partition BY g.ode_gene_id) AS ode_ref,
-			  array_agg(g.gdb_id) OVER (partition BY g.ode_gene_id) AS gdb_id
-			  FROM homology h, homology i, geneset_value gsv, gene_info gi, gene g
-			  WHERE i.hom_source_id=h.hom_source_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id
-			  AND gsv.ode_gene_id=g.ode_gene_id
-			  AND (g.gdb_id=%s OR (g.gdb_id=7 AND g.ode_pref='t')) AND gsv.gs_id=%s)
-			  AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
-				a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id''' + s, (ode_ref, geneset_id,))
+         #cursor.execute('''SELECT * FROM geneset_value WHERE gs_id=%s;''', (geneset_id,))
+        #cursor.execute('''SELECT a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
+		#  a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id
+		#  FROM
+		#	(SELECT gsv.*, array_agg(h.sp_id) OVER (partition BY gsv.ode_gene_id, g.gdb_id) AS hom, gi.gene_rank,
+		#	  array_agg(g.ode_ref_id) OVER (partition BY g.ode_gene_id) AS ode_ref,
+		#	  array_agg(g.gdb_id) OVER (partition BY g.ode_gene_id) AS gdb_id
+		#	  FROM homology h, homology i, geneset_value gsv, gene_info gi, gene g
+		#	  WHERE i.hom_source_id=h.hom_source_id AND i.ode_gene_id=gsv.ode_gene_id AND gsv.ode_gene_id=gi.ode_gene_id
+		#	  AND gsv.ode_gene_id=g.ode_gene_id
+		#	  AND (g.gdb_id=%s OR (g.gdb_id=7 AND g.ode_pref='t')) AND gsv.gs_id=%s)
+		#	  AS a GROUP BY a.gs_id, a.ode_gene_id, a.gsv_value, a.gsv_hits, a.gsv_source_list, a.gsv_value_list,
+		#		a.gsv_in_threshold, a.gsv_date, a.hom, a.gene_rank, a.ode_ref, a.gdb_id''' + s, (ode_ref, geneset_id,))
+        cursor.execute('''
+            SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
+                   gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
+                   gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
+            FROM geneset_value AS gsv
+            INNER JOIN homology AS h
+            ON gsv.ode_gene_id = h.ode_gene_id
+            INNER JOIN gene_info AS gi
+            ON gsv.ode_gene_id = gi.ode_gene_id
+            INNER JOIN gene AS g
+            ON gsv.ode_gene_id = g.ode_gene_id
+            WHERE gsv.gs_id = %s AND
+                  g.gdb_id = %s AND
+                  -- Gene symbols (id == 7) always use the preferred reference
+                  CASE WHEN g.gdb_id = 7
+                  THEN g.ode_pref = 't'
+                  ELSE true
+                  END''' + s, (geneset_id, ode_ref))
+
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
