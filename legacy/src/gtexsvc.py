@@ -15,7 +15,7 @@ import requests  # downloads files + web pages
 # class Batch
 
 # could make this of a new class - "Uploader" - to act as a GTEx-specific Uploader so that we can
-#   differentiate between PubMed input types ect.
+#   differentiate between PubMed input types ect., helping with 
 # treat as if a "Data" object
 # primary function is version control?
 class GTEx:
@@ -27,10 +27,6 @@ class GTEx:
     """
 
     def __init__(self, setup=False):
-        # local dataset filepaths
-        self.ROOT_DIR = '/Users/Asti/geneweaver/gtex/datasets/v6/eGenes/GTEx_Analysis_V6_eQTLs/'  # change later
-        self.SAVE_SEARCH_DIR = "/Users/Asti/geneweaver/gtex/gtex-results"  # change later
-
         # type of execution
         self.SETUP = setup
 
@@ -61,8 +57,6 @@ class GTEx:
         self.tissue_info = {}  # stores data pulled in get_tissue_info()
         self.tissue_types = {}  # {abbrev_name: full_name,}  -  dictionary of all curated GTEx tissues, full + abbrev
 
-        # self.tissue_pref = tissue  # need to check this entry in tissue_types before proceeding to organize tissue?
-
         self.single_tissue_data = {}  # USEAGE: {tissue_name: GTExGeneSet obj,}
         self.multi_tissue_data = {}
 
@@ -71,6 +65,10 @@ class GTEx:
 
         if self.SETUP:
             self.database_setup()
+
+        # otherwise, use this as a reference obj / way to make sure GeneWeaver has the most recent version
+
+    # --------------------------------- MUTATORs ------------------------------------------------- #
 
     def get_errors(self, critical=False, noncritical=False):
         """ Returns error messages. If no additional parameters are filled, or if both
@@ -133,31 +131,6 @@ class GTEx:
             print "Critical error messages added [%i]\n" % crit_count
         if noncrit_count > 0:
             print "Noncritical error messages added [%i]\n" % noncrit_count
-
-    def check_tissue(self, tissue):
-        """ Takes in a tissue label and checks that it is a known GTEx tissue. If it is a known
-            tissue, returns 'True'. Otherwise, returns 'False', and adds a critical error message.
-
-            Assumes that global list 'self.STATIC_TISSUES' has been populated (for now).
-
-        Parameters
-        ----------
-        tissue: input tissue type (string)
-
-        Returns
-        -------
-        exists: boolean indicative of inclusion among known GTEx tissue types
-        """
-        # check to make sure the file is labelled appropriately, + tissue is known GTEx tissue
-        if tissue in self.STATIC_TISSUES:
-            exists = True
-        else:
-            self.set_errors(critical="Error: The names of input files should contain the tissue type such"
-                                     " that the format mimicks '<tissue_type>_Analysis.snpgenes'. Tissue"
-                                     " must already exist among curated GTEx tissues, and contain no"
-                                     " whitespace.\n")
-            exists = False
-        return exists
 
     def get_tissues_nomen(self):
         """ Returns a dictionary of all tissues listed in GTEx portal eQTL resource. For each tissue,
@@ -253,24 +226,24 @@ class GTEx:
         else:
             return self.tissue_info  # return complete dictionary unless otherwise specified
 
-    def search_gene_info(self, gene_symbol=None):
-        """ ### Uses params to pull gene-associated info: basic gene info, significant single-tissue eQTLs per gene,
-            METASOFT eQTL posterior probabilities for gene, multi-tissue eQTL posterior probabilities for gene,
-            splice QTLs (sQTLSeekeR) for gene, protein truncating variants for gene. [Not all ideas need to be
-            acted upon. ###
-
-            if none, returns all results
-
-            for use when users upload files later
-
-        Parameters
-        ----------
-        gene_symbol: string representing the 'name' of the gene
-        """
-        # grab data from something like this / find source files:
-        search = "http://www.gtexportal.org/home/gene/EFCAB2"
-        # + find a way to make these searches more flexible (using their original source code)
-        pass
+    # def search_gene_info(self, gene_symbol=None):
+    #     """ ### Uses params to pull gene-associated info: basic gene info, significant single-tissue eQTLs per gene,
+    #         METASOFT eQTL posterior probabilities for gene, multi-tissue eQTL posterior probabilities for gene,
+    #         splice QTLs (sQTLSeekeR) for gene, protein truncating variants for gene. [Not all ideas need to be
+    #         acted upon. ###
+    #
+    #         if none, returns all results
+    #
+    #         for use when users upload files later
+    #
+    #     Parameters
+    #     ----------
+    #     gene_symbol: string representing the 'name' of the gene
+    #     """
+    #     # grab data from something like this / find source files:
+    #     search = "http://www.gtexportal.org/home/gene/EFCAB2"
+    #     # + find a way to make these searches more flexible (using their original source code)
+    #     pass
 
     def update_resources(self):
         """ Pulls a list of files to use for GTEx initial setup [from source].
@@ -321,14 +294,10 @@ class GTEx:
         print "%s data for GTEx release '%s'\n" % (tissue, temp['release'])
         return output
 
-    def search_multi_tissues(self, gencode_id=None, gene_symbol=None):
-        """ ## returns dataset depending on specifiers
+    def search_multi_tissues(self, gene):  # need to figure out what you mean exactly by 'gene'
+        """ ## returns entire multi-tissue dataset """
 
-        Parameters
-        ----------
-        gencode_id
-        gene_symbol
-        """
+
         pass
 
     # -------------------------- DATABASE SETUP  ---------------------------------------------------------------#
@@ -340,17 +309,14 @@ class GTEx:
             only use is to set up geneweaver's database (should be done only once)
 
         """
-        # if this is how you decide to leave it, make sure that you're linking the appropriate headers
-        # and stuff, otherwise this may as well be its own class!
-
         print "starting database_setup for single-tissue expression\n"
         for tissue in self.tissue_info:  # self.tissue_info (populated in 'init')
             tissue_data = self.search_single_tissues(tissue)  # search for eGenes for each tissue
             gs_single_tissue = GTExGeneSet(self, values=tissue_data, tissue_type=str(tissue))
             self.single_tissue_data[str(tissue)] = gs_single_tissue
 
-# essentailly a model of an Uploader? Uses a "trickle-down" method for uploading ---------------------------------
-# add error handling
+# Uses a "trickle-down" method for uploading
+# add error handling that you can push back up to Uploader
 class GTExGeneSet:  # GTExGeneSetUploaders
     """ ## Acts as the uploader interface for GTEx and GW
         ## specify param types, what happens, and how it passes info along
@@ -380,7 +346,8 @@ class GTExGeneSet:  # GTExGeneSetUploaders
             self.geneweaver_setup_handler()
             # update self.headers
 
-        # OTHERWISE: put them into the Gene objs for reference?
+        # OTHERWISE: put them into the Gene objs for reference? Would need to write a similar method,
+        #   just w/out the calls to upload
 
     # ----------------------------- MUTATORS ---------------------------------------- #
 
@@ -405,6 +372,19 @@ class GTExGeneSet:  # GTExGeneSetUploaders
             print "works!\n"
         else:
             print "doesn't work!\n"
+
+        # self.upload_all()
+
+    def upload_all(self):
+        # uploads this geneset to GeneWeaver
+
+        # for gene in self.e_genes
+        #   gene.upload()
+
+        # if there's a problem with this, add to errors
+        # push errors up to Data parent
+
+        pass
 
 class eGene:
     """ Creates an eGene object that holds all representative information identified in
@@ -435,7 +415,6 @@ class eGene:
     # ------------------------- DATABASE MANAGEMENT / MUTATORS ---------------------- #
     def upload(self):
         # uploads material given -> GeneWeaver
-
 
 class eQTL:
     """ Creates an eQTL object that holds all representative information identified in
