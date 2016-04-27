@@ -10,14 +10,17 @@
 # [describe format of file input]
 
 import json
-import requests  # downloads files + web pages
+import requests  # downloads JSON files from web
+import collections as c
+
 
 # class Batch
 
 # could make this of a new class - "Uploader" - to act as a GTEx-specific Uploader so that we can
-#   differentiate between PubMed input types ect., helping with 
+#   differentiate between PubMed input types ect., helping with version control + establishment of
+#   reference objs
+
 # treat as if a "Data" object
-# primary function is version control?
 class GTEx:
     """ Creates a GTEx object representative of significant 'eGenes' drawn from
         GTEx Portal [http://www.gtexportal.org/home/eqtls]
@@ -35,13 +38,8 @@ class GTEx:
         #           but did you mean /v6.2/tissues or /v6/tissues or /v2/tissues ?"}
         # IDEA: try v6.3 and backtrack?
         self.GTEx_VERSIONS = ['v6', 'v6.2']
-        self.BASE_URL = 'http://www.gtexportal.org/home/'
-        self.DATASETS_INFO_URL = 'http://www.gtexportal.org/home/datasets'
-        self.LOOKUP_URL = 'http://www.gtexportal.org/home/eqtls/tissue?tissueName=All'
-        self.TISSUE_LOOKUP_URL = 'http://www.gtexportal.org/home/eqtls/tissue?tissueName='
-        self.COMPRESSED_QTL_DATA_URL = 'http://www.gtexportal.org/static/datasets/gtex_analysis_v6/' \
-                                       'single_tissue_eqtl_data/GTEx_Analysis_V6_eQTLs.tar.gz'
-        self.TISSUE_INFO_URL = 'http://gtexportal.org/api/v6.2/tissues?username=Anonymous&_=1461355517678&v=clversion'
+        self.SINGLE_TISSUE_INFO_URL = 'http://gtexportal.org/api/v6.2/tissues?username=Anonymous&_=1461355517678&v=clversion'
+        self.MULTI_TISSUE_INFO_URL = None
         # ^ needs most up-to-date version of GTEx database, see above for specs on how
 
         # (updated for Version 6.2 of GTEx data [April 2016]) ^ also relevant
@@ -188,7 +186,11 @@ class GTEx:
 
     # --------------------------- PORTAL QUERY FUNCTIONS (version control) -------------------------------------- #
     # if setup -> create criteria to iterate over
-    # otherwise -> use these to cross check user's file input
+    # otherwise -> use as a data object for Batch
+
+    def check_version(self):
+        # check to see if the version stored matches the version on GTex
+        pass
 
     def get_tissue_info(self, tissue=None):
         """ Retrieves GTEx tissue information. If no tissue is specified in the parameters, it populates
@@ -214,7 +216,7 @@ class GTEx:
         """
 
         if not self.tissue_info:
-            r = requests.get(self.TISSUE_INFO_URL).content
+            r = requests.get(self.SINGLE_TISSUE_INFO_URL).content
             temp = json.loads(r)  # nested dicts
             self.STATIC_TISSUES = map(lambda l: str(l), list(temp))  # list of headers to iterate through dictionary
 
@@ -244,28 +246,6 @@ class GTEx:
     #     search = "http://www.gtexportal.org/home/gene/EFCAB2"
     #     # + find a way to make these searches more flexible (using their original source code)
     #     pass
-
-    def update_resources(self):
-        """ Pulls a list of files to use for GTEx initial setup [from source].
-        """
-        # # need to test this function when theres more space on comp - doesn't save locally, might also be an issue
-        # r = requests.get(self.COMPRESSED_DATA_URL, stream=True)  # 'True' means that data in stream, not save actually
-        # z = zipfile.ZipFile(StringIO.StringIO(r.content))
-        # z.extractall()
-        # r.ok()
-
-        # code above not tested at all
-        pass
-
-    def update_annotations(self):
-        """ Downloads annotations for each eGene attribute and phenotypic variable.
-        """
-        # need to login to get this feature
-        # pull fileset from v6 release
-        pass
-
-    def handle_dbVersion(self):
-        # check to see if the version stored matches the version on GTex
 
     # -------------------------- SETUP - UPLOADER HANDLING  ----------------------------------------------------------#
 
@@ -297,9 +277,8 @@ class GTEx:
     def search_multi_tissues(self, gene):  # need to figure out what you mean exactly by 'gene'
         """ ## returns entire multi-tissue dataset """
 
-
+        # find location again for this JSON datatable
         pass
-
     # -------------------------- DATABASE SETUP  ---------------------------------------------------------------#
     # use the below to provide additional eQTL? or just update this too?
     def database_setup(self):
@@ -310,10 +289,20 @@ class GTEx:
 
         """
         print "starting database_setup for single-tissue expression\n"
+        not_working = []
         for tissue in self.tissue_info:  # self.tissue_info (populated in 'init')
-            tissue_data = self.search_single_tissues(tissue)  # search for eGenes for each tissue
-            gs_single_tissue = GTExGeneSet(self, values=tissue_data, tissue_type=str(tissue))
-            self.single_tissue_data[str(tissue)] = gs_single_tissue
+            try:
+                tissue_data = self.search_single_tissues(tissue)  # search for eGenes for each tissue
+                gs_single_tissue = GTExGeneSet(self, values=tissue_data, tissue_type=str(tissue))
+                self.single_tissue_data[str(tissue)] = gs_single_tissue
+            except:
+                # print "nope: %s\n" % tissue
+                not_working.append(tissue)
+
+        print not_working
+        print self.STATIC_TISSUES
+
+        # this is missing those with too small of sets
 
 # Uses a "trickle-down" method for uploading
 # add error handling that you can push back up to Uploader
@@ -323,7 +312,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
 
     """
     def __init__(self, parent, values, classifiers=None, tissue_type=None):  # assumes a user file input
-        print "made it to GTExGeneSet\n"
 
         # all the database startup stuff goes here
         self.batch = parent
@@ -334,10 +322,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.e_qtls = {}  # USAGE: {snp: eQTL obj,} - for top-level access (otherwise already stored in eGene obj)
         self.tissue = tissue_type  # might need to change with the multi-tissue option
         self.headers = classifiers
-
-        # errors
-        self.crit = []
-        self.noncrit = []
 
         # data formatting checked here
         # check to make sure values is a list, adding error messages as necessary
@@ -355,7 +339,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
     def geneweaver_setup_handler(self):
         """ Preps upload if setting up database.  ##
         """
-        print "made it to geneweaver_setup_handler\n"
 
         # or simplify this, and leave eQTL creation to eGene obj
         # and access / populate 'self.eQTLs' through eGenes
@@ -364,16 +347,30 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         gene_obj = None
         for gene_data in self.raw_values:
             gene_obj = eGene(self, data=gene_data)  # create gene
-            self.e_genes[gene_obj.gene_symbol] = gene_obj  # add to global variables
+            self.e_genes[gene_obj.gencode_id] = gene_obj  # add to global variables
 
-        # [basic error catching - need to add a better catch, bc this won't work for multi-tissue]
-        # check to see if the number of genes created matches the number in self.raw_data
-        if len(self.e_genes) == int(self.batch.tissue_info[gene_obj.tissue_name]['eGene_count']):
-            print "works!\n"
-        else:
-            print "doesn't work!\n"
+        self.check_success()
 
         # self.upload_all()
+
+    def check_success(self):
+
+        gencode_headers = []  # TEMP
+        for gene in self.raw_values:  # TEMP
+            gencode_headers.append(str(gene['gencodeId']))
+
+        dup = []
+        for item, count in c.Counter(gencode_headers).items():  # definitely not the fastest way to check, use sets
+            if count > 1:
+                dup.append(item)
+
+        if len(dup):
+            err = "Error: Duplicate Gencode IDs found during upload [%s].\n" % dup
+            self.batch.set_errors(critical=err)
+            self.batch.get_errors()
+            exit()
+        else:
+            print "Yup\n"
 
     def upload_all(self):
         # uploads this geneset to GeneWeaver
@@ -415,6 +412,7 @@ class eGene:
     # ------------------------- DATABASE MANAGEMENT / MUTATORS ---------------------- #
     def upload(self):
         # uploads material given -> GeneWeaver
+        pass
 
 class eQTL:
     """ Creates an eQTL object that holds all representative information identified in
@@ -449,6 +447,7 @@ class eQTL:
     # ------------------------- DATABASE MANAGEMENT / MUTATORS ---------------------- #
     def upload(self):
         # upload qtl to GeneWeaver
+        pass
 
 
 # --------------------------------------------- TESTs ----------------------------------------------------------#
