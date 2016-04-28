@@ -353,6 +353,8 @@ class TheDB():
                  'gsv_value, gsv_hits, gsv_source_list, gsv_value_list, '
                  'gsv_in_threshold, gsv_date) VALUES (%s, %s, %s, 0, %s, %s, '
                  '%s, NOW());')
+
+        thresh = 't' if value <= thresh else 'f'
         vals = [gs_id, gene_id, value, [name], [float(value)], thresh]
 
         self.cur.execute(query, vals)
@@ -993,7 +995,8 @@ def buFile(genes):
 def buGenesetValues(gs):
     ## Geneset values should be a list of tuples (symbol, pval)
     ## First we attempt to map them to the internal ode_gene_ids
-    symbols = map(lambda x: x[0], gs['values'])
+    symbols = filter(lambda x: not not x, gs['values'])
+    symbols = map(lambda x: x[0], symbols)
 
     ## Negative numbers indicate normal genetypes (found in genedb) while
     ## positive numbers indicate expression platforms and more work :(

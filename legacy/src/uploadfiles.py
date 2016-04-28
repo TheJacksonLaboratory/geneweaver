@@ -177,6 +177,7 @@ def create_new_geneset(args):
     ## TODO
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
+    print gs
     vals = batch.buGenesetValues(gs)
 
     batch.db.commit()

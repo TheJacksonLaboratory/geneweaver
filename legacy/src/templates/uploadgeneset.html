@@ -517,11 +517,19 @@
             var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
             var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
 
+            // Let the user know we're in the process of uploading their
+            // geneset. Otherwise they might click the submit button 10 times.
+            $('#confirmUpload').modal('show');
+
             $.ajax({
                 type: "GET",
                 url: "../createtempgeneset",
                 data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
                 success: function (data) {
+                    // Hides confirmation after any kind of result (success or
+                    // error) is returned.
+                    $('#confirmUpload').modal('hide');
+
                     var v = JSON.parse(data);
                     if (v["error"] == 'None') {
                         window.location.href = '../editgenesetgenes/' + v["gs_id"];
@@ -537,6 +545,10 @@
                     }
                     },
                 error: function(){
+                    // Hides confirmation after any kind of result (success or
+                    // error) is returned.
+                    $('#confirmUpload').modal('hide');
+
                     $('html, body').animate({ scrollTop: 0 }, 'slow');
                     $(document).trigger("add-alerts", [
                         {
@@ -692,5 +704,6 @@
 
 </script>
 
+{% include 'modal/confirmUpload.html' %}
 
 {% include 'footer.html' %}
