@@ -174,76 +174,22 @@
                         <ul style="list-style-type:disc; margin-left: 2em;">
                             {% for ont in ontology %}
                                 <li style="font-size:13px">
-                                    <!--
-                                    <span style="color:#006400;">
-                                    -->
                                     <span style="color:#000;">
                                         {{ ont.reference_id }}:
                                     </span>
                                     <span style="color:#000;font-weight:bold;">
                                         {{ ont.name }}
                                     </span>
-                                    <!--
-                                    <span style="color:#5cb85c;">
-                                    -->
                                     <span style="color:#777;">
                                         ({{ ont.dbname }})
                                     </span>
                                 </li>
                             {% endfor %}
                         </ul>
-                        <!--
-                        <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
-                        -->
                 </div>
             </div>
 
             <script>
-                /*
-                $(function(){
-                    //Initialize dynatree data and functions
-                    $("#tree").dynatree({
-                        checkbox: true,
-                        selectMode: 2,
-                        initAjax: {
-                            url: "/initOntTree",
-                            data: {
-                                "gs_id": $(location).attr("href").split('/').pop(),
-                                universe: "All Reference Types"
-                            }
-                        },
-
-                        //Performs lazy ajax call when new nodes need to be viewed
-                        onLazyRead: function (node) {
-                            node.appendAjax({
-                                url: "/getOntRootNodes",
-                                data: {
-                                    key: node.data.key,
-                                    is_db: node.data.db,
-                                    universe: "All Reference Types"
-                                }
-                            })
-                        },
-
-                        //Performs lazy ajax call to update the database when an ontology is selected or unselected
-                        onSelect: function (flag, node) {
-                            $.ajax({
-                                url: "/updateGenesetOntologyDB",
-                                data: {
-                                    key: node.data.key,
-                                    flag: flag,
-                                    universe: "All Reference Types",
-                                    gs_id: $(location).attr("href").split('/').pop()
-                                },
-                                success: function(data){
-
-                                }
-                            })
-                        }
-                    })
-                });
-                 */
-
                 //Popover that gives Geneset Ontology functionality overview for the user
                 //Displayed when ontologies are linked with the geneset
                 $('#genesetOntologyInfo').popover({

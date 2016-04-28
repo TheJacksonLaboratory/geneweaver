@@ -228,6 +228,7 @@ def getSearchFilterValues(query):
     # Geneset sizes, min and max
     glow = srange['matches'][0]['attrs']['low']
     ghigh = srange['matches'][0]['attrs']['high']
+    geneCounts = {'geneCountMin': glow, 'geneCountMax': ghigh}
 
     provs = 0
     deps = 0
@@ -359,7 +360,7 @@ def getSearchFilterValues(query):
             'sta_counts': sta_counts, 'att_counts': att_counts, 'at_counts':
                 at_counts, 'ats_counts': ats_counts, 'status_counts':
                 status_counts, 'spmap': spmap, 'attrmap': attrmap, 'tiermap':
-                tiermap}
+                tiermap, 'geneCounts':geneCounts}
 
 
 '''
@@ -717,7 +718,7 @@ def keyword_paginated_search(terms, pagination_page,
     Perform the second search that gets the total filter counts for display in search_filters_panel.html
     '''
     # Get a dictionary representing the search filter values present. Use the full search results to do this.
-    getSearchFilterValuesOld(query)
+    #getSearchFilterValuesOld(query)
     searchFilters = getSearchFilterValues(query)
     '''
     Get filter label information, ie species names.
