@@ -531,8 +531,38 @@
                     $('#confirmUpload').modal('hide');
 
                     var v = JSON.parse(data);
+
                     if (v["error"] == 'None') {
-                        window.location.href = '../editgenesetgenes/' + v["gs_id"];
+                        var success = '<strong>Success! Your GeneSets ' +
+                                'were uploaded: </strong><br />';
+                        success += 'GS' + v['gs_id'] + '<br />';
+                        success = success + '<br /> <strong>You will be ' +
+                                'redirected to the edit GeneSet page shortly.' +
+                                '<br /> If you aren\'t redirected, check and ' +
+                                'reconfigure your pop-up blocker settings.' +
+                                '</strong>';
+                        var closeButton = '<button type="button" ' +
+                                'class="close" data-dismiss="alert" ' +
+                                'aria-hidden="true">x</button>';
+
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $('#upload-success-alert').html(closeButton + success);
+                        $(document).trigger("add-alerts", [{
+                            'message': success,
+                            'priority': 'success',
+                            'fade': 0
+                        }]);
+
+                        // Redirect to the edit geneset page for each geneset,
+                        // wait a bit though so the user can read our message
+                        setTimeout(function() {
+
+                            var url = '../editgenesetgenes/' + v['gs_id'];
+
+                            window.open(url, '_blank');
+
+                        }, 3000);
+                        //window.location.href = '../editgenesetgenes/' + v["gs_id"];
                     }
                     else {
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
