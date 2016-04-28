@@ -1,0 +1,36 @@
+{#
+Displayed when the user clicks on any kind of upload geneset button,
+including batch and VCF uploads.
+#}
+
+<div class="modal fade" id="uploadConfirmation">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow-y: visible; max-height: 540px;">
+            <form id="selectGeneDisplayType" name="selectGeneDisplayType" method="post" action="#"
+                  class="form-horizontal" novalidate="novalidate">
+
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">Upload GeneSet</h3>
+                </div>
+                <div class="modal-body">
+
+                    <div class="row" style="padding-top: 10px">
+                        <div class="col-md-12" style="text-align:center;">
+                            <h4>
+                                Your GeneSet is currently being uploaded. Depending on the size of your dataset, this
+                                may take a few moments. You may close this dialog without affecting the upload process.
+                            </h4>
+                        </div>
+                        <div class="col-md-12 text-center">
+                            {% include 'htmlfragments/loadingSpinner.html' %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
