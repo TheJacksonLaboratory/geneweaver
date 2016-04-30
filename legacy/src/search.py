@@ -153,12 +153,20 @@ def getUserFiltersFromApplicationRequest(form):
             'field_list': field_list, 'sort_by': sort_by}
 
 
-#### applyUserRestrictions
-##
-#### Applies user and group restrictions to a sphinx query. This way users
-#### can't access data that doesn't belong to them.
-##
-def applyUserRestrictions(client):
+def applyUserRestrictions(client, select=''):
+    """
+    Applies user and group restrictions to a sphinx query so users can't acces
+    data that doesn't belong to them. If the select argument is null, the
+    function resets the current select query otherwise the access restrictions
+    are added to the given select statement.
+
+    :arg client: the current sphinx client
+    :type client: Sphinx client object
+
+    :arg select: A select statement to apply restrictions to
+    :type select: str
+    """
+
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
@@ -172,7 +180,10 @@ def applyUserRestrictions(client):
     if not user_grps:
         user_grps = [0]
 
-    access = '*'
+    if select:
+        access = select
+    else:
+        access = '*'
 
     # Admins don't get filtered results
     if not user_info.is_admin:
@@ -196,16 +207,17 @@ def getSearchFilterValues(query):
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     client.SetLimits(0, 1000, 1000)
 
-    #applyUserRestrictions(client)
     sphinxSelect = '*'
     sphinxSelect += ', MIN(gs_count) low, MAX(gs_count) high, 0 as OneRow'
 
-    client.SetSelect(sphinxSelect)
+    applyUserRestrictions(client, sphinxSelect)
+    #client.SetSelect(sphinxSelect)
     client.SetGroupBy('OneRow', sphinxapi.SPH_GROUPBY_ATTR);
     client.AddQuery(query, 'geneset, geneset_delta')
 
     # Resets the select and limits
-    client.SetSelect(sphinxSelect)
+    #client.SetSelect(sphinxSelect)
+    applyUserRestrictions(client, sphinxSelect)
     client.SetLimits(0, 1000, 1000)
 
     client.SetGroupBy('gs_status', sphinxapi.SPH_GROUPBY_ATTR)
@@ -219,12 +231,17 @@ def getSearchFilterValues(query):
     # values.
     sphinxSelect += ', (cur_id*10000 + sp_id*100 + attribution) AS tsa_group'
 
-    client.SetSelect(sphinxSelect)
+    #client.SetSelect(sphinxSelect)
+    applyUserRestrictions(client, sphinxSelect)
     client.SetGroupBy('tsa_group', sphinxapi.SPH_GROUPBY_ATTR)
     client.AddQuery(query, 'geneset, geneset_delta')
 
     # srange is the range of geneset sizes
     srange, status, grp, filt = client.RunQueries()
+    print srange
+    print status
+    print grp
+    print filt
 
     # Geneset sizes, min and max
     glow = srange['matches'][0]['attrs']['low']
