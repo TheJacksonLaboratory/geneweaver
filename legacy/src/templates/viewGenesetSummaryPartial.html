@@ -50,7 +50,8 @@
         {% endif %}
     </td>
 
-    <td>
+    <td id="sp-tag-{{gs.geneset_id}}">
+        {#
         <!-- Label the species -->
         {% if gs.sp_id == 1 %}
             <span class="mouse">Mouse</span>
@@ -70,6 +71,7 @@
         {% if gs.sp_id == 6 %}
             <span class="monkey">Monkey</span>
         {% endif %}
+        #}
     </td>
 
     <td>
@@ -220,10 +222,6 @@
 </tr>
 <!-- ###################### End ##########################-->
 
-
-
-
-
 <style type="text/css">
 
     .rowExpand, .rExpand {
@@ -242,19 +240,63 @@
 <!-- Script for adding geneset to selected projects-->
 <script type="text/javascript">
 
+    // Dynamically generates a colored species tag using an sp_id/sp_name
+    // association list from the DB. The function normalizes sp_id just in
+    // case species have been removed and gaps exist between IDs. The original
+    // colors for GW's first six species are still used, the rest are based off
+    // ColorBrewer scale combinations.
+    $(function() {
+
+        var gsid = {{gs.geneset_id}};
+        var spid = {{ gs.sp_id }};
+        // The alist returned by the server should already be sorted
+        var splist = {{ species|tojson|safe }};
+        var spname = '';
+        // Extra element padding since sp_ids are not zero indexed
+        var colors = ['', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1', '#f4dfff',
+                      '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'];
+        var borders = ['', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a', '#b4d1fb',
+                       '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'];
+
+        for (var i = 0; i < splist.length; i++) {
+           if (spid === splist[i][0]) {
+               spid = i;
+               spname = splist[i][1];
+
+               break;
+           }
+        }
+
+        // Elissa mentioned we shouldn't use common, pleb names for species
+        // (and that monkey isn't technically a species), so these are replaced
+        // with abbreviations.
+        spname = spname.split(' ');
+
+        // Mus musculus and Macaca mulatta have the same abbreviation
+        if (spname[1].slice(0, 3) == 'mul')
+            spname = spname[0][0].toUpperCase() + '.' + 'mul' + '.';
+        else
+            spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
+
+        var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+                  '; border:1px solid ' + borders[spid] + '">' +
+                  spname + '</span>';
+
+        $('#sp-tag-' + gsid).html(tag);
+    });
+
     function toggleDetails(id) {
-    var element = document.getElementById(id);
+        var element = document.getElementById(id);
 
-    if (element.style.display == "none")
-        element.style.display = "block";
+        if (element.style.display == "none")
+            element.style.display = "block";
 
-    else if (element.style.display == "")
-        element.style.display = "block";
+        else if (element.style.display == "")
+            element.style.display = "block";
 
-    else
-        element.style.display = "none";
+        else
+            element.style.display = "none";
     }
-
 
     $('.remove-from-project').on('click', function() {
         var projID = $(this).attr('data-proj-id');
@@ -267,45 +309,13 @@
     $('.addgs-to-project').on('click', function () {
         var projId = $(this).attr('data-proj-id');
         var gsId = $(this).attr('data-gs-id');
-
-        //var modal = $('#myModalValue').val();
-        //var npn = $('#newProjName').val();
         var geneset = 'GS' + $(this).attr('data-gs-id');
 
-        // Alter the modal text a bit since we're only adding a single
-        // geneset, not several which is the default.
-        //$('#addToProjectModal').find('.modal-title')
-        //        .html('Add GeneSet to Projects');
-        //$('#addToProjectModal').find('h4')
-        //        .html('Add ' + geneset + ' to the following project(s):');
         $("#myModalLabel").val(geneset);
         $("#gsID").val(gsId);
         $("#projID").val(projId);
         $("#addToProjectModal").modal('show');
-
     });
-
-
-
-
-
-    //   var projID = $(this).attr('data-proj-id');
-    //    var gsID = $(this).attr('data-gs-id');
-    //    $("#projID").html(projID);
-    //    $("#gsID").html(gsID);
-    //    $("#addToProjectModal").modal('show');
-    //});
-
-    //function addToSelected(geneset_id) {
-    //    var selector = ".modal_checkbox_" + geneset_id;
-    //    $(selector).each(function () {
-    //        if (this.checked) {
-    //            var route = "/add_geneset_to_project/" + this.name + "/" + geneset_id + ".html";
-    //            $.get(route, function (data, status) {
-    //            });
-    //        }
-    //    });
-    //}
 
     //pass remove modal values to function
     function removeSelected(geneset_id, proj_id) {
@@ -315,12 +325,10 @@
             data: {"gs_id": geneset_id, "proj_id": proj_id},
             success: function (data) {
                 location.reload();
-                $(document).trigger("add-alerts", [
-                            {
-                                'message': "Gene set successfully removed from project.",
-                                'priority': 'success'
-                            }
-                ]);
+                $(document).trigger("add-alerts", [{
+                    'message': "Gene set successfully removed from project.",
+                    'priority': 'success'
+                }]);
             }
         });
     }

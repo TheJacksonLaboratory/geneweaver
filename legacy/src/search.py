@@ -196,6 +196,7 @@ def getSearchFilterValues(query):
     client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
     client.SetLimits(0, 1000, 1000)
 
+    #applyUserRestrictions(client)
     sphinxSelect = '*'
     sphinxSelect += ', MIN(gs_count) low, MAX(gs_count) high, 0 as OneRow'
 

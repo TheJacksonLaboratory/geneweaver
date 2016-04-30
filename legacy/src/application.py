@@ -1545,12 +1545,21 @@ def render_searchFromHome():
         return flask.render_template('search.html', paginationValues=None,
                 noResults=True)
 
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = geneweaverdb.get_all_species()
+    splist = []
+
+    for sp_id, sp_name in species.items():
+        splist.append([sp_id, sp_name])
+
+    species = splist
+
     # print 'debug genesets: ' + str(search_values['genesets'][0])
     # render the template if there is no error, passing in data used in display
     return flask.render_template('search.html', searchresults=search_values['searchresults'],
                                  genesets=search_values['genesets'], paginationValues=search_values['paginationValues'],
                                  field_list=field_list, searchFilters=search_values['searchFilters'],
-                                 filterLabels=search_values['filterLabels'])
+                                 filterLabels=search_values['filterLabels'], species=species)
 
 
 @app.route('/searchFilter.json', methods=['POST'])
@@ -1567,6 +1576,15 @@ def render_search_json():
                                                     userValues['pagination_page'], userValues['search_fields'],
                                                     userValues['userFilters'], userValues['sort_by'])
 
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = geneweaverdb.get_all_species()
+    splist = []
+
+    for sp_id, sp_name in species.items():
+        splist.append([sp_id, sp_name])
+
+    species = splist
+
     return flask.render_template('search/search_wrapper_contents.html',
                                  searchresults=search_values['searchresults'],  # genesets = search_values['genesets'],
                                  genesets=search_values['genesets'],
@@ -1575,7 +1593,7 @@ def render_search_json():
                                  searchFilters=search_values['searchFilters'],
                                  userFilters=userValues['userFilters'],
                                  filterLabels=search_values['filterLabels'],
-                                 sort_by=userValues['sort_by'])
+                                 sort_by=userValues['sort_by'], species=species)
 
 
 @app.route('/searchsuggestionterms.json')

@@ -523,7 +523,7 @@ def get_all_species():
     returns an ordered mapping from species ID to species name for all available species
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT sp_id, sp_name FROM species  ORDER BY sp_id;''')
+        cursor.execute('''SELECT sp_id, sp_name FROM species ORDER BY sp_id;''')
         return OrderedDict(cursor)
 
 
