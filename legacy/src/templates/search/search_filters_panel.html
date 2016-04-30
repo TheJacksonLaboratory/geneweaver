@@ -61,9 +61,6 @@
 {% if searchFilters is defined %}
     <script>
 
-    console.log({{searchFilters.geneCounts.geneCountMin}});
-    console.log({{searchFilters.geneCounts.geneCountMax}});
-
         $(function () {
 //Set up the slider for gene count values, and change value on slider update
  $("#size-slider").slider({
@@ -209,16 +206,21 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                     <span class="gs_deprecated"> Deprecated </span>
                                     ({{ searchFilters.status_counts.deprecated }}) </label>
 
-                                    <div id="genesetCountLabel"></div>
-                                    <br/>
                                     <input type="hidden" name="geneCountMin" id="geneCountMin">
 
                                     <input type="hidden" name="geneCountMax" id="geneCountMax">
 
+                                    <br />
                                     <div id="size-slider"></div>
+                                {#
+                                    <div id="genesetCountLabel" class="text-center"></div>
+                                #}
+                                    <br />
+                                    <div class="text-center">
+                                    <label id="genesetCountLabel" class="text-center"></label>
+                                    </div>
+                                    <br/>
 
-                                    <br/>
-                                    <br/>
 
                                     <div class="filter-title">Tiers</div>
                                     <br/>
