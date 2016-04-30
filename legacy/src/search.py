@@ -339,6 +339,13 @@ def getSearchFilterValues(query):
         spec = 'sp' + str(spec)
         attr = 'at' + str(attr)
 
+        ## For some reason the DB has two "No Attribution" attributes. The
+        ## majority of genesets indicate this with a NULL gs_attribution, while
+        ## some others have a reference to the "No Attribution" row in the
+        ## attribution table.
+        if not attrmap.get(attr, None):
+            attr = 'at0'
+
         # tier = tiermap.get(tier, 'No Tier')
         # spec = spmap.get(spec, 'No Species')
         # attr = attmap.get(attr, 'No Attribution')
