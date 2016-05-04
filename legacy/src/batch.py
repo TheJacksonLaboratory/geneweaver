@@ -379,9 +379,8 @@ class TheDB:
         res = self.cur.fetchall()
         d = dd(long)
 
-        # we return a dict of prb_ref_id --> prb_id
         for tup in res:
-            d[tup[0]] = tup[1]
+            d[tup[0]] = tup[1]  # dict of prb_ref_id --> prb_id
 
         return d
 
@@ -878,7 +877,7 @@ def getPubmedInfo(pmid):
 
     Parameters
     ----------
-    pmid: Publication ID
+    pmid: PubMed ID
 
     Returns
     -------
