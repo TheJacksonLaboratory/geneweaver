@@ -454,7 +454,7 @@ class TheDB:
 
         Returns
         -------
-        r: (clarify - why is this returning anything?)
+        r: file_id # check
 
         """
         # check to see if 'RETURNING' is a legit call in SQL
@@ -482,11 +482,11 @@ class TheDB:
 
         Parameters
         ----------
-        pd: (clarify)
+        pd: dict of Publication info
 
         Returns
         -------
-        r: (clarify - why is this returning anything?)
+        r: Publication ID
 
         """
 
@@ -538,11 +538,11 @@ class TheDB:
 
         Parameters
         ----------
-        gd: (clarify)
+        gd: dict of GeneSet info
 
         Returns
         -------
-        r: (clarify)
+        gs_id: GeneSet ID
 
         """
         query = 'INSERT INTO geneset ' \

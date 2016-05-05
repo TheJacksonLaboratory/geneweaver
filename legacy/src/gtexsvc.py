@@ -61,6 +61,7 @@ class GTEx:
         # data processing fields
         self.raw_data = {}  # {tissue_name: values,}  -  values[0] = headers, values[1+] = raw data
         self.gene_info = {}  # USAGE: {gene_symbol: (description, ensembl_id, entrez_id),}  -  used in eGene
+        # EDIT: rename self.raw_genesets -> self.GeneSets [primp up all these]
         self.raw_genesets = {}  # USAGE: {tissue_name: GTExObject,}
 
         self.get_tissue_info()  # populates: 'self.STATIC_TISSUES', + builds 'self.tissue_info'
@@ -71,7 +72,9 @@ class GTEx:
         self.cur = None
 
         # publication info
-        self.publications = {}  # {pubmed_id: {authors:", title:", abstract:", journal:", vol:", pages:", pmid:"},}
+        #   {pubmed_id: {authors:", title:", abstract:", journal:", vol:", pages:", pmid:"},}
+        self.publications = {}  # EDIT: rename self.Publications [+ clean up comments!]s
+        self.files_uri = {} # {tissue_name: file_uri,}
 
         self.launch_connection()
 
@@ -403,11 +406,12 @@ class GTEx:
         res = requests.get(url).content
         temp = json.loads(res)['result']
 
-        publication['pubmed_id'] = str(pubmed_id)
-        publication['pages'] = temp[publication['pubmed_id']]['pages']
-        publication['title'] = temp[publication['pubmed_id']]['title']
-        publication['journal'] = temp[publication['pubmed_id']]['fulljournalname']
-        publication['vol'] = temp[publication['pubmed_id']]['volume']
+        publication['pub_id'] = None
+        publication['pub_pubmed'] = str(pubmed_id)
+        publication['pub_pages'] = temp[publication['pub_pubmed']]['pages']
+        publication['pub_title'] = temp[publication['pub_pubmed']]['title']
+        publication['pub_journal'] = temp[publication['pub_pubmed']]['fulljournalname']
+        publication['pub_volume'] = temp[publication['pub_pubmed']]['volume']
 
         authors = ""  # will hold a CSV list
         for auth in temp[publication['pubmed_id']]['authors']:
@@ -482,9 +486,11 @@ class GTEx:
                 output = {}
                 f = tar.extractfile(tarinfo)  # file auto-closed in self.readGTExFile() below
                 tissue, headers, data = self.readGTExFile(f)
+
                 if self.tissue_info[tissue]['has_egenes'] == 'True':
                     fp_out = self.SAVE_SEARCH_DIR + tissue + "_Groomed.json"
                     output[tissue] = []
+
                     with open(fp_out, 'w') as file_path:
                         for datum in data:
                             if datum[25] == '1':  # if this snp-gene pair is signficicant
@@ -508,10 +514,13 @@ class GTEx:
 
         for tissue in self.tissue_info:
             if self.tissue_info[tissue]['has_egenes'] == 'True':  # for each tissue (where n >= 70)
-                # iterate through the list of tissue files
+                # iterating through the list of tissue files
+                self.files_uri[str(tissue)] = {}
                 fp = self.SAVE_SEARCH_DIR + tissue + "_Groomed.json"
+                self.files_uri[str(tissue)]['file_uri'] = fp  # filename
 
                 with open(fp, 'r') as data_file:
+                    # grab file info and store it under a tissue name dict
                     qtls = json.load(data_file)  # load the file info
                     # create GTExGeneSet obj + respective eGenes
                     gs_tissue = GTExGeneSet(self, values=qtls[tissue], tissue_type=str(tissue))
@@ -521,32 +530,39 @@ class GTEx:
                     exit()
 
 # Uses a "trickle-down" method for uploading data to GeneWeaver
-# add error handling that you can push back up to Uploader
 class GTExGeneSet:  # GTExGeneSetUploaders
     """ ## Acts as an uploader interface for GTEx data -> GeneWeaver database
         ## specify param types, what happens, and how it passes info along
 
     """
-    def __init__(self, parent, values, tissue_type):  # assumes a user file input
+    def __init__(self, batch, values, tissue_type):  # assumes a user file input
 
         # param input data - formatting checked here
 
         # inheritance
-        self.batch = parent
-        self.cur = parent.cur  # psycopg2 cursor obj
-        self.connection = parent.connection  # psycopg2 connection obj -> GeneWeaver
+        self.batch = batch
+        self.cur = batch.cur  # psycopg2 cursor obj
+        self.connection = batch.connection  # psycopg2 connection obj -> GeneWeaver
 
+        # GENESET - EDIT: put in a dictionary, like file?
         self.name = "[GTEx] " + tissue_type
-        self.abbrev_name = parent.tissue_info[self.tissue_name]['tissue_abbrv']
+        self.abbrev_name = batch.tissue_info[self.tissue_name]['tissue_abbrv']
         self.species = 2  # all GTEx is human
         self.groups = ""
         self.thresh_type = 1
-        self.threshold = '0.05'
+        self.thresh = '0.05'
         self.gene_id_type = 7  # gdb_id
         self.usr_id = 0  # technically 'guest'
         self.cur_id = 1  # uploaded as a public resource [might be 2]
+        self.pubmed_id = str(23715323)  # PubMed ID for GTEx Project
+        self.description = None  # EDIT - what it contains + # tissue name + # what it contains + # script name/date run
 
-        self.description, self.publication_id, self.values, self.count = None
+        self.count, self.gs_id = None
+
+        self.file = {'file_size': None, 'file_uri': None, 'file_contents': None,
+                     'file_comments': None, 'file_id': None}
+
+        self.publication = {}
 
         # init for globals - check input types
         self.raw_values = values
@@ -554,16 +570,14 @@ class GTExGeneSet:  # GTExGeneSetUploaders
 
         self.e_genes = {}  # USAGE: {gencode_id: eGene obj,}  -  gencode Id is tissue dependent
         self.e_qtls = {}  # USAGE: {snp: eQTL obj,} - for top-level access (otherwise already stored in eGene obj)
-        self.publication = None
-        self.pubmed_id = None
-
-        # check to make sure values is a list, adding error messages as necessary
 
         self.geneweaver_setup()  # creates eGenes, along with respective eQTL
         # required fields for GeneWeaver
 
     def create_eGene(self, data_dict):
-        """ # data passed in with specific dictionary type (pass along from batch):
+        """ EDIT
+
+        # data passed in with specific dictionary type (pass along from batch):
 
         {snp_id_1kg_project_phaseI_v3: RSID, orientation: str, gene_chr: int, rs_id_dbSNP142_GRCh37p13: RSID,
             gene_stop: int, tss_position: int, gene_q_value: float, alt: str, ref_factor: int,
@@ -577,61 +591,95 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         ----------
         data_dict
         """
+
         gene = eGene(self, data=data_dict)  # initialize eGene obj
         self.e_genes[gene.gencode_id] = gene  # store gene obj in global dict
 
+        # COUNT [file_size]
+        self.count = len(self.e_genes)
+
+    def create_file(self):
+        """ EDIT
+
+            TEST required
+        """
+
+        if self.e_genes:
+            contents = ''
+            for gene in self.e_genes:
+                contents += (self.e_genes[gene].gene_symbol + '\t' +
+                             self.e_genes[gene].max_eQTL.p_value + '\n')
+            self.file['file_contents'] = contents
+            self.file['file_size'] = self.count
+            self.file['file_comments'] = ''
+            self.file['file_uri'] = self.batch.Files[self.tissue_name]['file_uri']
+        else:
+            # EDIT - add error message that cant add file if there are no eGenes
+            #   in GTExGeneSet - and to do that first
+            print "FAIL"
+
+    def create_publication(self):
+        """ EDIT
+
+            TEST required
+        """
+
+        # EDIT: add error catching for self.pubmed_id
+        self.publication = self.batch.search_pubmed_info(self.pubmed_id)  # PubMed ID for GTEx Project
+
     # ----------------------------- GENEWEAVER SETUP ----------------------------- #
     def geneweaver_setup(self):
-        """ Preps upload if setting up database.  ##
+        """ EDIT
+
+            Preps upload if setting up database.  ##
             # leave eQTL creation to eGene obj
             # and access / populate 'self.eQTLs' through each eGene obj
         """
-        # PUBLICATION
-        self.pubmed_id = str(23715323)  # PubMed ID for GTEx Project
-        self.publication = self.batch.search_pubmed_info(self.pubmed_id)  # PubMed ID for GTEx Project
-        # self.insert_publication()  # updates self.publication_id
 
-        # GENESET
-        self.update_geneset_info()  # fill in required fields for GeneWeaver
-        # create geneset in GW
-
-        # GENESET VALUES
+        # GENERATE GENES
         for gene_data in self.raw_values:
             self.create_eGene(gene_data)
-        # gene lookup - via Gene Symbol
+            # eGene internal lookup - via Gene Symbol (conduct within eGene)
             # geneset values - gsv -> self.values [see gsv handling in batch]
             #   gene_symbols -> ode_gene_id mapping first
             # self.values = ?
 
-        # self.check_success()  # needs updating following new approach / probably isn't necessary here
+        # self.check_success()  # see whether eGene contains max_eQTL
+
+        # FILE
+        self.create_file()
+        # self.insert_file()
+
+        # PUBLICATION
+        self.create_publication()
+        # self.insert_publication()  # updates self.publication['pub_id']
+
+        # GENESET
+        # self.insert_geneset()  # create geneset in GW
+
+        # GENESET VALUES
+        # self.insert_geneset_values()  # calls eGene
 
     def check_success(self):  # needs updating!
 
-        gencode_headers = []  # TEMP
-        for gene in self.raw_values:  # TEMP
-            gencode_headers.append(str(gene['gencodeId']))
+        # gencode_headers = []  # TEMP
+        # for gene in self.raw_values:  # TEMP
+        #     gencode_headers.append(str(gene['gencodeId']))
+        #
+        # dup = []
+        # for item, count in c.Counter(gencode_headers).items():  # definitely not the fastest way to check, use sets
+        #     if count > 1:
+        #         dup.append(item)
+        #
+        # if len(dup):
+        #     err = "Error: Duplicate Gencode IDs (per tissue) were found during upload [%s].\n" % dup
+        #     self.batch.set_errors(critical=err)
+        #     print self.batch.get_errors()
+        #     exit()
+        # else:
+        #     print "Yup\n"
 
-        dup = []
-        for item, count in c.Counter(gencode_headers).items():  # definitely not the fastest way to check, use sets
-            if count > 1:
-                dup.append(item)
-
-        if len(dup):
-            err = "Error: Duplicate Gencode IDs (per tissue) were found during upload [%s].\n" % dup
-            self.batch.set_errors(critical=err)
-            print self.batch.get_errors()
-            exit()
-        else:
-            print "Yup\n"
-
-    def update_geneset_info(self):
-
-        if self.batch.tissue_info[self.tissue_name]['eGene_count'] == len(self.e_genes):
-            self.count = len(self.e_genes)
-        else:  # EDIT: add error handling in case the eGene count is not the same
-            print "NO!"
-
-        # self.description = # what it contains + # tissue name + # what it contains + # script name/date run
+        pass  # EDIT - rewrite
 
     def upload_all(self, genes=False, qtls=False):
         # uploads this geneset to GeneWeaver
@@ -649,8 +697,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         # push errors up to batch errors (just call that nice batch function 'set_errors')
         pass
 
-
-
     def add_all_snps(self):
 
         for gene_name, gene_obj in self.e_genes.iteritems():
@@ -661,30 +707,109 @@ class GTExGeneSet:  # GTExGeneSetUploaders
 
         return self
 
-    # ----------------------------- MUTATORS ---------------------------------------- #
-
     # ----------------------------- GENEWEAVER DB HANDLING ----------------------- #
-    def insert_publication(self):
-        """ Given a dict whose keys refer to columns of the publication table,
-            this function inserts a new publication into the db.
-            Don't forget to commit changes after calling this function.
+    def insert_file(self):
+        """ # EDIT
 
-            # EDIT: update docstring to match function
+            Inserts a new row into the file table. Most of the columns for the file
+            table are required as arguments.
+
+        Returns
+        -------
+        file_id: File ID
+
+        """
+        self.cur.execute('set search_path = extsrc,production,odestatic;')
+
+        query = 'INSERT INTO production.file ' \
+                '(file_size, file_uri, file_contents, file_comments, ' \
+                'file_created, file_changes) ' \
+                'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
+
+        vals = [self.file['file_size'], self.file['file_uri'],
+                self.file['file_contents'], self.file['file_comments']]
+
+        self.cur.execute(query, vals)
+        res = self.cur.fetchall()
+        # self.connection.commit() # EDIT - check + order in respect to fetchall
+
+        self.file['file_id'] = res[0][0]  # TEST
+
+    def insert_publication(self):
+        """ EDIT
+
+            EDIT - update docstring to match function
+            # TEST: not yet run
         """
         query = 'INSERT INTO production.publication ' \
                 '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
                 'pub_volume, pub_pages, pub_pubmed) ' \
                 'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
 
-        vals = [self.publication['authors'], self.publication['title'],
-                self.publication['abstract'], self.publication['journal'],
-                self.publication['vol'], self.publication['pages'],
-                self.publication['pubmed_id']]
+        vals = [self.publication['pub_authors'], self.publication['pub_title'],
+                self.publication['pub_abstract'], self.publication['pub_journal'],
+                self.publication['pub_volume'], self.publication['pub_pages'],
+                self.publication['pub_med']]
 
         self.cur.execute(query, vals)
+        res = self.cur.fetchall()
+        # self.connection.commit()  # EDIT - check + order in respect to fetchall
 
-        pub_id = self.cur.fetchall()[0][0]
-        self.publication_id = pub_id
+        self.publication['pub_id'] = res[0][0]  # TEST
+
+    def insert_geneset(self):  # EDIT make a new gene group for 'GTEx' [annotations] - gs['gs_groups']
+        """ EDIT
+
+            EDIT: update docstring to match function
+            # TEST: not yet run
+        """
+
+        # EDIT - also make sure that gs_attribution supposed to be 0
+        query = 'INSERT INTO geneset ' \
+                '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
+                'gs_threshold, gs_created, gs_updated, gs_status, ' \
+                'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
+                'gs_abbreviation, gs_description, gs_attribution, ' \
+                'gs_groups, pub_id) ' \
+                'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
+                '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
+
+        vals = [self.file['file_id'], self.usr_id, self.cur_id, self.species,
+                self.thresh_type, self.thresh, self.count,
+                self.gene_id_type, self.name, self.abbrev_name,
+                self.description, gd['gs_groups'], self.publication['pub_id']]
+
+        self.cur.execute('set search_path = extsrc,production,odestatic;')
+        self.cur.execute(query, vals)
+        # self.connection.commit()  # EDIT - check + order in respect to fetchall
+        res = self.cur.fetchall()
+
+        self.gs_id = res[0][0]
+
+    def insert_geneset_values(self):
+        """ EDIT
+
+            # TEST required
+        """
+
+        # EDIT: send a call for each eGene in self.e_genes to insert_value()
+
+        # for gene in self.e_genes:
+        #   self.e_genes[gene].insert_value()  # updates gs_values
+        pass
+
+    def update_geneset_count(self, gsid, count):
+        """ EDIT
+
+            # EDIT: update docstring to match function
+            # TEST: not yet run
+        """
+
+        query = 'UPDATE geneset ' \
+                'SET gs_count = %s ' \
+                'WHERE gs_id = %s'
+
+        self.cur.execute(query, [count, gsid])
 
 class eGene:
     """ Creates an eGene object that holds all representative information identified in
@@ -692,19 +817,26 @@ class eGene:
         global variable.
     """
 
-    def __init__(self, parent, data=None):
+    def __init__(self, geneset, data=None):
 
-        self.parent = parent
-        self.batch = parent.batch
-        self.tissue_name = parent.tissue_name  # NOTE: Batch + Uploader won't assume tissue type like this
+        self.geneset = geneset  # GeneSet
+        self.batch = geneset.batch
+        self.tissue_name = geneset.tissue_name  # NOTE: Batch + Uploader won't assume tissue type like this
 
-        # still need to inherit database connection info from parent
+        # DATABASE INFO
+        self.cur = geneset.cur
+        self.connection = geneset.connection
 
-        # remember to add a data check here for a dictionary type with all the right values
+        self.ode_ref_id = None
+        self.ode_gene_id = None
+        self.in_threshold = None
+
+        # remember to add a data check here later for a dictionary type with all the right values
         self.raw_data = data
+
+        # GENE INFO
         self.gencode_id = None
         self.gene_symbol = None
-
         # additional gene info (probably not needed so long as gene already in GW)
         self.description = None
         self.ensembl_id = None
@@ -725,6 +857,18 @@ class eGene:
         """
         self.gencode_id = str(self.raw_data['gene'])
         self.gene_symbol = str(self.raw_data['gene_name'])
+
+        # EDIT: lookup ode_ref_id (assigning to self.ode_ref_id)
+        # EDIT: lookup ode_gene_id (assigning to self.ode_gene_id)
+        # EDIT: call search_all_info() if you don't find anything for above
+        #   for entrez_id + ensembl_id (+ try again)
+        #   otherwise, add error to self.batch
+
+        # EDIT: in_threshold
+        # if float(self.max_eQTL.p_value) < float(self.batch.gs_thresh):
+        #   self.in_threshold = 'true'
+        # else:
+        #   self.in_threshold = 'false'
 
         self.create_eQTL()
 
@@ -749,7 +893,6 @@ class eGene:
         else:  # assumes that we are iterating through a list of SNPs for this gene [LATER]
             # use self.max_eQTL to hold most siginificant - check whether 'is_chosen_snp'
             pass
-
         pass
 
     def find_all_tissue_qtls(self):
@@ -769,12 +912,32 @@ class eGene:
 
         if qtl_name and qtl_obj:
             # update GTExGeneSet by passing along recently generated qtl
-            self.parent.e_qtls[qtl_name] = qtl_obj
+            self.geneset.e_qtls[qtl_name] = qtl_obj
 
         if gene_name and gene_obj:
             # update GTExGeneSet by passing along recently generated gene
-            self.parent.e_genes[gene_name] = gene_obj
+            self.geneset.e_genes[gene_name] = gene_obj
 
+    # ---------------------------- GENEWEAVER HANDLERS ----------------------------#
+
+    def insert_value(self):  # EDIT - lookup ode_gene_id + [ode_ref_id] for 'gene_id', [name 'below
+        """
+            # EDIT - not finished here
+        """
+        query = 'INSERT INTO extsrc.geneset_value ' \
+                '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
+                'gsv_value_list, gsv_in_threshold, gsv_date) ' \
+                'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
+
+        vals = [self.geneset.gs_id, self.ode_gene_id, self.max_eQTL.p_value,
+                [self.ode_ref_id], [float(self.max_eQTL.p_value)], self.in_threshold]
+
+        self.cur.execute(query, vals)
+        self.connection.commit()
+
+    # ------- OTHER ------->
+
+    # EDIT: individual lookup takes too long!
     # def search_all_info(self):
     #     """ # goal is to pull / add info from batch.gene_info{} to reduce the number
     #         #   of lookups needed (+ speed things up a bit)
@@ -811,35 +974,37 @@ class eGene:
 
     # ------------------------- DATABASE MANAGEMENT / MUTATORS ---------------------- #
 
-    def upload(self, add_all_snps=False):
-        # uploads gene info -> GeneWeaver
-
-        # if not add_all_snps:
-            # call max qtl upload + upload this gene
-
-        # if add_qtls & self.eQTLs:
-        #   for each qtl in self.eQTLs
-        #       qtl.upload()
-
-        # else:
-        #   upload self + all associated info (make calls to db functions)
-
-        pass
+    # def upload(self, add_all_snps=False):
+    #     # uploads gene info -> GeneWeaver
+    #
+    #     # if not add_all_snps:
+    #         # call max qtl upload + upload this gene
+    #
+    #     # if add_qtls & self.eQTLs:
+    #     #   for each qtl in self.eQTLs
+    #     #       qtl.upload()
+    #
+    #     # else:
+    #     #   upload self + all associated info (make calls to db functions)
+    #
+    #     pass
 
 class eQTL:
     """ Creates an eQTL object that holds all representative information identified in
         GTEx Portal. Takes a list of values and assigns each value to its respective
         global variable.
     """
-    def __init__(self, parent, chosen=False, data=None):
+    def __init__(self, gene, chosen=False, data=None):
 
-        self.parent = parent
-        self.gtex_gs = parent.parent
-        self.tissue_name = parent.tissue_name
-        self.gencode_id = parent.gencode_id
-        self.gene_symbol = parent.gene_symbol
+        self.gene = gene  # eGene obj
+        self.geneset = gene.geneset
+        self.tissue_name = gene.tissue_name
+        self.gencode_id = gene.gencode_id
+        self.gene_symbol = gene.gene_symbol
 
         # still need to inherit database connection info from parent
+
+        # EDIT consolidate the following block -> dict
         self.raw_data = None
         self.name = None  # SNP identifier
         self.rsid = None
@@ -856,10 +1021,9 @@ class eQTL:
         else:  # come back to this later
             pass
 
-        # pull all relevant information from parent, prepare for uploading
-
     def setup(self):
-        self.raw_data = self.parent.raw_data
+        # pull all relevant information from parent, prepare for uploading
+        self.raw_data = self.gene.raw_data
         self.name = str(self.raw_data['snp'])
         self.rsid = str(self.raw_data['rs_id_dbSNP142_GRCh37p13'])
         self.p_value = float(self.raw_data['p_value'])
