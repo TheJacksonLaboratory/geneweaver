@@ -136,7 +136,8 @@ class TheDB:
                      'AND ode_ref_id IN %s;'
 
             self.cur.execute(query1, [sp, syms])  # execute QUERY 1
-            res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id),]  -  gather result of QUERY 1
+            # -  gather result of QUERY 1
+            res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id, ode_pref, gdb_id),]
 
             if not len(res1):
                 noncrit.append("Error: Unable to upload batch file as no genes found.\n"
@@ -145,7 +146,7 @@ class TheDB:
                 exit()
 
             found1 = map(lambda m: m[0], res1)  # USAGE: [ode_ref_id,] - isolate the ref ids pulled in QUERY 1
-            revList = map(lambda t: t[1], res1)  # USAGE: [ode_gene_ids,] - list of all ode_gene_ids found in QUERY 1
+            revList = map(lambda h: h[1], res1)  # USAGE: [ode_gene_ids,] - list of all ode_gene_ids found in QUERY 1
             revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - reverse dict lookup for QUERY 1
             posDict = {d: [] for d in found1}  # USAGE: {ode_gene_id: [ode_ref_id,],} - dict lookup for QUERY 1
 
