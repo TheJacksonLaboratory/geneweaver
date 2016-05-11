@@ -136,6 +136,8 @@ class TheDB:
                      'AND ode_ref_id IN %s;'
 
             self.cur.execute(query1, [sp, syms])  # execute QUERY 1
+            print self.cur.query
+            exit()
             # -  gather result of QUERY 1
             res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id, ode_pref, gdb_id),]
 
@@ -1506,8 +1508,8 @@ def getOdeGeneIdsNonPrefTest():
         break
 
 if __name__ == '__main__':
-    print '\n TEST: batch file upload test \n'
-    batch_file_test()
+    # print '\n TEST: batch file upload test \n'
+    # batch_file_test()
 
-    # print '\n TEST: getOdeGeneIdsNonPref() \n'
-    # getOdeGeneIdsNonPrefTest()
+    print '\n TEST: getOdeGeneIdsNonPref() \n'
+    getOdeGeneIdsNonPrefTest()
