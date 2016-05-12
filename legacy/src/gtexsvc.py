@@ -3,11 +3,21 @@
 # version: 1.0
 #
 # [Astrid's notes]
-# The purpose of the following file is to manage GTEx batch data. The first goal is to find a way of piping
-# GTEx data through a GTEx object (with Batch-like handling held here for now, until larger rewrite). The
+# The purpose of the following file is to manage GTEx data. The first goal is to find a way of piping
+# GTEx data efficiently through a GTEx object (with Batch-like handling held here for now, until larger rewrite). The
 # second goal is to be able query the website directly using 'requests'. The third goal is to be able to
-# "plug-and-play" these data objects (like GTEx) straight into a Batch object.
+# "plug-and-play" a series of 'Uploader' objs
 # [describe format of file input]
+
+# REQ EDIT [5/12]- pull all tables required ONCE haha + at the beginning...
+# limit GTEx Uploader objs to respective 'insert_*' functions
+#   - can then simplify entire structure of GTEx Uploader subclasses,
+#   replacing any 'SELECT'-based queries with a call to an 'update_tables()' func
+#   - use 'update_tables()' to coordinate calls to 'request_*()' methods, which
+#   will update a series of global dicts (from setup) [+ write resp. mutators]
+#
+#   - locate a larger data table in GTEx Portal to satisfy the needs of all
+#   'search_*()' functions that are in place now; follow a similar pattern to above
 
 import json
 import requests  # downloads JSON files from web
@@ -15,15 +25,14 @@ import tarfile
 import psycopg2
 import config
 
-from timeit import timeit  # EDITING PURPOSES ONLY
-import _tkinter as tk
-
+import time  # TESTING PURPOSES
 
 # class Batch
 
-# could make this (below) of a new class - "Uploader" - to act as a GTEx-specific Uploader so that we can
-#   differentiate between PubMed input types ect., helping with version control + establishment of
-#   reference objs
+# class Uploader
+
+# 'GTEx' = of a prospective superclass - Batch - to manage a large GTEx data
+#   upload [187265 (27159 unique genes)] to GeneWeaver database
 
 # treat as if a "Data" object
 class GTEx:
@@ -79,7 +88,8 @@ class GTEx:
         self.added_ids = {}  # {ode_ref_id: ode_gene_id,} - for all pairings added this session
 
         self.launch_connection()  # launch postgres (to connect with GeneWeaver database)
-
+        self.start = None  # TESTING PURPOSES
+        self.end = None  # TESTING PURPOSES
         # self.database_setup()
 
     def launch_connection(self):
@@ -103,6 +113,10 @@ class GTEx:
             exit()
 
     # --------------------------------- MUTATORs ------------------------------------------------- #
+
+    def gather_test_time(self):  # TESTING PURPOSES
+        """EDIT"""
+        print "Time taken was: %s" % (self.end - self.start)
 
     def get_errors(self, critical=False, noncritical=False):
         """ Returns error messages. If no additional parameters are filled, or if both
@@ -307,6 +321,8 @@ class GTEx:
 
         return output
 
+    # EDIT - RENAME: rewrite all functions to match 'request*'
+
     def search_single_tissues(self, tissue):
         """ Returns a dataset containing all the results for a tissue query search. ##
 
@@ -508,8 +524,9 @@ class GTEx:
                             self.tissue_info[tissue]['eGene_count']
 
     def database_setup(self):
-        """ ### Gathers data from online resources. Returns something that
-            upload_data nad upload_dataset can deal with ###
+        """ EDIT
+
+            # conductor: simplify the role of each method call
 
             only use is to set up geneweaver's database (should be done only once)
 
@@ -517,7 +534,7 @@ class GTEx:
 
         """
         # self.groom_raw_data()  # [last run: 5/2/16] reads in file and identifies what is useful, writing results
-
+        self.start = time.clock()  # TESTING PURPOSES
         for tissue in self.tissue_info:
             if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue == 'Uterus':  # TESTING
                 # if self.tissue_info[tissue]['has_egenes'] == 'True':  # for each tissue (where n >= 70)
@@ -537,6 +554,8 @@ class GTEx:
                     # exit()  # TESTING PURPOSES
                     print "AND should also equal", len(self.all_gene_info)
 
+        self.end = time.clock()  # TESTING PURPOSES
+        self.gather_test_time()  # TESTING PURPOSES
 
 # Uses a "trickle-down" method for uploading data to GeneWeaver
 class GTExGeneSet:  # GTExGeneSetUploaders
@@ -579,6 +598,8 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.gs_id = None
         self.gsv_value_list = []
         self.gsv_source_list = []
+        self.active_gene_pairs = {}  # {ode_ref_id: ode_gene_id,}  -  identical feature to batch, added_ids{}
+        self.genesetID_geneID = {}  # {gs_id: ode_gene_id,}  -  to avoid duplicate values
 
         self.file = {'file_size': None, 'file_uri': None, 'file_contents': None,
                      'file_comments': None, 'file_id': None}
@@ -792,7 +813,7 @@ class GTExGeneSet:  # GTExGeneSetUploaders
 
         self.cur.execute(search_path)  # point to tables of interest
         self.cur.execute(query, vals)  # run insertion
-        # self.connection.commit()
+        # self.connection.commit()  # EDIT: more than one commit?
 
         self.gs_id = self.cur.fetchall()[0][0]
 
@@ -835,6 +856,7 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.cur.execute(query, vals)
         # self.connection.commit()
 
+    # EDIT
     def update_geneset(self, gs_name=None, gs_abbr=None, gs_description=None, sp_id=None,
                        pub_id=None, gs_groups=None, thresh_type=None, thresh=None,
                        gs_gene_idType=None, gs_count=None):
@@ -891,7 +913,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.cur.execute(query, options)
         # self.connection.commit()
 
-
 class eGene:
     """ Creates an eGene object that holds all representative information identified in
         GTEx Portal. Takes a list of values and assigns each value to its respective
@@ -945,12 +966,11 @@ class eGene:
         # check GTEx gene dictionary / try and find further info online, if self.found=false?
         while not self.found:  # TEST TESTING
             self.more_gtex_info()  # returns True if gene_info{} is filled
-            self.find_geneID_gtex()
-            self.find_geneID_symbol()
-            self.find_geneID_rsid()
 
             # some queries are contingent upon existence of gene_info{}
             if self.gene_info['status'] == 'KNOWN':  # EDIT ? trying to narrow it down a little further
+                self.find_geneID_symbol()
+                self.find_geneID_rsid()
                 self.find_geneID_entrez()
                 self.find_geneID_ensembl()
 
@@ -974,8 +994,9 @@ class eGene:
             self.max_eQTL = qtl
             self.SNPs[qtl.name] = qtl  # (just out of good practice, for the moment)
             self.push_to_GeneSet(qtl_name=qtl.name, qtl_obj=qtl)  # keep GTExGeneSet up to date
-            # else:  # assumes that we are iterating through a list of SNPs for this gene [LATER]
-            #     # use self.max_eQTL to hold most siginificant - check whether 'is_chosen_snp'
+
+        # else:  # assumes that we are iterating through a list of SNPs for this gene [LATER]
+        #     # use self.max_eQTL to hold most siginificant - check whether 'is_chosen_snp'
 
     def find_all_tissue_qtls(self):
 
@@ -1022,8 +1043,16 @@ class eGene:
         vals = [self.geneset.gs_id, self.ode_gene_id, self.max_eQTL.p_value,
                 [self.ode_ref_id], [float(self.max_eQTL.p_value)], self.in_threshold]
 
-        self.cur.execute(query, vals)
-        # self.connection.commit()
+        if self.geneset.gs_id in self.geneset.genesetID_geneID.keys():
+            if self.geneset.genesetID_geneID[self.geneset.gs_id] == self.ode_gene_id:
+                self.delete_gene()  # delete old gene w/ faulty pairing
+                self.found = False
+                self.insert_gene()  # insert new gene
+                self.cur.execute(query, vals)
+                # self.connection.commit()
+        else:
+            self.cur.execute(query, vals)
+            # self.connection.commit()
 
         # Update GeneSet so we can update 'gsv_source_list' + 'gsv_value_list' later
         self.geneset.gsv_source_list.append(self.ode_ref_id)
@@ -1036,9 +1065,12 @@ class eGene:
             # assume that we've searched in every other table for viable ode_gene_id before this
 
             # ode_pref should only be true in the case where gdb_id = 7 (gene symbol table)
+
+            # make sure that self.found stays up to date! (tracks whether ode_gene_id assigned)
         """
         search_path = 'SET search_path = extsrc, production, odestatic;'
         self.cur.execute(search_path)
+        self.find_geneID_gtex()
 
         if not self.found:  # assumes that we need to make a new ode_gene_id
             # INSERT GENE  (assumes that ode_ref_id<->ode_gene_id hasn't been made before)
@@ -1050,9 +1082,13 @@ class eGene:
 
             self.cur.execute(query_gene, gene_vals)  # inserts gene
             # self.connection.commit()  # check to see if more than one is required
-            self.ode_gene_id = str(self.cur.fetchall()[0][0])  # EDIT: check
+            self.ode_gene_id = str(self.cur.fetchall()[0][0])  # EDIT: check to make sure
             self.gene_info['ode_gene_id'] = self.ode_gene_id
             print 'new ODE_GENE_ID: %s' % self.ode_gene_id
+            self.batch.added_ids[self.ode_ref_id] = self.ode_gene_id
+            self.geneset.active_gene_pairs[self.ode_ref_id] = self.ode_gene_id
+            self.geneset.genesetID_geneID[self.geneset.gs_id] = self.ode_gene_id
+            self.found = True
 
             # INSERT GENE_INFO  (assumes that this is a new ode_gene_id)
             query_gene_info = 'INSERT INTO gene_info ' \
@@ -1068,15 +1104,12 @@ class eGene:
 
             self.cur.execute(query_gene_info, gene_info_vals)  # inserts gene_info\
             # self.connection.commit()  # check to see if more than one is required
-            self.batch.added_ids[self.ode_ref_id] = self.ode_gene_id
+
+            print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
 
         elif self.found:  # assumes that we found an ode_gene_id
             # INSERT GENE
             # check to make sure that it's not already in gtex table
-            if self.ode_ref_id in self.batch.added_ids.keys():
-                # if this exact self.ode_ref_id, self.ode_gene_id pairing already inserted...
-                if self.batch.added_ids[self.ode_ref_id] == self.ode_gene_id:
-                    return  # skip, there's no point in trying to insert it again!
 
             # otherwise, if this pair hasn't been already added...
             query = 'INSERT INTO gene ' \
@@ -1087,10 +1120,22 @@ class eGene:
             self.cur.execute(query, vals)
             # self.connection.commit()  # check to see if more than one is required
             self.batch.added_ids[self.ode_ref_id] = self.ode_gene_id
+            self.geneset.active_gene_pairs[self.ode_ref_id] = self.ode_gene_id
 
             # GENE_INFO: if pairing exists, then so does gene info for that ode_gene_id
 
-        print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
+            print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
+
+    def delete_gene(self):
+        """ EDIT
+        """
+
+        query = 'DELETE FROM extsrc.gene ' \
+                'WHERE ode_ref_id = %s ' \
+                'AND ode_gene_id = %s;'
+
+        self.cur.execute(query, [self.ode_ref_id, self.ode_gene_id])
+        # self.connection.commit()
 
     def find_geneID_gtex(self):
         """ EDIT
@@ -1111,9 +1156,14 @@ class eGene:
 
         res = self.cur.fetchall()
         if len(res):  # then we found results for an existing eGene
-            self.found = True
-            self.ode_gene_id = res[0][1]
-            self.gene_info['ode_gene_id'] = self.ode_gene_id
+            for datum in res:
+                if datum[1] in self.geneset.active_gene_pairs.values():
+                    continue
+                else:
+                    self.found = True
+                    self.ode_gene_id = res[0][1]
+                    self.gene_info['ode_gene_id'] = self.ode_gene_id
+                    return
 
     def find_geneID_symbol(self):
         """ EDIT
@@ -1141,10 +1191,14 @@ class eGene:
         sym_res = self.cur.fetchall()  # [(ode_gene_id, ode_pref)]
 
         if len(sym_res) and sym_res[0][2] == 't':  # if query is successful + ode_pref=True
-            self.found = True
-            self.ode_gene_id = sym_res[0][1]
-            self.gene_info['ode_gene_id'] = self.ode_gene_id
-            return  # truncate search
+            for sym_pair in sym_res:
+                if sym_pair[1] in self.geneset.active_gene_pairs.values():
+                    continue
+                else:
+                    self.found = True
+                    self.ode_gene_id = sym_res[0][1]
+                    self.gene_info['ode_gene_id'] = self.ode_gene_id
+                    return  # truncate search
 
         # SWEEP GENE SYMBOL FOR VALID ODE_GENE_ID [where ode_pref=True]
         elif len(sym_res):  # if query successful, but ode_pref=False
@@ -1158,11 +1212,15 @@ class eGene:
             self.cur.execute(geneID_query, id_vals)  # Gene Symbol lookup by ode_gene_id
 
             id_res = self.cur.fetchall()
-            if len(id_res):
-                self.found = True
-                self.ode_gene_id = id_res[0][1]  # take the first of all results...
-                self.gene_info['ode_gene_id'] = self.ode_gene_id
-                # print "ID SEARCH:", self.ode_ref_id, self.ode_gene_id
+            for id_pair in id_res:
+                if id_pair[1] in self.geneset.active_gene_pairs.values():  # check within tissue
+                    continue  # no point in taking duplicates for each gene, if we can help it!
+                else:
+                    self.found = True
+                    self.ode_gene_id = id_res[0][1]  # take the first of all results...
+                    self.gene_info['ode_gene_id'] = self.ode_gene_id
+                    # print "ID SEARCH:", self.ode_ref_id, self.ode_gene_id
+                    return
 
     def find_geneID_entrez(self):
         """ EDIT
@@ -1183,11 +1241,17 @@ class eGene:
             entrez_vals = [self.geneset.species, 1, str(self.gene_info['entrez_id'])]
             self.cur.execute(query, entrez_vals)
             entrez_res = self.cur.fetchall()
+
             if len(entrez_res):
-                self.found = True
-                self.ode_gene_id = entrez_res[0][1]
-                self.gene_info['ode_gene_id'] = self.ode_gene_id
-                # print "ENTREZ SEARCH:", self.ode_ref_id, self.ode_gene_id
+                for entrez in entrez_res:
+                    if entrez[1] in self.geneset.active_gene_pairs.values():
+                        continue
+                    else:
+                        self.found = True
+                        self.ode_gene_id = entrez_res[0][1]
+                        self.gene_info['ode_gene_id'] = self.ode_gene_id
+                        # print "ENTREZ SEARCH:", self.ode_ref_id, self.ode_gene_id
+                        return
 
     def find_geneID_ensembl(self):
         """ EDIT
@@ -1210,21 +1274,30 @@ class eGene:
             self.cur.execute(query, gene_vals)
             gene_res = self.cur.fetchall()
             if len(gene_res):
-                self.found = True
-                self.ode_gene_id = gene_res[0][1]
-                self.gene_info['ode_gene_id'] = self.ode_gene_id
-                # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
-                return  # no need to continue searching!
+                for gene in gene_res:
+                    if gene[1] in self.geneset.active_gene_pairs.values():
+                        continue
+                    else:
+                        self.found = True
+                        self.ode_gene_id = gene_res[0][1]
+                        self.gene_info['ode_gene_id'] = self.ode_gene_id
+                        # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
+                        return  # no need to continue searching!
 
             # ENSEMBL PROTEIN (if Ensembl Gene lookup was unsuccessful)
             protein_vals = [self.geneset.species, 3, str(self.gene_info['ensembl_id'])]
             self.cur.execute(query, protein_vals)
             protein_res = self.cur.fetchall()
             if len(protein_res):
-                self.found = True
-                self.ode_gene_id = protein_res[0][1]
-                self.gene_info['ode_gene_id'] = self.ode_gene_id
-                # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
+                for protein in protein_res:
+                    if protein[1] in self.geneset.active_gene_pairs.values():
+                        continue
+                    else:
+                        self.found = True
+                        self.ode_gene_id = protein_res[0][1]
+                        self.gene_info['ode_gene_id'] = self.ode_gene_id
+                        # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
+                        return
 
     def find_geneID_rsid(self):
         """ EDIT
@@ -1246,12 +1319,16 @@ class eGene:
             self.cur.execute(query, rsid_vals)
             rsid_res = self.cur.fetchall()
             if len(rsid_res):
-                self.found = True
-                self.ode_gene_id = rsid_res[0][1]
-                self.gene_info['ode_gene_id'] = self.ode_gene_id
-                # print "RSID SEARCH:", self.ode_ref_id, self.ode_gene_id
+                for rsid in rsid_res:
+                    if rsid in self.geneset.active_gene_pairs.values():
+                        continue
+                    else:
+                        self.found = True
+                        self.ode_gene_id = rsid_res[0][1]
+                        self.gene_info['ode_gene_id'] = self.ode_gene_id
+                        # print "RSID SEARCH:", self.ode_ref_id, self.ode_gene_id
+                        return
 
-    # EDIT: individual lookup takes too long!
     def more_gtex_info(self):
         """ EDIT
 
@@ -1283,9 +1360,14 @@ class eGene:
             self.gene_info['strand'] = self.batch.all_gene_info[self.gencode_id]['strand']
             self.gene_info['type'] = self.batch.all_gene_info[self.gencode_id]['type']
 
-            if self.batch.all_gene_info[self.gencode_id]['ode_gene_id']:  # grabbing ode_gene_id if it exists
+            batch_geneID = self.batch.all_gene_info[self.gencode_id]['ode_gene_id']
+            if batch_geneID and (batch_geneID not in self.geneset.active_gene_pairs.values()):
                 self.ode_gene_id = self.batch.all_gene_info[self.gencode_id]['ode_gene_id']
                 self.found = True
+                return
+            else:
+                # EDIT: error message handling
+                return
 
         elif not self.found:  # if the ode_gene_id wasn't found... look up more info
             temp = self.batch.search_gene_info(self.gene_symbol)  # search GTEx Portal
