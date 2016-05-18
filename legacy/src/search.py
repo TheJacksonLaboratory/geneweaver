@@ -185,14 +185,16 @@ def applyUserRestrictions(client, select=''):
     else:
         access = '*'
 
+    client.SetSelect(access)
+
     # Admins don't get filtered results
     if not user_info.is_admin:
         access += ', (usr_id=' + str(user_id)
         access += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
         access += ')) AS isReadable'
 
-        client.SetSelect(access)
         client.SetFilter('isReadable', [1])
+
 
 
 def getSearchFilterValues(query):
@@ -215,7 +217,7 @@ def getSearchFilterValues(query):
     client.SetGroupBy('OneRow', sphinxapi.SPH_GROUPBY_ATTR);
     client.AddQuery(query, 'geneset, geneset_delta')
 
-    # Resets the select and limits
+    ## Resets the select and limits
     #client.SetSelect(sphinxSelect)
     applyUserRestrictions(client, sphinxSelect)
     client.SetLimits(0, 1000, 1000)
@@ -226,9 +228,9 @@ def getSearchFilterValues(query):
     client.SetGroupBy('attribution', sphinxapi.SPH_GROUPBY_ATTR)
     client.AddQuery(query, 'geneset, geneset_delta')
 
-    # Generates a six digit number representing all combinations of tier,
-    # species, and attributions. Every two characters represent these three
-    # values.
+    ## Generates a six digit number representing all combinations of tier,
+    ## species, and attributions. Every two characters represent these three
+    ## values.
     sphinxSelect += ', (cur_id*10000 + sp_id*100 + attribution) AS tsa_group'
 
     #client.SetSelect(sphinxSelect)
@@ -236,14 +238,14 @@ def getSearchFilterValues(query):
     client.SetGroupBy('tsa_group', sphinxapi.SPH_GROUPBY_ATTR)
     client.AddQuery(query, 'geneset, geneset_delta')
 
-    # srange is the range of geneset sizes
+    ## srange is the range of geneset sizes
     srange, status, grp, filt = client.RunQueries()
     print srange
     print status
     print grp
     print filt
 
-    # Geneset sizes, min and max
+    ## Geneset sizes, min and max
     glow = srange['matches'][0]['attrs']['low']
     ghigh = srange['matches'][0]['attrs']['high']
     geneCounts = {'geneCountMin': glow, 'geneCountMax': ghigh}
@@ -264,12 +266,12 @@ def getSearchFilterValues(query):
     sp_counts = defaultdict(int)
     att_counts = defaultdict(int)
 
-    # dict of dicts: tier-species, species-tier, att-tier
+    ## dict of dicts: tier-species, species-tier, att-tier
     ts_counts = defaultdict(lambda: defaultdict(int))
     st_counts = defaultdict(lambda: defaultdict(int))
     at_counts = defaultdict(lambda: defaultdict(int))
 
-    # triple dicts: tier-species-att, species-tier-att, att-species-tier
+    ## triple dicts: tier-species-att, species-tier-att, att-species-tier
     tsa_counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     sta_counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     ats_counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
