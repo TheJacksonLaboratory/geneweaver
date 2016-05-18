@@ -1,0 +1,74 @@
+{% include 'header.html' %}
+
+<br>
+<div class="panel panel-default panel-heading bg-gray-light">
+    <h3 class="panel-title"><strong>Data Sources </strong></h3>
+</div>
+
+<div class="panel panel-default">
+    <div class="row">
+        <div class="panel-body" style="text-align:center;">
+            <h4><strong>
+                GeneWeaver incorporates a number of free, public data sources. The GeneWeaver team is grateful
+                to the individuals, projects, and resource providers behind all of the data collections we
+                currently integrate.
+           </strong></h4>
+        </div>
+    </div>
+
+    <div id="aba" class="panel" style="padding:20px; border-radius: 10px; border: 1px solid #006400; border-left: 11px solid #006400;">
+        <img width="50" height="50" src="/static/images/sources/aba.png" alt="Allen Brain Atlas" style="margin-right: 5px">
+        <h3 class="panel-title"><strong>Allen Brain Atlas (ABA)</strong></h3>
+        <br />
+        <br />
+        <p><strong>Mouse Brain - Differential Expression (January 1, 2015)</strong></p>
+    </div>
+
+    <div id="ctd" class="panel" style="padding:20px; border-radius: 10px; border: 1px solid #006400; border-left: 11px solid #006400;">
+        <img width="100" height="50" src="/static/images/sources/ctd.png" alt="Allen Brain Atlas" style="margin-right: 5px">
+        <h3 class="panel-title"><strong>Comparative Toxicogenomics Database (CTD)</strong></h3>
+        <br />
+        <br />
+        <p><strong>Things (January 1, 2012)</strong></p>
+    </div>
+
+    <div id="kegg" class="panel" style="padding:20px; border-radius: 10px; border: 1px solid #006400; border-left: 11px solid #006400;">
+        <img width="80" height="50" src="/static/images/sources/kegg.gif" alt="KEGG" style="margin-right: 5px">
+        <h3 class="panel-title"><strong>Kyoto Encyclopedia of Genes and Genomes (KEGG)</strong></h3>
+        <br />
+        <br />
+        <p><strong>Lots of Things (January 1, 2015)</strong></p>
+    </div>
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color:#006400;">
+        <div class="panel-body">
+            <p>Stuff</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="panel-body">
+            <p><strong>Citing GeneWeaver</strong></p>
+
+            <p>
+                Erich J. Baker, Jeremy J. Jay, Jason A. Bubier, Michael A. Langston, and Elissa J. Chesler.
+                <a href="http://nar.oxfordjournals.org/content/40/D1/D1067.full">Geneweaver: a web-based system for
+                    integrative functional genomics.</a>
+                Nucl. Acids Res. (2012) 40(D1): D1067-D1076
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="panel-body">
+
+            <a href="http://www.neuinfo.org/" style="padding:10px;"><img src="{{ url_for('static', filename='images/registered_with_nif_button.jpg') }}"
+                     alt="Registered with NIF"
+                     style="border:none; margin-bottom:10px;  margin-left: 25px; margin-right: 25px;">
+            </a>
+        </div>
+    </div>
+
+</div>
+
+
+{% include 'footer.html' %}

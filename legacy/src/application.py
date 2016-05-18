@@ -24,7 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import cairosvg
+#import cairosvg
 from cStringIO import StringIO
 
 app = flask.Flask(__name__)
@@ -2085,6 +2085,9 @@ def render_funding():
 def render_datasharing():
     return flask.render_template('datasharing.html')
 
+@app.route('/datasources')
+def render_datasources():
+    return flask.render_template('datasources.html')
 
 @app.route('/privacy')
 def render_privacy():
