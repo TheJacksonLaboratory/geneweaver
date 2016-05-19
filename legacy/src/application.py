@@ -2089,10 +2089,14 @@ def render_datasharing():
 def render_datasources():
     attribs = geneweaverdb.get_all_attributions()
     attlist = []
-    for at_id, at_name in attribs.items():
-        attlist.append(at_name)
+    attcounts = {}
+    for at_id, at_abbrev in attribs.items():
+        attlist.append(at_abbrev)
+        #attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
+        attcounts[at_abbrev] = geneweaverdb.get_attributed_genesets(at_id, at_abbrev)
 
-    return flask.render_template('datasources.html', attributions=attlist)
+    print attcounts
+    return flask.render_template('datasources.html', attributions=attlist, attcounts=attcounts)
 
 @app.route('/privacy')
 def render_privacy():

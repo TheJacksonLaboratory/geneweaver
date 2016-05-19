@@ -552,6 +552,49 @@ def get_all_attributions():
         cursor.execute('''SELECT at_id, at_abbrev FROM attribution WHERE at_abbrev IS NOT NULL ORDER BY at_id;''')
         return OrderedDict(cursor)
 
+def get_attributed_genesets(atid=None, abbrev=None):
+    """
+    Returns geneset and distinct gene counts for the given attribution.
+
+    :return:
+    """
+
+    with PooledCursor() as cursor:
+        if not atid and abbrev:
+            cursor.execute('''
+                SELECT at_id
+                FROM odestatic.attribution
+                WHERE at_abbrev ILIKE %s;''', (abbrev,))
+
+            atid = cursor.fetchone()
+
+            if not atid:
+                return []
+            else:
+                atid = atid[0]
+
+        cursor.execute('''
+            SELECT COUNT(gs_id) AS gs_count, SUM(gs_count) AS gene_count
+            FROM production.geneset
+            WHERE gs_attribution = %s;
+            ''', (atid,))
+            #SELECT COUNT(DISTINCT gs.gs_id) AS gs_count,
+            #       COUNT(gsv.ode_gene_id) AS gene_count
+            #FROM geneset_value AS gsv
+            #INNER JOIN geneset AS gs
+            #ON gsv.gs_id = gs.gs_id
+            #WHERE gs_attribution = %s;
+        #counts = OrderedDict(cursor)
+        #counts['at_id'] = atid
+
+        #if abbrev:
+        #    counts['at_abbrev'] = abbrev
+
+        return cursor.fetchone()
+
+
+
+
 
 def resolve_feature_id(sp_id, feature_id):
     """
