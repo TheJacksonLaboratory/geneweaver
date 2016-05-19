@@ -2087,7 +2087,12 @@ def render_datasharing():
 
 @app.route('/datasources')
 def render_datasources():
-    return flask.render_template('datasources.html')
+    attribs = geneweaverdb.get_all_attributions()
+    attlist = []
+    for at_id, at_name in attribs.items():
+        attlist.append(at_name)
+
+    return flask.render_template('datasources.html', attributions=attlist)
 
 @app.route('/privacy')
 def render_privacy():
