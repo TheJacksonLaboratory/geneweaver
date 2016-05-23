@@ -1608,9 +1608,18 @@ def render_project_genesets():
     pid = flask.request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
 
+    species = geneweaverdb.get_all_species()
+    splist = []
+
+    for sp_id, sp_name in species.items():
+        splist.append([sp_id, sp_name])
+
+    species = splist
+
     return flask.render_template('singleProject.html',
                                  genesets=genesets,
-                                 proj={'project_id': pid})
+                                 proj={'project_id': pid},
+                                 species=species)
 
 
 @app.route('/getProjectGroups.json', methods=['GET'])
