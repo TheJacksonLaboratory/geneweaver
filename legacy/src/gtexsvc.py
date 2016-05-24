@@ -544,7 +544,7 @@ class GTEx:
         self.start = time.clock()  # TESTING PURPOSES
         for tissue in self.tissue_info:
             # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue == 'Uterus':  # TESTING
-            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid':  # for each tissue (where n >= 70)
+            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':  # for each tissue (where n >= 70)
                 # iterating through the list of tissue files
                 self.files_uri[str(tissue)] = {}
                 fp = self.SAVE_SEARCH_DIR + tissue + "_Groomed.json"
@@ -557,11 +557,11 @@ class GTEx:
                     gs_tissue = GTExGeneSet(self, values=qtls[tissue], tissue_type=str(tissue))
 
                     # TESTING - remove later (no point storing everything in local memory!)
-                    self.raw_genesets[gs_tissue.tissue_name] = gs_tissue  # store GTExGeneSet obj globally
-                    print tissue, len(self.raw_genesets[gs_tissue.tissue_name].e_genes.keys()), \
-                        "should equal ", self.tissue_info[gs_tissue.tissue_name]['eGene_count']
-                    # exit()  # TESTING PURPOSES
-                    print "AND should also equal", len(self.all_gene_info)
+                    # self.raw_genesets[gs_tissue.tissue_name] = gs_tissue  # store GTExGeneSet obj globally
+                    # print tissue, len(self.raw_genesets[gs_tissue.tissue_name].e_genes.keys()), \
+                    #     "should equal ", self.tissue_info[gs_tissue.tissue_name]['eGene_count']
+                    # # exit()  # TESTING PURPOSES
+                    # print "AND should also equal", len(self.all_gene_info)
 
         self.end = time.clock()  # TESTING PURPOSES
         self.gather_test_time()  # TESTING PURPOSES
@@ -659,33 +659,30 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         print "%s: file inserted" % self.tissue_name
 
         # PUBLICATION
-        self.batch.interval_start = time.clock  # TESTING PURPOSES
         self.create_publication()
-        self.batch.interval_end = time.clock  # TESTING PURPOSES
-        self.batch.check_time("to create publication")  # TESTING PURPOSES
         print "%s: publication created" % self.tissue_name
-        self.batch.interval_start = time.clock  # TESTING PURPOSES
+        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.insert_publication()  # updates self.publication['pub_id']
-        self.batch.interval_end = time.clock  # TESTING PURPOSES
+        self.batch.interval_end = time.clock()  # TESTING PURPOSES
         self.batch.check_time("to insert publication")  # TESTING PURPOSES
         print "%s: publication inserted" % self.tissue_name
 
         # GENESET
-        self.batch.interval_start = time.clock  # TESTING PURPOSES
+        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.insert_geneset()  # create geneset in GW
-        self.batch.interval_end = time.clock  # TESTING PURPOSES
+        self.batch.interval_end = time.clock()  # TESTING PURPOSES
         self.batch.check_time("to insert geneset")  # TESTING PURPOSES
         print "%s: geneset inserted" % self.tissue_name
 
         # GENESET VALUES
-        self.batch.interval_start = time.clock  # TESTING PURPOSES
+        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.insert_geneset_values()  # calls eGene objs to add values
-        self.batch.interval_end = time.clock  # TESTING PURPOSES
+        self.batch.interval_end = time.clock()  # TESTING PURPOSES
         self.batch.check_time("to insert genes values")  # TESTING PURPOSES
         print "%s: geneset values inserted" % self.tissue_name
-        self.batch.interval_start = time.clock  # TESTING PURPOSES
+        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.update_gsv_lists()  # update values stored for gsv_values_list + gsv_source_list
-        self.batch.interval_end = time.clock  # TESTING PURPOSES
+        self.batch.interval_end = time.clock()  # TESTING PURPOSES
         self.batch.check_time("to update geneset values")  # TESTING PURPOSES
         print "%s: gsv lists updated" % self.tissue_name
 
@@ -1026,7 +1023,7 @@ class eGene:
             self.SNPs[qtl.name] = qtl  # (just out of good practice, for the moment)
             self.push_to_GeneSet(qtl_name=qtl.name, qtl_obj=qtl)  # keep GTExGeneSet up to date
 
-        # else:  # assumes that we are iterating through a list of SNPs for this gene [LATER]
+        # else:  # assumes that we are iterating through a list of SNPs for this gene [LATER]  # EDIT
         #     # use self.max_eQTL to hold most siginificant - check whether 'is_chosen_snp'
 
     def find_all_tissue_qtls(self):
@@ -1065,6 +1062,10 @@ class eGene:
 
             # NOT TESTED
         """
+        exists = self.check_geneset_value_exists()
+        if exists:
+            return
+
         # print 'starting to insert gene value...'
         query = 'INSERT INTO extsrc.geneset_value ' \
                 '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
@@ -1101,7 +1102,10 @@ class eGene:
         """
         search_path = 'SET search_path = extsrc, production, odestatic;'
         self.cur.execute(search_path)
-        self.find_geneID_gtex()
+
+        pres = self.check_gene_exists()
+        if pres:  # if the gene is already in the geneset, pass
+            return False
 
         if not self.found:  # assumes that we need to make a new ode_gene_id
             # INSERT GENE  (assumes that ode_ref_id<->ode_gene_id hasn't been made before)
@@ -1156,6 +1160,42 @@ class eGene:
             # GENE_INFO: if pairing exists, then so does gene info for that ode_gene_id
 
             print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
+
+    def check_gene_exists(self):
+        """EDIT"""
+
+        query = 'SELECT ode_gene_id, ode_ref_id ' \
+                'FROM extsrc.gene ' \
+                'WHERE ode_gene_id = %s ' \
+                'AND ode_ref_id = %s ' \
+                'AND gdb_id = %s;'
+
+        vals = [self.ode_gene_id, self.ode_ref_id, self.geneset.gdb_id]
+        self.cur.execute(query, vals)
+        res = self.cur.fetchall()
+
+        if len(res):
+            return True
+        else:
+            return False
+        # EDIT: add error message updating (batch)
+
+    def check_geneset_value_exists(self):
+        """EDIT"""
+        query = 'SELECT ode_gene_id ' \
+                'FROM extsrc.geneset_value ' \
+                'WHERE ode_gene_id = %s ' \
+                'AND gs_id = %s;'
+
+        vals = [self.ode_gene_id, self.geneset.gs_id]
+        self.cur.execute(query, vals)
+        res = self.cur.fetchall()
+
+        if len(res):
+            return True
+        else:
+            return False
+        # EDIT: add error message updating (batch)
 
     def delete_gene(self):
         """ EDIT
