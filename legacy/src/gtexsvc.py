@@ -543,8 +543,8 @@ class GTEx:
         # self.groom_raw_data()  # [last run: 5/2/16] reads in file and identifies what is useful, writing results
         self.start = time.clock()  # TESTING PURPOSES
         for tissue in self.tissue_info:
-            # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue == 'Uterus':  # TESTING
-            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':  # for each tissue (where n >= 70)
+            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue == 'Ovary':  # TESTING
+            # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':  # for each tissue (where n >= 70)
                 # iterating through the list of tissue files
                 self.files_uri[str(tissue)] = {}
                 fp = self.SAVE_SEARCH_DIR + tissue + "_Groomed.json"
@@ -992,17 +992,30 @@ class eGene:
         self.create_eQTL()  # assign QTL obj
 
         # check GTEx gene dictionary / try and find further info online, if self.found=false?
-        while not self.found:  # TEST TESTING
+        while True:  # TEST TESTING: This is not working how we want it to
+            if self.found:
+                break
+            self.find_geneID_gtex()
+            if self.found:
+                break
             self.more_gtex_info()  # returns True if gene_info{} is filled
-
+            if self.found:
+                break
             # some queries are contingent upon existence of gene_info{}
-            if self.gene_info['status'] == 'KNOWN':  # EDIT ? trying to narrow it down a little further
-                self.find_geneID_symbol()
-                self.find_geneID_rsid()
-                self.find_geneID_entrez()
-                self.find_geneID_ensembl()
+            # if self.gene_info['status'] == 'KNOWN':  # EDIT ? trying to narrow it down a little further
+            self.find_geneID_entrez()
+            if self.found:
+                break
+            self.find_geneID_ensembl()
+            if self.found:
+                break
+            self.find_geneID_symbol()
+            if self.found:
+                break
+            self.find_geneID_rsid()
 
-            return  # only go through this loop once, terminating if / when self.found = True
+            break  # only go through this loop once, terminating if / when self.found = True
+
 
     def create_eQTL(self, data=None):
         """ # data passed in with specific dictionary type (pass along from batch):
@@ -1075,16 +1088,19 @@ class eGene:
         vals = [self.geneset.gs_id, self.ode_gene_id, self.max_eQTL.p_value,
                 [self.ode_ref_id], [float(self.max_eQTL.p_value)], self.in_threshold]
 
-        if self.geneset.gs_id in self.geneset.genesetID_geneID.keys():
-            if self.geneset.genesetID_geneID[self.geneset.gs_id] == self.ode_gene_id:
-                self.delete_gene()  # delete old gene w/ faulty pairing
-                self.found = False
-                self.insert_gene()  # insert new gene
-                self.cur.execute(query, vals)
-                self.connection.commit()
-        else:
-            self.cur.execute(query, vals)
-            self.connection.commit()
+        # if self.geneset.gs_id in self.geneset.genesetID_geneID.keys():
+        #     if self.geneset.genesetID_geneID[self.geneset.gs_id] == self.ode_gene_id:
+        #         self.delete_gene()  # delete old gene w/ faulty pairing
+        #         self.found = False
+        #         self.insert_gene()  # insert new gene
+        #         self.cur.execute(query, vals)
+        #         self.connection.commit()
+        # else:
+        #     self.cur.execute(query, vals)
+        #     self.connection.commit()
+
+        self.cur.execute(query, vals)
+        self.connection.commit()
 
         # Update GeneSet so we can update 'gsv_source_list' + 'gsv_value_list' later
         self.geneset.gsv_source_list.append(self.ode_ref_id)
@@ -1105,9 +1121,29 @@ class eGene:
 
         pres = self.check_gene_exists()
         if pres:  # if the gene is already in the geneset, pass
+            print "gene: ", self.gene_symbol, "has already been added"
             return False
 
-        if not self.found:  # assumes that we need to make a new ode_gene_id
+        if self.found:  # assumes that we found an ode_gene_id
+            # INSERT GENE
+            # check to make sure that it's not already in gtex table
+
+            # otherwise, if this pair hasn't been already added...
+            query = 'INSERT INTO gene ' \
+                    '(ode_gene_id, ode_ref_id, gdb_id, sp_id, ode_pref,' \
+                    ' ode_date) VALUES (%s, %s, %s, %s, false, NOW());'
+            vals = [self.ode_gene_id, self.ode_ref_id, self.geneset.gdb_id,
+                    self.geneset.species]
+            self.cur.execute(query, vals)
+            self.connection.commit()  # check to see if more than one is required
+            self.batch.added_ids[self.ode_ref_id] = self.ode_gene_id
+            self.geneset.active_gene_pairs[self.ode_ref_id] = self.ode_gene_id
+
+            # GENE_INFO: if pairing exists, then so does gene info for that ode_gene_id
+
+            print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
+
+        else:  # assumes that we need to make a new ode_gene_id
             # INSERT GENE  (assumes that ode_ref_id<->ode_gene_id hasn't been made before)
             query_gene = 'INSERT INTO gene ' \
                          '(ode_ref_id, gdb_id, sp_id, ode_pref,' \
@@ -1142,25 +1178,6 @@ class eGene:
 
             print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
 
-        elif self.found:  # assumes that we found an ode_gene_id
-            # INSERT GENE
-            # check to make sure that it's not already in gtex table
-
-            # otherwise, if this pair hasn't been already added...
-            query = 'INSERT INTO gene ' \
-                    '(ode_gene_id, ode_ref_id, gdb_id, sp_id, ode_pref,' \
-                    ' ode_date) VALUES (%s, %s, %s, %s, false, NOW());'
-            vals = [self.ode_gene_id, self.ode_ref_id, self.geneset.gdb_id,
-                    self.geneset.species]
-            self.cur.execute(query, vals)
-            self.connection.commit()  # check to see if more than one is required
-            self.batch.added_ids[self.ode_ref_id] = self.ode_gene_id
-            self.geneset.active_gene_pairs[self.ode_ref_id] = self.ode_gene_id
-
-            # GENE_INFO: if pairing exists, then so does gene info for that ode_gene_id
-
-            print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
-
     def check_gene_exists(self):
         """EDIT"""
 
@@ -1168,9 +1185,10 @@ class eGene:
                 'FROM extsrc.gene ' \
                 'WHERE ode_gene_id = %s ' \
                 'AND ode_ref_id = %s ' \
-                'AND gdb_id = %s;'
+                'AND gdb_id = %s ' \
+                'AND sp_id = %s;'
 
-        vals = [self.ode_gene_id, self.ode_ref_id, self.geneset.gdb_id]
+        vals = [self.ode_gene_id, self.ode_ref_id, self.geneset.gdb_id, self.geneset.species]
         self.cur.execute(query, vals)
         res = self.cur.fetchall()
 
@@ -1234,7 +1252,9 @@ class eGene:
                     self.found = True
                     self.ode_gene_id = res[0][1]
                     self.gene_info['ode_gene_id'] = self.ode_gene_id
-                    return
+                    print 'found:', 'existing in gtex test set'
+                    return True
+        return False
 
     def find_geneID_symbol(self):
         """ EDIT
@@ -1269,7 +1289,8 @@ class eGene:
                     self.found = True
                     self.ode_gene_id = sym_res[0][1]
                     self.gene_info['ode_gene_id'] = self.ode_gene_id
-                    return  # truncate search
+                    print 'found:', 'symbol'
+                    return True  # truncate search
 
         # SWEEP GENE SYMBOL FOR VALID ODE_GENE_ID [where ode_pref=True]
         elif len(sym_res):  # if query successful, but ode_pref=False
@@ -1291,7 +1312,10 @@ class eGene:
                     self.ode_gene_id = id_res[0][1]  # take the first of all results...
                     self.gene_info['ode_gene_id'] = self.ode_gene_id
                     # print "ID SEARCH:", self.ode_ref_id, self.ode_gene_id
-                    return
+                    print 'found:', 'symbol'
+                    return True
+
+        return False
 
     def find_geneID_entrez(self):
         """ EDIT
@@ -1322,7 +1346,10 @@ class eGene:
                         self.ode_gene_id = entrez_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENTREZ SEARCH:", self.ode_ref_id, self.ode_gene_id
-                        return
+                        print 'found: ', 'entrez'
+                        return True
+
+        return False
 
     def find_geneID_ensembl(self):
         """ EDIT
@@ -1353,7 +1380,8 @@ class eGene:
                         self.ode_gene_id = gene_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
-                        return  # no need to continue searching!
+                        print 'found:', 'ensembl'
+                        return True  # no need to continue searching!
 
             # ENSEMBL PROTEIN (if Ensembl Gene lookup was unsuccessful)
             protein_vals = [self.geneset.species, 3, str(self.gene_info['ensembl_id'])]
@@ -1368,7 +1396,9 @@ class eGene:
                         self.ode_gene_id = protein_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
-                        return
+                        print 'found:', 'ensembl'
+                        return True
+        return False
 
     def find_geneID_rsid(self):
         """ EDIT
@@ -1398,7 +1428,9 @@ class eGene:
                         self.ode_gene_id = rsid_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "RSID SEARCH:", self.ode_ref_id, self.ode_gene_id
-                        return
+                        print 'found:', 'rsid'
+                        return True
+        return False
 
     def more_gtex_info(self):
         """ EDIT
@@ -1435,6 +1467,7 @@ class eGene:
             if batch_geneID and (batch_geneID not in self.geneset.active_gene_pairs.values()):
                 self.ode_gene_id = self.batch.all_gene_info[self.gencode_id]['ode_gene_id']
                 self.found = True
+                print 'found:', 'gtex info'
                 return
             else:
                 # EDIT: error message handling
