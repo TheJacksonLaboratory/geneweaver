@@ -26,6 +26,11 @@ import psycopg2
 import config
 
 import time  # TESTING PURPOSES
+import progressbar  # TESTING PURPOSES
+
+
+# import fish  # TESTING PURPOSES - funny progress bar
+
 
 # class Batch
 
@@ -88,12 +93,8 @@ class GTEx:
         self.added_ids = {}  # {ode_ref_id: ode_gene_id,} - for all pairings added this session
 
         self.launch_connection()  # launch postgres (to connect with GeneWeaver database)
-        self.start = None  # TESTING PURPOSES
-        self.end = None  # TESTING PURPOSES
-        self.interval_start = None  # TESTING PURPOSES
-        self.interval_end = None  # TESTING PURPOSES
-        self.avg_mean_upload_gene = None  # TESTING PURPOSES
-        self.avg_mean_upload_gs = None  # TESTING PURPOSES
+
+        # build repository
         # self.database_setup()
 
     def launch_connection(self):
@@ -112,19 +113,11 @@ class GTEx:
         try:
             self.connection = psycopg2.connect(cs)  # connect to geneweaver database
             self.cur = self.connection.cursor()
-        except SyntaxError:  # cs probably wouldn't be a useable string if wasn't able to connect
+        except SyntaxError:  # cs most likely wouldn't be a useable string if wasn't able to connect
             print "Error: Unable to connect to database."
             exit()
 
     # --------------------------------- MUTATORs ------------------------------------------------- #
-
-    def gather_test_time(self):  # TESTING PURPOSES
-        """EDIT"""
-        print "Time taken was: %s" % (self.end - self.start)
-
-    def check_time(self, pref):  # TESTING PURPOSES
-        """EDIT"""
-        print "Time taken ", pref, " was: %s" % (self.interval_end - self.interval_start)
 
     def get_errors(self, critical=False, noncritical=False):
         """ Returns error messages. If no additional parameters are filled, or if both
@@ -542,9 +535,9 @@ class GTEx:
         """
         # self.groom_raw_data()  # [last run: 5/2/16] reads in file and identifies what is useful, writing results
         self.start = time.clock()  # TESTING PURPOSES
-        for tissue in self.tissue_info:
-            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue == 'Ovary':  # TESTING
-            # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':  # for each tissue (where n >= 70)
+        for tissue in self.tissue_info:  # for each tissue (where n >= 70)
+            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Ovary':  # TESTING
+                # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':
                 # iterating through the list of tissue files
                 self.files_uri[str(tissue)] = {}
                 fp = self.SAVE_SEARCH_DIR + tissue + "_Groomed.json"
@@ -565,6 +558,7 @@ class GTEx:
 
         self.end = time.clock()  # TESTING PURPOSES
         self.gather_test_time()  # TESTING PURPOSES
+
 
 # Uses a "trickle-down" method for uploading data to GeneWeaver
 class GTExGeneSet:  # GTExGeneSetUploaders
@@ -619,7 +613,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.e_qtls = {}  # USAGE: {snp: eQTL obj,} - for top-level access (otherwise already stored in eGene obj)
 
         self.geneweaver_setup()  # creates eGenes, along with respective eQTL
-        # required fields for GeneWeaver
 
     def geneweaver_setup(self):
         """ EDIT
@@ -629,17 +622,19 @@ class GTExGeneSet:  # GTExGeneSetUploaders
             # and access / populate 'self.eQTLs' through each eGene obj
         """
         print 'setting up geneset...\n'
+        # TESTING PURPOSES
+        bar = progressbar.ProgressBar(maxval=len(self.raw_values)).start()
+
         # GENERATE GENES
         c = 0  # TESTING
-        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         total = len(self.raw_values)  # TESTING
         for gene_data in self.raw_values:
             c += 1  # TESTING
-            # if c % 10 == 0:  # TESTING
-            print c, "out of", total, "genes created..."  # TESTING
+            bar.update(c)  # TESTING
+            time.sleep(0.001)  # TESTING: this is ugly! find an alternative
             self.create_eGene(gene_data)
-        self.batch.interval_end = time.clock()
-        self.batch.check_time("to create genes")  # TESTING PURPOSES
+        bar.finish()  # TESTING
+
         print "%s: genes created" % self.tissue_name
 
         # COUNT [file_size]
@@ -647,43 +642,25 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         print "%s: num genes = %s" % (self.tissue_name, self.count)
 
         # FILE
-        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.create_file()
-        self.batch.interval_end = time.clock()  # TESTING PURPOSES
-        self.batch.check_time("to create file")  # TESTING PURPOSES
         print "%s: file created" % self.tissue_name
-        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.insert_file()
-        self.batch.interval_end = time.clock()  # TESTING PURPOSES
-        self.batch.check_time("to insert file")  # TESTING PURPOSES
         print "%s: file inserted" % self.tissue_name
 
         # PUBLICATION
         self.create_publication()
         print "%s: publication created" % self.tissue_name
-        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.insert_publication()  # updates self.publication['pub_id']
-        self.batch.interval_end = time.clock()  # TESTING PURPOSES
-        self.batch.check_time("to insert publication")  # TESTING PURPOSES
         print "%s: publication inserted" % self.tissue_name
 
         # GENESET
-        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.insert_geneset()  # create geneset in GW
-        self.batch.interval_end = time.clock()  # TESTING PURPOSES
-        self.batch.check_time("to insert geneset")  # TESTING PURPOSES
         print "%s: geneset inserted" % self.tissue_name
 
         # GENESET VALUES
-        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.insert_geneset_values()  # calls eGene objs to add values
-        self.batch.interval_end = time.clock()  # TESTING PURPOSES
-        self.batch.check_time("to insert genes values")  # TESTING PURPOSES
         print "%s: geneset values inserted" % self.tissue_name
-        self.batch.interval_start = time.clock()  # TESTING PURPOSES
         self.update_gsv_lists()  # update values stored for gsv_values_list + gsv_source_list
-        self.batch.interval_end = time.clock()  # TESTING PURPOSES
-        self.batch.check_time("to update geneset values")  # TESTING PURPOSES
         print "%s: gsv lists updated" % self.tissue_name
 
     def create_eGene(self, data_dict):
@@ -850,10 +827,16 @@ class GTExGeneSet:  # GTExGeneSetUploaders
 
             # TEST required
         """
+        bar = progressbar.ProgressBar(maxval=len(self.raw_values)).start()  # TESTING PURPOSES
+
         # send a call for each eGene in self.e_genes to insert_value() into GeneWeaver
+        count = 0
         for gene in self.e_genes:
+            count += 1
+            bar.update(c)
             self.e_genes[gene].insert_gene()
             self.e_genes[gene].insert_value()
+        bar.finish()
 
     def update_gsv_lists(self):  # EDIT: should simplifying this into one call...
         """ EDIT
@@ -941,6 +924,7 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.cur.execute(query, options)
         self.connection.commit()
 
+
 class eGene:
     """ Creates an eGene object that holds all representative information identified in
         GTEx Portal. Takes a list of values and assigns each value to its respective
@@ -976,6 +960,7 @@ class eGene:
         self.SNPs = {}  # {snp_name: eQTL obj,}  -  for later...
 
         self.found = False  # search progress identifier
+        self.already_created = False  # creation identifier
         self.setup_db()
 
     def setup_db(self):
@@ -1016,7 +1001,6 @@ class eGene:
 
             break  # only go through this loop once, terminating if / when self.found = True
 
-
     def create_eQTL(self, data=None):
         """ # data passed in with specific dictionary type (pass along from batch):
 
@@ -1036,8 +1020,8 @@ class eGene:
             self.SNPs[qtl.name] = qtl  # (just out of good practice, for the moment)
             self.push_to_GeneSet(qtl_name=qtl.name, qtl_obj=qtl)  # keep GTExGeneSet up to date
 
-        # else:  # assumes that we are iterating through a list of SNPs for this gene [LATER]  # EDIT
-        #     # use self.max_eQTL to hold most siginificant - check whether 'is_chosen_snp'
+            # else:  # assumes that we are iterating through a list of SNPs for this gene [LATER]  # EDIT
+            #     # use self.max_eQTL to hold most siginificant - check whether 'is_chosen_snp'
 
     def find_all_tissue_qtls(self):
 
@@ -1119,10 +1103,13 @@ class eGene:
         search_path = 'SET search_path = extsrc, production, odestatic;'
         self.cur.execute(search_path)
 
-        pres = self.check_gene_exists()
-        if pres:  # if the gene is already in the geneset, pass
-            print "gene: ", self.gene_symbol, "has already been added"
-            return False
+        # pres = self.check_gene_exists()  # TESTING: EDIT this is overkill, remove
+        # if pres:  # if the gene is already in the geneset, pass
+        #     print "gene: ", self.gene_symbol, "has already been added"
+        #     return False
+
+        if self.already_created:
+            return
 
         if self.found:  # assumes that we found an ode_gene_id
             # INSERT GENE
@@ -1178,7 +1165,7 @@ class eGene:
 
             print "GENE: %s (%s) successfully inserted!" % (self.gencode_id, self.gene_symbol)
 
-    def check_gene_exists(self):
+    def check_gene_exists(self):  # pretty much does exactly the same thing as the gtex searcher
         """EDIT"""
 
         query = 'SELECT ode_gene_id, ode_ref_id ' \
@@ -1196,7 +1183,7 @@ class eGene:
             return True
         else:
             return False
-        # EDIT: add error message updating (batch)
+            # EDIT: add error message updating (batch)
 
     def check_geneset_value_exists(self):
         """EDIT"""
@@ -1213,7 +1200,7 @@ class eGene:
             return True
         else:
             return False
-        # EDIT: add error message updating (batch)
+            # EDIT: add error message updating (batch)
 
     def delete_gene(self):
         """ EDIT
@@ -1246,13 +1233,14 @@ class eGene:
         res = self.cur.fetchall()
         if len(res):  # then we found results for an existing eGene
             for datum in res:
+                self.already_created = True
                 if datum[1] in self.geneset.active_gene_pairs.values():
                     continue
                 else:
                     self.found = True
                     self.ode_gene_id = res[0][1]
                     self.gene_info['ode_gene_id'] = self.ode_gene_id
-                    print 'found:', 'existing in gtex test set'
+                    # print 'found:', 'existing in gtex test set'
                     return True
         return False
 
@@ -1289,7 +1277,7 @@ class eGene:
                     self.found = True
                     self.ode_gene_id = sym_res[0][1]
                     self.gene_info['ode_gene_id'] = self.ode_gene_id
-                    print 'found:', 'symbol'
+                    # print 'found:', 'symbol'
                     return True  # truncate search
 
         # SWEEP GENE SYMBOL FOR VALID ODE_GENE_ID [where ode_pref=True]
@@ -1312,7 +1300,7 @@ class eGene:
                     self.ode_gene_id = id_res[0][1]  # take the first of all results...
                     self.gene_info['ode_gene_id'] = self.ode_gene_id
                     # print "ID SEARCH:", self.ode_ref_id, self.ode_gene_id
-                    print 'found:', 'symbol'
+                    # print 'found:', 'symbol'
                     return True
 
         return False
@@ -1346,7 +1334,7 @@ class eGene:
                         self.ode_gene_id = entrez_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENTREZ SEARCH:", self.ode_ref_id, self.ode_gene_id
-                        print 'found: ', 'entrez'
+                        # print 'found: ', 'entrez'
                         return True
 
         return False
@@ -1380,7 +1368,7 @@ class eGene:
                         self.ode_gene_id = gene_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
-                        print 'found:', 'ensembl'
+                        # print 'found:', 'ensembl'
                         return True  # no need to continue searching!
 
             # ENSEMBL PROTEIN (if Ensembl Gene lookup was unsuccessful)
@@ -1396,7 +1384,7 @@ class eGene:
                         self.ode_gene_id = protein_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
-                        print 'found:', 'ensembl'
+                        # print 'found:', 'ensembl'
                         return True
         return False
 
@@ -1428,7 +1416,7 @@ class eGene:
                         self.ode_gene_id = rsid_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "RSID SEARCH:", self.ode_ref_id, self.ode_gene_id
-                        print 'found:', 'rsid'
+                        # print 'found:', 'rsid'
                         return True
         return False
 
@@ -1467,7 +1455,7 @@ class eGene:
             if batch_geneID and (batch_geneID not in self.geneset.active_gene_pairs.values()):
                 self.ode_gene_id = self.batch.all_gene_info[self.gencode_id]['ode_gene_id']
                 self.found = True
-                print 'found:', 'gtex info'
+                # print 'found:', 'gtex info'
                 return
             else:
                 # EDIT: error message handling
