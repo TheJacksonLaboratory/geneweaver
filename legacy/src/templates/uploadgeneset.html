@@ -395,7 +395,7 @@
 
     // process the url to remove the heading, make spaces, and split into an array based on the ? delim. if there is
     // data after the heading
-	var searchString = 'batchuploadgeneset/';
+	var searchString = 'uploadgeneset/';
 	var paramIndex = queryString.search(searchString);
 
 	if (paramIndex != -1) {
@@ -404,7 +404,7 @@
 		queryString = queryString.slice(paramIndex);
 	}
 
-    var queryLength = queryString.length
+    var queryLength = queryString.length;
 
 	console.log(queryString);
 	console.log(paramIndex);

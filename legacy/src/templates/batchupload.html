@@ -252,66 +252,6 @@
 {% endif %}
 
 <script>
-    // this script was added to auto-populate the form from Boolean Algebra to make a new geneset
-
-    // grab the current url
-    var queryString = window.location.href;
-
-    // process the url to remove the heading, make spaces, and split into an array based on the ? delim. if there is
-    // data after the heading
-	var searchString = 'batchuploadgeneset/';
-	var paramIndex = queryString.search(searchString);
-
-	if (paramIndex != -1) {
-
-		paramIndex = paramIndex + searchString.length;
-		queryString = queryString.slice(paramIndex);
-	}
-
-    var queryLength = queryString.length
-
-    if (queryLength != 0 && paramIndex != -1) {
-
-        queryString = queryString.replace(/%20/g, " ");
-        var values = queryString.split('?');
-        // grab the length of the array
-        var length = values.length;
-
-        // assign the data for the title and description form boxes
-        var title = values[0];
-        var desc = values[1];
-
-        // generate the string for the gene list
-        var tmpGeneName = "";
-        var tmpValue = 0;
-        var tmpGeneStr = "";
-        var i = 0;
-        for (i = 2; i < length;) {
-            tmpGeneName = values[i];
-            i++;
-            tmpValue = values[i];
-            i++;
-            tmpGeneStr += tmpGeneName;
-            tmpGeneStr += '\t';
-            tmpGeneStr += tmpValue;
-            tmpGeneStr += '\n';
-        }
-
-        // populate the form
-		// The title includes the full URL for some reason, removed for now
-        //document.getElementById('genesetName').value = title;
-        document.getElementById('genesetName').value = desc;
-        document.getElementById('genesetDescription').value = desc;
-        document.getElementById('file_text').value = tmpGeneStr;
-    }
-    else{
-        // No need to auto populate
-    }
-
-</script>
-
-
-<script>
     $(document).ready(function () {
 
         $(function () {
