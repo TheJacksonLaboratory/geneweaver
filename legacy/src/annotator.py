@@ -18,7 +18,7 @@ API_KEY = '2709bdd2-c311-4089-b000-56fa3d33307c'
 ## abbreviations. This seems to work, and nothing else is specified in the
 ## docs about ontology IDs so...
 ONT_IDS = ['MESH', 'GO', 'MP', 'MA']
-MONARCH_URL = 'https://scigraph-ontology.monarchinitiative.org/scigraph'
+MONARCH_URL = 'http://scigraph-ontology.monarchinitiative.org/scigraph'
 ## Couldn't find this endpoint anywhere in the documentation, but it's buried
 ## in Monarch's source code. If it changes, you might have to look there.
 MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
@@ -57,6 +57,11 @@ def fetch_ncbo_annotations(text, ncboids):
 
         except url2.HTTPError as e:
             print 'Failed to retrieve annotation data from NCBO:'
+            print e
+            continue
+
+        except e:
+            print 'Unkown error fetching annotations:'
             print e
             continue
 
@@ -170,6 +175,11 @@ def fetch_monarch_annotations(text):
 
         except url2.HTTPError as e:
             print 'Failed to retrieve annotation data:'
+            print e
+            continue
+
+        except e:
+            print 'Unkown error fetching annotations:'
             print e
             continue
 
