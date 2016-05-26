@@ -1,6 +1,11 @@
+import progressbar
+import time
+import config
+import psycopg2
+import requests
+import json
 
-
-class PsyT:
+class PsyGeNET:
 
 	def __init__(self):
 		# directory fields
@@ -23,6 +28,80 @@ class PsyT:
 		# error handling
 		self.crit = []
 		self.noncrit = []
+
+		# launch connection to GeneWeaver database
+		self.launch_connection()
+
+		# gather PubMed info about Psygenet
+		self.publication = {}
+		self.pubmed_id = 25964630
+		self.search_pubmed(self.pubmed_id)
+
+	def launch_connection(self):
+		""" EDIT
+
+			# ALREADY TESTED
+		"""
+		data = config.get('db', 'database')
+		user = config.get('db', 'user')
+		password = config.get('db', 'password')
+		host = config.get('db', 'host')
+
+		print host
+
+		# set up connection information
+		cs = 'host=\'%s\' dbname=\'%s\' user=\'%s\' password=\'%s\'' % (host, data, user, password)
+
+		try:
+			self.connection = psycopg2.connect(cs)	# connect to geneweaver database
+			self.cur = self.connection.cursor()
+		except SyntaxError:	 # cs most likely wouldn't be a useable string if wasn't able to connect
+			print "Error: Unable to connect to database."
+			exit()
+
+	def search_pubmed(self, pmid):
+		""" Retrieves Pubmed article info from the NCBI servers using the NCBI eutils.
+			The result is a dictionary whose keys are the same as the publication
+			table. The actual return value for this function though is a tuple. The
+			first member is the dict, the second is any error message.
+			
+			# Needs editing to reflect new function
+			
+			# NOTE: this will vary from superclass
+			
+		Parameters
+		----------
+		pubmed_id: PubMed ID
+		"""
+		# URL for pubmed article summary info
+		url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
+			   'retmode=json&db=pubmed&id=%s') % str(pmid)
+		# NCBI eFetch URL that only retrieves the abstract
+		url_abs = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
+				   '?rettype=abstract&retmode=text&db=pubmed&id=%s') % str(pmid)
+
+		res = requests.get(url).content
+		temp = json.loads(res)['result']
+
+		self.publication['pub_id'] = None
+		self.publication['pub_pubmed'] = str(pmid)
+		self.publication['pub_pages'] = temp[self.publication['pub_pubmed']]['pages']
+		self.publication['pub_title'] = temp[self.publication['pub_pubmed']]['title']
+		self.publication['pub_journal'] = temp[self.publication['pub_pubmed']]['fulljournalname']
+		self.publication['pub_volume'] = temp[self.publication['pub_pubmed']]['volume']
+
+		authors = ""  # will hold a CSV list
+		for auth in temp[self.publication['pub_pubmed']]['authors']:
+			authors += auth['name'] + ', '
+		self.publication['pub_authors'] = authors[:-2]
+
+		if 'Has Abstract' in temp[self.publication['pub_pubmed']]['attributes']:
+			res2 = requests.get(url_abs).content.split('\n\n')[-3]
+			self.publication['pub_abstract'] = res2
+		else:
+			er = ('Error: The PubMed info retrieved from NCBI was incomplete. No '
+				  'abstract data will be attributed to this GeneSet.')
+			self.set_errors(noncritical=er)
 
 	def get_errors(self, critical=False, noncritical=False):
 		""" Returns error messages. If no additional parameters are filled, or if both
@@ -147,23 +226,35 @@ class PsyT:
 		psy_ids, symbols, descs, disease_ids, disease_names, psych_disorders, \
 			source_ids, scores = self.read_file(self.ROOT_DIR)	
 
+		print "Creating PsyGeneSets..."	 # TESTING PURPOSES
+		bar = progressbar.ProgressBar(maxval=len(symbols)).start()	# TESTING PURPOSES
+		
 		# traverse lists in parallel
 		for x in range(len(symbols)):  # for each row of raw data
 			# if PsyGeneSet obj doesn't yet exist for that disorder
 			if disease_ids[x] not in self.disorder_genesets.keys() and source_ids[x] not in ['ALL', 'CURATED']:
-				print '#1', source_ids[x]
-				geneset = PsyGeneSet(self, disease_ids[x])  # make a new PsyGeneSet obj
+				geneset = PsyGeneSet(self, disease_ids[x])	# make a new PsyGeneSet obj
 				# populate new geneset with this row of data
 				geneset.add_gene(symbol=symbols[x], desc=descs[x], score=scores[x],
 					source_id=source_ids[x], psy_id=psy_ids[x])
 				# add new PsyGeneSet obj to self.disorder_genesets
 				self.disorder_genesets[disease_ids[x]] = geneset
-
 			elif source_ids[x] not in ['ALL', 'CURATED']: # otherwise, PsyGeneSet obj already exists
-				print '#2', source_ids[x]
 				# update PsyGeneSet obj with new info
 				self.disorder_genesets[disease_ids[x]].add_gene(symbol=symbols[x], 
 					desc=descs[x], score=scores[x], source_id=source_ids[x], psy_id=psy_ids[x])
+
+			bar.update(x)  # TESTING PURPOSES
+			time.sleep(0.001)  # TESTING PURPOSES: ugly though
+		bar.finish()  # TESTING PURPOSES
+
+	def database_setup(self):
+		self.groom_raw_data()
+
+		# iterate through PyGeneSets, making calls to upload them to GeneWeaver
+		for name, geneset in self.disorder_genesets.iteritems():
+			geneset.geneweaver_setup()	# prep GeneWeaver fields in PsyGeneSet
+			geneset.upload()  # upload all PsyGeneSets to GeneWeaver
 
 class PsyGeneSet:
 
@@ -172,14 +263,69 @@ class PsyGeneSet:
 		self.batch = batch
 		self.cur = batch.cur
 		self.connection = batch.connection
+		self.publication = batch.publication
+		self.pubmed_id = batch.pubmed_id
 
 		# identifiers
 		self.disease_id = disease_id
 		self.disease_name = batch.disease_map[disease_id][0]
 		self.psych_disorder = batch.disease_map[disease_id][1]
+		self.test = True
 
-		# data processing fields
+		# primary data processing fields
 		self.genes = {}	 # {(gene_symbol, source): Gene obj,}
+
+		# GENEWEAVER identifiers
+		self.sp_id = '0'  # NOTE: geneset species is different to that of each Gene
+		self.thresh_type = '1'  # EDIT: check to make sure this works
+		self.thresh = '0'  # EDIT: check to make sure this works
+		self.gdb_id = '18'  # gdb_name = PsyGeNET 
+		self.usr_id = '15'  # PERSONAL USER NO. ( Astrid )
+		self.cur_id = '1'  # uploaded as a public resource
+		self.grp_id = '5'  # grp_name = PsyGeNET_Test
+		self.attribution_id = '5'  # at_name = PsyGeNET
+		self.description = 'GeneSet representative of a collection of Genes ' \
+						   'that were linked to %s. Overall, these Genes were sourced from ' \
+						   'PsyCUR, CTD, RGD, MGD, + GAD (PsyGenNET).' % self.disease_name
+		self.gs_gene_id_type = 0  # EDIT: should only be '0' for those entered as Symbol... 
+		self.name = None
+		self.abbrev_name = None
+		self.count = None
+		self.gs_id = None
+		self.gsv_value_list = []
+		self.gsv_source_list = []
+		self.file = {'file_size': None, 'file_uri': None, 'file_contents': None,
+					 'file_comments': None, 'file_id': None}
+
+		self.create_name()
+
+	def geneweaver_setup(self):
+		print 'setting up geneset...\n'
+		# COUNT [file_size]
+		self.count = len(self.genes)
+		print "%s: num genes = %s" % (self.disease_name, self.count)
+
+		# FILE
+		self.create_file()
+		print "%s: file created" % self.disease_name
+		self.insert_file()
+		print "%s: file inserted" % self.disease_name
+
+		# # PUBLICATION
+		self.insert_publication()  # updates self.publication['pub_id']
+		print "%s: publication inserted" % self.disease_name
+
+	def upload(self):
+		# GENESET
+		self.insert_geneset()	 # create geneset in GW
+		print "%s: geneset inserted" % self.disease_name
+
+		# GENESET VALUES
+		self.insert_geneset_values()	# calls eGene objs to add values
+		print "%s: geneset values inserted" % self.disease_name
+		# self.update_gsv_lists()  # update values stored for gsv_values_list + gsv_source_list
+		# print "%s: gsv lists updated" % self.tissue_name
+
 
 	def add_gene(self, psy_id, symbol, desc, score, source_id):
 		# check to make sure that this gene doesn't already exist in this PsyGeneSet
@@ -201,18 +347,131 @@ class PsyGeneSet:
 		# adds Gene to self.genes
 		self.genes[(symbol, source_id)] = g
 
+	def create_name(self):
+		# use the PsyGeNET DisorderName
+		self.name = self.disease_name.strip().replace(' ', '_')	# remove whitespace
+
+		# remove any commas, + put anything after comma at the beginning
+		tmp = self.name.split(',')
+		if len(tmp) > 1:
+			self.name = tmp[1] + tmp[0]
+
+		# remove 1 from 'MajorAffectiveDisorder1'
+		if self.name == 'MajorAffectiveDisorder1':
+			self.name = 'MajorAffectiveDisorder'
+
+		self.abbrev_name = self.name.replace('_', '')
+
+	def create_file(self):
+		""" # creates a file for GeneWeaver # EDIT
+		"""
+		if self.genes:
+			contents = ''
+			for gene in self.genes:
+				curline = str(gene) + '\t' + str(self.genes[gene].score) + '\n'
+				contents += curline
+			self.file['file_contents'] = contents
+			self.file['file_size'] = self.count
+			self.file['file_comments'] = ''
+			self.file['file_uri'] = 'astridmoore' + 'Psygenet-' + self.name
+		else:
+			self.batch.set_errors(critical='Error: cannot add file if there are no Genes in PsyGeneSet.')
+			print "FAILED CREATING FILE"
+			exit()
+
+	def insert_file(self):
+		""" # EDIT
+
+			Inserts a new row into the file table. Most of the columns for the file
+			table are required as arguments.
+
+		Returns
+		-------
+		file_id: File ID
+
+		"""
+		query = 'INSERT INTO production.file ' \
+				'(file_size, file_uri, file_contents, file_comments, ' \
+				'file_created, file_changes) ' \
+				'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
+
+		vals = [self.file['file_size'], self.file['file_uri'],
+				self.file['file_contents'], self.file['file_comments']]
+
+		self.cur.execute(query, vals)
+		self.commit()
+
+		self.file['file_id'] = self.cur.fetchall()[0][0]
+
+	def insert_publication(self):
+		""" # inserts publication into GeneWeaver once, skips if its done it before 
+			# EDIT
+		"""
+		if self.publication['pub_id']:	# if publication already added to GeneWeaver, skip
+			return
+
+		query = 'INSERT INTO production.publication ' \
+				'(pub_authors, pub_title, pub_abstract, pub_journal, ' \
+				'pub_volume, pub_pages, pub_pubmed) ' \
+				'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
+
+		vals = [self.publication['pub_authors'], self.publication['pub_title'],
+				self.publication['pub_abstract'], self.publication['pub_journal'],
+				self.publication['pub_volume'], self.publication['pub_pages'],
+				self.publication['pub_pubmed']]
+
+		self.cur.execute(query, vals)
+		self.commit()
+
+		pub_id = self.cur.fetchall()[0][0]
+		self.publication['pub_id'] = str(pub_id)
+		self.batch.publication['pub_id'] = str(pub_id)
+
+	def insert_geneset(self):
+		query = 'INSERT INTO geneset ' \
+				'(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
+				'gs_threshold, gs_created, gs_updated, gs_status, ' \
+				'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
+				'gs_abbreviation, gs_description, gs_attribution, ' \
+				'gs_groups, pub_id) ' \
+				'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
+				'%s, \'\', %s, %s, %s, %s, %s, %s, %s) RETURNING gs_id;'
+		
+		vals = [self.file['file_id'], self.usr_id, self.cur_id, self.sp_id,
+				self.thresh_type, self.thresh, self.count,
+				self.gs_gene_id_type, self.name, self.abbrev_name,
+				self.description, self.attribution_id, self.grp_id,
+				self.publication['pub_id']]
+
+		self.cur.execute(query, vals)
+		self.commit()
+
+		self.gs_id = self.cur.fetchall()[0][0]
+
+	def insert_geneset_values(self):
+		# make calls to Gene to upload itself and it's value to GW
+		print 'this will upload geneset values one day\n'
+
+	def commit(self):
+		if self.test == True:
+			return
+		else:
+			self.connection.commit()
+			
 class Gene:
 
 	def __init__(self, geneset):
 		self.geneset = geneset
 		self.batch = geneset.batch
+		self.connection = geneset.batch.connection
+		self.cur = geneset.batch.cur
 
 		self.psy_id = None
 		self.gene_symbol = None
 		self.description = None
 		self.score = None
 		self.source_id = None
-		self.species = None	 # list
+		self.species = None	 # list to try!
 
 	def set_psyID(self, psy):
 		self.psy_id = psy
@@ -231,16 +490,21 @@ class Gene:
 		self.species = self.batch.source_types[source]
 
 def test_readFile():
-	psy = PsyT()
+	psy = PsyGeNET()
 	psy.read_file(psy.ROOT_DIR)
 
 def test_groomRaw():
-	psy = PsyT()
+	psy = PsyGeNET()
 	psy.groom_raw_data()
+
+def test_dbSetup():
+	psy = PsyGeNET()
+	psy.database_setup()
 
 if __name__ == '__main__':
 	# ACTIVELY WRITING / DEBUGGING METHODS
-	test_groomRaw()
+	test_dbSetup()
 
 	# FUNCTIONING METHODS
 	# test_readFile()
+	# test_groomRaw()

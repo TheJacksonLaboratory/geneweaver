@@ -756,8 +756,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         file_id: File ID
 
         """
-        self.cur.execute('set search_path = extsrc, production, odestatic;')
-
         query = 'INSERT INTO production.file ' \
                 '(file_size, file_uri, file_contents, file_comments, ' \
                 'file_created, file_changes) ' \
