@@ -120,8 +120,9 @@
         <div class="panel-heading panel-underline">
             <div class="row">
                 <div class="md-col-6 pull-left">
-                    <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning fa" type="submit"
-                           value="Review GeneSet Upload &#xf04e;"/>
+                    {# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
+                    <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
+                           value="Review GeneSet Upload &raquo;"/>
                 </div>
                 <div class="md-col-6 pull-right">
                     <a href="static/text/batch-geneset-a.txt"><i class="fa fa-file-text-o"></i> Sample File</a>

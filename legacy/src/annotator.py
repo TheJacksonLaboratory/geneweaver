@@ -60,7 +60,7 @@ def fetch_ncbo_annotations(text, ncboids):
             print e
             continue
 
-        except e:
+        except Exception, e:
             print 'Unkown error fetching annotations:'
             print e
             continue
@@ -178,7 +178,7 @@ def fetch_monarch_annotations(text):
             print e
             continue
 
-        except e:
+        except Exception, e:
             print 'Unkown error fetching annotations:'
             print e
             continue
