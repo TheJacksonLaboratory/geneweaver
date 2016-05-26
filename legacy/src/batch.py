@@ -870,16 +870,22 @@ def parseBatchFile(lns, usr=0, cur=5):
         elif lns[i][:2].lower() == 'a ' and (len(lns[i].split('\t')) == 1):
             #group = eatWhiteSpace(ln[1:])
             group = eatWhiteSpace(lns[i][1:])
+
             ## If the user gives something other than private/public,
             ## automatically make it private
             if group.lower() != 'private' and group.lower() != 'public':
                 group = '-1'
+                cur = 5
 
+            ## Public data sets are initially thrown into the provisional
+            ## Tier IV. Tier should never be null.
             elif group.lower() == 'public':
                 group = '0'
+                cur = 4
 
             else:  # private
                 group = '-1'
+                cur = 5
 
         ## If the lines are tab separated, we assume it's the gene data that
         ## will become apart of the geneset_values

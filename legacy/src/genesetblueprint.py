@@ -29,9 +29,7 @@ def render_uploadgeneset(genes=None):
             microarray_id_type_record['pf_name']))
     gidts.append(('MicroArrays', microarray_id_sources))
 
-    print genes
     if genes:
-        print 'yeah'
         return flask.render_template(
             'uploadgeneset.html',
             gs=dict(),
@@ -93,6 +91,8 @@ def create_batch_geneset():
     batchFile = batch.parseBatchFile(batchFile, user_id)
     batchErrors = ''
     batchWarns = ''
+
+    #return flask.jsonify({"Error": "Testing."})
 
     ## Concatenate error/warning messages so we only return a single string
     for e in batchFile[2]:
