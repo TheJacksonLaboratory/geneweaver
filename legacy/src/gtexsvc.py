@@ -107,6 +107,8 @@ class GTEx:
         password = config.get('db', 'password')
         host = config.get('db', 'host')
 
+        print host
+
         # set up connection information
         cs = 'host=\'%s\' dbname=\'%s\' user=\'%s\' password=\'%s\'' % (host, data, user, password)
 
@@ -501,7 +503,6 @@ class GTEx:
 
     def groom_raw_data(self):
         """ # will be useful later for snps - only started, not completed"""
-        self.raw_data = {}
 
         with tarfile.open(self.ROOT_DIR, 'r:gz') as tar:
             for tarinfo in tar.getmembers():
@@ -536,7 +537,9 @@ class GTEx:
         # self.groom_raw_data()  # [last run: 5/2/16] reads in file and identifies what is useful, writing results
         self.start = time.clock()  # TESTING PURPOSES
         for tissue in self.tissue_info:  # for each tissue (where n >= 70)
-            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Ovary':  # TESTING
+            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' \
+                    and tissue != 'Small_Intestine_Terminal_Ileum'  \
+                    and tissue != 'Brain_Frontal_Cortex_BA9' and tissue != 'Vagina':
                 # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':
                 # iterating through the list of tissue files
                 self.files_uri[str(tissue)] = {}
@@ -555,9 +558,6 @@ class GTEx:
                     #     "should equal ", self.tissue_info[gs_tissue.tissue_name]['eGene_count']
                     # # exit()  # TESTING PURPOSES
                     # print "AND should also equal", len(self.all_gene_info)
-
-        self.end = time.clock()  # TESTING PURPOSES
-        self.gather_test_time()  # TESTING PURPOSES
 
 
 # Uses a "trickle-down" method for uploading data to GeneWeaver
@@ -833,7 +833,7 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         count = 0
         for gene in self.e_genes:
             count += 1
-            bar.update(c)
+            bar.update(count)
             self.e_genes[gene].insert_gene()
             self.e_genes[gene].insert_value()
         bar.finish()
@@ -1232,8 +1232,8 @@ class eGene:
 
         res = self.cur.fetchall()
         if len(res):  # then we found results for an existing eGene
+            self.already_created = True
             for datum in res:
-                self.already_created = True
                 if datum[1] in self.geneset.active_gene_pairs.values():
                     continue
                 else:
@@ -1368,7 +1368,7 @@ class eGene:
                         self.ode_gene_id = gene_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
-                        # print 'found:', 'ensembl'
+                        # print 'found:', 'ensembl gene'
                         return True  # no need to continue searching!
 
             # ENSEMBL PROTEIN (if Ensembl Gene lookup was unsuccessful)
@@ -1384,7 +1384,7 @@ class eGene:
                         self.ode_gene_id = protein_res[0][1]
                         self.gene_info['ode_gene_id'] = self.ode_gene_id
                         # print "ENSEMBL SEARCH:", self.ode_ref_id, self.ode_gene_id  # TESTING
-                        # print 'found:', 'ensembl'
+                        # print 'found:', 'ensembl protein'
                         return True
         return False
 
