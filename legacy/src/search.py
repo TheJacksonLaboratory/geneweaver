@@ -185,8 +185,6 @@ def applyUserRestrictions(client, select=''):
     else:
         access = '*'
 
-    client.SetSelect(access)
-
     # Admins don't get filtered results
     if not user_info.is_admin:
         access += ', (usr_id=' + str(user_id)
@@ -195,7 +193,7 @@ def applyUserRestrictions(client, select=''):
 
         client.SetFilter('isReadable', [1])
 
-
+    client.SetSelect(access)
 
 def getSearchFilterValues(query):
     """
@@ -240,10 +238,6 @@ def getSearchFilterValues(query):
 
     ## srange is the range of geneset sizes
     srange, status, grp, filt = client.RunQueries()
-    print srange
-    print status
-    print grp
-    print filt
 
     ## Geneset sizes, min and max
     glow = srange['matches'][0]['attrs']['low']
@@ -390,129 +384,7 @@ def getSearchFilterValues(query):
                 tiermap, 'geneCounts':geneCounts}
 
 
-'''
-Given a sphinx query, this function will return a list of counts of various filters, intended to be displayed as filter
-counts, ie how many of each species, in search_filters_panel.html
 
-The function performs a query to a separate sphinx server connection, so it will not have any previously applied user
-search filters.
-'''
-
-
-def getSearchFilterValuesOld(query):
-    '''
-    Create an initial sphinx server connection
-    '''
-    client = sphinxapi.SphinxClient()
-    client.SetServer(sphinx_server, sphinx_port)
-    client.SetMatchMode(sphinxapi.SPH_MATCH_EXTENDED)
-    client.SetLimits(0, 1000, 1000)
-    '''
-    Get counts for each filter type
-    '''
-    # Query for GS min and max gene size counts
-    sphinxSelect = '*'
-    sphinxSelect += ', MIN(gs_count) low, MAX(gs_count) high, 0 as OneRow'
-    client.SetSelect(sphinxSelect)
-    client.SetGroupBy('OneRow', sphinxapi.SPH_GROUPBY_ATTR);
-    results = client.Query(query)
-    if (results == None):
-        print client.GetLastError()
-
-    # Retrieve the geneset min and max counts
-    if (results['total'] > 0):
-        minGeneCount = int(results['matches'][0]['attrs']['low'])
-        maxGeneCount = int(results['matches'][0]['attrs']['high'])
-    # Have a default case, in case the search term has no results
-    else:
-        minGeneCount = 0
-        maxGeneCount = 0
-
-    # client.SetGroupBy('cur_id', sphinxapi.SPH_GROUPBY_ATTR);
-    client.SetGroupBy('sp_id', sphinxapi.SPH_GROUPBY_ATTR);
-    results = client.Query(query)
-
-    ## Generates a series of nested dicts to use as filter sidebar counts
-    # if (results['total'] > 0):
-    #   print len(results['matches'])
-    #   for match in results['matches']:
-    #       print match
-
-    # Query for tier counts
-    sphinxSelect = '*'
-    client.SetSelect(sphinxSelect)
-
-    ## Filter results based on user/group access, same as in buildFilterSel...
-    ## Function needs to be called here, not before the SetSelect() call above
-    ## otherwise you'll get a seg fault.
-    applyUserRestrictions(client)
-
-    client.SetGroupBy('cur_id', sphinxapi.SPH_GROUPBY_ATTR);
-    results = client.Query(query)
-    if (results == None):
-        print client.GetLastError()
-
-    # Retrieve the curation tier ID counts
-    tierCountArray = [0, 0, 0, 0, 0, 0]
-    if (results['total'] > 0):
-        for match in results['matches']:
-            tierCountArray[int(match['attrs']['cur_id'])] = int(match['attrs']['@count'])
-
-    # Query for species counts
-    # First, get the list of speicies and ID's from the database
-    speciesListFromDB = geneweaverdb.get_all_species()
-    speciesList = {}
-    # Build the default list
-    for sp_id, sp_name in speciesListFromDB.items():
-        speciesList['sp' + str(sp_id)] = 0
-    # Perform a sphinx query
-    client.SetGroupBy('sp_id', sphinxapi.SPH_GROUPBY_ATTR);
-    results = client.Query(query)
-    # Count all of the results
-    if (results['total'] > 0):
-        for match in results['matches']:
-            speciesList['sp' + str(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
-
-    # Query for attribution counts
-    # First, get the list of attributions and ID's from the database
-    attributionsListFromDB = geneweaverdb.get_all_attributions()
-    attributionsList = {}
-    # Build the default list
-    for at_id, at_name in attributionsListFromDB.items():
-        attributionsList['at' + str(at_id)] = 0
-    # TODO remove this after updating the database
-    attributionsList['at0'] = 0
-    # Perform a sphinx query
-    client.SetGroupBy('attribution', sphinxapi.SPH_GROUPBY_ATTR);
-    results = client.Query(query)
-    # Count all of the results
-    if (results['total'] > 0):
-        for match in results['matches']:
-            attributionsList['at' + str(match['attrs']['attribution'])] = int(match['attrs']['@count'])
-
-    # Query for status counts
-    statusCountArray = [0, 0, 0]
-    client.SetGroupBy('gs_status', sphinxapi.SPH_GROUPBY_ATTR);
-    results = client.Query(query)
-    # Count the results
-    if (results['total'] > 0):
-        for match in results['matches']:
-            statusCountArray[int(match['attrs']['@groupby'])] = int(match['attrs']['@count'])
-    '''
-    Create dictionaries with names that search_filters_panel.html understands and return the resulting dictionary
-    '''
-    statusList = {'provisional': statusCountArray[1], 'deprecated': statusCountArray[2]}
-    tierList = {'noTier': tierCountArray[0], 'tier1': tierCountArray[1], 'tier2': tierCountArray[2],
-                'tier3': tierCountArray[3], 'tier4': tierCountArray[4], 'tier5': tierCountArray[5]}
-    geneCounts = {'geneCountMin': minGeneCount, 'geneCountMax': maxGeneCount}
-    ## Used to prettify the output later on
-    tierMap = {'noTier': 'No Tier', 'tier1': 'I: Resources', 'tier2':
-        'II: Pro-Curated', 'tier3': 'III: Curated', 'tier4':
-                   'IV: Provisional', 'tier5': 'V: Private'}
-    # Combine various dictionaries into a single search results dictionary and return
-    return {'statusList': statusList, 'tierList': tierList, 'speciesList': speciesList,
-            'attributionsList': attributionsList, 'geneCounts': geneCounts,
-            'tierMap': tierMap}
 
 
 '''
@@ -698,14 +570,8 @@ def keyword_paginated_search(terms, pagination_page,
     # Set limits based on pagination
     client.SetLimits(offset, limit, max_matches)
 
-    # TODO remove diagnostic query
-    # print 'debug query: ' + query
-
     # Run the actual query
     results = client.Query(query)
-
-    ## Sort the results based on user input
-    # print 'debug results: ' + str(results)
 
     # Check if the query had an error
     if (results == None):
@@ -745,7 +611,6 @@ def keyword_paginated_search(terms, pagination_page,
     Perform the second search that gets the total filter counts for display in search_filters_panel.html
     '''
     # Get a dictionary representing the search filter values present. Use the full search results to do this.
-    #getSearchFilterValuesOld(query)
     searchFilters = getSearchFilterValues(query)
     '''
     Get filter label information, ie species names.
