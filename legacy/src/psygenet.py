@@ -37,6 +37,8 @@ class PsyGeNET:
 		self.pubmed_id = 25964630
 		self.search_pubmed(self.pubmed_id)
 
+		self.test_count = {}  # TESTING PURPOSES
+
 	def launch_connection(self):
 		""" EDIT
 
@@ -256,9 +258,17 @@ class PsyGeNET:
 			geneset.geneweaver_setup()	# prep GeneWeaver fields in PsyGeneSet
 			geneset.upload()  # upload all PsyGeneSets to GeneWeaver
 
+		print 'number of disorders added:', len(self.test_count)  # TESTING PURPOSES
+		total_count = 0  # TESTING PURPOSES
+		for title, gs_count in self.test_count.iteritems():  # TESTING PURPOSES
+			total_count += gs_count  # TESTING PURPOSES
+		print 'total number of genes added:', total_count  # TESTING PURPOSES
+
 class PsyGeneSet:
 
 	def __init__(self, batch, disease_id):
+		self.test = True  # UI
+
 		# inherited fields
 		self.batch = batch
 		self.cur = batch.cur
@@ -270,17 +280,16 @@ class PsyGeneSet:
 		self.disease_id = disease_id
 		self.disease_name = batch.disease_map[disease_id][0]
 		self.psych_disorder = batch.disease_map[disease_id][1]
-		self.test = True
 
 		# primary data processing fields
 		self.genes = {}	 # {(gene_symbol, source): Gene obj,}
 
 		# GENEWEAVER identifiers
 		self.sp_id = '0'  # NOTE: geneset species is different to that of each Gene
-		self.thresh_type = '1'  # EDIT: check to make sure this works
+		self.thresh_type = '1'	# EDIT: check to make sure this works
 		self.thresh = '0'  # EDIT: check to make sure this works
-		self.gdb_id = '18'  # gdb_name = PsyGeNET 
-		self.usr_id = '15'  # PERSONAL USER NO. ( Astrid )
+		self.gdb_id = '18'	# gdb_name = PsyGeNET 
+		self.usr_id = '15'	# PERSONAL USER NO. ( Astrid )
 		self.cur_id = '1'  # uploaded as a public resource
 		self.grp_id = '5'  # grp_name = PsyGeNET_Test
 		self.attribution_id = '5'  # at_name = PsyGeNET
@@ -298,6 +307,9 @@ class PsyGeneSet:
 					 'file_comments': None, 'file_id': None}
 
 		self.create_name()
+
+		self.batch.test_count[self.name] = 0  # TESTING PURPOSES
+		self.existing_refs = []  # ERROR CATCHING PURPOSES (probably keep)
 
 	def geneweaver_setup(self):
 		print 'setting up geneset...\n'
@@ -323,9 +335,8 @@ class PsyGeneSet:
 		# GENESET VALUES
 		self.insert_geneset_values()	# calls eGene objs to add values
 		print "%s: geneset values inserted" % self.disease_name
-		# self.update_gsv_lists()  # update values stored for gsv_values_list + gsv_source_list
-		# print "%s: gsv lists updated" % self.tissue_name
-
+		self.update_gsv_lists()	 # update values stored for gsv_values_list + gsv_source_list
+		print "%s: gsv lists updated\n" % self.disease_name
 
 	def add_gene(self, psy_id, symbol, desc, score, source_id):
 		# check to make sure that this gene doesn't already exist in this PsyGeneSet
@@ -349,7 +360,7 @@ class PsyGeneSet:
 
 	def create_name(self):
 		# use the PsyGeNET DisorderName
-		self.name = self.disease_name.strip().replace(' ', '_')	# remove whitespace
+		self.name = self.disease_name.strip().replace(' ', '_') # remove whitespace
 
 		# remove any commas, + put anything after comma at the beginning
 		tmp = self.name.split(',')
@@ -450,7 +461,35 @@ class PsyGeneSet:
 
 	def insert_geneset_values(self):
 		# make calls to Gene to upload itself and it's value to GW
-		print 'this will upload geneset values one day\n'
+		bar = progressbar.ProgressBar(maxval=len(self.genes)).start()  # TESTING PURPOSES
+
+		count = 0  # TESTING PURPOSES
+		for gene in self.genes:
+			count += 1	# TESTING PURPOSES
+			bar.update(count)  # TESTING PURPOSES
+			self.genes[gene].insert_gene()
+			self.genes[gene].insert_gene_info()
+			self.genes[gene].insert_value()
+		bar.finish()  # TESTING PURPOSES
+
+		print 'real count: ', self.batch.test_count[self.name]  # TESTING PURPOSES
+
+	def update_gsv_lists(self):
+		# update gsv_source_list
+		query = 'UPDATE extsrc.geneset_value ' \
+				'SET gsv_source_list = %s ' \
+				'WHERE gs_id = %s;'
+		vals = [self.gsv_source_list, self.gs_id]
+		self.cur.execute(query, vals)
+		self.commit()
+
+		# update gsv_value_list
+		query = 'UPDATE extsrc.geneset_value ' \
+				'SET gsv_value_list = %s ' \
+				'WHERE gs_id = %s;'
+		vals = [self.gsv_value_list, self.gs_id]
+		self.cur.execute(query, vals)
+		self.commit()
 
 	def commit(self):
 		if self.test == True:
@@ -471,7 +510,16 @@ class Gene:
 		self.description = None
 		self.score = None
 		self.source_id = None
-		self.species = None	 # list to try!
+		self.species = None	 # list to try! (not final sp_id)
+		
+		self.ode_gene_id = None
+		self.ode_ref_id = None
+		self.sp_id = None  # not necessarily the same as parent
+		self.gdb_id = None	# not necessarily the same as parent
+		self.ode_pref = False  # False unless found in Gene Symbol table
+
+		self.found_ode_gene = False
+		self.already_added = False
 
 	def set_psyID(self, psy):
 		self.psy_id = psy
@@ -488,6 +536,168 @@ class Gene:
 	def set_source(self, source):
 		self.source_id = source
 		self.species = self.batch.source_types[source]
+
+	def insert_gene(self):
+
+		# if there's more than one possible species
+		if len(self.species) > 1:
+			for animal in self.species:
+				# while ode_gene_id still not found, continue querying
+				if not self.found_ode_gene:	 
+					self.sp_id = str(animal)
+					# search geneweaver for ode_gene_id for this species 
+					self.search_geneweaver()
+				else:
+					break  # if found, continue
+		else:
+			self.sp_id = str(self.species[0])
+			# search geneweaver for ode_gene_id
+			self.search_geneweaver()
+
+		if self.already_added:
+			return	# don't add duplicates, just the value to the geneset
+
+		# otherwise, add the new gene
+		if not self.found_ode_gene:
+			self.ode_ref_id = self.psy_id  # PsyGeNET ID
+			self.gdb_id = self.geneset.gdb_id  # PsyGeNET 
+
+			query = 'INSERT INTO extsrc.gene ' \
+					'(ode_ref_id, gdb_id, sp_id, ode_pref,' \
+					' ode_date) VALUES (%s, %s, %s, false, NOW()) ' \
+					'RETURNING ode_gene_id;'
+			vals = [self.ode_ref_id, self.gdb_id, self.sp_id]
+			
+			self.cur.execute(query, vals)
+			self.geneset.commit()
+			self.ode_gene_id = self.cur.fetchall()[0][0]
+
+		else:
+			query = 'INSERT INTO extsrc.gene ' \
+					'(ode_gene_id, ode_ref_id, gdb_id, sp_id, ode_pref,' \
+					' ode_date) VALUES (%s, %s, %s, %s, false, NOW());'
+			vals = [self.ode_gene_id, self.ode_ref_id, self.gdb_id, self.sp_id]
+
+			self.cur.execute(query, vals)
+			self.geneset.commit()
+
+	def insert_gene_info(self):
+		if self.already_added:
+			return
+
+		query = 'INSERT INTO extsrc.gene_info ' \
+				'(ode_gene_id, gi_accession, gi_symbol, gi_description,' \
+				' sp_id, gi_date) ' \
+				'VALUES (%s, %s, %s, %s, %s, NOW());'
+		vals = [self.ode_gene_id, self.psy_id, self.gene_symbol, 
+				self.description, self.sp_id]
+
+		self.cur.execute(query, vals)
+		self.geneset.commit()
+
+	def insert_value(self):
+
+		if self.psy_id not in self.geneset.existing_refs:
+			# insert the value
+			query = 'INSERT INTO extsrc.geneset_value ' \
+					'(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
+					'gsv_value_list, gsv_in_threshold, gsv_date) ' \
+					'VALUES (%s, %s, %s, 0, %s, %s, true, NOW());'
+
+			vals = [self.geneset.gs_id, self.ode_gene_id, self.score,
+					[self.ode_ref_id], [float(self.score)]]
+			
+			self.cur.execute(query, vals)
+			self.geneset.commit()
+
+			# update PsyGeneSet so that we can update these vals later
+			self.geneset.gsv_source_list.append(str(self.ode_ref_id))
+			self.geneset.gsv_value_list.append(float(self.score))
+
+			self.batch.test_count[self.geneset.name] += 1  # TESTING PURPOSES
+			self.geneset.existing_refs.append(self.psy_id)
+
+	def search_geneweaver(self):
+		# check in the dedicated table for PsyGeNET
+		self.check_gw_psygenet()
+		# check in Gene Symbol table
+		self.check_gw_symbols()
+
+	def check_gw_psygenet(self):
+		if self.found_ode_gene:
+			return
+
+		# check for existing ode_ref_id
+		# goal is to get an ode_gene_id without having to create it
+		query = 'SELECT ode_gene_id, ode_ref_id ' \
+				'FROM extsrc.gene ' \
+				'WHERE gdb_id = %s AND ' \
+				'sp_id = %s AND ' \
+				'ode_ref_id = %s;'
+
+		vals = [self.geneset.gdb_id, self.sp_id, self.psy_id]
+		self.cur.execute(query, vals)
+
+		res = self.cur.fetchall()
+
+		if len(res):  # if obtained result, only one instance in table
+			self.ode_gene_id = str(res[0][0])
+			self.ode_ref_id = str(self.psy_id)	# make ID specific to PsyGeNET
+			self.gdb_id = self.geneset.gdb_id  # PsyGeNET gdb_id
+			self.found_ode_gene = True
+
+			# ode_gene_id, ode_ref_id pairing already exists in PsyGeNET table
+			self.already_added = True  
+
+	def check_gw_symbols(self):
+		if self.found_ode_gene:
+			return
+
+		query = 'SELECT ode_gene_id, ode_ref_id, ode_pref ' \
+				'FROM extsrc.gene ' \
+				'WHERE gdb_id = %s AND ' \
+				'sp_id = %s AND ' \
+				'ode_ref_id = %s AND ' \
+				'ode_pref = true;'
+
+		vals = ['7', self.sp_id, self.gene_symbol]
+		self.cur.execute(query, vals)
+
+		res = self.cur.fetchall()
+
+		# end querying if found nothing at all in Gene Symbol table
+		if not len(res):
+			return
+
+		elif len(res) == 1:
+			if res[0][2] == True:  
+				self.ode_gene_id = str(res[0][0])
+				self.ode_ref_id = self.gene_symbol	# Gene Symbol ID
+				self.gdb_id = '7'
+				self.found_ode_gene = True
+				self.already_added = True
+				return	# end querying if found ode_gene_id to use
+			else:
+				self.ode_gene_id = str(res[0][0])
+				self.ode_ref_id = self.psy_id  # PsyGeNET ID
+				self.gdb_id = self.geneset.gdb_id
+				self.found_ode_gene = True
+				return
+
+		# check results for ode_pref = True
+		for r in res:
+			if r[2] == True:
+				self.ode_gene_id = str(res[0][0])
+				self.ode_ref_id = self.gene_symbol	# Gene Symbol ID
+				self.gdb_id = '7'
+				self.found_ode_gene = True
+				return	# end querying if found any ode_gene_id to use
+
+		# if found results, but all ode_pref = False
+		self.ode_gene_id = str(res[0][0])
+		self.ode_ref_id = self.psy_id  # PsyGeNET ID
+		self.gdb_id = self.geneset.gdb_id
+		self.found_ode_gene = True
 
 def test_readFile():
 	psy = PsyGeNET()

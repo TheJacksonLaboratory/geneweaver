@@ -94,6 +94,10 @@ class GTEx:
 
         self.launch_connection()  # launch postgres (to connect with GeneWeaver database)
 
+        # gather PubMed info about Psygenet
+        self.pubmed_id = 23715323
+        self.publication = self.search_pubmed_info(self.pubmed_id)
+
         # build repository
         # self.database_setup()
 
@@ -539,7 +543,13 @@ class GTEx:
         for tissue in self.tissue_info:  # for each tissue (where n >= 70)
             if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' \
                     and tissue != 'Small_Intestine_Terminal_Ileum'  \
-                    and tissue != 'Brain_Frontal_Cortex_BA9' and tissue != 'Vagina':
+                    and tissue != 'Brain_Frontal_Cortex_BA9' and tissue != 'Vagina' \
+                    and tissue != 'Testis' and tissue != 'Nerve_Tibial' \
+                    and tissue != 'Whole_Blood' and tissue != 'Ovary' \
+                    and tissue != 'Adipose_Subcutaneous' and tissue != 'Adrenal_Gland' \
+                    and tissue != 'Heart_Atrial_Appendage' and tissue != 'Breast_Mammary_Tissue' \
+                    and tissue != 'Stomach' and tissue != 'Brain_Caudate_basal_ganglia' \
+                    and tissue != 'Artery_Tibial' and tissue != 'Colon_Transverse':
                 # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':
                 # iterating through the list of tissue files
                 self.files_uri[str(tissue)] = {}
@@ -575,6 +585,7 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.batch = batch
         self.cur = batch.cur  # psycopg2 cursor obj
         self.connection = batch.connection  # psycopg2 connection obj -> GeneWeaver
+        self.publication = batch.publication
 
         self.raw_values = values
         self.tissue_name = tissue_type  # NOTE: Batch + Uploader classes will handle this differently
@@ -606,8 +617,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
 
         self.file = {'file_size': None, 'file_uri': None, 'file_contents': None,
                      'file_comments': None, 'file_id': None}
-
-        self.publication = {}
 
         self.e_genes = {}  # USAGE: {gencode_id: eGene obj,}  -  gencode Id is tissue dependent
         self.e_qtls = {}  # USAGE: {snp: eQTL obj,} - for top-level access (otherwise already stored in eGene obj)
@@ -648,8 +657,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         print "%s: file inserted" % self.tissue_name
 
         # PUBLICATION
-        self.create_publication()
-        print "%s: publication created" % self.tissue_name
         self.insert_publication()  # updates self.publication['pub_id']
         print "%s: publication inserted" % self.tissue_name
 
@@ -702,14 +709,6 @@ class GTExGeneSet:  # GTExGeneSetUploaders
             # EDIT - add error message that cant add file if there are no eGenes
             #   in GTExGeneSet - and to do that first
             print "FAILED CREATING FILE"
-
-    def create_publication(self):
-        """ EDIT
-
-            TEST required
-        """
-        # EDIT: add error catching for self.pubmed_id entry
-        self.publication = self.batch.search_pubmed_info(self.pubmed_id)  # PubMed ID for GTEx Project
 
     # ----------------------------- GENEWEAVER SETUP ----------------------------- #
 
@@ -775,6 +774,10 @@ class GTExGeneSet:  # GTExGeneSetUploaders
             EDIT - update docstring to match function
             # TEST: not yet run
         """
+        # test to see if this publication has already been added once before
+        if self.publication['pub_id']:
+            return
+
         query = 'INSERT INTO production.publication ' \
                 '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
                 'pub_volume, pub_pages, pub_pubmed) ' \
@@ -788,7 +791,9 @@ class GTExGeneSet:  # GTExGeneSetUploaders
         self.cur.execute(query, vals)
         self.connection.commit()
 
-        self.publication['pub_id'] = self.cur.fetchall()[0][0]
+        pub_id = self.cur.fetchall()[0][0]
+        self.publication['pub_id'] = str(pub_id)
+        self.batch.publication['pub_id'] = str(pub_id)
 
     def insert_geneset(self):
         """ EDIT
@@ -1267,7 +1272,8 @@ class eGene:
         self.cur.execute(query, sym_vals)
         sym_res = self.cur.fetchall()  # [(ode_gene_id, ode_pref)]
 
-        if len(sym_res) and sym_res[0][2] == 't':  # if query is successful + ode_pref=True
+        # EDIT: check to make sure this works for ode_pref
+        if len(sym_res) and sym_res[0][2] == True:  # if query is successful + ode_pref=True
             for sym_pair in sym_res:
                 if sym_pair[1] in self.geneset.active_gene_pairs.values():
                     continue
