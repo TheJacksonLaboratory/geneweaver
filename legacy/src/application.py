@@ -1000,11 +1000,21 @@ def render_viewgeneset(gs_id):
     ## Ontologies associated with this geneset
     ontology = get_ontology_terms(gs_id)
 
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = geneweaverdb.get_all_species()
+    splist = []
+
+    for sp_id, sp_name in species.items():
+        splist.append([sp_id, sp_name])
+
+    species = splist
+
     return flask.render_template('viewgenesetdetails.html', geneset=geneset,
                                  emphgeneids=emphgeneids, user_id=user_id,
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
                                  altGeneSymbol=altGeneSymbol, view=view,
-                                 ontology=ontology, alt_gdb_id=alt_gdb_id)
+                                 ontology=ontology, alt_gdb_id=alt_gdb_id,
+                                 species=species)
 
 
 # Function that calls the overlap page
