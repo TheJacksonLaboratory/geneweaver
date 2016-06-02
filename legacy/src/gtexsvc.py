@@ -42,7 +42,7 @@ import progressbar  # TESTING PURPOSES
 # treat as if a "Data" object
 class GTEx:
     """ Creates a GTEx object representative of significant 'eGenes' drawn from
-        GTEx Portal [http://www.gtexportal.org/home/eqtls]
+        GTEx Portal [see http://www.gtexportal.org/home/eqtls]
 
         If a tissue type is specified, search pulls significant 'eGenes' for that
         tissue.
@@ -103,8 +103,6 @@ class GTEx:
 
     def launch_connection(self):
         """ EDIT
-
-            # ALREADY TESTED
         """
         data = config.get('db', 'database')
         user = config.get('db', 'user')
@@ -508,13 +506,23 @@ class GTEx:
     def groom_raw_data(self):
         """ # will be useful later for snps - only started, not completed"""
 
+        print 'generating groomed data files...'
+
         with tarfile.open(self.ROOT_DIR, 'r:gz') as tar:
+            c = 0  # TESTING
+            bar = progressbar.ProgressBar(maxval=len(tar.getmembers()).start()  # TESTING
+
             for tarinfo in tar.getmembers():
                 output = {}
                 f = tar.extractfile(tarinfo)  # file auto-closed in self.readGTExFile() below
                 tissue, headers, data = self.readGTExFile(f)
 
+                c += 1  # TESTING
+                bar.update(c)  # TESTING
+                time.sleep(0.001)  # TESTING: this is ugly! find an alternative
+
                 if self.tissue_info[tissue]['has_egenes'] == 'True':
+                    print tissue 
                     fp_out = self.SAVE_SEARCH_DIR + tissue + "_Groomed.json"
                     output[tissue] = []
 
@@ -527,6 +535,7 @@ class GTEx:
 
                         print tissue, ": count ", len(output[tissue]), " should equal ", \
                             self.tissue_info[tissue]['eGene_count']
+            bar.finish()  # TESTING
 
     def database_setup(self):
         """ EDIT
@@ -539,18 +548,8 @@ class GTEx:
 
         """
         # self.groom_raw_data()  # [last run: 5/2/16] reads in file and identifies what is useful, writing results
-        self.start = time.clock()  # TESTING PURPOSES
         for tissue in self.tissue_info:  # for each tissue (where n >= 70)
-            if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' \
-                    and tissue != 'Small_Intestine_Terminal_Ileum'  \
-                    and tissue != 'Brain_Frontal_Cortex_BA9' and tissue != 'Vagina' \
-                    and tissue != 'Testis' and tissue != 'Nerve_Tibial' \
-                    and tissue != 'Whole_Blood' and tissue != 'Ovary' \
-                    and tissue != 'Adipose_Subcutaneous' and tissue != 'Adrenal_Gland' \
-                    and tissue != 'Heart_Atrial_Appendage' and tissue != 'Breast_Mammary_Tissue' \
-                    and tissue != 'Stomach' and tissue != 'Brain_Caudate_basal_ganglia' \
-                    and tissue != 'Artery_Tibial' and tissue != 'Colon_Transverse':
-                # if self.tissue_info[tissue]['has_egenes'] == 'True' and tissue != 'Thyroid' and tissue != 'Testis':
+            if self.tissue_info[tissue]['has_egenes'] == 'True':
                 # iterating through the list of tissue files
                 self.files_uri[str(tissue)] = {}
                 fp = self.SAVE_SEARCH_DIR + tissue + "_Groomed.json"
@@ -568,7 +567,6 @@ class GTEx:
                     #     "should equal ", self.tissue_info[gs_tissue.tissue_name]['eGene_count']
                     # # exit()  # TESTING PURPOSES
                     # print "AND should also equal", len(self.all_gene_info)
-
 
 # Uses a "trickle-down" method for uploading data to GeneWeaver
 class GTExGeneSet:  # GTExGeneSetUploaders
@@ -775,7 +773,7 @@ class GTExGeneSet:  # GTExGeneSetUploaders
             # TEST: not yet run
         """
         # test to see if this publication has already been added once before
-        if self.publication['pub_id']:
+        if self.publication['pub_id']:  # granted that publication is inherited to start
             return
 
         query = 'INSERT INTO production.publication ' \
@@ -1093,6 +1091,7 @@ class eGene:
         self.geneset.gsv_source_list.append(self.ode_ref_id)
         self.geneset.gsv_value_list.append(self.max_eQTL.p_value)
 
+    # IMPORTANT EDIT: do not create a new gene each time - only add its value to the geneset if already exists
     def insert_gene(self):
         """ EDIT
 
@@ -1655,7 +1654,7 @@ if __name__ == '__main__':
     # ACTIVELY WRITING / DEBUGGING METHODS
     # test_reading()
     # test_query()
-    test_dbSetup()
+    # test_dbSetup()
     # test_grooming()
     # test_search_pubmed()
 
@@ -1665,3 +1664,7 @@ if __name__ == '__main__':
     # test_getCurrTissue()
     # test_getTissueInfo()
     # test_searchGeneInfo()
+    
+    g = GTEx()
+    g.groom_raw_data()
+    g.database_setup()
