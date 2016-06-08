@@ -847,7 +847,7 @@ def viewStoredResults_by_runhash():
         form = flask.request.form
         user_id = form['user_id']
         results = geneweaverdb.get_results_by_runhash(form['runHash'])
-        results = results[0][0]
+        #results = results[0][0]
         resultpath = config.get('application', 'results')
 
         if results['res_tool'] == 'Jaccard Similarity':
@@ -903,7 +903,6 @@ def rerun_tool():
     args = flask.request.args
     user_id = args['user_id']
     results = geneweaverdb.get_results_by_runhash(args['runHash'])
-    results = results[0][0]
     data = json.loads(results['res_data'])
     tool = results['res_tool']
     params = data['parameters']
@@ -916,6 +915,9 @@ def rerun_tool():
     else:
         gs_ids = []
 
+    print 'wtf'
+    print tool
+    print gs_ids
     return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 
 

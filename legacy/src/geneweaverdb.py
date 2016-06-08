@@ -1972,12 +1972,18 @@ def authenticate_user(email, password):
 def get_results_by_runhash(runhash):
     with PooledCursor() as cursor:
         cursor.execute(
-                ''' SELECT row_to_json(row, true)
-                FROM(	SELECT *
-                        FROM production.result
-                        WHERE res_runhash = %s
-                    ) row; ''', (runhash,))
-    return cursor.fetchall();
+            '''
+            SELECT res_data, res_tool
+            FROM production.result
+            WHERE res_runhash = %s;
+            ''',
+                (runhash,)
+        )
+            
+        result = cursor.fetchone()
+        print result
+
+        return {'res_data': result[0], 'res_tool': result[1]}
 
 
 def get_user(user_id):
