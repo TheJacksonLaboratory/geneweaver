@@ -33,7 +33,7 @@
                     name="{{ tool_param.name|e }}"
                     title="{{ tool_param.description|e }}">
             {% for opt in tool_param.options %}
-                <option label="{{ opt|e }}" value="{{ opt|e }}"{% if opt == tool_param.default %} selected="selected"{% endif %}>{{ opt|e }}</option>
+                <option label="{{ opt|e }}" value="{{ opt|e }}"{% if opt|e == tool_param.default %} selected{% endif %}>{{ opt|e }}</option>
             {% endfor %}
             </select>
         </div>
@@ -55,7 +55,7 @@
                             name="{{ tool_param.name|e }}"
                             id="{{ tool_param.name|e }}_{{ loop.index }}"
                             value="{{ opt|e }}"
-                            {% if opt == tool_param.default %}  checked{% endif %}>
+                            {% if opt|e == tool_param.default %}  checked{% endif %}>
                     {{ opt|e }}
                 </label>
             {% endfor %}
@@ -75,7 +75,7 @@
                         type="checkbox"
                         name="{{ tool_param.name|e }}"
                         id="{{ tool_param.name|e }}_{{ loop.index }}"
-                        {% if opt == tool_param.default %}  checked{% endif %}>
+                        {% if opt|e == tool_param.default %}  checked{% endif %}>
                         {{ opt|e }}
                 </div>
             {% endfor %}
@@ -95,7 +95,7 @@
                                 name="{{ tool_param.name|e }}"
                                 id="{{ tool_param.name|e }}_{{ loop.index }}"
                                 value="{{ opt|e }}"
-                                {% if opt == tool_param.default %}  checked{% endif %}>
+                                {% if opt|e == tool_param.default %}  checked{% endif %}>
                         {{ opt|e }}
                     </label>
                 </div>
