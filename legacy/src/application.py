@@ -24,7 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-#import cairosvg
+import cairosvg
 from cStringIO import StringIO
 
 app = flask.Flask(__name__)

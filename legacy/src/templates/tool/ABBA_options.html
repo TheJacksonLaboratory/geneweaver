@@ -1,16 +1,34 @@
 {% import 'macros.html' as macros %}
 
 <div class="panel">
-	<div class="panel-heading">
-		<img src="/static/images/GW2-abba.png" width="50" height="50">
-		<h2 class="panel-title">
-			<a data-toggle="collapse" data-parent="#accordion" href="#abbaCollapse">
-				ABBA Gene Search
-			</a>
-		</h2>
+    <div class="panel-heading">
+		<div class="row panel-title" style="width:100%;">
+			<div class="col-md-2">
+				<img src="/static/images/GW2-abba.png" width=50 height=50 style="margin-top:5px">
+			</div>
+			<div class="col-md-10" style="margin:0">
+				<a data-toggle="collapse" data-parent="#accordion" href="#abbaCollapse" style="color:black;">
+					<u>ABBA Gene Search</u>
+				<span style="font-size:11px; display:inline-block;">
+					Find genes most closely associated with your gene(s) of
+					interest.
+				</span>
+				</a>
+			</div>
+		</div>
 	</div>
 	<div id="abbaCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
+		{# Tool params need to be added to the DB for the ABBA tool.
+            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_InputGenes']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_IgnHom']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_ShowInter']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenes']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenesets']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_Tierset']) }}</div>
+            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_RestrictSpecies']) }}</div>
+            <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+		#}
 			<div class="form-group">
                 <label>
                     Input Genes:

@@ -1,13 +1,21 @@
 {% import 'macros.html' as macros %}
 
 <div class="panel">
-	<div class="panel-heading">
-		<img src="/static/images/GW2-combine.png" width="50" height="50">
-		<h2 class="panel-title">
-			<a data-toggle="collapse" data-parent="#accordion" href="#combCollapse">
-				Combine GeneSets
-			</a>
-		</h2>
+    <div class="panel-heading">
+		<div class="row panel-title" style="width:100%;">
+			<div class="col-md-2">
+				<img src="/static/images/GW2-combine.png" width=50 height=50 style="margin-top:5px">
+			</div>
+			<div class="col-md-10" style="margin:0">
+				<a data-toggle="collapse" data-parent="#accordion" href="#combCollapse" style="color:black;">
+					<u>Combine GeneSets</u>
+				<span style="font-size:11px; display:inline-block;">
+					Advanced tool to combine multiple GeneSets into a single
+					association matrix.
+				</span>
+				</a>
+			</div>
+		</div>
 	</div>
 	<div id="combCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
