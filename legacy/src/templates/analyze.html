@@ -42,6 +42,13 @@
         border-style: none;
     }
 
+	/* Override checkbox style found in plugins.min.css. It's messing up the
+	 * alignment of checkboxes and project names.
+	 */
+	.ui-checkbox {
+		margin: 0;
+	}
+
 </style>
 
 
@@ -102,19 +109,9 @@
                         {% for proj in g.user.projects %}
                             <div id="project-{{ proj.project_id }}" class="panel">
                                 <div class="panel-heading">
-                                    <h2 class="panel-title">
+                                    <h2 class="panel-title" style="width:100%; text-align:left">
                                         <div class="row">
-                                            <div class="col-xs-2">
-                                                {#
-                                                <input
-                                                        type="checkbox"
-                                                        class="proj-checkbox"
-                                                        id="proj-{{ proj.project_id }}-allcheck"
-                                                        name="project_{{ proj.project_id }}"
-                                                        #console.log(name)
-                                                        data-project="{{ proj.project_id }}"
-                                                        >
-                                                        #}
+                                            <div class="col-xs-1">
 
                                                 <div class="ui-checkbox proj-checkbox" style="padding: 0; border: 0;">
                                                     <label for="proj-{{ proj.project_id }}-allcheck">
@@ -125,7 +122,7 @@
                                                 </div>
 
                                             </div>
-                                            <div class="col-xs-10" style="vertical-align: bottom;">
+                                            <div class="col-xs-11" style="vertical-align: bottom;">
                                                 <a class="project-link" data-toggle="collapse"
                                                    data-parent="#projAccordion" href="#genesets-{{ proj.project_id }}">
 													<i class="fa fa-caret-right"></i> </span>
