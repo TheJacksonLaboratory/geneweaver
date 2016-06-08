@@ -187,11 +187,18 @@
         {% endif %}
     </td>
 
-    {# Used to select genesets from the search results page.  #}
+    {# 
+		Used to select genesets from the search results page. And should 
+		only be shown on the search page.
+	#}
+
+    {% if request.endpoint == "render_searchFromHome" %}
     <td>
         <input type="checkbox" class="search-check" id="gs-check-{{ gs.geneset_id }}">
         <label class="checkbox" for="gs-check-{{ gs.geneset_id }}"></label>
     </td>
+
+	{% endif %}
 
 </tr>
 

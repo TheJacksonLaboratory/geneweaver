@@ -915,9 +915,6 @@ def rerun_tool():
     else:
         gs_ids = []
 
-    print 'wtf'
-    print tool
-    print gs_ids
     return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 
 
