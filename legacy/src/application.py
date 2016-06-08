@@ -211,6 +211,11 @@ def render_analyze():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze.html', active_tools=active_tools)
 
+@app.route('/analyzeshared')
+def render_analyze_shared():
+    active_tools = geneweaverdb.get_active_tools()
+    return flask.render_template('analyze_shared.html', active_tools=active_tools)
+
 
 @app.route('/projects')
 def render_projects():

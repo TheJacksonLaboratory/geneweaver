@@ -265,6 +265,37 @@ def get_all_projects(usr_id):
         newlist = sorted(list, key=lambda x: x.name, reverse=False)
         return newlist
 
+def get_shared_projects(usr_id):
+    """
+    Retrieves all the projects that have been shared with the given user.
+
+    :type usr_id: int
+    :arg usr_id: 
+
+    :ret list: projects (as project objects) shared with the user
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT          COUNT(gs_id), pj_name, pj_id, pj.usr_id, pj_groups,
+                            pj_created, pj_notes, pj_star, usr_email AS owner
+            FROM            project AS pj
+            NATURAL JOIN    project2geneset, usr
+            WHERE           usr.usr_id = pj.usr_id AND 
+                            pj.usr_id <> %s AND
+                            project_is_readable(%s, pj_id) 
+            GROUP BY        pj.usr_id, pj_name, pj_id, owner 
+            ORDER BY        pj_name;
+            ''',
+                (usr_id, usr_id)
+        )
+
+        plist = [Project(d) for d in dictify_cursor(cursor)]
+
+        return sorted(plist, key=lambda x: x.name, reverse=False)
+
+
 ####################################################################################
 # Begin group block, Getting specific groups for a user, and creating/modifying them
 
@@ -1784,6 +1815,7 @@ class User:
         self.ip_addr = usr_dict['ip_addr']
 
         self.__projects = None
+        self.__shared_projects = None
         self.__get_groups_by_user = None
 
     @property
@@ -1791,6 +1823,12 @@ class User:
         if self.__projects is None:
             self.__projects = get_all_projects(self.user_id)
         return self.__projects
+
+    @property
+    def shared_projects(self):
+        if self.__shared_projects is None:
+            self.__shared_projects = get_shared_projects(self.user_id)
+        return self.__shared_projects
 
     @property
     def get_groups_by_user(self):
