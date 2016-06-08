@@ -137,6 +137,8 @@ class Project:
         self.count = proj_dict.get('count')
         self.deprecated = proj_dict.get('deprecated')
         self.group_name = proj_dict.get('group')
+        ## Displayed to others when a project is shared
+        self.owner = proj_dict.get('owner')
 
     def get_genesets(self, auth_user_id):
         return get_genesets_for_project(self.project_id, auth_user_id)
