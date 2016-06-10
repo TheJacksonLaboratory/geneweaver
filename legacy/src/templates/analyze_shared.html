@@ -105,8 +105,11 @@
                 <div class="panel-group" id="projAccordion">
 
                     {% if "user" in g %}
-
-                        {% for proj in g.user.shared_projects %}
+                        {% for grp in grp2proj %}
+                            <div style="border-bottom: 2px #006400 solid">
+                                <h4>{{ grp }}</h4>
+                            </div>
+                        {% for proj in grp2proj[grp] %}
                             <div id="project-{{ proj.project_id }}" class="panel">
                                 <div class="panel-heading">
                                     <h2 class="panel-title" style="width:100%; text-align:left">
@@ -142,6 +145,7 @@
                                     </div>
                                 </div>
                             </div>
+                        {% endfor %}
                         {% endfor %}
                     {% else %}
                          <div class="alert alert-warning fade in">

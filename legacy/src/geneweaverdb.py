@@ -301,6 +301,29 @@ def get_shared_projects(usr_id):
 ####################################################################################
 # Begin group block, Getting specific groups for a user, and creating/modifying them
 
+def get_group_name(grp_id):
+    """
+    Return the name of a specific group.
+
+    :type grp_id: int
+    :arg grp_id: GW group ID
+
+    :ret str: name of the group
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT grp_name
+            FROM production.grp
+            WHERE grp_id = %s;
+            ''',
+                (grp_id,)
+        )
+
+        name = cursor.fetchone()
+
+    return name[0] if name else ''
+
 def get_all_members_of_group(usr_id):
     """
     return a dictionary of groups owned by user_id and all members

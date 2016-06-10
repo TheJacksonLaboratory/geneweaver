@@ -24,7 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import cairosvg
+#import cairosvg
 from cStringIO import StringIO
 
 app = flask.Flask(__name__)
@@ -213,8 +213,28 @@ def render_analyze():
 
 @app.route('/analyzeshared')
 def render_analyze_shared():
+    if "user" in flask.g:
+        grp2proj = OrderedDict()
+
+        for p in flask.g.user.shared_projects:
+            p.group_id = p.group_id.split(',')
+            ## If a project is found in multiple groups we just use the
+            ## first group
+            p.group_id = p.group_id[0]
+            p.group = geneweaverdb.get_group_name(p.group_id)
+
+            if p.group not in grp2proj:
+                grp2proj[p.group] = [p]
+            else:
+                grp2proj[p.group].append(p)
+
+
+            grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
+            #sorted(flask.g.user.shared_projects, key=lambda x: x.group_id)
+
+
     active_tools = geneweaverdb.get_active_tools()
-    return flask.render_template('analyze_shared.html', active_tools=active_tools)
+    return flask.render_template('analyze_shared.html', active_tools=active_tools, grp2proj=grp2proj)
 
 
 @app.route('/projects')
