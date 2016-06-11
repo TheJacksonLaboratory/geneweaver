@@ -93,126 +93,110 @@
 
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>Analyze Gene Sets and Projects</strong>
-                    <span id="clickableFontAwesome"data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
+                    <span id="clickableFontAwesome" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
             </div>
 
 
-    {# This existing error class is different then other jquery error classes that I have used. It is legacy
-     but I am keeping it until I can refactor all of the code.#}
-    {% with errors = get_flashed_messages() %}
-        {% if errors %}
-            {%- for msg in errors %}
-                <div class="alert alert-danger fade in">
-                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-                    {{ msg }}
-				</div>
-            {% endfor -%}
-        {% endif %}
-    {% endwith %}
+            {# This existing error class is different then other jquery error classes that I have used. It is legacy
+            but I am keeping it until I can refactor all of the code.#}
+            {% with errors = get_flashed_messages() %}
+                {% if errors %}
+                    {%- for msg in errors %}
+                        <div class="alert alert-danger fade in">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                            {{ msg }}
+                        </div>
+                    {% endfor -%}
+                {% endif %}
+            {% endwith %}
 
 
-    <form id="todo-id" class="form-horizontal" role="form" method="post">
-        <div class="row">
+            <form id="todo-id" class="form-horizontal" role="form" method="post">
+                <div class="row">
 
-            <!-- the Analysis tools column -->
-            <div class="col-md-4">
-                <div class="page-header">
-                    <h2>Analysis Tools</h2>
-                </div>
-                <div class="panel-group" id="accordion">
-                    {% for tool in active_tools %}
-                        {% include 'tool/' + tool.classname + '_options.html' %}
-                    {% endfor %}
-                </div>
-            </div>
+                    <!-- the Analysis tools column -->
+                    <div class="col-md-4">
+                        <div class="page-header">
+                            <h2>Analysis Tools</h2>
+                        </div>
+                        <div class="panel-group" id="accordion">
+                            {% for tool in active_tools %}
+                                {% include 'tool/' + tool.classname + '_options.html' %}
+                            {% endfor %}
+                        </div>
+                    </div>
 
-            <!-- the projects column -->
-            <div class="col-md-8">
-                <div class="page-header"><h2>Projects</h2></div>
-                {#  <div class="panel-group" id="projAccordion">  #}
+                    <!-- the projects column -->
+                    <div class="col-md-8">
+                        <div class="page-header"><h2>Projects</h2></div>
 
-             {% if "user" in g %}
+                        {% if "user" in g %}
 
-                <div class="panel-body">
-                    <form id="analyzeGenesets" name="analyzeGenesets" method="post" action="#"
-                        class="form-horizontal form-inline" novalidate="novalidate">
-                    <!-- TODO make the table sortable, show more gene details -->
-                    <table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
-                    <tbody>
+                            <div class="panel-body">
+                                <form id="analyzeGenesets" name="analyzeGenesets" method="post" action="#"
+                                      class="form-horizontal form-inline" novalidate="novalidate">
+                                    <!-- TODO make the table sortable, show more gene details -->
+                                    <table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
+                                        <tbody>
 
-            {#
-            <tr style="background: #ececec;">
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-                <th>Project Name</th>
-                <th style="text-align: center;">Size</th>
-                <th style="text-align: center;">Date</th>
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-            </tr>
-             #}
+                                        {% for proj in g.user.projects %}
+                                            <tr>
+                                                {# checkbox #}
+                                                <td width="18">
+                                                    <div class="ui-checkbox proj-checkbox">
+                                                        <label for="proj-{{ proj.project_id }}-allcheck">
+                                                            <input type="checkbox" data-project="{{ proj.project_id }}"
+                                                                   data-project-name="{{ proj.name }}"
+                                                                   name="project_{{ proj.project_id }}"
+                                                                   id="proj-{{ proj.project_id }}-allcheck"/>
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                                {# expand button #}
+                                                <td width="15">
+                                                    <span id="proj-{{ proj.project_id }}" class="toggler"
+                                                          data-prod="{{ proj.project_id }}">
+                                                        <span class="plus"></span>
+                                                        <span class="minus"></span>
+                                                    </span>
+                                                </td>
+                                                {# Project Name #}
+                                                <td>
+                                                    <strong>{{ proj.name }}</strong>
+                                                    {% if proj.star == 't' %}
+                                                        <span class="closedstar"></span>
+                                                    {% endif %}
+                                                </td>
 
-                    {% for proj in g.user.projects %}
-                    <tr>
-                        {# checkbox #}
-                        <td width="18">
-                            <div class="ui-checkbox proj-checkbox">
-                                <label for="proj-{{ proj.project_id }}-allcheck">
-                                    <input type="checkbox" data-project="{{ proj.project_id }}"
-                                           data-project-name="{{ proj.name }}"
-                                           id="proj-{{ proj.project_id }}-allcheck"/>
-                                </label>
+                                            </tr>
+
+                                            <tr class="gsid{{ proj.project_id }}" id="genesets-{{ proj.project_id }}"
+                                                style="display: none;">
+                                                <td colspan="9">
+                                                    <table id="project-body-{{ proj.project_id }}"
+                                                           class="table table-hover">
+                                                    </table>
+                                                </td>
+                                            </tr>
+
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </form>
                             </div>
-                        </td>
-                        {# expand button #}
-                        <td width="15">
-                            <span id="proj-{{ proj.project_id }}" class="toggler" data-prod="{{ proj.project_id }}">
-                                <span class="plus"></span>
-                                <span class="minus"></span>
-                            </span>
-                        </td>
-                        {# Project Name #}
-                        <td>
-                            <strong>{{ proj.name }}</strong>
-                            {% if proj.star == 't' %}
-                                <span class="closedstar"></span>
-                            {% endif %}
-                        </td>
 
-                </tr>
+                        {% else %}
 
-                <tr class="gsid{{ proj.project_id }}" id="genesets-{{ proj.project_id }}" style="display: none;">
-                    <td colspan="9">
-                        <table id="project-body-{{ proj.project_id }}" class="table table-hover">
-                        </table>
-                    </td>
-                </tr>
+                            <div class="alert alert-warning fade in">
+                                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                                You do not have any projects.
+                            </div>
 
-            {% endfor %}
+                        {% endif %}
 
-            </tbody>
-        </table>
-    </form>
-</div>
-
-{% else %}
-
-    <div class="alert alert-warning fade in">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-        You do not have any projects.
-    </div>
-
-{% endif %}
-
-
-
+                    </div>
                 </div>
-            </div>
-    </form>
-
-    </div>
+            </form>
 
         </div>
 
