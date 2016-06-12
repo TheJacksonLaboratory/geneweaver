@@ -222,14 +222,14 @@
 		// Ensures the plus icon is next to each tool under the
 		// analysis tools sidebar. Here so I don't have to change 
 		// this piece of HTML in each of the tool option templates.
-		$('.panel-title').each(function(index, elem) {
-
-			var child = $(elem).children('a');
-			var href = $(child).attr('data-parent');
-
-			if (href == '#accordion')
-				$(child).addClass('collapsed');
-		});
+		//$('.panel-title').each(function(index, elem) {
+        //
+		//	var child = $(elem).children('a');
+		//	var href = $(child).attr('data-parent');
+        //
+		//	if (href == '#accordion')
+		//		$(child).addClass('collapsed');
+		//});
 
 		// TODO: this should be refactored
 		// All selector checkbox
@@ -285,8 +285,8 @@
 					   $(this).children('.fa-caret-right') : 
 					   $(this).children('.fa-caret-down');
 
-			chev.toggleClass('fa-caret-down')
-			chev.toggleClass('fa-caret-right')
+			chev.toggleClass('fa-caret-down');
+			chev.toggleClass('fa-caret-right');
 
             // Get the project ID from the link href, but gotta strip out
             // '#genesets-' first
@@ -327,6 +327,7 @@
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
         $('.toggler').click(function (e) {
+
             e.preventDefault();
             //the data stored in the data-prod
             var pid = ($(this).attr("data-prod"));
@@ -371,5 +372,6 @@
         });
 
     });
+    
 
 </script>
