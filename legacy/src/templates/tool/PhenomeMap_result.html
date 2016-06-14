@@ -189,6 +189,30 @@
     </div>
 </form>
 
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green">
+		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Visualization Options
+			</div>
+		</a>
+	</div>
+	<div id="viz-options" class="panel-collapse collapse" style="">
+		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+			<div class="row">
+				<div class="col-md-3">
+					<p style="font-size:13px; font-weight:400;">
+						<b>Highlight Genes, GeneSets, or Species:</b>
+					</p>
+				</div>
+				<div class="col-md-9">
+					<div id="search"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
 
 {#
     TEAM HISIM GRAPH NOTES:
@@ -225,7 +249,6 @@
 {% endif %}
 #}
 
-<div id="search"></div>
 
 <div id="viz2">
     {#
