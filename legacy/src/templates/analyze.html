@@ -154,18 +154,19 @@
                                                 </td>
                                                 {# expand button #}
                                                 <td width="15">
-                                                    <span id="proj-{{ proj.project_id }}" class="toggler"
-                                                          data-prod="{{ proj.project_id }}">
-                                                        <span class="plus"></span>
+													<span id="proj-{{ proj.project_id }}" class="toggler" data-prod="{{ proj.project_id }}">
+														<span class="plus"></span>
                                                         <span class="minus"></span>
                                                     </span>
                                                 </td>
                                                 {# Project Name #}
                                                 <td>
-                                                    <strong>{{ proj.name }}</strong>
-                                                    {% if proj.star == 't' %}
-                                                        <span class="closedstar"></span>
-                                                    {% endif %}
+													<span data-prod="{{proj.project_id }}" class="toggler" style="cursor:pointer;">
+														<strong>{{ proj.name }}</strong>
+														{% if proj.star == 't' %}
+															<span class="closedstar"></span>
+														{% endif %}
+													</span>
                                                 </td>
 
                                             </tr>
@@ -339,10 +340,10 @@
                 $(".gsid" + pid).toggle();
                     //select the parent and find the span so you can
                     //toggle the "plus" class
-                    $(this).parent().find("span").toggleClass("plus");
+                    $('#proj-' + pid).parent().find("span").toggleClass("plus");
                     //toggle the minus class
-                    $(this).toggleClass("plus");
-                    $(this).toggleClass("minus");
+                    $('#proj-' + pid).toggleClass("plus");
+                    $('#proj-' + pid).toggleClass("minus");
                 return;
             }
 

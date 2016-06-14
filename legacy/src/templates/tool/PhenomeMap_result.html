@@ -201,6 +201,10 @@
 		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
 			<div class="row">
 				<div class="col-md-3">
+					{#
+						TODO: Highlighting entities should be done by gene name, not
+						by internal GW identifier.
+					#}
 					<p style="font-size:13px; font-weight:400;">
 						<b>Highlight Genes, GeneSets, or Species:</b>
 					</p>
@@ -916,6 +920,7 @@
         var data = g.data.nodes;
         var leaves = [];
         var leaf = data[0];
+		console.log(data);
         while (leaf.children.length > 0) {
             leaf = getNodeByID(data, leaf.children[0]);
         }
