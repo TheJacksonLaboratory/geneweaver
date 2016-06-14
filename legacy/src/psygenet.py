@@ -1,3 +1,7 @@
+# author: Astrid Moore
+# date: 5/9/16
+# version: 1.0
+
 import progressbar
 import time
 import config
@@ -49,7 +53,7 @@ class PsyGeNET:
 		password = config.get('db', 'password')
 		host = config.get('db', 'host')
 
-		print host
+		print host  # TESTING
 
 		# set up connection information
 		cs = 'host=\'%s\' dbname=\'%s\' user=\'%s\' password=\'%s\'' % (host, data, user, password)

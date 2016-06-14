@@ -1,6 +1,6 @@
 # file: batch.py
 # desc: Rewrite of the PHP batch geneset upload function.
-# version: 0.2.1
+# version: 0.2.2
 # author(s): Erich Baker, Tim Reynolds, Astrid Moore
 
 # TODO:
