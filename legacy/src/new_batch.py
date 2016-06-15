@@ -7,13 +7,16 @@ import psycopg2
 
 class Batch:
 
-	def __init__(self, input_filepath = None):
+	def __init__(self, input_filepath = None, usr_id = 0):
 		# testing purposes
 		self.test = True
+		self.user_id = usr_id
 
-		# figure out optimum input type
-		# DESIGN DECISION - for now, pretend that input file is req
-		self.raw_file = input_filepath
+		# EDIT: figure out optimum input type
+		# EDIT: DESIGN DECISION - for now, pretend that input file is req
+		self.input_file = input_filepath
+		
+		# read file 
 
 		# error handling
 		self.crit = []
@@ -30,7 +33,7 @@ class Batch:
 		# launch connection to GeneWeaver database
 		self.launch_connection()
 
-	#----------------- DATABASE ------------------------------------------#
+	#----------------- DATABASE -------------------------------------------------#
 
 	def launch_connection(self):
 		""" 
@@ -126,7 +129,7 @@ class Batch:
 		for tup in results:
 			self.species_types[tup[1].lower()] = tup[0]
 
-	#---------------------ERROR HANDLING---------------------------------#
+	#---------------------ERROR HANDLING------------------------------------------#
 
 	def get_errors(self, critical=False, noncritical=False):
 		""" Returns error messages. If no additional parameters are filled, or if both
@@ -194,15 +197,17 @@ class Batch:
 	#-----------------------------FILE HANDLING-----------------------------------#
 
 	def read_file(self, fp):
-		""" Reads in from a source text file and outputs organized data	 # EDIT
-
-		# separate each column into lists (make sure the same length before proceeding)
-
-		Parameters
-		----------
-		fp: filepath to read (string)
+		""" Reads in from a source text file, using the location stored in global
+			var, 'input_file', and outputs organized data.
 		"""
-		print "will handle file parsing someday..."
+		with open(fp, 'r') as file_path:
+			lines = file_path.readlines()
+
+		
+
+		# EDIT: convert species name -> species id, before passing to GeneSet
+
+		print "handling file parsing + global assignments..."
 
 	def groom_raw_data(self):
 		print "will assign raw data to objects someday..."
@@ -212,8 +217,82 @@ class Batch:
 
 class UploadGeneSet:
 
-	def __init__(self, batch, prelim_info):
-		print "will initialize GeneSet object someday, using preliminary info from the input file..."
+	def __init__(self, batch):
+		print "initializing GeneSet object..."
+
+		self.batch = batch
+
+		# GeneSet fields
+		self.geneset_values = []  # gsv_value_list
+		self.abbrev_name = ''  # gs_abbreviation
+		self.name = ''  # gs_name
+		self.description = ''  # gs_description
+		self.gs_gene_id_type = ''  # gs_gene_id_type (in case label changes)
+		self.pubmed = ''  # PubMed ID
+		self.group = ''  # group (public or private)
+		self.score_type = ''  # gs_threshold_type
+		self.thresh = ''  # gs_threshold
+		self.species = ''  # sp_id
+
+	#-----------------------MUTATORS--------------------------------------------#
+	def set_genesetValues(self, gsv_value_list):
+		print 'setting GeneSet value list...'
+		if type(gsv_value_list) == list:
+			self.geneset_values = gsv_value_list
+		else:
+			err = 'Error: Unable to assign geneset values to global parameter. ' \
+				  'Please check + make sure that input is a list before proceeding.'
+			self.batch.set_errors(critical=err)
+
+	def set_abbrevName(self, abbrev):
+		print 'setting abbreviated GeneSet name...'
+		self.abbrev_name = abbrev
+
+	def set_genesetName(self, gs_name):
+		print 'setting GeneSet name...'
+		self.name = gs_name
+
+	def set_description(self, desc):
+		print 'setting GeneSet description...'
+		self.description = desc
+
+	def set_gsGeneIDType(self, id_type):
+		print 'setting GeneSet gene ID type...'
+		self.gs_gene_id_type = int(id_type) 
+
+	def set_pubmedID(self, pub):
+		print 'setting associated PubMed ID...'
+		self.pubmed = pub
+
+	def set_group(self, public):
+		""" Assigns the group type of the GeneSet, depending on the boolean type of 
+			'public'. If True, assigns 'public' and if False, assigns 'private' to 
+			global var 'group'.
+
+		Parameters
+		----------
+		public: bool indicating whether group type is 'public' or 'private'
+		"""
+		print 'setting GeneSet group type...'
+		if public:
+			self.group = 'public'
+		else:
+			self.group = 'private'
+
+	def set_scoreType(self, score):
+		print 'setting GeneSet threshold score type...'
+		self.score_type = int(score)
+
+	def set_threshold(self, gs_thresh):
+		print 'setting GeneSet threshold value...'
+		self.thresh = gs_thresh
+
+	def set_species(self, sp_id):
+		print 'setting GeneSet species ID...'
+		if type(sp_id) != int:
+			self.species = int(sp_id)
+		else:
+			self.species = sp_id
 
 	def geneweaver_setup(self):
 		print "will identify the preliminary features of the GeneWeaver query, + populate globals..."
@@ -272,6 +351,20 @@ def test_dictionaries():
 	b = Batch()	
 	b.populate_dictionaries()
 
+def test_fileParsing(number):
+	test = '/Users/Asti/geneweaver/website-py/src/static/text/'
+	append = ['affy-batch.txt', 'agilent-batch.txt', 'batch-geneset-a.txt',
+			  'batch-geneset-b.txt', 'batch-geneset-c.txt', 'batch-geneset-d.txt',
+			  'empty-geneset.txt', 'symbol-batch.txt']
+
+	test_file = test + append[number]
+	b = Batch()
+	b.read_file(test_file)
+
 if __name__ == '__main__':
+	# TESTING
+	# test_fileParsing(0)
+
+	# WORKING
 	test_dictionaries()
 
