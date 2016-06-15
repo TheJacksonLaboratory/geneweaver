@@ -34,8 +34,20 @@
         <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
         <div class="panel panel-default panel-heading bg-gray-light">
-            <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+            <h3 class="panel-title"><strong>{{ title }}</strong>
+            <span id="clickableFontAwesome" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
         </div>
+
+
+        {% if emphgenes|length <= 0 %}
+            <div class="alert alert-warning">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+            <p>The Emphasis Genes utility enables users to select genes or an entire set of genes that may be highlighted
+                in various analysis tools. These can be added from this page or from the View Gene Set page. Emphasized
+                sets of genes are for visual purposes only and do not effect analysis results.</p>
+            </div>
+
+        {% endif %}
 
         <div class="row">
 
@@ -107,3 +119,18 @@
 {% include 'footer.html' %}
 
 
+
+<script type="text/javascript">
+
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+
+    $('#clickableFontAwesome').popover({
+        title: 'What Are Emphasis Gene Sets?', content: 'The Emphasis Genes utility enables users to select genes ' +
+        'or an entire set of genes that may be highlighted in various analysis tools. These can be added from this ' +
+        'page or from the View Gene Set page.'
+    });
+
+</script>
