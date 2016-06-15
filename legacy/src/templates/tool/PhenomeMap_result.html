@@ -920,7 +920,6 @@
         var data = g.data.nodes;
         var leaves = [];
         var leaf = data[0];
-		console.log(data);
         while (leaf.children.length > 0) {
             leaf = getNodeByID(data, leaf.children[0]);
         }

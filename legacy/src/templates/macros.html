@@ -120,3 +120,9 @@
         {{tool.classname}}
     </div>
 {% endmacro %}
+
+{# Generates the onclick url so non-default button styles can be used. #}
+{% macro tool_run_click(tool) %}
+    onclick='this.form.action="{{ url_for(tool.classname + '.run_tool') }}";'
+{% endmacro %}
+

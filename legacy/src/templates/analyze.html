@@ -131,8 +131,10 @@
                         <div class="page-header"><h2>Projects</h2></div>
 
                         {% if "user" in g %}
+							
 
                             <div class="panel-body">
+								<div id="geneset-count" class="h5"></div>
                                 <form id="analyzeGenesets" name="analyzeGenesets" method="post" action="#"
                                       class="form-horizontal form-inline" novalidate="novalidate">
                                     <!-- TODO make the table sortable, show more gene details -->
@@ -212,11 +214,50 @@
 
 <script type="text/javascript">
 
+	// Number of genesets currently selected
+	var gscount = 0;
+	// Number of projects currently selected
+	var pjcount = 0;
+
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
 
+	// Updates selected geneset and project counts and displays them to the 
+	// user. The counts are stored as static variable within a closure. 
+	// 
+	// :type gscount: int
+	// :arg gscount: the number of genesets to add to the count
+	//
+	// :type pjcount: int
+	// :arg pjcount: the numebr of projects to add to the count
+	//
+	var updateCount = (function() {
+
+		var gsCount = 0;
+		var pjCount = 0;
+
+		return function(gscount, pjcount) {
+
+			gsCount += gscount;
+			pjCount += pjcount;
+
+			$('#geneset-count').html(function() {
+
+				if (gsCount === 0)
+					return '';
+
+				if (gsCount === 1)
+					return '' + gsCount + ' geneset is selected';
+
+				return '' + gsCount + ' genesets are selected';
+			});
+		}
+	})();
+
+
     $(document).ready(function () {
+
 
         var url = '/projectGenesets.json';
 
@@ -231,6 +272,7 @@
 		//	if (href == '#accordion')
 		//		$(child).addClass('collapsed');
 		//});
+
 
 		// TODO: this should be refactored
 		// All selector checkbox
@@ -249,32 +291,69 @@
 
 				var data = {'project': pid};
 
+				updateCount(0, 1);
+
 				$.get(url, data).done(function (data) {
 
 					$(pbid).append(data);
 
 					$(chkclass).each(function (index) {
-						console.log('checking');
 						$(this).attr('checked', true);
+
+						updateCount(1, 0);
 					});
 				});
 
 			} else {
 
 				if ($(allcheck).attr('checked')) {
+					
+					updateCount(0, -1);
 
 					$(gscheck).each(function (index) {
 						$(this).attr('checked', false);
+
+						updateCount(-1, 0);
 					});
 
 				} else {
 
+					updateCount(0, 1);
+
 					$(gscheck).each(function (index) {
-						console.log('checking2');
 						$(this).attr('checked', true);
+
+						updateCount(1, 0);
 					});
 				}
 			}
+		});
+
+		// Updates individual geneset counts. Since the geneset list is 
+		// injected into the dom, we register the click handler on a static
+		// element that exists prior to injection, and then filter the child
+		// elements that call the event.
+		//
+		$('.table').on('click', 'input[type=checkbox]', function(event) {
+
+			var projCheck = $(this).attr('class');
+			var checkIndex = projCheck.search('-check');
+			projCheck = projCheck.slice(0, checkIndex);
+			projCheck += '-allcheck'
+
+			event.stopPropagation();
+
+			// TODO: Looks like our fancy checkboxes don't support the
+			// indetereminate visual state. :(
+			$('#' + projCheck).prop('indeterminate', true);
+
+			// Backwards because by the time we check to see if the box is 
+			// (un)checked, it's already the opposite. Web dev is pants on 
+			// head retarded sometimes.
+			if ($(this).attr('checked'))
+				updateCount(1, 0);
+			else
+				updateCount(-1, 0);
 		});
 
         // Project genesets are only loaded when necessary (i.e. when a user
