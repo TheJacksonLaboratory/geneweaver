@@ -429,7 +429,10 @@ def edit_group_name(group_name, group_id, group_private, user_id):
 # permission is defaulted to 0
 def add_user_to_group(group_id, owner_id, usr_email, permission=0):
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT usr_email FROM usr WHERE usr_email=%s''', (usr_email,))
+        # convert email to lower
+        usr_email = str(usr_email).lower()
+        print usr_email
+        cursor.execute('''SELECT usr_email FROM usr WHERE LOWER(usr_email)=%s''', (usr_email,))
         if cursor.rowcount == 0:
             return {'error': 'No User'}
         else:
@@ -441,7 +444,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
                          WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
                         (SELECT usr_id
                          FROM production.usr
-                         WHERE usr_email = %s LIMIT 1), %s, 2, now())
+                         WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
                 RETURNING grp_id;
                 ''',
                     (group_id, owner_id, usr_email, permission,)
