@@ -1336,7 +1336,7 @@ def render_sim_genesets(gs_id):
     # This is the bit for the bar chart
     i = 1
     for k in simgs:
-        d3BarChart.append({'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': str(k.abbreviation)})
+        d3BarChart.append({'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': k.abbreviation.encode('utf-8')})
         i += 1
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
