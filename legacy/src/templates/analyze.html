@@ -128,7 +128,7 @@
 
                     <!-- the projects column -->
                     <div class="col-md-8">
-                        <div class="page-header"><h2>Projects</h2></div>
+                        <div class="page-header"><h2>Projects <span id="geneset-count"></span></h2></div>
 
                         {% if "user" in g %}
 							
@@ -214,17 +214,13 @@
 
 <script type="text/javascript">
 
-	// Number of genesets currently selected
-	var gscount = 0;
-	// Number of projects currently selected
-	var pjcount = 0;
-
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
 
-	// Updates selected geneset and project counts and displays them to the 
-	// user. The counts are stored as static variable within a closure. 
+	// Updates selected geneset and project counts and displays them to the
+	// user. The counts are stored as static variable within a closure.
+    // Project count displays are currently disabled.
 	// 
 	// :type gscount: int
 	// :arg gscount: the number of genesets to add to the count
@@ -243,36 +239,20 @@
 			pjCount += pjcount;
 
 			$('#geneset-count').html(function() {
-
 				if (gsCount === 0)
 					return '';
 
 				if (gsCount === 1)
-					return '' + gsCount + ' geneset is selected';
+					return '(' + gsCount + ' geneset is selected)';
 
-				return '' + gsCount + ' genesets are selected';
+				return '(' + gsCount + ' genesets are selected)';
 			});
 		}
 	})();
 
-
     $(document).ready(function () {
 
-
         var url = '/projectGenesets.json';
-
-		// Ensures the plus icon is next to each tool under the
-		// analysis tools sidebar. Here so I don't have to change 
-		// this piece of HTML in each of the tool option templates.
-		//$('.panel-title').each(function(index, elem) {
-        //
-		//	var child = $(elem).children('a');
-		//	var href = $(child).attr('data-parent');
-        //
-		//	if (href == '#accordion')
-		//		$(child).addClass('collapsed');
-		//});
-
 
 		// TODO: this should be refactored
 		// All selector checkbox
@@ -281,9 +261,7 @@
 			var check = $(this).find('input[type=checkbox]');
 			var allcheck = '#' + check.attr('id');
 			var pid = allcheck.split('-')[1];
-			var gscheck = '.proj-' + pid + '-check';
             var pbid = '#project-body-' + pid;
-			var allclass = '#proj-' + pid + '-allcheck';
 			var chkclass = '.proj-' + pid + '-check';
 
             // Check to see if we haven't made an AJAX call for this project
@@ -291,10 +269,7 @@
 
 				var data = {'project': pid};
 
-				updateCount(0, 1);
-
 				$.get(url, data).done(function (data) {
-
 					$(pbid).append(data);
 
 					$(chkclass).each(function (index) {
@@ -308,22 +283,20 @@
 
 				if ($(allcheck).attr('checked')) {
 					
-					updateCount(0, -1);
+					$(chkclass).each(function (index) {
+                        if ($(this).attr('checked'))
+                            updateCount(-1, 0);
 
-					$(gscheck).each(function (index) {
 						$(this).attr('checked', false);
-
-						updateCount(-1, 0);
 					});
 
 				} else {
 
-					updateCount(0, 1);
+					$(chkclass).each(function (index) {
+                        if (!$(this).attr('checked'))
+                            updateCount(1, 0);
 
-					$(gscheck).each(function (index) {
 						$(this).attr('checked', true);
-
-						updateCount(1, 0);
 					});
 				}
 			}
