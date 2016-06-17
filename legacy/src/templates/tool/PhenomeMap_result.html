@@ -213,24 +213,27 @@
 					<div id="search"></div>
 				</div>
 			</div>
+			<br />
             <div class="row">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Download as...
-                        <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="download-image" id="dl-pdf" href="">PDF</a></li>
-                        <li><a class="download-image" id="dl-png" href="">PNG</a></li>
-                        <li><a class="download-image" id="dl-svg" href="">SVG</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a class="download-image" id="ol-png" href="">PNG (Old HiSim)</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a class="download-text" id="dl-csv" href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
-                            CSV
-                        </a></li>
-                    </ul>
-                </div>
+				<div class="col-md-3">
+					<div class="btn-group">
+						<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							Download as...
+							<span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu">
+							<li><a class="download-image" id="dl-pdf" href="">PDF</a></li>
+							<li><a class="download-image" id="dl-png" href="">PNG</a></li>
+							<li><a class="download-image" id="dl-svg" href="">SVG</a></li>
+							<li role="separator" class="divider"></li>
+							<li><a class="download-image" id="ol-png" href="">PNG (Old HiSim)</a></li>
+							<li role="separator" class="divider"></li>
+							<li><a class="download-text" id="dl-csv" href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
+								CSV
+							</a></li>
+						</ul>
+					</div>
+				</div>
             </div>
 		</div>
 	</div>
