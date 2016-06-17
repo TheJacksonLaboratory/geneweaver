@@ -2175,12 +2175,13 @@ def get_geneset(geneset_id, user_id=None, temp=None):
         return genesets[0] if len(genesets) == 1 else None
 
 
-def get_similar_genesets(geneset_id, user_id):
+def get_similar_genesets(geneset_id, user_id, grp_by):
     """
     Gets similar genesets if either the geneset is publicly visible or the user
     has permission to view it.
     :param geneset_id:	the geneset ID
     :param user_id:		the user ID that needs permission
+    :param grp_by:      this appends a group by parameter for tiers, species, etc
     :return:			the Geneset corresponding to the given ID if the
                         user has read permission, with jac_value, None otherwise
     """
@@ -2188,6 +2189,17 @@ def get_similar_genesets(geneset_id, user_id):
     # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
     if user_id is 0:
         user_id = -1
+
+    # updating the sql to include a partition_by clause. 0 = sorted by jaccard (no grouping; 1 = group by tier;
+    # 2 = group by species; 3 = group by attribution
+    if grp_by == 0:
+        order_by = ''
+    elif grp_by == 1:
+        order_by = ' cur_id ASC,'
+    elif grp_by == 2:
+        order_by = ' sp_id ASC,'
+    else:
+        order_by = ' gs_attribution ASC, '
 
     with PooledCursor() as cursor:
         # This SQL is a bit sketchy. The old GW code calls for a sorted list of jac and gic values
@@ -2200,7 +2212,8 @@ def get_similar_genesets(geneset_id, user_id):
                     AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150) UNION
                 (SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
                     WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
-                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150)) as tmp ORDER BY jac_value DESC;
+                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150)) as tmp
+                    ORDER BY ''' + order_by + ''' jac_value DESC;
             ''',
                 {
                     'geneset_id': geneset_id,

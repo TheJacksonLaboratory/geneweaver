@@ -198,7 +198,31 @@
                 <h3 class="panel-title">Top 150 Similar GeneSets
                     <span id="clickableFontAwesome" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
             </div>
-            <div class="panel-body">
+
+            {# Group by filter #}
+            <div class="col-xs-6 col-md-3 pull-right">
+                <div class="btn-group bootstrap-select form-control" style="padding-top: 10px;">
+                    <button type="button" class="btn btn-sm dropdown-toggle selectpicker btn-default" data-toggle="dropdown"
+                            title="Group">
+                        <span class="filter-option pull-left"><i class="fa fa-filter"></i> Group Results</span>&nbsp;<span
+                            class="caret"></span></button>
+                    <div class="dropdown-menu open">
+                        <ul class="dropdown-menu inner selectpicker" role="menu">
+                            <li rel="0" class="selected"><a tabindex="0" class="" style=""><span class="text">None</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="1"><a tabindex="0" class="" style=""><span class="text">Group By Tier</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="2"><a tabindex="0" class="" style=""><span class="text">Group By Species</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="3"><a tabindex="0" class="" style=""><span class="text">Group By Attribution</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="panel-body similargenesets">
                 <form id="addSimGenesetsToProj" name="addSimGenesetsToProj" method="post" action="#"
                       class="form-horizontal form-inline" novalidate="novalidate">
                     <!-- TODO make the table sortable, show more gene details -->
@@ -435,6 +459,12 @@
 
                 $('#distribution').on('click', function (e) {
                     $("#barChart").toggle();
+                });
+
+                $('.dropdown-menu li').click( function () {
+                    var rel = $(this).attr("rel");
+                    var gs_id = {{ geneset.geneset_id }};
+                    window.open('../' + gs_id + '/' + rel, "_self");
                 });
 
                 $(".toggler").click(function (e) {

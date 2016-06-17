@@ -1286,8 +1286,8 @@ def decimal_default(obj):
     raise TypeError
 
 
-@app.route('/viewSimilarGenesets/<int:gs_id>')
-def render_sim_genesets(gs_id):
+@app.route('/viewSimilarGenesets/<int:gs_id>/<int:grp_by>')
+def render_sim_genesets(gs_id, grp_by):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
@@ -1295,7 +1295,7 @@ def render_sim_genesets(gs_id):
     # Get GeneSet Info for the MetaData
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     # Returns a subClass of geneset that includes jac values
-    simgs = geneweaverdb.get_similar_genesets(gs_id, user_id)
+    simgs = geneweaverdb.get_similar_genesets(gs_id, user_id, grp_by)
     # Returns a list os all active sp_ids
     sp_id = geneweaverdb.get_sp_id()
     # Initiate variables
