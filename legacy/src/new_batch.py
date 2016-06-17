@@ -4,6 +4,7 @@
 
 import config
 import psycopg2
+import requests
 
 class Batch:
 
@@ -31,7 +32,18 @@ class Batch:
 		self.species_types = {}  # {sp_name: sp_id,}
 
 		# launch connection to GeneWeaver database
-		self.launch_connection()
+		# self.launch_connection()
+		# self.populate_dictionaries()
+
+		# GeneSet obj
+		self.genesets = {}  # {gs_abbrev: UploadGeneSet,}
+		self.gs_gene_id_type = ''  # gs_gene_id_type (in case label changes)
+		self.pubmed = ''  # PubMed ID
+		self.privacy = ''  # group (public or private)
+		self.score_type = ''  # gs_threshold_type
+		self.threshold = ''  # gs_threshold
+		self.species = ''  # sp_id
+		self.publication = {}  # {pub_*: val,}
 
 	#----------------- DATABASE -------------------------------------------------#
 
@@ -67,7 +79,6 @@ class Batch:
 			- Gene Types
 			- MicroArray Types
 			- Species Types
-
 		"""
 		# Gene Types
 		self.query_geneTypes()
@@ -129,6 +140,38 @@ class Batch:
 		for tup in results:
 			self.species_types[tup[1].lower()] = tup[0]
 
+	def search_pubmed(self, pmid):
+		print 'looking up PubMed ID...'
+		# URL for pubmed article summary info
+		url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
+			   'retmode=json&db=pubmed&id=%s') % str(pmid)
+		# NCBI eFetch URL that only retrieves the abstract
+		url_abs = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
+				   '?rettype=abstract&retmode=text&db=pubmed&id=%s') % str(pmid)
+
+		res = requests.get(url).content
+		temp = json.loads(res)['result']
+
+		self.publication['pub_id'] = None
+		self.publication['pub_pubmed'] = str(pmid)
+		self.publication['pub_pages'] = temp[self.publication['pub_pubmed']]['pages']
+		self.publication['pub_title'] = temp[self.publication['pub_pubmed']]['title']
+		self.publication['pub_journal'] = temp[self.publication['pub_pubmed']]['fulljournalname']
+		self.publication['pub_volume'] = temp[self.publication['pub_pubmed']]['volume']
+
+		authors = ""  # will hold a CSV list
+		for auth in temp[self.publication['pub_pubmed']]['authors']:
+			authors += auth['name'] + ', '
+		self.publication['pub_authors'] = authors[:-2]
+
+		if 'Has Abstract' in temp[self.publication['pub_pubmed']]['attributes']:
+			res2 = requests.get(url_abs).content.split('\n\n')[-3]
+			self.publication['pub_abstract'] = res2
+		else:
+			err = 'Warning: The PubMed info retrieved from NCBI was incomplete. No ' \
+				  'abstract data will be attributed to this GeneSet.'
+			self.set_errors(noncritical=err)
+
 	#---------------------ERROR HANDLING------------------------------------------#
 
 	def get_errors(self, critical=False, noncritical=False):
@@ -188,11 +231,14 @@ class Batch:
 			self.noncrit.append(noncritical)
 			noncrit_count += 1
 
-			# USER FEEDBACK [uncomment selection]
-			# if crit_count:
-			#     print "Critical error messages added [%i]\n" % crit_count
-			# if noncrit_count > 0:
-			#     print "Noncritical error messages added [%i]\n" % noncrit_count
+		# USER FEEDBACK [uncomment selection]
+		if crit_count:
+		    print "Critical error messages added [%i]\n" % crit_count
+		    for c in self.crit:
+		    	print c
+		    exit()  # NOTE: might not be the way you want to leave this
+		if noncrit_count > 0:
+		    print "Noncritical error messages added [%i]\n" % noncrit_count
 
 	#-----------------------------FILE HANDLING-----------------------------------#
 
@@ -203,11 +249,211 @@ class Batch:
 		with open(fp, 'r') as file_path:
 			lines = file_path.readlines()
 
-		
+			# first, detect how many GeneSets we need to create here
+			gs_file = ''.join(lines)
+			numGS = self.calc_numGeneSets(gs_file)
+			
+			# second, find + assign required headers values to global vars
+			last_line = None
+			for line in lines:
+				stripped = line.strip()
+				if stripped[:1] == '#' or stripped[:2] == '\n' or not stripped:
+					continue
+				if stripped[:1] == '!':  # score type indicator
+					score = line[1:].strip()
+					# self.assign_threshVals(score)
+					last_line = lines.index(line)
+				elif stripped[:1] == '@':  # species type indicator
+					sp = line[1:].strip()
+					# self.assign_species(sp)
+					last_line = lines.index(line)
+				elif stripped[:1] == '%':  # geneset gene id type
+					gid = line[1:].strip()
+					# self.assign_geneType(gid)
+					last_line = lines.index(line)
+				elif stripped[:2] == 'A ':  # group type
+					grp = line[1:].strip()
+					# self.assign_groupType(grp)
+					last_line = lines.index(line)
+				elif stripped[:2] == 'P ':  # pubmed id
+					pub = line[1:].strip()
+					# self.search_pubmed(pub)
+					last_line = lines.index(line)
+
+			# EDIT: remember once you're parsing values, that if the score type is
+			#	binary, to assign thresh to the max value
+
+			# find out which GeneSet header comes first
+			gs_info = ''.join(lines[last_line+1:]).strip()
+			val = gs_info
+			gs_dict = {}
+			for x in range(numGS):
+				loc_dict = {val.index(':'): ':', 
+							   val.index('='): '=',
+							   val.index('+'): '+'}
+				order = sorted(loc_dict.keys())
+				gs_dict[x] = {'first': [loc_dict[order[0]], order[0]],
+							  'second': [loc_dict[order[1]], order[1]],
+							  'third': [loc_dict[order[2]], order[2]]}
+				val = gs_info[order[2]+1:]
+
+			# ideally we want to take the first from the second
+			for i in range(numGS):
+				# split based on 'first' char
+				# limit from 'first' idx
+
+				# split based on 'second' char
+				# limit from 'second' idx
+
+				# split based on 'third' char
+				# limit from 'third' idx
+			print gs_dict[0]['first'][1]
+
+
+
+			# split based on first GeneSet's header
+			# for line in lines[last_line+1:]:
+			# 	print line
+
+
+			# split assuming that the GeneSet fields start with abbrev., ":"
+			# gs_info = gs_info.split(':')[1:]
+			# for gs in gs_info:
+			# 	gs = gs.strip()
+			# 	print gs
+			# 	exit()
+
+
+			# truncate the list depending on the last value reached
+
+			exit()
 
 		# EDIT: convert species name -> species id, before passing to GeneSet
 
 		print "handling file parsing + global assignments..."
+
+	def calc_numGeneSets(self, gs_file):
+		print 'calculating number of GeneSets in file...'
+		# if any of these fail, we know that the file is missing key info
+		try:
+			bang = gs_file.split('!')
+			at = gs_file.split('@')
+			perc = gs_file.split('%')
+			equiv = gs_file.split('=')
+			colon = gs_file.split(':')
+		except ValueError:
+			err = 'Error: Critical GeneSet information is missing. ' \
+				  'Please refer to the documentation to make sure that ' \
+				  'everything is labelled correctly.'
+			self.set_errors(critical=err)
+
+		# should only contain one of the following
+		if len(bang) != 2 or len(at) != 2 or len(perc) != 2:
+			err = 'Error: Critical GeneSet information is missing. ' \
+				  'Please refer to the documentation to make sure that ' \
+				  'everything is labelled correctly.'
+			self.set_errors(critical=err)
+
+		# should be of equal number
+		if len(colon) != len(equiv):
+			err = 'Error: Incorrect GeneSet labelling. Please refer to ' \
+				  'the documentation.'
+			self.set_errors(critical=err)
+
+		numGS = len(colon) - 1
+
+		print 'estimated number of GeneSets in this file: %s' % numGS
+		return numGS
+
+	def assign_threshVals(self, score):
+		print 'checking + assigning score type...'
+		score = score.replace(' ', '').lower()
+
+		if 'binary' in score:
+			self.score_type = '3' 
+		elif 'p-value' in score:
+			self.score_type = '1'
+			try:
+				values = score.split('<')
+				if len(values) == 1:  # then no value was actually given
+					raise ValueError
+				self.threshold = values[1]
+			except ValueError:
+				self.threshold = '0.05'
+				err = 'Warning: P-Value threshold not specified. ' \
+					  'Using "P-Value < 0.05".'
+				self.set_errors(noncritical=err)
+		elif 'q-value' in score:
+			self.score_type = '2'
+			try:
+				values = score.split('<')
+				if len(values) == 1:  # then no value was actually given
+					raise ValueError
+				self.threshold = values[1]
+			except ValueError:
+				self.threshold = '0.05'
+				err = 'Warning: Q-Value threshold not specified. ' \
+					  'Using "Q-Value < 0.05".'
+				self.set_errors(noncritical=err)
+		elif 'correlation' in score:
+			self.score_type = '4'
+			try:
+				values = score.split('<')
+				if len(values) != 3:  # then something is missing: assume default
+					raise ValueError
+				self.threshold = values[0] + ',' + values[2]
+			except ValueError:
+				self.threshold = '-0.75,0.75'
+				err = 'Warning: Correlation thresholds not specified properly. ' \
+					  'Using "-0.75 < Correlation < 0.75".'
+				self.set_errors(noncritical=err)
+		elif 'effect' in score:
+			self.score_type = '5'
+			try:
+				values = score.split('<')
+				if len(values) != 3:  # then something is missing: assume default
+					raise ValueError
+				self.threshold = values[0] + ',' + values[2]
+			except ValueError:
+				self.threshold = '0,1'
+				err = 'Warning: Effect size thresholds not specified properly. ' \
+					  'Using "0 < Effect < 1".'
+				self.set_errors(noncritical=err)
+
+	def assign_species(self, sp):
+		print 'checking + assigning species type...'
+		sp = sp.lower()
+
+		if sp in self.species_types.keys():
+			self.species = self.species_types[sp]
+		else:
+			err = 'Error: Unable to identify the input species type, %s. ' \
+				  'Please refer to the documentation for a list of species types, ' \
+				  'written out by their scientific name.' % sp
+			self.set_errors(critical=err)
+
+	def assign_geneType(self, gid):
+		print 'checking + assigning gene ID type...'
+		gid = gid.lower()
+
+		if gid in self.gene_types.keys():
+			self.gs_gene_id_type = self.gene_types[gid]
+		else:
+			err = 'Error: Unable to determine the gene type provided. ' \
+				  'Please consult the documentation for a list of types.'
+			self.set_errors(critical=err)
+
+	def assign_groupType(self, grp='private'):
+		print 'checking + assigning group type...'
+		grp = grp.lower()
+
+		if grp == 'public':
+			self.privacy = '0'
+		else:
+			self.privacy = '-1'
+
+	def create_geneset(self):
+		print 'creating GeneSet obj...'
 
 	def groom_raw_data(self):
 		print "will assign raw data to objects someday..."
@@ -221,18 +467,19 @@ class UploadGeneSet:
 		print "initializing GeneSet object..."
 
 		self.batch = batch
+		self.gs_gene_id_type = batch.gs_gene_id_type 
+		self.pubmed = batch.pubmed  # PubMed ID
+		self.group = batch.group  # group (public or private)
+		self.score_type = batch.score_type  # gs_threshold_type
+		self.threshold = batch.threshold  # gs_threshold
+		self.species = batch.species  # sp_id
 
 		# GeneSet fields
 		self.geneset_values = []  # gsv_value_list
 		self.abbrev_name = ''  # gs_abbreviation
 		self.name = ''  # gs_name
 		self.description = ''  # gs_description
-		self.gs_gene_id_type = ''  # gs_gene_id_type (in case label changes)
-		self.pubmed = ''  # PubMed ID
-		self.group = ''  # group (public or private)
-		self.score_type = ''  # gs_threshold_type
-		self.thresh = ''  # gs_threshold
-		self.species = ''  # sp_id
+		
 
 	#-----------------------MUTATORS--------------------------------------------#
 	def set_genesetValues(self, gsv_value_list):
@@ -255,44 +502,6 @@ class UploadGeneSet:
 	def set_description(self, desc):
 		print 'setting GeneSet description...'
 		self.description = desc
-
-	def set_gsGeneIDType(self, id_type):
-		print 'setting GeneSet gene ID type...'
-		self.gs_gene_id_type = int(id_type) 
-
-	def set_pubmedID(self, pub):
-		print 'setting associated PubMed ID...'
-		self.pubmed = pub
-
-	def set_group(self, public):
-		""" Assigns the group type of the GeneSet, depending on the boolean type of 
-			'public'. If True, assigns 'public' and if False, assigns 'private' to 
-			global var 'group'.
-
-		Parameters
-		----------
-		public: bool indicating whether group type is 'public' or 'private'
-		"""
-		print 'setting GeneSet group type...'
-		if public:
-			self.group = 'public'
-		else:
-			self.group = 'private'
-
-	def set_scoreType(self, score):
-		print 'setting GeneSet threshold score type...'
-		self.score_type = int(score)
-
-	def set_threshold(self, gs_thresh):
-		print 'setting GeneSet threshold value...'
-		self.thresh = gs_thresh
-
-	def set_species(self, sp_id):
-		print 'setting GeneSet species ID...'
-		if type(sp_id) != int:
-			self.species = int(sp_id)
-		else:
-			self.species = sp_id
 
 	def geneweaver_setup(self):
 		print "will identify the preliminary features of the GeneWeaver query, + populate globals..."
@@ -363,8 +572,8 @@ def test_fileParsing(number):
 
 if __name__ == '__main__':
 	# TESTING
-	# test_fileParsing(0)
+	test_fileParsing(2)
 
 	# WORKING
-	test_dictionaries()
+	# test_dictionaries()
 
