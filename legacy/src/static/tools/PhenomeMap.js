@@ -33,7 +33,6 @@ var doThings = function(graphData) {
     var r = 6,
         fill = d3.scale.category20();
 
-
     //Create a sized SVG surface within viz, with zooming and panning capability:
     var svg = d3.select('#viz2')
         .append('svg')
@@ -50,7 +49,9 @@ var doThings = function(graphData) {
     g.node = svg.selectAll('.node');
 
 
-    //d3 sliders for charge, charge distance, link strength, link distance, and gravity, respectively.
+    // d3 sliders for charge, charge distance, link strength, link distance, 
+    // and gravity, respectively. Currently not working due to some unknown bug
+    // in the slider.js library. 
     var charge_slider = d3.slider()
         .axis(true)
         .min(0)
@@ -72,7 +73,6 @@ var doThings = function(graphData) {
             g.force.chargeDistance(v / .1);
             g.force.start();
         });
-
 
     var ls_slider = d3.slider()
         .axis(true)
@@ -121,90 +121,89 @@ var doThings = function(graphData) {
         .call(cd_slider)
 
 
-    //Create a graph layout engine:
+    // Graph force layout
     g.force = d3.layout.force()
         .nodes(g.data.nodes)
         .links(getLinks(g.data.nodes))
-        //linkDistance proportional to difference in depths to prevent crowding
+
+        // The linkDistance is proportional to difference in depths to 
+        // prevent crowding
         .linkDistance(function (link) {
             return ((link.target.depth - link.source.depth) * ld_slider.value());
         })
-        //linkStrength also proportional to distance
+
+        // linkStrength is also proportional to distance
         .linkStrength(function (link) {
             return 1 / ((link.target.depth - link.source.depth) * ls_slider.value() / 20);
         })
-        //Deeper nodes have a stronger charge to force a more spread-out, triangular tree shape
+
+        // Deeper nodes have a stronger charge to force a more spread-out, 
+        // triangular tree shape
         .charge(function (d) {
             return (-charge_slider.value() * ((d.depth + 1) * 10));
         })
         .size([width, height])
         .on("tick", tick);
 
-
-    //Initialize positions of tree elements to reduce tangling caused by random initialization
     var nodes = flatten(g.data.nodes);
-    initialize_layout(nodes);
 
-    //Data to search on
+    // Initialize positions of tree elements to reduce tangling caused 
+    // by random initialization
+    initializeLayout(nodes);
+
+    // Names of genes, genesets, and species that can be used to highlight
+    // nodes and pathways.
     var select2_data = extract_select2_data();
 
-
-    //Populate search bar
     $("#search").select2({
         data: select2_data,
         containerCssClass: "search"
     });
-
 
     //Draw the graph:
     //Note that this method is invoked again
     //when clicking nodes:
     update();
 
-    //Create a svg legend
-    var legend = d3.select("#legend")
-            .append("svg")
-            .attr("width", "300")
-            .attr("height", function () {
+    // Species legend
+    var legend = d3.select('#legend')
+        .append('svg')
+        .attr('width', '300')
+        .attr('height', function () {
+            return ((Object.keys(color_dict).length) * 20 + 10);
+        })
+        .selectAll('circle')
+        .data(Object.keys(color_dict))
+        .enter()
+        .append('g')
+        .attr('class', 'node');
 
-                return ((Object.keys(color_dict).length) * 20 + 10);
-            })
+    legend.append('circle')
+        .attr('r', 4.5)
+        .style('fill', function (d) {
+            return color_dict[d];
+        })
+        .style('stroke', function (d) {
+            return color_dict[d];
+        })
+        .style('stroke-width', '3')
+        .style('fill-opacity', '.5')
+        .attr('cy', function (d) {
+            return 10 + 20 * Object.keys(color_dict).indexOf(d);
+        })
+        .attr('cx', 20);
 
-            .selectAll("circle")
-            .data(Object.keys(color_dict))
-            .enter()
-            .append("g")
-            .attr("class", "node");
-
-    //Color the legend circles
-    legend.append("circle")
-            .attr("r", 4.5)
-            .style("fill", function (d) {
-                return color_dict[d];
-            })
-            .style("stroke", function (d) {
-                return color_dict[d];
-            })
-            .style("stroke-width", "3")
-            .style("fill-opacity", ".5")
-            .attr("cy", function (d) {
-                return 10 + 20 * Object.keys(color_dict).indexOf(d);
-            })
-            .attr("cx", 20);
-
-    //Write the legend text
-    legend.append("text")
-            .text(function (d) {
-                return d;
-            })
-            .attr("dy", function (d) {
-                return 14 + 20 * Object.keys(color_dict).indexOf(d);
-            })
-            .attr("dx", "30")
-            .attr("text-anchor", "start")
-            .style("font", "12px sans-serif")
-            .style("fill", "black");
-//});
+    legend.append('text')
+        .text(function (d) {
+            return d;
+        })
+        .attr('dy', function (d) {
+            return 14 + 20 * Object.keys(color_dict).indexOf(d);
+        })
+        .attr('dx', '30')
+        .attr('text-anchor', 'start')
+        .style('font', '12px sans-serif')
+        .style('fill', 'black');
 };
 
 
@@ -212,9 +211,10 @@ var doThings = function(graphData) {
 //and again when from 'click' method
 //which expands and collapses a node.
 function update() {
+
     var width = 960,
-            height = 500,
-            padding = 15;
+        height = 500,
+        padding = 15;
 
     //iterate through original nested data, and get one dimensional array of nodes.
     var nodes = flatten(g.data.nodes);
@@ -224,11 +224,10 @@ function update() {
     //to build a links selection.
     var links = getLinks(nodes);
 
-
     // pass both of those sets to the graph layout engine, and restart it
     g.force.nodes(nodes)
-            .links(links)
-            .start();
+        .links(links)
+        .start();
 
     //-------------------
     // create a subselection, wiring up data, using a function to define
@@ -236,102 +235,92 @@ function update() {
     g.link = g.link.data(links);
 
     //Build new links by adding new svg lines:
-    g.link
-            .enter()
-            .insert("line", ".node")
-            .attr("class", "link");
+    g.link.enter()
+        .insert('line', '.node')
+        .attr('class', 'link');
 
     // create a subselection, wiring up data, using a function to define
     //how it's suppossed to know what is appended/updated/exited
-    g.node = g.node.data(nodes, function (d) {
-        return d.id;
-    });
+    g.node = g.node.data(nodes, function (d) { return d.id; });
+
     //Get rid of old nodes:
     g.node.exit().remove();
     g.link.exit().remove();
+
     //-------------------
     //create new nodes by making grouped elements that contain circles and text:
     var nodeEnter = g.node.enter()
-            .append("g")
-            .attr("class", "node")
-            .on("click", click)
-            .on("mousedown", function (d) {
-                d3.event.stopPropagation();
-            })
-            .call(g.force.drag);
+        .append('g')
+        .attr('class', 'node')
+        .on('click', click)
+        .on('mousedown', function (d) {
+            d3.event.stopPropagation();
+        })
+        .call(g.force.drag);
 
     //circle within the single node group:
-    nodeEnter.append("circle")
-            .attr("r", 4.5);
+    nodeEnter.append('circle')
+        .attr('r', 4.5);
 
     //Set link color based on search results
-    g.link.style("stroke", function (d) {
-        if (d.source.found && d.target.found) {
-            return "red";
-        }
-        else {
-            return "#ccc";
-        }
+    g.link.style('stroke', function (d) {
+        if (d.source.found && d.target.found)
+            return 'red';
+        else
+            return '#ccc';
     });
 
     //text within the single node group:
-    nodeEnter.append("text")
-            .style('font-family', 'Helvetica, Arial, sans-serif')
-            .style('font-size', '12px')
-            .attr("dy", "-.2em")
-            .attr("dx", "1em")
-            .attr("text-anchor", "start")
-            .text(function (d) {
-                if (d.children.length > 0 || d._children) {
-                    return;
-                }
-                else {
-                    return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + " sets...";
-                }
-            });
-    nodeEnter.append("text")
-            .style('font-family', 'Helvetica, Arial, sans-serif')
-            .style('font-size', '12px')
-            .attr("dy", "1em")
-            .attr("dx", function (d) {
-                return (d.children.length > 0) ? "-1em" : "1em";
-            })
-            .attr("text-anchor", function (d) {
-                return (d.children.length > 0) ? "end" : "start";
-            })
-            .text(function (d) {
-                if (d.children.length > 0 || d._children) {
-                    return;
-                }
-                else {
-                    return d.Abbreviations[0];
-                }
-            });
+    nodeEnter.append('text')
+        .style('font-family', 'Helvetica, Arial, sans-serif')
+        .style('font-size', '12px')
+        .attr('dy', '-.2em')
+        .attr('dx', '1em')
+        .attr('text-anchor', 'start')
+        .text(function (d) {
+            if (d.children.length > 0 || d._children)
+                return;
+            else
+                return d.Genesets.length <= 3 ? d.Genesets : d.Genesets.length + ' sets...';
+        });
+
+    nodeEnter.append('text')
+        .style('font-family', 'Helvetica, Arial, sans-serif')
+        .style('font-size', '12px')
+        .attr('dy', '1em')
+        .attr('dx', function (d) {
+            return (d.children.length > 0) ? '-1em' : '1em';
+        })
+        .attr('text-anchor', function (d) {
+            return (d.children.length > 0) ? 'end' : 'start';
+        })
+        .text(function (d) {
+            if (d.children.length > 0 || d._children)
+                return;
+            else
+                return d.Abbreviations[0];
+        });
+
     //mouseover information for each node
-    nodeEnter.select("circle")
-            .append("svg:title")
-            .text(function (d) {
-                return d.tooltip;
-            });
+    nodeEnter.select('circle')
+        .append('svg:title')
+        .text(function (d) {
+            return d.tooltip;
+        });
 
     //All nodes, do the following:
-    g.node.select("circle")
-            .style("fill", function (d) {
-                return colors_google(d);
-            })
-            .style("stroke", function (d) {
-                return colors_google(d);
-            })
-            .style("fill-opacity", opacity);
-    //-------------------
+    g.node.select('circle')
+        .style('fill', function (d) { return colors_google(d); })
+        .style('stroke', function (d) { return colors_google(d); })
+        .style('fill-opacity', opacity);
 
     g.node.selectAll("text").attr("fill", textColor);
-
     g.force.start();
-    var circles = d3.selectAll("circle");
-    circles.attr("r", function (d) {
-        return (d.weight >= 3 ? 4.5 * Math.sqrt(d.weight) : 4.5);
-    });
+
+    d3.selectAll("circle")
+        .attr("r", function (d) {
+            return (d.weight >= 3 ? 4.5 * Math.sqrt(d.weight) : 4.5);
+        });
 }
 
 //used for assigning colors to nodes
@@ -458,7 +447,7 @@ function getLinks(nodes) {
 
 //d3 randomly initializes force layout, and that causes some problem for our tree, so this deterministically
 //initalizs node position
-function initialize_layout(nodes) {
+function initializeLayout(nodes) {
     var nextdepths = [0];
     var previous = [-1];
     for (i = 0; i < nodes.length; i++) {
@@ -488,12 +477,12 @@ function click(d) {
         d._children = d.children;
         d.children = [];
         nodes = flatten(g.data.nodes);
-        initialize_layout(nodes);
+        initializeLayout(nodes);
     } else if (d._children) {
         d.children = d._children;
         d._children = null;
         nodes = flatten(g.data.nodes);
-        initialize_layout(nodes);
+        initializeLayout(nodes);
     }
     else {
         var paths = [];
