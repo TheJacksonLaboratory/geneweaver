@@ -1524,14 +1524,6 @@ def deemphasize(rm_gene):
     user_id = flask.session['user_id']
     return str(geneweaverdb.delete_usr2gene_by_user_and_gene(user_id, rm_gene))
 
-
-@app.route('/search.html')
-def new_search():
-    paginationValues = {'numResults': 0, 'numPages': 1, 'currentPage':
-        1, 'resultsPerPage': 10, 'search_term': '', 'end_page_number': 1}
-    return flask.render_template('search.html', paginationValues=None)
-
-
 @app.route('/search/')
 def render_searchFromHome():
     """
@@ -1574,16 +1566,16 @@ def render_searchFromHome():
         search_fields.append('ontologies')
         field_list['searchOntologies'] = True
 
-    # Add the default case, at least be able to search these values for all searches
+    # Default search values
     search_fields.append('gs_id,gsid_prefixed,species,taxid')
     search_fields = ','.join(search_fields)
-
     default_filters = {'statusList': {'deprecated': 'no', 'provisional': 'no'}}
-    #default_filters = {}
 
     # Perform a search
     search_values = search.keyword_paginated_search(terms, pagination_page,
-                                                    search_fields, default_filters, sortby)
+                                                    search_fields,
+                                                    default_filters, sortby)
+
     # If there is an error render a blank search page
     if search_values['STATUS'] == 'ERROR':
         return flask.render_template('search.html', paginationValues=None)
@@ -1592,15 +1584,9 @@ def render_searchFromHome():
         return flask.render_template('search.html', paginationValues=None,
                 noResults=True)
 
-    #print search_values
-    ## sp_id -> sp_name map so species tags can be dynamically generated
+    ## Used to dynamically generate species tags
     species = geneweaverdb.get_all_species()
-    splist = []
-
-    for sp_id, sp_name in species.items():
-        splist.append([sp_id, sp_name])
-
-    species = splist
+    species = species.items()
 
     return flask.render_template(
         'search.html',
@@ -1615,7 +1601,6 @@ def render_searchFromHome():
 
 
 @app.route('/searchFilter.json', methods=['POST'])
-# This route will take as an argument, search parameters for a filtered search
 def render_search_json():
     """
     Updates search results and renders the result based on the filters or pagination values
