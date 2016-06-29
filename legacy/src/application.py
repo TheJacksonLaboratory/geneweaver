@@ -1534,6 +1534,14 @@ def new_search():
 
 @app.route('/search/')
 def render_searchFromHome():
+    """
+    Executes searches from the home page. Constructs a sphinx query from the
+    given user input and returns/renders the search results.
+
+    returns
+        a rendered flask template of the search results
+    """
+
     form = flask.request.form
     # Terms from the search bar, as a list since there can be <= 3 terms
     terms = request.args.getlist('searchbar')
@@ -1565,12 +1573,17 @@ def render_searchFromHome():
     if request.args.get('searchOntologies'):
         search_fields.append('ontologies')
         field_list['searchOntologies'] = True
+
     # Add the default case, at least be able to search these values for all searches
     search_fields.append('gs_id,gsid_prefixed,species,taxid')
     search_fields = ','.join(search_fields)
+
+    default_filters = {'statusList': {'deprecated': 'no', 'provisional': 'no'}}
+    #default_filters = {}
+
     # Perform a search
     search_values = search.keyword_paginated_search(terms, pagination_page,
-                                                    search_fields, {}, sortby)
+                                                    search_fields, default_filters, sortby)
     # If there is an error render a blank search page
     if search_values['STATUS'] == 'ERROR':
         return flask.render_template('search.html', paginationValues=None)
@@ -1579,6 +1592,7 @@ def render_searchFromHome():
         return flask.render_template('search.html', paginationValues=None,
                 noResults=True)
 
+    #print search_values
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = geneweaverdb.get_all_species()
     splist = []
@@ -1588,28 +1602,41 @@ def render_searchFromHome():
 
     species = splist
 
-    # print 'debug genesets: ' + str(search_values['genesets'][0])
-    # render the template if there is no error, passing in data used in display
-    return flask.render_template('search.html', searchresults=search_values['searchresults'],
-                                 genesets=search_values['genesets'], paginationValues=search_values['paginationValues'],
-                                 field_list=field_list, searchFilters=search_values['searchFilters'],
-                                 filterLabels=search_values['filterLabels'], species=species)
+    return flask.render_template(
+        'search.html',
+        searchresults=search_values['searchresults'],
+        genesets=search_values['genesets'],
+        paginationValues=search_values['paginationValues'],
+        field_list=field_list,
+        searchFilters=search_values['searchFilters'],
+        filterLabels=search_values['filterLabels'],
+        species=species,
+        userFilters=default_filters)
 
 
 @app.route('/searchFilter.json', methods=['POST'])
 # This route will take as an argument, search parameters for a filtered search
 def render_search_json():
+    """
+    Updates search results and renders the result based on the filters or pagination values
+    a user selects. All of the filter/search data is contained in the POST request.
+
+    returns
+        a rendered flask template of the search results
+    """
+
     # Get the user values from the request
     userValues = search.getUserFiltersFromApplicationRequest(request.form)
     # quick fix for now, this needs properly handle multiple terms
     # print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     # Get a sphinx search
-    #print userValues['userFilters']
+    print userValues['userFilters']
     search_values = search.keyword_paginated_search(userValues['search_term'],
                                                     userValues['pagination_page'], userValues['search_fields'],
                                                     userValues['userFilters'], userValues['sort_by'])
 
+    print userValues['userFilters']
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = geneweaverdb.get_all_species()
     splist = []
