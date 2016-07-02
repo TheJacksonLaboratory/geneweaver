@@ -13,8 +13,8 @@ var color_dict = {};
 
 color_dict["Multiple Species"] = "#636363";
 
-//color palette for the nodes
-var colors_g = [
+// Color palette for the nodes
+var COLORS = [
     "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", 
     "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", 
     "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", 
@@ -28,10 +28,8 @@ var doThings = function(graphData) {
     g.data = graphData;
 
     var width = '900',
-        height = '700';
-
-    var r = 6,
-        fill = d3.scale.category20();
+        height = '700',
+        r = 6;
 
     //Create a sized SVG surface within viz, with zooming and panning capability:
     var svg = d3.select('#viz2')
@@ -47,7 +45,6 @@ var doThings = function(graphData) {
 
     g.link = svg.selectAll('path.link'),
     g.node = svg.selectAll('.node');
-
 
     // d3 sliders for charge, charge distance, link strength, link distance, 
     // and gravity, respectively. Currently not working due to some unknown bug
@@ -119,7 +116,6 @@ var doThings = function(graphData) {
 
     d3.select("#cd_slider")
         .call(cd_slider)
-
 
     // Graph force layout
     g.force = d3.layout.force()
@@ -310,8 +306,8 @@ function update() {
 
     //All nodes, do the following:
     g.node.select('circle')
-        .style('fill', function (d) { return colors_google(d); })
-        .style('stroke', function (d) { return colors_google(d); })
+        .style('fill', function (d) { return colorMap(d); })
+        .style('stroke', function (d) { return colorMap(d); })
         .style('fill-opacity', opacity);
 
     g.node.selectAll("text").attr("fill", textColor);
@@ -323,16 +319,26 @@ function update() {
         });
 }
 
-//used for assigning colors to nodes
-function colors_google(d) {
-    //console.log("Species: " + d.species + "Species Length:" + d.species.length);
+/**
+ * Maps species to the appropriate color in our color palette array.
+ *
+ * arguments
+ *      d: some object
+ *
+ * returns
+ *      a string of the hex color code
+ */
+function colorMap(d) {
 
     if (d.species.length > 1) {
-        return "#636363";
-    }
 
-    else if (!(d.species in color_dict)) {
-        color_dict[d.species] = colors_g[(Object.keys(color_dict).length % colors_g.length)];
+        return "#636363";
+
+    } else if (!(d.species in color_dict)) {
+
+        var cindex = Object.keys(color_dict).length % COLORS.length;
+
+        color_dict[d.species] = COLORS[cindex];
     }
 
     return color_dict[d.species];
@@ -447,22 +453,36 @@ function getLinks(nodes) {
 
 //d3 randomly initializes force layout, and that causes some problem for our tree, so this deterministically
 //initalizs node position
+/**
+ * Manually positions the nodes into columns to create a hierarchical
+ * structure. Required since the force graph layout will attempt to make its
+ * own arrangement. Each column is ordered by the number of set intersections,
+ * higher order intersections on the left and decreasing to the right.
+ *
+ */
 function initializeLayout(nodes) {
+
     var nextdepths = [0];
     var previous = [-1];
-    for (i = 0; i < nodes.length; i++) {
+
+    for (var i = 0; i < nodes.length; i++) {
+
         while (nodes[i].depth > nextdepths.length - 1) {
             nextdepths.push(0);
             previous.push(-1);
         }
+
         if (previous[nodes[i].depth] >= 0) {
+
             prevNode = getNodeByID(nodes, previous[nodes[i].depth]);
             prevNode.below = nodes[i].id;
             nodes[i].above = prevNode.id;
         }
+
         previous[nodes[i].depth] = nodes[i].id;
         nodes[i].x = nodes[i].depth * 100 + 100;
         nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+
         nextdepths[nodes[i].depth]++;
     }
 }
@@ -590,18 +610,19 @@ function tick() {
     });
 
     //redraw position of every link within the link set:
-    g.link.attr("x1", function (d) {
-                return d.source.x;
-            })
-            .attr("y1", function (d) {
-                return d.source.y;
-            })
-            .attr("x2", function (d) {
-                return d.target.x;
-            })
-            .attr("y2", function (d) {
-                return d.target.y;
-            });
+    g.link
+        .attr("x1", function (d) {
+            return d.source.x;
+        })
+        .attr("y1", function (d) {
+            return d.source.y;
+        })
+        .attr("x2", function (d) {
+            return d.target.x;
+        })
+        .attr("y2", function (d) {
+            return d.target.y;
+        });
 }
 
 //retrieves statistics on the graph generated
@@ -633,8 +654,6 @@ function loadStats(graphStats) {
         $('#stats').append(stats_table);
     });
 }
-// load statistics from file
-//$(window).load(loadStats);
 
 // Code for viewing the old hisim graph. Works, but needs size and
 // orientation adjustments, or should be plugged into cytoscape.
