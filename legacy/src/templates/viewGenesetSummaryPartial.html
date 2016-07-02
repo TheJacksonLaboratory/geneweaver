@@ -188,16 +188,15 @@
     </td>
 
     {# 
-		Used to select genesets from the search results page. And should 
-		only be shown on the search page.
+		Used to select genesets from the search results page. Should only be
+		shown on the search page. render_search_json added to prevent
+		checkboxes disappearing as a user is flipping through paginated results.
 	#}
-
-    {% if request.endpoint == "render_searchFromHome" %}
-    <td>
-        <input type="checkbox" class="search-check" id="gs-check-{{ gs.geneset_id }}">
-        <label class="checkbox" for="gs-check-{{ gs.geneset_id }}"></label>
-    </td>
-
+    {% if request.endpoint == "render_searchFromHome" or  request.endpoint == "render_search_json" %}
+        <td>
+            <input type="checkbox" class="search-check" id="gs-check-{{ gs.geneset_id }}">
+            <label class="checkbox" for="gs-check-{{ gs.geneset_id }}"></label>
+        </td>
 	{% endif %}
 
 </tr>

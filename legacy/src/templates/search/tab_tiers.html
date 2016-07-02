@@ -109,7 +109,7 @@
 				{% if count >= 1 %}
 				<label class="filter-checkbox filter-root">
 					<input type="checkbox"
-						{% if userFilters is not defined or 
+						{% if userFilters.tierList is not defined or
 						userFilters.tierList[tier] == "yes" %}
 							checked="checked"
 						{% endif %}
@@ -123,7 +123,7 @@
 					<li class="tree">
 						<label class="filter-checkbox" for="{{spid}}Checkbox">
 							<input type="checkbox"
-								{% if userFilters is not defined or 
+								{% if userFilters.speciesList is not defined or
 								userFilters.speciesList[spid] == "yes" %}
 									checked="checked"
 								{% else %}
@@ -142,7 +142,7 @@
 							<li class="tree">
 								<label class="filter-checkbox" for="{{atid}}Checkbox">
 									<input type="checkbox"
-										{% if userFilters is not defined or 
+										{% if userFilters.attributionList is not defined or
 										userFilters.attributionsList[atid] == "yes" %}
 											checked="checked"
 										{% else %}

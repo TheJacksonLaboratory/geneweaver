@@ -70,12 +70,12 @@
     max: {{searchFilters.geneCounts.geneCountMax}},
     //Set the initial values
     values: [
-        {% if userFilters is defined %}
+        {% if userFilters is defined and userFilters.geneCounts is defined %}
             {{userFilters.geneCounts.geneCountMin}}
         {% else%}
             {{searchFilters.geneCounts.geneCountMin}}
         {% endif %} ,
-        {% if userFilters is defined %}
+        {% if userFilters is defined and userFilters.geneCounts is defined %}
             {{userFilters.geneCounts.geneCountMax}}
         {% else%}
             {{searchFilters.geneCounts.geneCountMax}}
@@ -226,7 +226,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                     <br/>
 
                                     <input type="checkbox"
-                                            {% if userFilters is not defined or userFilters.tierList.noTier == "yes" %}
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.noTier == "yes" %}
                                            checked="checked"
                                             {% else %}
 
@@ -235,7 +235,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                                                                      for="noTierCheckbox"> No Tier
                                     ({{ searchFilters.tier_counts.0 }}) </label>
                                     <input type="checkbox"
-                                            {% if userFilters is not defined or userFilters.tierList.tier1 == "yes" %}
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier1 == "yes" %}
                                            checked="checked"
                                             {% else %}
 
@@ -244,7 +244,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                                                                    for="tier1Checkbox"> I: Resources
                                     ({{ searchFilters.tier_counts.1 }}) </label>
                                     <input type="checkbox"
-                                            {% if userFilters is not defined or userFilters.tierList.tier2 == "yes" %}
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier2 == "yes" %}
                                            checked="checked"
                                             {% else %}
 
@@ -253,7 +253,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                                                                    for="tier2Checkbox"> II: Pro-Curated
                                     ({{ searchFilters.tier_counts.2 }}) </label>
                                     <input type="checkbox"
-                                            {% if userFilters is not defined or userFilters.tierList.tier3 == "yes" %}
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier3 == "yes" %}
                                            checked="checked"
                                             {% else %}
 
@@ -262,7 +262,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                                                                    for="tier3Checkbox"> III: Curated
                                     ({{ searchFilters.tier_counts.3 }}) </label>
                                     <input type="checkbox"
-                                            {% if userFilters is not defined or userFilters.tierList.tier4 == "yes" %}
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier4 == "yes" %}
                                            checked="checked"
                                             {% else %}
 
@@ -271,7 +271,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                                                                    for="tier4Checkbox"> IV: Provisional
                                     ({{ searchFilters.tier_counts.4 }}) </label>
                                     <input type="checkbox"
-                                            {% if userFilters is not defined or userFilters.tierList.tier5 == "yes" %}
+                                            {% if userFilters.tierList is not defined or userFilters.tierList.tier5 == "yes" %}
                                            checked="checked"
                                             {% else %}
 
@@ -289,7 +289,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                     {% for spID, spName in searchFilters.sp_counts.iteritems()| sort %}
                                         {% if searchFilters.sp_counts[spID] >0 %}
                                             <input type="checkbox"
-                                                    {% if userFilters is not defined or userFilters.speciesList[spID] == "yes" %}
+                                                    {% if userFilters.speciesList is not defined or userFilters.speciesList[spID] == "yes" %}
                                                    checked="checked"
                                                     {% else %}
 
@@ -315,7 +315,7 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                                         {% if searchFilters.att_counts[atID] > 0 %}
                                             <input
                                                     type="checkbox"
-                                                    {% if userFilters is not defined or userFilters.attributionsList[atID] == "yes" %}
+                                                    {% if userFilters.attributionList is not defined or userFilters.attributionsList[atID] == "yes" %}
                                                     checked="checked"
                                                     {% endif %}
                                                     name="{{ atID }}" id="{{ atID }}Checkbox">
