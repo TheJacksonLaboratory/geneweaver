@@ -275,40 +275,33 @@ def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
+    resultpath = config.get('application', 'results')
 
     ## If HiSim fails, it's most likely because no bicliques were found but
     ## doing this is really, REALLY shady. The exception handling for this
     ## tool seriously needs to be rewritten.
     if async_result.state == states.FAILURE:
-        return flask.render_template('tool/PhenomeMap_result.html',
-            state='FAILURE', tool=tool,
-            async_result=json.loads(str(async_result.result)))
-
-    resultpath = config.get('application', 'results')
-    if async_result.state in states.PROPAGATE_STATES:
-        # TODO render a real descriptive error page not just an exception
-        raise Exception('error while processing: ' + tool.name)
-    elif async_result.state in states.READY_STATES:
-        # print "HEYOOOOOH LOOK HERE FOR THE THING " + async_result
-        # f = open(os.path.join('/var/www/html/dev-geneweaver/results/' + str(async_result) +'.json'), 'r')
-        # csv_file = open(os.path.join('/var/www/html/dev-geneweaver/results/' + str(async_result) +'.csv'), 'r')
-        f = open(os.path.join(resultpath, str(async_result) + '.json'), 'r')
-        csv_file = open(os.path.join(resultpath, str(async_result) + '.csv'), 'r')
-        data = ''
-        for line in f:
-            data += str(line)
-        csv_data = ''
-        for line in csv_file:
-            csv_data += str(line)
-        json.dumps(data)
-        csv_file.close()
-        f.close()
-        # results are ready. render the page for the user
-        #print data
         return flask.render_template(
             'tool/PhenomeMap_result.html',
-            data=data,
-            #csv_data=csv_data,
+            state='FAILURE', 
+            tool=tool,
+            async_result=json.loads(async_result.result))
+
+    elif async_result.state in states.PROPAGATE_STATES:
+        # TODO render a real descriptive error page not just an exception
+        raise Exception('error while processing: ' + tool.name)
+
+    elif async_result.state in states.READY_STATES:
+        json_file = os.path.join(resultpath, task_id + '.json')
+        json_result = ''
+
+        with open(json_file, 'r') as fl:
+            for ln in fl:
+                json_result += ln
+
+        return flask.render_template(
+            'tool/PhenomeMap_result.html',
+            data=json_result,
             async_result=json.loads(async_result.result),
             tool=tool)
     else:
