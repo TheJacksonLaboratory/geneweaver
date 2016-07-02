@@ -11,6 +11,47 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'PhenomeMap'
 phenomemap_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+"""
+HiSim Result and Parameter Docs
+
+The HiSim tool requires (and returns) the following tool parameters:
+
+    EmphasisGenes
+    Homology
+    gs_dict
+    output_prefix:
+    PhenomeMap_DisableBootstrap
+    PhenomeMap_GenesInNode
+    PhenomeMap_HideUnEmphasized
+    PhenomeMap_Homology
+    PhenomeMap_MaxInNode
+    PhenomeMap_MaxLevel
+    PhenomeMap_MinGenes
+    PhenomeMap_MinOverlap
+    PhenomeMap_NodeCutoff
+    PhenomeMap_p-Value
+    PhenomeMap_Permutations
+    PhenomeMap_PermutationTimeLimit
+    PhenomeMap_UseFDR
+
+The result returned from the tool and celery is a JSON encoded dictionary with
+the following fields:
+
+    result_image:   filename of the final image, should be <run-hash>.graphml
+    error:          a string indicating any errors during the tool run
+    result_map:     not sure, but looks like a string of SVG code
+    parameters:     a dict containing the arguments used to run the tool. Has
+                    fields for each of the parameters mentioned above.
+    gs_ids:         an array of strings for each gs_id analyzed
+
+The HiSim tool also writes several files to the results folder that aren't
+included in the return result (but probably should be). 
+One of these is a csv file (that isn't actually in the csv format...) 
+containing nodes, edges, and intersections. However it doesn't seem like the 
+data from this file is actually used at any time (although it is read from for
+some reason).
+Another is a JSON file containing the nodes and edges needed for the d3js viz.
+"""
 
 @phenomemap_blueprint.route('/run-phenome-map.html', methods=['POST'])
 def run_tool():
@@ -228,6 +269,9 @@ def download_bmp(task_id):
 
 @phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
+    """
+    """
+    
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -236,9 +280,9 @@ def view_result(task_id):
     ## doing this is really, REALLY shady. The exception handling for this
     ## tool seriously needs to be rewritten.
     if async_result.state == states.FAILURE:
-            return flask.render_template('tool/PhenomeMap_result.html',
-                state='FAILURE', tool=tool,
-                async_result=json.loads(str(async_result.result)))
+        return flask.render_template('tool/PhenomeMap_result.html',
+            state='FAILURE', tool=tool,
+            async_result=json.loads(str(async_result.result)))
 
     resultpath = config.get('application', 'results')
     if async_result.state in states.PROPAGATE_STATES:
@@ -260,11 +304,11 @@ def view_result(task_id):
         csv_file.close()
         f.close()
         # results are ready. render the page for the user
-        print data
+        #print data
         return flask.render_template(
             'tool/PhenomeMap_result.html',
             data=data,
-            csv_data=csv_data,
+            #csv_data=csv_data,
             async_result=json.loads(async_result.result),
             tool=tool)
     else:
@@ -274,7 +318,6 @@ def view_result(task_id):
 
 @phenomemap_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
-    print 'dbg tool-class-status'
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 

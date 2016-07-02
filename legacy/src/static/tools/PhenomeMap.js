@@ -451,8 +451,6 @@ function getLinks(nodes) {
     return links;
 }
 
-//d3 randomly initializes force layout, and that causes some problem for our tree, so this deterministically
-//initalizs node position
 /**
  * Manually positions the nodes into columns to create a hierarchical
  * structure. Required since the force graph layout will attempt to make its
