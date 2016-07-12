@@ -5,6 +5,7 @@
 import config
 import psycopg2
 import requests
+import json
 import time
 import collections
 import random
@@ -15,6 +16,7 @@ class Batch:
 		# testing purposes
 		self.test = True
 		self.user_id = usr_id
+		self.cur_id = '1'  # uploaded as a public resource
 
 		# EDIT: figure out optimum input type
 		# EDIT: DESIGN DECISION - for now, pretend that input file is req
@@ -60,6 +62,9 @@ class Batch:
 		# create a new session, depending on handling approach
 		if self.microarray:
 			self.handle_platform()
+			self.insert_publication()
+			for gs_name, gs in self.genesets:
+				gs.upload()
 		else:
 			self.handle_symbols()
 
@@ -68,15 +73,13 @@ class Batch:
 	def handle_platform(self):
 		""" Handles microarray condition.
 		"""
+		print 'handling platform assignment...'
 		# for each geneset
 		for gs_abbrev, geneset in self.genesets.iteritems():
-			# master list of prb_ref_ids
-			original_headers = geneset.geneset_values.keys()
-
 			# look up prb_ids for each prb_ref_id
 			query_probes = self.query_platformProbes(geneset.gs_gene_id_type,
-			                                         original_headers)
-			print '\nquery_platformProbes:\n', query_probes
+			                                         geneset.geneset_values.keys())
+			# print '\nquery_platformProbes:\n', query_probes
 
 			# isolate probes, refs
 			probes = []  # prb_ids
@@ -86,7 +89,7 @@ class Batch:
 
 			# look up ode_gene_ids for each prb_id
 			query_odes = self.query_probe2gene(probes)
-			print '\nquery_probe2gene:\n', query_odes
+			# print '\nquery_probe2gene:\n', query_odes
 
 			prb_results = {}  # (prb_ref_id: prb_id,}
 			ode_results = {}  # (prb_ref_id: ode_gene_id,}
@@ -114,8 +117,9 @@ class Batch:
 						probe_headers.remove(header)
 						break
 
-			print prb_results
-			print probe_headers
+			# print prb_results
+			# print probe_headers
+
 			# next, go through prb_results for ode check
 			adjusted_headers = set(query_probes.keys()) - set(probe_headers)
 			ode_headers = list(adjusted_headers)
@@ -132,182 +136,21 @@ class Batch:
 								ode_headers.remove(xref)
 								break
 
-			print ode_results
-			print ode_headers
+			# print ode_results
+			# print ode_headers
 
-			# now, add values to geneset obj by updating
+			# TESTING
+			if len(ode_results) != len(prb_results):
+				print 'somethings gone wrong at the end of handle_platforms...'
+				exit()
 
+			# next, update geneset
+			adjusted_headers = list(set(adjusted_headers) - set(ode_headers))
+			geneset.update_geneset_values(adjusted_headers)
+			geneset.update_microInfo(prb_map=prb_results, ode_map=ode_results)
 
-	# def handle_platform(self):
-	# 	""" Handles microarray condition.
-	# 	"""
-	# 	# holds a list of original headers
-	# 	original_values = []
-	#
-	# 	# for each geneset
-	# 	for gs_abbrev, geneset in self.genesets.iteritems():
-	# 		# look up platform probes for input gene refs
-	# 		result = self.query_platformProbes(geneset.gs_gene_id_type,
-	# 		                                   geneset.geneset_values.keys())
-	# 		print '\nquery_platformProbes:', result
-	#
-	# 		# check the results of the query
-	# 		# EDIT: redundant to check for duplicate prb_ref_ids?
-	# 		prb_dups, prb_ids, prb_ref_ids = self.check_forDuplicates(result, crit_idx=0,
-	# 		                                                          alt_idx=1, full_output=True)
-	#
-	# 		# if there are duplicates...
-	# 		if prb_dups:  # {prb_ref_id: [prb_id,],}  # EDIT: line redundant
-	# 			# goal: compare the prb_ids across each prb_ref_id, + choose the most 'distinct'
-	# 			print '\ncheck_forDuplicates:', prb_dups
-	# 			# find a unique prb_id for each prb_ref_id in prb_dups
-	# 			uni = self.find_distinct_list(len(dups), prb_dups.values())
-	# 			# update gene_ids + gene_refs lists respectively (or just add to an output dict)
-	# 			# pass updated value list along to check_query (see below)
-	# 			print '...EXITING'
-	# 			exit()
-	#
-	# 		found, missing = self.check_query(original=geneset.geneset_values.keys(),
-	# 		                                  query_refs=prb_ref_ids, query_ids=prb_ids)
-	#
-	# 		# if we found all of the original items in the query...
-	# 		if not missing:
-	# 			# continue with lookup, looking up probe <-> gene_id associations
-	# 			res = self.query_probe2gene(found.values())
-	#
-	# 			# check the results of the query
-	# 			dup_prb_ids = self.check_forDuplicates(res, crit_idx=0, alt_idx=1)
-	# 			dup_gene_ids, ode_ids, prb_ids2 = self.check_forDuplicates(res, crit_idx=1, alt_idx=0,
-	# 			                                                           full_output=True)
-	#
-	# 			# look up all ode_gene_ids (ode_ids), + make sure that they match settings
-	# 			res1 = self.query_ode_gene_id(ode_ids)
-	#
-	# 			# EDIT: another draft for find_distinct_list
-	# 			output = []
-	# 			for l in lol:
-	# 				for x in range(len(l)):
-	# 					if l[x] not in output:
-	# 						output.append(l[x])
-	# 						break  # EDIT: so long as it breaks you out of the second for loop
-	#
-	# 			# add item to a list
-	# 			# call set() on list
-	# 			# if the length of the set equals that of the list
-	# 			# great, continue
-	# 			# otherwise, iterate to another item in that list
-	#
-	# 			# get the longer of the two duplication lists
-	# 			# if it exists
-	# 			#   uni_odes = self.find_distinct_list(len(dupList), dupList.values())
-	# 			#   try + update some sort of value list using these results (see above)
-	#
-	# 			exit()
-	# 		# found, missing, dup = self.check_query(res, found.values())
-	#
-	# 		# otherwise, if we are missing something
-	# 		else:
-	# 			pass
-	#
-	# 		# otherwise, report an error
-	#
-	# 		# get probe2gene mapping
-	# 		# detect any duplicate entries and report to user
-
-	def check_query(self, original, query_refs, query_ids):
-		# compares the result of a query, with the original info\
-		# if there are duplicates, assumes the first result
-		# queried - list of tuples (output from database)
-		# original - list
-
-		# EDIT: add statements to check input parameters
-
-		found = {}
-		missing = []
-		gene_refs = query_refs
-		gene_ids = query_ids
-
-		# assess how the well the query reflects the original
-		for ref in original:
-			id_val = gene_ids[gene_refs.index(ref)]
-			# if it is missing from the query results
-			if ref not in gene_refs:
-				missing.append(ref)
-			else:
-				found[ref] = id_val
-
-		return found, missing
-
-	# NOTE: below not useful
-	# def simplify_tupList(self, tup_list):
-	# 	# removes any duplicates from a list of tuples
-	# 	count_list = collections.Counter(tup_list)
-	# 	print count_list
-	# 	for query in tup_list:
-	# 		if count_list[query] > 1:
-	# 			# remove the spare from queried
-	# 			tup_list = tup_list.remove(query)
-	# 			# ammend the count_list
-	# 			count_list[query] -= 1
-	#
-	# 	return tup_list
-
-	def check_forDuplicates(self, tup_list, crit_idx, alt_idx, full_output=False):
-		# 'queried' - list of tuples
-		# 'idx' - int indicating which tuple position we want to compare
-		# only worth seeing if the ids are repeated...
-		dups = {}
-		focus = []
-		crit_list = map(lambda p: p[crit_idx], tup_list)
-		alt_list = map(lambda n: n[alt_idx], tup_list)
-
-		if len(crit_list) != len(set(crit_list)):
-			# we know that there are duplicates, so isolate them
-			counter = collections.Counter(crit_list)
-			for item in counter:
-				if counter[item] > 1:
-					focus.append(item)
-
-			for f in focus:
-				# print 'DUPLICATES DETECTED\n'
-				locs = self.list_duplicates_of(crit_list, f)
-				dups[f] = []
-				for loc in locs:
-					dups[f].append(alt_list[loc])
-
-		if full_output:
-			return dups, crit_list, alt_list
-		else:
-			return dups
-
-	def list_duplicates_of(self, seq, item):
-		start_at = -1
-		locs = []
-		while True:
-			try:
-				loc = seq.index(item, start_at + 1)
-			except ValueError:
-				break
-			else:
-				locs.append(loc)
-				start_at = loc
-		return locs
-
-	def find_distinct_list(self, goal, lol):
-		print 'searching for distinct combination...'
-		iter_band = None
-		dis = None  # distinct list of prb_ids
-		while dis is None:
-			temp = []
-			for l in lol:
-				randVal = random.randint(0, len(val))
-				temp.append(val[randVal])
-			if len(set(temp)) == goal:
-				dis = temp
-			# put in else if there is no hope...
-		print dis
-		print 'IT WORKED'
-		return dis
+	def handle_symbols(self):
+		print 'handling symbol assignment...'
 
 	# ----------------- DATABASE -------------------------------------------------#
 
@@ -522,6 +365,7 @@ class Batch:
 		return res
 
 	def search_pubmed(self, pmid):
+
 		print 'looking up PubMed ID...'
 		# URL for pubmed article summary info
 		url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
@@ -552,6 +396,28 @@ class Batch:
 			err = 'Warning: The PubMed info retrieved from NCBI was incomplete. No ' \
 			      'abstract data will be attributed to this GeneSet.'
 			self.set_errors(noncritical=err)
+
+	def insert_publication(self):
+		print 'handling publication insertion...'
+
+		if self.publication:
+			# set up query
+			query = 'INSERT INTO production.publication ' \
+			        '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
+			        'pub_volume, pub_pages, pub_pubmed) ' \
+			        'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
+
+			vals = [self.publication['pub_authors'], self.publication['pub_title'],
+			        self.publication['pub_abstract'], self.publication['pub_journal'],
+			        self.publication['pub_volume'], self.publication['pub_pages'],
+			        self.publication['pub_pubmed']]
+
+			# execute query
+			self.cur.execute(query, vals)
+			self.commit()
+
+			res = self.cur.fetchall()[0][0]
+			self.publication['pub_id'] = str(res)
 
 	# ---------------------ERROR HANDLING------------------------------------------#
 
@@ -618,7 +484,7 @@ class Batch:
 			for c in self.crit:
 				print c
 			exit()  # NOTE: might not be the way you want to leave this
-		if noncrit_count > 0:
+		if noncrit_count:
 			print "Noncritical error messages added [%i]\n" % noncrit_count
 
 	# -----------------------------FILE HANDLING-----------------------------------#
@@ -635,7 +501,6 @@ class Batch:
 			numGS, gs_locs = self.calc_numGeneSets(self.file_toString)
 
 			# second, find + assign required header values to global vars
-			last_line = None
 			currPos = 0
 			for line in lines:
 				currPos += len(line)
@@ -646,23 +511,18 @@ class Batch:
 					elif stripped[:1] == '!':  # score type indicator
 						score = stripped[1:].strip()
 						self.assign_threshVals(score)
-						last_line = lines.index(line)
 					elif stripped[:1] == '@':  # species type indicator
 						sp = stripped[1:].strip()
 						self.assign_species(sp)
-						last_line = lines.index(line)
 					elif stripped[:1] == '%':  # geneset gene id type
 						gid = stripped[1:].strip()
 						self.assign_geneType(gid)
-						last_line = lines.index(line)
 					elif stripped[:2] == 'A ':  # group type
 						grp = stripped[1:].strip()
 						self.assign_groupType(grp)
-						last_line = lines.index(line)
 					elif stripped[:2] == 'P ':  # pubmed id
 						pub = stripped[1:].strip()
 						self.search_pubmed(pub)
-						last_line = lines.index(line)
 				else:
 					break
 
@@ -886,10 +746,21 @@ class UploadGeneSet:
 		self.abbrev_name = ''  # gs_abbreviation
 		self.name = ''  # gs_name
 		self.description = ''  # gs_description
-		self.file = {'file_size': None, 'file_uri': None, 'file_contents': None,
-		             'file_comments': None, 'file_id': None}
+		self.file_id = None
 
-		self.genes = {}  # {gene id: UploadGene obj,}
+		self.count = 0
+		self.gs_id = None
+
+		# platform fields
+		self.prb_info = None
+		self.ode_info = None
+
+	def upload(self):
+		print "initiating upload sequence..."
+		self.insert_file()
+		self.insert_geneset()
+		# self.insert_geneset_values()
+		# self.update_gsv_lists()
 
 	# -----------------------MUTATORS--------------------------------------------#
 	def set_genesetValues(self, gsv_values):
@@ -917,124 +788,96 @@ class UploadGeneSet:
 		print 'setting GeneSet threshold value...'
 		self.threshold = str(thresh)
 
+	def update_geneset_values(self, headers):
+		print 'updating geneset values...'
+		res = {}
+		for header in headers:
+			res[header] = self.geneset_values[header]
+		self.geneset_values = res
+
+	def update_microInfo(self, prb_map, ode_map):
+		# prb_map {prb_ref_id: prb_id}
+		# ode_map {prb_ref_id: ode_gene_id}
+
+		self.prb_info = prb_map
+		self.ode_info = ode_map
+
+	def update_count(self):
+		self.count = len(self.geneset_values)
+
 	def geneweaver_setup(self):
 		print "will identify the preliminary features of the GeneWeaver query, + populate globals..."
 
-	def upload(self):
-		print "will initiate data upload..."  # EDIT - needed?
-
 	def create_genes(self):
 		print "will generate new UploadGene objs..."
+		# if handling platforms
+		if self.batch.microarray:
+			print self.ode_info
+			print self.prb_info
+			print self.geneset_values
 
-		if self.geneset_values:
-			for gene_id, value in self.geneset_values.iteritems():
-				# create UploadGene obj, adding these raw data
-				g = UploadGene(self)
-				g.set_rawID(gene_id)
-				g.set_rawVal(value)
-				g.setup()
+		# if handling symbols
 
-				# store UploadGene obj in global dict
-				self.genes[gene_id] = g
-		else:
-			err = "Error: Unable to create UploadGene objs in UploadGeneSet, as there " \
-			      "are no values in 'self.geneset_values'."
-			self.batch.set_errors(critical=err)
+		# if self.geneset_values:
+		# 	for gene_id, value in self.geneset_values.iteritems():
+		# 		# create UploadGene obj, adding these raw data
+		# 		g = UploadGene(self)
+		# 		g.set_rawID(gene_id)
+		# 		g.set_rawVal(value)
+		# 		g.setup()
+		#
+		# 		# store UploadGene obj in global dict
+		# 		self.genes[gene_id] = g
+		# else:
+		# 	err = "Error: Unable to create UploadGene objs in UploadGeneSet, as there " \
+		# 	      "are no values in 'self.geneset_values'."
+		# 	self.batch.set_errors(critical=err)
 
-	def create_file(self):
-		print "creating user's UploadGeneSet file..."
+	def insert_file(self):
+		print "inserting file..."
+		# gather contents
+		contents = ''
+		for gene, score in self.geneset_values.iteritems():
+			curline = str(gene) + '\t' + str(score) + '\n'
+			contents += curline
 
-	# if self.genes:
-	# 	contents = ''
-	# 	for gene in self.genes:
-	# 		curline = str(gene) + '\t' + str(self.genes[gene].score) + '\n'
-	# 		contents += curline
-	# 	self.file['file_contents'] = contents
-	# 	self.file['file_size'] = self.count
-	# 	self.file['file_comments'] = ''
-	# 	self.file['file_uri'] = 'astridmoore' + 'Psygenet-' + self.name
-	# else:
-	# 	self.batch.set_errors(critical='Error: cannot add file if there are no Genes in PsyGeneSet.')
-	# 	print "FAILED CREATING FILE"
-	# 	exit()
+		# set up query
+		query = 'INSERT INTO production.file ' \
+		        '(file_size, file_uri, file_contents, file_comments, ' \
+		        'file_created, file_changes) ' \
+		        'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
 
-	def create_publicaton(self):
-		print "will generate new publication, if not already in GeneWeaver... "
+		vals = [self.count, self.name, contents, '']
 
-	# EDIT: may have absolutely no functionality at all - refer to input file layout
+		# execute query
+		self.batch.cur.execute(query, vals)
+		self.batch.commit()
 
-	# -------------------------Database Queries-----------------------------------------#
-	def getPlatformProbes(self, pfid, refs):
-		""" Returns a mapping of prb_ref_ids -> prb_ids for the given platform
-			and probe references.
+		self.file_id = self.batch.cur.fetchall()[0][0]
 
-		Parameters
-		----------
-		pfid: platform ID (int)
-		refs: list of platform probes
+	def insert_geneset(self):
+		print 'inserting geneset...'
 
-		Returns
-		-------
-		d: dict of prb_ref_id(s) -> prb_id(s)
+		# set up query
+		query = 'INSERT INTO geneset ' \
+		        '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
+		        'gs_threshold, gs_created, gs_updated, gs_status, ' \
+		        'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
+		        'gs_abbreviation, gs_description, gs_attribution, ' \
+		        'gs_groups, pub_id) ' \
+		        'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
+		        '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
 
-		"""
-		if type(refs) == list:
-			refs = tuple(refs)
+		vals = [self.file_id, self.batch.user_id, self.batch.cur_id,
+		        self.species, self.score_type, self.threshold, self.count,
+		        self.gs_gene_id_type, self.name, self.abbrev_name,
+		        self.description, self.group, self.batch.publication['pub_id']]
 
-		query = 'SELECT prb_ref_id, prb_id ' \
-		        'FROM odestatic.probe ' \
-		        'WHERE pf_id = %s ' \
-		        'AND prb_ref_id IN %s;'
+		# execute query
+		self.batch.cur.execute(query, vals)
+		self.batch.commit()
 
-		self.cur.execute(query, [pfid, refs])
-
-		# returns a list of tuples [(pf_id, pf_name)]
-		res = self.cur.fetchall()
-		d = dd(long)
-
-		for tup in res:
-			d[tup[0]] = tup[1]  # dict of prb_ref_id --> prb_id
-
-		return d
-
-	def getProbe2Gene(self, prbids):
-		""" Returns a mapping of platform IDs against ode gene IDs, for the given set
-			of platform probes.
-
-		Parameters
-		----------
-		prbids: list of platform probes
-
-		Returns
-		-------
-		d: dict of prb_ids -> ode_gene_ids
-
-		"""
-		if type(prbids) == list:
-			prbids = tuple(prbids)
-
-		# prb_id: platform prob ID
-		query = 'SELECT prb_id, ode_gene_id ' \
-		        'FROM extsrc.probe2gene ' \
-		        'WHERE prb_id IN %s;'
-
-		self.cur.execute(query, [prbids])
-
-		# returns a list of tuples [(pf_id, pf_name)]
-		res = self.cur.fetchall()
-		d = dd(list)
-
-		# we return a dict of prb_ids -> ode_gene_ids. This is a list since
-		# there may be 1:many associations.
-		for tup in res:
-			d[tup[0]].append(tup[1])
-
-		return d
-
-	def commit(self):
-		print "will determine whether or not to actually make changes, or to just" \
-		      " leave it in a 'test mode' state..."
-
+		self.gs_id = self.batch.cur.fetchall()[0][0]
 
 class UploadGene:
 	def __init__(self, geneset):
@@ -1121,16 +964,6 @@ def test_fileParsing(number):
 
 	test_file = test + append[number]
 	b = Batch(input_filepath=test_file)
-
-def test_handle_platform():
-	# original prb_ref_ids
-	headers = ['a_ref', 'b_ref', 'c_ref']
-	query1 = [('400', 'a_ref'), ('500', 'b_ref'), ('400', 'b_ref'),
-	          ('200', 'b_ref'), ('400', 'c_ref'), ('300', 'c_ref')]
-	query2 = [('400', 'G123'), ('400', 'G220'), ('500', 'G380'),
-	          ('500', 'G123'), ('500', 'G400'), ('300', 'G300')]
-
-
 
 if __name__ == '__main__':
 	# TESTING
