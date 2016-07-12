@@ -479,6 +479,9 @@ class PsyGeneSet:
 		print 'real count: ', self.batch.test_count[self.name]  # TESTING PURPOSES
 
 	def update_gsv_lists(self):
+		print '\n\n gsv_source_list \n\n', self.gsv_source_list
+		print '\n\n gsv_value_list \n\n', self.gsv_value_list
+
 		# update gsv_source_list
 		query = 'UPDATE extsrc.geneset_value ' \
 				'SET gsv_source_list = %s ' \

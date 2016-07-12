@@ -1,6 +1,6 @@
 # file: batch.py
 # desc: Rewrite of the PHP batch geneset upload function.
-# version: 0.2.2
+# version: 0.3
 # author(s): Erich Baker, Tim Reynolds, Astrid Moore
 
 # TODO:
@@ -592,7 +592,8 @@ class TheDB:
     def commit(self):
         """ Commits changes made to the DB. Only required if we've inserted new
             genesets, geneset_values, or publications. """
-        self.conn.commit()
+        # self.conn.commit()
+        pass
 
 
 # DB global, should only be one instance of this class # put this in Main later, once class Batch established
@@ -1509,7 +1510,7 @@ def getOdeGeneIdsNonPrefTest():
 
 if __name__ == '__main__':
     # print '\n TEST: batch file upload test \n'
-    # batch_file_test()
+    batch_file_test()
 
-    print '\n TEST: getOdeGeneIdsNonPref() \n'
-    getOdeGeneIdsNonPrefTest()
+    # print '\n TEST: getOdeGeneIdsNonPref() \n'
+    # getOdeGeneIdsNonPrefTest()
