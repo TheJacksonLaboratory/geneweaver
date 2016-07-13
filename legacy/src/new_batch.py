@@ -6,10 +6,14 @@ import config
 import psycopg2
 import requests
 import json
+import sys
+import progressbar
 import time
 import collections
 import random
 
+
+# allow unique user input? keep it private always?
 
 class Batch:
 	def __init__(self, input_filepath=None, usr_id=0):
@@ -47,7 +51,9 @@ class Batch:
 		self.score_type = ''  # gs_threshold_type
 		self.threshold = ''  # gs_threshold
 		self.species = ''  # sp_id
-		self.publication = {}  # {pub_*: val,}
+		self.publication = {'pub_id': None, 'pub_pubmed': None, 'pub_pages': None,
+		                    'pub_title': None, 'pub_journal': None, 'pub_volume': None,
+		                    'pub_authors': None, 'pub_abstract': None}  # {pub_*: val,}
 		self.microarray = None
 
 		self.run_batch()  # initates upload processing
@@ -63,10 +69,18 @@ class Batch:
 		if self.microarray:
 			self.handle_platform()
 			self.insert_publication()
-			for gs_name, gs in self.genesets:
+			for gs_name, gs in self.genesets.iteritems():
+				# TESTING PURPOSES:
+				print
+				print gs_name
+				print 'of length:', len(gs.geneset_values)
+				print
 				gs.upload()
 		else:
 			self.handle_symbols()
+			self.insert_publication()
+			for gs_name, gs in self.genesets.iteritems():
+				gs.upload()
 
 		# TEST check to make sure that the changes are kept
 
@@ -150,7 +164,74 @@ class Batch:
 			geneset.update_microInfo(prb_map=prb_results, ode_map=ode_results)
 
 	def handle_symbols(self):
+		"""Handles symbol condition.
+		"""
 		print 'handling symbol assignment...'
+		# for each geneset
+		for gs_abbrev, geneset in self.genesets.iteritems():
+			results = {}
+
+			# look up ode_gene_ids for each ref_id
+			query_id = self.query_genes(geneset.species, geneset.geneset_values.keys())
+
+			all_gene_ids = []
+			all_results = {}
+			for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
+				all_gene_ids += all_ids
+				all_results[all_ref] = all_ids
+			all_gene_ids = list(set(all_gene_ids))
+			all_refs = all_results.keys()
+
+			# look up preferred ode_ref_ids for each gene_id
+			query_refs = self.query_prefRef(self.species, self.gs_gene_id_type,
+			                                all_gene_ids)
+
+			# go through query_ids and see if single values 'pass'
+			poss_keys = query_id.keys()
+			x_results = {}
+			for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
+				if all_ref not in results.keys():
+					if all_pref and all_gdb == self.gs_gene_id_type:
+						poss_keys.remove((all_ref, all_pref, all_gdb))
+						all_refs.remove(all_ref)
+						x_results[all_ref] = all_ids
+
+			# go through the remaining possibilities
+			next_poss = {}  # {ref_id: [poss_refs,],}
+			for poss_ref in all_refs:
+				poss_ids = all_results[poss_ref]
+				for poss_id in poss_ids:
+					if poss_id not in results.values():
+						# look up in query_refs
+						next_poss[poss_ref] = query_refs[poss_id]
+						print '\nEDIT: remaining possibilities in handle_symbols (ask Tim)\n'
+						exit()
+
+			# go through the x_results (those found first time)
+			for xref, xids in x_results.iteritems():
+				for xid in xids:
+					if xid not in results.values():
+						results[xref] = xid
+						break
+
+			# check to make sure all values were found
+			if len(results) != len(geneset.geneset_values):
+				# EDIT: here is where you'd add a new gene
+				err = "Error: missing ode_gene_id for input value(s), " \
+				      "%s" % (set(all_results.keys()) - set(results.keys()))
+				self.set_errors(critical=err)
+
+			print results
+
+			print 'made it to the end'
+			exit()
+			# next, update genesets
+			relevant_headers = results.keys()
+			# must preserve original header list for update_geneset_values to work
+			# if diff for any reason, will need to call 'set_geneset_values' instead
+			geneset.update_geneset_values(relevant_headers)
+			# geneset.update_symbolInfo(ode_map=)
+			# need header -> ode
 
 	# ----------------- DATABASE -------------------------------------------------#
 
@@ -286,8 +367,13 @@ class Batch:
 
 		# check to make sure all were found
 		diff = set(refs) - set(results.keys())
+
 		if not diff:
 			return results
+		elif len(diff) == len(refs):
+			err = 'Error: unable to find any genes that match those provided in the file. ' \
+			      'Please check the geneset gene id type and try again.'
+			self.set_errors(critical=err)
 		else:
 			err = 'Warning: some prb_ref_ids were not ' \
 			      'found, + therefore will not be included in the ' \
@@ -299,6 +385,8 @@ class Batch:
 		""" Returns a mapping of platform IDs against ode gene IDs, for the given set
 			of platform probes.
 		"""
+		print 'querying probe2gene...'
+
 		# error handling for input types
 		try:
 			prb_ids = tuple(prbids)
@@ -322,11 +410,13 @@ class Batch:
 		results = {}
 		for r in res:
 			# if prb_id not in results, add it
-			if r[0] not in results:
+			if r[0] not in results.keys():
 				results[r[0]] = [r[1]]
 			# otherwise, append additional ode_gene_id
 			else:
 				results[r[0]].append(r[1])
+
+		# EDIT: put duplicate detection here if required
 
 		# check to make sure all were found
 		diff = set(prbids) - set(results.keys())
@@ -335,34 +425,94 @@ class Batch:
 		else:
 			err = 'Warning: some prb_ids were not ' \
 			      'found, + therefore will not be included in the ' \
-			      'geneset. \nNOT_FOUND=', diff
+			      'geneset. \nNOT_FOUND=%s' % diff
 			self.set_errors(noncritical=err)
 			return results
 
-	def query_ode_gene_id(self, ode_ids):
+	def query_genes(self, sp_id, poss_refs):
+		""" Queries database for possible ode_gene_ids. Returns a dictionary
+			containing ode_ref_ids mapped to a nested array.
+		"""
+		print 'querying ode_gene_ids...'
+		# set up the query
+		query = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
+		        'FROM extsrc.gene ' \
+		        'WHERE sp_id = %s ' \
+		        'AND ode_ref_id IN %s;'
+
+		# execute the query
+		self.cur.execute(query, [sp_id, tuple(poss_refs)])
+
+		# returns a list of tuples [(ode_ref_id, ode_gene_id, ode_pref, gdb_id'),]
+		res = self.cur.fetchall()
+
+		if not len(res):  # EDIT: change here if you want to allow for novel user input
+			err = "Error: Unable to upload batch file as no genes were found.\n" \
+			      "Check text file input before reattempting the batch file upload.\n"
+			self.set_errors(critical=err)
+
+		# cast result to a dictionary {(ode_ref_id, ode_pref, gdb_id): [ode_gene_id,]}
+		results = {}
+		xrefs = []
+		for r in res:
+			r = list(r)
+			xrefs += [r[0]]
+			key = tuple([r[0]] + r[2:])
+			# if (ode_ref_id, ode_pref, gdb_id) not in results, add it
+			if key not in results.keys():
+				results[key] = [r[1]]
+			else:
+				results[key].append(r[1])
+		xrefs = set(xrefs)
+
+		# check to make sure that all refs were found
+		diff = set(poss_refs) - xrefs
+		if not diff:
+			return results
+		else:
+			err = 'Warning: some ode_ref_ids were not found, + will therefore ' \
+			      'not be included in the geneset. \nNOT_FOUND=%s' % diff
+			self.set_errors(noncritical=err)
+			return results
+
+	def query_prefRef(self, sp_id, gdb_id, ode_ids):
 		""" Looks up ode_gene_ids, given global query criteria.
 		"""
+		print 'querying preferred reference ids...'
 		# error handling for input types
-		try:
-			ode_ids = tuple(ode_ids)
-		except ValueError:
-			err = "Error: Incorrect input type(s) entered into Batch.query_probe2gene. " \
-			      "Paramter 'refs' should be a tuple or a list, 'pfid' should be an int."
-			self.set_errors(critical=err)
+		ode_ids = tuple(ode_ids)
 
 		# set up query
 		query = 'SELECT ode_gene_id, ode_ref_id ' \
 		        'FROM extsrc.gene ' \
 		        'WHERE sp_id = %s ' \
+		        'AND gdb_id = %s ' \
 		        'AND ode_pref = TRUE ' \
 		        'AND ode_gene_id IN %s;'
 
 		# execute query
-		self.cur.execute(query, [self.species, ode_ids])
+		self.cur.execute(query, [sp_id, gdb_id, ode_ids])
 
 		# returns a list of tuples [(ode_gene_id, ode_ref_id),]
 		res = self.cur.fetchall()
-		return res
+
+		# cast as a dictionary {ode_gene_id: [ode_ref_id,],}
+		results = {}
+		for (gene_id, ref_id) in res:
+			if gene_id not in results.keys():
+				results[gene_id] = [ref_id]
+			else:
+				results[gene_id].append(ref_id)
+
+		# check to make sure that all the refs were found
+		diff = set(ode_ids) - set(results.keys())
+		if not diff:
+			return results
+		else:
+			err = 'Warning: some ode_gene_ids were not found. ' \
+			      '\nNOT_FOUND=%s' % diff
+			self.set_errors(noncritical=err)
+			return results
 
 	def search_pubmed(self, pmid):
 
@@ -714,7 +864,8 @@ class Batch:
 			except ValueError:
 				err = "Error: Data points should be in the format 'gene " \
 				      "id <tab> data value', with each data point on a " \
-				      "separate line."
+				      "separate line. Please check the file and make sure that you did " \
+				      "not include an empty geneset with no genes."
 				self.set_errors(critical=err)
 
 		# pass GeneSet values along to UploadGeneSet obj
@@ -755,12 +906,15 @@ class UploadGeneSet:
 		self.prb_info = None
 		self.ode_info = None
 
+		# symbol fields
+		self.header2ode = None   # {gene id (original ref): ode_gene_id, }
+
 	def upload(self):
 		print "initiating upload sequence..."
 		self.insert_file()
 		self.insert_geneset()
-		# self.insert_geneset_values()
-		# self.update_gsv_lists()
+		self.insert_geneset_values()
+		self.modify_gsv_lists()
 
 	# -----------------------MUTATORS--------------------------------------------#
 	def set_genesetValues(self, gsv_values):
@@ -795,12 +949,21 @@ class UploadGeneSet:
 			res[header] = self.geneset_values[header]
 		self.geneset_values = res
 
+		# update global count to reflect changes
+		self.update_count()
+
 	def update_microInfo(self, prb_map, ode_map):
+		print 'updating platform info...'
 		# prb_map {prb_ref_id: prb_id}
 		# ode_map {prb_ref_id: ode_gene_id}
 
 		self.prb_info = prb_map
 		self.ode_info = ode_map
+
+	def update_symbolInfo(self, ode_map):
+		# ode_map expects {ref_id: ode_gene_id, }
+		print 'updating gsv lists...'
+		self.header2ode = ode_map
 
 	def update_count(self):
 		self.count = len(self.geneset_values)
@@ -879,95 +1042,117 @@ class UploadGeneSet:
 
 		self.gs_id = self.batch.cur.fetchall()[0][0]
 
-class UploadGene:
-	def __init__(self, geneset):
-		# print "initializing Gene obj..."
+	def insert_geneset_values(self):
+		print 'inserting geneset values...'
+		# set up query
+		query = 'INSERT INTO extsrc.geneset_value ' \
+		        '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
+		        'gsv_value_list, gsv_in_threshold, gsv_date) ' \
+		        'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
 
-		# inherited fields
-		self.batch = geneset.batch
-		self.geneset = geneset
-		self.connection = geneset.batch.connection
-		self.cur = geneset.batch.cur
+		# TESTING / UI
+		bar = progressbar.ProgressBar(maxval=len(self.geneset_values)).start()
+		count = 0  # TESTING
 
-		self.ode_gene_id = None
-		self.ode_ref_id = None
+		# iterate through geneset_values
+		for gene_id, value in self.geneset_values.iteritems():
+			# find the right ode_gene_id associated w/ gene
+			ode_gene = self.header2ode[gene_id]
 
-		if geneset.batch.microarray:
-			self.pf_id = geneset.gs_gene_id_type
-			self.pf_name = geneset.batch.microarray
-			self.prb_id = None
+			# check to see if value is within the threshold
+			if float(value) <= float(self.threshold):
+				gsv_in_thresh = True
+			else:
+				gsv_in_thresh = False
 
-		# raw data that hasn't been checked yet
-		self.raw_value = None
-		self.raw_ref = None
+			# update gsv_source_list + gsv_value_list after this
+			search_vals = [self.gs_id, ode_gene, value, [], [], gsv_in_thresh]
+			self.batch.cur.execute(query, search_vals)
+			self.batch.commit()
+			count += 1  # TESTING
+			bar.update(count)  # TESTING
+		bar.finish()  # TESTING
 
-	# -----------------mutators go here-----------------------#
-	def set_rawVal(self, rawval):
-		# sets raw UploadGene value
-		self.raw_value = str(rawval)
+		# update the value count for geneset
+		self.modify_geneset_count(self.gs_id, self.count)
 
-	def set_rawID(self, geneId):
-		# sets raw UploadGene ID
-		self.raw_ref = geneId
+	def modify_gsv_lists(self):
+		print 'updating gsv lists...'
+		gsv_source_list = self.geneset_values.keys()
+		gsv_value_list = self.geneset_values.values()
 
-	def insert_gene(self):
-		print 'will insert user-specified gene into GeneSet someday...'
+		# UPDATE GSV_SOURCE_LIST
+		query = 'UPDATE extsrc.geneset_value ' \
+		        'SET gsv_source_list = %s ' \
+		        'WHERE gs_id = %s;'
+		vals = [gsv_source_list, self.gs_id]
+		self.batch.cur.execute(query, vals)
+		self.batch.commit()
 
-	def insert_gene_info(self):
-		print 'will insert gene info, if gene is not already in GeneWeaver...'
+		# UPDATE GSV_VALUE_LIST
+		query = 'UPDATE extsrc.geneset_value ' \
+		        'SET gsv_value_list = %s ' \
+		        'WHERE gs_id = %s;'
+		vals = [gsv_value_list, self.gs_id]
+		self.batch.cur.execute(query, vals)
+		self.batch.commit()
 
-	def insert_value(self):
-		print 'will insert Gene value into GeneWeaver, if all information is provided...'
+		# UPDATE GSV_DATE
+		query = 'UPDATE extsrc.geneset_value ' \
+		        'SET gsv_date = NOW() ' \
+		        'WHERE gs_id = %s;'
+		vals = [self.gs_id]
+		self.batch.cur.execute(query, vals)
+		self.batch.commit()
 
-	def search_geneweaver(self):
-		print "queries GeneWeaver for a series of possible cases, depending on what's available..."
+		print '\n try alternative method for modify_gsv_lists! \n'
+		# EDIT: eventually try instead ->
+		# query = 'UPDATE extsrc.geneset_value ' \
+		#         'SET (gsv_source_list, gsv_value_list, ' \
+		#         'gsv_date) = (%s, %s, NOW()) ' \
+		#         'WHERE gs_id = %s;'
 
-	# -----------------series of cross-checking functions go here-----------------#
-	def setup(self):
-		# check to see if this gene exists, given the parameters
-		# find ode_gene_id
-		# poss = self.find_odeID(self.raw_ref)
+	def modify_geneset_count(self, gsid, num):
+		print 'modifying geneset count...'
+		# set up query
+		query = 'UPDATE geneset ' \
+		        'SET gs_count = %s ' \
+		        'WHERE gs_id = %s'
+		vals = [gsid, num]
 
-		# if unsuccessful in finding ode_gene_id, search for ode_ref_id
-		# if len(poss) > 1:
-		# self.find_refID(poss)
-		pass
-
-	def find_odeID(self, raw_ref):
-		# if a microarray type, search probes + platforms
-		if self.batch.microarray:
-			pass
-
-		# otherwise, search gene types
-		pass
-
-	def find_refID(self, ids):
-		# look up a possible ode_ref_id, given a list of ode_gene_ids, 'ids'
-		pass
-
-	# -------------------Database queries-----------------------------------------#
-
-
-# class UploadSNP - only if relevant, if tables are up to speed
+		# execute + commit query
+		self.batch.cur.execute(query, vals)
+		self.batch.commit()
 
 def test_dictionaries():
-
 	b = Batch()
 	b.populate_dictionaries()
 
-
 def test_fileParsing(number):
 	test = '/Users/Asti/geneweaver/website-py/src/static/text/'
-	append = ['affy-batch.txt', 'affy-dup.txt', 'agilent-batch.txt', 'batch-geneset-a.txt',
-	          'batch-geneset-b.txt', 'batch-geneset-c.txt', 'batch-geneset-d.txt',
-	          'empty-geneset.txt', 'symbol-batch.txt']
+	append = ['affy-batch.txt',         # 0
+	          'affy-dup.txt',           # 1
+	          'agilent-batch.txt',      # 2
+	          'batch-geneset-a.txt',    # 3
+	          'batch-geneset-b.txt',    # 4
+	          'batch-geneset-c.txt',    # 5
+	          'batch-geneset-d.txt',    # 6
+	          'empty-geneset.txt',      # 7
+	          'symbol-batch.txt']       # 8
 
 	test_file = test + append[number]
 	b = Batch(input_filepath=test_file)
 
 if __name__ == '__main__':
 	# TESTING
-	test_fileParsing(1)
+	print sys.argv
+
+	if len(sys.argv) < 2:
+		print "Usage: python %s <int_range(9)>" % sys.argv[0]
+		print "       where <int_range(9)> specifies an integer" \
+		      "       between 0-8 [incl.]"
+		exit()
+	test_fileParsing(int(sys.argv[1]))
 
 # WORKING
 # test_dictionaries()
