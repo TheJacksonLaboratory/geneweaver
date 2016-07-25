@@ -377,7 +377,9 @@
 
         <div class="panel-heading">
             <div class="pull-right">
-                <input id="upload-geneset-button" class="btn btn-warning fa" type="submit" value="Review GeneSet Upload &#xf04e;" />
+				{# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
+				<input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
+					   value="Review GeneSet Upload &raquo;"/>
             </div>
         </div>
 
