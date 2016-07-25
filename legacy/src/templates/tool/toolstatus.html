@@ -3,12 +3,25 @@
 {% import 'macros.html' as macros %}
 
 <div class="page-header">
-    <h1>{{ title }}</h1>
+	<h1>{{ title }}: <span id="status-message">Starting tool...</span></h1>
 </div>
 
-<p>
-    The current status of your job is: <span id="status-label">{{ async_result.state|e }}</span>. This will be updated every five seconds. <br><br>
+<p style="text-align:center">
+	{#
+	<span id="status-message"></span>
+	#}
+	{% if progress %}
+		<h4><u>STATUS</u></h4>
+		<span id="status-label">{{ async_result.state|e }}</span>
+	{% else %}
+	{% endif %}
+	{#
+    The current status of your job is: <span id="status-label">{{ async_result.state|e }}</span>. This will be updated every five seconds.
+	#}
+</p> 
 
+<br />
+<br />
 
 <div class="col-md-4">
 </div>
@@ -52,19 +65,43 @@
 
 <script type="text/javascript">
 
-    var checkStatusTimeoutMS = 5000;
+    var checkStatusTimeoutMS = 1000;
+
+	var makeStatusMessage = function(msg) {
+
+		var html = '<h4><u>STATUS</u></h4>' + '<span id="status-label">' + 
+				   msg + '</span>';
+
+		return html;
+	};
+
     $(document).ready(function () {
+
         var statusLabel = $('#status-label');
+        var statusMessage = $('#status-message');
+
         function checkStatus() {
+
             $.ajax({
                 dataType: "json",
                 url: "{{ url_for(tool.classname + '.status_json', task_id=async_result.task_id) }}",
                 success: function (data) {
-                    statusLabel.text(data.state);
-                    if(data.isReady) {
+
+                    //statusLabel.text(data.state);
+
+                    if (data.isReady) {
                         // the task is ready so forcing a reload will show results
                         document.location.reload(true);
-                    } else {
+
+					} else if (data.progress) {
+
+						//statusMessage.html(makeStatusMessage(data.progress.message));
+						statusMessage.text(data.progress.message);
+
+						window.setTimeout(checkStatus, checkStatusTimeoutMS);
+
+					} else {
+
                         window.setTimeout(checkStatus, checkStatusTimeoutMS);
                     }
                 },

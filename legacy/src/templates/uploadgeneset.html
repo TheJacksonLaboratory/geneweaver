@@ -67,7 +67,7 @@
         <h2 class="panel-title"><strong>Upload GeneSet</strong></h2>
     </div>
 
-    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="0"></div>
 
 
     <div class="row">
@@ -530,14 +530,20 @@
                     var v = JSON.parse(data);
 
                     if (v["error"] == 'None') {
+						// Make a URL to the edit geneset page in case the 
+						// user is never redirected. Happens with Jason's 
+						// desktop :(
+						var editPage = location.protocol + '//' + location.host;
+						editPage = '<a href="' + editPage + '/editgenesetgenes/' +
+								 v['gs_id'] + '">here.</a>';
                         var success = '<strong>Success! Your GeneSets ' +
                                 'were uploaded: </strong><br />';
                         success += 'GS' + v['gs_id'] + '<br />';
                         success = success + '<br /> <strong>You will be ' +
                                 'redirected to the edit GeneSet page shortly.' +
                                 '<br /> If you aren\'t redirected, check and ' +
-                                'reconfigure your pop-up blocker settings.' +
-                                '</strong>';
+                                'reconfigure your pop-up blocker settings ' +
+								'or just click ' + editPage + '</strong>';
                         var closeButton = '<button type="button" ' +
                                 'class="close" data-dismiss="alert" ' +
                                 'aria-hidden="true">x</button>';

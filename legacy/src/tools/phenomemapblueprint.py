@@ -19,7 +19,7 @@ The HiSim tool requires (and returns) the following tool parameters:
     EmphasisGenes
     Homology
     gs_dict
-    output_prefix:
+    output_prefix
     PhenomeMap_DisableBootstrap
     PhenomeMap_GenesInNode
     PhenomeMap_HideUnEmphasized
@@ -314,7 +314,16 @@ def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
+    ## The progress structure contains the fields at (the current execution
+    ## time), message (progress message), and percent (% completion of the
+    ## current state). 
+    if async_result.state == states.PENDING:
+        progress = async_result.info
+    else:
+        progress = None
+
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
+        'progress': progress,
         'state': async_result.state,
     })
