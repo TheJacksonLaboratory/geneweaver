@@ -630,30 +630,28 @@ def getPubmedInfo(pmid):
     pinfo = {}
     res = json.loads(res)
 
-    ## In case of KeyErrors...
-    try:
-        pub = res['result']
-        pub = pub[pmid]
+    pub = res.get('result', {})
+    pub = pub.get(str(pmid), {})
 
-        pinfo['pub_title'] = pub['title']
-        pinfo['pub_abstract'] = res2
-        pinfo['pub_journal'] = pub['fulljournalname']
-        pinfo['pub_volume'] = pub['volume']
-        pinfo['pub_pages'] = pub['pages']
-        pinfo['pub_pubmed'] = pmid
-        pinfo['pub_authors'] = ''
-
-        ## Author struct {name, authtype, clustid}
-        for auth in pub['authors']:
-            pinfo['pub_authors'] += auth['name'] + ', '
-
-        ## Delete the last comma + space
-        pinfo['pub_authors'] = pinfo['pub_authors'][:-2]
-
-    except:
+    if not pub:
         er = ('Error! The PubMed info retrieved from NCBI was incomplete. No '
               'PubMed data will be attributed to this geneset.')
         return ({}, er)
+
+    pinfo['pub_title'] = pub.get('title', '')
+    pinfo['pub_abstract'] = res2
+    pinfo['pub_journal'] = pub.get('fulljournalname', '')
+    pinfo['pub_volume'] = pub.get('volume', '')
+    pinfo['pub_pages'] = pub.get('pages', '')
+    pinfo['pub_pubmed'] = pmid
+    pinfo['pub_authors'] = ''
+
+    ## Author struct {name, authtype, clustid}
+    for auth in pub.get('authors', []):
+        pinfo['pub_authors'] += auth['name'] + ', '
+
+    ## Delete the last comma + space
+    pinfo['pub_authors'] = pinfo['pub_authors'][:-2]
 
     return (pinfo, '')
 
