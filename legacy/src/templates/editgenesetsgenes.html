@@ -105,11 +105,16 @@
         </div>
         <div class="col-md-10" id="altSpecies">
             <span id="editSpecies"><p><b>
+				{% for sp_id, sp_name in species if geneset.sp_id == sp_id %}
+                    {{ sp_name }}
+				{% endfor %}
+				{#
                 {% if meta[0] != 0 %}
                     {{ species[meta[0]] }}
                 {% else %}
                     {{ species[geneset.sp_id] }}
                 {% endif %}
+				#}
                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="Species"
                       title="Edit Species" style="margin: 2px; padding: 0px 2px;">
                     <i class="fa fa-edit"></i>

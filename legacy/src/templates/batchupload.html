@@ -315,19 +315,32 @@
 			}
 		});
 
-        //Function to upload genesets
-        //Ths AJAX POST loading is not working...leaving me perplexed. I stripped the text from the
-        //div and passed it to application via get
-        //$('#upload-geneset-form').submit(function (event) {
+		/*
+		 * Creates a link to the edit geneset genes page for the given gs_id.
+		 *
+		 * arguments
+		 * 		gsid: a string or int geneset ID
+		 * 		display: a string of text to display for the link
+		 *
+		 * returns
+		 * 		a string of HTML, the link to that set's edit genes page
+		 * 	
+		 */
+		var generateEditLink = function(gsid, display) {
+
+			
+			var url = location.protocol + '//' + location.host + 
+				'/editgenesetgenes/' + gsid;
+
+			return '<a href="' + url + '">' + display + '</a>';
+		};
+
         $('#upload-geneset-form').on('submit', function (event) {
             event.preventDefault();
 
             var batchFile = $('#fileContents').val();
             // Encodes spaces, quotes, and other crap prior to sending
             batchFile = encodeURIComponent(batchFile);
-
-            //var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
-            //var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
 
             // Let the user know we're in the process of uploading their
             // geneset. Otherwise they might click the submit button 10 times.
@@ -382,12 +395,14 @@
                                 'were uploaded: </strong><br />';
 
                         for (var i = 0; i < genesets.length; i++)
-                            success += 'GS' + genesets[i] + '<br />';
+							success += generateEditLink(genesets[i], 'GS' + genesets[i]) + '<br />'
+                            //success += 'GS' + genesets[i] + '<br />';
 
                         success = success + '<br /> <strong>You will be ' +
                                 'redirected to the edit GeneSet page shortly.' +
                                 '<br /> If you aren\'t redirected, check and ' +
-                                'reconfigure your pop-up blocker settings.' +
+                                'reconfigure your pop-up blocker settings ' +
+                                'or click the GS links above.' +
                                 '</strong>';
 
                         var closeButton = '<button type="button" ' +
@@ -428,12 +443,6 @@
             });
 
         });
-
-        //function createReaderHandler(name) {
-        //    return function (ev) {
-        //        data[name] = ev.target.result;
-        //    };
-        //}
 
     });
 
@@ -554,21 +563,6 @@
             $("#pubmed_manual :input").attr("disabled", false);
         }
     });
-
-
-    //toggles between the file or paste uploaders and toggle's enable/disable on inputs
-    //function toggle_pasting() {
-
-    //    $("#file_uploader").toggle();
-    //    $("#paste_uploader").toggle();
-
-    //    $('#file_text').prop('disabled', function () {
-    //        return !$(this).prop('disabled')
-    //    })
-    //    $('#file_data').prop('disabled', function () {
-    //        return !$(this).prop('disabled')
-    //    })
-    //}
 
 </script>
 

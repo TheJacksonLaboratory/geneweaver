@@ -622,7 +622,6 @@ def render_editgeneset_genes(gs_id):
     uploadfiles.create_temp_geneset_from_value(gs_id)
     meta = uploadfiles.get_temp_geneset_gsid(gs_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id, temp='temp')
-    species = geneweaverdb.get_all_species()
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
 
@@ -653,8 +652,22 @@ def render_editgeneset_genes(gs_id):
     ## Ontologies associated with this geneset
     ontology = get_ontology_terms(gs_id)
 
-    return flask.render_template('editgenesetsgenes.html', geneset=geneset, user_id=user_id, species=species,
-                                 gidts=gidts, pidts=pidts, view=view, meta=meta, ontology=ontology)
+    species = []
+    ## Species list for dynamically generated species tags
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+
+    return flask.render_template(
+            'editgenesetsgenes.html', 
+            geneset=geneset, 
+            user_id=user_id, 
+            species=species,
+            gidts=gidts, 
+            pidts=pidts, 
+            view=view, 
+            meta=meta, 
+            ontology=ontology
+    )
 
 
 @app.route('/removegenesetsfromproject/<gs_id>')

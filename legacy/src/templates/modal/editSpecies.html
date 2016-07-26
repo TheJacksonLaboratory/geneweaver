@@ -15,12 +15,14 @@
                         <div id="species" class="btn-group bootstrap-select form-control">
                                 <button id='selectedSpecies' type="button" class="btn btn-default dropdown-toggle"
                                         data-toggle="dropdown" aria-expanded="false">
-                                    <span class="selected">{{ species[geneset.sp_id] }}</span>
+									{% for sp_id, sp_name in species if geneset.sp_id == sp_id %}
+										<span class="selected">{{ sp_name }}</span>
+									{% endfor %}
                                     <span class="caret"></span>
                                 </button>
                                 <ul class="dropdown-menu option" role="menu">
-                                {% for spec in species %}
-                                    <li id="{{ spec }}"><a href="#">{{ species[spec] }}</a></li>
+                                {% for sp_id, sp_name in species %}
+                                    <li id="{{ sp_id }}"><a href="#">{{ sp_name }}</a></li>
                                 {% endfor %}
                                 </ul>
 
