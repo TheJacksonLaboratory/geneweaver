@@ -577,6 +577,32 @@ def remove_group_from_all_projects(grp_id, user_id):
                 cursor.connection.commit()
 
 
+def get_file_contents(file_id):
+    """
+    Retrieves the file contents of a geneset.
+
+    arguments
+        file_id: int file ID associated with a geneset
+
+    returns
+        a string of the file contents. An empty string is returned if errors
+        are encountered or the contents are missing.
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT file_contents
+            FROM file
+            WHERE file_id = %s''', (file_id,))
+
+        contents = cursor.fetchone()
+
+        if not contents:
+            return ''
+
+        return contents[0]
+
+
 def get_all_species():
     """
     returns an ordered mapping from species ID to species name for all available species

@@ -168,7 +168,10 @@
                     <table class="table table-hover">
                         <tbody>
                         <tr>
-                            <th>Identifier</th>
+                            <th>GW Identifier</th>
+							{#
+                            <th>Your Identifier</th>
+							#}
                             <th>Value</th>
                             <th>&nbsp;</th>
                         </tr>
@@ -177,6 +180,9 @@
                         {% for geneset_value in geneset.temp_geneset_values %}
                             <tr>
                                 <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
+								{#
+                                <td>{{ id_map[geneset_value.ode_gene_id] }}</td>
+								#}
                                 <td>{{ geneset_value.value_list[0] | trim }}</td>
                                 <td><span data-placement="top" data-toggle="tooltip"
                                           data-rel="tooltip" data-original-total="Edit" title="Edit Identifier or Value"
