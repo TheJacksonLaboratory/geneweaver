@@ -872,83 +872,59 @@ def download_result():
 
     return imgout.getvalue().encode('base64')
 
-#### viewStoredResults
-##
-#### Only called by an ajax request when the user wants to view a saved
-#### tool result from the results page. The result run hash and user ID
-#### are passed via a POST request, then the function retrieves the result
-#### data from the DB and chooses the correct result template to display.
-##
-#@app.route('/viewStoredResults', methods=['POST'])
 @app.route('/viewStoredResults', methods=['GET'])
 def viewStoredResults_by_runhash():
-    #if 'user_id' in flask.session:
-    #if request.method == 'POST':
-    if request.method == 'GET':
-        runhash = request.args.get('runHash', type=str)
-        usr_id = request.args.get('usr_id', type=str)
-        #form = flask.request.form
-        #user_id = form['user_id']
-        results = geneweaverdb.get_results_by_runhash(runhash)
-        #results = results[0][0]
-        resultpath = config.get('application', 'results')
+    """
+    Called by an AJAX request from /results when the user wants to view a saved
+    tool result. Client side code ensures the result already exists on the
+    server. This function retrieves the proper result URL and sends it back to
+    the client for redirection
 
-        if results['res_tool'] == 'Jaccard Similarity':
-            return flask.render_template(
-                'tool/JaccardSimilarity_result.html',
-                data=results['res_data'],
-                async_result=json.loads(results['res_data']),
-                tool=geneweaverdb.get_tool('JaccardSimilarity'),
-                list=geneweaverdb.get_all_projects(user_id))
+    arguments (as part of the GET request)
+        runHash: the unique run hash string for this tool run
+        usr_id: int ID of the user who wishes to view the result
 
-        elif results['res_tool'] == 'HiSim Graph':
-            fp = os.path.join(resultpath, runhash + '.json')
+    returns
+        a relative URL for the stored tool result
+    """
 
-            with open(fp, 'r') as fl:
-                data = ''
-                for line in fl:
-                    data += str(line)
+    ## Should probably do some kind of usr_id check
+    runhash = request.args.get('runHash', type=str)
+    usr_id = request.args.get('usr_id', type=str)
 
-            #return flask.redirect(
-            #return flask.redirect(flask.url_for('PhenomeMap-result/' + runhash,
-            #return flask.make_response(flask.render_template(
-            #phenomemapblueprint.phenomemap_blueprint
-            return flask.url_for('PhenomeMap.view_result', task_id=runhash)
-            return flask.redirect(
-                flask.url_for('PhenomeMap.view_result', task_id=runhash)
-            )
-            #return flask.redirect(flask.url_for('phenomemap_blueprint.view_result',methods='GET')) #,
-                #task_id=runhash,
-                ##'tool/PhenomeMap_result.html',
-                #data=data,
-                #async_result=json.loads(results['res_data']),
-                #tool=geneweaverdb.get_tool('PhenomeMap'),
-                #runhash=runhash))
-            return 'shit'
+    if results['res_tool'] == 'Jaccard Similarity':
+        return flask.url_for(
+            jaccardsimilarityblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
 
-        elif results['res_tool'] == 'GeneSet Graph':
-            return flask.render_template(
-                'tool/GeneSetViewer_result.html',
-                async_result=json.loads(results['res_data']),
-                tool=geneweaverdb.get_tool('GeneSetViewer'),
-                list=geneweaverdb.get_all_projects(user_id))
+    elif results['res_tool'] == 'HiSim Graph':
+        return flask.url_for(
+            phenomemapblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
 
-        elif results['res_tool'] == 'Clustering':
-            fp = os.path.join('/results', runhash + '.json')
+    elif results['res_tool'] == 'GeneSet Graph':
+        return flask.url_for(
+            genesetviewerblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
 
-            return flask.render_template(
-                'tool/JaccardClustering_result.html',
-                cluster_data=fp,
-                async_result=json.loads(results['res_data']),
-                tool=geneweaverdb.get_tool('JaccardClustering'),
-                list=geneweaverdb.get_all_projects(user_id))
+    elif results['res_tool'] == 'Clustering':
+        return flask.url_for(
+            jaccardclusteringblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
 
-        elif results['res_tool'] == 'Boolean Algebra':
-            return flask.render_template(
-                'tool/BooleanAlgebra_result.html',
-                async_result=json.loads(results['res_data']),
-                tool=geneweaverdb.get_tool('BooleanAlgebra'),
-                list=geneweaverdb.get_all_projects(user_id))
+    elif results['res_tool'] == 'Boolean Algebra':
+        return flask.url_for(
+            booleanalgebrablueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
+    else:
+        ## Something bad has happened
+        pass
 
 
 @app.route('/reruntool.json', methods=['POST', 'GET'])

@@ -187,18 +187,25 @@
 
 								if (data.exists) {
 
-									//$.redirectPost('/viewStoredResults', {
-									//$.redirectGet('/viewStoredResults', {
-									// Flask will return a redirect
+									// Flask will return a URL to the stored 
+									// result which must then be used to 
+									// redirect via js. Since we're using AJAX
+									// to retrieve stored results, the browser
+									// won't honor redirects from flask.
 									$.get('/viewStoredResults', {
 
 										'runHash': runhash,
 										'user_id': user_id
 
-									}).done(function(redirectUrl) {
+									}).done(function(reUrl) {
 											
-										if (redirectUrl)
-											window.location.replace(redirectUrl);
+										if (reUrl) {
+											window.location.replace(reUrl);
+
+										} else {
+											$('#lolno-result').show();
+											$('#lolno-button').show();
+										}
 									});
 
 								} else {

@@ -277,10 +277,6 @@ def view_result(task_id):
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     resultpath = config.get('application', 'results')
 
-    print 'wut'
-    print 'wut'
-    print 'wut'
-    print 'wut'
     ## If HiSim fails, it's most likely because no bicliques were found but
     ## doing this is really, REALLY shady. The exception handling for this
     ## tool seriously needs to be rewritten.
