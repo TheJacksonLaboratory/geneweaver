@@ -926,7 +926,6 @@ def viewStoredResults_by_runhash():
         ## Something bad has happened
         return ''
 
-
 @app.route('/reruntool.json', methods=['POST', 'GET'])
 def rerun_tool():
     args = flask.request.args
@@ -1013,9 +1012,7 @@ def render_viewgeneset(gs_id):
     ## to see them. Also some sets have a NULL status so that MUST be checked
     ## for, otherwise sad times ahead :(
     if geneset and geneset.status == 'deleted':
-        return flask.render_template('viewgenesetdetails.html', geneset=None)#,
-            #emphgeneids=None, user_id=user_id, colors=HOMOLOGY_BOX_COLORS,
-            #tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=None)
+        return flask.render_template('viewgenesetdetails.html', geneset=None)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
@@ -1029,13 +1026,10 @@ def render_viewgeneset(gs_id):
     ontology = get_ontology_terms(gs_id)
 
     ## sp_id -> sp_name map so species tags can be dynamically generated
-    species = geneweaverdb.get_all_species()
-    splist = []
+    species = []
 
-    for sp_id, sp_name in species.items():
-        splist.append([sp_id, sp_name])
-
-    species = splist
+    for sp_id, sp_name in geneweaverdb.get_all_species():
+        species.append([sp_id, sp_name])
 
     return flask.render_template('viewgenesetdetails.html', geneset=geneset,
                                  emphgeneids=emphgeneids, user_id=user_id,

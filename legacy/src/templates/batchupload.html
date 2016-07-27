@@ -103,7 +103,7 @@
 
             <div class="md-col-6 pull-left">
                 <div class="btn btn-warning btn-file">Batch Upload File
-                    <input id="file_data" type="file" name="selected_file" required="" accept="text/plain"/>
+                    <input id="file_data" type="file" name="selected_file" required="" accept=".bgf,text/plain"/>
                 </div>
             </div>
             <span id="fileDisplayArea" style="color: #337700; vertical-align: middle; padding: 10px 0 0 10px;">
@@ -293,12 +293,11 @@
 
 		fileInput.addEventListener('change', function(e) {
 			var file = fileInput.files[0];
-			var textType = /text.*/;
 
             // After reading the file, the filename and size are displayed
             // to the user. The contents goes under a hidden input for
             // submission later.
-			if (file.type.match(textType)) {
+			if (file.type.match('text.*')) {
 				var reader = new FileReader();
 
 				reader.onload = function(e) {
@@ -311,6 +310,7 @@
 				reader.readAsText(file);
 
 			} else {
+				// If the user uploads a binary file or something
 				fileDisplayArea.innerText = "File not supported!";
 			}
 		});
