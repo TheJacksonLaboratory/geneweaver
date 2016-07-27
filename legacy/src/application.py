@@ -1028,7 +1028,7 @@ def render_viewgeneset(gs_id):
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = []
 
-    for sp_id, sp_name in geneweaverdb.get_all_species():
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
     return flask.render_template('viewgenesetdetails.html', geneset=geneset,
