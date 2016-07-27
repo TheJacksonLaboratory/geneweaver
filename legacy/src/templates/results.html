@@ -187,9 +187,18 @@
 
 								if (data.exists) {
 
-									$.redirectPost('/viewStoredResults', {
+									//$.redirectPost('/viewStoredResults', {
+									//$.redirectGet('/viewStoredResults', {
+									// Flask will return a redirect
+									$.get('/viewStoredResults', {
+
 										'runHash': runhash,
 										'user_id': user_id
+
+									}).done(function(redirectUrl) {
+											
+										if (redirectUrl)
+											window.location.replace(redirectUrl);
 									});
 
 								} else {

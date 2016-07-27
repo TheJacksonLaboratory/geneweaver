@@ -879,12 +879,17 @@ def download_result():
 #### are passed via a POST request, then the function retrieves the result
 #### data from the DB and chooses the correct result template to display.
 ##
-@app.route('/viewStoredResults', methods=['POST'])
+#@app.route('/viewStoredResults', methods=['POST'])
+@app.route('/viewStoredResults', methods=['GET'])
 def viewStoredResults_by_runhash():
-    if request.method == 'POST':
-        form = flask.request.form
-        user_id = form['user_id']
-        results = geneweaverdb.get_results_by_runhash(form['runHash'])
+    #if 'user_id' in flask.session:
+    #if request.method == 'POST':
+    if request.method == 'GET':
+        runhash = request.args.get('runHash', type=str)
+        usr_id = request.args.get('usr_id', type=str)
+        #form = flask.request.form
+        #user_id = form['user_id']
+        results = geneweaverdb.get_results_by_runhash(runhash)
         #results = results[0][0]
         resultpath = config.get('application', 'results')
 
@@ -897,19 +902,29 @@ def viewStoredResults_by_runhash():
                 list=geneweaverdb.get_all_projects(user_id))
 
         elif results['res_tool'] == 'HiSim Graph':
-            fp = os.path.join(resultpath, form['runHash'] + '.json')
+            fp = os.path.join(resultpath, runhash + '.json')
 
             with open(fp, 'r') as fl:
                 data = ''
                 for line in fl:
                     data += str(line)
 
-            return flask.render_template(
-                'tool/PhenomeMap_result.html',
-                data=data,
-                async_result=json.loads(results['res_data']),
-                tool=geneweaverdb.get_tool('PhenomeMap'),
-                runhash=form['runHash'])
+            #return flask.redirect(
+            #return flask.redirect(flask.url_for('PhenomeMap-result/' + runhash,
+            #return flask.make_response(flask.render_template(
+            #phenomemapblueprint.phenomemap_blueprint
+            return flask.url_for('PhenomeMap.view_result', task_id=runhash)
+            return flask.redirect(
+                flask.url_for('PhenomeMap.view_result', task_id=runhash)
+            )
+            #return flask.redirect(flask.url_for('phenomemap_blueprint.view_result',methods='GET')) #,
+                #task_id=runhash,
+                ##'tool/PhenomeMap_result.html',
+                #data=data,
+                #async_result=json.loads(results['res_data']),
+                #tool=geneweaverdb.get_tool('PhenomeMap'),
+                #runhash=runhash))
+            return 'shit'
 
         elif results['res_tool'] == 'GeneSet Graph':
             return flask.render_template(
@@ -919,7 +934,7 @@ def viewStoredResults_by_runhash():
                 list=geneweaverdb.get_all_projects(user_id))
 
         elif results['res_tool'] == 'Clustering':
-            fp = os.path.join('/results', form['runHash'] + '.json')
+            fp = os.path.join('/results', runhash + '.json')
 
             return flask.render_template(
                 'tool/JaccardClustering_result.html',
