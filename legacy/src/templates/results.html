@@ -6,362 +6,329 @@
     {% include 'htmlfragments/permissionError.html' %}
 {% else %}
 
+{% block body %}
 
+<style>
+	/* 	for some retarded reason data tables wasn't centering text
+		properly, so this is here instead.
+	*/
+	td {
+		text-align: center;
+	}
+</style>
+<script type="text/javascript">
 
-    {% block body %}
+	$(function () {
+		$("[data-toggle='tooltip']").tooltip();
+	});
 
-
-	<style>
-		/* 	for some retarded reason data tables wasn't centering text
-			properly, so this is here instead.
-		*/
-		td {
-			text-align: center;
-		}
-	</style>
-	<script type="text/javascript">
-
-		// Can now call redirectPost via $
-		$.extend({
-			// Forces a page redirect (using a hidden form) while passing data
-			// through a POST request. This is used to redirect the user to
-			// their old results.
-			redirectPost: function(location, args) {
-				var form = '';
-
-				$.each(args, function(key, value) {
-					form += '<input type="hidden" name="' + key + 
-							'" value="' + value + '">';
-				});
-
-				form = '<form action="' + location + '" method="POST">' + 
-					   form + '</form>';
-
-				$(form).appendTo('body').submit();
-			}
+	// This hides the 'cached result error' alert when its close button
+	// is clicked.
+	$(function () {
+		$('[data-hide]').on('click', function() {
+			$('.' + $(this).attr('data-hide')).hide();
 		});
+	});
 
-		$(function () {
-			$("[data-toggle='tooltip']").tooltip();
-		});
+	var r = false;
+	var editor;
 
-		// This hides the 'cached result error' alert when its close button
-		// is clicked.
-		$(function () {
-			$('[data-hide]').on('click', function() {
-				$('.' + $(this).attr('data-hide')).hide();
-			});
-		});
+	$(document).ready(function () {
 
-		var r = false;
-		var editor;
+		var table = '{{table}}';
+		var user_id = '{{user_id}}';
+		var columns = {{columns | safe}};
+		var numCols = columns.length;
+		var headerCols = {{headerCols | safe}};
+		var table = $('#resultsViewer').dataTable({
+			"dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+			"iDisplayLength": 15,
+			"tableTools": {"sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf"},
+			"processing": true,
+			"serverSide": true,
+			"ajax": {
+				'url': "/../getServersideResultsdb",
+				'type': 'GET',
+				"data": {"table": table, "user_id": user_id}
+			},
+			"columns": columns,
+			"aoColumnDefs": [{ 		// Column/cell options for the data table
+				"aTargets": [0],	// Only affect the first column
+				"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+					var cellData = oData[5];
+					/* Delete Button */
+					var b = $('<span data-placement="top" data-toggle="tooltip" \
+					data-rel="tooltip" data-original-title="Delete Result" type="button" title="Delete this Result"\
+					style="margin: 2px; padding: 0px 2px;">\
+					<i class="fa fa-trash-o"></i></span>');
+					/* Re-Run Button */
+					var d = $('<span data-placement="top" data-toggle="tooltip" \
+					data-rel="tooltip" data-original-title="Re-run Result" type="button" title="Re-Run this Result"\
+					style="margin: 2px; padding: 0px 2px;">\
+					<i class="fa fa-refresh"></i></span>');
+					/* View Data if not expired */
+					if (sData >= 60) {
+						var e = $('<span data-placement="top" data-toggle="tooltip" \
+						data-rel="tooltip" data-original-title="Results Expired" type="button" \
+						title="Stored Results Expired" style="margin: 2px; padding: 0px 2px;">\
+					<i class="fa fa-warning"></i></span>');
+					}
+					else {
+						var e = $('<span data-placement="top" data-toggle="tooltip" \
+						data-rel="tooltip" data-original-title="View Stored Results" type="button" \
+						title="View Stored Results" style="margin: 2px; padding: 0px 2px;">\
+					<i class="fa fa-eye"></i></span>');
+					}
 
-		$(document).ready(function () {
-
-			var table = '{{table}}';
-			var user_id = '{{user_id}}';
-			var columns = {{columns | safe}};
-			var numCols = columns.length;
-			var headerCols = {{headerCols | safe}};
-			var table = $('#resultsViewer').dataTable({
-				"dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
-				"iDisplayLength": 15,
-				"tableTools": {"sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf"},
-				"processing": true,
-				"serverSide": true,
-				"ajax": {
-					'url': "/../getServersideResultsdb",
-					'type': 'GET',
-					"data": {"table": table, "user_id": user_id}
-				},
-				"columns": columns,
-				"aoColumnDefs": [{ 		// Column/cell options for the data table
-					"aTargets": [0],	// Only affect the first column
-					"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+					//// DELETE RESULT ////
+					//
+					b.tooltip();
+					b.click(function () {
 						var cellData = oData[5];
-						/* Delete Button */
-						var b = $('<span data-placement="top" data-toggle="tooltip" \
-						data-rel="tooltip" data-original-title="Delete Result" type="button" title="Delete this Result"\
-						style="margin: 2px; padding: 0px 2px;">\
-						<i class="fa fa-trash-o"></i></span>');
-						/* Re-Run Button */
-						var d = $('<span data-placement="top" data-toggle="tooltip" \
-						data-rel="tooltip" data-original-title="Re-run Result" type="button" title="Re-Run this Result"\
-						style="margin: 2px; padding: 0px 2px;">\
-						<i class="fa fa-refresh"></i></span>');
-						/* View Data if not expired */
-						if (sData >= 60) {
-							var e = $('<span data-placement="top" data-toggle="tooltip" \
-							data-rel="tooltip" data-original-title="Results Expired" type="button" \
-							title="Stored Results Expired" style="margin: 2px; padding: 0px 2px;">\
-						<i class="fa fa-warning"></i></span>');
-						}
-						else {
-							var e = $('<span data-placement="top" data-toggle="tooltip" \
-							data-rel="tooltip" data-original-title="View Stored Results" type="button" \
-							title="View Stored Results" style="margin: 2px; padding: 0px 2px;">\
-						<i class="fa fa-eye"></i></span>');
-						}
 
-						//// DELETE RESULT ////
-						//
-						b.tooltip();
-						b.click(function () {
-							var cellData = oData[5];
+						$('#delModal').modal({
+							keyboard: true
+						});
 
-							$('#delModal').modal({
-								keyboard: true
+						$('#confirmDelete').on('click', function (e) {
+							$.ajax({
+								type: "GET",
+								url: "../deleteResults",
+								data: {"runHash": cellData, "user_id": user_id},
+								success: function (data) {
+									table.fnClearTable(0);
+									table.fnDraw();
+								}
 							});
+						});
+					});
 
-							$('#confirmDelete').on('click', function (e) {
-								$.ajax({
-									type: "GET",
-									url: "../deleteResults",
-									data: {"runHash": cellData, "user_id": user_id},
-									success: function (data) {
-										table.fnClearTable(0);
-										table.fnDraw();
+					//// RE-RUN RESULTS ////
+					//
+					d.tooltip();
+					d.click(function () {
+						var runhash = oData[5];
+						var url = '/reruntool.json';
+						var data = {
+							'runHash': runhash, 
+							'user_id': user_id
+						};
+
+						$.get(url, data).done(function(data) {
+
+							data = JSON.parse(data);
+							// Alter the data a bit so it can be handled by
+							// the tool routes without additional
+							// modifications to the server code
+							var form = data['parameters'];
+							var genesets = data['gs_ids'].join(' ');
+							form['genesets'] = genesets;
+
+							// This is ugly but easy...
+							if (data['tool'] === 'ABBA Gene-Centered Search')
+								$.redirectPost('/run-abba.html', form);
+							if (data['tool'] === 'Combine')
+								$.redirectPost('/run-combine.html', form);
+							if (data['tool'] === 'Clustering')
+								$.redirectPost('/JaccardClustering.html', form);
+							if (data['tool'] === 'GeneSet Graph')
+								$.redirectPost('/run-geneset-viewer.html', form);
+							if (data['tool'] === 'HiSim Graph')
+								$.redirectPost('/run-phenome-map.html', form);
+							if (data['tool'] === 'Jaccard Similarity')
+								$.redirectPost('/run-jaccard-similarity.html', form);
+						});
+					});
+
+					//// VIEW STORED RESULTS ////
+					//
+					e.tooltip();
+					e.click(function () {
+						var runhash = oData[5];
+						var checkUrl = '/checkResults.json';
+						var viewUrl = '/viewStoredResults';
+						var data = {
+							'runHash': oData[5]
+						};
+
+						// Check to see if the results exist in the results
+						// directory--we don't want to view null results
+						$.get(checkUrl, data).done(function(data) {
+
+							data = JSON.parse(data);
+
+							if (data.exists) {
+
+								// Flask will return a URL to the stored result
+								// which must then be used to redirect via js.
+								// Since we're using AJAX to retrieve stored
+								// results, the browser won't honor redirects
+								// from flask. 
+								$.get(viewUrl, {
+
+									'runHash': runhash,
+									'user_id': user_id
+
+								}).done(function(reUrl) {
+										
+									if (reUrl) {
+										window.location.replace(reUrl);
+
+									} else {
+										$('#lolno-result').show();
+										$('#lolno-button').show();
 									}
 								});
-							});
+
+							} else {
+
+								$('#lolno-result').show();
+								$('#lolno-button').show();
+							}
 						});
 
-						//// RE-RUN RESULTS ////
-						//
-						d.tooltip();
-						d.click(function () {
-							var runhash = oData[5];
-							var url = '/reruntool.json';
-							var data = {
-								'runHash': runhash, 
-								'user_id': user_id
-							};
+						return true;
+					});
 
-							$.get(url, data).done(function(data) {
+					$(nTd).empty();
+					$(nTd).append(b).append(d).append(e);
+				}
+			},
+				{
+					"aTargets": [5],
+					"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+						if (sData == '') {
+							$(nTd).empty();
+							$(nTd).append('<span class="badge badge-danger">No Results</span>');
+						}
+					}
+				},
+				{
+					"aTargets": [1],
+					"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+						if (sData != null) {
+							c = $('<span data-placement="top" \
+							data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
+							title="Edit Name" style="margin: 2px; padding: 0px 2px;"> \
+							<i class="fa fa-edit"></i></span>');
+							c.tooltip();
+							c.click(function () {
+								var cellData = oData[5];
 
-								data = JSON.parse(data);
-								// Alter the data a bit so it can be handled by
-								// the tool routes without additional
-								// modifications to the server code
-								var form = data['parameters'];
-								var genesets = data['gs_ids'].join(' ');
-								form['genesets'] = genesets;
+								$('#editModal').modal({
+									keyboard: true
+								});
+								$('#editSubmit').on('click', function (e) {
 
-								// This is ugly but easy...
-								if (data['tool'] === 'ABBA Gene-Centered Search')
-									$.redirectPost('/run-abba.html', form);
-								if (data['tool'] === 'Combine')
-									$.redirectPost('/run-combine.html', form);
-								if (data['tool'] === 'Clustering')
-									$.redirectPost('/JaccardClustering.html', form);
-								if (data['tool'] === 'GeneSet Graph')
-									$.redirectPost('/run-geneset-viewer.html', form);
-								if (data['tool'] === 'HiSim Graph')
-									$.redirectPost('/run-phenome-map.html', form);
-								if (data['tool'] === 'Jaccard Similarity')
-									$.redirectPost('/run-jaccard-similarity.html', form);
-							});
-						});
-
-						//// VIEW STORED RESULTS ////
-						//
-						e.tooltip();
-						e.click(function () {
-							var runhash = oData[5];
-							var check_url = '/checkResults.json';
-							var view_url = '/viewStoredResults';
-							var data = {
-								'runHash': oData[5]
-							};
-							//var serial = 'runHash=' + runhash;
-							//serial += '&user_id=' + user_id;
-                            console.log('checking results');
-
-							// Check to see if the results exist in the results
-							// directory--we don't want to view null results
-							$.get(check_url, data).done(function(data) {
-
-                                console.log('checked');
-                                console.log(data);
-								data = JSON.parse(data);
-
-								if (data.exists) {
-
-									// Flask will return a URL to the stored 
-									// result which must then be used to 
-									// redirect via js. Since we're using AJAX
-									// to retrieve stored results, the browser
-									// won't honor redirects from flask.
-									$.get('/viewStoredResults', {
-
-										'runHash': runhash,
-										'user_id': user_id
-
-									}).done(function(reUrl) {
-											
-										if (reUrl) {
-											window.location.replace(reUrl);
-
-										} else {
-											$('#lolno-result').show();
-											$('#lolno-button').show();
+									var editName = $('#resultName').val();
+									$.ajax({
+										type: "GET",
+										url: "../editResults",
+										data: {
+											"runHash": cellData,
+											"user_id": user_id,
+											"editName": editName
+										},
+										success: function (data) {
+											cellData = undefined;
+											table.fnClearTable(0);
+											table.fnDraw();
 										}
 									});
 
-								} else {
-
-									$('#lolno-result').show();
-									$('#lolno-button').show();
-								}
-							});
-
-							return true;
-						});
-
-						$(nTd).empty();
-						$(nTd).append(b).append(d).append(e);
-					}
-				},
-					{
-						"aTargets": [5],
-						"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-							if (sData == '') {
-								$(nTd).empty();
-								$(nTd).append('<span class="badge badge-danger">No Results</span>');
-							}
-						}
-					},
-					{
-						"aTargets": [1],
-						"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-							if (sData != null) {
-								c = $('<span data-placement="top" \
-								data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
-								title="Edit Name" style="margin: 2px; padding: 0px 2px;"> \
-								<i class="fa fa-edit"></i></span>');
-								c.tooltip();
-								c.click(function () {
-									var cellData = oData[5];
-
-									$('#editModal').modal({
-										keyboard: true
-									});
-									$('#editSubmit').on('click', function (e) {
-
-										var editName = $('#resultName').val();
-										$.ajax({
-											type: "GET",
-											url: "../editResults",
-											data: {
-												"runHash": cellData,
-												"user_id": user_id,
-												"editName": editName
-											},
-											success: function (data) {
-												cellData = undefined;
-												table.fnClearTable(0);
-												table.fnDraw();
-											}
-										});
-
-									});
 								});
-								$(nTd).empty();
-								$(nTd).append(c);
-								if (sData.length > 15) {
-									var modName = sData.substring(0, 15);
-									d = $('<span data-placement="top" \
-								data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
-								title="' + sData + '" style="margin: 2px; padding: 0px 2px;"> \
-								' + modName + '</span>');
-									d.tooltip();
-									$(nTd).append(d);
-									$(nTd).append('...');
-									//$(nTd).popover({
-									//    container: 'body',
-									//    placement: 'right', // top, bottom, left or right
-									//    title : 'Result Name',
-									//    html: 'true',
-									//    content : '<div id="popOverBox">' + sData + '</div>'
-									//    });
-
-								}
-								else if (sData.length == 0) {
-									$(nTd).append('<span class="badge badge-info">No Name</span>');
-								}
-								else {
-									$(nTd).append(sData);
-								}
+							});
+							$(nTd).empty();
+							$(nTd).append(c);
+							if (sData.length > 15) {
+								var modName = sData.substring(0, 15);
+								d = $('<span data-placement="top" \
+							data-toggle="tooltip" data-rel="tooltip" data-original-total="Edit" \
+							title="' + sData + '" style="margin: 2px; padding: 0px 2px;"> \
+							' + modName + '</span>');
+								d.tooltip();
+								$(nTd).append(d);
+								$(nTd).append('...');
+								//$(nTd).popover({
+								//    container: 'body',
+								//    placement: 'right', // top, bottom, left or right
+								//    title : 'Result Name',
+								//    html: 'true',
+								//    content : '<div id="popOverBox">' + sData + '</div>'
+								//    });
 
 							}
-						}
-					}]
-			});
+							else if (sData.length == 0) {
+								$(nTd).append('<span class="badge badge-info">No Name</span>');
+							}
+							else {
+								$(nTd).append(sData);
+							}
 
+						}
+					}
+				}]
 		});
 
-	</script>
+	});
 
-        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+</script>
 
-			<div class="alert alert-danger fade in" id="lolno-result"
-				 style="display: none;">
+	<div id="maindiv" xmlns="http://www.w3.org/1999/html">
 
-				<button type="button" class="close" id="lolno-button"
-						data-hide="alert" aria-hidden="true">
-					x
-				</button>
+		<div class="alert alert-danger fade in" id="lolno-result"
+			 style="display: none;">
 
-				Looks like the cached copy of your results no longer exists.
-				Try re-running the result.
+			<button type="button" class="close" id="lolno-button"
+					data-hide="alert" aria-hidden="true">
+				x
+			</button>
+
+			Looks like the cached copy of your results no longer exists.
+			Try re-running the result.
+		</div>
+
+		<p>
+
+		<div class="panel panel-default panel-heading bg-gray-light">
+			<h3 class="panel-title"><strong>Results </strong> management</h3>
+		</div>
+
+		<div class="panel panel-default">
+			<div class="row">
+				<div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
+
+					<table id="resultsViewer"
+						   class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
+
+						<thead>
+						<tr>
+							{% for col in headerCols %}
+								<th style="text-align: center">{{ col.capitalize() }}</th>
+							{% endfor %}
+						</tr>
+						</thead>
+						<tfoot>
+						<tr>
+							{% for col in headerCols %}
+								<th style="text-align: center">{{ col.capitalize() }}</th>
+							{% endfor %}
+						</tr>
+						</tfoot>
+					</table>
+
+				</div>
 			</div>
+		</div>
 
-            <p>
-
-            <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>Results </strong> management</h3>
-            </div>
-
-            <div class="panel panel-default">
-                <div class="row">
-                    <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
-
-                        <table id="resultsViewer"
-                               class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
-
-                            <thead>
-                            <tr>
-                                {% for col in headerCols %}
-                                    <th style="text-align: center">{{ col.capitalize() }}</th>
-                                {% endfor %}
-                            </tr>
-                            </thead>
-                            <tfoot>
-                            <tr>
-                                {% for col in headerCols %}
-                                    <th style="text-align: center">{{ col.capitalize() }}</th>
-                                {% endfor %}
-                            </tr>
-                            </tfoot>
-                        </table>
-
-                    </div>
-                </div>
-            </div>
-
-        </div>
+	</div>
 
 
-        {% include 'modal/deleteResult.html' %}
+	{% include 'modal/deleteResult.html' %}
 
-        {% include 'modal/editResultName.html' %}
+	{% include 'modal/editResultName.html' %}
 
-
-
-
-
-    {% endblock %}
-
+{% endblock %}
 
 {% endif %}
 

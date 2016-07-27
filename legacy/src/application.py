@@ -878,7 +878,7 @@ def viewStoredResults_by_runhash():
     Called by an AJAX request from /results when the user wants to view a saved
     tool result. Client side code ensures the result already exists on the
     server. This function retrieves the proper result URL and sends it back to
-    the client for redirection
+    the client for redirection.
 
     arguments (as part of the GET request)
         runHash: the unique run hash string for this tool run
