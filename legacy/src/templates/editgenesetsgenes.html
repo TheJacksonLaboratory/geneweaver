@@ -87,9 +87,10 @@
 
     {# Gene List Information #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h2 class="panel-title">
-            Gene List <span id="clickableGenes" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
-        </h2>
+        <h3 class="panel-title">
+            Gene List &bull; {{ geneset.geneset_values|length }} Genes
+			<span id="clickableGenes" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
+        </h3>
     </div>
 
     <div class="row" id="result"></div>
