@@ -924,7 +924,7 @@ def viewStoredResults_by_runhash():
 
     else:
         ## Something bad has happened
-        pass
+        return ''
 
 
 @app.route('/reruntool.json', methods=['POST', 'GET'])
