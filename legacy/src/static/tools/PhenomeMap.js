@@ -257,6 +257,10 @@ function update() {
     //circle within the single node group:
     nodeEnter.append('circle')
         .attr('r', 4.5);
+    //nodeEnter.append('rect')
+    //    .attr('width', 200)
+    //    .attr('height', 100)
+    //    ;
 
     //Set link color based on search results
     g.link.style('stroke', function (d) {
@@ -478,8 +482,8 @@ function initializeLayout(nodes) {
         }
 
         previous[nodes[i].depth] = nodes[i].id;
-        nodes[i].x = nodes[i].depth * 100 + 100;
-        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+        nodes[i].y = nodes[i].depth * 100 + 100;
+        //nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
 
         nextdepths[nodes[i].depth]++;
     }
@@ -603,7 +607,8 @@ $("#search").on("select2-selecting", function (e) {
 function tick() {
     g.node.attr("transform", function (d) {
         //collide(d);
-        d.x = d.depth * 200 + 100;
+        //d.x = d.depth * 200 + 100;
+        d.y = d.depth * 100 + 100;
         return ("translate(" + d.x + "," + d.y + ")");
     });
 
