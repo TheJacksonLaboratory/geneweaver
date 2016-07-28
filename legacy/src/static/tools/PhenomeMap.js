@@ -482,8 +482,8 @@ function initializeLayout(nodes) {
         }
 
         previous[nodes[i].depth] = nodes[i].id;
-        nodes[i].y = nodes[i].depth * 100 + 100;
-        //nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
+        nodes[i].x = nodes[i].depth * 100 + 100;
+        nodes[i].y = nextdepths[nodes[i].depth] * 20 + 100;
 
         nextdepths[nodes[i].depth]++;
     }
@@ -607,8 +607,8 @@ $("#search").on("select2-selecting", function (e) {
 function tick() {
     g.node.attr("transform", function (d) {
         //collide(d);
-        //d.x = d.depth * 200 + 100;
-        d.y = d.depth * 100 + 100;
+        d.x = d.depth * 200 + 100;
+        //d.y = d.depth * 100 + 100;
         return ("translate(" + d.x + "," + d.y + ")");
     });
 
