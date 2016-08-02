@@ -31,8 +31,6 @@ import urllib2 as url2
 import config
 
 
-# import geneweaverdb
-
 class TheDB:
     """ Class for interfacing with the DB. Attempts to create a connection
         during object init. Only one of these objects should be instantiated,
@@ -1410,6 +1408,7 @@ def buGenesets(fp, usr_id=0, cur_id=5):
         genesets = b[0]
         noncrits = b[1]
 
+    print '\n************* %i of GENESETS created *************\n' % len(genesets)
     for gs in genesets:
         total, gsverr, output_gs = buGenesetValues(gs)
 

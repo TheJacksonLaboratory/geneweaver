@@ -6,11 +6,11 @@ import config
 import psycopg2
 import requests
 import json
-import progressbar
+# import progressbar  # TESTING
 
 
 class Uploader:
-	def __init__(self, parent, usr_id=0):
+	def __init__(self, parent):  # EDIT: remove usr_id from params - inherit
 
 		# query fields
 		self.connection = None
@@ -21,8 +21,8 @@ class Uploader:
 
 		# inherited
 		self.parent = parent
-		self.err = parent.errors
-		self.publication = parent.publication
+		self.err = parent.errors  # opt.
+		self.user = parent.user_id
 
 	def launch_connection(self):
 		""" Launches psql connection to GeneWeaver database.
@@ -311,21 +311,21 @@ class Uploader:
 		res = requests.get(url).content
 		temp = json.loads(res)['result']
 
-		self.publication['pub_id'] = None
-		self.publication['pub_pubmed'] = str(pmid)
-		self.publication['pub_pages'] = temp[self.publication['pub_pubmed']]['pages']
-		self.publication['pub_title'] = temp[self.publication['pub_pubmed']]['title']
-		self.publication['pub_journal'] = temp[self.publication['pub_pubmed']]['fulljournalname']
-		self.publication['pub_volume'] = temp[self.publication['pub_pubmed']]['volume']
+		self.parent.publication['pub_id'] = None
+		self.parent.publication['pub_pubmed'] = str(pmid)
+		self.parent.publication['pub_pages'] = temp[self.parent.publication['pub_pubmed']]['pages']
+		self.parent.publication['pub_title'] = temp[self.parent.publication['pub_pubmed']]['title']
+		self.parent.publication['pub_journal'] = temp[self.parent.publication['pub_pubmed']]['fulljournalname']
+		self.parent.publication['pub_volume'] = temp[self.parent.publication['pub_pubmed']]['volume']
 
 		authors = ""  # will hold a CSV list
-		for auth in temp[self.publication['pub_pubmed']]['authors']:
+		for auth in temp[self.parent.publication['pub_pubmed']]['authors']:
 			authors += auth['name'] + ', '
-		self.publication['pub_authors'] = authors[:-2]
+		self.parent.publication['pub_authors'] = authors[:-2]
 
-		if 'Has Abstract' in temp[self.publication['pub_pubmed']]['attributes']:
+		if 'Has Abstract' in temp[self.parent.publication['pub_pubmed']]['attributes']:
 			res2 = requests.get(url_abs).content.split('\n\n')[-3]
-			self.publication['pub_abstract'] = res2
+			self.parent.publication['pub_abstract'] = res2
 		else:
 			err = 'Warning: The PubMed info retrieved from NCBI was incomplete. No ' \
 			      'abstract data will be attributed to this GeneSet.'
@@ -334,30 +334,30 @@ class Uploader:
 	def insert_publication(self):
 		print 'handling publication insertion...'
 
-		if self.publication:
+		if self.parent.publication:
 			# set up query
 			query = 'INSERT INTO production.publication ' \
 			        '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
 			        'pub_volume, pub_pages, pub_pubmed) ' \
 			        'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
 
-			vals = [self.publication['pub_authors'], self.publication['pub_title'],
-			        self.publication['pub_abstract'], self.publication['pub_journal'],
-			        self.publication['pub_volume'], self.publication['pub_pages'],
-			        self.publication['pub_pubmed']]
+			vals = [self.parent.publication['pub_authors'], self.parent.publication['pub_title'],
+			        self.parent.publication['pub_abstract'], self.parent.publication['pub_journal'],
+			        self.parent.publication['pub_volume'], self.parent.publication['pub_pages'],
+			        self.parent.publication['pub_pubmed']]
 
 			# execute query
 			self.cur.execute(query, vals)
 			self.commit()
 
 			res = self.cur.fetchall()[0][0]
-			self.publication['pub_id'] = str(res)
+			self.parent.publication['pub_id'] = str(res)
 
-	def insert_file(self, count, name, gs_values):
+	def insert_file(self, geneset):
 		print "inserting file..."
 		# gather contents
 		contents = ''
-		for gene, score in gs_values.iteritems():
+		for gene, score in geneset.geneset_values.iteritems():
 			curline = str(gene) + '\t' + str(score) + '\n'
 			contents += curline
 
@@ -367,7 +367,7 @@ class Uploader:
 		        'file_created, file_changes) ' \
 		        'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
 
-		vals = [count, name, contents, '']
+		vals = [geneset.count, geneset.name, contents, '']
 
 		# execute query
 		self.cur.execute(query, vals)
@@ -375,9 +375,7 @@ class Uploader:
 
 		return self.cur.fetchall()[0][0]
 
-	def insert_geneset(self, file_id, usr_id, cur_id, sp_id, score_type, thresh,
-	                   count, gs_gene_id_type, name, abbrev_name, description,
-	                   group, pub_id):
+	def insert_geneset(self, geneset):
 		print 'inserting geneset...'
 
 		# set up query
@@ -390,9 +388,10 @@ class Uploader:
 		        'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
 		        '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
 
-		vals = [file_id, usr_id, cur_id, sp_id, score_type, thresh, count,
-		        gs_gene_id_type, name, abbrev_name, description, group,
-		        pub_id]
+		vals = [geneset.file_id, geneset.batch.user_id, geneset.batch.cur_id,
+		        geneset.species, geneset.score_type, geneset.threshold, geneset.count,
+		        geneset.gs_gene_id_type, geneset.name, geneset.abbrev_name,
+		        geneset.description, geneset.group, geneset.batch.publication['pub_id']]
 
 		# execute query
 		self.cur.execute(query, vals)
@@ -400,7 +399,7 @@ class Uploader:
 
 		return self.cur.fetchall()[0][0]
 
-	def insert_geneset_values(self, gs_values, thresh, gs_id, count, header2ode):
+	def insert_geneset_values(self, geneset):
 		print 'inserting geneset values...'
 		# set up query
 		query = 'INSERT INTO extsrc.geneset_value ' \
@@ -409,65 +408,47 @@ class Uploader:
 		        'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
 
 		# TESTING / UI
-		bar = progressbar.ProgressBar(maxval=len(gs_values)).start()
-		counter = 0  # TESTING
+		# bar = progressbar.ProgressBar(maxval=len(geneset.geneset_values)).start()
+		# counter = 0  # TESTING
 
 		# iterate through geneset_values
-		for gene_id, value in gs_values.iteritems():
+		for gene_id, value in geneset.geneset_values.iteritems():
 			# find the right ode_gene_id associated w/ gene
-			ode_gene = header2ode[gene_id]
+			ode_gene = geneset.ode_info[gene_id]
 
 			# check to see if value is within the threshold
-			if float(value) <= float(thresh):
+			if float(value) <= float(geneset.threshold):
 				gsv_in_thresh = True
 			else:
 				gsv_in_thresh = False
 
 			# update gsv_source_list + gsv_value_list after this
-			search_vals = [gs_id, ode_gene, value, [], [], gsv_in_thresh]
+			search_vals = [geneset.gs_id, ode_gene, value, [], [], gsv_in_thresh]
 			self.cur.execute(query, search_vals)
 			self.commit()
-			counter += 1  # TESTING
-			bar.update(counter)  # TESTING
-		bar.finish()  # TESTING
+
+			# counter += 1  # TESTING
+			# bar.update(counter)  # TESTING
+
+		# bar.finish()  # TESTING
 
 		# update the value count for geneset
-		self.modify_geneset_count(gs_id, count)
+		self.modify_geneset_count(geneset.gs_id, geneset.count)
 
-	def modify_gsv_lists(self, gsv_source_list, gsv_value_list, gs_id):
+	def modify_gsv_lists(self, geneset):
 		print 'updating gsv lists...'
-
-		# UPDATE GSV_SOURCE_LIST
+		# set up query
 		query = 'UPDATE extsrc.geneset_value ' \
-		        'SET gsv_source_list = %s ' \
+		        'SET (gsv_source_list, gsv_value_list, ' \
+		        'gsv_date) = (%s, %s, NOW()) ' \
 		        'WHERE gs_id = %s;'
-		vals = [gsv_source_list, gs_id]
+
+		vals = [geneset.geneset_values.keys(), geneset.geneset_values.values(),
+		        geneset.gs_id]
+
+		# execute + commit query
 		self.cur.execute(query, vals)
 		self.commit()
-
-		# UPDATE GSV_VALUE_LIST
-		query = 'UPDATE extsrc.geneset_value ' \
-		        'SET gsv_value_list = %s ' \
-		        'WHERE gs_id = %s;'
-		vals = [gsv_value_list, gs_id]
-		self.cur.execute(query, vals)
-		self.commit()
-
-		# UPDATE GSV_DATE
-		query = 'UPDATE extsrc.geneset_value ' \
-		        'SET gsv_date = NOW() ' \
-		        'WHERE gs_id = %s;'
-		vals = [gs_id]
-		self.cur.execute(query, vals)
-		self.commit()
-
-		print '\n try alternative method for modify_gsv_lists! \n'
-
-	# EDIT: eventually try instead ->
-	# query = 'UPDATE extsrc.geneset_value ' \
-	#         'SET (gsv_source_list, gsv_value_list, ' \
-	#         'gsv_date) = (%s, %s, NOW()) ' \
-	#         'WHERE gs_id = %s;'
 
 	def modify_geneset_count(self, gs_id, count):
 		print 'modifying geneset count...'
@@ -481,11 +462,3 @@ class Uploader:
 		# execute + commit query
 		self.cur.execute(query, vals)
 		self.commit()
-
-
-if __name__ == '__main__':
-	# TESTING
-	u = Uploader()
-
-# WORKING
-# test_dictionaries()

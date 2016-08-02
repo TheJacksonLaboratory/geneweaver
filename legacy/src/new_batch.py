@@ -2,17 +2,9 @@
 # date: 6/10/16
 # version: 1.1
 
-import config
-import psycopg2
-import requests
-import json
 import sys
-import progressbar
-import error_handler as e
 import uploader as u
 
-
-# allow unique user input? keep it private always?
 
 class Batch:
 	def __init__(self, input_filepath=None, usr_id=0):
@@ -25,7 +17,7 @@ class Batch:
 		self.file_toString = None  # concatenated version of string input
 
 		# error handling
-		self.errors = e.ErrorHandler()
+		self.errors = ErrorHandler()
 
 		# database connection fields
 		self.gene_types = {}  # {gdb_name: gdb_id,}
@@ -47,7 +39,7 @@ class Batch:
 		self.microarray = None
 
 		# launch connection to GeneWeaver database
-		self.uploader = u.Uploader(self, usr_id=0)
+		self.uploader = u.Uploader(self)
 		self.uploader.launch_connection()
 		self.populate_dictionaries()
 
@@ -64,16 +56,18 @@ class Batch:
 		if self.microarray:
 			self.handle_platform()
 			self.uploader.insert_publication()
+			print '\n*************** %i of GeneSets created ****************\n' % len(self.genesets)  # TESTING
 			for gs_name, gs in self.genesets.iteritems():
 				# TESTING PURPOSES:
-				print
-				print gs_name
-				print 'of length:', len(gs.geneset_values)
-				print
+				# print
+				# print gs_name
+				# print 'of length:', len(gs.geneset_values)
+				# print
 				gs.upload()
 		else:
 			self.handle_symbols()
 			self.uploader.insert_publication()
+			print '\n*************** %i of GeneSets created ****************\n' % len(self.genesets)  # TESTING
 			for gs_name, gs in self.genesets.iteritems():
 				gs.upload()
 
@@ -150,14 +144,14 @@ class Batch:
 			# print ode_headers
 
 			# TESTING
-			if len(ode_results) != len(prb_results):
-				print 'somethings gone wrong at the end of handle_platforms...'
-				exit()
+			# if len(ode_results) != len(prb_results):
+			# 	print 'somethings gone wrong at the end of handle_platforms...'
+			# 	exit()
 
 			# next, update geneset
 			adjusted_headers = list(set(adjusted_headers) - set(ode_headers))
 			geneset.update_geneset_values(adjusted_headers)
-			geneset.update_microInfo(prb_map=prb_results, ode_map=ode_results)
+			geneset.update_ode_map(ode_map=ode_results)
 
 	def handle_symbols(self):
 		"""Handles symbol condition.
@@ -200,8 +194,7 @@ class Batch:
 					if poss_id not in results.values():
 						# look up in query_refs
 						next_poss[poss_ref] = query_refs[poss_id]
-						print '\nEDIT: remaining possibilities in handle_symbols (ask Tim)\n'
-						exit()
+						break
 
 			# go through the x_results (those found first time)
 			for xref, xids in x_results.iteritems():
@@ -217,17 +210,10 @@ class Batch:
 				      "%s" % (set(all_results.keys()) - set(results.keys()))
 				self.errors.set_errors(critical=err)
 
-			print results
-
-			print 'made it to the end'
-			exit()
 			# next, update genesets
 			relevant_headers = results.keys()
-			# must preserve original header list for update_geneset_values to work
-			# if diff for any reason, will need to call 'set_geneset_values' instead
 			geneset.update_geneset_values(relevant_headers)
-		# geneset.update_symbolInfo(ode_map=)
-		# need header -> ode
+			geneset.update_ode_map(ode_map=results)
 
 	def populate_dictionaries(self):
 		""" Queries GeneWeaver, populating globally stored dictionaries with
@@ -324,17 +310,17 @@ class Batch:
 		# see which GeneSet header label comes first
 		len_colon = 0
 		len_equiv = 0
-		order = {}  # TESTING
+		# order = {}  # TESTING
 		first_loc = []
 		for x in range(len(colon) - 1):  # last items should be equal, so skip
 			len_colon += len(colon[x])
 			len_equiv += len(equiv[x])
 			# print len_colon, len_equiv
 			if len_colon < len_equiv:
-				order[x] = ':'  # TESTING
+				# order[x] = ':'  # TESTING
 				first_loc.append(len_colon)
 			else:
-				order[x] = '='  # TESTING
+				# order[x] = '='  # TESTING
 				first_loc.append(len_equiv)
 		# print order #  TESTING
 
@@ -507,32 +493,16 @@ class GeneSet:
 		self.count = 0
 		self.gs_id = None
 
-		# platform fields
+		# mapping fields
 		self.prb_info = None
 		self.ode_info = None
 
-		# symbol fields
-		self.header2ode = None  # {gene id (original ref): ode_gene_id, }
-
 	def upload(self):
 		print "initiating upload sequence..."
-		self.file_id = self.uploader.insert_file(count=self.count, name=self.name,
-		                                         gs_values=self.geneset_values)
-
-		self.gs_id = self.uploader.insert_geneset(file_id=self.file_id, usr_id=self.batch.user_id,
-		                                          cur_id=self.batch.cur_id, sp_id=self.species,
-		                                          score_type=self.score_type, thresh=self.threshold,
-		                                          count=self.count, gs_gene_id_type=self.gs_gene_id_type,
-		                                          name=self.name, abbrev_name=self.abbrev_name,
-		                                          description=self.description, group=self.group,
-		                                          pub_id=self.batch.publication['pub_id'])
-
-		self.uploader.insert_geneset_values(gs_values=self.geneset_values, thresh=self.threshold,
-		                                    gs_id=self.gs_id, count=self.count, header2ode=self.header2ode)
-
-		self.uploader.modify_gsv_lists(gsv_source_list=self.geneset_values.keys(),
-		                               gsv_value_list=self.geneset_values.values(),
-		                               gs_id=self.gs_id)
+		self.file_id = self.uploader.insert_file(self)
+		self.gs_id = self.uploader.insert_geneset(self)
+		self.uploader.insert_geneset_values(self)
+		self.uploader.modify_gsv_lists(self)
 
 	# -----------------------MUTATORS--------------------------------------------#
 	def set_genesetValues(self, gsv_values):
@@ -540,7 +510,7 @@ class GeneSet:
 		if type(gsv_values) == dict:
 			self.geneset_values = gsv_values
 		else:
-			err = 'Error: Expected to recieve a dictionary of GeneSet values in ' \
+			err = 'Error: Expected to receive a dictionary of GeneSet values in ' \
 			      'UploadGeneset.set_genesetValues() where "{gene id: gene value, }".'
 			self.batch.set_errors(critical=err)
 
@@ -564,55 +534,91 @@ class GeneSet:
 		print 'updating geneset values...'
 		res = {}
 		for header in headers:
-			res[header] = self.geneset_values[header]
+			res[header] = float(self.geneset_values[header])
 		self.geneset_values = res
 
 		# update global count to reflect changes
 		self.update_count()
 
-	def update_microInfo(self, prb_map, ode_map):
-		print 'updating platform info...'
-		# prb_map {prb_ref_id: prb_id}
-		# ode_map {prb_ref_id: ode_gene_id}
-
-		self.prb_info = prb_map
+	def update_ode_map(self, ode_map):
+		print 'updating ode mapping...'
 		self.ode_info = ode_map
-
-	def update_symbolInfo(self, ode_map):
-		# ode_map expects {ref_id: ode_gene_id, }
-		print 'updating gsv lists...'
-		self.header2ode = ode_map
 
 	def update_count(self):
 		self.count = len(self.geneset_values)
 
-	def geneweaver_setup(self):
-		print "will identify the preliminary features of the GeneWeaver query, + populate globals..."
 
-	def create_genes(self):
-		print "will generate new UploadGene objs..."
-		# if handling platforms
-		if self.batch.microarray:
-			print self.ode_info
-			print self.prb_info
-			print self.geneset_values
+class ErrorHandler:
+	def __init__(self):
+		# error handling fields
+		self.crit = []
+		self.noncrit = []
 
-		# if handling symbols
+	def get_errors(self, critical=False, noncritical=False):
+		""" Returns error messages. If no additional parameters are filled, or if both
+			'crit' and 'noncrit' are set to 'True', both critical and
+			noncritical error messages are returned for the user.
 
-		# if self.geneset_values:
-		# 	for gene_id, value in self.geneset_values.iteritems():
-		# 		# create UploadGene obj, adding these raw data
-		# 		g = UploadGene(self)
-		# 		g.set_rawID(gene_id)
-		# 		g.set_rawVal(value)
-		# 		g.setup()
-		#
-		# 		# store UploadGene obj in global dict
-		# 		self.genes[gene_id] = g
-		# else:
-		# 	err = "Error: Unable to create UploadGene objs in UploadGeneSet, as there " \
-		# 	      "are no values in 'self.geneset_values'."
-		# 	self.batch.set_errors(critical=err)
+			Otherwise, if either 'crit' or 'noncrit' are set to 'True', only that
+			respective error type will be returned.
+
+		Parameters
+		----------
+		crit (optional): boolean
+		noncrit (optional): boolean
+
+		Returns
+		-------
+		critical (optional): list of critical error messages generated [self.crit]
+		noncritical (optional): list of noncritical error messages generated [self.noncrit]
+		"""
+		if critical and noncritical:
+			return self.crit, self.noncrit
+		elif critical:
+			return self.crit
+		elif noncritical:
+			return self.noncrit
+		else:
+			return self.crit, self.noncrit
+
+	def set_errors(self, critical=None, noncritical=None):
+		""" Sets error messages, printing confirmation when new errors are added. Parameters
+			'crit' and 'noncrit' can take either a string, appended onto respective global
+			variable, a list or a tuple. In the case that a list or tuple is provided, function
+			iterates through and appends to global error messages accordingly.
+
+		Parameters
+		----------
+		critical: string or list
+		noncritical: string or list
+		"""
+		crit_count = 0
+		noncrit_count = 0
+
+		if type(critical) == (list or tuple):
+			for error in critical:
+				self.crit.append(error)
+				crit_count += 1
+		elif type(critical) == str:
+			self.crit.append(critical)
+			crit_count += 1
+
+		if type(noncritical) == (list or tuple):
+			for n in noncritical:
+				self.noncrit.append(n)
+				noncrit_count += 1
+		elif type(noncritical) == str:
+			self.noncrit.append(noncritical)
+			noncrit_count += 1
+
+		# USER FEEDBACK [uncomment selection]
+		if crit_count:
+			print "Critical error messages added [%i]\n" % crit_count
+			for c in self.crit:
+				print c
+			exit()  # NOTE: might not be the way you want to leave this
+		if noncrit_count:
+			print "Noncritical error messages added [%i]\n" % noncrit_count
 
 
 def test_dictionaries():
@@ -642,10 +648,8 @@ if __name__ == '__main__':
 
 	if len(sys.argv) < 2:
 		print "Usage: python %s <int_range(9)>" % sys.argv[0]
-		print "       where <int_range(9)> specifies an integer" \
+		print "       where <int_range(9)> specifies an integer\n" \
 		      "       between 0-8 [incl.]"
 		exit()
-	test_fileParsing(int(sys.argv[1]))
 
-# WORKING
-# test_dictionaries()
+	test_fileParsing(int(sys.argv[1]))
