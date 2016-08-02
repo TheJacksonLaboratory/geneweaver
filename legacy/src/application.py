@@ -909,6 +909,7 @@ def viewStoredResults_by_runhash():
     ## Should probably do some kind of usr_id check
     runhash = request.args.get('runHash', type=str)
     usr_id = request.args.get('usr_id', type=str)
+    results = geneweaverdb.get_results_by_runhash(runhash)
 
     if results['res_tool'] == 'Jaccard Similarity':
         return flask.url_for(
