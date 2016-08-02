@@ -1876,6 +1876,11 @@ class User:
     def projects(self):
         if self.__projects is None:
             self.__projects = get_all_projects(self.user_id)
+
+        ## Case insensitive sorting otherwise project names with captial
+        ## letters come before those with lowercase. 
+        self.__projects = sorted(self.__projects, key=lambda p: p.name.lower())
+
         return self.__projects
 
     @property
