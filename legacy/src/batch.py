@@ -236,7 +236,7 @@ class Batch:
 
 		# first, detect how many GeneSets we need to create here
 		self.file_toString = ''.join(self.input_file)
-		numGS, gs_locs = self.calc_numGeneSets(merged)
+		numGS, gs_locs = self.calc_numGeneSets(self.file_toString)
 
 		# second, find + assign required header values to global vars
 		currPos = 0
