@@ -460,6 +460,12 @@ class Batch:
 		# pass GeneSet values along to UploadGeneSet obj
 		gs.set_genesetValues(gs_vals)
 
+		print ' \n \n '
+		print vals
+		print len(vals)
+		print type(vals)
+		print ' \n\n'
+
 		# if the score type is Binary, still need to assign a threshold value
 		if self.score_type == '3':
 			self.threshold = str(max(vals))
