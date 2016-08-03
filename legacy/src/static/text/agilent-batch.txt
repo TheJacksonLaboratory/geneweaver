@@ -1,0 +1,22 @@
+## Example batch geneset file
+## Should succeed during upload
+#
+
+! P-value < 0.05
+@ Mus musculus
+% microarray Agilent Mouse GE 4x44K v2
+A Public
+
+#
+## The following lines give the label, name, and description of
+## this set, respectively.
+#
+: MGE4x44K-v2 Test
+= MGE4x44K-v2 Platform Test
++ Testing newly uploaded platforms. Agilent Mouse GE 4x44K v2.
+
+A_55_P2021055	0.01
+A_55_P2097434	0.02
+A_52_P35072	0.0003
+A_52_P584753	0.1
+A_51_P300960	0.002
