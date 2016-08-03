@@ -233,49 +233,46 @@ class Batch:
 		""" Reads in from a source text file, using the location stored in global
             var, 'input_file', + generates objs for data handling.
         """
-		with open(fp, 'r') as file_path:
-			lines = file_path.readlines()
-			self.file_toString = ''.join(lines)
 
-			# first, detect how many GeneSets we need to create here
-			numGS, gs_locs = self.calc_numGeneSets(self.file_toString)
+		# first, detect how many GeneSets we need to create here
+		numGS, gs_locs = self.calc_numGeneSets(self.input_file)
 
-			# second, find + assign required header values to global vars
-			currPos = 0
-			for line in lines:
-				currPos += len(line)
-				if currPos < gs_locs[0]:  # only search the metadata headers
-					stripped = line.strip()
-					if stripped[:1] == '#' or stripped[:2] == '\n' or not stripped:
-						continue
-					elif stripped[:1] == '!':  # score type indicator
-						score = stripped[1:].strip()
-						self.assign_threshVals(score)
-					elif stripped[:1] == '@':  # species type indicator
-						sp = stripped[1:].strip()
-						self.assign_species(sp)
-					elif stripped[:1] == '%':  # geneset gene id type
-						gid = stripped[1:].strip()
-						self.assign_geneType(gid)
-					elif stripped[:2] == 'A ':  # group type
-						grp = stripped[1:].strip()
-						self.assign_groupType(grp)
-					elif stripped[:2] == 'P ':  # pubmed id
-						pub = stripped[1:].strip()
-						self.uploader.search_pubmed(pub)
-				else:
-					break
+		# second, find + assign required header values to global vars
+		currPos = 0
+		for line in self.input_file:
+			currPos += len(line)
+			if currPos < gs_locs[0]:  # only search the metadata headers
+				stripped = line.strip()
+				if stripped[:1] == '#' or stripped[:2] == '\n' or not stripped:
+					continue
+				elif stripped[:1] == '!':  # score type indicator
+					score = stripped[1:].strip()
+					self.assign_threshVals(score)
+				elif stripped[:1] == '@':  # species type indicator
+					sp = stripped[1:].strip()
+					self.assign_species(sp)
+				elif stripped[:1] == '%':  # geneset gene id type
+					gid = stripped[1:].strip()
+					self.assign_geneType(gid)
+				elif stripped[:2] == 'A ':  # group type
+					grp = stripped[1:].strip()
+					self.assign_groupType(grp)
+				elif stripped[:2] == 'P ':  # pubmed id
+					pub = stripped[1:].strip()
+					self.uploader.search_pubmed(pub)
+			else:
+				break
 
-			# third, isolate GeneSet info + create GeneSet objs
-			currGS = 1
-			for x in range(numGS):
-				if currGS != numGS:
-					gs = self.file_toString[gs_locs[x]: gs_locs[x + 1]]
-					self.create_geneset(gs.strip())
-				else:
-					gs = self.file_toString[gs_locs[x]:]
-					self.create_geneset(gs.strip())
-				currGS += 1
+		# third, isolate GeneSet info + create GeneSet objs
+		currGS = 1
+		for x in range(numGS):
+			if currGS != numGS:
+				gs = self.file_toString[gs_locs[x]: gs_locs[x + 1]]
+				self.create_geneset(gs.strip())
+			else:
+				gs = self.file_toString[gs_locs[x]:]
+				self.create_geneset(gs.strip())
+			currGS += 1
 
 		print "handling file parsing + global assignments..."
 
