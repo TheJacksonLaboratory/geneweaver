@@ -233,8 +233,9 @@ class Batch:
 		""" Reads in from a source text file, using the location stored in global
             var, 'input_file', + generates objs for data handling.
         """
+
 		# first, detect how many GeneSets we need to create here
-		merged = ''.join(self.input_file)
+		self.file_toString = ''.join(self.input_file)
 		numGS, gs_locs = self.calc_numGeneSets(merged)
 
 		# second, find + assign required header values to global vars
