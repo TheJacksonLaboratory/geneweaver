@@ -653,4 +653,3 @@ if __name__ == '__main__':
 		exit()
 
 	test_fileParsing(int(sys.argv[1]))
->>>>>>> dev-astrid
