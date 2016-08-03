@@ -50,7 +50,7 @@ class Batch:
 	def run_batch(self):
 		print "initiating upload to GeneWeaver..."
 		# read in the input file
-		self.read_file(self.input_file)  # creates UploadGeneSet objs
+		self.read_file()  # creates UploadGeneSet objs
 
 		# create a new session, depending on handling approach
 		if self.microarray:
@@ -229,7 +229,7 @@ class Batch:
 		# Species Types
 		self.species_types = self.uploader.get_speciesTypes()
 
-	def read_file(self, fp):
+	def read_file(self):
 		""" Reads in from a source text file, using the location stored in global
             var, 'input_file', + generates objs for data handling.
         """
