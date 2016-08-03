@@ -17,7 +17,7 @@ class Uploader:
 		self.cur = None
 
 		# testing fields
-		self.test = True
+		self.test = False
 
 		# inherited
 		self.parent = parent

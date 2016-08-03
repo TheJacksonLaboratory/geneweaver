@@ -83,95 +83,24 @@ def create_batch_geneset():
     user_id = flask.g.user.user_id if 'user' in flask.g else None
 
     if user_id == None:
-        print '1'
         return flask.jsonify({"Error": "You must be signed in to upload a GeneSet."})
 
+    # adding new batch object
+    batchUpload = batch.Batch(batchFile, usr_id=user_id)
 
-    ## Returns a triplet (geneset list, warnings, errors)
-    batchFile = batch.parseBatchFile(batchFile, user_id)
-    batchErrors = ''
-    batchWarns = ''
+    # grab errors / warning
+    batchErrors = '/n'.join(batchUpload.errors.crit)
+    batchWarns = '/n'.join(batchUpload.errors.noncrit)
 
-    #return flask.jsonify({"Error": "Testing."})
-
-    ## Concatenate error/warning messages so we only return a single string
-    for e in batchFile[2]:
-        batchErrors += e
-        batchErrors += '\n'
-
-    ## If there were critical errors, no need to continue on making genesets
-    if batchErrors:
+    # if there were critical errors, no need to continue
+    if batchUpload.errors.crit:
         return flask.jsonify({'error': batchErrors})
 
-    added = []
-    pub = None
-
-    for gs in batchFile[0]:
-        ## If a PMID was provided, we get the info from NCBI
-        if gs['pub_id']:
-            pub = batch.getPubmedInfo(gs['pub_id'])
-            gs['pub_id'] = pub[0]
-
-            ## Non-critical pubmed retrieval errors
-            if pub[1]:
-                batchFile[1].append(pub[1])
-
-            ## New row in the publication table
-            if gs['pub_id']:
-                gs['pub_id'] = batch.db.insertPublication(gs['pub_id'])
-            else:
-                gs['pub_id'] = None  # empty pub
-
-        else:
-            gs['pub_id'] = None  # empty pub
-
-        ## Insert the data into the file table
-        gs['file_id'] = batch.buFile(gs['values'])
-        ## Insert new genesets and geneset_values
-        gs['gs_id'] = batch.db.insertGeneset(gs)
-        gsverr = batch.buGenesetValues(gs)
-
-        ## If no values were uploaded (empty set), return a critical error
-        if not gsverr[0]:
-            ce = ('The GeneSet "%s" has no valid genes/loci and could not be '
-                    'uploaded.\n' % gs['gs_name'])
-
-            return flask.jsonify({'error': ce})
-
-        ## Update gs_count if some geneset_values were found to be invalid
-        if gsverr[0] != len(gs['values']):
-            batch.db.updateGenesetCount(gs['gs_id'], gsverr[0])
-
-        added.append(gs['gs_id'])
-
-        ## Non-critical errors discovered during geneset_value creation
-        if gsverr[1]:
-            batchFile[1].extend(gsverr[1])
-            continue
-
-        with geneweaverdb.PooledCursor() as cursor:
-            if not pub:
-                abstract = ''
-            else:
-                abstract = pub[0]['pub_abstract']
-
-            ## Annotate the geneset using the NCBO/MI services and insert new
-            ## annotations into the DB
-            ann.insert_annotations(cursor, gs['gs_id'], gs['gs_description'], abstract)
-
-    batch.db.commit()
-
-    for w in batchFile[1]:
-        batchWarns += w
-        batchWarns += '\n'
-
+    # if there were warnings, report to the user
     if batchWarns:
-        return flask.jsonify({'genesets': added, 'warn': batchWarns})
-
+        return flask.jsonify({'genesets': batchUpload.genesets.keys(), 'warn': batchWarns})
     else:
-        return flask.jsonify({'genesets': added})
-
-
+        return flask.jsonify({'genesets': batchUpload.genesets.keys()})
 
 
 def tokenize_lines(candidate_sep_regexes, lines):
