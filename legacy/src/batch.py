@@ -1,1515 +1,655 @@
 # file: batch.py
-# desc: Rewrite of the PHP batch geneset upload function.
-# version: 0.3
-# author(s): Erich Baker, Tim Reynolds, Astrid Moore
+# date: 6/10/16
+# version: 1.1
 
-# TODO:
-# 1. The regex taken from the PHP code for effect and correlation
-#   scores doesn't work on all input cases. It breaks for cases such
-#   as "0.75 < Correlation." For almost all cases now though, it works.
-
-# 2. Genesets still need to be associated with a usr_id. This isn't
-# 	done now because there's no point in getting usr_ids offline.
-#   However, one of the cmd line args allows you to specify a usr_id.
-
-# 3. Actually determine gsv_in_threshold insead of just setting it
-#   to be true lol.
-
-# 4. Better messages for duplicate/missing genes and pubmed errors
-#   (i.e. provide the gs_name these failures are associated with).
+import sys
+import uploader as u
 
 
-# multisets because regular sets remove duplicates, requires python 2.7
-from collections import Counter as mset
-from collections import defaultdict as dd
-import datetime
-import json
-import psycopg2
-import random
-import re
-import urllib2 as url2
-import config
+class Batch:
+	def __init__(self, input_filepath=None, usr_id=0):
 
+		self.user_id = usr_id
+		self.cur_id = '1'  # uploaded as a public resource
 
-class TheDB:
-    """ Class for interfacing with the DB. Attempts to create a connection
-        during object init. Only one of these objects should be instantiated,
-        so assigned to a global variable (self.conn).  """
+		# EDIT: DESIGN DECISION - for now, pretend that input file is req
+		self.input_file = input_filepath
+		self.file_toString = None  # concatenated version of string input
 
-    def __init__(self):
+		# error handling
+		self.errors = ErrorHandler()
 
-        # Global variables
-        self.conn = None  # psycopg2 connection obj
-        self.cur = None  # psycopg2 cursor obj
+		# database connection fields
+		self.gene_types = {}  # {gdb_name: gdb_id,}
+		self.micro_types = {}  # {pf_name: pf_id,}
+		self.platform_types = {}  # {prb_ref_id: prb_id,}
+		self.species_types = {}  # {sp_name: sp_id,}
 
-        data = config.get('db', 'database')
-        user = config.get('db', 'user')
-        password = config.get('db', 'password')
-        host = config.get('db', 'host')
+		# GeneSet obj fields
+		self.genesets = {}  # {gs_abbrev: UploadGeneSet,}
+		self.gs_gene_id_type = ''  # gs_gene_id_type (in case label changes)
+		self.pubmed = ''  # PubMed ID
+		self.privacy = ''  # group (public or private)
+		self.score_type = ''  # gs_threshold_type
+		self.threshold = ''  # gs_threshold
+		self.species = ''  # sp_id
+		self.publication = {'pub_id': None, 'pub_pubmed': None, 'pub_pages': None,
+		                    'pub_title': None, 'pub_journal': None, 'pub_volume': None,
+		                    'pub_authors': None, 'pub_abstract': None}  # {pub_*: val,}
+		self.microarray = None
 
-        # set up connection information
-        cs = 'host=\'%s\' dbname=\'%s\' user=\'%s\' password=\'%s\'' % (host, data, user, password)
+		# launch connection to GeneWeaver database
+		self.uploader = u.Uploader(self)
+		self.uploader.launch_connection()
+		self.populate_dictionaries()
 
-        try:
-            self.conn = psycopg2.connect(cs)  # connect to geneweaver database
-            self.cur = self.conn.cursor()
-        except SyntaxError:  # cs probably wouldn't be a useable string if wasn't able to connect
-            print "Error: Unable to connect to database."
-            exit()
+		self.run_batch()  # initiates upload processing
 
-    def getGeneTypes(self):
-        """ Queries the DB for a list of gene types and returns the result as a dict.
-            Gene type name is mapped against gene type id. All gene type names
-            are converted to lowercase.
+	# -------------------------SESSION DATA---------------------------------------#
 
-        Returns
-        -------
-        d: dict of gdb_name -> gdb_id
+	def run_batch(self):
+		print "initiating upload to GeneWeaver..."
+		# read in the input file
+		self.read_file(self.input_file)  # creates UploadGeneSet objs
 
+		# create a new session, depending on handling approach
+		if self.microarray:
+			self.handle_platform()
+			self.uploader.insert_publication()
+			print '\n*************** %i of GeneSets created ****************\n' % len(self.genesets)  # TESTING
+			for gs_name, gs in self.genesets.iteritems():
+				# TESTING PURPOSES:
+				# print
+				# print gs_name
+				# print 'of length:', len(gs.geneset_values)
+				# print
+				gs.upload()
+		else:
+			self.handle_symbols()
+			self.uploader.insert_publication()
+			print '\n*************** %i of GeneSets created ****************\n' % len(self.genesets)  # TESTING
+			for gs_name, gs in self.genesets.iteritems():
+				gs.upload()
+
+			# TEST check to make sure that the changes are kept
+
+	def handle_platform(self):
+		""" Handles microarray condition.
         """
-        d = {}  # empty dict for return val
+		print 'handling platform assignment...'
+		# for each geneset
+		for gs_abbrev, geneset in self.genesets.iteritems():
+			# look up prb_ids for each prb_ref_id
+			query_probes = self.uploader.get_platformProbes(
+				geneset.gs_gene_id_type,
+				geneset.geneset_values.keys())
+			# print '\nquery_platformProbes:\n', query_probes
 
-        # QUERY: get a list of gene types by id + name
-        query = 'SELECT gdb_id, gdb_name ' \
-                'FROM odestatic.genedb;'
+			# isolate probes, refs
+			probes = []  # prb_ids
+			probe_headers = query_probes.keys()  # prb_ref_ids
+			for ref_probe, ids_probe in query_probes.iteritems():
+				probes += ids_probe
 
-        self.cur.execute(query, [])  # execute query
-        res = self.cur.fetchall()  # gather result of query
+			# look up ode_gene_ids for each prb_id
+			query_odes = self.uploader.get_probe2gene(probes)
+			# print '\nquery_probe2gene:\n', query_odes
 
-        for tup in res:
-            d[tup[1].lower()] = tup[0]  # USEAGE: {gdb_name: gbd_id,} - dict ref for gene types
+			prb_results = {}  # (prb_ref_id: prb_id,}
+			ode_results = {}  # (prb_ref_id: ode_gene_id,}
 
-        return d  # RETURNS: list of tuples [(gdb_name, gdb_id)]
+			# first, give priority to prb_ref_ids with only one prb_id
+			for probe_ref, probe_ids in query_probes.iteritems():
+				prb_results[probe_ref] = None
+				size_poss = len(probe_ids)
 
-    # groom / pull out any more functions that could be used for other cases [reduction]
-    def getOdeGeneIdsNonPref(self, sp, syms, gtype, gs):
-        """ Attempts to retrieve ode_gene_ids for ode_ref_ids by mapping
-            non-preferred ode_ref_ids to the preferred ode_gene_ids (ode_pref == true).
-            This can be done in a single query, but since we want to map
-            nonpref_ref --> ode_gene_id --> pref_ref, it's done as two separate
-            queries. Plus it allows us to return a list of ode_ref_ids that can
-            be added to gsv_source_list.
+				if size_poss != 1:
+					continue  # prioritize potentially tricky items first
+				elif probe_ids[0] not in prb_results.values():
+					# print 'appended solo prb_id'
+					prb_results[probe_ref] = probe_ids[0]
+					probe_headers.remove(probe_ref)
 
-        Parameters
-        ----------
-        sp: Species ID (int)
-        syms: Reference IDs (list)
-        gtype: Gene Type (int)
-        gs: GeneSet information (dict)
+			# second, process the remainder
+			for header in probe_headers:
+				pids = query_probes[header]
 
-        Returns
-        -------
-        output: dictionary of Reference IDs -> Gene IDs such that {ode_ref_id: ode_gene_id,}
-        noncrit: list of non-criticl errors to inform the user about
-        final_values: list of ode_ref_ids representative of the keys in output
-        id_to_value: output dict that maps ode_gene_id(s) to associated gsv_value(s)
-        output_gs: GeneSet that reflects any changes made during queries
+				for pid in pids:
+					if pid not in prb_results.values():
+						# print 'appended add. prb_id'
+						prb_results[header] = pid
+						probe_headers.remove(header)
+						break
 
+			# print prb_results
+			# print probe_headers
+
+			# next, go through prb_results for ode check
+			adjusted_headers = set(query_probes.keys()) - set(probe_headers)
+			ode_headers = list(adjusted_headers)
+			for xref in adjusted_headers:
+				xprobes = query_probes[xref]
+				ode_results[xref] = None
+
+				for xprobe in xprobes:
+					if xprobe in query_odes.keys():
+						odes = query_odes[xprobe]
+						for ode in odes:
+							if ode not in ode_results.values():
+								ode_results[xref] = ode
+								ode_headers.remove(xref)
+								break
+
+			# print ode_results
+			# print ode_headers
+
+			# TESTING
+			# if len(ode_results) != len(prb_results):
+			# 	print 'somethings gone wrong at the end of handle_platforms...'
+			# 	exit()
+
+			# next, update geneset
+			adjusted_headers = list(set(adjusted_headers) - set(ode_headers))
+			geneset.update_geneset_values(adjusted_headers)
+			geneset.update_ode_map(ode_map=ode_results)
+
+	def handle_symbols(self):
+		"""Handles symbol condition.
         """
-        gene_type = abs(gtype)  # gene type stripped of sign ('-' = symbol)
-        gene_ids = []  # list of genes that were ode_pref=False following QUERY 1, for QUERY 2
-        revDict = {}  # USAGE: {ode_gene_id: [ode_ref_id,],}  -  reverse dictionary to d, from QUERY 1
-        posDict = {}  # USAGE: {ode_ref_id: [ode_gene_id,],} - results from QUERY 1
-        output = {}  # USAGE: {ode_ref_id: ode_gene_id, } - final dictionary
-        noncrit = []  # list of errors and warnings
-        value_dict = {x[0]: x[1] for x in gs["values"]}  # USAGE: {ode_ref_id: gsv_value,} - dict of gs["values"]
-        id_to_value = {}  # USAGE: {ode_gene_id: gsv_value,}  -  track the gsv_value associated with each ode_gene_id
+		print 'handling symbol assignment...'
+		# for each geneset
+		for gs_abbrev, geneset in self.genesets.iteritems():
+			results = {}
 
-        print "syms: %s\n" % syms
+			# look up ode_gene_ids for each ref_id
+			query_id = self.uploader.get_ode_genes(geneset.species, geneset.geneset_values.keys())
 
-        try:
-            syms = tuple(syms)
-        except TypeError:
-            noncrit.append("Error: Input list of ode_ref_ids was not entered as a list.\n")
-            self.print_noncrit(noncrit)
-            exit()
+			all_gene_ids = []
+			all_results = {}
+			for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
+				all_gene_ids += all_ids
+				all_results[all_ref] = all_ids
+			all_gene_ids = list(set(all_gene_ids))
+			all_refs = all_results.keys()
 
-        # QUERY 1: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
-        #   of a specified species (sp_id), regardless of user preference (ode_pref)
-        #   + are in the list of ode reference IDs of interest to the user
-        try:
-            query1 = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
-                     'FROM extsrc.gene ' \
-                     'WHERE sp_id = %s ' \
-                     'AND ode_ref_id IN %s;'
+			# look up preferred ode_ref_ids for each gene_id
+			query_refs = self.uploader.get_prefRef(self.species, self.gs_gene_id_type,
+			                                       all_gene_ids)
 
-            self.cur.execute(query1, [sp, syms])  # execute QUERY 1
-            print self.cur.query
-            exit()
-            # -  gather result of QUERY 1
-            res1 = self.cur.fetchall()  # USAGE: [(ode_ref_id, ode_gene_id, ode_pref, gdb_id),]
+			# go through query_ids and see if single values 'pass'
+			poss_keys = query_id.keys()
+			x_results = {}
+			for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
+				if all_ref not in results.keys():
+					if all_pref and all_gdb == self.gs_gene_id_type:
+						poss_keys.remove((all_ref, all_pref, all_gdb))
+						all_refs.remove(all_ref)
+						x_results[all_ref] = all_ids
 
-            if not len(res1):
-                noncrit.append("Error: Unable to upload batch file as no genes found.\n"
-                               "Check text file input before attempting batch upload again.\n")
-                self.print_noncrit(noncrit)
-                exit()
+			# go through the remaining possibilities
+			next_poss = {}  # {ref_id: [poss_refs,],}
+			for poss_ref in all_refs:
+				poss_ids = all_results[poss_ref]
+				for poss_id in poss_ids:
+					if poss_id not in results.values():
+						# look up in query_refs
+						next_poss[poss_ref] = query_refs[poss_id]
+						break
 
-            found1 = map(lambda m: m[0], res1)  # USAGE: [ode_ref_id,] - isolate the ref ids pulled in QUERY 1
-            revList = map(lambda h: h[1], res1)  # USAGE: [ode_gene_ids,] - list of all ode_gene_ids found in QUERY 1
-            revDict = {p: [] for p in revList}  # USAGE: {ode_gene_id: [ode_ref_id,],} - reverse dict lookup for QUERY 1
-            posDict = {d: [] for d in found1}  # USAGE: {ode_gene_id: [ode_ref_id,],} - dict lookup for QUERY 1
+			# go through the x_results (those found first time)
+			for xref, xids in x_results.iteritems():
+				for xid in xids:
+					if xid not in results.values():
+						results[xref] = xid
+						break
 
-            for nf in (set(syms) - set(found1)):  # map symbols that weren't found to None
-                noncrit.append("Warning: Symbol '%s\' was not found.\n"
-                               "Check that the text file parameters [Species ID = %i, Gene Type = %i] "
-                               "match gene info for '%s\'. \n"
-                               % (nf, int(sp), int(gene_type), nf))
-                output[nf] = None
+			# check to make sure all values were found
+			if len(results) != len(geneset.geneset_values):
+				# EDIT: here is where you'd add a new gene
+				err = "Error: missing ode_gene_id for input value(s), " \
+				      "%s" % (set(all_results.keys()) - set(results.keys()))
+				self.errors.set_errors(critical=err)
 
-            for ref, gID, pref, gdb in res1:
-                revDict[gID].append(ref)  # ode_ref_id added for each ode_gene_id
-                posDict[ref].append(gID)  # ode_gene_id added for each ode_ref_id
-                if str(pref) == 'True' and int(gdb) == gene_type:
-                    output[ref] = gID  # if any ode_pref == 'True', remap ode_gene_id
-                    # map gID to relative gsv_value (works bc Q1 searches based on primary ode_ref_id list)
-                    id_to_value[gID] = value_dict[ref]
-                elif str(pref) == 'False' or int(gdb) != gene_type:  # need to run QUERY 2 for that ode_gene_id
-                    gene_ids.append(gID)  # add genes with non-pref properties to gene id list, for QUERY 2
+			# next, update genesets
+			relevant_headers = results.keys()
+			geneset.update_geneset_values(relevant_headers)
+			geneset.update_ode_map(ode_map=results)
 
-            for key, value in revDict.iteritems():
-                if len(value) > 1:
-                    noncrit.append("Warning: It appears that there are multiple genes referenced %s that "
-                                   "share the same gene ID [%s]." % (value, key))
-
-            gene_ids = set(gene_ids)  # removes any duplicates... wouldn't keep both regardless
-            gene_ids = tuple(gene_ids)
-
-        except psycopg2.ProgrammingError:
-            noncrit.append("Error: Unable to upload batch file as no genes found.\n"
-                           "Check text file input before attempting batch upload again.\n")
-            self.print_noncrit(noncrit)
-            exit()
-
-        # QUERY 2: set up db query to retrieve ode_ref_id + ode_gene_id for all genes
-        #   of a specified species (sp_id), that are user preferred (ode_pref)
-        #   + are in the list of ode reference IDs of interest to the user
-        if gene_ids:
-            query2 = 'SELECT ode_ref_id, ode_gene_id ' \
-                     'FROM extsrc.gene ' \
-                     'WHERE sp_id = %s ' \
-                     'AND gdb_id = %s ' \
-                     'AND ode_pref = TRUE ' \
-                     'AND ode_gene_id IN %s;'
-
-            self.cur.execute(query2, [sp, gene_type, gene_ids])  # execute QUERY 2
-            res2 = self.cur.fetchall()  # gather result of QUERY 2
-
-            temp = {x[1]: x[0] for x in res2}  # USEAGE: {ode_gene_id: ode_ref_id,}
-            found2 = map(lambda l: l[1], res2)  # USAGE: [ode_gene_id,] - isolate gene ids that are legit (pref=True)
-            notFound = set(gene_ids) - set(found2)  # items not found in QUERY 2
-            success = set(found2) - notFound  # items successfully found in QUERY 2
-
-            for item in success:  # if any found2 ode_gene_ids in gene_ids, then add to output (often a short list)
-                output[temp[item]] = item
-                for o in revDict[item]:
-                    id_to_value[item] = value_dict[o]
-                t = [temp[item]]  # put ode_gene_id of interest in a list for quick set based comparison
-                newref = set(t) - (set(syms) - set(t))  # get any new references following QUERY 1
-
-                if newref:  # if this is a new gene references that did not exist to start with
-                    for key, values in posDict.iteritems():
-                        if item in values and len(values) > 1:
-                            noncrit.append("Warning: Gene(s) %s not found. An associated Gene '%s' "
-                                           "with a shared Gene ID [%s] was found for the same parameters, "
-                                           "and will be added to the GeneSet instead of %s."
-                                           % (revDict[item], temp[item], item, revDict[item]))
-                            break
-                        break
-                    break
-
-            for n in notFound:  # if a valid ode_ref_id is still not found (also often a short list - complexity sake)
-                for rev in revDict[n]:
-                    if rev in syms:  # if it was one of the original ode_ref_ids
-                        output[rev] = None
-                        noncrit.append("Warning: Gene %s not found, even after checked associated Gene IDs."
-                                       "As a result, %s has subsequently been mapped to zero," % (rev, rev))
-
-        final_values = list(output.keys())
-        not_found = set(syms) - set(final_values)
-        new_values = list(set(final_values) - set(not_found))
-        keys_values = map(lambda x: (x, id_to_value[output[x]]), new_values)
-        updated_gs = updateGeneset(gs, vals=keys_values, gcount=len(keys_values))
-        output = self.lower_headers(output)
-
-        return output, noncrit, final_values, id_to_value, updated_gs
-
-    @staticmethod
-    def lower_headers(ref):
-        """ Takes in a dictionary and sets all the keys to lowercase. Returns the result.
-
-        Parameters
-        ----------
-        ref: dict
-
-        Returns
-        -------
-        output: dict with lowercase keys
-
+	def populate_dictionaries(self):
+		""" Queries GeneWeaver, populating globally stored dictionaries with
+            information we only need to query once, including:
+            - Gene Types
+            - MicroArray Types
+            - Species Types
         """
-        output = {}
-        if ref:
-            key_map = {x: x.lower() for x in ref.iterkeys()}  # map old keys -> lowercase keys
-            output = {key_map[key]: value for key, value in ref.iteritems()}
-        else:
-            print "Error: No dictionary was input to lower_headers().\n "
+		# Gene Types
+		self.gene_types = self.uploader.get_geneTypes()
+		# MicroArray Types
+		self.micro_types = self.uploader.get_microArrayTypes()
+		# Species Types
+		self.species_types = self.uploader.get_speciesTypes()
 
-        return output
-
-    @staticmethod
-    def print_noncrit(noncrit):
-        """ Prints noncritical messages to the user regarding problems in their
-            batch uploading.
+	def read_file(self, fp):
+		""" Reads in from a source text file, using the location stored in global
+            var, 'input_file', + generates objs for data handling.
         """
-        print "The following message(s) were raised during user batch uploading: "
-        for non in noncrit:
-            print non
-
-
-# FIX: make below a shorter version of above, call above when we don't find what we originally thought we wanted
-# or just separate into two difference query methods [QUERY ref_id, QUERY gene_id] and call both in symbol handler
-    # def getOdeGeneIds(self, sp, syms):
-    #     """ [Tim] Given a list of gene symbols from the users' batch file, if the symbol doesn't
-    #         exist in the DB or can't be found, it is mapped to None.  The first query
-    #         finds all ode_ref_ids that are preferred (ode_pref == true). All ode_ref_ids are
-    #         converted to lowercase. Not all the genes provided by a user will be preferred
-    #         though (e.g. 147189_at). For these cases, we find the ode_gene_id they are mapped
-    #         to, then query the DB for the preferred ode_gene_id for the species given. This
-    #         way we add the preferred symbol, and the one provided by the user, to the
-    #         gsv_source_list. If we still can't find it, then all hope is lost. (clarify)
-    #
-    #     Parameters
-    #     ----------
-    #     sp: Species ID (int)
-    #     syms: ode reference IDs (list)
-    #
-    #     Returns
-    #     -------
-    #     d: dict of ode reference IDs -> ode gene IDs
-    #
-    #     """
-    #     # type check syms to make sure it's a list
-    #     if type(syms) == list:
-    #         # if it is, then cast to a tuple
-    #         syms = tuple(syms)
-    #
-    #     # set up query to gather ode_ref_id + ode_gene_id for genes
-    #     #   of a specified species (sp_id), that are user preferred (ode_pref)
-    #     #   + are in the list of ode reference IDs of interest to the user
-    #     query = 'SELECT DISTINCT ode_ref_id, ode_gene_id, gdb_id ' \
-    #             'FROM extsrc.gene ' \
-    #             'WHERE sp_id = %s ' \
-    #             'AND ode_pref = TRUE ' \
-    #             'AND ode_ref_id IN %s;'
-    #
-    #     # execute query, using params
-    #     self.cur.execute(query, [sp, syms])
-    #
-    #     # returns a list of tuples [(ode_ref_id, ode_gene_id)]
-    #     res = self.cur.fetchall()
-    #     d = {}
-    #
-    #     ## Ignore this wall of bullshit for now, unless you want to read
-    #     ## about my failures.
-    #     #
-    #
-    #     found = map(lambda x: x[0], res)
-    #     notfound = list(set(syms) - set(found))
-    #
-    #     if notfound:
-    #         res.extend(db.getOdeGeneIdsNonPref(sp, notfound))
-    #
-    #     ## We return a dict of ode_ref_id --> ode_gene_ids
-    #     for tup in res:
-    #         d[tup[0].lower()] = tup[1]
-    #
-    #     print d
-    #     return d
-
-    def getMicroarrayTypes(self):
-        """ Queries the DB for a list of microarray platforms and returns the
-            result as a dict. The keys are pf_names and values are pf_ids. All pf_names
-            are converted to lowercase.
-
-        Returns
-        -------
-        d: dict of pf_names -> pf_ids
-
-        """
-        query = 'SELECT pf_id, pf_name ' \
-                'FROM odestatic.platform;'
-
-        self.cur.execute(query, [])
-
-        # returns a list of tuples [(pf_id, pf_name)]
-        res = self.cur.fetchall()
-        d = {}
-
-        # we return a dict of pf_names --> pf_ids
-        for tup in res:
-            d[tup[1].lower()] = tup[0]
-
-        return d
-
-    def getPlatformProbes(self, pfid, refs):
-        """ Returns a mapping of prb_ref_ids -> prb_ids for the given platform
-            and probe references.
-
-        Parameters
-        ----------
-        pfid: platform ID (int)
-        refs: list of platform probes
-
-        Returns
-        -------
-        d: dict of prb_ref_id(s) -> prb_id(s)
+		with open(fp, 'r') as file_path:
+			lines = file_path.readlines()
+			self.file_toString = ''.join(lines)
+
+			# first, detect how many GeneSets we need to create here
+			numGS, gs_locs = self.calc_numGeneSets(self.file_toString)
+
+			# second, find + assign required header values to global vars
+			currPos = 0
+			for line in lines:
+				currPos += len(line)
+				if currPos < gs_locs[0]:  # only search the metadata headers
+					stripped = line.strip()
+					if stripped[:1] == '#' or stripped[:2] == '\n' or not stripped:
+						continue
+					elif stripped[:1] == '!':  # score type indicator
+						score = stripped[1:].strip()
+						self.assign_threshVals(score)
+					elif stripped[:1] == '@':  # species type indicator
+						sp = stripped[1:].strip()
+						self.assign_species(sp)
+					elif stripped[:1] == '%':  # geneset gene id type
+						gid = stripped[1:].strip()
+						self.assign_geneType(gid)
+					elif stripped[:2] == 'A ':  # group type
+						grp = stripped[1:].strip()
+						self.assign_groupType(grp)
+					elif stripped[:2] == 'P ':  # pubmed id
+						pub = stripped[1:].strip()
+						self.uploader.search_pubmed(pub)
+				else:
+					break
+
+			# third, isolate GeneSet info + create GeneSet objs
+			currGS = 1
+			for x in range(numGS):
+				if currGS != numGS:
+					gs = self.file_toString[gs_locs[x]: gs_locs[x + 1]]
+					self.create_geneset(gs.strip())
+				else:
+					gs = self.file_toString[gs_locs[x]:]
+					self.create_geneset(gs.strip())
+				currGS += 1
+
+		print "handling file parsing + global assignments..."
+
+	def calc_numGeneSets(self, gs_file):
+		print 'calculating number of GeneSets in file...'
+		# if any of these fail, we know that the file is missing key info
+		try:
+			bang = gs_file.split('!')
+			at = gs_file.split('@')
+			perc = gs_file.split('%')
+			equiv = gs_file.split('=')
+			colon = gs_file.split(':')
+		except ValueError:
+			err = 'Error: Critical GeneSet information is missing. ' \
+			      'Please refer to the documentation to make sure that ' \
+			      'everything is labelled correctly.'
+			self.errors.set_errors(critical=err)
+
+		# should only contain one of the following
+		if len(bang) != 2 or len(at) != 2 or len(perc) != 2:
+			err = 'Error: Critical GeneSet information is missing. ' \
+			      'Please refer to the documentation to make sure that ' \
+			      'everything is labelled correctly.'
+			self.errors.set_errors(critical=err)
+
+		# should be of equal number
+		if len(colon) != len(equiv):
+			err = 'Error: Incorrect GeneSet labelling. Please refer to ' \
+			      'the documentation.'
+			self.errors.set_errors(critical=err)
+
+		# see which GeneSet header label comes first
+		len_colon = 0
+		len_equiv = 0
+		# order = {}  # TESTING
+		first_loc = []
+		for x in range(len(colon) - 1):  # last items should be equal, so skip
+			len_colon += len(colon[x])
+			len_equiv += len(equiv[x])
+			# print len_colon, len_equiv
+			if len_colon < len_equiv:
+				# order[x] = ':'  # TESTING
+				first_loc.append(len_colon)
+			else:
+				# order[x] = '='  # TESTING
+				first_loc.append(len_equiv)
+		# print order #  TESTING
+
+		numGS = len(colon) - 1
+		print 'estimated number of GeneSets in this file: %s' % numGS
+		return numGS, first_loc
+
+	def assign_threshVals(self, score):
+		print 'checking + assigning score type...'
+		score = score.replace(' ', '').lower()
+
+		if 'binary' in score:
+			self.score_type = '3'
+		elif 'p-value' in score:
+			self.score_type = '1'
+			try:
+				values = score.split('<')
+				if len(values) == 1:  # then no value was actually given
+					raise ValueError
+				self.threshold = values[1]
+			except ValueError:
+				self.threshold = '0.05'
+				err = 'Warning: P-Value threshold not specified. ' \
+				      'Using "P-Value < 0.05".'
+				self.errors.set_errors(noncritical=err)
+		elif 'q-value' in score:
+			self.score_type = '2'
+			try:
+				values = score.split('<')
+				if len(values) == 1:  # then no value was actually given
+					raise ValueError
+				self.threshold = values[1]
+			except ValueError:
+				self.threshold = '0.05'
+				err = 'Warning: Q-Value threshold not specified. ' \
+				      'Using "Q-Value < 0.05".'
+				self.errors.set_errors(noncritical=err)
+		elif 'correlation' in score:
+			self.score_type = '4'
+			try:
+				values = score.split('<')
+				if len(values) != 3:  # then something is missing: assume default
+					raise ValueError
+				self.threshold = values[0] + ',' + values[2]
+			except ValueError:
+				self.threshold = '-0.75,0.75'
+				err = 'Warning: Correlation thresholds not specified properly. ' \
+				      'Using "-0.75 < Correlation < 0.75".'
+				self.errors.set_errors(noncritical=err)
+		elif 'effect' in score:
+			self.score_type = '5'
+			try:
+				values = score.split('<')
+				if len(values) != 3:  # then something is missing: assume default
+					raise ValueError
+				self.threshold = values[0] + ',' + values[2]
+			except ValueError:
+				self.threshold = '0,1'
+				err = 'Warning: Effect size thresholds not specified properly. ' \
+				      'Using "0 < Effect < 1".'
+				self.errors.set_errors(noncritical=err)
+
+	def assign_species(self, sp):
+		print 'checking + assigning species type...'
+		sp = sp.lower()
+
+		if sp in self.species_types.keys():
+			self.species = self.species_types[sp]
+		else:
+			err = 'Error: Unable to identify the input species type, %s. ' \
+			      'Please refer to the documentation for a list of species types, ' \
+			      'written out by their scientific name.' % sp
+			self.errors.set_errors(critical=err)
+
+	def assign_geneType(self, gid):
+		print 'checking + assigning gene ID type...'
+		gid = gid.lower().strip()
+
+		if gid in self.gene_types.keys():
+			self.gs_gene_id_type = self.gene_types[gid]
+		# check to see if it is a microarray
+		elif gid[11:] in self.micro_types.keys():
+			self.gs_gene_id_type = self.micro_types[gid[11:]]
+			self.microarray = gid[11:]
+		else:
+			err = 'Error: Unable to determine the gene type provided. ' \
+			      'Please consult the documentation for a list of types.'
+			self.errors.set_errors(critical=err)
+
+	def assign_groupType(self, grp='private'):
+		print 'checking + assigning group type...'
+		grp = grp.lower()
+
+		if grp == 'public':
+			self.privacy = '0'
+		else:
+			self.privacy = '-1'
+
+	def create_geneset(self, raw_info):
+		print 'creating GeneSet obj...'
+		# create GeneSet obj
+		gs = GeneSet(self)
+
+		gs_info = raw_info.split('\n')
+		desc = []  # store as list, as can span multiple lines
+		content_loc = 0
+		for info in gs_info:
+			info = info.strip()
+			if info[:1] == ':':
+				gs.set_abbrev(info[1:].strip())
+			elif info[:1] == '=':
+				gs.set_name(info[1:].strip())
+			elif info[:1] == '+':
+				desc.append(info[1:].strip())
+			elif not info:
+				# keep track of the location of the last blank line
+				content_loc = gs_info.index(info)
+
+			# add concatenated description to UploadGeneSet obj
+		gs.set_description(' '.join(desc))
+
+		# add content to UploadGeneSet obj
+		gs_vals = {}
+		vals = []  # in case score type is Binary, + we need to derive the max val
+		for data in gs_info[content_loc + 1:]:
+			try:
+				gene, val = data.split('\t')
+				vals.append(float(val))
+				gs_vals[gene.strip()] = val.strip()
+			# add the threshold val if binary
+			except ValueError:
+				err = "Error: Data points should be in the format 'gene " \
+				      "id <tab> data value', with each data point on a " \
+				      "separate line. Please check the file and make sure that you did " \
+				      "not include an empty geneset with no genes."
+				self.errors.set_errors(critical=err)
+
+		# pass GeneSet values along to UploadGeneSet obj
+		gs.set_genesetValues(gs_vals)
+
+		# if the score type is Binary, still need to assign a threshold value
+		if self.score_type == '3':
+			self.threshold = str(max(vals))
+			gs.set_threshold(self.threshold)
+
+		# add UploadGeneSet obj to global dict
+		self.genesets[gs.abbrev_name] = gs
+
+
+class GeneSet:
+	def __init__(self, batch):
+		print "initializing GeneSet object..."
+
+		self.batch = batch
+		self.gs_gene_id_type = batch.gs_gene_id_type
+		self.pubmed = batch.pubmed  # PubMed ID
+		self.group = batch.privacy  # group (public or private)
+		self.score_type = batch.score_type  # gs_threshold_type
+		self.threshold = batch.threshold  # gs_threshold
+		self.species = batch.species  # sp_id
+		self.uploader = batch.uploader
+
+		# GeneSet fields
+		self.geneset_values = {}  # {gene id: gene value,} (for gsv_value_list)
+		self.abbrev_name = ''  # gs_abbreviation
+		self.name = ''  # gs_name
+		self.description = ''  # gs_description
+		self.file_id = None
+
+		self.count = 0
+		self.gs_id = None
+
+		# mapping fields
+		self.prb_info = None
+		self.ode_info = None
+
+	def upload(self):
+		print "initiating upload sequence..."
+		self.file_id = self.uploader.insert_file(self)
+		self.gs_id = self.uploader.insert_geneset(self)
+		self.uploader.insert_geneset_values(self)
+		self.uploader.modify_gsv_lists(self)
+
+	# -----------------------MUTATORS--------------------------------------------#
+	def set_genesetValues(self, gsv_values):
+		print 'setting GeneSet value list...'
+		if type(gsv_values) == dict:
+			self.geneset_values = gsv_values
+		else:
+			err = 'Error: Expected to receive a dictionary of GeneSet values in ' \
+			      'UploadGeneset.set_genesetValues() where "{gene id: gene value, }".'
+			self.batch.set_errors(critical=err)
+
+	def set_abbrev(self, abbrev):
+		print 'setting abbreviated GeneSet name...'
+		self.abbrev_name = abbrev
+
+	def set_name(self, gs_name):
+		print 'setting GeneSet name...'
+		self.name = gs_name
+
+	def set_description(self, desc):
+		print 'setting GeneSet description...'
+		self.description = desc
+
+	def set_threshold(self, thresh):
+		print 'setting GeneSet threshold value...'
+		self.threshold = str(thresh)
+
+	def update_geneset_values(self, headers):
+		print 'updating geneset values...'
+		res = {}
+		for header in headers:
+			res[header] = float(self.geneset_values[header])
+		self.geneset_values = res
+
+		# update global count to reflect changes
+		self.update_count()
+
+	def update_ode_map(self, ode_map):
+		print 'updating ode mapping...'
+		self.ode_info = ode_map
+
+	def update_count(self):
+		self.count = len(self.geneset_values)
+
+
+class ErrorHandler:
+	def __init__(self):
+		# error handling fields
+		self.crit = []
+		self.noncrit = []
+
+	def get_errors(self, critical=False, noncritical=False):
+		""" Returns error messages. If no additional parameters are filled, or if both
+			'crit' and 'noncrit' are set to 'True', both critical and
+			noncritical error messages are returned for the user.
+
+			Otherwise, if either 'crit' or 'noncrit' are set to 'True', only that
+			respective error type will be returned.
+
+		Parameters
+		----------
+		crit (optional): boolean
+		noncrit (optional): boolean
+
+		Returns
+		-------
+		critical (optional): list of critical error messages generated [self.crit]
+		noncritical (optional): list of noncritical error messages generated [self.noncrit]
+		"""
+		if critical and noncritical:
+			return self.crit, self.noncrit
+		elif critical:
+			return self.crit
+		elif noncritical:
+			return self.noncrit
+		else:
+			return self.crit, self.noncrit
+
+	def set_errors(self, critical=None, noncritical=None):
+		""" Sets error messages, printing confirmation when new errors are added. Parameters
+			'crit' and 'noncrit' can take either a string, appended onto respective global
+			variable, a list or a tuple. In the case that a list or tuple is provided, function
+			iterates through and appends to global error messages accordingly.
+
+		Parameters
+		----------
+		critical: string or list
+		noncritical: string or list
+		"""
+		crit_count = 0
+		noncrit_count = 0
+
+		if type(critical) == (list or tuple):
+			for error in critical:
+				self.crit.append(error)
+				crit_count += 1
+		elif type(critical) == str:
+			self.crit.append(critical)
+			crit_count += 1
+
+		if type(noncritical) == (list or tuple):
+			for n in noncritical:
+				self.noncrit.append(n)
+				noncrit_count += 1
+		elif type(noncritical) == str:
+			self.noncrit.append(noncritical)
+			noncrit_count += 1
+
+		# USER FEEDBACK [uncomment selection]
+		if crit_count:
+			print "Critical error messages added [%i]\n" % crit_count
+			for c in self.crit:
+				print c
+			exit()  # NOTE: might not be the way you want to leave this
+		if noncrit_count:
+			print "Noncritical error messages added [%i]\n" % noncrit_count
+
+
+def test_dictionaries():
+	b = Batch()
+	b.populate_dictionaries()
+
+
+def test_fileParsing(number):
+	test = '/Users/Asti/geneweaver/website-py/src/static/text/'
+	append = ['affy-batch.txt',  # 0
+	          'affy-dup.txt',  # 1
+	          'agilent-batch.txt',  # 2
+	          'batch-geneset-a.txt',  # 3
+	          'batch-geneset-b.txt',  # 4
+	          'batch-geneset-c.txt',  # 5
+	          'batch-geneset-d.txt',  # 6
+	          'empty-geneset.txt',  # 7
+	          'symbol-batch.txt']  # 8
+
+	test_file = test + append[number]
+	b = Batch(input_filepath=test_file)
 
-        """
-
-        if type(refs) == list:
-            refs = tuple(refs)
-
-        query = 'SELECT prb_ref_id, prb_id ' \
-                'FROM odestatic.probe ' \
-                'WHERE pf_id = %s ' \
-                'AND prb_ref_id IN %s;'
-
-        self.cur.execute(query, [pfid, refs])
-
-        # returns a list of tuples [(pf_id, pf_name)]
-        res = self.cur.fetchall()
-        d = dd(long)
-
-        for tup in res:
-            d[tup[0]] = tup[1]  # dict of prb_ref_id --> prb_id
-
-        return d
-
-    def getProbe2Gene(self, prbids):
-        """ Returns a mapping of platform IDs against ode gene IDs, for the given set
-            of platform probes.
-
-        Parameters
-        ----------
-        prbids: list of platform probes
-
-        Returns
-        -------
-        d: dict of prb_ids -> ode_gene_ids
-
-        """
-
-        if type(prbids) == list:
-            prbids = tuple(prbids)
-
-        # prb_id: platform prob ID
-        query = 'SELECT prb_id, ode_gene_id ' \
-                'FROM extsrc.probe2gene ' \
-                'WHERE prb_id IN %s;'
-
-        self.cur.execute(query, [prbids])
-
-        # returns a list of tuples [(pf_id, pf_name)]
-        res = self.cur.fetchall()
-        d = dd(list)
-
-        # we return a dict of prb_ids -> ode_gene_ids. This is a list since
-        # there may be 1:many associations.
-        for tup in res:
-            d[tup[0]].append(tup[1])
-
-        return d
-
-    def getSpecies(self):
-        """ Queries the DB for a list of species and returns the result as a
-            dict. The keys are sp_names and values are sp_ids. All sp_names are
-            converted to lowercase.
-
-        Returns
-        -------
-        d: dict of sp_names -> sp_ids
-
-        """
-        d = {}  # empty dict to hold return val
-        query = 'SELECT sp_id, sp_name ' \
-                'FROM odestatic.species;'
-
-        self.cur.execute(query, [])
-        res = self.cur.fetchall()  # returns a list of tuples [(sp_id, sp_name)]
-
-        for tup in res:
-            d[tup[1].lower()] = tup[0]
-
-        return d  # we return a dict of sp_names --> sp_ids
-
-    def insertFile(self, size, uri, contents, comments):
-        """ Inserts a new row into the file table. Most of the columns for the file
-            table are required as arguments.
-
-        Parameters
-        ----------
-        size: file size
-        uri: file uri
-        contents: file contents
-        comments: file comments
-
-        Returns
-        -------
-        r: file_id # check
-
-        """
-        # check to see if 'RETURNING' is a legit call in SQL
-        query = 'INSERT INTO production.file ' \
-                '(file_size, file_uri, file_contents, file_comments, ' \
-                'file_created, file_changes) ' \
-                'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
-
-        vals = [size, uri, contents, comments]
-
-        self.cur.execute('set search_path = extsrc,production,odestatic;')
-        self.cur.execute(query, vals)
-
-        # returns a list of tuples [(file_id)]
-        res = self.cur.fetchall()
-        #
-        r = res[0][0]
-
-        return r
-
-    def insertPublication(self, pd):
-        """ Given a dict whose keys refer to columns of the publication table,
-            this function inserts a new publication into the db.
-            Don't forget to commit changes after calling this function.
-
-        Parameters
-        ----------
-        pd: dict of Publication info
-
-        Returns
-        -------
-        r: Publication ID
-
-        """
-
-        query = 'INSERT INTO production.publication ' \
-                '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
-                'pub_volume, pub_pages, pub_pubmed) ' \
-                'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
-
-        vals = [pd['pub_authors'], pd['pub_title'], pd['pub_abstract'],
-                pd['pub_journal'], pd['pub_volume'], pd['pub_pages'],
-                pd['pub_pubmed']]
-
-        self.cur.execute(query, vals)
-
-        # returns a list of tuples [(pub_id)]
-        res = self.cur.fetchall()
-        #
-        r = res[0][0]
-
-        return r
-
-    def insertGenesetValue(self, gs_id, gene_id, value, name, thresh):
-        """ Given GeneSet ID, Gene ID, GeneSet value... (clarify - params)
-            this function inserts a new GeneSet value into the db.
-            Don't forget to commit changes after calling this function.
-
-        Parameters
-        ----------
-        gs_id: GeneSet ID (gs_id)
-        gene_id: Gene ID (ode_gene_id)
-        value: GeneSet Value (gsv_value)
-        name: GeneSet Value Source List (ode_ref_id)
-        thresh: GeneSet Value in Threshold (gsv_in_threshold)
-        """
-
-        query = 'INSERT INTO extsrc.geneset_value ' \
-                '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
-                'gsv_value_list, gsv_in_threshold, gsv_date) ' \
-                'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
-
-        vals = [gs_id, gene_id, value, [name], [float(value)], thresh]
-
-        self.cur.execute(query, vals)
-
-    def insertGeneset(self, gd):
-        """ Given a dict whose keys are refer to columns of the geneset table,
-            this function inserts a new geneset into the db.
-            Don't forget to commit changes after calling this function.
-
-        Parameters
-        ----------
-        gd: dict of GeneSet info
-
-        Returns
-        -------
-        gs_id: GeneSet ID
-
-        """
-        query = 'INSERT INTO geneset ' \
-                '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
-                'gs_threshold, gs_created, gs_updated, gs_status, ' \
-                'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
-                'gs_abbreviation, gs_description, gs_attribution, ' \
-                'gs_groups, pub_id) ' \
-                'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
-                '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
-
-        vals = [gd['file_id'], gd['usr_id'], gd['cur_id'], gd['sp_id'],
-                gd['gs_threshold_type'], gd['gs_threshold'], gd['gs_count'],
-                gd['gs_gene_id_type'], gd['gs_name'], gd['gs_abbreviation'],
-                gd['gs_description'], gd['gs_groups'], gd['pub_id']]
-
-        self.cur.execute('set search_path = extsrc,production,odestatic;')
-        self.cur.execute(query, vals)
-
-        # Returns a list of tuples [(gs_id)]
-        res = self.cur.fetchall()
-        r = res[0][0]
-
-        print "insertGeneset: ", vals, "\n"
-
-        return r
-
-    def updateGenesetCount(self, gsid, count):
-        """ Updates gs_count for a given gs_id. Required since genesets are first
-            made, then geneset_values are validated and added.
-
-        Parameters
-        ----------
-        gsid: GeneSet ID
-        count: GeneSet count
-
-        """
-        query = 'UPDATE geneset ' \
-                'SET gs_count = %s ' \
-                'WHERE gs_id = %s'
-
-        self.cur.execute(query, [count, gsid])
-
-    def commit(self):
-        """ Commits changes made to the DB. Only required if we've inserted new
-            genesets, geneset_values, or publications. """
-        # self.conn.commit()
-        pass
-
-
-# DB global, should only be one instance of this class # put this in Main later, once class Batch established
-db = TheDB()
-
-# ADD LATER -----------------------------]
-# class Batch:
-#     """ Extracts raw text from a user-input file and, following identification
-#         of gene identifiers, queries sql database using psycopg2.
-#
-#     """
-#
-#     def __init__(self, db_obj):
-#
-#         self.database = db_obj
-
-
-def eatWhiteSpace(input_string):
-    """ Removes leading + trailing whitespace from a given string.
-
-    Parameters
-    ----------
-    input_string: string for whitespace removal
-
-    Returns
-    -------
-    output_string: string with whitespace removed
-
-    """
-    output_string = input_string.strip()
-    return output_string
-
-
-def readBatchFile(fp):
-    """ Reads the file at the given filepath and returns all the lines that
-        comprise the file.
-
-    Parameters
-    ----------
-    fp: filepath to read (string)
-
-    Returns
-    -------
-    lines: list of strings containing each line of the file
-
-    """
-    with open(fp, 'r') as file_path:
-        lines = file_path.readlines()
-
-    return lines
-
-
-def makeDigrams(s):
-    """ Recursively creates an exhaustive list of digrams from the given string.
-
-    Parameters
-    ----------
-    s: (clarify)
-
-    Returns
-    -------
-    b: list of strings where each string is a digram
-
-    """
-    if len(s) <= 2:
-        return [s]
-
-    b = makeDigrams(s[1:])
-    b.insert(0, s[:2])
-
-    return b
-
-
-def calcStringSimilarity(s1, s2):
-    """ Calculates the percent similarity between two strings.
-
-        Meant to be a replacement for PHP's similar_text function, which old
-        GeneWeaver uses to determine the right microarray platform to use.
-
-        [Tim] Couldn't find how similar_text was implemented (just that it used some
-        algorithm in the book 'Programming Classics' by Oliver) so this function
-        is fairly different but achieves the same result. This algorithm uses
-        digrams and their intersections to determine percent similarity. It is
-        calculated as:
-
-        sim(s1, s2) = (2 * intersection(digrams(s1), digrams(s2)) /
-                   |digrams(s1) + digrams(s2)|
-
-    Parameters
-    ----------
-    s1: first input string for comparison
-    s2: second input string for comparison
-
-    Returns
-    -------
-    perc_sim: calculated result of the percent similarty between two strings
-
-    """
-    sd1 = makeDigrams(s1)
-    sd2 = makeDigrams(s2)
-    intersect = list((mset(sd1) & mset(sd2)).elements())
-
-    perc_sim = (2 * len(intersect)) / float(len(sd1) + len(sd2))
-
-    return perc_sim
-
-
-def parseScoreType(s):
-    """ Attempts to parse out the score type and any threshold value
-        from a given string.
-
-        Acceptable score types and threshold values include:
-            Binary
-            P-Value < 0.05
-            Q-Value < 0.05
-            0.40 < Correlation < 0.05
-            6.0 < Effect < 22.50
-
-        The numbers can vary and if they can't be parsed, default values
-        (e.g. 0.05) are used.
-
-        [Tim] There is an issue with the regexs in this function.
-        See the TODO list at the top of the file for a description.
-
-    Parameters
-    ----------
-    s: string containing score type + possibly threshold value (clarify)
-
-    Returns
-    -------
-    groomed: tuple containing (gs_threshold_type, gs_threshold, errors)
-
-    """
-    stype = ''
-    thresh = '0.05'
-    thresh2 = '0.05'
-    error = ''
-
-    # Binary threshold is left at the default of 0.05
-    if s.lower() == 'binary':
-        stype = '3'
-        thresh = '1'
-
-    elif s.lower().find('p-value') != -1:
-        # Try to find the threshold, this regex is from the PHP func.
-        # my regex: ([0-9]?\.[0-9]+)
-        m = re.search(r"([0-9.-]{2,})", s.lower())
-        stype = '1'
-
-        if m:
-            thresh = m.group(1)  # parenthesized group
-        else:
-            error = 'No threshold specified for P-Value data. Using p < 0.05.'
-
-    elif s.lower().find('q-value') != -1:
-        m = re.search(r"([0-9.-]{2,})", s.lower())
-        stype = '2'
-
-        if m:
-            thresh = m.group(1)  # parenthesized group
-        else:
-            error = 'No threshold specified for Q-Value data. Using q < 0.05.'
-
-    elif s.lower().find('correlation') != -1:
-        # This disgusting regex is from the PHP function
-        # And it sucks. It breaks on some input, might have to change this
-        # later.
-        m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
-        stype = '4'
-
-        if m:
-            thresh = m.group(1) + ',' + m.group(2)  # parenthesized group
-        else:
-            thresh = '-0.75,0.75'
-            error = ('No thresholds specified for Correlation data.'
-                     ' Using -0.75 < value < 0.75.')
-
-    elif s.lower().find('effect') != -1:
-        # Again, PHP regex
-        m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
-        stype = '5'
-
-        if m:
-            thresh = m.group(1) + ',' + m.group(2)  # parenthesized group
-        else:
-            thresh = '0,1'
-            error = ('No thresholds specified for Effect data.'
-                     ' Using 0 < value < 1.')
-
-    else:
-        error = 'An unknown score type (%s) was provided.' % s
-
-    groomed = (stype, thresh, error)
-
-    return groomed
-
-
-def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
-                usr=0, cur_id=5):
-    """ Given a bunch of arguments, this function returns a dictionary
-        representation of a single geneset. Each key is a different column found
-        in the geneset table. Not all columns are (or need to be) represented.
-
-        [Tim] TODO:	Need to retrieve the user's id and attach it, right now
-        it just uses a placeholder.
-
-    Parameters
-    ----------
-    name: GeneSet name
-    abbr: GeneSet abbreviation
-    desc: GeneSet description
-    spec: Species ID (later converted to an int if a string)
-    pub: Publication ID
-    grp: Group ID (later converted to a string if an int)
-    ttype: threshold type
-    thresh: GeneSet threshold (see parseScoreType for a description)
-    gtype: Gene ID type
-    vals: GeneSet values, tuple containing (gene, value)
-    usr: User ID (defaults to user (0))
-    cur_id: Curation ID (unless specified it defaults to private (5))
-
-    Returns
-    -------
-    gs: dict representative of GeneSet
-
-    """
-    gs = {'gs_name': name, 'gs_abbreviation': abbr, 'gs_description': desc,
-          'sp_id': int(spec), 'gs_groups': grp, 'pub_id': pub,
-          'gs_threshold_type': int(ttype), 'gs_threshold': thresh,
-          'gs_gene_id_type': int(gtype), 'usr_id': int(usr), 'values': vals,
-          'gs_count': len(vals), 'cur_id': cur_id}
-
-    return gs
-
-
-def updateGeneset(input_gs, name=None, abbr=None, desc=None, spec=None, pub=None,
-                  grp=None, ttype=None, thresh=None, gtype=None, vals=None,
-                  gcount=None, usr=None, cur_id=None):
-    """ Takes in an input GeneSet, along with any number of parameters, and outputs
-        a GeneSet with the correct specifications.
-
-    Parameters
-    ----------
-    input_gs: input GeneSet for manipulation
-    name: GeneSet name (defaults to None)
-    abbr: GeneSet abbreviation (defaults to None)
-    desc: GeneSet description (defaults to None)
-    spec: Species ID (later converted to an int if string; defaults to None)
-    pub: Publication ID (defaults to None)
-    grp: Group ID (later converted to a string if int; defaults to None)
-    ttype: threshold type (defaults to None)
-    thresh: GeneSet threshold
-    gtype: Gene ID type (defaults to None)
-    vals: GeneSet values, tuple containing (gene, value) (defaults to None)
-    gcount: number of Genes in GeneSet (int)
-    usr: User ID (defaults to user (0))
-    cur_id: Curation ID (defaults to private (5))
-
-    Returns
-    -------
-    output_gs: output GeneSet containing any changes
-
-    """
-    output_gs = {}  # output geneset
-    keys = ['gs_name', 'gs_abbreviation', 'gs_description',
-            'sp_id', 'gs_groups', 'pub_id', 'gs_threshold_type',
-            'gs_threshold', 'gs_gene_id_type', 'usr_id', 'values',
-            'gs_count', 'cur_id']
-    changes = [name, abbr, desc, spec, grp, pub, ttype, thresh, gtype, usr, vals, gcount, cur_id]
-
-    for x in range(len(keys)):
-        if changes[x]:  # if input param is something other than 'default' None
-            output_gs[keys[x]] = changes[x]  # add change to output geneset
-        else:  # if there is no change
-            output_gs[keys[x]] = input_gs[keys[x]]  # transfer from input geneset to output
-
-    return output_gs
-
-
-def getPubmedInfo(pmid):
-    """ Retrieves Pubmed article info from the NCBI servers using the NCBI eutils.
-        The result is a dictionary whose keys are the same as the publication
-        table. The actual return value for this function though is a tuple. The
-        first member is the dict, the second is any error message.
-
-    Parameters
-    ----------
-    pmid: PubMed ID
-
-    Returns
-    -------
-    (clarify)
-
-    """
-    # URL for pubmed article summary info
-    url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
-           'retmode=json&db=pubmed&id=%s') % pmid
-    # NCBI eFetch URL that only retrieves the abstract
-    url_abs = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
-               '?rettype=abstract&retmode=text&db=pubmed&id=%s') % pmid
-
-    # Sometimes the NCBI servers shit the bed and return errors that kill
-    # the python script, we catch these and just return blank pubmed info
-    try:
-        res = url2.urlopen(url).read()
-        res2 = url2.urlopen(url_abs).read()
-
-    except url2.HTTPError:
-        er = ('Error! There was a problem accessing the NCBI servers. No '
-              'PubMed info for the PMID you provided could be retrieved.')
-        return ({}, er)
-
-    res = json.loads(res)
-
-    # In case of KeyErrors...
-    try:
-        pub = res['result']
-        pub = pub[pmid]
-
-        pinfo = {'pub_title': pub['title'], 'pub_abstract': res2,
-                 'pub_journal': pub['fulljournalname'],
-                 'pub_volume': pub['volume'], 'pub_pages': pub['pages'],
-                 'pub_pubmed': pmid, 'pub_authors': ''}
-
-        # Author struct {name, authtype, clustid}
-        for auth in pub['authors']:
-            pinfo['pub_authors'] += auth['name'] + ', '
-
-        # Delete the last comma + space
-        pinfo['pub_authors'] = pinfo['pub_authors'][:-2]
-
-    except:
-        er = ('Error! The PubMed info retrieved from NCBI was incomplete. No '
-              'PubMed data will be attributed to this GeneSet.')
-        return ({}, er)
-
-    return (pinfo, '')
-
-
-# groom
-def parseBatchFile(lns, usr=0, cur=5):
-    """ Parses the batch file according to the format listed on:
-        http://geneweaver.org/index.php?action=manage&cmd=batchgeneset
-
-    Parameters
-    ----------
-    lns: list of strings, one per line of the batch file
-    usr: User ID, to associate with the parsed GeneSets
-    cur: Curation ID
-
-    Returns
-    -------
-    triplet: tuple containing (list of GeneSets, list of warnings, list of errors)
-
-    """
-    genesets = []
-    gsvals = []  # geneset_values, here as a list of tuples (sym, pval)
-    abbr = ''  # geneset abbreviation
-    name = ''  # geneset name
-    desc = ''  # geneset description
-    gene = ''  # gene type (gs_gene_id_type)
-    pub = None  # pubmed ID
-    group = 'private'  # group (public or private)
-    stype = ''  # score type (gs_threshold_type)
-    thresh = '0.05'  # threshold value for scores
-    spec = ''  # species name
-    cerr = ''  # critical errors discovered during parsing
-    ncerr = []  # non-critical errors discovered during parsing
-    errors = []  # critical errors discovered during parsing
-    warns = []  # non-critical errors discovered during parsing
-
-    # for ln in lns:
-    for i in range(len(lns)):
-        lns[i] = lns[i].strip()
-
-        # :, =, + are required for all datasets
-        #
-        # Lines beginning with ':' are geneset abbreviations (REQUIRED)
-        if lns[i][:1] == ':':
-            # This checks to see if we've already read in some geneset_values
-            # If we have, that means we can save the geneset, clear out any
-            # REQUIRED fields before we do more parsing, and start over
-            if gsvals:
-                gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
-                                 thresh, gene, gsvals, usr, cur)
-                # Start a new dataset
-                abbr = ''
-                desc = ''
-                name = ''
-                gsvals = []
-                genesets.append(gs)
-
-            abbr = eatWhiteSpace(lns[i][1:])
-
-        # Lines beginning with '=' are geneset names (REQUIRED)
-        elif lns[i][:1] == '=':
-            # This checks to see if we've already read in some geneset_values
-            # If we have, that means we can save the geneset, clear out any
-            # REQUIRED fields before we do more parsing, and start over
-            if gsvals:
-                gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
-                                 thresh, gene, gsvals, usr, cur)
-                # Start a new dataset
-                abbr = ''
-                desc = ''
-                name = ''
-                gsvals = []
-                genesets.append(gs)
-
-            name = eatWhiteSpace(lns[i][1:])
-
-        # Lines beginning with '+' are geneset descriptions (REQUIRED)
-        elif lns[i][:1] == '+':
-            # This checks to see if we've already read in some geneset_values
-            # If we have, that means we can save the geneset, clear out any
-            # REQUIRED fields before we do more parsing, and start over
-            if gsvals:
-                gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
-                                 thresh, gene, gsvals, usr, cur)
-                # Start a new dataset
-                abbr = ''
-                desc = ''
-                name = ''
-                gsvals = []
-                genesets.append(gs)
-
-            desc += eatWhiteSpace(lns[i][1:])
-            desc += ' '
-
-        # !, @, %, are required but can be omitted from later sections if
-        # they don't differ from the first.
-        #
-        # Lines beginning with '!' are score types (REQUIRED)
-        elif lns[i][:1] == '!':
-            score = eatWhiteSpace(lns[i][1:])
-            score = parseScoreType(score)
-
-            # Indicates a critical error has occured (no score type w/ an
-            # error message)
-            if not score[0] and score[2]:
-                errors.append(score[2])
-
-            else:
-                stype = score[0]
-                thresh = score[1]
-
-            # Any warnings
-            if score[0] and score[2]:
-                warns.append(score[2])
-
-        # Lines beginning with '@' are species types (REQUIRED)
-        elif lns[i][:1] == '@':
-            spec = eatWhiteSpace(lns[i][1:])
-            specs = db.getSpecies()
-
-            if spec.lower() not in specs.keys():
-                err = 'LINE %s: %s is an invalid species' % (i + 1, spec)
-                errors.append(err)
-
-            else:
-                # spec is now an integer (sp_id)
-                spec = specs[spec.lower()]
-
-        # Lines beginning with '%' are gene ID types (REQUIRED)
-        elif lns[i][:1] == '%':
-            gene = eatWhiteSpace(lns[i][1:])
-
-            # In the PHP source, it looks like the gene type is checked
-            # to see if it's a microarray first, if it is then the pf_id is
-            # used, otherwise gdb_id is used. Doesn't make much sense because
-            # some pf_ids overlap with gdb_ids. On second glance the PHP code
-            # for gene id types makes no fucking sense but whatever.
-            if gene.lower().find('microarray') != -1:
-                plats = db.getMicroarrayTypes()
-                origplat = gene
-                gene = gene[len('microarray '):]  # delete 'microarray ' text
-
-                # Determine the closest microarry platform match. The PHP
-                # function calculated % string similarity between the user
-                # supplied platform and the list of plats in the db, choosing
-                # the one with the best match
-                best = 0.70
-                for plat, pid in plats.items():
-                    sim = calcStringSimilarity(plat.lower(), origplat.lower())
-
-                    if sim > best:
-                        best = sim
-                        gene = plat
-
-                # Convert to the ID, gene will now be an integer
-                gene = plats.get(gene, 'unknown')
-
-                if type(gene) != int:
-                    err = 'LINE %s: %s is an invalid platform' % \
-                          (i + 1, origplat)
-                    errors.append(err)
-
-            # Otherwise the user specified one of the gene types, not a
-            # microarray platform
-            # :IMPORTANT: Expression platforms have positive (+)
-            # gs_gene_id_types while all other types (e.g. symbols) should
-            # have negative (-) integer ID types.
-            else:
-                types = db.getGeneTypes()
-
-                if gene.lower() not in types.keys():
-                    err = 'LINE %s: %s is an invalid gene type' % (i + 1, gene)
-                    errors.append(err)
-
-                else:
-                    # gene is now an integer (gdb_id)
-                    gene = types[gene.lower()]
-                    # Negate, see comment tagged important above
-                    gene = -gene
-
-        # Lines beginning with 'P ' are PubMed IDs (OPTIONAL)
-        elif (lns[i][:2].lower() == 'p ') and (len(lns[i].split('\t')) == 1):
-            pub = eatWhiteSpace(lns[i][1:])
-
-        # Lines beginning with 'A' are groups, default is private (OPTIONAL)
-        elif lns[i][:2].lower() == 'a ' and (len(lns[i].split('\t')) == 1):
-            group = eatWhiteSpace(lns[i][1:])
-            # If the user gives something other than private/public,
-            # automatically make it private
-            if group.lower() != 'private' and group.lower() != 'public':
-                group = '-1'
-
-            elif group.lower() == 'public':
-                group = '0'
-
-            else:  # private
-                group = '-1'
-
-        # If the lines are tab separated, we assume it's the gene data that
-        # will become apart of the geneset_values
-        elif len(lns[i].split('\t')) == 2:
-            print lns[i].split('\t'), "\n"
-
-            # First we check to see if all the required data was specified
-            if ((not abbr) or (not name) or (not desc) or (not stype) or
-                    (not spec) or (not gene)):
-                err = 'One or more of the required fields are missing.'
-                # Otherwise this string will get appended a bajillion times
-                if err not in errors:
-                    errors.append(err)
-
-            else:
-                lns[i] = lns[i].split()
-
-                # I don't think this code can ever be reached...
-                if len(lns[i]) < 2:
-                    err = 'LINE %s: Skipping invalid gene, value formatting' \
-                          % (i + 1)
-                    warns.append(err)
-
-                else:
-                    gsvals.append((lns[i][0], lns[i][1]))
-
-        # Lines beginning with '#' are comments
-        elif lns[i][:1] == '#':
-            continue
-
-        # Skip blank lines
-        elif lns[i][:1] == '':
-            continue
-
-        # Who knows what the fuck this line is, just skip it
-        else:
-            err = 'LINE %s: Skipping unknown identifiers' % (i + 1)
-            warns.append(err)
-
-    # awwww shit, we're finally finished! Check for critical errors and
-    # if there were none, make the final geneset and return
-    if errors:
-        triplet = ([], warns, errors)
-        return triplet
-
-    else:
-        gs = makeGeneset(name, abbr, desc, spec, pub, group, stype,
-                         thresh, gene, gsvals, usr, cur)
-        genesets.append(gs)
-
-        triplet = (genesets, warns, errors)
-        return triplet
-
-
-def makeRandomFilename():
-    """ Generates a random filename for the file_uri column in the file table. The
-        PHP version of this function (getRandomFilename) combines the user's
-        email, the string '_ODE_', the current date, and a random number. Since
-        this script is offline right now, I'm just using 'GW_' + date + '_' + a
-        random six letter alphanumeric string. Looking at the file_uri contents
-        currently in the db though, there seems to be a ton of variation in the
-        naming schemes.
-
-    Returns
-    -------
-    (clarify)
-
-    """
-    rstr = ''
-    now = datetime.datetime.now()
-
-    for i in range(6):
-        rstr += random.choice('abcdefghijklmnopqrstuvwxyz1234567890')
-
-    return ('GW_' + str(now.year) + '-' + str(now.month) + '-' +
-            str(now.day) + '_' + rstr)
-
-
-def handle_symbols(gs, symbols):
-    """ Handles the condition during batch uploading where the data type of
-        gene information input was a symbol (not platform). Uploads geneset values.
-        Returns the total number of GeneSets with recently inserted gsv_values,
-        a list of any errors raised, and updated GeneSet.
-
-    Parameters
-    ----------
-    gs: dict representing GeneSet info
-    symbols: gs['values'] - input ode_gene_ids from text file
-
-    Returns
-    -------
-    total: number Geneset gsv_values inserted (int)
-    noncrit: list of errors (strings) raised when calling getOdeGeneIdsNonPref
-    output_gs: GeneSet info updated with any changes
-
-    """
-    total = 0  # number of values added to database
-    sym2ode, noncrit, final_refs, id_to_value, output_gs = db.getOdeGeneIdsNonPref(gs['sp_id'], symbols,
-                                                                                   gs['gs_gene_id_type'], gs)
-    if not noncrit:
-        noncrit = []
-
-    if output_gs['pub_id']:  # if a PMID was provided, we get the info from NCBI
-        pub = getPubmedInfo(output_gs['pub_id'])
-        output_gs['pub_id'] = pub[0]
-
-        if pub[1]:  # non-crit pubmed retrieval errors
-            noncrit.append(pub[1])
-
-        if output_gs['pub_id']:  # new row in the publication table
-            output_gs['pub_id'] = db.insertPublication(output_gs['pub_id'])
-        else:
-            output_gs['pub_id'] = None  # empty pub
-    else:
-        output_gs['pub_id'] = None  # empty pub
-
-    output_gs['file_id'] = buFile(output_gs['values'])  # insert the data into the file table
-    output_gs['gs_id'] = db.insertGeneset(output_gs)  # insert new genesets
-
-    for ref, val in output_gs['values']:
-        db.insertGenesetValue(output_gs['gs_id'], sym2ode[ref.lower()], val, ref, 'true')
-        total += 1
-
-    return total, noncrit, output_gs
-
-
-# still need to work on handle_platform and getPlatformProbes [like you did with symbols]
-def handle_platform(gs, symbols):
-    """ Handles the condition during batch uploading where the data type of
-        gene information input was a not a symbol (platform). Uploads geneset values.
-        Returns the total number of GeneSets with recently inserted gsv_values
-        and a list of any errors raised.
-
-    Parameters
-    ----------
-    gs: dict representing GeneSet info
-    symbols: gs['values'] - input ode_gene_ids from text file
-
-    Returns
-    -------
-    total: number GeneSet gsv_values inserted (int)
-    noncrit: list of errors (strings) raised
-    gs: updated GeneSet info
-
-    """
-    total = 0  # number of values added to database
-    noncrit = []
-    sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)  # USEAGE: {prb_ref_id: prb_id,}
-    prbids = map(lambda l: sym2probe[l], symbols)  # generate a list of prb_ids
-    prbids = list(set(prbids))  # get rid of any duplicates
-    prb2odes = db.getProbe2Gene(prbids)  # USAGE: {prb_ids: ode_gene_ids,}
-    dups = dd(str)  # duplicate detection
-
-    # add below to getPlatformProbes
-    if gs['pub_id']:  # if a PMID was provided, we get the info from NCBI
-        pub = getPubmedInfo(gs['pub_id'])
-        gs['pub_id'] = pub[0]
-
-        if pub[1]:  # non-crit pubmed retrieval errors
-            noncrit.append(pub[1])
-
-        if gs['pub_id']:  # new row in the publication table
-            gs['pub_id'] = db.insertPublication(gs['pub_id'])
-        else:
-            gs['pub_id'] = None  # empty pub
-    else:
-        gs['pub_id'] = None  # empty pub
-
-    gs['file_id'] = buFile(gs['values'])  # insert the data into the file table
-    gs['gs_id'] = db.insertGeneset(gs)  # insert new genesets
-
-    for tup in gs['values']:
-        sym = tup[0]
-        print "sym (buGenesetValues): %s \n" % sym
-        value = tup[1]
-        print "value (buGenesetValues): %s \n" % value
-        prbid = sym2probe[sym]
-        odes = prb2odes[prbid]
-
-        if not prbid or not odes:
-            err = ("Error! There doesn't seem to be any gene/locus data for "
-                   "%s in the database." % sym)
-            noncrit.append(err)
-            continue
-
-        for ode in odes:
-            if not dups[ode]:  # check for duplicate ode_gene_ids
-                dups[ode] = tup[0]
-            else:  # otherwise query
-                err = ('Error! Seems that %s is a duplicate of %s. %s was not '
-                       'added to the geneset.' %
-                       (sym, dups[ode], sym))
-                noncrit.append(err)
-                continue
-
-            db.insertGenesetValue(gs['gs_id'], ode, value, sym,
-                                  'true')
-            total += 1
-        continue
-
-    return total, noncrit, gs
-
-
-def buFile(genes):
-    """ Parses geneset content into the proper format and inserts it into the file
-        table. The proper format is gene\tvalue\n .
-
-    Parameters
-    ----------
-    genes: (clarify)
-
-    Returns
-    -------
-    (clarify)
-
-    """
-    conts = ''
-    # Geneset values should be a list of tuples (symbol, pval)
-    for tup in genes:
-        conts += (tup[0] + '\t' + tup[1] + '\n')
-
-    return db.insertFile(len(conts), makeRandomFilename(), conts, '')
-
-
-def buGenesetValues(gs):
-    """ Batch upload geneset values.
-
-    Parameters
-    ----------
-    gs: dict representing GeneSet info
-
-    Returns
-    -------
-    total: number Geneset gsv_values inserted (int)
-    noncrit: list of errors (strings) raised when adding GeneSet
-    gs: if expression platform (gs); if symbols (updated_gs)
-
-    """
-    values = gs['values']  # USEAGE: [(symbol, gsv_value),] - should be a list of tuples
-    symbols = map(lambda x: x[0], values)  # USAGE: [symbol,] - isolate a list of reference values for querying
-
-    if gs['gs_gene_id_type'] < 0:  # negative numbers indicate normal gene types (symbols)
-        print "SYMBOL HANDLING\n"
-        total, noncrit, updated_gs = handle_symbols(gs, symbols)
-    else:  # positive numbers indicate expression platforms
-        print "PLATFORM HANDLING\n"
-        total, noncrit, updated_gs = handle_platform(gs, symbols)
-
-    return total, noncrit, updated_gs
-
-
-def buGenesets(fp, usr_id=0, cur_id=5):
-    """ Batch uploads genesets. Requires the filepath to the batch upload file.
-        Takes two additional (optional) parameters, a usr_id and cur_id, which
-        are provided as command line arguments. This allows the person running
-        the script to change usr_ids and cur_ids, which are currently set to 0
-        and 5 (private) respectively, for this "offline" version of the script.
-
-    Parameters
-    ----------
-    fp: (clarify)
-    usr_id: (clarify)
-    cur_id: (clarify)
-
-    Returns
-    -------
-    (clarify)
-
-    """
-    noncrits = []  # non-critical errors we will inform the user about
-    added = []  # list of gs_ids successfully added to the db
-    genesets = []
-
-    # returns (genesets, non-critical errors, critical errors)
-    b = parseBatchFile(readBatchFile(fp), usr_id, cur_id)
-
-    if b[2]:  # if a critical error has occurred
-        print b[2]
-        print ''
-        exit()
-    else:
-        genesets = b[0]
-        noncrits = b[1]
-
-    print '\n************* %i of GENESETS created *************\n' % len(genesets)
-    for gs in genesets:
-        total, gsverr, output_gs = buGenesetValues(gs)
-
-        if gsverr:  # update gs_count if some geneset_values were found to be invalid
-            db.updateGenesetCount(output_gs['gs_id'], total)
-
-        added.append(output_gs['gs_id'])
-
-    db.commit()
-
-    return added, noncrits
-
-# ----------------------------TESTING FUNCTIONS---------------------------- #
-
-
-def batch_file_test():
-    """ Tests the capabilities of batch.py to parse a user-input batch
-    GeneSet file, add GeneSets, and batch upload. Prints errors
-    identified as 'non-critical' to the command line.
-
-    [previously found under __main__; isolated for ease of testing]
-    """
-    from optparse import OptionParser
-    from sys import argv
-
-    # cmd line prompt for batch test
-    usage = 'usage: %s [options] <batch_file>' % argv[0]
-    parse = OptionParser(usage=usage)
-
-    parse.add_option('-u', action='store', type='string', dest='usr_id',
-                     help='Specify a usr_id for newly added GeneSets')
-    parse.add_option('-c', action='store', type='string', dest='cur_id',
-                     help='Specify a cur_id for newly added GeneSets')
-
-    (opts, args) = parse.parse_args(argv)
-
-    if len(args) < 2:
-        print '[!] You need to provide a batch GeneSet file.'
-        parse.print_help()
-        print ''
-        exit()
-
-    if not opts.usr_id:
-        opts.usr_id = 0
-    if not opts.cur_id:
-        opts.cur_id = 5
-
-    # where all the magic happens
-    stuff = buGenesets(args[1], opts.usr_id, opts.cur_id)
-
-    print '[+] The following GeneSets were added:'
-    print ', '.join(map(str, stuff[0]))
-    print ''
-
-    if stuff[1]:
-        print '[!] There were some non-critical errors with the batch file:'
-        for er in stuff[1]:
-            print er
-        print ''
-
-
-def getOdeGeneIdsNonPrefTest():
-    """ Tests the capabilities of function: getOdeGeneIdsNonPrefTest()"""
-    # database already randomly defined above
-    # getOdeGeneIdsNonPref(species id, list of ode ref ids)
-
-    from optparse import OptionParser
-    from sys import argv
-
-    # cmd line prompt for batch test
-    usage = 'usage: %s [options] <batch_file>' % argv[0]
-    parse = OptionParser(usage=usage)
-
-    parse.add_option('-u', action='store', type='string', dest='usr_id',
-                     help='Specify a usr_id for newly added GeneSets')
-    parse.add_option('-c', action='store', type='string', dest='cur_id',
-                     help='Specify a cur_id for newly added GeneSets')
-
-    (opts, args) = parse.parse_args(argv)
-
-    genesets = {}  # genesets we are working with
-
-    # returns (genesets, non-critical errors, critical errors)
-    b = parseBatchFile(readBatchFile(args[1]), 0, 0)
-
-    # A critical error has occurred
-    if b[2]:
-        print b[2]
-        print ''
-        exit()
-    else:
-        genesets = b[0]
-
-    for geneset in genesets:
-        symbols = map(lambda x: x[0], geneset['values'])
-        db.getOdeGeneIdsNonPref(geneset["sp_id"], symbols, geneset["gs_gene_id_type"], geneset)
-        break
 
 if __name__ == '__main__':
-    # print '\n TEST: batch file upload test \n'
-    batch_file_test()
+	# TESTING
+	print sys.argv
 
-    # print '\n TEST: getOdeGeneIdsNonPref() \n'
-    # getOdeGeneIdsNonPrefTest()
+	if len(sys.argv) < 2:
+		print "Usage: python %s <int_range(9)>" % sys.argv[0]
+		print "       where <int_range(9)> specifies an integer\n" \
+		      "       between 0-8 [incl.]"
+		exit()
+
+	test_fileParsing(int(sys.argv[1]))
