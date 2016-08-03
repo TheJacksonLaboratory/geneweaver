@@ -4,6 +4,7 @@
 
 import sys
 import uploader as u
+from functools import partial
 
 
 class Batch:
@@ -14,6 +15,7 @@ class Batch:
 
 		# EDIT: DESIGN DECISION - for now, pretend that input file is req
 		self.input_file = input_filepath
+		self.test = True
 		self.file_toString = None  # concatenated version of string input
 
 		# error handling
@@ -235,12 +237,19 @@ class Batch:
         """
 
 		# first, detect how many GeneSets we need to create here
-		self.file_toString = ''.join(self.input_file)
+		if self.test:
+			with open(self.input_file, 'r') as file_path:
+				lines = file_path.readlines()
+				self.file_toString = ''.join(lines)
+		else:
+			self.file_toString = ''.join(self.input_file)
+			lines = self.input_file
+
 		numGS, gs_locs = self.calc_numGeneSets(self.file_toString)
 
-		# second, find + assign required header values to global vars
+		# find + assign required header values to global vars
 		currPos = 0
-		for line in self.input_file:
+		for line in lines:
 			currPos += len(line)
 			if currPos < gs_locs[0]:  # only search the metadata headers
 				stripped = line.strip()
@@ -279,8 +288,23 @@ class Batch:
 
 	def calc_numGeneSets(self, gs_file):
 		print 'calculating number of GeneSets in file...'
-		# if any of these fail, we know that the file is missing key info
 
+		# retrieve the number of symbols found in the file
+		metaSyms = ['!', '@', '%', '=', ':']
+		metaCounts = []
+
+		for m in metaSyms:
+			metaCounts.append(self.list_duplicates_of(gs_file, m))
+
+		print metaSyms
+		print metaCounts
+		exit()
+
+		# make sure these meet the minimal requirements for meta-headers
+
+		# group first based on meta headers
+
+		# if any of these fail, we know that the file is missing key info
 		try:
 			bang = gs_file.split('!')
 			at = gs_file.split('@')
@@ -326,6 +350,19 @@ class Batch:
 		numGS = len(colon) - 1
 		print 'estimated number of GeneSets in this file: %s' % numGS
 		return numGS, first_loc
+
+	def list_duplicates_of(self, seq, item):
+		start_at = -1
+		locs = []
+		while True:
+			try:
+				loc = seq.index(item, start_at + 1)
+			except ValueError:
+				break
+			else:
+				locs.append(loc)
+				start_at = loc
+		return locs
 
 	def assign_threshVals(self, score):
 		print 'checking + assigning score type...'
@@ -459,12 +496,6 @@ class Batch:
 
 		# pass GeneSet values along to UploadGeneSet obj
 		gs.set_genesetValues(gs_vals)
-
-		print ' \n \n '
-		print vals
-		print len(vals)
-		print type(vals)
-		print ' \n\n'
 
 		# if the score type is Binary, still need to assign a threshold value
 		if self.score_type == '3':
