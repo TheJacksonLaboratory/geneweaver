@@ -1358,8 +1358,24 @@ def render_sim_genesets(gs_id, grp_by):
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
     json.dumps(d3BarChart, default=decimal_default)
-    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs,
-                                 d3Data=d3Data, max=max, d3BarChart=d3BarChart)
+
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
+
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+
+    return flask.render_template(
+        'similargenesets.html', 
+        geneset=geneset, 
+        user_id=user_id, 
+        gs_id=gs_id, 
+        simgs=simgs,
+        d3Data=d3Data, 
+        max=max, 
+        d3BarChart=d3BarChart,
+        species=species
+    )
 
 
 @app.route('/getPubmed', methods=['GET', 'POST'])
