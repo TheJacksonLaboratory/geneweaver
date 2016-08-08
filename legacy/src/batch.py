@@ -58,10 +58,10 @@ class Batch:
 			# determine whether handling platforms or symbols
 			if self.batches[idx]['microarray?']:
 				self.genesets[idx] = self.handle_platform(sets)
-				print '\n*************** %i of GeneSets created ****************\n' % len(sets)  # TESTING
+				print '\n*************** %i GeneSet(s) created ****************\n' % len(sets)  # TESTING
 			else:
 				self.genesets[idx] = self.handle_symbol(sets)
-				print '\n*************** %i of GeneSets created ****************\n' % len(sets)  # TESTING
+				print '\n*************** %i GeneSet(s) created ****************\n' % len(sets)  # TESTING
 
 			if 'publication' in self.batches[idx].keys():
 				pub = self.batches[idx]['publication']
@@ -322,9 +322,10 @@ class Batch:
 		coords_all = sorted(coords_all)[:-1]  # (remove extra endpoint)
 		prev_idx = coords_all[0]  # previous index
 		currB = 0  # current batch
+
 		for z in range(len(coords_all)):
 			curr_idx = coords_all[z]
-			if curr_idx != coords_all[-1] and curr_idx != coords_all[0]:
+			if curr_idx != coords_all[0]:
 				p = self.file_toString[prev_idx:curr_idx].split('\n')
 				if len(p) > 3:
 					if prev_idx not in coords_batch:
@@ -340,25 +341,45 @@ class Batch:
 
 	def create_genesets(self):
 		desc = []
-		content_loc = None
+		vals = []
 		for idx, batch in self.batches.iteritems():
 			self.genesets[idx] = {}
 			for geneset in batch['genesets']:
 				abbrev = None
 				name = None
-				gs_loc = batch['genesets'].index(geneset)
+				gs_vals = {}
 				for entry in geneset:
 					line = entry.strip()
 					if line[:1] == ':':
 						abbrev = line[1:].strip()
 					elif line[:1] == '=':
 						name = line[1:].strip()
-					elif entry[:1] == '+':
+					elif line[:1] == '+':
 						desc.append(line[1:].strip())
-					elif not line:
-						content_loc = geneset.index(entry)
-						content_loc += gs_loc
+					elif '#' in line or len(line) == 0:  # ignore comments
+						pass
+					elif '\t' in line:
+						raw = line.split('\t')
+						if len(raw) > 2:
+							tmp = []
+							for res in raw:
+								if res:
+									tmp.append(res)
+							raw = tmp
 
+						gene = raw[0]
+						val = raw[1]
+						try:
+							vals.append(float(val))
+							gs_vals[gene.strip()] = val.strip()
+						except ValueError:
+							err = "Error: Data points should be in the format 'gene " \
+							      "id <tab> data value', with each data point on a " \
+							      "separate line. Please check the file and make sure that you did " \
+							      "not include an empty geneset with no genes."
+							self.errors.set_errors(critical=err)
+
+				# format values for database
 				content = dict((header, self.batches[0][header])
 				               for header in self.meta_info)
 
@@ -373,23 +394,7 @@ class Batch:
 				# add concatenated description to GeneSet obj
 				gs.set_description(' '.join(desc))
 
-				# add content to UploadGeneSet obj
-				gs_vals = {}
-				vals = []  # in case score type is Binary, + we need to derive the max val
-				for data in geneset[content_loc + 1:]:  # +1 for a blank line
-					if data and '#' not in data:
-						try:
-							gene, val = data.split('\t')
-							vals.append(float(val))
-							gs_vals[gene.strip()] = val.strip()
-						# add the threshold val if binary
-						except ValueError:
-							err = "Error: Data points should be in the format 'gene " \
-							      "id <tab> data value', with each data point on a " \
-							      "separate line. Please check the file and make sure that you did " \
-							      "not include an empty geneset with no genes."
-							self.errors.set_errors(critical=err)
-				# pass GeneSet values along to GeneSet obj
+				# add geneset values
 				gs.set_genesetValues(gs_vals)
 
 				if gs.score_type == '3':
@@ -578,6 +583,8 @@ class Batch:
 
 	def get_geneType(self, gid):
 		# print 'checking + assigning gene ID type...'
+		gs_gene_id_type = None
+		microarray = None
 		gid = gid.lower().strip()
 
 		if gid in self.gene_types.keys():
@@ -620,8 +627,9 @@ class Batch:
 		gs_names = []
 
 		for idx, genesets in self.genesets.iteritems():
-			print idx
-			print genesets
+			gs_names += genesets.keys()
+
+		return gs_names
 
 
 class GeneSet:

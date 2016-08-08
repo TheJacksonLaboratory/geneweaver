@@ -96,13 +96,13 @@ def create_batch_geneset():
         return flask.jsonify({'error': batchErrors})
 
     # grab abbrev of all geneset names
-    genesets = batch.report_gs_names()
+    gs_names = batch.report_gs_names()
 
     # if there were warnings, report to the user
     if batch.errors.noncrit:
-        return flask.jsonify({'genesets': batchUpload.genesets.keys(), 'warn': batchWarns})
+        return flask.jsonify({'genesets': gs_names, 'warn': batchWarns})
     else:
-        return flask.jsonify({'genesets': batchUpload.genesets.keys()})
+        return flask.jsonify({'genesets': gs_names})
 
 
 def tokenize_lines(candidate_sep_regexes, lines):

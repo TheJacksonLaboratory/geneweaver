@@ -17,10 +17,10 @@ P 19958391
 + Testing batch geneset upload using gene symbols.
 
 Mobp	1
-Ccr4	1
+Ccr4		1
 Mapt	1
-Daxx	1
-Cry2	1
+Daxx		1
+Cry2		1
 
 ! Binary
 @ Mus musculus
@@ -38,8 +38,8 @@ P 19958391
 
 Mobp	1
 Mapt	1
-Daxx	1
-Cry2	1
+Daxx		1
+Cry2		1
 
 #
 ## The following lines give the label, name, and description of
