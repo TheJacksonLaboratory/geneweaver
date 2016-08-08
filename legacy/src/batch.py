@@ -1,25 +1,38 @@
-# file: batch.py
-# date: 6/10/16
-# version: 1.1
-
 import sys
-import uploader as u
-from functools import partial
+from uploader import Uploader
+from error_tracker import ErrorTracker
 
 
 class Batch:
-	def __init__(self, input_filepath=None, usr_id=0):
+	def __init__(self, usr_id=0, cur_id='1', file_path=None, file_list=None):
 
+		# input handling
+		self.file_path = file_path  # 0 [input_id]
+		self.file_list = file_list  # 1 [input_id]
 		self.user_id = usr_id
-		self.cur_id = '1'  # uploaded as a public resource
-
-		# EDIT: DESIGN DECISION - for now, pretend that input file is req
-		self.input_file = input_filepath
-		self.test = True
-		self.file_toString = None  # concatenated version of string input
+		self.cur_id = cur_id
 
 		# error handling
-		self.errors = ErrorHandler()
+		self.errors = ErrorTracker()
+
+		# uploader handling
+		self.uploader = Uploader(errors=self.errors, user_id=0)
+
+		# data handling
+		self.file_toString = ''
+		self.file_len = None
+		self.lines = []
+		self.numBatch = None
+		self.numGS = None
+		self.gs_locs = {}
+		self.batch_locs = {}
+		self.delimit_file = []
+		self.batches = {}
+		self.genesets = {}
+
+		# prepping req headers for GeneSet creation
+		self.meta_info = ['gs_gene_id_type', 'microarray?', 'privacy',
+		                  'score_type', 'thresh', 'species']
 
 		# database connection fields
 		self.gene_types = {}  # {gdb_name: gdb_id,}
@@ -27,203 +40,193 @@ class Batch:
 		self.platform_types = {}  # {prb_ref_id: prb_id,}
 		self.species_types = {}  # {sp_name: sp_id,}
 
-		# GeneSet obj fields
-		self.genesets = {}  # {gs_abbrev: UploadGeneSet,}
-		self.gs_gene_id_type = ''  # gs_gene_id_type (in case label changes)
-		self.pubmed = ''  # PubMed ID
-		self.privacy = ''  # group (public or private)
-		self.score_type = ''  # gs_threshold_type
-		self.threshold = ''  # gs_threshold
-		self.species = ''  # sp_id
-		self.publication = {'pub_id': None, 'pub_pubmed': None, 'pub_pages': None,
-		                    'pub_title': None, 'pub_journal': None, 'pub_volume': None,
-		                    'pub_authors': None, 'pub_abstract': None}  # {pub_*: val,}
-		self.microarray = None
-
-		# launch connection to GeneWeaver database
-		self.uploader = u.Uploader(self)
-		self.uploader.launch_connection()
+		# retrieve key refs from database
 		self.populate_dictionaries()
 
-		self.run_batch()  # initiates upload processing
+		# interpret input types
+		self.assess_inputs()
 
-	# -------------------------SESSION DATA---------------------------------------#
+		# identify batches of genesets
+		self.create_batches()  # populates self.genesets
 
-	def run_batch(self):
-		print "initiating upload to GeneWeaver..."
-		# read in the input file
-		self.read_file()  # creates UploadGeneSet objs
+		# initiate geneset upload process
+		self.upload_genesets()
 
-		# create a new session, depending on handling approach
-		if self.microarray:
-			self.handle_platform()
-			self.uploader.insert_publication()
-			print '\n*************** %i of GeneSets created ****************\n' % len(self.genesets)  # TESTING
-			for gs_name, gs in self.genesets.iteritems():
-				# TESTING PURPOSES:
-				# print
-				# print gs_name
-				# print 'of length:', len(gs.geneset_values)
-				# print
-				gs.upload()
-		else:
-			self.handle_symbols()
-			self.uploader.insert_publication()
-			print '\n*************** %i of GeneSets created ****************\n' % len(self.genesets)  # TESTING
-			for gs_name, gs in self.genesets.iteritems():
-				gs.upload()
+	def upload_genesets(self):
 
-			# TEST check to make sure that the changes are kept
+		for idx, sets in self.genesets.iteritems():
+			# determine whether handling platforms or symbols
+			if self.batches[idx]['microarray?']:
+				self.genesets[idx] = self.handle_platform(sets)
+				print '\n*************** %i of GeneSets created ****************\n' % len(sets)  # TESTING
+			else:
+				self.genesets[idx] = self.handle_symbol(sets)
+				print '\n*************** %i of GeneSets created ****************\n' % len(sets)  # TESTING
 
-	def handle_platform(self):
+			if 'publication' in self.batches[idx].keys():
+				pub = self.batches[idx]['publication']
+				pub_id = self.uploader.insert_publication(pub_authors=pub['pub_authors'],
+				                                          pub_title=pub['pub_title'],
+				                                          pub_abstract=pub['pub_abstract'],
+				                                          pub_journal=pub['pub_journal'],
+				                                          pub_volume=pub['pub_volume'],
+				                                          pub_pages=pub['pub_pages'],
+				                                          pub_pubmed=pub['pub_pubmed'])
+				self.batches[idx]['publication']['pub_id'] = pub_id
+
+			for gs_name, gs_list in sets.iteritems():
+				for geneset in gs_list:
+					geneset.upload()
+
+			# call for a merge of errors (maybe use one of
+			#   of the loops above?)
+
+	def handle_platform(self, gs_dict):
 		""" Handles microarray condition.
-        """
-		print 'handling platform assignment...'
-		# for each geneset
-		for gs_abbrev, geneset in self.genesets.iteritems():
-			# look up prb_ids for each prb_ref_id
-			query_probes = self.uploader.get_platformProbes(
-				geneset.gs_gene_id_type,
-				geneset.geneset_values.keys())
-			# print '\nquery_platformProbes:\n', query_probes
+		"""
+		# print 'handling platform assignment...'
 
-			# isolate probes, refs
-			probes = []  # prb_ids
-			probe_headers = query_probes.keys()  # prb_ref_ids
-			for ref_probe, ids_probe in query_probes.iteritems():
-				probes += ids_probe
+		# for each list of geneset objs
+		for gs_abbrev, gs_list in gs_dict.iteritems():
+			for geneset in gs_list:
+				# look up prb_ids for each prb_ref_id
+				query_probes = self.uploader.get_platformProbes(
+					geneset.gs_gene_id_type,
+					geneset.geneset_values.keys())
+				# print '\nquery_platformProbes:\n', query_probes
 
-			# look up ode_gene_ids for each prb_id
-			query_odes = self.uploader.get_probe2gene(probes)
-			# print '\nquery_probe2gene:\n', query_odes
+				# isolate probes, refs
+				probes = []  # prb_ids
+				probe_headers = query_probes.keys()  # prb_ref_ids
+				for ref_probe, ids_probe in query_probes.iteritems():
+					probes += ids_probe
 
-			prb_results = {}  # (prb_ref_id: prb_id,}
-			ode_results = {}  # (prb_ref_id: ode_gene_id,}
+				# look up ode_gene_ids for each prb_id
+				query_odes = self.uploader.get_probe2gene(probes)
+				# print '\nquery_probe2gene:\n', query_odes
 
-			# first, give priority to prb_ref_ids with only one prb_id
-			for probe_ref, probe_ids in query_probes.iteritems():
-				prb_results[probe_ref] = None
-				size_poss = len(probe_ids)
+				prb_results = {}  # (prb_ref_id: prb_id,}
+				ode_results = {}  # (prb_ref_id: ode_gene_id,}
 
-				if size_poss != 1:
-					continue  # prioritize potentially tricky items first
-				elif probe_ids[0] not in prb_results.values():
-					# print 'appended solo prb_id'
-					prb_results[probe_ref] = probe_ids[0]
-					probe_headers.remove(probe_ref)
+				# first, give priority to prb_ref_ids with only one prb_id
+				for probe_ref, probe_ids in query_probes.iteritems():
+					prb_results[probe_ref] = None
+					size_poss = len(probe_ids)
 
-			# second, process the remainder
-			for header in probe_headers:
-				pids = query_probes[header]
+					if size_poss != 1:
+						continue  # prioritize potentially tricky items first
+					elif probe_ids[0] not in prb_results.values():
+						# print 'appended solo prb_id'
+						prb_results[probe_ref] = probe_ids[0]
+						probe_headers.remove(probe_ref)
 
-				for pid in pids:
-					if pid not in prb_results.values():
-						# print 'appended add. prb_id'
-						prb_results[header] = pid
-						probe_headers.remove(header)
-						break
+				# second, process the remainder
+				for header in probe_headers:
+					pids = query_probes[header]
 
-			# print prb_results
-			# print probe_headers
+					for pid in pids:
+						if pid not in prb_results.values():
+							# print 'appended add. prb_id'
+							prb_results[header] = pid
+							probe_headers.remove(header)
+							break
 
-			# next, go through prb_results for ode check
-			adjusted_headers = set(query_probes.keys()) - set(probe_headers)
-			ode_headers = list(adjusted_headers)
-			for xref in adjusted_headers:
-				xprobes = query_probes[xref]
-				ode_results[xref] = None
+				# next, go through prb_results for ode check
+				adjusted_headers = set(query_probes.keys()) - set(probe_headers)
+				ode_headers = list(adjusted_headers)
+				for xref in adjusted_headers:
+					xprobes = query_probes[xref]
+					ode_results[xref] = None
 
-				for xprobe in xprobes:
-					if xprobe in query_odes.keys():
-						odes = query_odes[xprobe]
-						for ode in odes:
-							if ode not in ode_results.values():
-								ode_results[xref] = ode
-								ode_headers.remove(xref)
-								break
+					for xprobe in xprobes:
+						if xprobe in query_odes.keys():
+							odes = query_odes[xprobe]
+							for ode in odes:
+								if ode not in ode_results.values():
+									ode_results[xref] = ode
+									ode_headers.remove(xref)
+									break
 
-			# print ode_results
-			# print ode_headers
+				# next, update geneset
+				adjusted_headers = list(set(adjusted_headers) - set(ode_headers))
+				geneset.update_geneset_values(adjusted_headers)
+				geneset.update_ode_map(ode_map=ode_results)
 
-			# TESTING
-			# if len(ode_results) != len(prb_results):
-			# 	print 'somethings gone wrong at the end of handle_platforms...'
-			# 	exit()
+		return gs_dict
 
-			# next, update geneset
-			adjusted_headers = list(set(adjusted_headers) - set(ode_headers))
-			geneset.update_geneset_values(adjusted_headers)
-			geneset.update_ode_map(ode_map=ode_results)
-
-	def handle_symbols(self):
+	def handle_symbol(self, gs_dict):
 		"""Handles symbol condition.
-        """
-		print 'handling symbol assignment...'
+		"""
+		# print 'handling symbol assignment...'
 		# for each geneset
-		for gs_abbrev, geneset in self.genesets.iteritems():
-			results = {}
+		for gs_abbrev, gs_list in gs_dict.iteritems():
+			for geneset in gs_list:
+				results = {}
 
-			# look up ode_gene_ids for each ref_id
-			query_id = self.uploader.get_ode_genes(geneset.species, geneset.geneset_values.keys())
+				# look up ode_gene_ids for each ref_id
+				query_id = self.uploader.get_ode_genes(geneset.species, geneset.geneset_values.keys())
 
-			all_gene_ids = []
-			all_results = {}
-			for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
-				all_gene_ids += all_ids
-				all_results[all_ref] = all_ids
-			all_gene_ids = list(set(all_gene_ids))
-			all_refs = all_results.keys()
+				all_gene_ids = []
+				all_results = {}
+				for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
+					all_gene_ids += all_ids
+					all_results[all_ref] = all_ids
+				all_gene_ids = list(set(all_gene_ids))
+				all_refs = all_results.keys()
 
-			# look up preferred ode_ref_ids for each gene_id
-			query_refs = self.uploader.get_prefRef(self.species, self.gs_gene_id_type,
-			                                       all_gene_ids)
+				# look up preferred ode_ref_ids for each gene_id
+				query_refs = self.uploader.get_prefRef(geneset.species,
+				                                       geneset.gs_gene_id_type,
+				                                       all_gene_ids)
 
-			# go through query_ids and see if single values 'pass'
-			poss_keys = query_id.keys()
-			x_results = {}
-			for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
-				if all_ref not in results.keys():
-					if all_pref and all_gdb == self.gs_gene_id_type:
-						poss_keys.remove((all_ref, all_pref, all_gdb))
-						all_refs.remove(all_ref)
-						x_results[all_ref] = all_ids
+				# go through query_ids and see if single values 'pass'
+				poss_keys = query_id.keys()
+				x_results = {}
+				for (all_ref, all_pref, all_gdb), all_ids in query_id.iteritems():
+					if all_ref not in results.keys():
+						if all_pref and all_gdb == geneset.gs_gene_id_type:
+							poss_keys.remove((all_ref, all_pref, all_gdb))
+							all_refs.remove(all_ref)
+							x_results[all_ref] = all_ids
 
-			# go through the remaining possibilities
-			next_poss = {}  # {ref_id: [poss_refs,],}
-			for poss_ref in all_refs:
-				poss_ids = all_results[poss_ref]
-				for poss_id in poss_ids:
-					if poss_id not in results.values():
-						# look up in query_refs
-						next_poss[poss_ref] = query_refs[poss_id]
-						break
+				# go through the remaining possibilities
+				next_poss = {}  # {ref_id: [poss_refs,],}
+				for poss_ref in all_refs:
+					poss_ids = all_results[poss_ref]
+					for poss_id in poss_ids:
+						if poss_id not in results.values():
+							# look up in query_refs
+							next_poss[poss_ref] = query_refs[poss_id]
+							break
 
-			# go through the x_results (those found first time)
-			for xref, xids in x_results.iteritems():
-				for xid in xids:
-					if xid not in results.values():
-						results[xref] = xid
-						break
+				# go through the x_results (those found first time)
+				for xref, xids in x_results.iteritems():
+					for xid in xids:
+						if xid not in results.values():
+							results[xref] = xid
+							break
 
-			# check to make sure all values were found
-			if len(results) != len(geneset.geneset_values):
-				# EDIT: here is where you'd add a new gene
-				err = "Error: missing ode_gene_id for input value(s), " \
-				      "%s" % (set(all_results.keys()) - set(results.keys()))
-				self.errors.set_errors(critical=err)
+				# check to make sure all values were found
+				if len(results) != len(geneset.geneset_values):
+					# EDIT: here is where you'd add a new gene
+					err = "Error: missing ode_gene_id for input value(s), " \
+					      "%s" % (set(all_results.keys()) - set(results.keys()))
+					self.errors.set_errors(critical=err)
 
-			# next, update genesets
-			relevant_headers = results.keys()
-			geneset.update_geneset_values(relevant_headers)
-			geneset.update_ode_map(ode_map=results)
+				# next, update genesets
+				relevant_headers = results.keys()
+				geneset.update_geneset_values(relevant_headers)
+				geneset.update_ode_map(ode_map=results)
+
+		return gs_dict
 
 	def populate_dictionaries(self):
 		""" Queries GeneWeaver, populating globally stored dictionaries with
-            information we only need to query once, including:
-            - Gene Types
-            - MicroArray Types
-            - Species Types
-        """
+			information we only need to query once, including:
+			- Gene Types
+			- MicroArray Types
+			- Species Types
+		"""
 		# Gene Types
 		self.gene_types = self.uploader.get_geneTypes()
 		# MicroArray Types
@@ -231,125 +234,261 @@ class Batch:
 		# Species Types
 		self.species_types = self.uploader.get_speciesTypes()
 
-	def read_file(self):
-		""" Reads in from a source text file, using the location stored in global
-            var, 'input_file', + generates objs for data handling.
-        """
+	def assess_inputs(self):
+		""" Checks what form of data we are dealing with,
+			and decides what to do next.
+		"""
+		# interpret the input data
+		if self.file_list:
+			self.read_file(1)
+		elif self.file_path:
+			self.read_file(0)
 
-		# first, detect how many GeneSets we need to create here
-		if self.test:
-			with open(self.input_file, 'r') as file_path:
-				lines = file_path.readlines()
-				self.file_toString = ''.join(lines)
-		else:
-			self.file_toString = ''.join(self.input_file)
-			lines = self.input_file
+		# determine the layout of the file
+		self.numBatch, self.batch_locs = self.calc_batch()
+		self.numGS, self.gs_locs = self.calc_geneset()
 
-		numGS, gs_locs = self.calc_numGeneSets(self.file_toString)
+	def read_file(self, input_id):
 
-		# find + assign required header values to global vars
-		currPos = 0
-		for line in lines:
-			currPos += len(line)
-			if currPos < gs_locs[0]:  # only search the metadata headers
-				stripped = line.strip()
-				if stripped[:1] == '#' or stripped[:2] == '\n' or not stripped:
+		if input_id == 1:  # file_list input
+			if type(self.file_list) == list:
+				self.file_toString = ''.join(self.file_list)
+				self.lines = self.file_list
+			else:
+				err = 'Error: BatchFile expected to receive a file ' \
+				      'as a list of lines.'
+				self.errors.set_errors(critical=err)
+
+		elif input_id == 0:  # file_path input
+			if type(self.file_path) == str:
+				with open(self.file_path, 'r') as file_path:
+					self.lines = file_path.readlines()
+					self.file_toString = ''.join(self.lines)
+			else:
+				err = 'Error: BatchFile expected to receive a file ' \
+				      'path.'
+				self.errors.set_errors(critical=err)
+
+	def create_batches(self):
+		""" Interprets the input data and generates Batch objs. """
+
+		# if there are fewer GeneSets than Batch objs, report error
+		if self.numGS < self.numBatch:
+			err = 'Error: One of the batches of GeneSets does not ' \
+			      'contain any GeneSets. Please edit your input file ' \
+			      'and try again.'
+			self.errors.set_errors(critical=err)
+
+		# separate batches
+		coords_batch = []
+		for x in range(self.numBatch):
+			bvals = self.batch_locs.values()
+			bmin = min([bvals[0][x], bvals[1][x], bvals[2][x]])
+			coords_batch.append(bmin)
+		end = len(self.file_toString)
+		coords_batch.append(end)
+
+		# separate genesets
+		coords_gs = []
+		gs_vals = self.gs_locs.values()
+		for z in range(self.numGS):
+			gs_mins = min([gs_vals[0][z], gs_vals[1][z]])
+			coords_gs.append(gs_mins)
+		coords_gs.append(end)
+
+		# make batches using the chunks provided by the bmins
+		prevB = coords_batch[0]  # previous batch coord
+		raw_batches = []
+		for y in range(len(coords_batch)):
+			o = self.file_toString[prevB:coords_batch[y]].split('\n')
+			if len(o) > 5:
+				raw_batches.append(o)
+			prevB = coords_batch[y]
+
+		if not raw_batches:
+			err = "Error: Unable to distinguish the layout of the input file. " \
+			      "Please refer to documentation for more insight on how to " \
+			      "set up your file."
+			self.errors.set_errors(critical=err)
+
+		# identify option sets
+		self.delimit_file = raw_batches
+
+		# process files key variables
+		self.get_meta()
+
+		# merge the two coords (batch and gs)
+		coords_all = coords_batch + coords_gs
+		coords_all = sorted(coords_all)[:-1]  # (remove extra endpoint)
+		prev_idx = coords_all[0]  # previous index
+		currB = 0  # current batch
+		for z in range(len(coords_all)):
+			curr_idx = coords_all[z]
+			if curr_idx != coords_all[-1] and curr_idx != coords_all[0]:
+				p = self.file_toString[prev_idx:curr_idx].split('\n')
+				if len(p) > 3:
+					if prev_idx not in coords_batch:
+						# update the self.batches, ignoring the first iter
+						self.batches[currB]['genesets'].append(p)
+					if curr_idx in coords_batch:
+						# update the batch index
+						currB += 1
+				prev_idx = curr_idx
+
+		# using these sections, generate GeneSet objs
+		self.create_genesets()
+
+	def create_genesets(self):
+		desc = []
+		content_loc = None
+		for idx, batch in self.batches.iteritems():
+			self.genesets[idx] = {}
+			for geneset in batch['genesets']:
+				abbrev = None
+				name = None
+				gs_loc = batch['genesets'].index(geneset)
+				for entry in geneset:
+					line = entry.strip()
+					if line[:1] == ':':
+						abbrev = line[1:].strip()
+					elif line[:1] == '=':
+						name = line[1:].strip()
+					elif entry[:1] == '+':
+						desc.append(line[1:].strip())
+					elif not line:
+						content_loc = geneset.index(entry)
+						content_loc += gs_loc
+
+				content = dict((header, self.batches[0][header])
+				               for header in self.meta_info)
+
+				# create GeneSet + update headers
+				gs = GeneSet(gs_dict=content, errors=self.errors,
+				             uploader=self.uploader)
+				gs.set_abbrev(abbrev)
+				gs.set_name(name)
+				gs.set_user(self.user_id)
+				gs.set_cur(self.cur_id)
+
+				# add concatenated description to GeneSet obj
+				gs.set_description(' '.join(desc))
+
+				# add content to UploadGeneSet obj
+				gs_vals = {}
+				vals = []  # in case score type is Binary, + we need to derive the max val
+				for data in geneset[content_loc + 1:]:  # +1 for a blank line
+					if data and '#' not in data:
+						try:
+							gene, val = data.split('\t')
+							vals.append(float(val))
+							gs_vals[gene.strip()] = val.strip()
+						# add the threshold val if binary
+						except ValueError:
+							err = "Error: Data points should be in the format 'gene " \
+							      "id <tab> data value', with each data point on a " \
+							      "separate line. Please check the file and make sure that you did " \
+							      "not include an empty geneset with no genes."
+							self.errors.set_errors(critical=err)
+				# pass GeneSet values along to GeneSet obj
+				gs.set_genesetValues(gs_vals)
+
+				if gs.score_type == '3':
+					gs.threshold = str(max(vals))
+
+				# add GeneSet obj to global dict
+
+				if gs.abbrev_name not in self.genesets[idx]:
+					self.genesets[idx][gs.abbrev_name] = [gs]
+				else:
+					self.genesets[idx][gs.abbrev_name].append(gs)
+
+	def get_meta(self):
+		# retrieves meta data header options
+
+		self.batches = {}
+		option_idx = 0
+		# isolate important batch option info
+		for delimit in self.delimit_file:
+			self.batches[option_idx] = {'genesets': []}
+			self.batches[option_idx]['privacy'] = '-1'  # set default
+			for line in delimit:
+				line = line.strip()
+				# if it contains a comment marker, skip it
+				if '#' in line:
 					continue
-				elif stripped[:1] == '!':  # score type indicator
-					score = stripped[1:].strip()
-					self.assign_threshVals(score)
-				elif stripped[:1] == '@':  # species type indicator
-					sp = stripped[1:].strip()
-					self.assign_species(sp)
-				elif stripped[:1] == '%':  # geneset gene id type
-					gid = stripped[1:].strip()
-					self.assign_geneType(gid)
-				elif stripped[:2] == 'A ':  # group type
-					grp = stripped[1:].strip()
-					self.assign_groupType(grp)
-				elif stripped[:2] == 'P ':  # pubmed id
-					pub = stripped[1:].strip()
-					self.uploader.search_pubmed(pub)
+				# if it contains meta data headers, store
+				elif line[:1] in self.batch_locs.keys():
+					if line[:1] == '!':
+						score = line[1:].strip()
+						score_type, thresh = self.get_threshVals(score)
+						self.batches[option_idx]['score_type'] = score_type
+						self.batches[option_idx]['thresh'] = thresh
+					elif line[:1] == '@':  # species type indicator
+						sp = line[1:].strip()
+						species = self.get_species(sp)
+						self.batches[option_idx]['species'] = species
+					elif line[:1] == '%':  # geneset gene id type
+						gid = line[1:].strip()
+						gs_gene_id_type, microarray = self.get_geneType(gid)
+						self.batches[option_idx]['gs_gene_id_type'] = gs_gene_id_type
+						self.batches[option_idx]['microarray?'] = microarray
+					elif line[:2] == 'A ':  # group type
+						grp = line[1:].strip()
+						privacy = self.get_groupType(grp)
+						self.batches[option_idx]['privacy'] = privacy
+					elif line[:2] == 'P ':  # pubmed id
+						pub = line[1:].strip()
+						publication = self.uploader.search_pubmed(pub)
+						self.batches[option_idx]['publication'] = publication
+			option_idx += 1
+
+	def calc_batch(self):
+		# check meta data headers
+		metaSyms = {'!': [], '@': [], '%': []}
+		uni = []
+		probs = []
+		for m in metaSyms.iterkeys():
+			locs = self.list_duplicates_of(self.file_toString, m)
+			uni.append(len(locs))
+			uni = list(set(uni))
+			metaSyms[m] = locs
+
+			if len(uni) == 1:
+				continue
 			else:
-				break
+				probs.append(m)
 
-		# third, isolate GeneSet info + create GeneSet objs
-		currGS = 1
-		for x in range(numGS):
-			if currGS != numGS:
-				gs = self.file_toString[gs_locs[x]: gs_locs[x + 1]]
-				self.create_geneset(gs.strip())
-			else:
-				gs = self.file_toString[gs_locs[x]:]
-				self.create_geneset(gs.strip())
-			currGS += 1
-
-		print "handling file parsing + global assignments..."
-
-	def calc_numGeneSets(self, gs_file):
-		print 'calculating number of GeneSets in file...'
-
-		# retrieve the number of symbols found in the file
-		metaSyms = ['!', '@', '%', '=', ':']
-		metaCounts = []
-
-		for m in metaSyms:
-			metaCounts.append(self.list_duplicates_of(gs_file, m))
-
-		print metaSyms
-		print metaCounts
-		exit()
-
-		# make sure these meet the minimal requirements for meta-headers
-
-		# group first based on meta headers
-
-		# if any of these fail, we know that the file is missing key info
-		try:
-			bang = gs_file.split('!')
-			at = gs_file.split('@')
-			perc = gs_file.split('%')
-			equiv = gs_file.split('=')
-			colon = gs_file.split(':')
-		except ValueError:
-			err = 'Error: Critical GeneSet information is missing. ' \
-			      'Please refer to the documentation to make sure that ' \
-			      'everything is labelled correctly.'
+		if len(probs):
+			err = "Error: Unable to find all required Metadata " \
+			      "headers. Please refer to the documentation for " \
+			      "more information on how to use %s." % ', '.join(probs)
 			self.errors.set_errors(critical=err)
+		else:
+			numBatch = uni[0]
+			return numBatch, metaSyms
 
-		# should only contain one of the following
-		if len(bang) != 2 or len(at) != 2 or len(perc) != 2:
-			err = 'Error: Critical GeneSet information is missing. ' \
-			      'Please refer to the documentation to make sure that ' \
-			      'everything is labelled correctly.'
-			self.errors.set_errors(critical=err)
+	def calc_geneset(self):
+		# check geneset headers
+		gSyms = {'=': [], ':': []}
+		guni = []
+		gprobs = []
+		for g in gSyms.iterkeys():
+			glocs = self.list_duplicates_of(self.file_toString, g)
+			guni.append(len(glocs))
+			guni = list(set(guni))
+			gSyms[g] = glocs
 
-		# should be of equal number
-		if len(colon) != len(equiv):
-			err = 'Error: Incorrect GeneSet labelling. Please refer to ' \
-			      'the documentation.'
-			self.errors.set_errors(critical=err)
+			if len(guni) != 1:
+				gprobs.append(g)
 
-		# see which GeneSet header label comes first
-		len_colon = 0
-		len_equiv = 0
-		# order = {}  # TESTING
-		first_loc = []
-		for x in range(len(colon) - 1):  # last items should be equal, so skip
-			len_colon += len(colon[x])
-			len_equiv += len(equiv[x])
-			# print len_colon, len_equiv
-			if len_colon < len_equiv:
-				# order[x] = ':'  # TESTING
-				first_loc.append(len_colon)
-			else:
-				# order[x] = '='  # TESTING
-				first_loc.append(len_equiv)
-		# print order #  TESTING
-
-		numGS = len(colon) - 1
-		print 'estimated number of GeneSets in this file: %s' % numGS
-		return numGS, first_loc
+		if len(gprobs):
+			gerr = "Error: Unable to find all required GeneSet " \
+			       "headers. Please refer to the documentation for " \
+			       "more information on how to use %s." % ', '.join(gprobs)
+			self.errors.set_errors(critical=gerr)
+		else:
+			numGS = guni[0]
+			return numGS, gSyms
 
 	def list_duplicates_of(self, seq, item):
 		start_at = -1
@@ -364,160 +503,155 @@ class Batch:
 				start_at = loc
 		return locs
 
-	def assign_threshVals(self, score):
-		print 'checking + assigning score type...'
-		score = score.replace(' ', '').lower()
+	def get_threshVals(self, score):
+		# print 'checking + assigning score type...'
 
+		score_type = None
+		threshold = None
+		score = score.replace(' ', '').lower()
 		if 'binary' in score:
-			self.score_type = '3'
+			score_type = '3'
 		elif 'p-value' in score:
-			self.score_type = '1'
+			score_type = '1'
 			try:
 				values = score.split('<')
 				if len(values) == 1:  # then no value was actually given
 					raise ValueError
-				self.threshold = values[1]
+				threshold = values[1]
 			except ValueError:
-				self.threshold = '0.05'
+				threshold = '0.05'
 				err = 'Warning: P-Value threshold not specified. ' \
 				      'Using "P-Value < 0.05".'
 				self.errors.set_errors(noncritical=err)
 		elif 'q-value' in score:
-			self.score_type = '2'
+			score_type = '2'
 			try:
 				values = score.split('<')
 				if len(values) == 1:  # then no value was actually given
 					raise ValueError
-				self.threshold = values[1]
+				threshold = values[1]
 			except ValueError:
-				self.threshold = '0.05'
+				threshold = '0.05'
 				err = 'Warning: Q-Value threshold not specified. ' \
 				      'Using "Q-Value < 0.05".'
 				self.errors.set_errors(noncritical=err)
 		elif 'correlation' in score:
-			self.score_type = '4'
+			score_type = '4'
 			try:
 				values = score.split('<')
 				if len(values) != 3:  # then something is missing: assume default
 					raise ValueError
-				self.threshold = values[0] + ',' + values[2]
+				threshold = values[0] + ',' + values[2]
 			except ValueError:
-				self.threshold = '-0.75,0.75'
+				threshold = '-0.75,0.75'
 				err = 'Warning: Correlation thresholds not specified properly. ' \
 				      'Using "-0.75 < Correlation < 0.75".'
 				self.errors.set_errors(noncritical=err)
 		elif 'effect' in score:
-			self.score_type = '5'
+			score_type = '5'
 			try:
 				values = score.split('<')
 				if len(values) != 3:  # then something is missing: assume default
 					raise ValueError
-				self.threshold = values[0] + ',' + values[2]
+				threshold = values[0] + ',' + values[2]
 			except ValueError:
-				self.threshold = '0,1'
+				threshold = '0,1'
 				err = 'Warning: Effect size thresholds not specified properly. ' \
 				      'Using "0 < Effect < 1".'
 				self.errors.set_errors(noncritical=err)
 
-	def assign_species(self, sp):
-		print 'checking + assigning species type...'
+		return score_type, threshold
+
+	def get_species(self, sp):
+		# print 'checking + assigning species type...'
 		sp = sp.lower()
 
 		if sp in self.species_types.keys():
-			self.species = self.species_types[sp]
+			species = self.species_types[sp]
 		else:
 			err = 'Error: Unable to identify the input species type, %s. ' \
 			      'Please refer to the documentation for a list of species types, ' \
 			      'written out by their scientific name.' % sp
 			self.errors.set_errors(critical=err)
 
-	def assign_geneType(self, gid):
-		print 'checking + assigning gene ID type...'
+		return species
+
+	def get_geneType(self, gid):
+		# print 'checking + assigning gene ID type...'
 		gid = gid.lower().strip()
 
 		if gid in self.gene_types.keys():
-			self.gs_gene_id_type = self.gene_types[gid]
+			gs_gene_id_type = self.gene_types[gid]
+			microarray = False
 		# check to see if it is a microarray
 		elif gid[11:] in self.micro_types.keys():
-			self.gs_gene_id_type = self.micro_types[gid[11:]]
-			self.microarray = gid[11:]
+			gs_gene_id_type = self.micro_types[gid[11:]]
+			microarray = True
 		else:
 			err = 'Error: Unable to determine the gene type provided. ' \
 			      'Please consult the documentation for a list of types.'
 			self.errors.set_errors(critical=err)
 
-	def assign_groupType(self, grp='private'):
-		print 'checking + assigning group type...'
+		return gs_gene_id_type, microarray
+
+	def get_groupType(self, grp='private'):
+		# print 'checking + assigning group type...'
+		privacy = None
 		grp = grp.lower()
 
 		if grp == 'public':
-			self.privacy = '0'
+			privacy = '0'
 		else:
-			self.privacy = '-1'
+			privacy = '-1'
 
-	def create_geneset(self, raw_info):
-		print 'creating GeneSet obj...'
-		# create GeneSet obj
-		gs = GeneSet(self)
+		return privacy
 
-		gs_info = raw_info.split('\n')
-		desc = []  # store as list, as can span multiple lines
-		content_loc = 0
-		for info in gs_info:
-			info = info.strip()
-			if info[:1] == ':':
-				gs.set_abbrev(info[1:].strip())
-			elif info[:1] == '=':
-				gs.set_name(info[1:].strip())
-			elif info[:1] == '+':
-				desc.append(info[1:].strip())
-			elif not info:
-				# keep track of the location of the last blank line
-				content_loc = gs_info.index(info)
+	def report_errors(self):
+		# all objs errors were added to global 'errors'
+		crit, noncrit = self.errors.get_errors(critical=True, noncritical=True)
 
-			# add concatenated description to UploadGeneSet obj
-		gs.set_description(' '.join(desc))
+		# merge errors into strings
+		crit = '\n'.join(crit)
+		noncrit = '\n'.join(noncrit)
 
-		# add content to UploadGeneSet obj
-		gs_vals = {}
-		vals = []  # in case score type is Binary, + we need to derive the max val
-		for data in gs_info[content_loc + 1:]:
-			try:
-				gene, val = data.split('\t')
-				vals.append(float(val))
-				gs_vals[gene.strip()] = val.strip()
-			# add the threshold val if binary
-			except ValueError:
-				err = "Error: Data points should be in the format 'gene " \
-				      "id <tab> data value', with each data point on a " \
-				      "separate line. Please check the file and make sure that you did " \
-				      "not include an empty geneset with no genes."
-				self.errors.set_errors(critical=err)
+		return crit, noncrit
 
-		# pass GeneSet values along to UploadGeneSet obj
-		gs.set_genesetValues(gs_vals)
+	def report_gs_names(self):
+		gs_names = []
 
-		# if the score type is Binary, still need to assign a threshold value
-		if self.score_type == '3':
-			self.threshold = str(max(vals))
-			gs.set_threshold(self.threshold)
-
-		# add UploadGeneSet obj to global dict
-		self.genesets[gs.abbrev_name] = gs
+		for idx, genesets in self.genesets.iteritems():
+			print idx
+			print genesets
 
 
 class GeneSet:
-	def __init__(self, batch):
-		print "initializing GeneSet object..."
+	def __init__(self, gs_dict, errors=None, uploader=None):
+		# print "initializing GeneSet object..."
+		# handle input
+		self.input_dict = gs_dict
 
-		self.batch = batch
-		self.gs_gene_id_type = batch.gs_gene_id_type
-		self.pubmed = batch.pubmed  # PubMed ID
-		self.group = batch.privacy  # group (public or private)
-		self.score_type = batch.score_type  # gs_threshold_type
-		self.threshold = batch.threshold  # gs_threshold
-		self.species = batch.species  # sp_id
-		self.uploader = batch.uploader
+		# Batch fields
+		self.gs_gene_id_type = ''
+		self.publication = {}  # PubMed ID
+		self.pubmed = ''
+		self.group = ''  # group (public or private)
+		self.score_type = ''  # gs_threshold_type
+		self.threshold = ''  # gs_threshold
+		self.species = ''  # sp_id
+
+		self.user_id = ''
+		self.cur_id = ''
+		self.microarray = None
+
+		if not errors:
+			self.errors = ErrorTracker()
+		else:
+			self.errors = errors
+
+		if not uploader:
+			self.uploader = Uploader(errors=self.errors)
+		else:
+			self.uploader = uploader
 
 		# GeneSet fields
 		self.geneset_values = {}  # {gene id: gene value,} (for gsv_value_list)
@@ -533,16 +667,72 @@ class GeneSet:
 		self.prb_info = None
 		self.ode_info = None
 
+		# populate batch header info
+		self.handle_input()
+
 	def upload(self):
-		print "initiating upload sequence..."
-		self.file_id = self.uploader.insert_file(self)
-		self.gs_id = self.uploader.insert_geneset(self)
-		self.uploader.insert_geneset_values(self)
-		self.uploader.modify_gsv_lists(self)
+		# print "initiating upload sequence..."
+
+		self.file_id = self.uploader.insert_file(count=self.count,
+		                                         gs_name=self.name,
+		                                         gs_vals=self.geneset_values)
+
+		self.gs_id = self.uploader.insert_geneset(file_id=self.file_id,
+		                                          usr_id=self.user_id,
+		                                          cur_id=self.cur_id,
+		                                          species=self.species,
+		                                          score_type=self.score_type,
+		                                          threshold=self.threshold,
+		                                          count=self.count,
+		                                          gs_gene_id_type=self.gs_gene_id_type,
+		                                          name=self.name,
+		                                          abbrev_name=self.abbrev_name,
+		                                          description=self.description,
+		                                          group=self.group,
+		                                          pub_id=self.publication['pub_id'])
+
+		# iterate through geneset_values
+		for gene_id, value in self.geneset_values.iteritems():
+			# find the right ode_gene_id associated w/ gene
+			ode_gene = self.ode_info[gene_id]
+
+			# check to see if value is within the threshold
+			if float(value) <= float(self.threshold):
+				gsv_in_thresh = True
+			else:
+				gsv_in_thresh = False
+
+			self.uploader.insert_geneset_values(ode_gene_id=ode_gene,
+			                                    value=value,
+			                                    gs_id=self.gs_id,
+			                                    count=self.count,
+			                                    gsv_in_thresh=gsv_in_thresh,
+			                                    gsv_source_list=self.geneset_values.keys(),
+			                                    gsv_value_list=self.geneset_values.values())
+
+	def handle_input(self):
+		# we know that these should always work, as checked in Batch
+		try:
+			self.gs_gene_id_type = self.input_dict['gs_gene_id_type']
+			self.group = self.input_dict['privacy']
+			self.score_type = self.input_dict['score_type']
+			self.threshold = self.input_dict['thresh']
+			self.species = self.input_dict['species']
+			self.microarray = self.input_dict['microarray?']
+		except ValueError:
+			print "\nREALLY SHOULDN'T HAVE BROKEN HERE!! [GeneSet] \n"
+			exit()
+
+		if 'publication' in self.input_dict.keys():
+			self.publication = self.input_dict['publication']
+			self.pubmed = self.publication['pub_pubmed']
+
+		else:
+			self.publication['pub_id'] = None
 
 	# -----------------------MUTATORS--------------------------------------------#
 	def set_genesetValues(self, gsv_values):
-		print 'setting GeneSet value list...'
+		# print 'setting GeneSet value list...'
 		if type(gsv_values) == dict:
 			self.geneset_values = gsv_values
 		else:
@@ -551,23 +741,23 @@ class GeneSet:
 			self.batch.set_errors(critical=err)
 
 	def set_abbrev(self, abbrev):
-		print 'setting abbreviated GeneSet name...'
+		# print 'setting abbreviated GeneSet name...'
 		self.abbrev_name = abbrev
 
 	def set_name(self, gs_name):
-		print 'setting GeneSet name...'
+		# print 'setting GeneSet name...'
 		self.name = gs_name
 
 	def set_description(self, desc):
-		print 'setting GeneSet description...'
+		# print 'setting GeneSet description...'
 		self.description = desc
 
 	def set_threshold(self, thresh):
-		print 'setting GeneSet threshold value...'
+		# print 'setting GeneSet threshold value...'
 		self.threshold = str(thresh)
 
 	def update_geneset_values(self, headers):
-		print 'updating geneset values...'
+		# print 'updating geneset values...'
 		res = {}
 		for header in headers:
 			res[header] = float(self.geneset_values[header])
@@ -577,92 +767,21 @@ class GeneSet:
 		self.update_count()
 
 	def update_ode_map(self, ode_map):
-		print 'updating ode mapping...'
+		# print 'updating ode mapping...'
 		self.ode_info = ode_map
 
 	def update_count(self):
 		self.count = len(self.geneset_values)
 
+	def set_user(self, usr_id):
+		self.user_id = usr_id
 
-class ErrorHandler:
-	def __init__(self):
-		# error handling fields
-		self.crit = []
-		self.noncrit = []
-
-	def get_errors(self, critical=False, noncritical=False):
-		""" Returns error messages. If no additional parameters are filled, or if both
-			'crit' and 'noncrit' are set to 'True', both critical and
-			noncritical error messages are returned for the user.
-
-			Otherwise, if either 'crit' or 'noncrit' are set to 'True', only that
-			respective error type will be returned.
-
-		Parameters
-		----------
-		crit (optional): boolean
-		noncrit (optional): boolean
-
-		Returns
-		-------
-		critical (optional): list of critical error messages generated [self.crit]
-		noncritical (optional): list of noncritical error messages generated [self.noncrit]
-		"""
-		if critical and noncritical:
-			return self.crit, self.noncrit
-		elif critical:
-			return self.crit
-		elif noncritical:
-			return self.noncrit
-		else:
-			return self.crit, self.noncrit
-
-	def set_errors(self, critical=None, noncritical=None):
-		""" Sets error messages, printing confirmation when new errors are added. Parameters
-			'crit' and 'noncrit' can take either a string, appended onto respective global
-			variable, a list or a tuple. In the case that a list or tuple is provided, function
-			iterates through and appends to global error messages accordingly.
-
-		Parameters
-		----------
-		critical: string or list
-		noncritical: string or list
-		"""
-		crit_count = 0
-		noncrit_count = 0
-
-		if type(critical) == (list or tuple):
-			for error in critical:
-				self.crit.append(error)
-				crit_count += 1
-		elif type(critical) == str:
-			self.crit.append(critical)
-			crit_count += 1
-
-		if type(noncritical) == (list or tuple):
-			for n in noncritical:
-				self.noncrit.append(n)
-				noncrit_count += 1
-		elif type(noncritical) == str:
-			self.noncrit.append(noncritical)
-			noncrit_count += 1
-
-		# USER FEEDBACK [uncomment selection]
-		if crit_count:
-			print "Critical error messages added [%i]\n" % crit_count
-			for c in self.crit:
-				print c
-			# exit()  # NOTE: might not be the way you want to leave this
-		if noncrit_count:
-			print "Noncritical error messages added [%i]\n" % noncrit_count
-
-
-def test_dictionaries():
-	b = Batch()
-	b.populate_dictionaries()
+	def set_cur(self, cur):
+		self.cur_id = cur
 
 
 def test_fileParsing(number):
+	# test directories
 	test = '/Users/Asti/geneweaver/website-py/src/static/text/'
 	append = ['affy-batch.txt',  # 0
 	          'affy-dup.txt',  # 1
@@ -674,9 +793,15 @@ def test_fileParsing(number):
 	          'empty-geneset.txt',  # 7
 	          'symbol-batch.txt']  # 8
 
+	# add uploader + error handling separately
 	test_file = test + append[number]
-	b = Batch(input_filepath=test_file)
+	b = Batch(file_path=test_file)
+	b.report_gs_names()
 
+# batches = []
+# for output in bf.delimit_file:
+# 	batch = B.Batch(output)
+# 	batches.append(batch)
 
 if __name__ == '__main__':
 	# TESTING

@@ -12,7 +12,7 @@ P 19958391
 ## The following lines give the label, name, and description of
 ## this set, respectively.
 #
-: BGF Gene Symbol Test
+: BGF Gene Symbol Test 1
 = BGF Gene Symbol Test
 + Testing batch geneset upload using gene symbols.
 
@@ -32,7 +32,7 @@ P 19958391
 ## The following lines give the label, name, and description of
 ## this set, respectively.
 #
-: BGF Gene Symbol Test
+: BGF Gene Symbol Test 2
 = BGF Gene Symbol Test
 + Testing batch geneset upload using gene symbols.
 
@@ -45,11 +45,10 @@ Cry2	1
 ## The following lines give the label, name, and description of
 ## this set, respectively.
 #
-: BGF Gene Symbol Test
+: BGF Gene Symbol Test 3
 = BGF Gene Symbol Test
-+ Testing batch geneset upload using gene symbols.
++ Testing batch geneset upload using gene symbols
 
 Mobp	1
 Mapt	1
-Daxx	1
-Cry2	1
+Daxx		1

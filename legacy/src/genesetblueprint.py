@@ -3,7 +3,7 @@ import geneweaverdb
 import pubmedsvc
 import urllib2
 import re
-import batch
+from batch import Batch
 import annotator as ann
 from flask import request
 
@@ -86,18 +86,20 @@ def create_batch_geneset():
         return flask.jsonify({"Error": "You must be signed in to upload a GeneSet."})
 
     # adding new batch object
-    batchUpload = batch.Batch(batchFile, usr_id=user_id)
+    batch = Batch(usr_id=user_id, file_list=batchFile)
 
     # grab errors / warning
-    batchErrors = '/n'.join(batchUpload.errors.crit)
-    batchWarns = '/n'.join(batchUpload.errors.noncrit)
+    batchErrors, batchWarns = batch.report_errors()
 
     # if there were critical errors, no need to continue
-    if batchUpload.errors.crit:
+    if batch.errors.crit:
         return flask.jsonify({'error': batchErrors})
 
+    # grab abbrev of all geneset names
+    genesets = batch.report_gs_names()
+
     # if there were warnings, report to the user
-    if batchWarns:
+    if batch.errors.noncrit:
         return flask.jsonify({'genesets': batchUpload.genesets.keys(), 'warn': batchWarns})
     else:
         return flask.jsonify({'genesets': batchUpload.genesets.keys()})
