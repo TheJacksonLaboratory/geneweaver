@@ -71,8 +71,9 @@ def create_batch_geneset():
     TODO: The batch upload module should use geneweaverdb functions instead of
           its own database calls.
     """
-
+    print 'starting off'
     if not request or not request.args or not request.args['batchFile']:
+        print 'not working!!!'
         return flask.jsonify({'error': 'No batch file was provided.'})
 
     ## The data sent to us should be URL encoded
