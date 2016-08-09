@@ -91,6 +91,9 @@ def create_batch_geneset():
     # grab errors / warning
     batchErrors, batchWarns = batch.report_errors()
 
+    print batchErrors
+    print batchWarns
+
     # if there were critical errors, no need to continue
     if batch.errors.crit:
         return flask.jsonify({'error': batchErrors})
