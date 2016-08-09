@@ -305,6 +305,8 @@ class Batch:
 				raw_batches.append(o)
 			prevB = coords_batch[y]
 
+		print raw_batches
+
 		if not raw_batches:
 			err = "Error: Unable to distinguish the layout of the input file. " \
 			      "Please refer to documentation for more insight on how to " \
@@ -679,6 +681,9 @@ class GeneSet:
 
 	def upload(self):
 		# print "initiating upload sequence..."
+
+		print self.name
+
 
 		self.file_id = self.uploader.insert_file(count=self.count,
 		                                         gs_name=self.name,
