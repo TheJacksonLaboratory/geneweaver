@@ -252,7 +252,7 @@ class Batch:
 
 		if input_id == 1:  # file_list input
 			if type(self.file_list) == list:
-				self.file_toString = ''.join(self.file_list)
+				self.file_toString = '\n'.join(self.file_list)
 				self.lines = self.file_list
 			else:
 				err = 'Error: BatchFile expected to receive a file ' \
