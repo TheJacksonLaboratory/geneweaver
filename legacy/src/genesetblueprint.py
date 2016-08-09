@@ -89,7 +89,7 @@ def create_batch_geneset():
     # print >> sys.stderr, user_id
     # print >> sys.stderr, batchFile
 
-    print batchFile, '\n'
+    # print batchFile, '\n'
 
     # adding new batch object
     batch = Batch(usr_id=user_id, file_list=batchFile)
