@@ -88,6 +88,7 @@ var visualizeForceTree = function(svg, jsonPath) {
                 return d.target.level == 0 ? 150 : 50;
             })
             .charge(-50)
+            .linkDistance(60)
             .gravity(0.02)
             .size([width, height])
             .on("tick", function tick() {
