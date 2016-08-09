@@ -235,7 +235,8 @@
         <div id="d3-visual" class="d3"></div>
     </div>
 </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
+	<script type="text/javascript" src="../../static/tools/JaccardClustering.js"></script>
     <script type="text/javascript">
         if('{{ async_result.method }}' != 'Heatmap'){
             $("select#visualizationType").append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>').append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
@@ -245,11 +246,15 @@
             $("select#visualizationType").append('<option label="heatmap" value="heatmap" selected="selected">Jaccard Heatmap</option>')
         }
 
-        $(document).ready(visualize());
+		var jsonPath = '{{ cluster_data | safe }}';
+
+        $(document).ready(visualize(jsonPath));
+
         $("select#visualizationType").change(function(){
-            console.log('changed!');
-            visualize();
+
+            visualize(jsonPath);
         });
+		/*
         function visualize() {
             $("div#d3-visual").empty();
             var width = document.getElementById("d3-container").offsetWidth,
@@ -811,6 +816,7 @@
                 window.open("/viewgenesetdetails/" + d.id);
             }
         }
+	*/
     </script>
 <script>
     $('.download-image').on('click', function(event) {

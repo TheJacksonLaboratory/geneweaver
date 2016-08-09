@@ -1,6 +1,7 @@
-//// file:  PhenomeMap.js
-//// desc:  d3js code for visualizing the HiSim graph. 
-//
+/**
+ * file: PhenomeMap.js
+ * desc: d3js code for visualizing the HiSim graph. 
+ */
 
 //global variable containing the JSON data and the d3.force object
 var g = {

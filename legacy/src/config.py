@@ -6,7 +6,7 @@ import os
 ## or API keys.
 #CONFIG_PATH = '/Users/baker/PycharmProjects/website-py/geneweaver.cfg'
 #CONFIG_PATH = '/home/tim/pycharm-projects/website-py/geneweaver.cfg'
-CONFIG_PATH = '/Users/Asti/geneweaver/website-py/geneweaver.cfg'
+CONFIG_PATH = '/srv/www/geneweaver/geneweaver.cfg'
 
 ## Global config object, sholudn't be accessed directly but using the helper
 ## functions found below.
