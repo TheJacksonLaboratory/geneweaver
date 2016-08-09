@@ -720,7 +720,6 @@ class GeneSet:
 			self.uploader.insert_geneset_values(ode_gene_id=ode_gene,
 			                                    value=value,
 			                                    gs_id=self.gs_id,
-			                                    count=self.count,
 			                                    gsv_in_thresh=gsv_in_thresh)
 		# update the value count for geneset
 		self.uploader.modify_geneset_count(gs_id=self.gs_id, count=self.count)
