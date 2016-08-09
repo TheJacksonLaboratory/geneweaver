@@ -17,7 +17,7 @@ class Uploader:
 		self.cur = None
 
 		# testing-related
-		self.test = True
+		self.test = False
 
 		# input handling
 		if not errors:
