@@ -55,71 +55,6 @@
       cursor: pointer;
     }
 
-    /* mouse nodes */
-    .mouse, line .mouse {
-        fill: #eeb44f;
-        stroke: #eeb44f;
-    }
-
-    .mouse:hover {
-        fill: #a36d10;
-        stroke: #a36d10;
-    }
-
-    /* human nodes */
-    .human, line .human {
-        fill: #d7c000;
-        stroke: #d7c000;
-    }
-
-    .human:hover {
-        fill: #807200;
-        stroke: #807200;
-    }
-
-    /* rat nodes */
-    .rat, line .rat {
-        fill: #44fcf7;
-        stroke: #44fcf7;
-    }
-
-    .rat:hover {
-        fill: #03b0ab;
-        stroke: #03b0ab;
-    }
-
-    /* fly nodes */
-    .fly, line .fly {
-        fill: #fca5b7;
-        stroke: #fca5b7;
-    }
-
-    .fly:hover {
-        fill: #f95275;
-        stroke: #f95275;
-    }
-
-    /* zf nodes */
-    .zebrafish, line .zebrafish {
-        fill: #8fcb0a;
-        stroke: #8fcb0a;
-    }
-
-    .zebrafish:hover {
-        fill: #567a06;
-        stroke: #567a06;
-    }
-
-    /* monkey nodes */
-    .monkey, line .monkey {
-        fill: #b4d1fb;
-        stroke: #b4d1fb;
-    }
-
-    .monkey:hover {
-        fill: #5697f6;
-        stroke: #5697f6;
-    }
 
     /* gene nodes */
     .gene, line .gene {
@@ -223,13 +158,49 @@
             </div>
         </div>
     </form>
-    <form class="visualControl-container" role="form" method="post">
-        <label for="visualizationType">Visualization Type:</label>
-        <div>
-            <select class="form-control tooltip-enabled" id="visualizationType" name="visualizationType">
-            </select>
-        </div>
-    </form>
+	<div class="panel panel-info" >
+		<div class="panel-heading bg-green" style="border-radius:4px;">
+			<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+				<div class="panel-title" style="width:100%;">
+					Visualization Options
+					<span class="caret"></span>
+				</div>
+			</a>
+		</div>
+		<div id="viz-options" class="panel-collapse collapse" style="">
+			<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+				<div class="row">
+					<div class="col-md-2">
+						<p style="font-size:13px; font-weight:400;">
+							<b>Visualization Type:</b>
+						</p>
+					</div>
+					<div class="col-md-9">
+						<form role="form" method="post">
+							<select id="visualizationType" name="visualizationType">
+							</select>
+						</form>
+					</div>
+				</div>
+				<br />
+				<div class="row">
+					<div class="col-md-3">
+						<div class="btn-group">
+							<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								Download as...
+								<span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu">
+								<li><a class="download-image" id="dl-pdf" href="">PDF</a></li>
+								<li><a class="download-image" id="dl-png" href="">PNG</a></li>
+								<li><a class="download-image" id="dl-svg" href="">SVG</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
     <div id="d3-container" class="d3">
         <div id="d3-legend" class="d3"></div>
         <div id="d3-visual" class="d3"></div>
