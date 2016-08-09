@@ -625,7 +625,6 @@ class Batch:
 
 	def report_gs_names(self):
 		gs_names = []
-
 		for idx, genesets in self.genesets.iteritems():
 			gs_names += genesets.keys()
 

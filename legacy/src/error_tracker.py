@@ -69,6 +69,6 @@ class ErrorTracker:
 			print "Critical error messages added [%i]\n" % crit_count
 			for c in self.crit:
 				print c
-			exit()  # NOTE: might not be the way you want to leave this
+			# exit()  # NOTE: might not be the way you want to leave this
 		if noncrit_count:
 			print "Noncritical error messages added [%i]\n" % noncrit_count
