@@ -107,6 +107,9 @@ def create_batch_geneset():
 
     print >> sys.stderr, gs_names
 
+    sys.stdout.flush()
+    sys.stderr.flush()
+
     # if there were warnings, report to the user
     if batch.errors.noncrit:
         return flask.jsonify({'genesets': gs_names, 'warn': batchWarns})
