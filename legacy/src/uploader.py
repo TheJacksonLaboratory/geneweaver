@@ -433,14 +433,6 @@ class Uploader:
 		self.cur.execute(query, search_vals)
 		self.commit()
 
-		# update the value count for geneset
-		self.modify_geneset_count(gs_id, count)
-
-		# update the gsv_source_list + gsv_value_list
-		self.modify_gsv_lists(gsv_source_list=gsv_source_list,
-		                      gsv_value_list=gsv_value_list,
-		                      gs_id=gs_id)
-
 	def modify_gsv_lists(self, gsv_source_list, gsv_value_list, gs_id):
 		# print 'updating gsv lists...'
 		# set up query
@@ -449,7 +441,7 @@ class Uploader:
 		        'gsv_date) = (%s, %s, NOW()) ' \
 		        'WHERE gs_id = %s;'
 
-		vals = [gsv_source_list, gsv_value_list, gs_id]
+		vals = [[gsv_source_list], [gsv_value_list], gs_id]
 
 		# execute + commit query
 		self.cur.execute(query, vals)

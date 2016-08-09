@@ -76,10 +76,12 @@ class Batch:
 
 			for gs_name, gs_list in sets.iteritems():
 				for geneset in gs_list:
+					print geneset.geneset_values
 					geneset.upload()
 
 			# call for a merge of errors (maybe use one of
 			#   of the loops above?)
+
 
 	def handle_platform(self, gs_dict):
 		""" Handles microarray condition.
@@ -409,6 +411,7 @@ class Batch:
 				else:
 					self.genesets[idx][gs.abbrev_name].append(gs)
 
+
 	def get_meta(self):
 		# retrieves meta data header options
 
@@ -718,9 +721,14 @@ class GeneSet:
 			                                    value=value,
 			                                    gs_id=self.gs_id,
 			                                    count=self.count,
-			                                    gsv_in_thresh=gsv_in_thresh,
-			                                    gsv_source_list=self.geneset_values.keys(),
-			                                    gsv_value_list=self.geneset_values.values())
+			                                    gsv_in_thresh=gsv_in_thresh)
+		# update the value count for geneset
+		self.uploader.modify_geneset_count(gs_id=self.gs_id, count=self.count)
+
+		# update the gsv_source_list + gsv_value_list
+		self.uploader.modify_gsv_lists(gsv_source_list=self.geneset_values.keys(),
+		                               gsv_value_list=self.geneset_values.values(),
+		                               gs_id=self.gs_id)
 
 	def handle_input(self):
 		# we know that these should always work, as checked in Batch
