@@ -279,6 +279,8 @@ class Batch:
 			      'and try again.'
 			self.errors.set_errors(critical=err)
 
+		print self.file_toString
+
 		# separate batches
 		coords_batch = []
 		for x in range(self.numBatch):
@@ -304,8 +306,6 @@ class Batch:
 			if len(o) > 5:
 				raw_batches.append(o)
 			prevB = coords_batch[y]
-
-		print raw_batches
 
 		if not raw_batches:
 			err = "Error: Unable to distinguish the layout of the input file. " \
