@@ -415,7 +415,8 @@ class Uploader:
 
 		return self.cur.fetchall()[0][0]
 
-	def insert_geneset_values(self, ode_gene_id, value, gs_id, gsv_in_thresh):
+	def insert_geneset_values(self, ode_gene_id, value, gs_id, gsv_in_thresh,
+	                          gsv_source_list, gsv_value_list):
 
 		# print 'inserting geneset values...'
 		query = 'SET search_path = extsrc, production, odestatic'
@@ -427,7 +428,8 @@ class Uploader:
 		        'gsv_value_list, gsv_in_threshold, gsv_date) ' \
 		        'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
 
-		search_vals = [gs_id, ode_gene_id, value, [], [], gsv_in_thresh]
+		search_vals = [gs_id, ode_gene_id, value, [gsv_source_list],
+		               [gsv_value_list], gsv_in_thresh]
 
 		# execute the query
 		self.cur.execute(query, search_vals)

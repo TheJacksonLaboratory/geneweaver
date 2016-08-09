@@ -720,14 +720,11 @@ class GeneSet:
 			self.uploader.insert_geneset_values(ode_gene_id=ode_gene,
 			                                    value=value,
 			                                    gs_id=self.gs_id,
-			                                    gsv_in_thresh=gsv_in_thresh)
-		# update the value count for geneset
-		self.uploader.modify_geneset_count(gs_id=self.gs_id, count=self.count)
+			                                    gsv_in_thresh=gsv_in_thresh,
+			                                    gsv_source_list=gene_id,
+			                                    gsv_value_list=value)
 
-		# update the gsv_source_list + gsv_value_list
-		self.uploader.modify_gsv_lists(gsv_source_list=self.geneset_values.keys(),
-		                               gsv_value_list=self.geneset_values.values(),
-		                               gs_id=self.gs_id)
+		self.uploader.modify_geneset_count(gs_id=self.gs_id, count=self.count)
 
 	def handle_input(self):
 		# we know that these should always work, as checked in Batch
