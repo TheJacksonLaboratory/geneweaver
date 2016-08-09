@@ -86,8 +86,8 @@ def create_batch_geneset():
         return flask.jsonify({"Error": "You must be signed in to upload a GeneSet."})
 
     print 'whhyyyyyyyyyy\n'
-    print >> sys.stderr, user_id
-    print >> sys.stderr, batchFile
+    # print >> sys.stderr, user_id
+    # print >> sys.stderr, batchFile
 
     # adding new batch object
     batch = Batch(usr_id=user_id, file_list=batchFile)
@@ -95,8 +95,8 @@ def create_batch_geneset():
     # grab errors / warning
     batchErrors, batchWarns = batch.report_errors()
 
-    print >> sys.stderr, batchErrors
-    print >> sys.stderr, batchWarns
+    # print >> sys.stderr, batchErrors
+    # print >> sys.stderr, batchWarns
 
     # if there were critical errors, no need to continue
     if batch.errors.crit:
@@ -105,7 +105,7 @@ def create_batch_geneset():
     # grab abbrev of all geneset names
     gs_names = batch.report_gs_names()
 
-    print >> sys.stderr, gs_names
+    # print >> sys.stderr, gs_names
 
     sys.stdout.flush()
     sys.stderr.flush()
