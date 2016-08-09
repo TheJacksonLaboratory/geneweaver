@@ -85,6 +85,9 @@ def create_batch_geneset():
     if not user_id:
         return flask.jsonify({"Error": "You must be signed in to upload a GeneSet."})
 
+    print user_id
+    print batchFile
+
     # adding new batch object
     batch = Batch(usr_id=user_id, file_list=batchFile)
 

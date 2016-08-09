@@ -305,8 +305,6 @@ class Batch:
 				raw_batches.append(o)
 			prevB = coords_batch[y]
 
-		print raw_batches
-
 		if not raw_batches:
 			err = "Error: Unable to distinguish the layout of the input file. " \
 			      "Please refer to documentation for more insight on how to " \
