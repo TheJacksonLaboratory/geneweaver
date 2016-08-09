@@ -342,6 +342,8 @@ class Uploader:
 	def insert_publication(self, pub_authors, pub_title, pub_abstract,
 	                       pub_journal, pub_volume, pub_pages, pub_pubmed):
 		# print 'handling publication insertion...'
+		query = 'SET search_path = extsrc, production, odestatic'
+		self.cur.execute(query)
 
 		# set up query
 		query = 'INSERT INTO production.publication ' \
@@ -367,6 +369,9 @@ class Uploader:
 			curline = str(gene) + '\t' + str(score) + '\n'
 			contents += curline
 
+		query = 'SET search_path = extsrc, production, odestatic'
+		self.cur.execute(query)
+
 		# set up query
 		query = 'INSERT INTO production.file ' \
 		        '(file_size, file_uri, file_contents, file_comments, ' \
@@ -385,11 +390,13 @@ class Uploader:
 	                   species, score_type, threshold,
 	                   count, gs_gene_id_type, name,
 	                   abbrev_name, description, group,
-	                   pub_id):
+	                   pub_id=None):
 		# print 'inserting geneset...'
+		query = 'SET search_path = extsrc, production, odestatic'
+		self.cur.execute(query)
 
 		# set up query
-		query = 'INSERT INTO geneset ' \
+		query = 'INSERT INTO production.geneset ' \
 		        '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
 		        'gs_threshold, gs_created, gs_updated, gs_status, ' \
 		        'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
@@ -411,6 +418,9 @@ class Uploader:
 	def insert_geneset_values(self, ode_gene_id, value, gs_id, count,
 	                          gsv_in_thresh, gsv_source_list, gsv_value_list):
 		# print 'inserting geneset values...'
+		query = 'SET search_path = extsrc, production, odestatic'
+		self.cur.execute(query)
+
 		# set up query
 		query = 'INSERT INTO extsrc.geneset_value ' \
 		        '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
@@ -448,7 +458,7 @@ class Uploader:
 	def modify_geneset_count(self, gs_id, count):
 		# print 'modifying geneset count...'
 		# set up query
-		query = 'UPDATE geneset ' \
+		query = 'UPDATE production.geneset ' \
 		        'SET gs_count = %s ' \
 		        'WHERE gs_id = %s'
 
