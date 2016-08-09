@@ -6,6 +6,7 @@ import re
 from batch import Batch
 import annotator as ann
 from flask import request
+import sys
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
