@@ -441,7 +441,7 @@ class Uploader:
 		        'gsv_date) = (%s, %s, NOW()) ' \
 		        'WHERE gs_id = %s;'
 
-		vals = [[gsv_source_list], [gsv_value_list], gs_id]
+		vals = [gsv_source_list, gsv_value_list, gs_id]
 
 		# execute + commit query
 		self.cur.execute(query, vals)
