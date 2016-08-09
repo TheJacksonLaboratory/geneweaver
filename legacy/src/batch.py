@@ -314,6 +314,8 @@ class Batch:
 		# identify option sets
 		self.delimit_file = raw_batches
 
+		print self.delimit_file
+
 		# process files key variables
 		self.get_meta()
 

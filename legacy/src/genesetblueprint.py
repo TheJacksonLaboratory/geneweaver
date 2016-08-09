@@ -75,7 +75,7 @@ def create_batch_geneset():
     if not request or not request.args or not request.args['batchFile']:
         return flask.jsonify({'error': 'No batch file was provided.'})
 
-    ## The data sent to us should be URL encoded
+    # The data sent to us should be URL encoded
     batchFile = urllib2.unquote(request.args['batchFile'])
     batchFile = batchFile.split('\n')
     batchFile = map(lambda s: s.encode('ascii', 'ignore'), batchFile)
@@ -85,7 +85,7 @@ def create_batch_geneset():
     if not user_id:
         return flask.jsonify({"Error": "You must be signed in to upload a GeneSet."})
 
-    print 'whhyyyyyyyyyy\n'
+    # print 'whhyyyyyyyyyy\n'
     # print >> sys.stderr, user_id
     # print >> sys.stderr, batchFile
 
