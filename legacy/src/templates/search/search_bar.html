@@ -44,7 +44,7 @@ An example form tag that works with current routes is below:
     });
 </script>
 <div class="form-group">
-    <div class="row" style="width: 90%" align="center">
+    <div class="row" style="" align="center">
         <div class="col-md-7">
             <label class="form-label">
                 <h3>Search GeneSets</h3>
@@ -81,7 +81,9 @@ An example form tag that works with current routes is below:
                     <input id="searchbar_pagination_page" name="pagination_page" type="hidden" value="1">
                 </div>
                 <div class="row" align="center" style="width:90%">
+					{#
                     <div class="col-md-12" style="display: inline-block">
+						#}
                         <!-- Search in checkboxes -->
                         <div class="col-md-2"><input type="checkbox" value="yes"
                                                      {% if field_list %}
@@ -139,7 +141,9 @@ An example form tag that works with current routes is below:
                                 for="searchOntologies"> Ontologies </label></div>
 
 
+						{#
                     </div>
+					#}
 
 
                 </div>
