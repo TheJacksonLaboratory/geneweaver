@@ -1100,9 +1100,15 @@ def render_viewgeneset(gs_id):
 
 
 
-# Function that calls the overlap page
-@app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET'])
-def render_viewgenesetoverlap(gs_id, gs_id1):
+@app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
+def render_viewgenesetoverlap(gs_ids):
+    """
+    Renders the view geneset overlap page.
+
+    arguments
+        gs_ids: a list of gs_ids contained in the GET request
+    """
+
     # get values for sorting result columns
     # i'm saving these to a session variable
     # probably not the correct format
@@ -1117,6 +1123,7 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
                     session['dir'] = 'ASC'
             else:
                 session['dir'] = 'ASC'
+
     # get value for the alt-gene-id column
     if 'extsrc' in session:
         if session['extsrc'] == 2:
@@ -1145,97 +1152,169 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
         user_id = session['user_id']
     else:
         user_id = 0
+
+    genesets = []
+
+    for gs_id in gs_ids:
+        gs = geneweaverdb.get_geneset(gs_id, user_id)
+
+        if gs:
+            genesets.append(gs)
+
     # Get the current user id
     user_info = geneweaverdb.get_user(user_id)
     # Get the geneset that corresponds to gs_id1
-    geneset = geneweaverdb.get_geneset(gs_id1, user_id)
+    #geneset = geneweaverdb.get_geneset(gs_id1, user_id)
     # Get the geneset that corresponds to gs_id
-    geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
+    #geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
     # List for the number of genesets
-    genesets = []
-    genesets.append(geneset)
-    genesets.append(geneset1)
+    #genesets = []
+    #genesets.append(geneset)
+    #genesets.append(geneset1)
 
     # All the genes within geneset 1
     genes = []
     # All the genes within geneset 2
     genes1 = []
 
-    # Puts all the ref ids of each gene from geneset1
-    for gene in geneset.geneset_values:
-        genes.append(gene.source_list[0])
+    print genesets[0].geneset_values[0].source_list
+    print genesets[0].geneset_values[1].source_list
+    print genesets[0].geneset_values[2].source_list
+    print genesets[0].geneset_values[2].ode_gene_id
 
     # Puts all the ref ids of each gene from geneset1
-    for gene in geneset1.geneset_values:
-        genes1.append(gene.source_list[0])
+    #for gene in geneset.geneset_values:
+    #    genes.append(gene.source_list[0])
+
+    ## Puts all the ref ids of each gene from geneset1
+    #for gene in geneset1.geneset_values:
+    #    genes1.append(gene.source_list[0])
+
+    ## Mapping of gs_id pairs to the genes found in their overlap
+    gs_intersects = defaultdict(lambda: defaultdict(list))
+    ## Mapping of genes to the list of genesets they're found in
+    gene_intersects = defaultdict(set)
+    ## Maps gs_ids to geneset data
+    gs_map = {}
+
+    for gs in genesets:
+        gs_map[gs.geneset_id] = gs
+
+    for gs1 in genesets:
+        gs_id1 = gs1.geneset_id
+
+        for gs2 in genesets:
+            gs_id2 = gs2.geneset_id
+
+            if gs_id1 == gs_id2:
+                continue
+
+            ## No reason to perform unnecessary calculations
+            if gs_intersects[gs_id1][gs_id2] or gs_intersects[gs_id2][gs_id1]:
+                continue
+
+            ## get_intersect* returns a tuple with a list of gene symbols and
+            ## a list of homology ids
+            intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
+
+            gs_intersects[gs_id1][gs_id2] = intersect
+            gs_intersects[gs_id2][gs_id1] = intersect
+
+            ## Keep track of gene-genesets for sorting and ease of display
+            for gene in intersect[0]:
+                gene_intersects[gene].add(gs_id1)
+                gene_intersects[gene].add(gs_id2)
+
+    intersection_data = [] #{}
+
+    ## Generate a single structure containing all the intersection information
+    ## for the template
+    for gene, gs_ids in gene_intersects.items():
+        ## If the intersection is among >1 species, it's a homologous gene
+        ## cluster
+        species = list(set(map(lambda i: gs_map[i].sp_id, gs_ids)))
+
+        sect_struct = {
+            'gene': gene,
+            'gs_ids': gs_ids,
+            'intersect_count': len(gs_ids),
+            'is_homolog': True if len(species) > 1 else False
+        }
+
+        intersection_data.append(sect_struct)
+
+    ## Sort by the # of genes in the intersection
+    intersects = sorted(intersection_data, key=lambda i: i['intersect_count'])
 
     # Holds the genes within the intersect portion of the venn diagram
-    intersection_genes = {}
-    # Finds the genes that belong in the intersection
-    temp_genes = geneweaverdb.get_intersect_by_homology(gs_id, gs_id1)
-    for j in range(0, len(temp_genes[0])):
-        intersection_genes[temp_genes[0][j]] = geneweaverdb.if_gene_has_homology(temp_genes[1][j])
+    #intersection_genes = {}
+    ## Finds the genes that belong in the intersection
+    #temp_genes = geneweaverdb.get_intersect_by_homology(gs_id, gs_id1)
+    #for j in range(0, len(temp_genes[0])):
+    #    intersection_genes[temp_genes[0][j]] = geneweaverdb.if_gene_has_homology(temp_genes[1][j])
 
-    # Final list of genes without the genes found within the intersection
-    genesFinal = [item for item in genes if item not in list(intersection_genes.keys())]
-    # Final list of genes without the genes found within the intersection
-    genes1Final = [item for item in genes1 if item not in list(intersection_genes.keys())]
+    ## Final list of genes without the genes found within the intersection
+    #genesFinal = [item for item in genes if item not in list(intersection_genes.keys())]
+    ## Final list of genes without the genes found within the intersection
+    #genes1Final = [item for item in genes1 if item not in list(intersection_genes.keys())]
 
-    # If the same gs_id is given return a complete overlap
-    if gs_id == gs_id1:
-        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1 - gs_id)
-    else:
-        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+    ## If the same gs_id is given return a complete overlap
+    #if gs_id == gs_id1:
+    #    intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1 - gs_id)
+    #else:
+    #    intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
 
-    # Draw the venn diagram
-    venn = createVennDiagram(geneset.count - intersect_genes, geneset1.count - intersect_genes, intersect_genes, 200)
+    ## Draw the venn diagram
+    #venn = createVennDiagram(geneset.count - intersect_genes, geneset1.count - intersect_genes, intersect_genes, 200)
 
-    # Calculate the jaccard coefficient
-    jaccard = float(intersect_genes) / float(
-        geneset.count - intersect_genes + geneset1.count - intersect_genes + intersect_genes)
-    jaccard = "%.6f" % jaccard
+    ## Calculate the jaccard coefficient
+    #jaccard = float(intersect_genes) / float(
+    #    geneset.count - intersect_genes + geneset1.count - intersect_genes + intersect_genes)
+    #jaccard = "%.6f" % jaccard
 
-    # Find  the pvalue within the database
-    pvalue = geneweaverdb.getPvalue(geneset.count, geneset1.count, jaccard)
+    ## Find  the pvalue within the database
+    #pvalue = geneweaverdb.getPvalue(geneset.count, geneset1.count, jaccard)
 
-    # Finds the sizes of each portion of the venn diagram
-    diagramSizes = []
-    diagramSizes.append(geneset.count - intersect_genes)
-    diagramSizes.append(intersect_genes)
-    diagramSizes.append(geneset1.count - intersect_genes)
+    ## Finds the sizes of each portion of the venn diagram
+    #diagramSizes = []
+    #diagramSizes.append(geneset.count - intersect_genes)
+    #diagramSizes.append(intersect_genes)
+    #diagramSizes.append(geneset1.count - intersect_genes)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
-    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
-    for row in emphgenes:
-        emphgeneids.append(str(row['ode_gene_id']))
+    ## TODO: fix emphasis genes
+    #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
-    # variables to hole if a geneset has an emphasis gene
-    inGeneset1 = False
-    inGeneset2 = False
+    #for row in emphgenes:
+    #    emphgeneids.append(str(row['ode_gene_id']))
 
-    # Check to see if an emphasis gene is in one of the genesets
-    for gene in emphgeneids:
-        inGeneset1 = geneweaverdb.check_emphasis(gs_id, gene)
-        if inGeneset1 == True:
-            break
+    ## variables to hole if a geneset has an emphasis gene
+    #inGeneset1 = False
+    #inGeneset2 = False
 
-    for gene in emphgeneids:
-        inGeneset2 = geneweaverdb.check_emphasis(gs_id1, gene)
-        if inGeneset2 == True:
-            break
+    ## Check to see if an emphasis gene is in one of the genesets
+    #for gene in emphgeneids:
+    #    inGeneset1 = geneweaverdb.check_emphasis(gs_id, gene)
+    #    if inGeneset1 == True:
+    #        break
 
-    inGs1 = 0
-    inGs2 = 0
+    #for gene in emphgeneids:
+    #    inGeneset2 = geneweaverdb.check_emphasis(gs_id1, gene)
+    #    if inGeneset2 == True:
+    #        break
 
-    if inGeneset1:
-        inGs1 = 1
+    #inGs1 = 0
+    #inGs2 = 0
 
-    if inGeneset2:
-        inGs2 = 1
+    #if inGeneset1:
+    #    inGs1 = 1
+
+    #if inGeneset2:
+    #    inGs2 = 1
 
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = []
@@ -1244,24 +1323,27 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
         species.append([sp_id, sp_name])
 
     return flask.render_template('viewgenesetoverlap.html', 
-        geneset=geneset, 
-        emphgeneids=emphgeneids, 
-        user_id=user_id,
-        colors=HOMOLOGY_BOX_COLORS, 
-        tt=SPECIES_NAMES, 
-        species=species,
-        altGeneSymbol=altGeneSymbol, 
-        view=view,
-        venn=venn, 
-        jaccard=jaccard, 
-        pval=pvalue, 
-        sizes=diagramSizes, 
-        genesets=genesets,
-        gene_sym=intersection_genes, 
-        gene_sym_set1=genesFinal, 
-        gene_sym_set2=genes1Final,
-        gs1_emphasis=inGs1, 
-        gs2_emphasis=inGs2
+        gs_map=gs_map,
+        intersects=intersects,
+        species=species
+        #geneset=geneset, 
+        #emphgeneids=emphgeneids, 
+        #user_id=user_id,
+        #colors=HOMOLOGY_BOX_COLORS, 
+        #tt=SPECIES_NAMES, 
+        #species=species,
+        #altGeneSymbol=altGeneSymbol, 
+        #view=view,
+        #venn=venn, 
+        #jaccard=jaccard, 
+        #pval=pvalue, 
+        #sizes=diagramSizes, 
+        #genesets=genesets,
+        #gene_sym=intersection_genes, 
+        #gene_sym_set1=genesFinal, 
+        #gene_sym_set2=genes1Final,
+        #gs1_emphasis=inGs1, 
+        #gs2_emphasis=inGs2
     )
 
 

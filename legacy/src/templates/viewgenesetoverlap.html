@@ -10,14 +10,39 @@
 <style type="text/css">
 
     #clickableFontAwesome {
+
         cursor: pointer;
     }
 
     #intersection {
-    margin: auto;
-    width: 35%;
-    padding: 10px;
+
+		margin: auto;
+		width: 35%;
+		padding: 10px;
     }
+
+	.gene-circle {
+
+		border: 1px solid black;
+		border-radius: 50%;
+		height: 25px;
+		width: 25px;
+	}
+
+	.gene-exact {
+
+		color: rgb(76, 178, 95);
+	}
+
+	.gene-homolog {
+
+		color: rgb(135, 53, 53);
+	}
+
+	.gene-single {
+
+		color: rgb(250, 235, 3);
+	}
 
 </style>
 
@@ -56,6 +81,7 @@
         </div>
     </div>
 
+	{#
     <!-- displays detailed data about the individual genesets -->
     {% for gs in genesets %}
     <!-- Label the tier - which is the curation id, Geneset.cur_id -->
@@ -76,6 +102,7 @@
             {% endfor %}
             <option value="-2">+ Create new project...</option></select></p>
     </div>
+	#}
 
     </br></br>
 
@@ -132,12 +159,14 @@
     <div id="intersection"></div>
             
     
+	{#
     <!-- Show the Geneset List at the intersection of the genesets -->
        {% for gene in emphgeneids %}
         <script>
             document.getElementById("{{gene}}").checked = true;
         </script>
     {% endfor %}
+	#}
 
 
 <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -148,52 +177,111 @@
 
 <style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
 <!-- Key for Venn Diagram displayed -->
-<table cellspacing="0" style="font-size: 1em; width: 80%"><tr><th rowspan="2" valign="bottom">
-<p style="font-size: 1em; font-weight: normal;">
-<img src="/static/images/greendot.png" /> = Exact same gene in all sets<br />
-<img src="/static/images/purpledot.png" /> = Homologous gene cluster<br />
-<img src="/static/images/yellowdot.png" /> = Only in one GeneSet</p><br />
-Gene Symbol
-</th><th width="20%" rowspan="2" valign="bottom">Links
+<table cellspacing="0" style="font-size: 0.75em; width: 80%">
+	{# 
+		This is the set of header rows for the intersection table. This first
+		row contains three header columns: one for the legend + gene symbol 
+		text, another for the link outs and the last one for the first geneset
+		in the intersection list. The first two headers span the entirety of 
+		the header portion of the table (this span is dependent on the number 
+		of genesets being displayed).
+	#}
+	<tr>
+		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom">
+			<p style="font-size: 1em; font-weight: normal;">
+				<img src="/static/images/greendot.png" /> = Exact same gene in all sets<br />
+				<img src="/static/images/purpledot.png" /> = Homologous gene cluster<br />
+				<img src="/static/images/yellowdot.png" /> = Only in one GeneSet
+			</p>
+			<br />
+			Gene Symbol
+		</th>
+		{#
+		<th width="20%" rowspan="2" valign="bottom">
+		#}
+		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom">
+			Links
+    	</th>
 
-{% set j = 0 %}
-{% for gs in genesets %}
-    {% if j!=0 %}
+		{% set j = 0 %}
+		{% for gs in gs_map.values() %}
 
-    <!-- Sets the labels to for the columns of the gene list -->
-    </th></tr><tr><th width="2%" rowspan="1" style="border-left: 1px solid #000; border-bottom: none;
-    {% if j%2==1 %} background-color: #fff;{% endif %}">&nbsp;</th>
-    {% endif %}
+			{# 
+				All headers except theh first contain a column of empty space 
+				and another with the geneset abbreviation.
+			#}
+			{% if loop.index0 != 0 %}
+		<!-- Sets the labels to for the columns of the gene list -->
+	</tr>
+	<tr>
+		<th width="2%" rowspan="{{ gs_map.keys() | length - loop.index0 }}" 
+			style="border-left: 1px solid #000; border-bottom: none;
+    		{% if (loop.index0 % 2) == 1 %} background-color: #eee; {% endif %}">
+			&nbsp;
+		</th>
+			{% endif %}
 
-    </th><th width="50%" align="left" colspan="{{genesets|length+1}}" style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
-    {%if j%2==0 %} background-color: #fff;{% endif %}">
-    <a href="/viewgenesetdetails/{{gs.geneset_id}}">GS{{gs.geneset_id}}: {{gs.name}}</a></th>
-    {% set j = j + 1 %}
-{% endfor %}
+		{# 
+			While the first header row includes the legend, gene symbol text, 
+			link out text, and a geneset abbreviation.
+		#}
+    	</th>
+		<th align="left" colspan="{{ gs_map.keys() | length + 1 - loop.index0 }}" 
+			style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
+    		{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %}
+			text-align:center;">
 
-</th></tr>
+    		<a href="/viewgenesetdetails/{{gs.geneset_id}}">
+				{{gs.abbreviation}}
+			</a>
+		</th>
+
+		{% endfor %}
+
+		</th>
+	</tr>
+
 <!-- Sets the maroon circles for homology or green circles for the same gene -->
-{% set j = 0 %}
-{% for genes in gene_sym %}
-      <tr><td class="{{genes}}">
-         <a href="/search/?searchbar={{ genes }}&pagination_page=1&searchGenes=yes">{{genes}}</a></td><td class="gsIconBox" style="text-align: left;">
-         {% set gene=genes %}
-         {% include 'linkouts.html' %}
-         {% for gs in genesets %}
-         </td><td valign="top" style="border-left: 1px solid #000;
-         {% if j%2==0 %} background-color: #fff;{% endif %} padding: 0.5em;">
-             {% if gene_sym[genes] == 0 %}
-                <div class="containedGene"><img src="/static/images/greendot.png" alt="In GS{{gs.name}}" /></div>
-             {% else %}
-                <div class="containedHomology"><img src="/static/images/purpledot.png" alt="In GS{{gs.name}}, with homology to {{genes}}" /></div>
-             {% endif %}
-        {% endfor %}
-      </td><td width="250px">&nbsp;</td></tr>
-{% endfor %}
+	{% set j = 0 %}
+	{% for genes in gene_sym %}
+	<tr>
+		<td class="{{genes}}">
+         	<a href="/search/?searchbar={{ genes }}&pagination_page=1&searchGenes=yes">
+				{{ genes }}
+			</a>
+		</td>
+		<td class="gsIconBox" style="text-align: left;">
+        	{% set gene=genes %}
+
+			{#
+			{% include 'linkouts.html' %}
+			#}
+
+			{% for gs in genesets %}
+         </td>
+		 <td valign="top" style="border-left: 1px solid #000;
+         	 {% if (j % 2) == 0 %} background-color: #fff; {% endif %} 
+			 padding: 0.5em;">
+				 {% if gene_sym[genes] == 0 %}
+					<div class="containedGene">
+						<img src="/static/images/greendot.png" alt="In GS{{gs.name}}" />
+					</div>
+				 {% else %}
+					<div class="containedHomology">
+						<img src="/static/images/purpledot.png" alt="In GS{{gs.name}}, with homology to {{genes}}" />
+					</div>
+				 {% endif %}
+			 {% endfor %}
+      	</td>
+		<td width="250px">&nbsp;</td>
+	</tr>
+	{% endfor %}
+
+	{#
 <!-- Sets the yellow circles for the genes found only in geneset1 -->
-{% set j = 0 %}
-{% for genes in gene_sym_set1 %}
-      <tr><td class="{{genes}}">
+	{% set j = 0 %}
+	{% for genes in gene_sym_set1 %}
+    <tr><td class="{{genes}}">
          <a href="/search/?searchbar={{ genes }}&pagination_page=1&searchGenes=yes">{{genes}}</a></td><td class="gsIconBox" style="text-align: left;">
          {% set gene=genes %}
          {% include 'linkouts.html' %}
@@ -220,8 +308,10 @@ Gene Symbol
             <div class="containedGene"><img src="/static/images/yellowdot.png" /></div>
       </td><td width="250px">&nbsp;</td></tr>
 {% endfor %}
+	#}
 
-</table></div>
+</table>
+</div>
 
 <br />
 <br />
