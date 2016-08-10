@@ -712,7 +712,6 @@ $('.download-image').on('click', function(event) {
         var runhash = d3.select('#lol-hack').node().innerHTML;
         var fp = runhash + '.svg';
         var oldver = fp;
-        console.log(runhash);
 
     } else {
        var oldver = '';
