@@ -1195,11 +1195,32 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
     if inGeneset2:
         inGs2 = 1
 
-    return flask.render_template('viewgenesetoverlap.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view,
-                                 venn=venn, jaccard=jaccard, pval=pvalue, sizes=diagramSizes, genesets=genesets,
-                                 gene_sym=intersection_genes, gene_sym_set1=genesFinal, gene_sym_set2=genes1Final,
-                                 gs1_emphasis=inGs1, gs2_emphasis=inGs2)
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
+
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+
+    return flask.render_template('viewgenesetoverlap.html', 
+        geneset=geneset, 
+        emphgeneids=emphgeneids, 
+        user_id=user_id,
+        colors=HOMOLOGY_BOX_COLORS, 
+        tt=SPECIES_NAMES, 
+        species=species,
+        altGeneSymbol=altGeneSymbol, 
+        view=view,
+        venn=venn, 
+        jaccard=jaccard, 
+        pval=pvalue, 
+        sizes=diagramSizes, 
+        genesets=genesets,
+        gene_sym=intersection_genes, 
+        gene_sym_set1=genesFinal, 
+        gene_sym_set2=genes1Final,
+        gs1_emphasis=inGs1, 
+        gs2_emphasis=inGs2
+    )
 
 
 # function to draw the venn diagrams for the overlap page
