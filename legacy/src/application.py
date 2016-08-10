@@ -1225,7 +1225,7 @@ def render_viewgenesetoverlap(gs_ids):
                 gene_intersects[gene].add(gs_id1)
                 gene_intersects[gene].add(gs_id2)
 
-    intersection_data = [] #{}
+    intersects = []
 
     ## Generate a single structure containing all the intersection information
     ## for the template
@@ -1241,10 +1241,11 @@ def render_viewgenesetoverlap(gs_ids):
             'is_homolog': True if len(species) > 1 else False
         }
 
-        intersection_data.append(sect_struct)
+        intersects.append(sect_struct)
 
     ## Sort by the # of genes in the intersection
-    intersects = sorted(intersection_data, key=lambda i: i['intersect_count'])
+    intersects = sorted(intersects, key=lambda i: i['intersect_count'],
+            reverse=True)
 
     # Holds the genes within the intersect portion of the venn diagram
     #intersection_genes = {}
