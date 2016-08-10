@@ -25,7 +25,7 @@ import sphinxapi
 import search
 import math
 import batch
-#import cairosvg
+import cairosvg
 from cStringIO import StringIO
 
 app = flask.Flask(__name__)

@@ -708,9 +708,11 @@ $('.download-image').on('click', function(event) {
         .node().parentNode.innerHTML;
 
     if (isOld) {
-        var runhash = '{{async_result.parameters.output_prefix}}';
+        //var runhash = '{{async_result.parameters.output_prefix}}';
+        var runhash = d3.select('#lol-hack').node().innerHTML;
         var fp = runhash + '.svg';
         var oldver = fp;
+        console.log(runhash);
 
     } else {
        var oldver = '';
