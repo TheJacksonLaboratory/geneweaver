@@ -1,6 +1,7 @@
 from collections import defaultdict
 import flask
 import geneweaverdb
+from uploader import Uploader, User
 import sphinxapi
 import config
 
@@ -15,6 +16,8 @@ max_matches = 1000
 # The total number of genesets to conider in counting results in the filter set on the side bar
 max_filter_matches = 5000
 
+# uploader obj to manage database connection
+uploader = Uploader()
 
 def search_sphinxql_diagnostic(sphinxQLQuery):
     client = sphinxapi.SphinxClient()
@@ -34,14 +37,13 @@ def getOtherUsersAccessForGroups():
     # groups the user is also in, so that those GS's will be visible to the user (GS's associated with the
     # groups the user is in).
 
-    #
-    visibleUsers = list()
+    visibleUsers = []
     if flask.session.get('user_id'):
-        groupIds = geneweaverdb.get_user_groups(flask.session.get('user_id'))
+        groupIds = uploader.get_user_groups(flask.session.get('user_id'))
         # Convert the group IDS to user ID's
         visibleUsers = set()
         for i in groupIds:
-            usersInGroup = geneweaverdb.get_group_users(i)
+            usersInGroup = uploader.get_group_users(i)
             for j in usersInGroup:
                 visibleUsers.add(j)
     return ','.join(str(i) for i in list(visibleUsers))
@@ -81,7 +83,7 @@ def getUserFiltersFromApplicationRequest(form):
 
     # Get all of the selected species options from the form
     # First, get the list of speicies and ID's from the database
-    speciesListFromDB = geneweaverdb.get_all_species()
+    speciesListFromDB = uploader.get_speciesTypes()
     speciesList = {}
     # Build the default list
     for sp_id, sp_name in speciesListFromDB.items():
@@ -93,7 +95,7 @@ def getUserFiltersFromApplicationRequest(form):
 
     # Get all of the selected attribution options from the form
     # First, get the list of attributions and ID's from the database
-    attributionListFromDB = geneweaverdb.get_all_attributions()
+    attributionListFromDB = uploader.get_attributionTypes()
     attributionsList = {}
 
     # Build the default list
@@ -172,6 +174,8 @@ def applyUserRestrictions(client, select=''):
 
     else:
         user_id = 0
+
+    usr_info = uploader.get_user_info
 
     user_info = geneweaverdb.get_user(user_id)
     user_grps = geneweaverdb.get_user_groups(user_id)
@@ -284,47 +288,15 @@ def getSearchFilterValues(query):
 
         return nl
 
-    # for sp_id,sp_name in speciesListFromDB.items():
-    #   speciesList['sp'+str(sp_id)] = 0
-
-    # Perform a sphinx query
-    # client.SetGroupBy('sp_id', sphinxapi.SPH_GROUPBY_ATTR);
-    # results = client.Query(query)
-
-    # Count all of the results
-    # if (results['total']>0):
-    #   for match in results['matches']:
-    #       speciesList['sp'+str(match['attrs']['sp_id'])] = int(match['attrs']['@count'])
-
-    # Query for attribution counts
-    # First, get the list of attributions and ID's from the database
-    # attributionsListFromDB = geneweaverdb.get_all_attributions()
-    # attributionsList = {}
-
-    # Build the default list
-    # for at_id, at_name in attributionsListFromDB.items():
-    #   attributionsList['at'+str(at_id)] = 0
-    # TODO remove this after updating the database
-    # attributionsList['at0'] = 0
-
-    # Perform a sphinx query
-    # client.SetGroupBy('attribution', sphinxapi.SPH_GROUPBY_ATTR);
-    # results = client.Query(query)
-
-    # Count all of the results
-    # if (results['total']>0):
-    #   for match in results['matches']:
-    #       attributionsList['at'+str(match['attrs']['attribution'])] = int(match['attrs']['@count'])
-
-    ## Now begin the process of converting useless IDs into names
-    attrmap = geneweaverdb.get_all_attributions()
+    # now begin the process of converting useless IDs into names
+    attrmap = uploader.get_attributionTypes()
     attrmap[0] = 'No Attribution'  ## The function doesn't add No Att. idk why
 
     for atid, atname in attrmap.items():
         attrmap['at' + str(atid)] = atname
         del attrmap[atid]
 
-    spmap = geneweaverdb.get_all_species()
+    spmap = uploader.get_speciesTypes()
     spmap[0] = 'No Species'
 
     for spid, spname in spmap.items():
@@ -441,7 +413,7 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     '''
     speciesIDs = list()
     # For all species in the user's filter that has 'yes' as a value, add the ID to a list
-    speciesListFromDB = geneweaverdb.get_all_species()
+    speciesListFromDB = uploader.get_speciesTypes()
 
     if 'speciesList' in userFilters:
         for sp_id, sp_name in speciesListFromDB.items():
@@ -457,7 +429,7 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
     '''
     attributionIDs = list()
     # For all attributions in the user's filter that has 'yes' as a value, add the ID to a list
-    attributionListFromDB = geneweaverdb.get_all_attributions()
+    attributionListFromDB = uploader.get_attributionTypes()
 
     if 'attributionsList' in userFilters:
         for at_id, at_name in attributionListFromDB.items():

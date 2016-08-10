@@ -65,7 +65,7 @@ class Uploader:
 		"""
 		# QUERY: get a tuple of gene types by id + name
 		query = 'SELECT gdb_id, gdb_name ' \
-		        'FROM odestatic.genedb;'
+				'FROM odestatic.genedb;'
 
 		# run query
 		self.cur.execute(query)
@@ -86,7 +86,7 @@ class Uploader:
 		"""
 		# QUERY: get a tuple of microarray types by id + name
 		query = 'SELECT pf_id, pf_name ' \
-		        'FROM odestatic.platform;'
+				'FROM odestatic.platform;'
 
 		# run query
 		self.cur.execute(query)
@@ -107,8 +107,8 @@ class Uploader:
 		"""
 		# QUERY: get a list of species types by id + name
 		query = 'SELECT sp_id, sp_name ' \
-		        'FROM odestatic.species ' \
-		        'ORDER BY sp_id;'
+				'FROM odestatic.species ' \
+				'ORDER BY sp_id;'
 
 		# run query
 		self.cur.execute(query)
@@ -118,6 +118,30 @@ class Uploader:
 		output = {}
 		for tup in results:
 			output[tup[1].lower()] = tup[0]
+
+		return output
+
+	def get_attributionTypes(self):
+		""" Queries GeneWeaver for a list of attribution types,
+			returning a dictionary that maps attribution IDs to
+			abbreviations.
+		"""
+		# set up the query
+		query = 'SELECT at_id, at_abbrev ' \
+				'FROM attribution ' \
+				'WHERE at_abbrev ' \
+				'IS NOT NULL ' \
+				'ORDER BY at_id;'
+
+		# execute the query
+		self.cur.execute(query)
+
+		# fetch results
+		res = self.cur.fetchall()
+
+		output = {}
+		for result in res:
+			output[result[1].lower()] = result[0]
 
 		return output
 
@@ -131,14 +155,14 @@ class Uploader:
 			gene_refs = tuple(refs)
 		except ValueError:
 			err = "Error: Incorrect input type(s) entered into Batch.query_platformProbes. " \
-			      "Paramter 'refs' should be a tuple or a list, 'pfid' should be an int."
+				  "Paramter 'refs' should be a tuple or a list, 'pfid' should be an int."
 			self.err.set_errors(critical=err)
 
 		# set up query
 		query = 'SELECT prb_id, prb_ref_id ' \
-		        'FROM odestatic.probe ' \
-		        'WHERE pf_id = %s ' \
-		        'AND prb_ref_id IN %s;'
+				'FROM odestatic.probe ' \
+				'WHERE pf_id = %s ' \
+				'AND prb_ref_id IN %s;'
 
 		# execute query
 		self.cur.execute(query, [pfid, gene_refs])
@@ -163,12 +187,12 @@ class Uploader:
 			return results
 		elif len(diff) == len(refs):
 			err = 'Error: unable to find any genes that match those provided in the file. ' \
-			      'Please check the geneset gene id type and try again.'
+				  'Please check the geneset gene id type and try again.'
 			self.err.set_errors(critical=err)
 		else:
 			err = 'Warning: some prb_ref_ids were not ' \
-			      'found, + therefore will not be included in the ' \
-			      'geneset. \nNOT_FOUND=', diff
+				  'found, + therefore will not be included in the ' \
+				  'geneset. \nNOT_FOUND=', diff
 			self.err.set_errors(noncritical=err)
 			return results
 
@@ -183,13 +207,13 @@ class Uploader:
 			prb_ids = tuple(prbids)
 		except ValueError:
 			err = "Error: Incorrect input type(s) entered into Batch.query_probe2gene. " \
-			      "Paramter 'refs' should be a tuple or a list, 'pfid' should be an int."
+				  "Paramter 'refs' should be a tuple or a list, 'pfid' should be an int."
 			self.err.set_errors(critical=err)
 
 		# set up query
 		query = 'SELECT prb_id, ode_gene_id ' \
-		        'FROM extsrc.probe2gene ' \
-		        'WHERE prb_id IN %s;'
+				'FROM extsrc.probe2gene ' \
+				'WHERE prb_id IN %s;'
 
 		# execute query
 		self.cur.execute(query, [prb_ids])
@@ -215,8 +239,8 @@ class Uploader:
 			return results
 		else:
 			err = 'Warning: some prb_ids were not ' \
-			      'found, + therefore will not be included in the ' \
-			      'geneset. \nNOT_FOUND=%s' % diff
+				  'found, + therefore will not be included in the ' \
+				  'geneset. \nNOT_FOUND=%s' % diff
 			self.err.set_errors(noncritical=err)
 			return results
 
@@ -227,9 +251,9 @@ class Uploader:
 		# print 'querying ode_gene_ids...'
 		# set up the query
 		query = 'SELECT ode_ref_id, ode_gene_id, ode_pref, gdb_id ' \
-		        'FROM extsrc.gene ' \
-		        'WHERE sp_id = %s ' \
-		        'AND ode_ref_id IN %s;'
+				'FROM extsrc.gene ' \
+				'WHERE sp_id = %s ' \
+				'AND ode_ref_id IN %s;'
 
 		# execute the query
 		self.cur.execute(query, [sp_id, tuple(poss_refs)])
@@ -239,7 +263,7 @@ class Uploader:
 
 		if not len(res):  # EDIT: change here if you want to allow for novel user input
 			err = "Error: Unable to upload batch file as no genes were found.\n" \
-			      "Check text file input before reattempting the batch file upload.\n"
+				  "Check text file input before reattempting the batch file upload.\n"
 			self.err.set_errors(critical=err)
 
 		# cast result to a dictionary {(ode_ref_id, ode_pref, gdb_id): [ode_gene_id,]}
@@ -262,7 +286,7 @@ class Uploader:
 			return results
 		else:
 			err = 'Warning: some ode_ref_ids were not found, + will therefore ' \
-			      'not be included in the geneset. \nNOT_FOUND=%s' % diff
+				  'not be included in the geneset. \nNOT_FOUND=%s' % diff
 			self.err.set_errors(noncritical=err)
 			return results
 
@@ -275,11 +299,11 @@ class Uploader:
 
 		# set up query
 		query = 'SELECT ode_gene_id, ode_ref_id ' \
-		        'FROM extsrc.gene ' \
-		        'WHERE sp_id = %s ' \
-		        'AND gdb_id = %s ' \
-		        'AND ode_pref = TRUE ' \
-		        'AND ode_gene_id IN %s;'
+				'FROM extsrc.gene ' \
+				'WHERE sp_id = %s ' \
+				'AND gdb_id = %s ' \
+				'AND ode_pref = TRUE ' \
+				'AND ode_gene_id IN %s;'
 
 		# execute query
 		self.cur.execute(query, [sp_id, gdb_id, ode_ids])
@@ -301,9 +325,145 @@ class Uploader:
 			return results
 		else:
 			err = 'Warning: some ode_gene_ids were not found. ' \
-			      '\nNOT_FOUND=%s' % diff
+				  '\nNOT_FOUND=%s' % diff
 			self.err.set_errors(noncritical=err)
 			return results
+
+	def get_user(self, usr_id):
+		""" Gets information about the user associated with the
+			user ID provided, returning None if it doesn't exist.
+		"""
+		# set up query
+		query = 'SELECT * FROM usr ' \
+				'WHERE usr_id=%s;'
+
+		# execute the query
+		self.cur.execute(query, [usr_id])
+
+		# fetch the results
+		res = self.cur.fetchall()
+		res = list(res[0])
+
+		if len(res) == 1:
+			return res
+		else:
+			return None
+
+	def get_user_info(self, usr_id, out_first_name=False,
+	                  out_last_name=False, out_email=False,
+	                  out_password=False, out_prefs=False,
+	                  out_admin=False, out_last_seen=False,
+	                  out_created=False, out_ip_addr=False,
+	                  out_apikey=False):
+		""" Returns information about a user, as specified
+			by the parameters prefixed with 'out'.
+
+			If only one output parameter was selected, it
+			returns that result. If more than parameter was
+			selected, it returns the result as a dictionary.
+		"""
+		# build the query
+		query = 'SELECT '
+
+		params = []
+		if out_first_name:
+			params.append('usr_first_name')
+		if out_last_name:
+			params.append('usr_last_name')
+		if out_email:
+			params.append('usr_email')
+		if out_password:
+			params.append('usr_password')
+		if out_prefs:
+			params.append('usr_prefs')
+		if out_admin:
+			params.append('usr_admin')
+		if out_last_seen:
+			params.append('usr_last_seen')
+		if out_created:
+			params.append('usr_created')
+		if out_ip_addr:
+			params.append('ip_addr')
+		if out_apikey:
+			params.append('apikey')
+
+		# add the chosen parameters to the query
+		merged_params = ', '.join(params)
+		query += merged_params
+
+		# finish building the query
+		query += ' FROM usr ' \
+		         'WHERE usr_id=%s'
+
+		# execute the query
+		self.cur.execute(query, [usr_id])
+
+		# retrieve the results
+		res = self.cur.fetchall()
+		res = list(res[0])
+
+		numParams = len(params)
+		# return None if it doesnt exist
+		if not len(res):
+			return None
+
+		# if there was only one param queried, just return it
+		elif numParams == 1:
+			return res[0]
+
+		# otherwise, return it as a dict
+		elif numParams > 1:
+			output = {}
+			if len(res) == numParams:
+				output = dict([(params[y], res[y]) for y in range(numParams)])
+				return output
+			else:
+				error = 'Error: User query unsuccessful, as not all the ' \
+				        'requested metadata was found.'
+				self.err.set_errors(critical=error)
+
+
+	def get_user_groups(self, usr_id):
+		""" Gets a list of group ids for given users.
+		"""
+		# set up query
+		query = 'SELECT grp_id ' \
+				'FROM usr2grp ' \
+				'WHERE usr_id=%s;'
+
+		# execute query
+		self.cur.execute(query, [usr_id])
+
+		# retrieve the results (list of tuples)
+		res = self.cur.fetchall()
+
+		# convert result to a list of ints
+		output = []
+		for result in res:
+			output.append(list(result)[0])
+
+		return output
+
+	def get_group_users(self, grp_id):
+		""" Gets a list of users, given a group id.
+		"""
+		# set up query
+		query = 'SELECT usr_id ' \
+				'FROM usr2grp ' \
+				'WHERE grp_id=%s;'
+
+		# execute query
+		self.cur.execute(query, [grp_id])
+
+		# retrieve the results (list of tuples)
+		res = self.cur.fetchall()
+
+		# convert result to a list of ints
+		output = []
+		for result in res:
+			output.append(list(result)[0])
+
+		return output
 
 	def search_pubmed(self, pmid):
 		publication = {}
@@ -311,10 +471,10 @@ class Uploader:
 		# print 'looking up PubMed ID...'
 		# URL for pubmed article summary info
 		url = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?'
-		       'retmode=json&db=pubmed&id=%s') % str(pmid)
+			   'retmode=json&db=pubmed&id=%s') % str(pmid)
 		# NCBI eFetch URL that only retrieves the abstract
 		url_abs = ('http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
-		           '?rettype=abstract&retmode=text&db=pubmed&id=%s') % str(pmid)
+				   '?rettype=abstract&retmode=text&db=pubmed&id=%s') % str(pmid)
 
 		res = requests.get(url).content
 		temp = json.loads(res)['result']
@@ -336,25 +496,25 @@ class Uploader:
 			publication['pub_abstract'] = res2
 		else:
 			err = 'Warning: The PubMed info retrieved from NCBI was incomplete. No ' \
-			      'abstract data will be attributed to this GeneSet.'
+				  'abstract data will be attributed to this GeneSet.'
 			self.err.set_errors(noncritical=err)
 
 		return publication
 
 	def insert_publication(self, pub_authors, pub_title, pub_abstract,
-	                       pub_journal, pub_volume, pub_pages, pub_pubmed):
+						   pub_journal, pub_volume, pub_pages, pub_pubmed):
 		# print 'handling publication insertion...'
 		query = 'SET search_path = extsrc, production, odestatic'
 		self.cur.execute(query)
 
 		# set up query
 		query = 'INSERT INTO production.publication ' \
-		        '(pub_authors, pub_title, pub_abstract, pub_journal, ' \
-		        'pub_volume, pub_pages, pub_pubmed) ' \
-		        'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
+				'(pub_authors, pub_title, pub_abstract, pub_journal, ' \
+				'pub_volume, pub_pages, pub_pubmed) ' \
+				'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING pub_id;'
 
 		vals = [pub_authors, pub_title, pub_abstract, pub_journal,
-		        pub_volume, pub_pages, pub_pubmed]
+				pub_volume, pub_pages, pub_pubmed]
 
 		# execute query
 		self.cur.execute(query, vals)
@@ -376,9 +536,9 @@ class Uploader:
 
 		# set up query
 		query = 'INSERT INTO production.file ' \
-		        '(file_size, file_uri, file_contents, file_comments, ' \
-		        'file_created, file_changes) ' \
-		        'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
+				'(file_size, file_uri, file_contents, file_comments, ' \
+				'file_created, file_changes) ' \
+				'VALUES (%s, %s, %s, %s, NOW(), \'\') RETURNING file_id;'
 
 		vals = [count, gs_name, contents, '']
 
@@ -389,27 +549,27 @@ class Uploader:
 		return self.cur.fetchall()[0][0]
 
 	def insert_geneset(self, file_id, usr_id, cur_id,
-	                   species, score_type, threshold,
-	                   count, gs_gene_id_type, name,
-	                   abbrev_name, description, group,
-	                   pub_id=None):
+					   species, score_type, threshold,
+					   count, gs_gene_id_type, name,
+					   abbrev_name, description, group,
+					   pub_id=None):
 		# print 'inserting geneset...'
 		query = 'SET search_path = extsrc, production, odestatic'
 		self.cur.execute(query)
 
 		# set up query
 		query = 'INSERT INTO production.geneset ' \
-		        '(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
-		        'gs_threshold, gs_created, gs_updated, gs_status, ' \
-		        'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
-		        'gs_abbreviation, gs_description, gs_attribution, ' \
-		        'gs_groups, pub_id) ' \
-		        'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
-		        '%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
+				'(file_id, usr_id, cur_id, sp_id, gs_threshold_type, ' \
+				'gs_threshold, gs_created, gs_updated, gs_status, ' \
+				'gs_count, gs_uri, gs_gene_id_type, gs_name, ' \
+				'gs_abbreviation, gs_description, gs_attribution, ' \
+				'gs_groups, pub_id) ' \
+				'VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW(), \'normal\', ' \
+				'%s, \'\', %s, %s, %s, %s, 0, %s, %s) RETURNING gs_id;'
 
 		vals = [file_id, usr_id, cur_id, species, score_type,
-		        threshold, count, gs_gene_id_type, name,
-		        abbrev_name, description, group, pub_id]
+				threshold, count, gs_gene_id_type, name,
+				abbrev_name, description, group, pub_id]
 
 		# execute query
 		self.cur.execute(query, vals)
@@ -418,7 +578,7 @@ class Uploader:
 		return self.cur.fetchall()[0][0]
 
 	def insert_geneset_values(self, ode_gene_id, value, gs_id, gsv_in_thresh,
-	                          gsv_source_list, gsv_value_list):
+							  gsv_source_list, gsv_value_list):
 
 		# print 'inserting geneset values...'
 		query = 'SET search_path = extsrc, production, odestatic'
@@ -426,12 +586,12 @@ class Uploader:
 
 		# set up query
 		query = 'INSERT INTO extsrc.geneset_value ' \
-		        '(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
-		        'gsv_value_list, gsv_in_threshold, gsv_date) ' \
-		        'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
+				'(gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, ' \
+				'gsv_value_list, gsv_in_threshold, gsv_date) ' \
+				'VALUES (%s, %s, %s, 0, %s, %s, %s, NOW());'
 
 		search_vals = [gs_id, ode_gene_id, value, [gsv_source_list],
-		               [gsv_value_list], gsv_in_thresh]
+					   [gsv_value_list], gsv_in_thresh]
 
 		# execute the query
 		self.cur.execute(query, search_vals)
@@ -441,9 +601,9 @@ class Uploader:
 		# print 'updating gsv lists...'
 		# set up query
 		query = 'UPDATE extsrc.geneset_value ' \
-		        'SET (gsv_source_list, gsv_value_list, ' \
-		        'gsv_date) = (%s, %s, NOW()) ' \
-		        'WHERE gs_id = %s;'
+				'SET (gsv_source_list, gsv_value_list, ' \
+				'gsv_date) = (%s, %s, NOW()) ' \
+				'WHERE gs_id = %s;'
 
 		vals = [gsv_source_list, gsv_value_list, gs_id]
 
@@ -455,11 +615,59 @@ class Uploader:
 		# print 'modifying geneset count...'
 		# set up query
 		query = 'UPDATE production.geneset ' \
-		        'SET gs_count = %s ' \
-		        'WHERE gs_id = %s'
+				'SET gs_count = %s ' \
+				'WHERE gs_id = %s'
 
 		vals = [gs_id, count]
 
 		# execute + commit query
 		self.cur.execute(query, vals)
 		self.commit()
+
+
+class User:
+	def __init__(self, usr_dict):
+		self.user_id = usr_dict['usr_id']
+		self.first_name = usr_dict['usr_first_name']
+		self.last_name = usr_dict['usr_last_name']
+		self.email = usr_dict['usr_email']
+		self.prefs = usr_dict['usr_prefs']
+		self.api_key = usr_dict['apikey']
+
+		usr_admin = usr_dict['usr_admin']
+		self.is_curator = usr_admin == 1
+		self.is_admin = usr_admin == 2 or usr_admin == 3
+		self.last_seen = usr_dict['usr_last_seen']
+		self.creation_date = usr_dict['usr_created']
+		self.ip_addr = usr_dict['ip_addr']
+
+		self.__projects = None
+		self.__shared_projects = None
+		self.__get_groups_by_user = None
+
+	@property
+	def projects(self):
+		if self.__projects is None:
+			self.__projects = get_all_projects(self.user_id)
+
+		## Case insensitive sorting otherwise project names with captial
+		## letters come before those with lowercase.
+		self.__projects = sorted(self.__projects, key=lambda p: p.name.lower())
+
+		return self.__projects
+
+	@property
+	def shared_projects(self):
+		if self.__shared_projects is None:
+			self.__shared_projects = get_shared_projects(self.user_id)
+		return self.__shared_projects
+
+	@property
+	def get_groups_by_user(self):
+		if self.__get_groups_by_user is None:
+			self.__get_groups_by_user = get_groups_owned_by_user(self.user_id)
+		return self.__get_groups_by_user
+
+if __name__ == '__main__':
+	u = Uploader()
+	print u.get_user_info(15, out_first_name=True, out_last_name=True)

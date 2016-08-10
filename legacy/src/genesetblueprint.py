@@ -1,18 +1,16 @@
 # file: genesetblueprint.py
 # authors: Tim Reynolds, Astrid Moore
+# last edited: 8/10/16
 
 import flask
-import geneweaverdb
-import pubmedsvc
 import urllib2
 import re
-from batch import Batch, GeneSet
-import annotator as ann
+from batch import Batch
 from flask import request
-import sys
 from uploader import Uploader
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
+
 
 # gets species and gene identifiers for uploadgeneset page
 @geneset_blueprint.route('/uploadgeneset')
@@ -46,6 +44,7 @@ def render_uploadgeneset(genes=None):
 			gidts=gidts,
 			user_id=user_id)
 
+
 @geneset_blueprint.route('/batchupload')
 def render_batchupload(genes=None):
 	uploader = Uploader()
@@ -62,6 +61,7 @@ def render_batchupload(genes=None):
 	species_types = uploader.get_speciesTypes()
 	return flask.render_template('batchupload.html', gs=dict(),
 	                             all_species=species_types, gidts=gidts)
+
 
 @geneset_blueprint.route('/createBatchGeneset')
 def create_batch_geneset():
@@ -199,324 +199,267 @@ def tokenize_lines(candidate_sep_regexes, lines):
 #     return flask.jsonify(
 #         most_successfull_id_kinds=most_successfull_id_kinds,
 #         total_id_count=len(set(input_id_list)))
-@geneset_blueprint.route('/createtempgeneset', methods=['POST'])
-def create_temp_geneset():
-	uploader = Uploader()
 
-	# try to load the form (NOTE: add statement after testing)
-	user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
-	form = flask.request.form
-	file_text = form['file_text']
-	file_lines = file_text.splitlines()
-	gs_name = form['gs_name']
-	abbrev = form['gs_abbreviation']
-	description = form['gs_description']
-	privacy = form['permissions']
-	species = form['species']
-	gs_gene_id_type = form['gene_identifier']  # ??
-	# see what is in the file_text
-
-	# if load was successful, pass file lines along
-	batch = Batch(remote=True)
-	temp_gs =
-
-
-	# NOTE: test batch obj
-
-	# grab any errors / warnings
-
-
-
-
-	# try to load the form (NOTE: add statement after testing)
-	user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
-	form = flask.request.form
-	file_text = form['file_text']
-	file_lines = file_text.splitlines()
-
-	# if load was successful, pass file_lines (Batch will upload GS)
-	batch = Batch(file_list=file_lines)
-
-	# NOTE: test batch obj
-	# = add a global param to Batch to indicate a solo GeneSet input
-	# - adapt assess_inputs()
-	# - adapt create_batches()
-	# - adapt upload_genesets()
-
-	# grab any errors / warnings
-	batchErrors, batchWarns = batch.report_errors()
-
-	# if there were critical errors, no need to continue
-	if batch.errors.crit:
-		return flask.jsonify({'error': batchErrors})
-
-	# if there were warnings, report
-	gs_names = batch.report_gs_names()  # grab abbrev geneset names
-
-
-
-
-
-@geneset_blueprint.route('/createtempgeneset', methods=['POST'])
-def create_temp_geneset():
-	#Try to load the form, catching errors, etc.
-	try:
-		form = flask.request.form
-		gs_name = form['gs_name']
-		gs_abbreviation = form['gs_abbreviation']
-		gs_description = form['gs_description']
-		public_private = form['permissions']
-		sp_id = form['species']
-		gene_identifier = form['gene_identifier']
-
-		user_id = flask.g.user.user_id if 'user' in flask.g else None
-		if user_id == None:
-			return {"Error": "You must be signed in to upload a GeneSet."}
-
-		if sp_id == 0 or sp_id == "0":
-			return {"Error": "Select a species."}
-
-		# get lines from the file here
-		file_text = ""
-		file_lines = ""
-		if 'file_text' in form.keys():
-			file_text = form['file_text']
-			file_lines = file_text.splitlines()
-		else:
-			return "File currently not implemented."
-
-		candidate_sep_regexes = ['\t', ',', ' +']
-
-		all_results = []
-		invalid_genes = []
-		unique_gene_ids = []
-
-		for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
-			curr_id = ''
-			curr_val = None
-
-			if len(curr_toks) >= 1:
-				curr_id = curr_toks[0]
-				if len(curr_toks) >= 2:
-					curr_val = float(curr_toks[1])
-				try:
-					# getting gene table results
-					gene_results = None
-					with geneweaverdb.PooledCursor() as cursor:
-						cursor.execute(
-							'''
-							SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
-							FROM gene
-							WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
-							''',
-							(sp_id, curr_id.lower())
-						)
-						gene_results = list(geneweaverdb.dictify_cursor(cursor))
-						# if there are gene results, add to list of all results and put ode_gene_id into unique gene_id list
-						if gene_results:
-							gene_results[0].update({'value': curr_val})
-
-							# adds to geneID list if unique
-							if gene_results[0]['ode_gene_id'] not in unique_gene_ids:
-								unique_gene_ids.append(gene_results[0]['ode_gene_id'])
-
-							all_results += gene_results
-
-							# getting platform results
-					platform_results = None
-					with geneweaverdb.PooledCursor() as cursor:
-						cursor.execute(
-							'''
-							SELECT ode_gene_id, m.pf_id AS source, prb_ref_id AS ref_id, pf_set
-							FROM platform m,probe p,probe2gene p2g
-							WHERE p.pf_id=m.pf_id AND p2g.prb_id=p.prb_id AND m.sp_id=%s AND LOWER(prb_ref_id)=%s
-							GROUP BY ode_gene_id, m.pf_id, prb_ref_id, m.pf_set;
-							''',
-							(sp_id, curr_id.lower())
-						)
-						platform_results = list(geneweaverdb.dictify_cursor(cursor))
-
-						# if there are platform genes, add to list of all results and put ode_gene_id into unique gene_id list
-						if platform_results:
-							platform_results[0].update({'value': curr_val})
-
-							# adds to geneID list if unique
-							if platform_results[0]['ode_gene_id'] not in unique_gene_ids:
-								unique_gene_ids.append(platform_results[0]['ode_gene_id'])
-
-							all_results += platform_results
-
-					if not (gene_results or platform_results):
-						invalid_genes.append(curr_id)
-						pass
-
-				except Exception, e:
-					return str(e)
-					pass
-
-
-
-		# if any genes in the list were not found it will tell the user which were not found
-		if len(invalid_genes) > 0:
-			return "Unable to find these Genes for specified species:\n" + ', '.join(
-				invalid_genes) + "\n\nEither remove them and resubmit the GeneSet or contact GeneWeaver to have them added."
-		if len(all_results) < 1:
-			return "No genes found to enter"
-
-		pub_id = None
-		if form['pub_pubmed'] != None and form['pub_pubmed'] != "":
-			exists = True
-			with geneweaverdb.PooledCursor() as cursor:
-				pubcheck = None
-				cursor.execute('''SELECT pub_id FROM production.publication where pub_pubmed=%s;''',
-							   (form['pub_pubmed'],))
-				try:
-					pubcheck = cursor.fetchone()[0]
-				except Exception:
-					pubcheck = None
-
-				if pubcheck:
-					pub_id = pubcheck
-				else:
-					exists = False
-			if exists == False:
-				cols = dict()
-				reg = re.compile('pub_*')
-				for item in form.keys():
-					if re.match(reg, item):
-						if form[item]:
-							cols.update({item: form[item]})
-				if len(cols) > 0:
-					values = []
-					keys = []
-					for item in cols.keys():
-						values.append(cols[item])
-						keys.append(item)
-					with geneweaverdb.PooledCursor() as cursor:
-						pub_sql = '''INSERT INTO production.publication(%s) VALUES ('%s') RETURNING pub_id;''' % (
-						','.join(keys), '\',\''.join(values),)
-						cursor.execute(pub_sql)
-						cursor.connection.commit()
-						pub_id = cursor.fetchone()[0]
-						print pub_sql
-
-		file_id = None
-		with geneweaverdb.PooledCursor() as cursor:
-			file_sql = '''INSERT INTO production.file(file_size, file_contents) VALUES (%s, '%s') RETURNING file_id;''' % (
-			len(file_text), file_text,)
-			cursor.execute(file_sql)
-			cursor.connection.commit()
-			file_id = cursor.fetchone()[0]
-			print file_sql
-
-		if file_id == None:
-			return "Error: Cannot create file"
-
-		cur_id = None
-		if public_private == "public":
-			cur_id = 4
-		else:
-			cur_id = 5
-
-		gs_id = "None";
-		with geneweaverdb.PooledCursor() as cursor:
-			GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, sp_id, usr_id, gs_created, cur_id, file_id, gs_status, gs_count) VALUES ('%s','%s','%s','%s',%s,now(),%s,%s,'%s',%s) RETURNING gs_id;''' % (
-			gs_name, gs_description, gs_abbreviation, sp_id, user_id, cur_id, file_id, "normal", 0)
-			cursor.execute(GS_sql)
-			cursor.connection.commit()
-			gs_id = cursor.fetchone()[0]
-			print GS_sql
-			if gs_id == None:
-				return "Error: Unable to get GeneSet ID."
-
-			if pub_id:
-				pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
-				cursor.execute(pub_sql)
-				cursor.connection.commit()
-				print pub_sql
-
-
-
-		# creates geneset_value insertion queries for every unique ode_gene_id
-		Min = False
-		Max = False
-		for ode_gene_id in unique_gene_ids:
-			values = []
-			sources = []
-			for res in all_results:
-				if res['ode_gene_id'] == ode_gene_id:
-					sources.append(res['ref_id'])
-					if res['value']:
-						values.append(res['value'])
-					else:
-						values.append(1)
-
-			avg = 0
-			for val in values:
-				if Min == False or val < Min:
-					Min = val
-				if Max == False or val > Max:
-					Max = val
-				avg += val
-			avg /= len(values)
-
-			is_thresh = False
-			if avg <= 1 and avg >= -1:
-				is_thresh = True
-
-			GS_value_sql = '''INSERT INTO extsrc.geneset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) VALUES (%s,%s,'%s','{"%s"}','{%s}',%s,%s);''' % (
-			gs_id, ode_gene_id, avg, '\",\"'.join(sources), ','.join(str(v) for v in values), 0, is_thresh)
-			print GS_value_sql
-			with geneweaverdb.PooledCursor() as cursor:
-				cursor.execute(GS_value_sql)
-				cursor.connection.commit()
-
-
-		# gets threshold type and threshold for the geneset
-		gs_threshold_type = None
-		gs_threshold = None
-		if Min >= -1 and Max <= 1:
-			if Min >= 0 and Max <= 1:
-				if Min == Max and Max == 1:
-					gs_threshold_type = 3
-					gs_threshold = '0.5'
-				elif Max > 0.5:
-					gs_threshold_type = 4
-					gs_threshold = '0,1'
-				elif Max < 0.25:
-					gs_threshold_type = 1
-					gs_threshold = "\'" + str(Max) + "\'"
-			else:
-				gs_threshold_type = 4
-				gs_threshold = '0,1'
-		else:
-			gs_threshold_type = 5
-			gs_threshold = "\'" + str(Min) + "," + str(Max) + "\'"
-
-		# gets gene count for the geneset
-		gs_count = 0
-		with geneweaverdb.PooledCursor() as cursor:
-			gs_count_sql = '''SELECT count(ode_ref_id) FROM extsrc.geneset_value NATURAL JOIN extsrc.gene WHERE ode_pref AND gs_id=%s GROUP BY gs_id;''' % (
-			gs_id)
-			# gs_count_sql = '''SELECT count(*) from extsrc.geneset_value where gs_id = %s;''' % (gs_id)
-			cursor.execute(gs_count_sql)
-			gs_count = cursor.fetchone()[0]
-			print gs_count_sql
-
-		# if gs_count == None:
-		# print error
-
-		# updates the geneset with the gs_count and threshold values
-		with geneweaverdb.PooledCursor() as cursor:
-			gs_update_sql = '''UPDATE production.geneset SET gs_count=%s, gs_threshold='%s', gs_threshold_type=%s WHERE gs_id=%s;''' % (
-			gs_count, gs_threshold, gs_threshold_type, gs_id)
-			cursor.execute(gs_update_sql)
-			cursor.connection.commit()
-			print gs_update_sql
-
-		return "GeneSet Created"
-	except Exception, e:
-		return str(e)
+# @geneset_blueprint.route('/createtempgeneset', methods=['POST'])
+# def create_temp_geneset():
+# 	#Try to load the form, catching errors, etc.
+# 	try:
+# 		form = flask.request.form
+# 		gs_name = form['gs_name']
+# 		gs_abbreviation = form['gs_abbreviation']
+# 		gs_description = form['gs_description']
+# 		public_private = form['permissions']
+# 		sp_id = form['species']
+# 		gene_identifier = form['gene_identifier']
+#
+# 		user_id = flask.g.user.user_id if 'user' in flask.g else None
+# 		if user_id == None:
+# 			return {"Error": "You must be signed in to upload a GeneSet."}
+#
+# 		if sp_id == 0 or sp_id == "0":
+# 			return {"Error": "Select a species."}
+#
+# 		# get lines from the file here
+# 		file_text = ""
+# 		file_lines = ""
+# 		if 'file_text' in form.keys():
+# 			file_text = form['file_text']
+# 			file_lines = file_text.splitlines()
+# 		else:
+# 			return "File currently not implemented."
+#
+# 		candidate_sep_regexes = ['\t', ',', ' +']
+#
+# 		all_results = []
+# 		invalid_genes = []
+# 		unique_gene_ids = []
+#
+# 		for curr_toks in tokenize_lines(candidate_sep_regexes, file_lines):
+# 			curr_id = ''
+# 			curr_val = None
+#
+# 			if len(curr_toks) >= 1:
+# 				curr_id = curr_toks[0]
+# 				if len(curr_toks) >= 2:
+# 					curr_val = float(curr_toks[1])
+# 				try:
+# 					# getting gene table results
+# 					gene_results = None
+# 					with geneweaverdb.PooledCursor() as cursor:
+# 						cursor.execute(
+# 							'''
+# 							SELECT ode_gene_id, gdb_id AS source, ode_ref_id AS ref_id
+# 							FROM gene
+# 							WHERE sp_id=%s AND LOWER(ode_ref_id)=%s;
+# 							''',
+# 							(sp_id, curr_id.lower())
+# 						)
+# 						gene_results = list(geneweaverdb.dictify_cursor(cursor))
+# 						# if there are gene results, add to list of all results and put ode_gene_id into unique gene_id list
+# 						if gene_results:
+# 							gene_results[0].update({'value': curr_val})
+#
+# 							# adds to geneID list if unique
+# 							if gene_results[0]['ode_gene_id'] not in unique_gene_ids:
+# 								unique_gene_ids.append(gene_results[0]['ode_gene_id'])
+#
+# 							all_results += gene_results
+#
+# 							# getting platform results
+# 					platform_results = None
+# 					with geneweaverdb.PooledCursor() as cursor:
+# 						cursor.execute(
+# 							'''
+# 							SELECT ode_gene_id, m.pf_id AS source, prb_ref_id AS ref_id, pf_set
+# 							FROM platform m,probe p,probe2gene p2g
+# 							WHERE p.pf_id=m.pf_id AND p2g.prb_id=p.prb_id AND m.sp_id=%s AND LOWER(prb_ref_id)=%s
+# 							GROUP BY ode_gene_id, m.pf_id, prb_ref_id, m.pf_set;
+# 							''',
+# 							(sp_id, curr_id.lower())
+# 						)
+# 						platform_results = list(geneweaverdb.dictify_cursor(cursor))
+#
+# 						# if there are platform genes, add to list of all results and put ode_gene_id into unique gene_id list
+# 						if platform_results:
+# 							platform_results[0].update({'value': curr_val})
+#
+# 							# adds to geneID list if unique
+# 							if platform_results[0]['ode_gene_id'] not in unique_gene_ids:
+# 								unique_gene_ids.append(platform_results[0]['ode_gene_id'])
+#
+# 							all_results += platform_results
+#
+# 					if not (gene_results or platform_results):
+# 						invalid_genes.append(curr_id)
+# 						pass
+#
+# 				except Exception, e:
+# 					return str(e)
+# 					pass
+#
+#
+#
+# 		# if any genes in the list were not found it will tell the user which were not found
+# 		if len(invalid_genes) > 0:
+# 			return "Unable to find these Genes for specified species:\n" + ', '.join(
+# 				invalid_genes) + "\n\nEither remove them and resubmit the GeneSet or contact GeneWeaver to have them added."
+# 		if len(all_results) < 1:
+# 			return "No genes found to enter"
+#
+# 		pub_id = None
+# 		if form['pub_pubmed'] != None and form['pub_pubmed'] != "":
+# 			exists = True
+# 			with geneweaverdb.PooledCursor() as cursor:
+# 				pubcheck = None
+# 				cursor.execute('''SELECT pub_id FROM production.publication where pub_pubmed=%s;''',
+# 							   (form['pub_pubmed'],))
+# 				try:
+# 					pubcheck = cursor.fetchone()[0]
+# 				except Exception:
+# 					pubcheck = None
+#
+# 				if pubcheck:
+# 					pub_id = pubcheck
+# 				else:
+# 					exists = False
+# 			if exists == False:
+# 				cols = dict()
+# 				reg = re.compile('pub_*')
+# 				for item in form.keys():
+# 					if re.match(reg, item):
+# 						if form[item]:
+# 							cols.update({item: form[item]})
+# 				if len(cols) > 0:
+# 					values = []
+# 					keys = []
+# 					for item in cols.keys():
+# 						values.append(cols[item])
+# 						keys.append(item)
+# 					with geneweaverdb.PooledCursor() as cursor:
+# 						pub_sql = '''INSERT INTO production.publication(%s) VALUES ('%s') RETURNING pub_id;''' % (
+# 						','.join(keys), '\',\''.join(values),)
+# 						cursor.execute(pub_sql)
+# 						cursor.connection.commit()
+# 						pub_id = cursor.fetchone()[0]
+# 						print pub_sql
+#
+# 		file_id = None
+# 		with geneweaverdb.PooledCursor() as cursor:
+# 			file_sql = '''INSERT INTO production.file(file_size, file_contents) VALUES (%s, '%s') RETURNING file_id;''' % (
+# 			len(file_text), file_text,)
+# 			cursor.execute(file_sql)
+# 			cursor.connection.commit()
+# 			file_id = cursor.fetchone()[0]
+# 			print file_sql
+#
+# 		if file_id == None:
+# 			return "Error: Cannot create file"
+#
+# 		cur_id = None
+# 		if public_private == "public":
+# 			cur_id = 4
+# 		else:
+# 			cur_id = 5
+#
+# 		gs_id = "None";
+# 		with geneweaverdb.PooledCursor() as cursor:
+# 			GS_sql = '''INSERT INTO production.geneset(gs_name, gs_description, gs_abbreviation, sp_id, usr_id, gs_created, cur_id, file_id, gs_status, gs_count) VALUES ('%s','%s','%s','%s',%s,now(),%s,%s,'%s',%s) RETURNING gs_id;''' % (
+# 			gs_name, gs_description, gs_abbreviation, sp_id, user_id, cur_id, file_id, "normal", 0)
+# 			cursor.execute(GS_sql)
+# 			cursor.connection.commit()
+# 			gs_id = cursor.fetchone()[0]
+# 			print GS_sql
+# 			if gs_id == None:
+# 				return "Error: Unable to get GeneSet ID."
+#
+# 			if pub_id:
+# 				pub_sql = '''UPDATE production.geneset SET pub_id=%s WHERE gs_id=%s;''' % (pub_id, gs_id)
+# 				cursor.execute(pub_sql)
+# 				cursor.connection.commit()
+# 				print pub_sql
+#
+#
+#
+# 		# creates geneset_value insertion queries for every unique ode_gene_id
+# 		Min = False
+# 		Max = False
+# 		for ode_gene_id in unique_gene_ids:
+# 			values = []
+# 			sources = []
+# 			for res in all_results:
+# 				if res['ode_gene_id'] == ode_gene_id:
+# 					sources.append(res['ref_id'])
+# 					if res['value']:
+# 						values.append(res['value'])
+# 					else:
+# 						values.append(1)
+#
+# 			avg = 0
+# 			for val in values:
+# 				if Min == False or val < Min:
+# 					Min = val
+# 				if Max == False or val > Max:
+# 					Max = val
+# 				avg += val
+# 			avg /= len(values)
+#
+# 			is_thresh = False
+# 			if avg <= 1 and avg >= -1:
+# 				is_thresh = True
+#
+# 			GS_value_sql = '''INSERT INTO extsrc.geneset_value(gs_id, ode_gene_id, gsv_value, gsv_source_list, gsv_value_list, gsv_hits, gsv_in_threshold) VALUES (%s,%s,'%s','{"%s"}','{%s}',%s,%s);''' % (
+# 			gs_id, ode_gene_id, avg, '\",\"'.join(sources), ','.join(str(v) for v in values), 0, is_thresh)
+# 			print GS_value_sql
+# 			with geneweaverdb.PooledCursor() as cursor:
+# 				cursor.execute(GS_value_sql)
+# 				cursor.connection.commit()
+#
+#
+# 		# gets threshold type and threshold for the geneset
+# 		gs_threshold_type = None
+# 		gs_threshold = None
+# 		if Min >= -1 and Max <= 1:
+# 			if Min >= 0 and Max <= 1:
+# 				if Min == Max and Max == 1:
+# 					gs_threshold_type = 3
+# 					gs_threshold = '0.5'
+# 				elif Max > 0.5:
+# 					gs_threshold_type = 4
+# 					gs_threshold = '0,1'
+# 				elif Max < 0.25:
+# 					gs_threshold_type = 1
+# 					gs_threshold = "\'" + str(Max) + "\'"
+# 			else:
+# 				gs_threshold_type = 4
+# 				gs_threshold = '0,1'
+# 		else:
+# 			gs_threshold_type = 5
+# 			gs_threshold = "\'" + str(Min) + "," + str(Max) + "\'"
+#
+# 		# gets gene count for the geneset
+# 		gs_count = 0
+# 		with geneweaverdb.PooledCursor() as cursor:
+# 			gs_count_sql = '''SELECT count(ode_ref_id) FROM extsrc.geneset_value NATURAL JOIN extsrc.gene WHERE ode_pref AND gs_id=%s GROUP BY gs_id;''' % (
+# 			gs_id)
+# 			# gs_count_sql = '''SELECT count(*) from extsrc.geneset_value where gs_id = %s;''' % (gs_id)
+# 			cursor.execute(gs_count_sql)
+# 			gs_count = cursor.fetchone()[0]
+# 			print gs_count_sql
+#
+# 		# if gs_count == None:
+# 		# print error
+#
+# 		# updates the geneset with the gs_count and threshold values
+# 		with geneweaverdb.PooledCursor() as cursor:
+# 			gs_update_sql = '''UPDATE production.geneset SET gs_count=%s, gs_threshold='%s', gs_threshold_type=%s WHERE gs_id=%s;''' % (
+# 			gs_count, gs_threshold, gs_threshold_type, gs_id)
+# 			cursor.execute(gs_update_sql)
+# 			cursor.connection.commit()
+# 			print gs_update_sql
+#
+# 		return "GeneSet Created"
+# 	except Exception, e:
+# 		return str(e)
 
 # @geneset_blueprint.route('/creategeneset.html', methods=['POST'])
 # def create_geneset():
@@ -782,12 +725,12 @@ def create_temp_geneset():
 #         return str(e)
 
 
-@geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
-def view_geneset(geneset_id):
-	user_id = flask.g.user.user_id if 'user' in flask.g else None
-	geneset = geneweaverdb.get_geneset(geneset_id, user_id)
-
-	return flask.render_template('viewgeneset.html', geneset=geneset)
+# @geneset_blueprint.route('/viewgeneset-<int:geneset_id>.html')
+# def view_geneset(geneset_id):
+# 	user_id = flask.g.user.user_id if 'user' in flask.g else None
+# 	geneset = geneweaverdb.get_geneset(geneset_id, user_id)
+#
+# 	return flask.render_template('viewgeneset.html', geneset=geneset)
 
 
 # @geneset_blueprint.route('/qproject-<int:project_id>-genesets.json')
