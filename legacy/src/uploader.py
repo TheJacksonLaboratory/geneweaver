@@ -1,4 +1,5 @@
 # file: uploader.py
+# author: Astrid Moore
 # date: 6/20/16
 # version: 1.0
 
@@ -106,7 +107,8 @@ class Uploader:
 		"""
 		# QUERY: get a list of species types by id + name
 		query = 'SELECT sp_id, sp_name ' \
-		        'FROM odestatic.species;'
+		        'FROM odestatic.species ' \
+		        'ORDER BY sp_id;'
 
 		# run query
 		self.cur.execute(query)
