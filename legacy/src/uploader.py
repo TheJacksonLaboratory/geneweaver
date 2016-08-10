@@ -30,6 +30,12 @@ class Uploader:
 		# connect to the GeneWeaver database
 		self.launch_connection()
 
+		# reference tables
+		self.attribution_types = None
+		self.species_types = None
+		self.microarray_types = None
+		self.gene_types = None
+
 	def launch_connection(self):
 		""" Launches psql connection to GeneWeaver database.
 		"""
@@ -63,6 +69,10 @@ class Uploader:
 			'gene_types'. The name of the gene type is mapped against gene type ID. 
 			All gene type names are converted to lowercase, for ease of practice.
 		"""
+		# see if stored globally, to avoid querying more than once
+		if self.gene_types:
+			return self.gene_types
+
 		# QUERY: get a tuple of gene types by id + name
 		query = 'SELECT gdb_id, gdb_name ' \
 				'FROM odestatic.genedb;'
@@ -76,6 +86,8 @@ class Uploader:
 		for tup in results:
 			output[tup[1].lower()] = tup[0]
 
+		self.gene_types = output
+
 		return output
 
 	def get_microArrayTypes(self):
@@ -84,6 +96,10 @@ class Uploader:
 			it's respective microarray ID. All microarray types are converted to 
 			lowercase, for ease of practice. 
 		"""
+		# see if stored globally, to avoid querying more than once
+		if self.microarray_types:
+			return self.microarray_types
+
 		# QUERY: get a tuple of microarray types by id + name
 		query = 'SELECT pf_id, pf_name ' \
 				'FROM odestatic.platform;'
@@ -97,6 +113,8 @@ class Uploader:
 		for tup in results:
 			output[tup[1].lower()] = tup[0]
 
+		self.microarray_types = output
+
 		return output
 
 	def get_speciesTypes(self):
@@ -105,6 +123,10 @@ class Uploader:
 			respective species ID. All species types are converted to lowercase, 
 			for ease of practice.
 		"""
+		# see if stored globally, to avoid querying more than once
+		if self.species_types:
+			return self.species_types
+
 		# QUERY: get a list of species types by id + name
 		query = 'SELECT sp_id, sp_name ' \
 				'FROM odestatic.species ' \
@@ -119,6 +141,8 @@ class Uploader:
 		for tup in results:
 			output[tup[1].lower()] = tup[0]
 
+		self.species_types = output
+
 		return output
 
 	def get_attributionTypes(self):
@@ -126,6 +150,10 @@ class Uploader:
 			returning a dictionary that maps attribution IDs to
 			abbreviations.
 		"""
+		# see if stored globally, to avoid querying more than once
+		if self.attribution_types:
+			return self.attribution_types
+
 		# set up the query
 		query = 'SELECT at_id, at_abbrev ' \
 				'FROM attribution ' \
@@ -142,6 +170,8 @@ class Uploader:
 		output = {}
 		for result in res:
 			output[result[1].lower()] = result[0]
+
+		self.attribution_types = output
 
 		return output
 
@@ -465,6 +495,120 @@ class Uploader:
 
 		return output
 
+	def get_geneset_no_user(self, gs_id):
+		""" Gets the GeneSet regardless of whether the user
+			has permission to view it.
+		"""
+		# set up query
+		query = 'SELECT * ' \
+		        'FROM geneset ' \
+		        'LEFT OUTER JOIN publication' \
+		        'ON geneset.pub_id = publication.pub_id ' \
+		        'WHERE gs_id=%s;'
+
+		# execute query
+		self.cur.execute(query)
+
+		# retrieve the results
+		res = self.cur.fetchall()
+
+		return res
+
+	def get_geneset_info(self, gs_id, out_usr_id=False, out_file_id=False,
+	                     out_gs_name=False, out_gs_abbrev=False, out_pub_id=False,
+	                     out_res_id=False, out_cur_id=False, out_description=False,
+	                     out_species=False, out_count=False, out_thresh_type=False,
+	                     out_thresh=False, out_privacy=False, out_attribution=False,
+	                     out_uri=False, out_gs_gene_id_type=False, out_created=False,
+	                     out_admin_flag=False, out_updated=False, out_status=False,
+	                     out_gsv_qual=False):
+		""" Provided a gs_id, function returns information about a geneset, as
+			specified by the parameters prefixed with 'out'.
+
+			If only one output parameter was selected, it returns that result.
+			If more than parameter was selected, it returns the result as a dictionary.
+		"""
+		# build the query
+		query = 'SELECT '
+
+		params = []
+		if out_usr_id:
+			params.append('usr_id')
+		if out_file_id:
+			params.append('file_id')
+		if out_gs_name:
+			params.append('gs_name')
+		if out_gs_abbrev:
+			params.append('gs_abbreviation')
+		if out_pub_id:
+			params.append('pub_id')
+		if out_res_id:
+			params.append('res_id')
+		if out_cur_id:
+			params.append('cur_id')
+		if out_description:
+			params.append('gs_description')
+		if out_species:
+			params.append('sp_id')
+		if out_count:
+			params.append('gs_count')
+		if out_thresh_type:
+			params.append('gs_threshold_type')
+		if out_thresh:
+			params.append('gs_threshold')
+		if out_privacy:
+			params.append('gs_groups')
+		if out_attribution:
+			params.append('gs_attribution')
+		if out_uri:
+			params.append('gs_uri')
+		if out_gs_gene_id_type:
+			params.append('gs_gene_id_type')
+		if out_created:
+			params.append('gs_created')
+		if out_admin_flag:
+			params.append('admin_flag')
+		if out_updated:
+			params.append('gs_updated')
+		if out_status:
+			params.append('gs_status')
+		if out_gsv_qual:
+			params.append('gsv_qual')
+
+		# add the chosen parameters to the query
+		merged_params = ', '.join(params)
+		query += merged_params
+
+		# finish building the query
+		query += ' FROM geneset ' \
+		         'WHERE gs_id=%s'
+
+		# execute the query
+		self.cur.execute(query, [gs_id])
+
+		# retrieve the results
+		res = self.cur.fetchall()
+		res = list(res[0])
+
+		numParams = len(params)
+		# return None if it doesnt exist
+		if not len(res):
+			return None
+
+		# if there was only one param queried, just return it
+		elif numParams == 1:
+			return res[0]
+
+		# otherwise, return it as a dict
+		elif numParams > 1:
+			if len(res) == numParams:
+				output = dict([(params[y], res[y]) for y in range(numParams)])
+				return output
+			else:
+				error = 'Error: GeneSet query unsuccessful, as not all the ' \
+				        'requested metadata was found.'
+				self.err.set_errors(critical=error)
+
 	def search_pubmed(self, pmid):
 		publication = {}
 
@@ -624,49 +768,6 @@ class Uploader:
 		self.cur.execute(query, vals)
 		self.commit()
 
-
-class User:
-	def __init__(self, usr_dict):
-		self.user_id = usr_dict['usr_id']
-		self.first_name = usr_dict['usr_first_name']
-		self.last_name = usr_dict['usr_last_name']
-		self.email = usr_dict['usr_email']
-		self.prefs = usr_dict['usr_prefs']
-		self.api_key = usr_dict['apikey']
-
-		usr_admin = usr_dict['usr_admin']
-		self.is_curator = usr_admin == 1
-		self.is_admin = usr_admin == 2 or usr_admin == 3
-		self.last_seen = usr_dict['usr_last_seen']
-		self.creation_date = usr_dict['usr_created']
-		self.ip_addr = usr_dict['ip_addr']
-
-		self.__projects = None
-		self.__shared_projects = None
-		self.__get_groups_by_user = None
-
-	@property
-	def projects(self):
-		if self.__projects is None:
-			self.__projects = get_all_projects(self.user_id)
-
-		## Case insensitive sorting otherwise project names with captial
-		## letters come before those with lowercase.
-		self.__projects = sorted(self.__projects, key=lambda p: p.name.lower())
-
-		return self.__projects
-
-	@property
-	def shared_projects(self):
-		if self.__shared_projects is None:
-			self.__shared_projects = get_shared_projects(self.user_id)
-		return self.__shared_projects
-
-	@property
-	def get_groups_by_user(self):
-		if self.__get_groups_by_user is None:
-			self.__get_groups_by_user = get_groups_owned_by_user(self.user_id)
-		return self.__get_groups_by_user
 
 if __name__ == '__main__':
 	u = Uploader()

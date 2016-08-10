@@ -175,12 +175,11 @@ def applyUserRestrictions(client, select=''):
     else:
         user_id = 0
 
-    usr_info = uploader.get_user_info
+    usr_info = uploader.get_user_info(user_id, out_admin=True)
+    is_admin = usr_info == 2 or usr_info == 3
+    user_grps = uploader.get_user_groups(user_id)
 
-    user_info = geneweaverdb.get_user(user_id)
-    user_grps = geneweaverdb.get_user_groups(user_id)
-
-    ## Not everyone has a user group
+    # not everyone has a user group
     if not user_grps:
         user_grps = [0]
 
@@ -190,7 +189,7 @@ def applyUserRestrictions(client, select=''):
         access = '*'
 
     # Admins don't get filtered results
-    if not user_info.is_admin:
+    if not is_admin:
         access += ', (usr_id=' + str(user_id)
         access += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
         access += ')) AS isReadable'
@@ -589,13 +588,13 @@ def keyword_paginated_search(terms, pagination_page,
     The key name prefix is used so that names are unique for use in html DOM, ie sp0, sp1 ... for species.
     '''
     # Get the species list
-    speciesListFromDB = geneweaverdb.get_all_species()
+    speciesListFromDB = uploader.get_speciesTypes()
     speciesList = {}
     # Associate a key name with a species name
     for sp_id, sp_name in speciesListFromDB.items():
         speciesList['sp' + str(sp_id)] = sp_name
     # Get the attributions list
-    attributionsListFromDB = geneweaverdb.get_all_attributions()
+    attributionsListFromDB = uploader.get_attributionTypes()
     attributionsList = {}
     # Associate a key name with a attribution name
     for at_id, at_name in attributionsListFromDB.items():
