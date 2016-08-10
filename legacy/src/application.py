@@ -27,6 +27,7 @@ import math
 import batch
 import cairosvg
 from cStringIO import StringIO
+from werkzeug.routing import BaseConverter
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -86,6 +87,46 @@ admin.add_view(
     adminviews.Add(name='News Item', endpoint='newNewsItem', category='Add'))
 
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
+
+class ListConverter(BaseConverter):
+    """
+    A class for handling a custom URL converter. Allows lists to be used as
+    routing variables. Currently only used for viewing geneset overlap for >2
+    genesets. 
+    This should probably be put in a separate file.
+    """
+
+    def to_python(self, value):
+        """
+        Converts the value to a python list object. The separating character is
+        a '+'.
+
+        arguments
+            value: a string serving as part of a URL variable
+
+        returns
+            a list of strings
+        """
+        
+        return value.split('+')
+
+    def to_url(self, values):
+        """
+        Converts a list of values to a string. The exact opposite of the
+        to_python function. 
+
+        arguments
+            values: a list of values being converted 
+
+        returns
+            a string
+        """
+
+        return '+'.join(BaseConverter.to_url(value) for value in values)
+
+
+## Add a custom URL converter to handle list variables
+app.url_map.converters['list'] = ListConverter
 
 # *************************************
 
@@ -1058,8 +1099,9 @@ def render_viewgeneset(gs_id):
                                  species=species)
 
 
+
 # Function that calls the overlap page
-@app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET', 'POST'])
+@app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET'])
 def render_viewgenesetoverlap(gs_id, gs_id1):
     # get values for sorting result columns
     # i'm saving these to a session variable
@@ -2649,34 +2691,10 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 # END API BLOCK
 # ********************************************
 
-#@app.errorhandler(404)
-#def page_not_found(e):
-#    return error.page_not_found(e)
-#
-#@app.errorhandler(Exception)
-#def internal_server_error(e):
-#
-#    ## This grabs the exception info and traceback for the last exception
-#    ## that occurred. If we give the exception/traceback passed to this
-#    ## function (argument e), the stack trace will be incorrect when we
-#    ## later print it.
-#    exc = exc_info()
-#
-#    return error.internal_server_error(exc)
-
 if __name__ == '__main__':
 
     # config.loadConfig()
     # print config.CONFIG.sections()
-
-    # TODO this key must be changed to something secret (ie. not committed to the repo).
-    # Comment out the print message when this is done
-    # print '==================================================='
-    # print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
-    # print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
-    # print '"How to generate good secret keys" AT			  '
-    # print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
-    # print '==================================================='
 
     app.secret_key = config.get('application', 'secret')
     app.debug = True
@@ -2695,3 +2713,4 @@ if __name__ == '__main__':
 
     else:
         app.run()
+
