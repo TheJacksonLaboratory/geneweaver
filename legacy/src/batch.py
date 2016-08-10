@@ -4,9 +4,11 @@ from error_tracker import ErrorTracker
 
 
 class Batch:
-	def __init__(self, usr_id=0, cur_id='1', file_path=None, file_list=None):
+	def __init__(self, usr_id=0, cur_id='1', file_path=None, file_list=None,
+	             remote=False):
 
 		# input handling
+		self.remote = remote
 		self.file_path = file_path  # 0 [input_id]
 		self.file_list = file_list  # 1 [input_id]
 		self.user_id = usr_id
@@ -46,11 +48,7 @@ class Batch:
 		# interpret input types
 		self.assess_inputs()
 
-		# identify batches of genesets
-		self.create_batches()  # populates self.genesets
 
-		# initiate geneset upload process
-		self.upload_genesets()
 
 	def upload_genesets(self):
 
@@ -240,6 +238,10 @@ class Batch:
 		""" Checks what form of data we are dealing with,
 			and decides what to do next.
 		"""
+		# if being used as a background obj, don't do anything
+		if self.remote:
+			return
+
 		# interpret the input data
 		if self.file_list:
 			self.read_file(1)
@@ -249,6 +251,12 @@ class Batch:
 		# determine the layout of the file
 		self.numBatch, self.batch_locs = self.calc_batch()
 		self.numGS, self.gs_locs = self.calc_geneset()
+
+		# identify batches of genesets
+		self.create_batches()  # populates self.genesets
+
+		# initiate geneset upload process
+		self.upload_genesets()
 
 	def read_file(self, input_id):
 
@@ -637,7 +645,9 @@ class Batch:
 
 
 class GeneSet:
-	def __init__(self, gs_dict, errors=None, uploader=None):
+	def __init__(self, gs_dict=None, errors=None, uploader=None, gs_name=None,
+	             abbrev=None, description=None, privacy=None, sp_id=None,
+	             gs_gene_id_type=None, user_id=''):
 		# print "initializing GeneSet object..."
 		# handle input
 		self.input_dict = gs_dict
@@ -651,7 +661,7 @@ class GeneSet:
 		self.threshold = ''  # gs_threshold
 		self.species = ''  # sp_id
 
-		self.user_id = ''
+		self.user_id = user_id
 		self.cur_id = ''
 		self.microarray = None
 
@@ -684,10 +694,6 @@ class GeneSet:
 
 	def upload(self):
 		# print "initiating upload sequence..."
-
-		print self.name
-
-
 		self.file_id = self.uploader.insert_file(count=self.count,
 		                                         gs_name=self.name,
 		                                         gs_vals=self.geneset_values)
@@ -727,24 +733,29 @@ class GeneSet:
 		self.uploader.modify_geneset_count(gs_id=self.gs_id, count=self.count)
 
 	def handle_input(self):
-		# we know that these should always work, as checked in Batch
-		try:
+		if
+
+		if self.input_dict:
 			self.gs_gene_id_type = self.input_dict['gs_gene_id_type']
 			self.group = self.input_dict['privacy']
 			self.score_type = self.input_dict['score_type']
 			self.threshold = self.input_dict['thresh']
 			self.species = self.input_dict['species']
 			self.microarray = self.input_dict['microarray?']
-		except ValueError:
-			print "\nREALLY SHOULDN'T HAVE BROKEN HERE!! [GeneSet] \n"
-			exit()
 
-		if 'publication' in self.input_dict.keys():
-			self.publication = self.input_dict['publication']
-			self.pubmed = self.publication['pub_pubmed']
+			if 'publication' in self.input_dict.keys():
+				self.publication = self.input_dict['publication']
+				self.pubmed = self.publication['pub_pubmed']
 
+			else:
+				self.publication['pub_id'] = None
 		else:
-			self.publication['pub_id'] = None
+			print "\nREALLY SHOULDN'T HAVE BROKEN HERE!! [batch.GeneSet] " \
+			      "Not enough input for the GeneSet to upload to " \
+			      "GeneWeaver."
+			exit()  # TESTING
+
+
 
 	# -----------------------MUTATORS--------------------------------------------#
 	def set_genesetValues(self, gsv_values):
@@ -760,9 +771,15 @@ class GeneSet:
 		# print 'setting abbreviated GeneSet name...'
 		self.abbrev_name = abbrev
 
+	def set_permissions(self, group_type='private'):
+		self.group = group_type
+
 	def set_name(self, gs_name):
 		# print 'setting GeneSet name...'
 		self.name = gs_name
+
+	def set_species(self, sp_id):
+		self.species = sp_id
 
 	def set_description(self, desc):
 		# print 'setting GeneSet description...'
