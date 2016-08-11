@@ -848,6 +848,7 @@ class Uploader:
 			authors += auth['name'] + ', '
 		publication['pub_authors'] = authors[:-2]
 
+		# add the abstract if it exists
 		if 'Has Abstract' in temp[publication['pub_pubmed']]['attributes']:
 			res2 = requests.get(url_abs).content.split('\n\n')[-3]
 			publication['pub_abstract'] = res2
@@ -855,6 +856,12 @@ class Uploader:
 			err = 'Warning: The PubMed info retrieved from NCBI was incomplete. No ' \
 				  'abstract data will be attributed to this GeneSet.'
 			self.err.set_errors(noncritical=err)
+
+		# add the year
+		print temp[publication['pub_pubmed']]['history']
+		if 'pubdate' in temp[publication['pub_pubmed']]:
+			publication['pub_date'] = temp[publication['pub_pubmed']]['pubdate']
+		# elif # NOTE: might need to try grab the date in a couple of other ways
 
 		return publication
 
@@ -1007,6 +1014,4 @@ class Uploader:
 
 if __name__ == '__main__':
 	u = Uploader()
-
-
-	print info
+	print u.search_pubmed(24942484)
