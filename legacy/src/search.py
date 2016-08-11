@@ -1,7 +1,7 @@
 from collections import defaultdict
 import flask
 import geneweaverdb
-#from uploader import Uploader, User
+from uploader import Uploader
 import sphinxapi
 import config
 
@@ -17,7 +17,7 @@ max_matches = 1000
 max_filter_matches = 5000
 
 # uploader obj to manage database connection
-#uploader = Uploader()
+uploader = Uploader()
 
 def search_sphinxql_diagnostic(sphinxQLQuery):
     client = sphinxapi.SphinxClient()
