@@ -40,6 +40,7 @@ def getOtherUsersAccessForGroups():
     visibleUsers = []
     if flask.session.get('user_id'):
         groupIds = uploader.get_user_groups(flask.session.get('user_id'))
+        print groupIds
         # Convert the group IDS to user ID's
         visibleUsers = set()
         for i in groupIds:

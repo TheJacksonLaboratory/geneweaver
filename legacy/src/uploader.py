@@ -12,7 +12,6 @@ from error_tracker import ErrorTracker
 
 class Uploader:
 	def __init__(self, errors=None, user_id=0):  # EDIT: remove usr_id from params - inherit
-
 		# query fields
 		self.connection = None
 		self.cur = None
