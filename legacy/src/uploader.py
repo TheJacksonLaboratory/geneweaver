@@ -416,9 +416,12 @@ class Uploader:
 		if out_apikey:
 			params.append('apikey')
 
-		# add the chosen parameters to the query
-		merged_params = ', '.join(params)
-		query += merged_params
+		if not len(params):
+			# add the chosen parameters to the query
+			merged_params = ', '.join(params)
+			query += merged_params
+		else:
+			query += '*'
 
 		# finish building the query
 		query += ' FROM usr ' \
@@ -434,6 +437,9 @@ class Uploader:
 		numParams = len(params)
 		# return None if it doesnt exist
 		if not len(res):
+			error = 'Error: User query unsuccessful, as none of the ' \
+			        'requested metadata was found.'
+			self.err.set_errors(critical=error)
 			return None
 
 		# if there was only one param queried, just return it
@@ -442,14 +448,8 @@ class Uploader:
 
 		# otherwise, return it as a dict
 		elif numParams > 1:
-			output = {}
-			if len(res) == numParams:
-				output = dict([(params[y], res[y]) for y in range(numParams)])
-				return output
-			else:
-				error = 'Error: User query unsuccessful, as not all the ' \
-				        'requested metadata was found.'
-				self.err.set_errors(critical=error)
+			output = dict([(params[y], res[y]) for y in range(numParams)])
+			return output
 
 	# NOTE: think of ways to consolidate these sorts of functions
 	def get_gene_and_species_info_by_user(self, user_id, out_gene_id=False,
@@ -534,9 +534,6 @@ class Uploader:
 			return output[params[0]]  # returns a list
 		else:
 			return output  # otherwise, return the full dictionary
-
-
-
 
 	def get_user_groups(self, usr_id):
 		""" Gets a list of group ids for given users.
