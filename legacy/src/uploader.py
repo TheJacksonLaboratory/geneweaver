@@ -452,6 +452,92 @@ class Uploader:
 				        'requested metadata was found.'
 				self.err.set_errors(critical=error)
 
+	# NOTE: think of ways to consolidate these sorts of functions
+	def get_gene_and_species_info_by_user(self, user_id, out_gene_id=False,
+	                                      out_ref_id=False, out_gdb_id=False,
+	                                      out_gene_species=False, out_pref=False,
+	                                      out_gene_date=False, out_sp_name=False,
+	                                      out_sp_taxid=False, out_ref_gdb_id=False,
+	                                      out_sp_date=False, out_sp_biomart_info=False,
+	                                      out_sp_source_data=False, out_sp_id=False):
+		""" Retrieves all gene and species information associated with the
+			user ID provided.
+		"""
+		# build query
+		query = 'SELECT '
+
+		params = []
+		if out_gene_id:
+			params.append('gene.ode_gene_id')
+		if out_ref_id:
+			params.append('gene.ode_ref_id')
+		if out_gdb_id:
+			params.append('gene.gdb_id')
+		if out_gene_species:
+			params.append('gene.sp_id')
+		if out_pref:
+			params.append('gene.ode_pref')
+		if out_gene_date:
+			params.append('gene.ode_date')
+		if out_sp_name:
+			params.append('species.sp_name')
+		if out_sp_id:
+			params.append('species.sp_id')
+		if out_sp_taxid:
+			params.append('species.sp_taxid')
+		if out_ref_gdb_id:
+			params.append('species.sp_ref_gdb_id')
+		if out_sp_date:
+			params.append('species.sp_date')
+		if out_sp_biomart_info:
+			params.append('species.sp_biomart_info')
+		if out_sp_source_data:
+			params.append('species.sp_source_data')
+
+		if not len(params):
+			query += 'gene.*, species.* '
+		else:
+			# add the chosen parameters to the query
+			merged_params = ', '.join(params)
+			query += merged_params
+
+		# complete the query
+		query += 'FROM (extsrc.gene INNER JOIN odestatic.species ' \
+		         'USING (sp_id)) ' \
+		         'INNER JOIN usr2gene USING (ode_gene_id) ' \
+		         'WHERE gene.ode_pref and usr2gene.usr_id=%s;' \
+
+		# execute query
+		self.cur.execute(query, [user_id])
+
+		# fetch the result
+		res = self.cur.fetchall()
+		res = [list(item) for item in res]
+
+		# pull headers from results
+		headers = self.cur.description
+
+		# prepare output dictionary (opt.)
+		refs = dict([(i, header[0]) for i, header in enumerate(headers)])
+		output = dict([(header[0], []) for header in headers])
+		for r in range(len(res)):
+			item = res[r]
+			for i in range(len(item)):
+				output[refs[i]].append(item[i])
+
+		# if there are no results, return None
+		if not len(res):
+			error = 'Error: Unable to get gene and species info using user_id. ' \
+			        '(Uploader.get_gene_and_species_info_by_user)'
+			self.err.set_errors(critical=error)
+			return None
+		elif len(params) == 1:
+			return output[params[0]]  # returns a list
+		else:
+			return output  # otherwise, return the full dictionary
+
+
+
 
 	def get_user_groups(self, usr_id):
 		""" Gets a list of group ids for given users.
@@ -608,6 +694,81 @@ class Uploader:
 				error = 'Error: GeneSet query unsuccessful, as not all the ' \
 				        'requested metadata was found.'
 				self.err.set_errors(critical=error)
+
+	def get_tool_info(self, tool_classname, only_visible=False, out_name=False,
+	                  out_description=False, out_html=False, out_default=False,
+	                  out_options=False, out_seltype=False):
+		""" Provided a tool classname, function returns information about a geneset, as
+			specified by the parameters prefixed with 'out'.
+
+			If 'only_visible' is True, function only retrieves the params that
+			were marked visible.
+
+			If only one output parameter was selected, it returns that result.
+			If more than parameter was selected, it returns the result as a dictionary.
+		"""
+		# build the query
+		query = 'SELECT '
+
+		params = []
+		if out_name:
+			params.append('tp_name')
+		if out_description:
+			params.append('tp_description')
+		if out_html:
+			params.append('tp_html')
+		if out_default:
+			params.append('tp_default')
+		if out_options:
+			params.append('tp_options')
+		if out_seltype:
+			params.append('tp_seltype')
+
+		# add the chosen parameters to the query
+		if params:
+			merged_params = ', '.join(params)
+			query += merged_params
+		else:
+			query += '*'
+
+		# finish building the query
+		query += ' FROM tool_param' \
+		         ' WHERE tool_classname=%s '
+
+		# if only_visible, only retrieve the params marked visible
+		if only_visible:
+			query += 'AND tp_visible ' \
+			         'ORDER BY tp_name;'
+		else:
+			query += 'ORDER BY tp_name;'
+
+		# execute the query
+		self.cur.execute(query, [tool_classname])
+
+		# retrieve the results
+		res = self.cur.fetchall()
+
+		# convert list of tuples to a list of lists
+		res = [list(res[x]) for x in range(len(res))]
+
+		numParams = len(params)
+		print numParams
+		# return None if it doesnt exist
+		if not len(res):
+			warning = 'Warning: Tool Info query was unsuccessful, ' \
+			          'as no information was found for the given user ID.' \
+			          '(Uploader.get_tool_info)'
+			self.err.set_errors(noncritical=warning)
+			return None
+
+		# if there was only one param queried, just return it
+		elif numParams == 1:
+			output = [item[0] for item in res]
+			return output
+
+		# otherwise, return results as list of lists
+		elif len(res[0]) > 1:
+			return res
 
 	def search_pubmed(self, pmid):
 		publication = {}
@@ -771,4 +932,6 @@ class Uploader:
 
 if __name__ == '__main__':
 	u = Uploader()
-	print u.get_user_info(15, out_first_name=True, out_last_name=True)
+	info = u.get_tool_info('PhenomeMap', out_name=True)
+
+	print info
