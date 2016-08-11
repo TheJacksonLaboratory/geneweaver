@@ -48,8 +48,6 @@ class Batch:
 		# interpret input types
 		self.assess_inputs()
 
-
-
 	def upload_genesets(self):
 
 		for idx, sets in self.genesets.iteritems():
@@ -74,12 +72,7 @@ class Batch:
 
 			for gs_name, gs_list in sets.iteritems():
 				for geneset in gs_list:
-					print geneset.geneset_values
 					geneset.upload()
-
-			# call for a merge of errors (maybe use one of
-			#   of the loops above?)
-
 
 	def handle_platform(self, gs_dict):
 		""" Handles microarray condition.
@@ -289,8 +282,6 @@ class Batch:
 			      'and try again.'
 			self.errors.set_errors(critical=err)
 
-		print self.file_toString
-
 		# separate batches
 		coords_batch = []
 		for x in range(self.numBatch):
@@ -418,7 +409,6 @@ class Batch:
 					self.genesets[idx][gs.abbrev_name] = [gs]
 				else:
 					self.genesets[idx][gs.abbrev_name].append(gs)
-
 
 	def get_meta(self):
 		# retrieves meta data header options
@@ -636,12 +626,18 @@ class Batch:
 
 		return crit, noncrit
 
-	def report_gs_names(self):
-		gs_names = []
-		for idx, genesets in self.genesets.iteritems():
-			gs_names += genesets.keys()
+	def report_gs_ids(self):
+		gs_ids = []
 
-		return gs_names
+		# consolidate all of the geneset objs
+		tmp = []
+		for idx, genesets in self.genesets.iteritems():
+			tmp += genesets.values()
+
+		for t in tmp:
+			gs_ids.append(t[0].gs_id)
+
+		return gs_ids
 
 
 class GeneSet:
