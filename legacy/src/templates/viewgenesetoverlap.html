@@ -183,7 +183,7 @@
         <h3 class="panel-title">Gene List</h3>
     </div>
 <br></br>
-<div class="xfloatGeneList">
+<div class="xfloatGeneList" align="center">
 
 <style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
 <!-- Key for Venn Diagram displayed -->
@@ -197,7 +197,7 @@
 		of genesets being displayed).
 	#}
 	<tr>
-		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom">
+		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom" style="width:20%;">
 			<p style="font-size: 1em; font-weight: normal;">
 				<div class="gene-circle gene-exact" style="display:inline-block; height:20px; width:20px;">
 				</div> = Exact same gene in all sets<br />
@@ -210,7 +210,7 @@
 		{#
 		<th width="20%" rowspan="2" valign="bottom">
 		#}
-		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom">
+		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom" style="width:20%;">
 			Links
     	</th>
 
