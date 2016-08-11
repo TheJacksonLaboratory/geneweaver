@@ -424,7 +424,7 @@ class Uploader:
 			query += '*'
 
 		# finish building the query
-		query += ' FROM usr ' \
+		query += ' FROM production.usr ' \
 		         'WHERE usr_id=%s'
 
 		# execute the query
