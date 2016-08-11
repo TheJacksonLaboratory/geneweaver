@@ -253,7 +253,11 @@
 
 	{% for intersect in intersects %}
 		<tr>
-			<td> {{ intersect.gene }} </td>
+			<td> 
+				<p style="font-size:13px;">
+					{{ intersect.gene }} 
+				</p>
+			</td>
 			<td class="gsIconBox" style="text-align: left;">
 				{% set gene=intersect.gene %}
 				{% include 'linkouts.html' %}
