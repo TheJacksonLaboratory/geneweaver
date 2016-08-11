@@ -12,10 +12,6 @@ import config
 
 app = flask.Flask(__name__)
 
-
-# RESULTS_PATH = '/var/www/html/dev-geneweaver/results/'
-
-
 class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
     """Extend ThreadedConnectionPool to initialize the search_path"""
 
@@ -33,14 +29,10 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
         return conn
 
 
-# the global threaded connection pool that should be used for all DB connections in this application
+# the global threaded connection pool that should be used for all DB 
+# connections in this application
 pool = GeneWeaverThreadedConnectionPool(
         5, 20,
-        # database='geneweaver',
-        # user='odeadmin',
-        # password='odeadmin',
-        # host='crick.ecs.baylor.edu',
-        # port=5432,
         database=config.get('db', 'database'),
         user=config.get('db', 'user'),
         password=config.get('db', 'password'),
