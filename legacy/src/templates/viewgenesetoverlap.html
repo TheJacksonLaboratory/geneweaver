@@ -25,8 +25,8 @@
 
 		border: 1px solid black;
 		border-radius: 50%;
-		height: 25px;
-		width: 25px;
+		height: 20px;
+		width: 20px;
 	}
 
 	.gene-exact {
@@ -42,6 +42,16 @@
 	.gene-single {
 
 		background-color: rgb(250, 235, 3);
+	}
+
+	.gs-link {
+
+		color: #336600;
+	}
+
+	.gs-link:hover {
+
+		color: #007f00;
 	}
 
 </style>
@@ -204,7 +214,6 @@
 			Links
     	</th>
 
-		{% set j = 0 %}
 		{% for gs in gs_map.values() %}
 
 			{# 
@@ -232,7 +241,7 @@
     		{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %}
 			text-align:center;">
 
-    		<a href="/viewgenesetdetails/{{gs.geneset_id}}">
+    		<a class="gs-link" href="/viewgenesetdetails/{{gs.geneset_id}}">
 				{{gs.abbreviation}}
 			</a>
 		</th>
@@ -271,7 +280,9 @@
 						{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %} 
 						{% if loop.index != loop.length %} text-align:center; {% endif %}"
 						valign="top">  
+						<div style="height:20px; width:20px; display:inline-block;">
 						<p> - </p>
+						</div>
 					</td>
 				{% endif %}
 
