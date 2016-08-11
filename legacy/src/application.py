@@ -1410,7 +1410,6 @@ def render_sim_genesets(gs_id, grp_by):
 @app.route('/getPubmed', methods=['GET', 'POST'])
 def get_pubmed_data():
     pubmedValues = []
-    http = urllib3.PoolManager()
     if flask.request.method == 'GET':
         args = flask.request.args
         if 'pmid' in args:
@@ -1422,10 +1421,8 @@ def get_pubmed_data():
                                  pub['pub_volume'], pub['pub_pages'], pub['pub_date'],
                                  pub['pub_abstract']))
 
-        else:
-            response = 'false'
-    else:
-        response = 'false'
+            print pubmedValues
+
     return json.dumps(pubmedValues)
 
 
