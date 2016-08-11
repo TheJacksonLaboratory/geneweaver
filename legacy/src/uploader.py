@@ -661,9 +661,12 @@ class Uploader:
 		if out_gsv_qual:
 			params.append('gsv_qual')
 
-		# add the chosen parameters to the query
-		merged_params = ', '.join(params)
-		query += merged_params
+		if len(params) >= 1:
+			# add the chosen parameters to the query
+			merged_params = ', '.join(params)
+			query += merged_params
+		else:
+			query += '*'
 
 		# finish building the query
 		query += ' FROM geneset ' \
@@ -694,6 +697,59 @@ class Uploader:
 				error = 'Error: GeneSet query unsuccessful, as not all the ' \
 				        'requested metadata was found.'
 				self.err.set_errors(critical=error)
+
+	def get_tool(self, tool_classname, out_name=False, out_description=False,
+	             out_requirements=False, out_active=False, out_sort=False):
+		# build query
+		query = 'SELECT '
+
+		params = []
+		if out_name:
+			params.append('tool_name')
+		if out_description:
+			params.append('tool_description')
+		if out_requirements:
+			params.append('tool_requirements')
+		if out_active:
+			params.append('tool_active')
+		if out_sort:
+			params.append('tool_sort')
+		numParams = len(params)
+
+		if len(params) >= 1:
+			merged_params = ', '.join(params)
+			query += merged_params
+		else:
+			query += '*'
+
+		# finish building the query
+		query += ' FROM tool' \
+		         ' WHERE tool_classname=%s;'
+
+		# execute the query
+		self.cur.execute(query, [tool_classname])
+
+		# fetch the results
+		res = self.cur.fetchall()
+
+		# no results returns None
+		if not len(res):
+			warning = 'Warning: Tool Info query was unsuccessful, ' \
+			          'as no information was found for the given user ID.' \
+			          '(Uploader.get_tool_info)'
+			self.err.set_errors(noncritical=warning)
+			return None
+
+		# only one param, return as a list
+		elif numParams == 1:
+			output = [item[0] for item in res]
+			return output
+
+		# otherwise, return as a list of lists
+		else:
+			# convert list of tuples to a list of lists
+			res = [list(res[x]) for x in range(len(res))]
+			return res
 
 	def get_tool_info(self, tool_classname, only_visible=False, out_name=False,
 	                  out_description=False, out_html=False, out_default=False,
@@ -901,6 +957,29 @@ class Uploader:
 		# execute the query
 		self.cur.execute(query, search_vals)
 		self.commit()
+
+	def insert_result(self, usr_id, res_runhash, gs_ids, res_data,
+	                  res_tool, res_description, res_status):
+		# prep param for query
+		gs_ids = ', '.join(gs_ids)
+
+		# set up query
+		query = 'INSERT INTO result (usr_id, res_runhash, gs_ids, ' \
+		        'res_data, res_tool, res_description, res_status, ' \
+		        'res_started) ' \
+		        'VALUES (%s, %s, %s, %s, %s, %s, %s, NOW()) ' \
+		        'RETURNING res_id;'
+
+		# execute query
+		self.cur.execute(query, [usr_id, res_runhash, gs_ids, res_data,
+		                         res_tool, res_description, res_status])
+		self.commit()
+
+		# retrieve the result - res_id
+		res = self.cur.fetchone()[0]
+
+		# return the primary ID
+		return res
 
 	def modify_gsv_lists(self, gsv_source_list, gsv_value_list, gs_id):
 		# print 'updating gsv lists...'

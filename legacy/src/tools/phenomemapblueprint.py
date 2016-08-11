@@ -102,16 +102,11 @@ def run_tool():
     params['EmphasisGenes'] = emphgeneids
 
     task_id = str(uuid.uuid4())
-    tools = uploader.get_tool_info(TOOL_CLASSNAME, out_name=True)
-    desc = '{} on {} GeneSets'.format(tools, len(selected_geneset_ids))
-    gwdb.insert_result(
-        user_id,
-        task_id,
-        selected_geneset_ids,
-        json.dumps(params),
-        tools,
-        desc,
-        desc)
+    tool_name = uploader.get_tool_info(TOOL_CLASSNAME, out_name=True)
+    desc = '{} on {} GeneSets'.format(tool_name, len(selected_geneset_ids))
+
+    uploader.insert_result(user_id, task_id, selected_geneset_ids,
+                           json.dumps(params), tool_name, desc, desc)
 
     async_result = tc.celery_app.send_task(
         tc.fully_qualified_name(TOOL_CLASSNAME),
@@ -144,61 +139,64 @@ def run_tool_api(apikey, homology, minGenes, permutationTimeLimit, maxInNode, pe
     homology_str = 'Homology'
     params = {homology_str: None}
 
-    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        if tool_param.name.endswith('_' + 'MinGenes'):
-            params[tool_param.name] = minGenes
+    # pull the names of the tool param names
+    tool_names = uploader.get_tool_info(TOOL_CLASSNAME, only_visible=True, out_name=True)
+
+    for tool_name in tool_names:
+        if tool_name.endswith('_' + 'MinGenes'):
+            params[tool_name] = minGenes
             if minGenes not in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '15', '20', '25']:
-                params[tool_param.name] = '1'
-        if tool_param.name.endswith('_' + 'PermutationTimeLimit'):
-            params[tool_param.name] = permutationTimeLimit
+                params[tool_name] = '1'
+        if tool_name.endswith('_' + 'PermutationTimeLimit'):
+            params[tool_name] = permutationTimeLimit
             if permutationTimeLimit not in ['5', '10', '15', '20']:
-                params[tool_param.name] = '5'
-        if tool_param.name.endswith('_' + 'MaxInNode'):
-            params[tool_param.name] = maxInNode
+                params[tool_name] = '5'
+        if tool_name.endswith('_' + 'MaxInNode'):
+            params[tool_name] = maxInNode
             if maxInNode not in ['4', '8', '12', '16', '20', '24', '28', '32']:
-                params[tool_param.name] = '4'
-        if tool_param.name.endswith('_' + 'Permutations'):
-            params[tool_param.name] = permutations
+                params[tool_name] = '4'
+        if tool_name.endswith('_' + 'Permutations'):
+            params[tool_name] = permutations
             if permutations not in ['100000', '50000', '25000', '5000', '1000', '500', '100', '0']:
-                params[tool_param.name] = '0'
-        if tool_param.name.endswith('_' + 'DisableBootstrap'):
-            params[tool_param.name] = disableBootstrap
+                params[tool_name] = '0'
+        if tool_name.endswith('_' + 'DisableBootstrap'):
+            params[tool_name] = disableBootstrap
             if disableBootstrap not in ['False', 'True']:
-                params[tool_param.name] = 'False'
-        if tool_param.name.endswith('_' + 'MinOverlap'):
-            params[tool_param.name] = minOverlap
+                params[tool_name] = 'False'
+        if tool_name.endswith('_' + 'MinOverlap'):
+            params[tool_name] = minOverlap
             if minOverlap not in ['0%', '5%', '10%', '15%', '20%', '25%', '50%', '75%']:
-                params[tool_param.name] = '0%'
-        if tool_param.name.endswith('_' + 'NodeCutoff'):
-            params[tool_param.name] = nodeCutoff
+                params[tool_name] = '0%'
+        if tool_name.endswith('_' + 'NodeCutoff'):
+            params[tool_name] = nodeCutoff
             if nodeCutoff not in ['Auto', '1.0', '0.1', '0.01', '0.001', '0.0001', '0.00001']:
-                params[tool_param.name] = 'Auto'
-        if tool_param.name.endswith('_' + 'GeneIsNode'):
-            params[tool_param.name] = geneIsNode
+                params[tool_name] = 'Auto'
+        if tool_name.endswith('_' + 'GeneIsNode'):
+            params[tool_name] = geneIsNode
             if geneIsNode not in ['All', 'Exclusive']:
-                params[tool_param.name] = 'All'
-        if tool_param.name.endswith('_' + 'UseFDR'):
-            params[tool_param.name] = useFDR
+                params[tool_name] = 'All'
+        if tool_name.endswith('_' + 'UseFDR'):
+            params[tool_name] = useFDR
             if useFDR not in ['False', 'True']:
-                params[tool_param.name] = 'False'
-        if tool_param.name.endswith('_' + 'HideUnEmphasized'):
-            params[tool_param.name] = hideUnEmphasized
+                params[tool_name] = 'False'
+        if tool_name.endswith('_' + 'HideUnEmphasized'):
+            params[tool_name] = hideUnEmphasized
             if hideUnEmphasized not in ['False', 'True']:
-                params[tool_param.name] = 'False'
-        if tool_param.name.endswith('_' + 'p-Value'):
-            params[tool_param.name] = p_Value
+                params[tool_name] = 'False'
+        if tool_name.endswith('_' + 'p-Value'):
+            params[tool_name] = p_Value
             if p_Value not in ['1.0', '0.5', '0.10', '0.05', '0.01']:
-                params[tool_param.name] = '1.0'
-        if tool_param.name.endswith('_' + 'MaxLevel'):
-            params[tool_param.name] = maxLevel
+                params[tool_name] = '1.0'
+        if tool_name.endswith('_' + 'MaxLevel'):
+            params[tool_name] = maxLevel
             if maxLevel not in ['0', '10', '20', '40', '60', '80', '100']:
-                params[tool_param.name] = '40'
-        if tool_param.name.endswith('_' + homology_str):
+                params[tool_name] = '40'
+        if tool_name.endswith('_' + homology_str):
             params[homology_str] = 'Excluded'
-            params[tool_param.name] = 'Excluded'
+            params[tool_name] = 'Excluded'
             if homology != 'Excluded':
                 params[homology_str] = 'Included'
-                params[tool_param.name] = 'Included'
+                params[tool_name] = 'Included'
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
     selected_geneset_ids = genesets.split(":")
