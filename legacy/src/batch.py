@@ -733,7 +733,6 @@ class GeneSet:
 		self.uploader.modify_geneset_count(gs_id=self.gs_id, count=self.count)
 
 	def handle_input(self):
-		if
 
 		if self.input_dict:
 			self.gs_gene_id_type = self.input_dict['gs_gene_id_type']
