@@ -24,7 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import batch
+from uploader import Uploader
 import cairosvg
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
@@ -706,8 +706,7 @@ def render_editgeneset_genes(gs_id):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        ## Ugh, needs to be moved to geneweaverdb or something
-        symbol2ode = batch.db.getOdeGeneIds(geneset.sp_id, contents)
+        symbol2ode = Uploader().get_ode_genes(geneset.sp_id, contents)
         ## Reverse to make our lives easier during templating
         for sym, ode in symbol2ode.items():
             symbol2ode[ode] = sym
