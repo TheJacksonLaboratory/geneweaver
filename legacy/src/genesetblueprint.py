@@ -60,7 +60,7 @@ def render_batchupload(genes=None):
 
 	species_types = uploader.get_speciesTypes()
 	return flask.render_template('batchupload.html', gs=dict(),
-	                             all_species=species_types, gidts=gidts)
+								 all_species=species_types, gidts=gidts)
 
 
 @geneset_blueprint.route('/createBatchGeneset')
@@ -129,10 +129,10 @@ def tokenize_lines(candidate_sep_regexes, lines):
 			yield tokenized_line
 
 
-# @geneset_blueprint.route('/pubmed_info/<pubmed_id>.json')
-# def pubmed_info_json(pubmed_id):
-#     pubmed_info = pubmedsvc.get_pubmed_info(pubmed_id)
-#     return flask.jsonify(pubmed_info)
+@geneset_blueprint.route('/pubmed_info/<pubmed_id>.json')
+def pubmed_info_json(pubmed_id):
+	pubmed_info = Uploader().search_pubmed(pubmed_id)
+	return flask.jsonify(pubmed_info)
 
 
 # @geneset_blueprint.route('/inferidkind.json', methods=['POST'])

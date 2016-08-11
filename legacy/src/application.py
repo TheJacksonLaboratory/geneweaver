@@ -729,7 +729,6 @@ def render_editgeneset_genes(gs_id):
         id_map=symbol2ode
     )
 
-
 @app.route('/removegenesetsfromproject/<gs_id>')
 def render_remove_genesets(gs_id):
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0

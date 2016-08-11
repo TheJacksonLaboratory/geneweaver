@@ -6,7 +6,7 @@
 @ Mus musculus
 % Gene Symbol
 A Public
-P 19958391
+P 24942484
 
 #
 ## The following lines give the label, name, and description of
@@ -26,7 +26,7 @@ Cry2		1
 @ Mus musculus
 % Gene Symbol
 A Public
-P 19958391
+P 24942484
 
 #
 ## The following lines give the label, name, and description of
