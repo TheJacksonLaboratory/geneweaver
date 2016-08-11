@@ -91,16 +91,20 @@
         </div>
     </div>
 
-	{#
     <!-- displays detailed data about the individual genesets -->
-    {% for gs in genesets %}
-    <!-- Label the tier - which is the curation id, Geneset.cur_id -->
-    <input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ gs.geneset_id }}">
-    <a style="margin-left:30px; font-size:18px;">
-    {% include 'viewGenesetSummaryPartial.html' %}
-    <br />
+    {% for gs in gs_map.values() %}
+		<!-- Label the tier - which is the curation id, Geneset.cur_id -->
+		<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ gs.geneset_id }}">
+
+		<table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
+				{% include 'viewGenesetSummaryPartial.html' %}
+		</table>
+
+		<br />
 
     {% endfor %}
+
+	{#
     <!-- Creates options in html for the selecting the add to project -->
     <div id="project_selector">
     <input style="margin-top: 2px" type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');">
@@ -376,6 +380,7 @@
 <script type="text/javascript">
     // include all of your jquery here
 
+	/*
     var circleData = [];
     //stores all the data to draw a circle
     var d = {{venn | safe}};
@@ -694,6 +699,7 @@
             });
         }
     }
+	*/
 
     //Adds the help icon text to the help button
     $('#clickableFontAwesome').popover({

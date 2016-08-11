@@ -5,6 +5,7 @@
 import flask
 import urllib2
 import re
+import geneweaverdb
 from batch import Batch
 from flask import request
 from uploader import Uploader
@@ -28,19 +29,18 @@ def render_uploadgeneset(genes=None):
 		microarray_sources.append(('ma_{0}'.format(pf_id), pf_name))
 	gidts.append(('MicroArrays', microarray_sources))
 
-	species_types = uploader.get_speciesTypes()
 	if genes:
 		return flask.render_template(
 			'uploadgeneset.html',
 			gs=dict(),
-			all_species=species_types,
+			all_species=geneweaverdb.get_all_species(),
 			gidts=gidts,
 			genes=genes)
 	else:
 		return flask.render_template(
 			'uploadgeneset.html',
 			gs=dict(),
-			all_species=species_types,
+			all_species=geneweaverdb.get_all_species(),
 			gidts=gidts,
 			user_id=user_id)
 
