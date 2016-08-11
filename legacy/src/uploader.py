@@ -155,7 +155,7 @@ class Uploader:
 
 		# set up the query
 		query = 'SELECT at_id, at_abbrev ' \
-				'FROM attribution ' \
+				'FROM odestatic.attribution ' \
 				'WHERE at_abbrev ' \
 				'IS NOT NULL ' \
 				'ORDER BY at_id;'
@@ -363,7 +363,7 @@ class Uploader:
 			user ID provided, returning None if it doesn't exist.
 		"""
 		# set up query
-		query = 'SELECT * FROM usr ' \
+		query = 'SELECT * FROM production.usr ' \
 				'WHERE usr_id=%s;'
 
 		# execute the query
@@ -503,7 +503,7 @@ class Uploader:
 		# complete the query
 		query += 'FROM (extsrc.gene INNER JOIN odestatic.species ' \
 		         'USING (sp_id)) ' \
-		         'INNER JOIN usr2gene USING (ode_gene_id) ' \
+		         'INNER JOIN extsrc.usr2gene USING (ode_gene_id) ' \
 		         'WHERE gene.ode_pref and usr2gene.usr_id=%s;' \
 
 		# execute query
@@ -540,7 +540,7 @@ class Uploader:
 		"""
 		# set up query
 		query = 'SELECT grp_id ' \
-				'FROM usr2grp ' \
+				'FROM production.usr2grp ' \
 				'WHERE usr_id=%s;'
 
 		# execute query
@@ -561,7 +561,7 @@ class Uploader:
 		"""
 		# set up query
 		query = 'SELECT usr_id ' \
-				'FROM usr2grp ' \
+				'FROM production.usr2grp ' \
 				'WHERE grp_id=%s;'
 
 		# execute query
@@ -583,8 +583,8 @@ class Uploader:
 		"""
 		# set up query
 		query = 'SELECT * ' \
-		        'FROM geneset ' \
-		        'LEFT OUTER JOIN publication' \
+		        'FROM production.geneset ' \
+		        'LEFT OUTER JOIN production.publication' \
 		        'ON geneset.pub_id = publication.pub_id ' \
 		        'WHERE gs_id=%s;'
 
@@ -665,7 +665,7 @@ class Uploader:
 			query += '*'
 
 		# finish building the query
-		query += ' FROM geneset ' \
+		query += ' FROM production.geneset ' \
 		         'WHERE gs_id=%s'
 
 		# execute the query
@@ -719,7 +719,7 @@ class Uploader:
 			query += '*'
 
 		# finish building the query
-		query += ' FROM tool' \
+		query += ' FROM odestatic.tool' \
 		         ' WHERE tool_classname=%s;'
 
 		# execute the query
@@ -784,7 +784,7 @@ class Uploader:
 			query += '*'
 
 		# finish building the query
-		query += ' FROM tool_param' \
+		query += ' FROM odestatic.tool_param' \
 		         ' WHERE tool_classname=%s '
 
 		# if only_visible, only retrieve the params marked visible
@@ -960,7 +960,7 @@ class Uploader:
 		gs_ids = ', '.join(gs_ids)
 
 		# set up query
-		query = 'INSERT INTO result (usr_id, res_runhash, gs_ids, ' \
+		query = 'INSERT INTO production.result (usr_id, res_runhash, gs_ids, ' \
 		        'res_data, res_tool, res_description, res_status, ' \
 		        'res_started) ' \
 		        'VALUES (%s, %s, %s, %s, %s, %s, %s, NOW()) ' \
