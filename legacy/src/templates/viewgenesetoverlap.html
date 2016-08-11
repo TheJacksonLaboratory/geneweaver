@@ -254,7 +254,10 @@
 	{% for intersect in intersects %}
 		<tr>
 			<td> {{ intersect.gene }} </td>
-			<td> lol links </td>
+			<td class="gsIconBox" style="text-align: left;">
+				{% set gene=intersect.gene %}
+				{% include 'linkouts.html' %}
+			 </td>
 
 			{# This should be refactored. Takes roughly O(n * g^2) #}
 			{% for gs in gs_map.values() %}
