@@ -1,6 +1,7 @@
 {% set title="Batch GeneSet Upload" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
+{% import Systems as Systems %}
 
 
 <body onload="myFunction('{{ gidts }}');">
@@ -391,6 +392,7 @@
                     if ('genesets' in data) {
 
                         var genesets = data['genesets'];
+
                         var success = '<strong>Success! Your GeneSets ' +
                                 'were uploaded: </strong><br />';
 
@@ -418,13 +420,13 @@
                         setTimeout(function() {
 
                             for (var i = 0; i < genesets.length; i++) {
-
+                                print(genesets[i]);
                                 var url = '../editgenesetgenes/' + genesets[i];
 
                                 window.open(url, '_blank');
                             }
 
-                        }, 300);
+                        }, 3000);
                     }
                 },
                 error: function(){
