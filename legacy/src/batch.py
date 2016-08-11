@@ -824,7 +824,6 @@ def test_fileParsing(number):
 	# add uploader + error handling separately
 	test_file = test + append[number]
 	b = Batch(file_path=test_file)
-	b.report_gs_names()
 
 # batches = []
 # for output in bf.delimit_file:

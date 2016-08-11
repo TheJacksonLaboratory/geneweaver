@@ -1007,6 +1007,6 @@ class Uploader:
 
 if __name__ == '__main__':
 	u = Uploader()
-	info = u.get_tool_info('PhenomeMap', out_name=True)
+
 
 	print info
