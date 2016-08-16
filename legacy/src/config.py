@@ -4,9 +4,7 @@ import os
 ## Just as a reminder: the configuration file (geneweaver.cfg) should NEVER be
 ## included in version control, especially if it has any usernames, passwords,
 ## or API keys.
-#CONFIG_PATH = '/Users/baker/PycharmProjects/website-py/geneweaver.cfg'
-#CONFIG_PATH = '/home/tim/pycharm-projects/website-py/geneweaver.cfg'
-CONFIG_PATH = '/home/s-reynot/geneweaver/geneweaver.cfg'
+CONFIG_PATH = '/srv/geneweaver/geneweaver.cfg'
 
 ## Global config object, sholudn't be accessed directly but using the helper
 ## functions found below.
@@ -27,24 +25,24 @@ def createConfig():
         print >> fl, '#'
         print >> fl, ''
         print >> fl, '[application]'
-        print >> fl, 'host = '
-        print >> fl, 'results = '
+        print >> fl, 'host = 127.0.0.1'
+        print >> fl, 'results = /path/to/results/folder'
         print >> fl, 'secret = ' + os.urandom(32).encode('hex')
         print >> fl, ''
         print >> fl, '[celery]'
-        print >> fl, 'url = '
-        print >> fl, 'backend = '
+        print >> fl, 'url = amqp://guest@localhost//'
+        print >> fl, 'backend = amqp'
         print >> fl, ''
         print >> fl, '[db]'
-        print >> fl, 'database = '
-        print >> fl, 'user = '
-        print >> fl, 'password = '
-        print >> fl, 'host = '
-        print >> fl, 'port = '
+        print >> fl, 'database = dbname'
+        print >> fl, 'user = user'
+        print >> fl, 'password = somepassword'
+        print >> fl, 'host = 127.0.0.1'
+        print >> fl, 'port = 5432'
         print >> fl, ''
         print >> fl, '[sphinx]'
-        print >> fl, 'host = '
-        print >> fl, 'port = '
+        print >> fl, 'host = 127.0.0.1'
+        print >> fl, 'port = 9312'
         print >> fl, ''
 
 def checkIntegrity():

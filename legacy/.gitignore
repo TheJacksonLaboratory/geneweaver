@@ -61,3 +61,7 @@ docs/_build/
 
 # vim swap files
 *.sw*
+
+# Some of Astrid's personal project code unrelated to the GW application
+gtexsvc.py
+psygenet.py

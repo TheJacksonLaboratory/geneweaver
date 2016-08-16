@@ -1,6 +1,7 @@
-//// file:  PhenomeMap.js
-//// desc:  d3js code for visualizing the HiSim graph. 
-//
+/**
+ * file: PhenomeMap.js
+ * desc: d3js code for visualizing the HiSim graph. 
+ */
 
 //global variable containing the JSON data and the d3.force object
 var g = {
@@ -707,7 +708,8 @@ $('.download-image').on('click', function(event) {
         .node().parentNode.innerHTML;
 
     if (isOld) {
-        var runhash = '{{async_result.parameters.output_prefix}}';
+        //var runhash = '{{async_result.parameters.output_prefix}}';
+        var runhash = d3.select('#lol-hack').node().innerHTML;
         var fp = runhash + '.svg';
         var oldver = fp;
 

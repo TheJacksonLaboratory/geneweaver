@@ -24,9 +24,10 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import batch
-#import cairosvg
+from uploader import Uploader
+import cairosvg
 from cStringIO import StringIO
+from werkzeug.routing import BaseConverter
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -86,6 +87,46 @@ admin.add_view(
     adminviews.Add(name='News Item', endpoint='newNewsItem', category='Add'))
 
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
+
+class ListConverter(BaseConverter):
+    """
+    A class for handling a custom URL converter. Allows lists to be used as
+    routing variables. Currently only used for viewing geneset overlap for >2
+    genesets. 
+    This should probably be put in a separate file.
+    """
+
+    def to_python(self, value):
+        """
+        Converts the value to a python list object. The separating character is
+        a '+'.
+
+        arguments
+            value: a string serving as part of a URL variable
+
+        returns
+            a list of strings
+        """
+        
+        return value.split('+')
+
+    def to_url(self, values):
+        """
+        Converts a list of values to a string. The exact opposite of the
+        to_python function. 
+
+        arguments
+            values: a list of values being converted 
+
+        returns
+            a string
+        """
+
+        return '+'.join(BaseConverter.to_url(value) for value in values)
+
+
+## Add a custom URL converter to handle list variables
+app.url_map.converters['list'] = ListConverter
 
 # *************************************
 
@@ -665,8 +706,9 @@ def render_editgeneset_genes(gs_id):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        ## Ugh, needs to be moved to geneweaverdb or something
-        symbol2ode = batch.db.getOdeGeneIds(geneset.sp_id, contents)
+        symbol2ode_search = Uploader().get_ode_genes(geneset.sp_id, contents)
+        keys = [list(query) for query in symbol2ode_search.keys()]
+        symbol2ode = dict([(k[0], symbol2ode_search[tuple(k)][0]) for k in keys])
         ## Reverse to make our lives easier during templating
         for sym, ode in symbol2ode.items():
             symbol2ode[ode] = sym
@@ -1058,43 +1100,15 @@ def render_viewgeneset(gs_id):
                                  species=species)
 
 
-# Function that calls the overlap page
-@app.route('/viewgenesetoverlap/<int:gs_id>/<int:gs_id1>', methods=['GET', 'POST'])
-def render_viewgenesetoverlap(gs_id, gs_id1):
-    # get values for sorting result columns
-    # i'm saving these to a session variable
-    # probably not the correct format
-    if flask.request.method == 'GET':
-        args = flask.request.args
-        if 'sort' in args:
-            session['sort'] = args['sort']
-            if 'dir' in session:
-                if session['dir'] != 'DESC':
-                    session['dir'] = 'DESC'
-                else:
-                    session['dir'] = 'ASC'
-            else:
-                session['dir'] = 'ASC'
-    # get value for the alt-gene-id column
-    if 'extsrc' in session:
-        if session['extsrc'] == 2:
-            altGeneSymbol = 'Ensembl'
-        elif session['extsrc'] == 7:
-            altGeneSymbol = 'Symbol'
-        elif session['extsrc'] == 10:
-            altGeneSymbol = 'MGD'
-        elif session['extsrc'] == 12:
-            altGeneSymbol = 'RGD'
-        elif session['extsrc'] == 13:
-            altGeneSymbol = 'ZFin'
-        elif session['extsrc'] == 14:
-            altGeneSymbol = 'FlyBase'
-        elif session['extsrc'] == 15:
-            altGeneSymbol = 'WormBase'
-        else:
-            altGeneSymbol = 'Entrez'
-    else:
-        altGeneSymbol = 'Entrez'
+
+@app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
+def render_viewgenesetoverlap(gs_ids):
+    """
+    Renders the view geneset overlap page.
+
+    arguments
+        gs_ids: a list of gs_ids contained in the GET request
+    """
 
     emphgenes = {}
     emphgeneids = []
@@ -1103,103 +1117,118 @@ def render_viewgenesetoverlap(gs_id, gs_id1):
         user_id = session['user_id']
     else:
         user_id = 0
+
+    genesets = []
+
+    for gs_id in gs_ids:
+        gs = geneweaverdb.get_geneset(gs_id, user_id)
+
+        if gs:
+            genesets.append(gs)
+
     # Get the current user id
     user_info = geneweaverdb.get_user(user_id)
-    # Get the geneset that corresponds to gs_id1
-    geneset = geneweaverdb.get_geneset(gs_id1, user_id)
-    # Get the geneset that corresponds to gs_id
-    geneset1 = geneweaverdb.get_geneset(gs_id, user_id)
-    # List for the number of genesets
-    genesets = []
-    genesets.append(geneset)
-    genesets.append(geneset1)
 
-    # All the genes within geneset 1
-    genes = []
-    # All the genes within geneset 2
-    genes1 = []
+    ## Mapping of gs_id pairs to the genes found in their overlap
+    gs_intersects = defaultdict(lambda: defaultdict(list))
+    ## Mapping of genes to the list of genesets they're found in
+    gene_intersects = defaultdict(set)
+    ## Maps gs_ids to geneset data
+    gs_map = {}
 
-    # Puts all the ref ids of each gene from geneset1
-    for gene in geneset.geneset_values:
-        genes.append(gene.source_list[0])
+    for gs in genesets:
+        gs_map[gs.geneset_id] = gs
 
-    # Puts all the ref ids of each gene from geneset1
-    for gene in geneset1.geneset_values:
-        genes1.append(gene.source_list[0])
+    for gs1 in genesets:
+        gs_id1 = gs1.geneset_id
 
-    # Holds the genes within the intersect portion of the venn diagram
-    intersection_genes = {}
-    # Finds the genes that belong in the intersection
-    temp_genes = geneweaverdb.get_intersect_by_homology(gs_id, gs_id1)
-    for j in range(0, len(temp_genes[0])):
-        intersection_genes[temp_genes[0][j]] = geneweaverdb.if_gene_has_homology(temp_genes[1][j])
+        for gs2 in genesets:
+            gs_id2 = gs2.geneset_id
 
-    # Final list of genes without the genes found within the intersection
-    genesFinal = [item for item in genes if item not in list(intersection_genes.keys())]
-    # Final list of genes without the genes found within the intersection
-    genes1Final = [item for item in genes1 if item not in list(intersection_genes.keys())]
+            if gs_id1 == gs_id2:
+                continue
 
-    # If the same gs_id is given return a complete overlap
-    if gs_id == gs_id1:
-        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1 - gs_id)
-    else:
-        intersect_genes = geneweaverdb.get_geneset_intersect(gs_id, gs_id1)
+            ## No reason to perform unnecessary calculations
+            if gs_intersects[gs_id1][gs_id2] or gs_intersects[gs_id2][gs_id1]:
+                continue
 
-    # Draw the venn diagram
-    venn = createVennDiagram(geneset.count - intersect_genes, geneset1.count - intersect_genes, intersect_genes, 200)
+            ## get_intersect* returns a tuple with a list of gene symbols and
+            ## a list of homology ids
+            intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
 
-    # Calculate the jaccard coefficient
-    jaccard = float(intersect_genes) / float(
-        geneset.count - intersect_genes + geneset1.count - intersect_genes + intersect_genes)
-    jaccard = "%.6f" % jaccard
+            gs_intersects[gs_id1][gs_id2] = intersect
+            gs_intersects[gs_id2][gs_id1] = intersect
 
-    # Find  the pvalue within the database
-    pvalue = geneweaverdb.getPvalue(geneset.count, geneset1.count, jaccard)
+            ## Keep track of gene-genesets for sorting and ease of display
+            for gene in intersect[0]:
+                gene_intersects[gene].add(gs_id1)
+                gene_intersects[gene].add(gs_id2)
 
-    # Finds the sizes of each portion of the venn diagram
-    diagramSizes = []
-    diagramSizes.append(geneset.count - intersect_genes)
-    diagramSizes.append(intersect_genes)
-    diagramSizes.append(geneset1.count - intersect_genes)
+    intersects = []
+
+    ## Generate a single structure containing all the intersection information
+    ## for the template
+    for gene, gs_ids in gene_intersects.items():
+        ## If the intersection is among >1 species, it's a homologous gene
+        ## cluster
+        species = list(set(map(lambda i: gs_map[i].sp_id, gs_ids)))
+
+        sect_struct = {
+            'gene': gene,
+            'gs_ids': gs_ids,
+            'intersect_count': len(gs_ids),
+            'is_homolog': True if len(species) > 1 else False
+        }
+
+        intersects.append(sect_struct)
+
+    ## Sort by the # of genes in the intersection
+    intersects = sorted(intersects, key=lambda i: i['intersect_count'],
+            reverse=True)
 
     if user_id != 0:
-        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+        if user_info.is_admin or\
+           user_info.is_curator or\
+           geneset.user_id == user_id:
+            view = 'True' 
+
+        else:
+            view = None
     else:
         view = None
-    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
-    for row in emphgenes:
-        emphgeneids.append(str(row['ode_gene_id']))
+    ## TODO: fix emphasis genes
+    #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
-    # variables to hole if a geneset has an emphasis gene
-    inGeneset1 = False
-    inGeneset2 = False
+    #for row in emphgenes:
+    #    emphgeneids.append(str(row['ode_gene_id']))
 
-    # Check to see if an emphasis gene is in one of the genesets
-    for gene in emphgeneids:
-        inGeneset1 = geneweaverdb.check_emphasis(gs_id, gene)
-        if inGeneset1 == True:
-            break
+    ## variables to hole if a geneset has an emphasis gene
+    #inGeneset1 = False
+    #inGeneset2 = False
 
-    for gene in emphgeneids:
-        inGeneset2 = geneweaverdb.check_emphasis(gs_id1, gene)
-        if inGeneset2 == True:
-            break
+    ## Check to see if an emphasis gene is in one of the genesets
+    #for gene in emphgeneids:
+    #    inGeneset1 = geneweaverdb.check_emphasis(gs_id, gene)
+    #    if inGeneset1 == True:
+    #        break
 
-    inGs1 = 0
-    inGs2 = 0
+    #for gene in emphgeneids:
+    #    inGeneset2 = geneweaverdb.check_emphasis(gs_id1, gene)
+    #    if inGeneset2 == True:
+    #        break
 
-    if inGeneset1:
-        inGs1 = 1
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
 
-    if inGeneset2:
-        inGs2 = 1
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
 
-    return flask.render_template('viewgenesetoverlap.html', geneset=geneset, emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, altGeneSymbol=altGeneSymbol, view=view,
-                                 venn=venn, jaccard=jaccard, pval=pvalue, sizes=diagramSizes, genesets=genesets,
-                                 gene_sym=intersection_genes, gene_sym_set1=genesFinal, gene_sym_set2=genes1Final,
-                                 gs1_emphasis=inGs1, gs2_emphasis=inGs2)
+    return flask.render_template('viewgenesetoverlap.html', 
+        gs_map=gs_map,
+        intersects=intersects,
+        species=species
+    )
 
 
 # function to draw the venn diagrams for the overlap page
@@ -1358,85 +1387,120 @@ def render_sim_genesets(gs_id, grp_by):
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
     json.dumps(d3BarChart, default=decimal_default)
-    return flask.render_template('similargenesets.html', geneset=geneset, user_id=user_id, gs_id=gs_id, simgs=simgs,
-                                 d3Data=d3Data, max=max, d3BarChart=d3BarChart)
+
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
+
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+
+    return flask.render_template(
+        'similargenesets.html', 
+        geneset=geneset, 
+        user_id=user_id, 
+        gs_id=gs_id, 
+        simgs=simgs,
+        d3Data=d3Data, 
+        max=max, 
+        d3BarChart=d3BarChart,
+        species=species
+    )
 
 
 @app.route('/getPubmed', methods=['GET', 'POST'])
 def get_pubmed_data():
     pubmedValues = []
-    http = urllib3.PoolManager()
     if flask.request.method == 'GET':
         args = flask.request.args
         if 'pmid' in args:
             pmid = args['pmid']
-            PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
-            # response = http.urlopen('GET', PM_DATA % (','.join([str(x) for x in pmid]),)).read()
-            response = http.urlopen('GET', PM_DATA % (pmid), preload_content=False).read()
 
-            for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
-                article_ids = {}
-                abstract = ''
-                fulltext_link = None
+            pub = Uploader().search_pubmed(pmid)
 
-                article = match.group(1)
-                articleid_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>', article, re.S)
-                abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>', article, re.S)
-                articletitle = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>', article, re.S).group(1).strip()
+            pubmedValues.extend((pub['pub_title'], pub['pub_authors'], pub['pub_journal'],
+                                 pub['pub_volume'], pub['pub_pages'], pub['pub_date'],
+                                 pub['pub_abstract']))
 
-                for amatch in articleid_matches:
-                    article_ids[amatch.group(1).strip()] = amatch.group(2).strip()
-                for amatch in abstract_matches:
-                    abstract += amatch.group(2).strip() + ' '
+            print pubmedValues
 
-                if 'pmc' in article_ids:
-                    fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
-                elif 'doi' in article_ids:
-                    fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
-                pmid = article_ids['pubmed'].strip()
-
-                author_matches = re.finditer('<Author[^>]*>(.*?)</Author>', article, re.S)
-                authors = []
-                for match in author_matches:
-                    name = ''
-                    try:
-                        name = re.search('<LastName>([^<]*)</LastName>', match.group(1), re.S).group(1).strip()
-                        name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', match.group(1), re.S).group(
-                            1).strip()
-                    except:
-                        pass
-                    authors.append(name)
-
-                authors = ', '.join(authors)
-                v = re.search('<Volume>([^<]*)</Volume>', article, re.S)
-                if v:
-                    vol = v.group(1).strip()
-                else:
-                    vol = ''
-                p = re.search('<MedlinePgn>([^<]*)</MedlinePgn>', article, re.S)
-                if p:
-                    pages = p.group(1).strip()
-                else:
-                    pages = ''
-                pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
-                year = pubdate.group(1).strip()
-                journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
-                # year month journal
-                tomonthname = {
-                    '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
-                    '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
-                }
-                pm = pubdate.group(2).strip()
-                if pm in tomonthname:
-                    pm = tomonthname[pm]
-
-                pubmedValues.extend((articletitle, authors, journal, vol, pages, year, pm, abstract))
-
-        else:
-            response = 'false'
-    else:
-        response = 'false'
     return json.dumps(pubmedValues)
+
+
+# @app.route('/getPubmed', methods=['GET', 'POST'])
+# def get_pubmed_data():
+#     pubmedValues = []
+#     http = urllib3.PoolManager()
+#     if flask.request.method == 'GET':
+#         args = flask.request.args
+#         if 'pmid' in args:
+#             pmid = args['pmid']
+#             PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
+#             # response = http.urlopen('GET', PM_DATA % (','.join([str(x) for x in pmid]),)).read()
+#             response = http.urlopen('GET', PM_DATA % (pmid), preload_content=False).read()
+#
+#             for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
+#                 article_ids = {}
+#                 abstract = ''
+#                 fulltext_link = None
+#
+#                 article = match.group(1)
+#                 articleid_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>', article, re.S)
+#                 abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>', article, re.S)
+#                 articletitle = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>', article, re.S).group(1).strip()
+#
+#                 for amatch in articleid_matches:
+#                     article_ids[amatch.group(1).strip()] = amatch.group(2).strip()
+#                 for amatch in abstract_matches:
+#                     abstract += amatch.group(2).strip() + ' '
+#
+#                 if 'pmc' in article_ids:
+#                     fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
+#                 elif 'doi' in article_ids:
+#                     fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
+#                 pmid = article_ids['pubmed'].strip()
+#
+#                 author_matches = re.finditer('<Author[^>]*>(.*?)</Author>', article, re.S)
+#                 authors = []
+#                 for match in author_matches:
+#                     name = ''
+#                     try:
+#                         name = re.search('<LastName>([^<]*)</LastName>', match.group(1), re.S).group(1).strip()
+#                         name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', match.group(1), re.S).group(
+#                             1).strip()
+#                     except:
+#                         pass
+#                     authors.append(name)
+#
+#                 authors = ', '.join(authors)
+#                 v = re.search('<Volume>([^<]*)</Volume>', article, re.S)
+#                 if v:
+#                     vol = v.group(1).strip()
+#                 else:
+#                     vol = ''
+#                 p = re.search('<MedlinePgn>([^<]*)</MedlinePgn>', article, re.S)
+#                 if p:
+#                     pages = p.group(1).strip()
+#                 else:
+#                     pages = ''
+#                 pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
+#                 year = pubdate.group(1).strip()
+#                 journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
+#                 # year month journal
+#                 tomonthname = {
+#                     '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
+#                     '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
+#                 }
+#                 pm = pubdate.group(2).strip()
+#                 if pm in tomonthname:
+#                     pm = tomonthname[pm]
+#
+#                 pubmedValues.extend((articletitle, authors, journal, vol, pages, year, pm, abstract))
+#
+#         else:
+#             response = 'false'
+#     else:
+#         response = 'false'
+#     return json.dumps(pubmedValues)
 
 
 @app.route('/exportGeneList/<int:gs_id>')
@@ -2612,34 +2676,10 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 # END API BLOCK
 # ********************************************
 
-#@app.errorhandler(404)
-#def page_not_found(e):
-#    return error.page_not_found(e)
-#
-#@app.errorhandler(Exception)
-#def internal_server_error(e):
-#
-#    ## This grabs the exception info and traceback for the last exception
-#    ## that occurred. If we give the exception/traceback passed to this
-#    ## function (argument e), the stack trace will be incorrect when we
-#    ## later print it.
-#    exc = exc_info()
-#
-#    return error.internal_server_error(exc)
-
 if __name__ == '__main__':
 
     # config.loadConfig()
     # print config.CONFIG.sections()
-
-    # TODO this key must be changed to something secret (ie. not committed to the repo).
-    # Comment out the print message when this is done
-    # print '==================================================='
-    # print 'THIS VERSION OF GENEWEAVER IS NOT SECURE. YOU MUST '
-    # print 'REGENERATE THE SECRET KEY BEFORE DEPLOYMENT. SEE   '
-    # print '"How to generate good secret keys" AT			  '
-    # print 'http://flask.pocoo.org/docs/quickstart/ FOR DETAILS'
-    # print '==================================================='
 
     app.secret_key = config.get('application', 'secret')
     app.debug = True
@@ -2658,3 +2698,4 @@ if __name__ == '__main__':
 
     else:
         app.run()
+

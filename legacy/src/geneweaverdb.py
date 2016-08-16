@@ -28,8 +28,8 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
 
         return conn
 
-
-# the global threaded connection pool that should be used for all DB connections in this application
+# the global threaded connection pool that should be used for all DB 
+# connections in this application
 pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database=config.get('db', 'database'),

@@ -110,6 +110,7 @@
     <br />
 {% endif %}
 
+<span id="lol-hack" style="display:none;">{{async_result.parameters.output_prefix}}</span>
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="panel panel-info">
@@ -190,6 +191,8 @@
     </div>
 </form>
 
+
+
 <div class="panel panel-info" >
 	<div class="panel-heading bg-green" style="border-radius:4px;">
 		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
@@ -228,7 +231,7 @@
 							<li><a class="download-image" id="dl-png" href="">PNG</a></li>
 							<li><a class="download-image" id="dl-svg" href="">SVG</a></li>
 							<li role="separator" class="divider"></li>
-							<li><a class="download-image" id="ol-png" href="">PNG (Old HiSim)</a></li>
+							<li><a class="download-image" id="ol-png" href="">PNG (Classic HiSim)</a></li>
 							<li role="separator" class="divider"></li>
 							<li><a class="download-text" id="dl-csv" href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
 								CSV

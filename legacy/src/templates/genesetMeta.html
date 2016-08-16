@@ -35,29 +35,6 @@
                     <p class="text-right"><strong>SPECIES:</strong></p>
                 </div>
                 <div id="sp-tag" class="col-md-10">
-                    {#
-                    {% if geneset.sp_id == 1 %}
-                        <span class="mouse">Mouse</span>
-                    {% endif %}
-                    {% if geneset.sp_id == 2 %}
-                        <span class="human">Human</span>
-                    {% endif %}
-                    {% if geneset.sp_id == 3 %}
-                        <span class="rat">Rat</span>
-                    {% endif %}
-                    {% if geneset.sp_id == 4 %}
-                        <span class="zebrafish">Zebrafish</span>
-                    {% endif %}
-                    {% if geneset.sp_id == 5 %}
-                        <span class="fly">Fly</span>
-                    {% endif %}
-                    {% if geneset.sp_id == 6 %}
-                        <span class="monkey">Monkey</span>
-                    {% endif %}
-                    {% if geneset.sp_id == 9 %}
-                        <span class="yeast">Yeast</span>
-                    {% endif %}
-                     #}
                 </div>
             </div>
 
@@ -230,7 +207,7 @@
                 $('#genesetOntologyInfo').popover({
                         title: 'GeneSet Ontologies', content: 'Ontologies linked to the current GeneSet are ' +
                         'shown below as the highlighted nodes within the ontology databases. Only available to edit ' +
-                        'on Edit MetaData page.'
+                        'on the "Edit MetaData" page.'
                 });
             </script>
         </div>

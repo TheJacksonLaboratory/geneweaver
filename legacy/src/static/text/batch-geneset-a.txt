@@ -3,7 +3,7 @@
 
 ! Binary
 @ Mus musculus
-% Gene Symbol
+% microarray Affymetrix C. elegans Genome Array
 A Private
 
 #
