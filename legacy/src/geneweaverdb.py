@@ -35,17 +35,12 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
 
 # the global threaded connection pool that should be used for all DB connections in this application
 pool = GeneWeaverThreadedConnectionPool(
-        5, 20,
-        # database='geneweaver',
-        # user='odeadmin',
-        # password='odeadmin',
-        # host='crick.ecs.baylor.edu',
-        # port=5432,
-        database=config.get('db', 'database'),
-        user=config.get('db', 'user'),
-        password=config.get('db', 'password'),
-        host=config.get('db', 'host'),
-        port=config.getInt('db', 'port')
+    5, 20,
+    database=config.get('db', 'database'),
+    user=config.get('db', 'user'),
+    password=config.get('db', 'password'),
+    host=config.get('db', 'host'),
+    port=config.getInt('db', 'port')
 )
 
 
