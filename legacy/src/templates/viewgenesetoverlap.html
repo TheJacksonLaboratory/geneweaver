@@ -91,18 +91,21 @@
         </div>
     </div>
 
+	<table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
+		<tbody>
     <!-- displays detailed data about the individual genesets -->
     {% for gs in gs_map.values() %}
 		<!-- Label the tier - which is the curation id, Geneset.cur_id -->
+		{#
 		<input style="margin-top: 2px" type="checkbox" name="gs_id[]" value="{{ gs.geneset_id }}">
 
-		<table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
+		#}
 				{% include 'viewGenesetSummaryPartial.html' %}
-		</table>
 
-		<br />
 
     {% endfor %}
+		</tbody>
+	</table>
 
 	{#
     <!-- Creates options in html for the selecting the add to project -->
