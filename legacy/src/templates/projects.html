@@ -232,6 +232,14 @@
             }
         });
 
+		// An attempt to prevent enter key presses from causing HTTP errors
+		// not working currently
+		$('#addGenesetsToProj').keypress(function(e) {
+
+			// 13 == ENTER key 
+			if (e.which && e.which === 13)
+				$('#addCombineGenesets').click();
+		});
 
         // Call modal to remove genesets from projects
         $('#callRemoveGenesets').on('click', function () {
