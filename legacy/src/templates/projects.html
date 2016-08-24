@@ -89,13 +89,13 @@
                             <span><i class="fa fa-times pull-left"></i></span> Delete Projects
                         </button>
                         <button type="button" class="btn btn-block btn-danger" id="callRemoveGenesets">
-                            <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
+                            <i class="fa fa-trash-o pull-left"></i> Remove GeneSets
                         </button>
                         <button type="button" class="btn btn-block btn-warning" id="newProject">
                             <i class="fa fa-folder-o pull-left"></i> New Project
                         </button>
                         <button type="button" class="btn btn-block btn-warning" id="callCombineGeneSets">
-                            <i class="fa fa-chain pull-left"></i> Combine Gene Sets
+                            <i class="fa fa-chain pull-left"></i> Combine GeneSets
                         </button>
                     </div>
                     <div class="panel-group pull-right" id="selectedGenesets">
@@ -105,13 +105,13 @@
                         <span id="help"><i class="fa fa-caret-left"></i> help</span>
                     </div>
                     <div id="help-text" class="panel-group" style="display: none;">
-                        <p><i class="fa fa-arrow-right"></i> Select Projects and Gene Sets from the left and appropriate
+                        <p><i class="fa fa-arrow-right"></i> Select Projects and GeneSets from the left and appropriate
                             actions from the list on the right. Deleting projects will permanently remove them from your
                             account.</p>
-                        <p><i class="fa fa-arrow-right"></i> Removing Gene Sets will only remove them from the Project,
+                        <p><i class="fa fa-arrow-right"></i> Removing GeneSets will only remove them from the Project,
                             not delete them from GeneWeaver.</p>
-                        <p><i class="fa fa-arrow-right"></i> Actions on Gene Sets, such as Combine or Remove, work only
-                            on individual Gene Sets and not at the project level.</p>
+                        <p><i class="fa fa-arrow-right"></i> Actions on GeneSets, such as Combine or Remove, work only
+                            on individual GeneSets and not at the project level.</p>
                     </div>
                 </div>
 
@@ -233,7 +233,7 @@
                 $("html, body").animate({ scrollTop: 0 }, "slow");
                 $(document).trigger("add-alerts", [
                     {
-                        'message': "You must select at least one gene set.",
+                        'message': "You must select at least one GeneSet.",
                         'priority': 'danger'
                     }
                 ]);
@@ -299,7 +299,7 @@
             if (gsname.length == 0) {
 
 				$(document).trigger("add-alerts", [{
-					'message': "No Gene Sets were selected for combining into the same project.",
+					'message': "No GeneSets were selected for combining into the same project.",
 					'priority': 'danger'
 				}]);
             }
