@@ -195,26 +195,37 @@
         $('#callDeleteProjects').on('click', function () {
             var projid = [];
             var projname = [];
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("data-project-name"));
-                projname.push(v);
+
+			// These selections also grab things other that projects and 
+			// should be filtered
+            $('input[type=checkbox]:checked').each(function () {
+                var thisName = $(this).attr('data-project-name');
+
+				if (thisName !== undefined)
+					projname.push(thisName);
             });
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("data-project"));
-                projid.push(v);
+
+            $('input[type=checkbox]:checked').each(function () {
+                var thisId = $(this).attr('data-project');
+
+				if (thisId !== undefined)
+					projid.push(thisId);
             });
-            if (projid.length == 0) {
+
+            if (projid.length === 0) {
+
                 $("html, body").animate({ scrollTop: 0 }, "slow");
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "You must select at least one project.",
-                        'priority': 'danger'
-                    }
-                ]);
-            }
-            else{
+
+				$(document).trigger("add-alerts", [{
+					'message': "You must select at least one project.",
+					'priority': 'danger'
+				}]);
+
+            } else{
+            
                 var p = projid.join(",");
                 var q = projname.join(", ");
+
                 $("#myModalLabel").html(q);
                 $("#myModalValue").val(p);
                 $("#delProjects").modal('show');
