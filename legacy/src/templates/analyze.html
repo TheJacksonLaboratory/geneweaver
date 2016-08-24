@@ -130,10 +130,11 @@
 						  class="form-horizontal form-inline" novalidate="novalidate">
                     <!-- the projects column -->
                     <div class="col-md-8">
-                        <div class="page-header"><h2>Projects <span id="geneset-count"></span></h2></div>
+                        <div class="page-header" style="margin-bottom:0;">
+							<h2>Projects <span id="geneset-count"></span></h2>
+						</div>
 
                         {% if "user" in g %}
-							
 
                             <div class="panel-body">
 								<div id="geneset-count" class="h5"></div>
@@ -187,12 +188,14 @@
                                     </table>
                             </div>
 
-                <div class="page-header"><h2>Shared Projects</h2></div>
+                <div class="page-header" style="margin-bottom:0;margin-top:0;">
+					<h2>Shared Projects</h2>
+				</div>
                             <div class="panel-body">
 								<div id="shared-geneset-count" class="h5"></div>
                                     <!-- TODO make the table sortable, show more gene details -->
 									{% for grp in grp2proj %}
-										<div style="border-bottom: 2px #006400 solid">
+										<div style="border-bottom:2px #006400 solid; margin-bottom:10px;">
 											<h4>{{ grp }}</h4>
 										</div>
 
