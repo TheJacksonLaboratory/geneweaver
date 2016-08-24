@@ -188,6 +188,8 @@
                                     </table>
                             </div>
 
+				{# Only display this section if the user has shared projects #}
+				{% if grp2proj.keys() | length > 0 %}
                 <div class="page-header" style="margin-bottom:0;margin-top:0;">
 					<h2>Shared Projects</h2>
 				</div>
@@ -250,6 +252,7 @@
 									{% endfor %}
 									{% endfor %}
                             </div>
+						{% endif %}
                         {% else %}
 
                             <div class="alert alert-warning fade in">
