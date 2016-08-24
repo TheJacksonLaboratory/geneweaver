@@ -91,7 +91,7 @@
                         <button type="button" class="btn btn-block btn-danger" id="callRemoveGenesets">
                             <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
                         </button>
-                        <button type="button" class="btn btn-block btn-warning" id="newBlankProject">
+                        <button type="button" class="btn btn-block btn-warning" id="newProject">
                             <i class="fa fa-folder-o pull-left"></i> New Project
                         </button>
                         <button type="button" class="btn btn-block btn-warning" id="callCombineGeneSets">
@@ -146,7 +146,7 @@
         var url = '/projectGenesets.json';
 
         // Call New Blank Project
-        $('#newBlankProject').on('click', function () {
+        $('#newProject').on('click', function () {
            $("#addProjectModal").modal('show');
         });
 
@@ -244,7 +244,6 @@
             }
         });
 
-
         //Process the deletion of the projects
         $('#confirmDelete').on('click', function (e) {
            var projids = $('#myModalValue').val();
@@ -281,24 +280,35 @@
             //also split off the name from the number
             var gsname = [];
             var gsid = [];
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("id"));
-                gsid.push(v.split('_')[1]);
-                gsname.push('GS'+ v.split('_')[1]);
+
+
+			// This selects other checkboxes that may not be genesets so we 
+			// have to filter those out.
+            $('input[type=checkbox]:checked').each(function () {
+                var checkId = $(this).attr('id');
+				checkId = checkId.split('_');
+
+				if (checkId[0] === 'geneset') {
+				
+					gsid.push(checkId[1]);
+					gsname.push('GS' + checkId[1]);
+				}
             });
-            //display error if no genesets are selected
+
+            // display error if no genesets are selected
             if (gsname.length == 0) {
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "No Gene Sets were selected for combining into the same project.",
-                        'priority': 'danger'
-                    }
-                ]);
+
+				$(document).trigger("add-alerts", [{
+					'message': "No Gene Sets were selected for combining into the same project.",
+					'priority': 'danger'
+				}]);
             }
+
             // send the list to the modal.
             else{
                 var n = gsname.join(", ");
                 var i = gsid.join(",");
+
                 $("#myCombineGSLabel").html(n);
                 $("#myCombineGSValue").val(i);
                 $("#combineGenesets").modal('show');
