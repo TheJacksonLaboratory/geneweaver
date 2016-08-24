@@ -19,14 +19,18 @@
 							</span>
 						</strong>
 					</div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <button type="button" class="btn btn-success btn-transparent"
-                                    id="addNewProjectCombineGeneset">
-                                <i class="fa fa-plus"></i> Add to New Project
-                            </button>
-                        </div>
-                    </div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-success btn-transparent"
+								id="addNewProjectCombineGeneset">
+							<i class="fa fa-plus"></i> Add to New Project
+						</button>
+						<button type="button" class="btn btn-warning" id="addCombineGenesets" data-dismiss="modal">
+							Combine into Project
+						</button>
+						<button type="button" class="btn btn-default" data-dismiss="modal">
+							Close
+						</button>
+					</div>
                     <div class="row" id="reveal-if-active"></div>
                     <div class="row" style="padding-top: 10px">
                         {% for currProj in g.user.projects %}
@@ -41,12 +45,6 @@
                         {% endfor %}
                         <input type="hidden" id="myCombineGSValue" name="gs_id"/>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-warning" id="addCombineGenesets" data-dismiss="modal">Combine into New
-                        Project
-                    </button>
                 </div>
             </form>
         </div>
