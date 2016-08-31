@@ -186,6 +186,7 @@ messages = array of messages
                         class="caret"></span></a>
                 <ul class="dropdown-menu" role="menu">
                     <li><a href="/mygenesets">View My GeneSets</a></li>
+                    <li><a href="{{ url_for('render_projects')|safe }}">Manage Projects</a></li>
                     <li><a href="/search">Search GeneSets</a></li>
                     <li><a href="{{ url_for('geneset.render_uploadgeneset') }}">Upload GeneSet</a></li>
                     <li><a href="/batchupload">Upload Batch GeneSets</a></li>
@@ -196,7 +197,6 @@ messages = array of messages
                     GeneSets<span class="caret"></span></a>
                 <ul class="dropdown-menu" role="menu">
                     <li><a href="{{ url_for('render_analyze')|safe }}">Analyze GeneSets</a></li>
-                    <li><a href="{{ url_for('render_projects')|safe }}">Manage Projects</a></li>
                     <li><a href="{{ url_for('render_user_results')|safe}}">View Results</a></li>
                     {% if "user" in g %}
                         <li><a href="{{ url_for('render_emphasis')|safe }}">Emphasize Genes</a></li>
