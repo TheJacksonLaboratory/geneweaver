@@ -355,8 +355,6 @@
                     // error) is returned.
                     $('#confirmUpload').modal('hide');
 
-					console.log('done');
-					console.log(data);
                     // The data is returned already parsed out of JSON
                     if ('error' in data) {
 
@@ -368,7 +366,6 @@
                             'class="close" data-dismiss="alert" ' +
                             'aria-hidden="true">x</button>';
 
-						console.log('error');
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
                         $('#upload-error-alert').html(closeButton + error);
                         $('#upload-error').toggle(true);
@@ -386,7 +383,6 @@
                                 'class="close" data-dismiss="alert" ' +
                                 'aria-hidden="true">x</button>';
 
-						console.log('warn');
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
                         $('#upload-warn-alert').html(closeButton + warn);
                         $('#upload-warn').toggle(true);
@@ -413,17 +409,14 @@
                                 'class="close" data-dismiss="alert" ' +
                                 'aria-hidden="true">x</button>';
 
-						console.log('success');
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
                         $('#upload-success-alert').html(closeButton + success);
                         $('#upload-success').toggle(true);
 
-						console.log('success1');
                         // Redirect to the edit geneset page for each geneset,
                         // wait a bit though so the user can read our message
                         setTimeout(function() {
 
-							console.log('success2');
                             for (var i = 0; i < genesets.length; i++) {
 
                                 var url = '../editgenesetgenes/' + genesets[i];
