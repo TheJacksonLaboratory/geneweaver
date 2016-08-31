@@ -116,7 +116,7 @@
                     </tr>
 
                     {% for geneset_value in geneset.geneset_values %}
-                            <tr>
+                            <tr class="gene-list-row">
                                 <td id="defaultSymbol">
                                     <strong>
                                         <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
@@ -124,7 +124,7 @@
                                         </a>
                                     </strong>
                                 </td>
-                                <td id="altSymbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
+                                <td id="altSymbol" class="gene-symbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
                                     {# If the alternate ID type the user selected doesn't match the one belonging
                                        to the geneset_value, it means no alternate type exists for that gene and a
                                        default was used instead. #}
@@ -160,7 +160,7 @@
                                         {% endif %}
                                     {% endfor %}
                                 </td>
-                                <td>
+                                <td class="gene-value">
                                     <strong>
                                         {{ '%0.4f' % geneset_value.value|float }}
                                     </strong>
@@ -318,7 +318,23 @@
 			});
 
             $('#exportData').on('click', function (e) {
-                window.open('../exportGeneList/' + gs_id);
+                // window.open('../exportGeneList/' + gs_id);
+				var exports = '';
+				var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>' 
+
+				$('.gene-list-row').each(function(){
+					var symbol = $(this).children('.gene-symbol').text();
+					var value = $(this).children('.gene-value').text();
+
+					symbol = $.trim(symbol);
+					value = $.trim(value);
+
+					exports += symbol + '%09' + value + '%0A';
+				});
+
+				exportURL += exports;
+
+				window.open(exportURL);
             });
 
             $('#viewSimilarGenesets').on('click', function (e) {
