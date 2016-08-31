@@ -250,8 +250,32 @@ def json_login():
 
 @app.route('/analyze')
 def render_analyze():
+    grp2proj = OrderedDict()
     active_tools = geneweaverdb.get_active_tools()
-    return flask.render_template('analyze.html', active_tools=active_tools)
+
+    if 'user' not in flask.g:
+        return flask.render_template('analyze.html', active_tools=active_tools)
+
+    for p in flask.g.user.shared_projects:
+        p.group_id = p.group_id.split(',')
+        ## If a project is found in multiple groups we just use the
+        ## first group
+        p.group_id = p.group_id[0]
+        p.group = geneweaverdb.get_group_name(p.group_id)
+
+        if p.group not in grp2proj:
+            grp2proj[p.group] = [p]
+        else:
+            grp2proj[p.group].append(p)
+
+
+        grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
+
+    return flask.render_template(
+        'analyze.html', 
+        active_tools=active_tools,
+        grp2proj=grp2proj
+    )
 
 @app.route('/analyzeshared')
 def render_analyze_shared():
@@ -1072,9 +1096,13 @@ def render_viewgeneset(gs_id):
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Also some sets have a NULL status so that MUST be checked
     ## for, otherwise sad times ahead :(
-    if geneset and geneset.status == 'deleted':
+    if not geneset or (geneset and geneset.status == 'deleted'):
         return flask.render_template('viewgenesetdetails.html', geneset=None)
 
+    import sys
+    print >> sys.stderr, user_id
+    print >> sys.stderr, user_info
+    print >> sys.stderr, geneset
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:

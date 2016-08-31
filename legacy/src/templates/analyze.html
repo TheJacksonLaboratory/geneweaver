@@ -126,17 +126,18 @@
                         </div>
                     </div>
 
+					<form id="analyzeGenesets" name="analyzeGenesets" method="post" action="#"
+						  class="form-horizontal form-inline" novalidate="novalidate">
                     <!-- the projects column -->
                     <div class="col-md-8">
-                        <div class="page-header"><h2>Projects <span id="geneset-count"></span></h2></div>
+                        <div class="page-header" style="margin-bottom:0;">
+							<h2>Projects <span id="geneset-count"></span></h2>
+						</div>
 
                         {% if "user" in g %}
-							
 
                             <div class="panel-body">
 								<div id="geneset-count" class="h5"></div>
-                                <form id="analyzeGenesets" name="analyzeGenesets" method="post" action="#"
-                                      class="form-horizontal form-inline" novalidate="novalidate">
                                     <!-- TODO make the table sortable, show more gene details -->
                                     <table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
                                         <tbody>
@@ -185,9 +186,73 @@
                                         {% endfor %}
                                         </tbody>
                                     </table>
-                                </form>
                             </div>
 
+				{# Only display this section if the user has shared projects #}
+				{% if grp2proj.keys() | length > 0 %}
+                <div class="page-header" style="margin-bottom:0;margin-top:0;">
+					<h2>Shared Projects</h2>
+				</div>
+                            <div class="panel-body">
+								<div id="shared-geneset-count" class="h5"></div>
+                                    <!-- TODO make the table sortable, show more gene details -->
+									{% for grp in grp2proj %}
+										<div style="border-bottom:2px #006400 solid; margin-bottom:10px;">
+											<h4>{{ grp }}</h4>
+										</div>
+
+									{% for proj in grp2proj[grp] %}
+                                    <table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
+                                        <tbody>
+                                            <tr>
+                                                {# checkbox #}
+                                                <td width="18">
+                                                    <div class="ui-checkbox proj-checkbox">
+                                                        <label for="proj-{{ proj.project_id }}-allcheck">
+                                                            <input type="checkbox" data-project="{{ proj.project_id }}"
+                                                                   data-project-name="{{ proj.name }}"
+                                                                   name="project_{{ proj.project_id }}"
+                                                                   id="proj-{{ proj.project_id }}-allcheck"/>
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                                {# expand button #}
+                                                <td width="15">
+													<span id="proj-{{ proj.project_id }}" class="toggler" data-prod="{{ proj.project_id }}">
+														<span class="plus"></span>
+                                                        <span class="minus"></span>
+                                                    </span>
+                                                </td>
+                                                {# Project Name #}
+                                                <td>
+													<span data-prod="{{proj.project_id }}" class="toggler" style="cursor:pointer;">
+														<strong>{{ proj.name }}</strong>
+														<span style="font-size:13px; color:#888;">
+															<b>(Shared by {{proj.owner}})</b>
+														</span>
+														{% if proj.star == 't' %}
+															<span class="closedstar"></span>
+														{% endif %}
+													</span>
+                                                </td>
+
+                                            </tr>
+
+                                            <tr class="gsid{{ proj.project_id }}" id="genesets-{{ proj.project_id }}"
+                                                style="display: none;">
+                                                <td colspan="9">
+                                                    <table id="project-body-{{ proj.project_id }}"
+                                                           class="table table-hover">
+                                                    </table>
+                                                </td>
+                                            </tr>
+
+                                        </tbody>
+                                    </table>
+									{% endfor %}
+									{% endfor %}
+                            </div>
+						{% endif %}
                         {% else %}
 
                             <div class="alert alert-warning fade in">
@@ -199,6 +264,7 @@
 
                     </div>
                 </div>
+            </form>
             </form>
 
         </div>
@@ -332,14 +398,6 @@
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
         $('.project-link').on('click', function (event) {
-
-			// Change chevron when project info is displayed
-			var chev = $(this).children('.fa-caret-right').length ?
-					   $(this).children('.fa-caret-right') : 
-					   $(this).children('.fa-caret-down');
-
-			chev.toggleClass('fa-caret-down');
-			chev.toggleClass('fa-caret-right');
 
             // Get the project ID from the link href, but gotta strip out
             // '#genesets-' first

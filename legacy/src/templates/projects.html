@@ -89,13 +89,13 @@
                             <span><i class="fa fa-times pull-left"></i></span> Delete Projects
                         </button>
                         <button type="button" class="btn btn-block btn-danger" id="callRemoveGenesets">
-                            <i class="fa fa-trash-o pull-left"></i> Remove Gene Sets
+                            <i class="fa fa-trash-o pull-left"></i> Remove GeneSets
                         </button>
-                        <button type="button" class="btn btn-block btn-warning" id="newBlankProject">
+                        <button type="button" class="btn btn-block btn-warning" id="newProject">
                             <i class="fa fa-folder-o pull-left"></i> New Project
                         </button>
                         <button type="button" class="btn btn-block btn-warning" id="callCombineGeneSets">
-                            <i class="fa fa-chain pull-left"></i> Combine Gene Sets
+                            <i class="fa fa-chain pull-left"></i> Combine GeneSets
                         </button>
                     </div>
                     <div class="panel-group pull-right" id="selectedGenesets">
@@ -105,13 +105,13 @@
                         <span id="help"><i class="fa fa-caret-left"></i> help</span>
                     </div>
                     <div id="help-text" class="panel-group" style="display: none;">
-                        <p><i class="fa fa-arrow-right"></i> Select Projects and Gene Sets from the left and appropriate
+                        <p><i class="fa fa-arrow-right"></i> Select Projects and GeneSets from the left and appropriate
                             actions from the list on the right. Deleting projects will permanently remove them from your
                             account.</p>
-                        <p><i class="fa fa-arrow-right"></i> Removing Gene Sets will only remove them from the Project,
+                        <p><i class="fa fa-arrow-right"></i> Removing GeneSets will only remove them from the Project,
                             not delete them from GeneWeaver.</p>
-                        <p><i class="fa fa-arrow-right"></i> Actions on Gene Sets, such as Combine or Remove, work only
-                            on individual Gene Sets and not at the project level.</p>
+                        <p><i class="fa fa-arrow-right"></i> Actions on GeneSets, such as Combine or Remove, work only
+                            on individual GeneSets and not at the project level.</p>
                     </div>
                 </div>
 
@@ -146,7 +146,7 @@
         var url = '/projectGenesets.json';
 
         // Call New Blank Project
-        $('#newBlankProject').on('click', function () {
+        $('#newProject').on('click', function () {
            $("#addProjectModal").modal('show');
         });
 
@@ -195,32 +195,51 @@
         $('#callDeleteProjects').on('click', function () {
             var projid = [];
             var projname = [];
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("data-project-name"));
-                projname.push(v);
+
+			// These selections also grab things other that projects and 
+			// should be filtered
+            $('input[type=checkbox]:checked').each(function () {
+                var thisName = $(this).attr('data-project-name');
+
+				if (thisName !== undefined)
+					projname.push(thisName);
             });
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("data-project"));
-                projid.push(v);
+
+            $('input[type=checkbox]:checked').each(function () {
+                var thisId = $(this).attr('data-project');
+
+				if (thisId !== undefined)
+					projid.push(thisId);
             });
-            if (projid.length == 0) {
+
+            if (projid.length === 0) {
+
                 $("html, body").animate({ scrollTop: 0 }, "slow");
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "You must select at least one project.",
-                        'priority': 'danger'
-                    }
-                ]);
-            }
-            else{
+
+				$(document).trigger("add-alerts", [{
+					'message': "You must select at least one project.",
+					'priority': 'danger'
+				}]);
+
+            } else{
+            
                 var p = projid.join(",");
                 var q = projname.join(", ");
+
                 $("#myModalLabel").html(q);
                 $("#myModalValue").val(p);
                 $("#delProjects").modal('show');
             }
         });
 
+		// An attempt to prevent enter key presses from causing HTTP errors
+		// not working currently
+		$('#addGenesetsToProj').keypress(function(e) {
+
+			// 13 == ENTER key 
+			if (e.which && e.which === 13)
+				$('#addCombineGenesets').click();
+		});
 
         // Call modal to remove genesets from projects
         $('#callRemoveGenesets').on('click', function () {
@@ -233,7 +252,7 @@
                 $("html, body").animate({ scrollTop: 0 }, "slow");
                 $(document).trigger("add-alerts", [
                     {
-                        'message': "You must select at least one gene set.",
+                        'message': "You must select at least one GeneSet.",
                         'priority': 'danger'
                     }
                 ]);
@@ -243,7 +262,6 @@
                 window.location.href = '../removegenesetsfromproject/' + p;
             }
         });
-
 
         //Process the deletion of the projects
         $('#confirmDelete').on('click', function (e) {
@@ -281,24 +299,35 @@
             //also split off the name from the number
             var gsname = [];
             var gsid = [];
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("id"));
-                gsid.push(v.split('_')[1]);
-                gsname.push('GS'+ v.split('_')[1]);
+
+
+			// This selects other checkboxes that may not be genesets so we 
+			// have to filter those out.
+            $('input[type=checkbox]:checked').each(function () {
+                var checkId = $(this).attr('id');
+				checkId = checkId.split('_');
+
+				if (checkId[0] === 'geneset') {
+				
+					gsid.push(checkId[1]);
+					gsname.push('GS' + checkId[1]);
+				}
             });
-            //display error if no genesets are selected
+
+            // display error if no genesets are selected
             if (gsname.length == 0) {
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "No Gene Sets were selected for combining into the same project.",
-                        'priority': 'danger'
-                    }
-                ]);
+
+				$(document).trigger("add-alerts", [{
+					'message': "No GeneSets were selected for combining into the same project.",
+					'priority': 'danger'
+				}]);
             }
+
             // send the list to the modal.
             else{
                 var n = gsname.join(", ");
                 var i = gsid.join(",");
+
                 $("#myCombineGSLabel").html(n);
                 $("#myCombineGSValue").val(i);
                 $("#combineGenesets").modal('show');
