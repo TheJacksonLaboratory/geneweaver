@@ -413,6 +413,7 @@
 
             });
 
+		console.log('done loading?');
         });
 
         $( document.body ).on( 'click', '#geneSymbol li', function( event ) {
@@ -441,7 +442,10 @@
 
 			{# Assign the needed async_results variables #}
 			var numGS = 0;
-			var getStr = 'Genes dervied from the GeneSet: {{ geneset.name }}';
+			// Genesets with newlines cause js to shit the bed and get stuck
+			// in an infinite loading loop. Any variable replaced by jinja
+			// should be safe'd and trimmed.
+			var getStr = 'Genes dervied from the GeneSet: {{ geneset.name | safe | trim }}';
 			getStr += '?' + getStr;
 
 			// add in all the checked boxes gene names
