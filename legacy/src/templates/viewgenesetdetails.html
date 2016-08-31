@@ -81,9 +81,6 @@
                 </div>
                 <div class="col-xs-6 col-md-3">
 					{% if g.user is defined %}
-					<button type="button" class="btn btn-block btn-warning" id="addToProject" style="margin-bottom: 10px;">
-						<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
-					</button>
 					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
 						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
 					</button>
@@ -317,6 +314,8 @@
 						'<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
 			});
 
+			// Generates a text version of the gene/value list using the 
+			// currently selected alternate ID. 
             $('#exportData').on('click', function (e) {
                 // window.open('../exportGeneList/' + gs_id);
 				var exports = '';
@@ -329,6 +328,7 @@
 					symbol = $.trim(symbol);
 					value = $.trim(value);
 
+					// Tabs and newlines
 					exports += symbol + '%09' + value + '%0A';
 				});
 
