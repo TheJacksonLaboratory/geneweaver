@@ -1679,9 +1679,13 @@ def render_searchFromHome():
     default_filters = {'statusList': {'deprecated': 'no', 'provisional': 'no'}}
 
     # Perform a search
-    search_values = search.keyword_paginated_search(terms, pagination_page,
-                                                    search_fields,
-                                                    default_filters, sortby)
+    search_values = search.keyword_paginated_search(
+        terms, 
+        pagination_page,
+        search_fields,
+        default_filters, 
+        sortby
+    )
 
     # If there is an error render a blank search page
     if search_values['STATUS'] == 'ERROR':
@@ -1704,7 +1708,8 @@ def render_searchFromHome():
         searchFilters=search_values['searchFilters'],
         filterLabels=search_values['filterLabels'],
         species=species,
-        userFilters=default_filters)
+        userFilters=default_filters
+    )
 
 
 @app.route('/searchFilter.json', methods=['POST'])
