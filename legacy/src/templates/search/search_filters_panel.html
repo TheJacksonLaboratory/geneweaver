@@ -61,100 +61,100 @@
 {% if searchFilters is defined %}
 <script>
 
-	$(function () {
-		// Slider for filtering sets based on their size
-		$("#size-slider").slider({
-			range: true,
-			min: {{searchFilters.geneCounts.geneCountMin}},
-			max: {{searchFilters.geneCounts.geneCountMax}},
-			//Set the initial values
-			values: [
-				{% if userFilters is defined and 
-				   userFilters.geneCounts is defined %}
+    $(function () {
+        // Slider for filtering sets based on their size
+        $("#size-slider").slider({
+            range: true,
+            min: {{searchFilters.geneCounts.geneCountMin}},
+            max: {{searchFilters.geneCounts.geneCountMax}},
+            //Set the initial values
+            values: [
+                {% if userFilters is defined and 
+                   userFilters.geneCounts is defined %}
 
-					{{userFilters.geneCounts.geneCountMin}}
+                    {{userFilters.geneCounts.geneCountMin}}
 
-				{% else %}
+                {% else %}
 
-					{{searchFilters.geneCounts.geneCountMin}}
+                    {{searchFilters.geneCounts.geneCountMin}}
 
-				{% endif %} ,
-				{% if userFilters is defined and 
-				   userFilters.geneCounts is defined %}
+                {% endif %} ,
+                {% if userFilters is defined and 
+                   userFilters.geneCounts is defined %}
 
-					{{userFilters.geneCounts.geneCountMax}}
+                    {{userFilters.geneCounts.geneCountMax}}
 
-				{% else %}
+                {% else %}
 
-					{{searchFilters.geneCounts.geneCountMax}}
+                    {{searchFilters.geneCounts.geneCountMax}}
 
-				{% endif %}
-			],
-			// Update the form on each slide event
-			slide: function(event, ui) {
-				$( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
-				$( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
-				// Update the label
-				$("#genesetCountLabel").empty()
-					.append("Geneset Size: " + 
-						$("#size-slider").slider("values", 0) + " to " + 
-						$("#size-slider").slider( "values", 1 ));
-			},
-			start: function (event, ui) {
-				this.previous_low = ui.values[0];
-				this.previous_high = ui.values[1];
-			},
-			stop: function (event, ui) {
-				if (ui.values[0] != this.previous_low || 
-					ui.values[1] != this.previous_high)
-						$( "#filterForm" ).change();
-			}
-		});
+                {% endif %}
+            ],
+            // Update the form on each slide event
+            slide: function(event, ui) {
+                $( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
+                $( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
+                // Update the label
+                $("#genesetCountLabel").empty()
+                    .append("Geneset Size: " + 
+                        $("#size-slider").slider("values", 0) + " to " + 
+                        $("#size-slider").slider( "values", 1 ));
+            },
+            start: function (event, ui) {
+                this.previous_low = ui.values[0];
+                this.previous_high = ui.values[1];
+            },
+            stop: function (event, ui) {
+                if (ui.values[0] != this.previous_low || 
+                    ui.values[1] != this.previous_high)
+                        $( "#filterForm" ).change();
+            }
+        });
 
-		// Set initial values for minimum label
-		$("#geneCountMin")
-			.val( "" + $("#size-slider").slider("values", 0));
-		// Set initial values for maximum label
-		$("#geneCountMax")
-			.val("" + $("#size-slider").slider("values", 1));
-		// Update the label
-		$("#genesetCountLabel").empty()
-			.append("Geneset Size: " + $("#size-slider").slider("values", 0) + 
-					" to " + $("#size-slider").slider("values", 1));
+        // Set initial values for minimum label
+        $("#geneCountMin")
+            .val( "" + $("#size-slider").slider("values", 0));
+        // Set initial values for maximum label
+        $("#geneCountMax")
+            .val("" + $("#size-slider").slider("values", 1));
+        // Update the label
+        $("#genesetCountLabel").empty()
+            .append("Geneset Size: " + $("#size-slider").slider("values", 0) + 
+                    " to " + $("#size-slider").slider("values", 1));
 
-		var timeHandle = null;
+        var timeHandle = null;
 
-		// This function calls a new paginated search anytime a filter option is
-		// changed in the filter panel. The HTML view of the results is placed
-		// inside the search wrapper div.
-		$("#filterForm").on("change", function (event) {
+        // This function calls a new paginated search anytime a filter option is
+        // changed in the filter panel. The HTML view of the results is placed
+        // inside the search wrapper div.
+        $("#filterForm").on("change", function (event) {
 
-			// Stop form from submitting normally
-			event.preventDefault();
+            // Stop form from submitting normally
+            event.preventDefault();
 
-			// Prevent a previously delayed form submission from activating
-			clearTimeout(timeHandle);
+            // Prevent a previously delayed form submission from activating
+            clearTimeout(timeHandle);
 
-			var $form = $(this),
-				url = $form.attr("action"),
-				sortby = $('#sortBy').val();
+            var $form = $(this),
+                url = $form.attr("action"),
+                sortby = $('#sortBy').val();
 
-			var data = $("#filterForm").serialize() + "&" + 
-					   $("#searchBarForm").serialize();
+            var data = $("#filterForm").serialize() + "&" + 
+                       $("#searchBarForm").serialize();
 
-			// After a user changes a filter option, we delay submission of 
-			// the form for a bit in case the user decides to change other
-			// options. This allows the user to change several options in quick
-			// succession without interrupting and resetting their selections.
-			timeHandle = setTimeout(function() {
-				$.post(url, data).done(function (data) {
-					// Update the searchwrapper with the results
-					$("#replaceConentsOnUpdatedSeach").html(data)
-						.trigger("create");
-				});
-			}, 1500);
-		});
-	});
+            // After a user changes a filter option, we delay submission of 
+            // the form for a bit in case the user decides to change other
+            // options. This allows the user to change several options in quick
+            // succession without interrupting and resetting their selections.
+            timeHandle = setTimeout(function() {
+                $.post(url, data).done(function (data) {
+                    // Update the searchwrapper with the results
+                    $("#replaceConentsOnUpdatedSeach").html(data)
+                        .trigger("create");
+                });
+            }, 1500);
+        });
+    });
 </script>
 
 {% endif %}
@@ -366,12 +366,12 @@
                             <div id="tab1_3" class="tab-pane">
                                 Species
                             </div>
-							-->
+                            -->
                             <!--
                             <div id="tab1_4" class="tab-pane">
                                 Attributions
                             </div>
-							-->
+                            -->
 
                         </div>
                     </div>
