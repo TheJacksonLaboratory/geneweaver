@@ -828,8 +828,14 @@ def update_project_groups():
     if 'user_id' in flask.session:
         user_id = request.args['user_id']
         proj_id = request.args['proj_id']
-        groups = (json.loads(request.args['groups'])) if json.loads(request.args['groups']) != '' else '-1'
-        if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.user_is_project_owner(user_id, proj_id):
+
+        if json.loads(request.args['groups']) != '':
+            groups = (json.loads(request.args['groups'])) 
+        else: 
+            groups = '-1'
+
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or\
+           geneweaverdb.user_is_project_owner(user_id, proj_id):
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
