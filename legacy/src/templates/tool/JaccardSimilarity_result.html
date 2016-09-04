@@ -307,7 +307,7 @@ function reduceMatrix() {
             str = str.replace("p =", "");
             str = str.replace(/^\s+|\s+$/g, '');
             str === "" ? str = "-1" : str = str;
-            if(parseFloat(str) < d.JaccardSimilarity_p_Value) {
+            if(parseFloat(str) > d.JaccardSimilarity_p_Value) {
               str = "-1";
             }
             // Pushes the p-value into the row
