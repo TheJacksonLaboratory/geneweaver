@@ -271,14 +271,6 @@
 <!-- Start of the javascipt corresponding to specific html elements -->
 <script type="text/javascript">
 
-// Checks to see if the coordinate is in the array created for the elimination matrix
- function isIn(arr, x) {
-    for(var i = 0; i < arr.length; i++) {
-        if(arr[i] === x) return true;
-    }
-    return false;
-}
-
 // Function to reduce matrix based on pValue threshold
 function reduceMatrix() {
 
@@ -433,25 +425,33 @@ function reduceMatrix() {
                row_count = 0;
            }
 
-           if(isIn(elim, row_count)) { // Skip a row
+           // Skip a row
+           if (elim.includes(row_count)) {
+
                i += num_sets-1;
                continue;
-           }
-           else if(isIn(elim, i % num_sets)) {  // Skip a column
+
+           // Skip a column
+           } else if (elim.includes(i % num_sets)) {
+
                y_coord += 150;
                continue;
            }
 
            y_coord += 150;
-       }
-       else {
+
+       } else {
           
-           if(isIn(elim, i % num_sets)) {  // Skip a column
-               if(i % num_sets === 0) {
+           // Skip a column
+           if (elim.includes(i % num_sets)) {
+
+               if (i % num_sets === 0) {
+
                   i--;
                   xVal = -1;
                }
-              continue;
+
+               continue;
            }
        }
 
@@ -973,12 +973,12 @@ function reduceMatrix() {
 
         // If circle pValue is less than slider text set opacity to 0
         svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue < nOpacity ) return true;})
+            .filter(function (d) {if (d.pvalue > nOpacity ) return true;})
             .style("fill-opacity",0);
 
         // If circle pValue is greater or equal to slider text set opacity to 1
         svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue >= nOpacity ) return true;})
+            .filter(function (d) {if (d.pvalue <= nOpacity ) return true;})
             .style("fill-opacity",1);
        }
 
