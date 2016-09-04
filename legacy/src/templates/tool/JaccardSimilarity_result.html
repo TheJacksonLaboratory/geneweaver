@@ -153,24 +153,44 @@
         </div>
     </div>
 </form>
-{#
-<div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
 
-<div id="rerunPanel" >
-    <form id="todo-id" class="form-horizontal" role="form" method="post">
-        <div class="form-group" >{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
-        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
-        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
-        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-        <button id="rerun" class="btn btn-primary"
-           type='submit'x
-           value='run'
-           onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
-           Run
-        </button>
-     </form>
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Visualization Options
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="viz-options" class="panel-collapse collapse" style="">
+		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+            <div class="row">
+				<div class="col-md-2">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="download-image" id="dl-pdf">PDF</a></li>
+                            <li><a class="download-image" id="dl-png">PNG</a></li>
+                            <li><a class="download-image" id="dl-svg">SVG</a></li>
+                        </ul>
+                    </div>
+				</div>
+
+				<div class="col-md-2">
+                    <button type="button" value="Update" id="zoomButton" class="btn btn-primary">
+                        Reset Zoom
+                    </button>
+                </div>
+            </div>
+
+		</div>
+	</div>
 </div>
- #}
+
 <br>
 
 <!-- Panel for the Geneset Table-->
@@ -209,27 +229,9 @@
       <div class="container middle-cell">
 
         <!-- Formatting the buttons in the correct div, Download buttons has a dropdown menu allowing user to select three options -->
-        <div class="">
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary">Download as...</button>
-                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <span class="caret"></span>
-                    <span class="sr-only">Toggle Dropdown</span>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="download-image" id="dl-pdf">PDF</a></li>
-                    <li><a class="download-image" id="dl-png">PNG</a></li>
-                    <li><a class="download-image" id="dl-svg">SVG</a></li>
-                </ul>
-            </div>
-        </div>
       </div>
             <!-- Reset Zoom button for the Venn Diagram view that allows users to view the data in its original display if they zoom or pan too much -->
             <div class="right-cell">
-         <button type="button" value="Update" id="zoomButton" class="btn btn-primary">Reset Zoom</button>
-             <!--
-         <button type="button" value="Update" id="zoomButton">Reset Zoom</button>
-         -->
       </div>
 </div>
 
