@@ -249,6 +249,8 @@
     The p-value threshold is too high, please run the tool again at a lower threshold.
 </div>
 
+<div id="matrix">
+</div>
 <!-- Div(Jaccard), where all the venn diagram D3 is appended to in the JavaScript below -->
 <div id="jaccard">
 </div>
@@ -484,24 +486,144 @@ var jaccardSimilarity = function() {
             .style('font-size', '11px')
             .text(function(d) { return d.text; })
             ;
-            /*
-       // Creates the functionality behing the button to reset zoom
-       $("#zoomButton").on("click", function () {
-                    counter++;
-                    svgContainer
-                          .transition()
-                        .duration(1000)
-                         .attr('transform', "translate(0,0)");
-                           zoom.scale(1);
-                          zoom.translate([0, 0]);
-                  });
+    };
 
-    // Allows tooltip functionality on the jaccard div- hover and clicks
-    var div = d3.select("#jaccard").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0);
+    exports.data = function(_) {
+        if (!arguments.length) return data;
+        data = _;
+        return exports;
+    };
 
-            */
+    exports.diagramPadding = function(_) {
+        if (!arguments.length) return diagramPadding;
+        diagramPadding = +_;
+        return exports;
+    };
+
+    exports.height = function(_) {
+        if (!arguments.length) return height;
+        height = +_;
+        return exports;
+    };
+
+    exports.width = function(_) {
+        if (!arguments.length) return width;
+        width = +_;
+        return exports;
+    };
+
+    return exports;
+};
+
+var jaccardSimilarityMatrix = function() {
+
+    var exports = {},
+        // SVG object
+        svg = null,
+        // SVG width in pixels
+        width = 1100,
+        // SVG height in pixels
+        height = 900,
+        // Padding (in pixels) between each individual venn diagram
+        diagramPadding = 100,
+        // Venn diagram opacity
+        opacity = 0.70,
+        d3Circles = [],
+        d3Labels = [],
+        // Venn diagram colors: Emphasis gene green, left red, right blue
+        fillColors = ['#006400', '#EE0000', '#0000BB'],
+        table = null,
+        // Data returned by the tool
+        data = null
+        ;
+
+    /** private **/
+
+    /**
+      * Generates HTML for the table headers for the similarity matrix using 
+      * the given data.
+      */
+    var makeHeader = function() {
+
+        //var headRow = d3.append('tr');
+        var headRow = table.append('tr');
+        var gsTable = data.geneset_table;
+
+        // Empty column for geneset names
+        headRow.append('th')
+            .attr('valign', 'bottom')
+            .attr('align', 'left')
+            ;
+
+        headRow.selectAll('header')
+            .data(gsTable)
+            .enter()
+            .append('th')
+            .attr('align', 'cetner')
+            .style('text-align', 'center')
+            .style('border-top', '1px solid #000')
+            .style('border-left', '1px solid #000')
+            .style('border-right', '1px solid #000')
+            .style('border-bottom', '1px solid #000')
+            .style('background-color', function(d, i) {
+
+                if (i % 2)
+                    return '#E7F0E7';
+                else
+                    return '#FFF';
+            })
+            .text(function(d) { return d.gsID; })
+            ;
+    };
+
+    var makeRows = function() {
+
+        // Iterate per row
+        for (var i = 0; i < data.geneset_table.length; i++) {
+
+            var dataRow = data.geneset_table[i];
+            //var row = d3.append('tr');
+            var row = table.append('tr');
+
+            row.append('td')
+                .style('padding-right', '5px')
+                .text(dataRow.text);
+
+            row.selectAll('row')
+                .data(dataRow.entries)
+                .enter()
+                .append('td')
+                .attr('align', 'center')
+                .style('border-left', '1px solid #000')
+                .style('border-right', '1px solid #000')
+                .style('border-bottom', function() {
+                    // Last table row has a black border, inner rows are grey
+                    if (i === (data.geneset_table.length - 1))
+                        return '1px solid #000';
+                    else
+                        return '1px solid #ccc';       
+                })
+                .style('padding', '0.5em')
+                .style('background-color', function(d, i) {
+
+                    if (i % 2)
+                        return '#E7F0E7';
+                    else
+                        return '#FFF';
+                        //return '#C7D0C7';
+                })
+                .html(function(d) { return d.jval + '<br />' + d.pval; });
+        }
+    };
+
+    exports.draw = function() {
+
+        table = d3.select('#matrix')
+            .append('table')
+            ;
+
+        makeHeader();
+        makeRows();
     };
 
     exports.data = function(_) {
@@ -540,6 +662,9 @@ $(document).ready(function() {
         .diagramPadding(150)
         //.draw();
         ;
+    var jsm = jaccardSimilarityMatrix()
+        .data(d)
+        .draw();
 });
    var d = {{ data | safe }}; //Declaration of data as d variable
 
