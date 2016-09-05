@@ -329,7 +329,218 @@ function reduceMatrix() {
 }
 
 
+var jaccardSimilarity = function() {
 
+    var exports = {},
+        // SVG object
+        svg = null,
+        // SVG width in pixels
+        width = 1100,
+        // SVG height in pixels
+        height = 900,
+        // Padding (in pixels) between each individual venn diagram
+        diagramPadding = 100,
+        // Venn diagram opacity
+        opacity = 0.70,
+        d3Circles = [],
+        d3Labels = [],
+        // Venn diagram colors: Emphasis gene green, left red, right blue
+        fillColors = ['#006400', '#EE0000', '#0000BB'],
+        // Data returned by the tool
+        data = null
+        ;
+
+    /** private **/
+
+    var parsePValue = function(str) {
+
+        var regex = new RegExp([
+            /[P|p]/,    // P or p
+            /\s+/,      // >= 1 spaces
+            /=/,        // Equals sign 
+            /\s+/,      // >= 1 spaces 
+            // >= 1 digits or >=1 digits, a period then >= 1 digits
+            /(\d+\.*\d+|\d+)/
+        ].map(function(r) { return r.source; }).join(''));
+
+        var match = regex.exec(str);
+
+        if (!match || match.length < 2)
+            return 1;
+
+        return parseFloat(match[1]);
+    }
+
+    /**
+      * Organizes the list of venn diagrams returned by the tool into a series 
+      * of rows and columns dependent on the number of genesets (e.g. four
+      * genesets should return a total of 16 comparisons, so four rows and four
+      * columns). Sets the final x and y coordinates for each diagram.
+      */
+    var positionDiagrams = function() {
+
+        var numSets = data.genesets.length;
+
+        for (var i = 0; i < data.venn_diagrams.length; i++) {
+            var venn = data.venn_diagrams[i];
+            
+            // Zero indexed row/column numbers
+            venn.column = i % numSets;
+            venn.row = Math.floor(i / numSets);
+            // GS IDs for the left and right genesets
+            venn.gsids = [data.gs_ids[venn.row], data.gs_ids[venn.column]];
+            venn.pvalue = parsePValue(venn.text[2].text);
+        }
+    };
+
+    /**
+      * Transforms the venn diagram data returned by the tool into a format 
+      * ready for display. Calculates proper x, y postiions, radii, and colors.
+      */
+    var makeCircles = function() {
+
+        for (var i = 0; i < data.venn_diagrams.length; i++) {
+            var venn = data.venn_diagrams[i];
+
+            // Each venn object has data for two circles
+            for (var j = 1; j <= 2; j++) {
+
+                // cx, cy, and radius keys
+                var vcx = 'c' + j + 'x',
+                    vcy = 'c' + j + 'y',
+                    vr = 'r' + j;
+
+                var circle = {
+                    cx: venn[vcx] + (venn.column * diagramPadding),
+                    cy: venn[vcy] + (venn.row * diagramPadding),
+                    r: venn[vr],
+                    fill: fillColors[j]
+                };
+
+                d3Circles.push(circle);
+            }
+        }
+    };
+
+    var makeText = function() {
+
+        for (var i = 0; i < data.venn_diagrams.length; i++) {
+            var venn = data.venn_diagrams[i];
+
+            // Each venn object has an array of text objects with (usually)
+            // three elements 
+            for (var j = 0; j < venn.text.length; j++) {
+
+                var text = {
+                    x: venn.text[j].tx + (venn.column * diagramPadding) - 50,
+                    y: venn.text[j].ty + (venn.row * diagramPadding) - 20,
+                    text: venn.text[j].text
+                };
+
+                d3Labels.push(text);
+            }
+        }
+    };
+    
+    exports.draw = function() {
+
+        positionDiagrams();
+        makeCircles();
+        makeText();
+
+        svg = d3.select('#jaccard')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .call(d3.behavior.zoom().on('zoom', function() {
+                svg.attr('transform', function() {
+                    return 'translate(' + d3.event.translate + ')' + 
+                           ' scale(' + d3.event.scale + ')';
+                });
+            }))
+            .append('g');
+
+        var circles = svg.selectAll('circle')
+            .data(d3Circles)
+            .enter()
+            .append('circle')
+            .attr('cx', function(d) { return d.cx; })
+            .attr('cy', function(d) { return d.cy; })
+            .attr('r', function(d) { return d.r; })
+            .style('fill', function(d) { return d.fill; })
+            .style('opacity', opacity)
+            .style('shape-rendering', 'geometricPrecision')
+            .style('stroke', '#000')
+            .style('stroke-width', '1px')
+            ;
+
+        var labels = svg.selectAll('text')
+            .data(d3Labels)
+            .enter()
+            .append('text')
+            .attr('x', function(d) { return d.x; })
+            .attr('y', function(d) { return d.y; })
+            .style('color', '#000')
+            .style('font-size', '11px')
+            .text(function(d) { return d.text; })
+            ;
+            /*
+       // Creates the functionality behing the button to reset zoom
+       $("#zoomButton").on("click", function () {
+                    counter++;
+                    svgContainer
+                          .transition()
+                        .duration(1000)
+                         .attr('transform', "translate(0,0)");
+                           zoom.scale(1);
+                          zoom.translate([0, 0]);
+                  });
+
+    // Allows tooltip functionality on the jaccard div- hover and clicks
+    var div = d3.select("#jaccard").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+            */
+    };
+
+    exports.data = function(_) {
+        if (!arguments.length) return data;
+        data = _;
+        return exports;
+    };
+
+    exports.diagramPadding = function(_) {
+        if (!arguments.length) return diagramPadding;
+        diagramPadding = +_;
+        return exports;
+    };
+
+    exports.height = function(_) {
+        if (!arguments.length) return height;
+        height = +_;
+        return exports;
+    };
+
+    exports.width = function(_) {
+        if (!arguments.length) return width;
+        width = +_;
+        return exports;
+    };
+
+    return exports;
+};
+
+$(document).ready(function() {
+
+        console.log('ready');
+   var d = {{ data | safe }}; //Declaration of data as d variable
+    var js = jaccardSimilarity()
+        .data(d)
+        .diagramPadding(150)
+        //.draw();
+        ;
+});
    var d = {{ data | safe }}; //Declaration of data as d variable
 
    {# Checks number of objects venn_diagram has#}
