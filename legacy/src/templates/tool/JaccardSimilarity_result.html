@@ -453,12 +453,42 @@ var jaccardSimilarity = function() {
         for (var i = 0; i < data.venn_diagrams.length; i++) {
             var venn = data.venn_diagrams[i];
 
+            var c1x = venn['c1x'] + (venn.column * diagramPadding);
+                c2x = venn['c2x'] + (venn.column * diagramPadding),
+                c1y = venn['c1y'] + (venn.row * diagramPadding),
+                c2y = venn['c2y'] + (venn.row * diagramPadding),
+                r1 = venn.r1,
+                r2 = venn.r2;
+
+            // Distance between corcle midpoints
+            var d = Math.sqrt(Math.pow((c2x - c1x), 2) + 
+                              Math.pow((c2y - c1y), 2));
+            // Distance from the left circle midpoint to the intersection midpoint
+            var a = ((r1 * r1) - (r2 * r2) + (d * d)) / (2 * d);
+            var h = Math.sqrt((r1 * r1) - (a * a));
+            // Intersection midpoints
+            var p2x = c1x + a * (c2x - c1x) / d;
+            var p2y = c1y + a * (c2y - c1y) / d;
+            //
+            var cd = ((r1 * r1) + (r2 * r2)) / 2;
+            var c3x = c1x - r1;
             // Each venn object has an array of text objects with (usually)
             // three elements 
             for (var j = 0; j < venn.text.length; j++) {
 
+                if (j === 0)
+                    var yShift = -30;
+                else if (j === 1)
+                    var yShift = 30;
+                else
+                    var yShift = 45;
+
                 var text = {
-                    x: venn.text[j].tx + (venn.column * diagramPadding) - 50,
+                    //x: p2x,
+                    //x: c3x,// + cd,
+                    //y: p2y + yShift,
+                    //subRadius: (r1 < r2) ? r1 : r2, 
+                    x: venn.text[j].tx + (venn.column * diagramPadding) - 40,
                     y: venn.text[j].ty + (venn.row * diagramPadding) - 20,
                     text: venn.text[j].text
                 };
@@ -497,18 +527,24 @@ var jaccardSimilarity = function() {
             .style('opacity', opacity)
             .style('shape-rendering', 'geometricPrecision')
             .style('stroke', '#000')
-            .style('stroke-width', '1px')
-            ;
+            .style('stroke-width', '1px');
 
         var labels = svg.selectAll('text')
             .data(d3Labels)
             .enter()
             .append('text')
-            .attr('x', function(d) { return d.x; })
-            .attr('y', function(d) { return d.y; })
             .style('color', '#000')
             .style('font-size', '11px')
             .text(function(d) { return d.text; })
+            .attr('x', function(d) { 
+                var textWidth = this.getBoundingClientRect().width;
+                //return d.x - (textWidth / 2); 
+                //return d.x - d.subRadius;
+                return d.x;
+            })
+            .attr('y', function(d) { 
+                return d.y; 
+            })
             ;
     };
 
@@ -544,26 +580,25 @@ var jaccardSimilarityMatrix = function() {
     var exports = {},
         // Data returned by the tool
         data = null,
+        // Element wrapper ID containing the drawn similarity matrix
+        matrixElement = '#matrix',
         // Table element 
         table = null;
 
     /** private **/
 
     /**
-      * Generates HTML for the table headers for the similarity matrix using 
-      * the given data.
+      * Generates the table header HTML for the similarity matrix.
       */
     var makeHeader = function() {
 
-        //var headRow = d3.append('tr');
         var headRow = table.append('tr');
         var gsTable = data.geneset_table;
 
         // Empty column for geneset names
         headRow.append('th')
             .attr('valign', 'bottom')
-            .attr('align', 'left')
-            ;
+            .attr('align', 'left');
 
         headRow.selectAll('header')
             .data(gsTable)
@@ -588,18 +623,16 @@ var jaccardSimilarityMatrix = function() {
                 return '/viewgenesetdetails/' + d.gsID.slice(2); 
             })
             .attr('target', '_blank')
-            //.style('color', '#006400')
             .style('color', '#2e2e2e')
-            .text(function(d) { return d.gsID; })
-            ;
+            .text(function(d) { return d.gsID; });
     };
 
     /**
-      * Creates each individual row element.
+      * Creates each individual row/column element.
       */
     var makeRows = function() {
 
-        // Iterate per row
+        // Iterate over each row; each row object contains n columns
         for (var i = 0; i < data.geneset_table.length; i++) {
 
             var dataRow = data.geneset_table[i];
@@ -618,7 +651,6 @@ var jaccardSimilarityMatrix = function() {
                     return '/viewgenesetdetails/' + dataRow.gsID.slice(2); 
                 })
                 .attr('target', '_blank')
-                //.style('color', '#006400')
                 .style('color', '#2e2e2e')
                 .text(dataRow.text);
 
@@ -661,7 +693,6 @@ var jaccardSimilarityMatrix = function() {
                         return '/viewgenesetoverlap/' + idLeft + '+' + idRight;
                 })
                 .style('color', function(d, j) {
-
                     // Same geneset
                     if (i === j)
                         return '#CC0000';
@@ -689,17 +720,22 @@ var jaccardSimilarityMatrix = function() {
         return exports;
     };
 
+    exports.matrixElement = function(_) {
+        if (!arguments.length) return matrixElement;
+        matrixElement = _;
+        return exports;
+    };
+
     return exports;
 };
 
 $(document).ready(function() {
 
-        console.log('ready');
    var d = {{ data | safe }}; //Declaration of data as d variable
     var js = jaccardSimilarity()
         .data(d)
         .diagramPadding(150)
-        //.draw();
+        .draw();
         ;
 
     // Draws the jaccard similarity table
