@@ -191,9 +191,35 @@
 	</div>
 </div>
 
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Similarity Matrix
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="sim-matrix" class="panel-collapse collapse" style="">
+		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+            <div class="row" align="center">
+                <div id="matrix" align="center">
+                </div>
+                {#
+				<div class="col-md-2">
+				</div>
+				<div class="col-md-2">
+                </div>
+                #}
+            </div>
+		</div>
+	</div>
+</div>
+
 <br>
 
 <!-- Panel for the Geneset Table-->
+{#
 <div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">GeneSet Table Panel</i></div>
 <div id="panel" class="badger-left">
 
@@ -218,7 +244,7 @@
             <i class="fa fa-download pull-left"></i> Export Genes
         </button>
 </div>
-
+#}
 <p>
 <div class="box-header clearfix">
       <!-- Venn Diagram view the users intially see -->
@@ -249,8 +275,6 @@
     The p-value threshold is too high, please run the tool again at a lower threshold.
 </div>
 
-<div id="matrix">
-</div>
 <!-- Div(Jaccard), where all the venn diagram D3 is appended to in the JavaScript below -->
 <div id="jaccard">
 </div>
@@ -518,24 +542,10 @@ var jaccardSimilarity = function() {
 var jaccardSimilarityMatrix = function() {
 
     var exports = {},
-        // SVG object
-        svg = null,
-        // SVG width in pixels
-        width = 1100,
-        // SVG height in pixels
-        height = 900,
-        // Padding (in pixels) between each individual venn diagram
-        diagramPadding = 100,
-        // Venn diagram opacity
-        opacity = 0.70,
-        d3Circles = [],
-        d3Labels = [],
-        // Venn diagram colors: Emphasis gene green, left red, right blue
-        fillColors = ['#006400', '#EE0000', '#0000BB'],
-        table = null,
         // Data returned by the tool
-        data = null
-        ;
+        data = null,
+        // Table element 
+        table = null;
 
     /** private **/
 
@@ -574,32 +584,19 @@ var jaccardSimilarityMatrix = function() {
             })
             .append('a')
             .attr('href', function(d) { 
+                // Removes the 'GS' prefix
                 return '/viewgenesetdetails/' + d.gsID.slice(2); 
             })
             .attr('target', '_blank')
-            .style('color', '#006400')
+            //.style('color', '#006400')
+            .style('color', '#2e2e2e')
             .text(function(d) { return d.gsID; })
             ;
-
-        console.log(makeGenesetLink(1234).node);
-        console.log(makeGenesetLink(1234).node.toString());
     };
 
-    var makeGenesetLink = function(gsid, hasPrefix) {
-
-        // Removes the 'GS' prefix from a GS ID
-        if (hasPrefix)
-            var numId = gsid.slice(2);
-        else
-            var numId = gsid;
-
-        return d3.select(document.createElement('a'))
-            .attr('href', '/viewgenesetdetails/' + numId)
-            .text(gsid)
-            //.toString()
-            ;
-    };
-
+    /**
+      * Creates each individual row element.
+      */
     var makeRows = function() {
 
         // Iterate per row
@@ -621,8 +618,8 @@ var jaccardSimilarityMatrix = function() {
                     return '/viewgenesetdetails/' + dataRow.gsID.slice(2); 
                 })
                 .attr('target', '_blank')
-                .style('color', '#006400')
-                //.text(function(d) { return d.gsID; })
+                //.style('color', '#006400')
+                .style('color', '#2e2e2e')
                 .text(dataRow.text);
 
             row.selectAll('row')
@@ -650,15 +647,37 @@ var jaccardSimilarityMatrix = function() {
                     else
                         return '#FFF';
                 })
+                .append('a')
+                .attr('target', '_blank')
+                .attr('href', function(d, j) {
+                    // Removes the 'GS' prefix
+                    var idLeft = data.geneset_table[i].gsID.slice(2);
+                    var idRight = data.geneset_table[j].gsID.slice(2);
+
+                    // Same geneset
+                    if (i === j)
+                        return '/viewgenesetdetails/' + idLeft;
+                    else
+                        return '/viewgenesetoverlap/' + idLeft + '+' + idRight;
+                })
+                .style('color', function(d, j) {
+
+                    // Same geneset
+                    if (i === j)
+                        return '#CC0000';
+                    else
+                        return '#000';
+                })
                 .html(function(d) { return d.jval + '<br />' + d.pval; });
         }
     };
 
+    /** public **/
+
     exports.draw = function() {
 
         table = d3.select('#matrix')
-            .append('table')
-            ;
+            .append('table');
 
         makeHeader();
         makeRows();
@@ -667,24 +686,6 @@ var jaccardSimilarityMatrix = function() {
     exports.data = function(_) {
         if (!arguments.length) return data;
         data = _;
-        return exports;
-    };
-
-    exports.diagramPadding = function(_) {
-        if (!arguments.length) return diagramPadding;
-        diagramPadding = +_;
-        return exports;
-    };
-
-    exports.height = function(_) {
-        if (!arguments.length) return height;
-        height = +_;
-        return exports;
-    };
-
-    exports.width = function(_) {
-        if (!arguments.length) return width;
-        width = +_;
         return exports;
     };
 
@@ -700,6 +701,8 @@ $(document).ready(function() {
         .diagramPadding(150)
         //.draw();
         ;
+
+    // Draws the jaccard similarity table
     var jsm = jaccardSimilarityMatrix()
         .data(d)
         .draw();
