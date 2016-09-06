@@ -370,6 +370,11 @@ var jaccardSimilarity = function() {
         opacity = 0.70,
         d3Circles = [],
         d3Labels = [],
+        d3Text = [],
+        // Shift venn diagrams and their labels N pixels to the right
+        xShift = 150,
+        // Shift venn diagrams and their labels down N pixels
+        yShift = 120,
         // Venn diagram colors: Emphasis gene green, left red, right blue
         fillColors = ['#006400', '#EE0000', '#0000BB'],
         // Data returned by the tool
@@ -497,12 +502,41 @@ var jaccardSimilarity = function() {
             }
         }
     };
+
+    var makeLabels = function() {
+
+        var gsTable = data.geneset_table;
+
+        for (var i = 0; i < gsTable.length; i++) {
+
+            var columnText = {
+                x: (i * diagramPadding),
+                y: 20,
+                text: gsTable[i].text,
+                isColumn: true,
+                isRow: false
+            };
+
+            var rowText = {
+                x: 0,
+                y: (i * diagramPadding),
+                text: gsTable[i].text,
+                isColumn: false,
+                isRow: true
+            }
+
+            d3Text.push(columnText);
+            d3Text.push(rowText);
+        }
+
+    };
     
     exports.draw = function() {
 
         positionDiagrams();
         makeCircles();
         makeText();
+        makeLabels();
 
         svg = d3.select('#jaccard')
             .append('svg')
@@ -520,6 +554,7 @@ var jaccardSimilarity = function() {
             .data(d3Circles)
             .enter()
             .append('circle')
+            .attr('transform', 'translate(' + xShift + ',' + yShift + ')')
             .attr('cx', function(d) { return d.cx; })
             .attr('cy', function(d) { return d.cy; })
             .attr('r', function(d) { return d.r; })
@@ -533,8 +568,7 @@ var jaccardSimilarity = function() {
             .data(d3Labels)
             .enter()
             .append('text')
-            .style('color', '#000')
-            .style('font-size', '11px')
+            .attr('transform', 'translate(' + xShift + ',' + yShift + ')')
             .text(function(d) { return d.text; })
             .attr('x', function(d) { 
                 var textWidth = this.getBoundingClientRect().width;
@@ -544,6 +578,68 @@ var jaccardSimilarity = function() {
             })
             .attr('y', function(d) { 
                 return d.y; 
+            })
+            .style('color', '#000')
+            .style('font-size', '11px')
+            ;
+
+        var xLabelShift = xShift - 20;
+        var yLabelShift = yShift + 40;
+
+        var labels = svg.selectAll('header-text')
+            .data(d3Text)
+            .enter()
+            .append('text')
+            .style('color', '#000')
+            .style('font-size', '11px')
+            .style('font-weight', 'bold')
+            //.text(function(d) { return d.text; })
+            .attr('transform', function(d) {
+                if (d.isColumn)
+                    return 'translate(' + xLabelShift + ',' + 20 + ')'
+                else
+                    return 'translate(' + 0 + ',' + yLabelShift + ')'
+            })
+            .attr('x', function(d) { 
+                var textWidth = this.getBoundingClientRect().width;
+                //return d.x - (textWidth / 2); 
+                //return d.x - d.subRadius;
+                return d.x;
+            })
+            .attr('y', function(d) { 
+                return d.y; 
+            })
+            // The text for each row/col label is split into chunks of 20 
+            // characters so everything fits properly and doesnt' overlap
+            .each(function(d) {
+                
+                var chunks = [];
+                var labelText = d.text;
+
+                while (true) {
+
+                    var chunk = labelText.slice(0, 25);
+                    console.log(chunk);
+
+                    if (!chunk)
+                        break;
+
+                    chunks.push(chunk);
+
+                    labelText = labelText.slice(25);
+                }
+
+                for (var i = 0; i < chunks.length; i++) {
+
+                    var textElem = d3.select(this)
+                        .append('tspan')
+                        .attr('x', d.x)
+                        .attr('y', d.y)
+                        .attr('dx', 0)
+                        .attr('dy', function() { return (i * 15); })
+                        .text(chunks[i])
+                        ;
+                }
             })
             ;
     };
