@@ -799,6 +799,28 @@ var jaccardSimilarityMatrix = function() {
         }
     };
 
+    var makeAllOverlapLink = function() {
+
+        var gsTable = data.geneset_table;
+        // All the GS IDs without their 'GS' prefix, joined together with '+'
+        //var gsIds = gsTable.map(function(t) { 
+        var gsIds = gsTable.map(function(t) { 
+            return t.gsID.slice(2); 
+        }).join('+');
+
+        // Left side geneset IDs and names
+        d3.select(matrixElement)
+            .append('a')
+            .attr('target', '_blank')
+            .attr('href', function() {
+                return '/viewgenesetoverlap/' + gsIds;
+            })
+            .style('color', '#006400')
+            .style('font-weight', 'bold')
+            .style('padding-top', '5px')
+            .text('View overlap between all sets');
+    };
+
     /** public **/
 
     exports.draw = function() {
@@ -808,6 +830,7 @@ var jaccardSimilarityMatrix = function() {
 
         makeHeader();
         makeRows();
+        makeAllOverlapLink();
     };
 
     exports.data = function(_) {
@@ -831,7 +854,7 @@ $(document).ready(function() {
     var js = jaccardSimilarity()
         .data(d)
         .diagramPadding(150)
-        .draw();
+        //.draw();
         ;
 
     // Draws the jaccard similarity table
