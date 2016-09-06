@@ -1,7 +1,7 @@
 {# curation tier boxes #}
 
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h3 class="panel-title">
+        <h3 class="panel-title" style="width:100%">
             {% if geneset.cur_id == 1 %}
                 <span class="tier1" style="vertical-align: middle">Tier I</span>
             {% endif %}
@@ -17,5 +17,6 @@
             {% if geneset.cur_id == 5 %}
                 <span class="tier5" style="vertical-align: middle">Tier V</span>
             {% endif %}
-            GS{{ geneset.geneset_id }} &bull; {{ geneset.name }}</h3>
+            GS{{ geneset.geneset_id }} &bull; {{ geneset.name }}
+		</h3>
     </div>

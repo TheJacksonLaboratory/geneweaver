@@ -828,8 +828,14 @@ def update_project_groups():
     if 'user_id' in flask.session:
         user_id = request.args['user_id']
         proj_id = request.args['proj_id']
-        groups = (json.loads(request.args['groups'])) if json.loads(request.args['groups']) != '' else '-1'
-        if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.user_is_project_owner(user_id, proj_id):
+
+        if json.loads(request.args['groups']) != '':
+            groups = (json.loads(request.args['groups'])) 
+        else: 
+            groups = '-1'
+
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or\
+           geneweaverdb.user_is_project_owner(user_id, proj_id):
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
@@ -1066,6 +1072,8 @@ def render_viewgeneset(gs_id):
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
 
+    import sys
+
     for gtype in genetypes:
         genedict[gtype['gdb_id']] = gtype['gdb_name']
 
@@ -1099,10 +1107,6 @@ def render_viewgeneset(gs_id):
     if not geneset or (geneset and geneset.status == 'deleted'):
         return flask.render_template('viewgenesetdetails.html', geneset=None)
 
-    import sys
-    print >> sys.stderr, user_id
-    print >> sys.stderr, user_info
-    print >> sys.stderr, geneset
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
@@ -1681,9 +1685,13 @@ def render_searchFromHome():
     default_filters = {'statusList': {'deprecated': 'no', 'provisional': 'no'}}
 
     # Perform a search
-    search_values = search.keyword_paginated_search(terms, pagination_page,
-                                                    search_fields,
-                                                    default_filters, sortby)
+    search_values = search.keyword_paginated_search(
+        terms, 
+        pagination_page,
+        search_fields,
+        default_filters, 
+        sortby
+    )
 
     # If there is an error render a blank search page
     if search_values['STATUS'] == 'ERROR':
@@ -1706,7 +1714,8 @@ def render_searchFromHome():
         searchFilters=search_values['searchFilters'],
         filterLabels=search_values['filterLabels'],
         species=species,
-        userFilters=default_filters)
+        userFilters=default_filters
+    )
 
 
 @app.route('/searchFilter.json', methods=['POST'])

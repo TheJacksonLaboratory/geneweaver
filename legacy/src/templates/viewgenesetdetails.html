@@ -58,9 +58,6 @@
         <h2 class="panel-title"><strong>GeneSet Information</strong></h2>
     </div>
 
-
-
-
     <div class="panel panel-default">
         {% include 'htmlfragments/curIDBoxes.html' %}
 
@@ -72,18 +69,15 @@
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" style="padding-top:10px;">
 
             <div class="row">
                 <div class="col-xs-12 col-md-9">
                     <div class="row">
                     </div>
                 </div>
-                <div class="col-xs-6 col-md-3">
+                <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
 					{% if g.user is defined %}
-					<button type="button" class="btn btn-block btn-warning" id="addToProject" style="margin-bottom: 10px;">
-						<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
-					</button>
 					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
 						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
 					</button>
@@ -116,7 +110,7 @@
                     </tr>
 
                     {% for geneset_value in geneset.geneset_values %}
-                            <tr>
+                            <tr class="gene-list-row">
                                 <td id="defaultSymbol">
                                     <strong>
                                         <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
@@ -124,7 +118,7 @@
                                         </a>
                                     </strong>
                                 </td>
-                                <td id="altSymbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
+                                <td id="altSymbol" class="gene-symbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
                                     {# If the alternate ID type the user selected doesn't match the one belonging
                                        to the geneset_value, it means no alternate type exists for that gene and a
                                        default was used instead. #}
@@ -160,7 +154,7 @@
                                         {% endif %}
                                     {% endfor %}
                                 </td>
-                                <td>
+                                <td class="gene-value">
                                     <strong>
                                         {{ '%0.4f' % geneset_value.value|float }}
                                     </strong>
@@ -317,8 +311,27 @@
 						'<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
 			});
 
+			// Generates a text version of the gene/value list using the 
+			// currently selected alternate ID. 
             $('#exportData').on('click', function (e) {
-                window.open('../exportGeneList/' + gs_id);
+                // window.open('../exportGeneList/' + gs_id);
+				var exports = '';
+				var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>' 
+
+				$('.gene-list-row').each(function(){
+					var symbol = $(this).children('.gene-symbol').text();
+					var value = $(this).children('.gene-value').text();
+
+					symbol = $.trim(symbol);
+					value = $.trim(value);
+
+					// Tabs and newlines
+					exports += symbol + '%09' + value + '%0A';
+				});
+
+				exportURL += exports;
+
+				window.open(exportURL);
             });
 
             $('#viewSimilarGenesets').on('click', function (e) {
@@ -397,6 +410,7 @@
 
             });
 
+		console.log('done loading?');
         });
 
         $( document.body ).on( 'click', '#geneSymbol li', function( event ) {
@@ -425,7 +439,10 @@
 
 			{# Assign the needed async_results variables #}
 			var numGS = 0;
-			var getStr = 'Genes dervied from the GeneSet: {{ geneset.name }}';
+			// Genesets with newlines cause js to shit the bed and get stuck
+			// in an infinite loading loop. Any variable replaced by jinja
+			// should be safe'd and trimmed.
+			var getStr = 'Genes dervied from the GeneSet: {{ geneset.name | safe | trim }}';
 			getStr += '?' + getStr;
 
 			// add in all the checked boxes gene names
