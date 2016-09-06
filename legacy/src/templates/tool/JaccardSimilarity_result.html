@@ -420,7 +420,11 @@ var jaccardSimilarity = function() {
             venn.row = Math.floor(i / numSets);
             // GS IDs for the left and right genesets
             venn.gsids = [data.gs_ids[venn.row], data.gs_ids[venn.column]];
-            venn.pvalue = parsePValue(venn.text[2].text);
+
+            if (venn.text.length > 2)
+                venn.pvalue = parsePValue(venn.text[2].text);
+            else
+                venn.pvalue = '';
         }
     };
 
@@ -445,7 +449,9 @@ var jaccardSimilarity = function() {
                     cx: venn[vcx] + (venn.column * diagramPadding),
                     cy: venn[vcy] + (venn.row * diagramPadding),
                     r: venn[vr],
-                    fill: fillColors[j]
+                    fill: fillColors[j],
+                    column: venn.column,
+                    row: venn.row
                 };
 
                 d3Circles.push(circle);
@@ -559,11 +565,61 @@ var jaccardSimilarity = function() {
             .attr('cy', function(d) { return d.cy; })
             .attr('r', function(d) { return d.r; })
             .style('fill', function(d) { return d.fill; })
-            .style('opacity', opacity)
+            .style('fill-opacity', opacity)
             .style('shape-rendering', 'geometricPrecision')
             .style('stroke', '#000')
-            .style('stroke-width', '1px');
+            .style('stroke-width', '1px')
+            .style('stroke-opacity', 1)
+            .on("click", function(d){
+                if(d3.event.shiftKey){
+                    var row = d.row;
+                    var col = d.col;
 
+                  // Shift click rows and columns yellow of circle selected
+                  svgContainer.selectAll("circle")
+                    .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
+                    .style('stroke', 'yellow')
+                    .style("stroke-width", 3)
+
+                  // Keeps the circles not in the clicked row and column black 
+                  svgContainer.selectAll("circle")  
+                    .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
+                    .style('stroke', 'black')
+                    .style("stroke-width", 1);
+                }
+            
+
+         // Alt click takes the highlighting off and resets the circles back to original state
+          if(d3.event.altKey){
+                  svgContainer.selectAll("circle")
+                    .style('stroke', 'black')
+                     .style("stroke-width", 1);
+                }
+            })
+        ;
+
+            /*
+     // When mouse is over object html output styling of label will display
+    .on("mouseover", function(d) {
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div .html((d.title)+ "<br/>" + (d.des))
+                .style("left", (d3.event.pageX) + "px")
+                .style("top", (d3.event.pageY) + "px");
+
+            })
+     // When mouse leaves change opacity to 0 so not displayed
+        .on("mouseout", function(d) {
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);   })
+
+    // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
+        .on("dblclick", function(d) {
+           window.open(
+                   d.url)});
+*/
         var labels = svg.selectAll('text')
             .data(d3Labels)
             .enter()
@@ -619,7 +675,6 @@ var jaccardSimilarity = function() {
                 while (true) {
 
                     var chunk = labelText.slice(0, 25);
-                    console.log(chunk);
 
                     if (!chunk)
                         break;
@@ -854,7 +909,7 @@ $(document).ready(function() {
     var js = jaccardSimilarity()
         .data(d)
         .diagramPadding(150)
-        //.draw();
+        .draw();
         ;
 
     // Draws the jaccard similarity table
