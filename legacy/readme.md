@@ -226,6 +226,8 @@ Edit the newly generated configuration file with the proper application,
 celery, database, and sphinx information. In most cases, the default celery
 configuration is appropriate.
 
+Create a results directory with 777 permissions. The path will be placed in the config file.
+
 ### Configuring the Toolset
 
 Like the web application, edit `tools/config.py` change the `CONFIG_PATH`
