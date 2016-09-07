@@ -239,6 +239,8 @@ If you installed virtualenv, be user to run the tools from that environment.
 
 Edit the config with the appropriate information.
 
+#### NOTE: The tool table may be incompatible with the celeryapp.py tool list. You may drop the tool table data and reload with ODE-data-only-tool.dump to correct.
+
 #### Compiling the Graph Tools
 
 We use several highly optimized software implementations written in C/C++.
