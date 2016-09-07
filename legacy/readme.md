@@ -1,4 +1,3 @@
-
 GeneWeaver 2.0 Setup and Deployment
 ===================================
 
@@ -121,6 +120,8 @@ using the `path` variable. This path can be anywhere on the system--we
 typically use the sphinx folder. Set the `stopwords` variable to the full
 path containing the list of stop words we copied into the sphinx folder above.
 Make the same changes under the `index geneset_delta` section too.
+
+Create a 'log' directory; 'chown [sphinxuser]'.
 
 Under the `searchd` section, change the `log`, `query_log`, and
 `pid_file` variables to point to full paths for each of those files.
@@ -292,4 +293,3 @@ directories. After editing, you can start the supervisor:
 To manage your applications use:
 
 	$ sudo supervisorctl -c /srv/geneweaver/supervisord.conf
-
