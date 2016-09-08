@@ -187,7 +187,7 @@ def apply_user_restrictions(client, select=''):
         access = '*'
 
     # Admins don't get filtered results
-    if not user_info.is_admin:
+    if user_info and not user_info.is_admin:
         access += ', (usr_id=' + str(user_id)
         access += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps) + ')'
         ## Couldn't get the SphinxQL query to work w/ NOT i.e. cur_id != 5
