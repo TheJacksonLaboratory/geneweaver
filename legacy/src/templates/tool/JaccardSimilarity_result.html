@@ -951,7 +951,7 @@ $(document).ready(function() {
             var ids = checked.join(', ');
 
             $('#myModalLabel').html(ids);
-            $('#myModalValue').html(ids);
+            $('#myModalValue').val(ids);
             $('#addToProjectModal').modal('show');
         }
     });
@@ -969,6 +969,8 @@ $(document).ready(function() {
         var projectIds = JSON.stringify(checked);
         var newProject = $('#newProjName').val();
         var g = $('#myModalValue').val();
+        var user_id = '{{ g.user.user_id | safe }}';
+        console.log(g);
 
         if (!checked.length && !newProject) {
             $('#result')
@@ -985,9 +987,10 @@ $(document).ready(function() {
                     'user_id': user_id, 
                     'npn': newProject, 
                     'gs_id': g, 
-                    'option': option
+                    'option': projectIds
                 },
                 success: function (data) {
+                    console.log('wut');
                     $("#result")
                         .html('<div class="alert alert-success fade in"> ' +
                               '<button type="button" class="close" ' +
