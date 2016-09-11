@@ -1219,8 +1219,7 @@ def render_viewgenesetoverlap(gs_ids):
 
     if user_id != 0:
         if user_info.is_admin or\
-           user_info.is_curator or\
-           geneset.user_id == user_id:
+           user_info.is_curator:
             view = 'True' 
 
         else:

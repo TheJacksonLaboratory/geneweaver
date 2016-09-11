@@ -97,12 +97,6 @@
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
-
-{% if g.user is defined %}
-    {% include 'modal/addGenesetsToProjects.html' %}
-{% endif %}
-{% include 'modal/addGenesetsToProjectsAlert.html' %}
-
 <!-- Panel for reruning tool, similar to the analyze genesets panel -->
 <div class="page-header">
     <h1>{{ title }}
@@ -201,50 +195,18 @@
 		</a>
 	</div>
 	<div id="sim-matrix" class="panel-collapse collapse" style="">
-		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
-            <div class="row" align="center">
+		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px;border-radius:5px; border:1px solid #006400">
                 <div id="matrix" align="center">
+                        <button type="button" class="btn btn-block btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add GeneSet(s) to Project
+                        </button>
                 </div>
-                {#
-				<div class="col-md-2">
-				</div>
-				<div class="col-md-2">
-                </div>
-                #}
-            </div>
 		</div>
 	</div>
 </div>
 
 <br>
 
-<!-- Panel for the Geneset Table-->
-{#
-<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">GeneSet Table Panel</i></div>
-<div id="panel" class="badger-left">
-
-<!-- Reset button for the Geneset Table Panel, so user can see original set shown by table -->
-<button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
-
-<!-- Chart where the D3 for the Geneset Table Panel is appended onto in the JavaScript below -->
-<div id="chart"></div>
-    
-    <!-- Ability to select all genesets that user can see corresponds to Geneset Table Panel -->
-    <div><form action="#" method="post" id="myform">
-        <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
-         </form></div>
-
-         <!-- Buttons for adding to genesets to a project or exporting individual genes -->
-         <p></p><br><br><br>
-         <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
-            <i class="fa fa-folder-o pull-left"></i> Add to Project
-         </button>
-
-        <button type="button" class="btn btn-lg btn-warning divider" id="exportData">
-            <i class="fa fa-download pull-left"></i> Export Genes
-        </button>
-</div>
-#}
 <p>
 <div class="box-header clearfix">
       <!-- Venn Diagram view the users intially see -->
@@ -266,7 +228,9 @@
 <div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis GeneSet</div>
 <div id="genesetLeg"> <img src="/static/images/cyandot.png" > = Same Geneset</div>
 <div id="empLeg"> <img src="/static/images/chartreusedot.png" > = Contains Emphasis Gene
-<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div></p></div>
+<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div>
+</p>
+</div>
 
 
 <!-- Error message displayed when no venn diagrams are displayed due to threshold being set too high -->
@@ -451,7 +415,9 @@ var jaccardSimilarity = function() {
                     r: venn[vr],
                     fill: fillColors[j],
                     column: venn.column,
-                    row: venn.row
+                    row: venn.row,
+                    title: venn['title1'],
+                    desc: venn['desc1']
                 };
 
                 d3Circles.push(circle);
@@ -536,6 +502,16 @@ var jaccardSimilarity = function() {
         }
 
     };
+
+    var isClicked = (function() {
+        var clicked = false;
+
+        return function() { 
+            clicked = !clicked;
+
+            return !clicked;
+        };
+    })();
     
     exports.draw = function() {
 
@@ -570,22 +546,48 @@ var jaccardSimilarity = function() {
             .style('stroke', '#000')
             .style('stroke-width', '1px')
             .style('stroke-opacity', 1)
+            .on('mouseover', function(d) {
+                
+                // Mouse over events generate and display a tooltip with 
+                // intersection data
+                d3.select("#jaccard")
+                    .append("div")
+                    .attr('id', 'jac-tooltip')
+                    .attr("class", "tooltip")
+                    .style('opacity', 0.9)
+                    .html(d.title + '<br />' + d.desc)
+                    .style('left', d3.event.pageX + 'px')
+                    .style('top', d3.event.pageY + 'px');
+            })
+            .on('mouseout', function(d) {
+                d3.select('#jac-tooltip').remove();
+            })
             .on("click", function(d){
+
                 if(d3.event.shiftKey){
                     var row = d.row;
                     var col = d.col;
 
-                  // Shift click rows and columns yellow of circle selected
-                  svgContainer.selectAll("circle")
-                    .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
-                    .style('stroke', 'yellow')
-                    .style("stroke-width", 3)
+                    if (isClicked()) {
+                        
+                        d3.select('#jaccard').selectAll("circle")  
+                            .style('stroke', 'black')
+                            .style("stroke-width", 1);
 
-                  // Keeps the circles not in the clicked row and column black 
-                  svgContainer.selectAll("circle")  
-                    .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
-                    .style('stroke', 'black')
-                    .style("stroke-width", 1);
+                    } else {
+
+                        // Shift click rows and columns yellow of circle selected
+                        svg.selectAll('circle')
+                            .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
+                            .style('stroke', 'yellow')
+                            .style("stroke-width", 3)
+
+                        // Keeps the circles not in the clicked row and column black 
+                        svg.selectAll('circle')  
+                            .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
+                            .style('stroke', 'black')
+                            .style("stroke-width", 1);
+                    }
                 }
             
 
@@ -761,6 +763,8 @@ var jaccardSimilarityMatrix = function() {
             .style('border-left', '1px solid #000')
             .style('border-right', '1px solid #000')
             .style('border-bottom', '1px solid #000')
+            .style('padding-left', '3px')
+            .style('padding-right', '3px')
             .style('background-color', function(d, i) {
 
                 if (i % 2)
@@ -790,17 +794,24 @@ var jaccardSimilarityMatrix = function() {
             var row = table.append('tr');
 
             // Left side geneset IDs and names
-            row.append('td')
+            var rowElem = row.append('td')
                 .attr('align', 'center')
                 .style('border', '1px solid #000')
                 .style('padding-right', '5px')
                 .style('padding-left', '5px')
                 .style('font-size', '12px')
                 .style('font-weight', 'bold')
-                .append('a')
-                .attr('href', function(d) { 
-                    return '/viewgenesetdetails/' + dataRow.gsID.slice(2); 
-                })
+                ;
+
+            rowElem.append('input')
+                .attr('id', 'check-' + dataRow.gsID.slice(2))
+                .attr('class', 'ui-checkbox')
+                .attr('name', 'matrix-checkbox')
+                .attr('type', 'checkbox')
+                .style('margin-right', '3px');
+
+            rowElem.append('a')
+                .attr('href', '/viewgenesetdetails/' + dataRow.gsID.slice(2))
                 .attr('target', '_blank')
                 .style('color', '#2e2e2e')
                 .text(dataRow.text);
@@ -858,7 +869,6 @@ var jaccardSimilarityMatrix = function() {
 
         var gsTable = data.geneset_table;
         // All the GS IDs without their 'GS' prefix, joined together with '+'
-        //var gsIds = gsTable.map(function(t) { 
         var gsIds = gsTable.map(function(t) { 
             return t.gsID.slice(2); 
         }).join('+');
@@ -909,13 +919,90 @@ $(document).ready(function() {
     var js = jaccardSimilarity()
         .data(d)
         .diagramPadding(150)
-        //.draw();
+        .draw();
         ;
 
     // Draws the jaccard similarity table
     var jsm = jaccardSimilarityMatrix()
         .data(d)
         .draw();
+
+    // The "Add GeneSets to Project" button
+    $('#addToProject').on('click', function (e) {
+        var checked = [];
+
+        // Checkbox element ids contain the gs_id
+        $('input[name="matrix-checkbox"]:checked').each(function() {
+
+            // Removes "check-"
+            var gsID = $(this).attr('id').slice(6);
+            gsID = 'GS' + gsID;
+
+            checked.push(gsID);
+        });
+
+
+        if (!checked.length) {
+
+          $('#myAlert').modal('show');  
+
+        } else {
+
+            var ids = checked.join(', ');
+
+            $('#myModalLabel').html(ids);
+            $('#myModalValue').val(ids);
+            $('#addToProjectModal').modal('show');
+        }
+    });
+
+    // The "Add GeneSets to Project" modal dialog. Should probably be moved to the
+    // modal fragment itself because this code is duplicated in a number of areas.
+    $('#addGenesetsToProjects').on('click', function(e) {
+
+        var checked = [];
+
+        $('input[name="options[]"]:checked').each(function () {
+            checked.push(parseInt($(this).val()));
+        });
+
+        var projectIds = JSON.stringify(checked);
+        var newProject = $('#newProjName').val();
+        var g = $('#myModalValue').val();
+        var user_id = '{{ g.user.user_id | safe }}';
+        console.log(g);
+
+        if (!checked.length && !newProject) {
+            $('#result')
+                .html('<div class="alert alert-danger fade in"> ' +
+                      '<button type="button" class="close" ' +
+                      'data-dismiss="alert" aria-hidden="true">x' +
+                      '</button>No Projects Were Selected</div>');
+
+        } else {
+            $.ajax({
+                type: 'GET',
+                url: '../addGenesetsToProjects',
+                data: {
+                    'user_id': user_id, 
+                    'npn': newProject, 
+                    'gs_id': g, 
+                    'option': projectIds
+                },
+                success: function (data) {
+                    console.log('wut');
+                    $("#result")
+                        .html('<div class="alert alert-success fade in"> ' +
+                              '<button type="button" class="close" ' +
+                              'data-dismiss="alert" aria-hidden="true">x' +
+                              '</button>GeneSets Successfully Added to ' +
+                              'Selected Projects</div>');
+
+                    //window.location.reload();
+                }
+            });
+        }
+    });
 });
    var d = {{ data | safe }}; //Declaration of data as d variable
 
@@ -1939,7 +2026,7 @@ function zoom() {
 }
 
 // Adds the geneset to project, again taken from previous files in GeneWeaver
-$('#addToProject').on('click', function () {
+$('#addToProject1').on('click', function () {
         //get all checked gene sets
         //also split off the name from the number
         console.log("inside")
@@ -1984,12 +2071,8 @@ $('#addNewProject').on('click', function () {
                 '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
 });
 
-// Cooresponds to the add geneset to project button used from previous file found within Geneweaver (analyze)
-$('#addGenesetsToProjects').on('click', function (e) {
-        var checked = [];
-        $("input[name='options[]']:checked").each(function () {
-            checked.push(parseInt($(this).val()));
-        });
+
+        /*
         var option = JSON.stringify(checked);
         var g = $('#myCombineGSValue').val();
         var npn = $('#newProjName').val();
@@ -2017,7 +2100,7 @@ $('#addGenesetsToProjects').on('click', function (e) {
                 }
             });
         }
-    });
+        */
 
 
     $('.download-image').on('click', function(event) {
@@ -2125,6 +2208,12 @@ $('#what').popover({
         });
 
 </script>
+
+{% if g.user is defined %}
+    {% include 'modal/addGenesetsToProjects.html' %}
+{% endif %}
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 <!-- Includes the footer for the page -->
 {% include 'footer.html' %}
