@@ -530,7 +530,9 @@ var jaccardSimilarity = function() {
                            ' scale(' + d3.event.scale + ')';
                 });
             }))
-            .append('g');
+            .append('g')
+            //.attr('transform', 'translate(' + 50 + ',' + yShift + ')');
+            .attr('transform', 'translate(50, 50)');
 
         var circles = svg.selectAll('circle')
             .data(d3Circles)
@@ -564,7 +566,7 @@ var jaccardSimilarity = function() {
             })
             .on("click", function(d){
 
-                if(d3.event.shiftKey){
+                if (d3.event.shiftKey) {
                     var row = d.row;
                     var col = d.col;
 
@@ -578,50 +580,26 @@ var jaccardSimilarity = function() {
 
                         // Shift click rows and columns yellow of circle selected
                         svg.selectAll('circle')
-                            .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
+                            .filter(function (d) {
+                                if ((d.row == row) || (d.col == col)) 
+                                    return true;
+                            })
                             .style('stroke', 'yellow')
                             .style("stroke-width", 3)
 
                         // Keeps the circles not in the clicked row and column black 
                         svg.selectAll('circle')  
-                            .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
+                            .filter(function (d) {
+                                if (!((d.row == row) || (d.col == col))) 
+                                    return true;
+                            })
                             .style('stroke', 'black')
                             .style("stroke-width", 1);
                     }
                 }
-            
-
-         // Alt click takes the highlighting off and resets the circles back to original state
-          if(d3.event.altKey){
-                  svgContainer.selectAll("circle")
-                    .style('stroke', 'black')
-                     .style("stroke-width", 1);
-                }
             })
         ;
 
-            /*
-     // When mouse is over object html output styling of label will display
-    .on("mouseover", function(d) {
-            div.transition()
-                .duration(200)
-                .style("opacity", .9);
-            div .html((d.title)+ "<br/>" + (d.des))
-                .style("left", (d3.event.pageX) + "px")
-                .style("top", (d3.event.pageY) + "px");
-
-            })
-     // When mouse leaves change opacity to 0 so not displayed
-        .on("mouseout", function(d) {
-            div.transition()
-                .duration(500)
-                .style("opacity", 0);   })
-
-    // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
-        .on("dblclick", function(d) {
-           window.open(
-                   d.url)});
-*/
         var labels = svg.selectAll('text')
             .data(d3Labels)
             .enter()
@@ -649,14 +627,14 @@ var jaccardSimilarity = function() {
             .enter()
             .append('text')
             .style('color', '#000')
-            .style('font-size', '11px')
+            .style('font-size', '10px')
             .style('font-weight', 'bold')
             //.text(function(d) { return d.text; })
             .attr('transform', function(d) {
                 if (d.isColumn)
                     return 'translate(' + xLabelShift + ',' + 20 + ')'
                 else
-                    return 'translate(' + 0 + ',' + yLabelShift + ')'
+                    return 'translate(' + (-10) + ',' + yLabelShift + ')'
             })
             .attr('x', function(d) { 
                 var textWidth = this.getBoundingClientRect().width;
@@ -722,6 +700,18 @@ var jaccardSimilarity = function() {
     exports.width = function(_) {
         if (!arguments.length) return width;
         width = +_;
+        return exports;
+    };
+
+    exports.xShift = function(_) {
+        if (!arguments.length) return xShift;
+        xShift = +_;
+        return exports;
+    };
+
+    exports.yShift = function(_) {
+        if (!arguments.length) return yShift;
+        yShift = +_;
         return exports;
     };
 
@@ -970,7 +960,6 @@ $(document).ready(function() {
         var newProject = $('#newProjName').val();
         var g = $('#myModalValue').val();
         var user_id = '{{ g.user.user_id | safe }}';
-        console.log(g);
 
         if (!checked.length && !newProject) {
             $('#result')
@@ -979,6 +968,7 @@ $(document).ready(function() {
                       'data-dismiss="alert" aria-hidden="true">x' +
                       '</button>No Projects Were Selected</div>');
 
+        // TODO: add alert indicating adding to projects was successful
         } else {
             $.ajax({
                 type: 'GET',
@@ -990,20 +980,18 @@ $(document).ready(function() {
                     'option': projectIds
                 },
                 success: function (data) {
-                    console.log('wut');
                     $("#result")
                         .html('<div class="alert alert-success fade in"> ' +
                               '<button type="button" class="close" ' +
                               'data-dismiss="alert" aria-hidden="true">x' +
                               '</button>GeneSets Successfully Added to ' +
                               'Selected Projects</div>');
-
-                    //window.location.reload();
                 }
             });
         }
     });
 });
+/*
    var d = {{ data | safe }}; //Declaration of data as d variable
 
    {# Checks number of objects venn_diagram has#}
@@ -1705,6 +1693,7 @@ $(document).ready(function(){
       chev.toggleClass('fa-plus') });
 
 });
+*/
 </script>
 
 
