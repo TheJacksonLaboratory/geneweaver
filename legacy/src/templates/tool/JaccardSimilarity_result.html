@@ -97,12 +97,6 @@
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
-
-{% if g.user is defined %}
-    {% include 'modal/addGenesetsToProjects.html' %}
-{% endif %}
-{% include 'modal/addGenesetsToProjectsAlert.html' %}
-
 <!-- Panel for reruning tool, similar to the analyze genesets panel -->
 <div class="page-header">
     <h1>{{ title }}
@@ -153,51 +147,65 @@
         </div>
     </div>
 </form>
-{#
-<div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
 
-<div id="rerunPanel" >
-    <form id="todo-id" class="form-horizontal" role="form" method="post">
-        <div class="form-group" >{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
-        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
-        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
-        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-        <button id="rerun" class="btn btn-primary"
-           type='submit'x
-           value='run'
-           onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
-           Run
-        </button>
-     </form>
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Visualization Options
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="viz-options" class="panel-collapse collapse" style="">
+		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+            <div class="row">
+				<div class="col-md-2">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="download-image" id="dl-pdf">PDF</a></li>
+                            <li><a class="download-image" id="dl-png">PNG</a></li>
+                            <li><a class="download-image" id="dl-svg">SVG</a></li>
+                        </ul>
+                    </div>
+				</div>
+
+				<div class="col-md-2">
+                    <button type="button" value="Update" id="zoomButton" class="btn btn-primary">
+                        Reset Zoom
+                    </button>
+                </div>
+            </div>
+
+		</div>
+	</div>
 </div>
- #}
+
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Similarity Matrix
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="sim-matrix" class="panel-collapse collapse" style="">
+		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px;border-radius:5px; border:1px solid #006400">
+                <div id="matrix" align="center">
+                        <button type="button" class="btn btn-block btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add GeneSet(s) to Project
+                        </button>
+                </div>
+		</div>
+	</div>
+</div>
+
 <br>
-
-<!-- Panel for the Geneset Table-->
-<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">GeneSet Table Panel</i></div>
-<div id="panel" class="badger-left">
-
-<!-- Reset button for the Geneset Table Panel, so user can see original set shown by table -->
-<button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
-
-<!-- Chart where the D3 for the Geneset Table Panel is appended onto in the JavaScript below -->
-<div id="chart"></div>
-    
-    <!-- Ability to select all genesets that user can see corresponds to Geneset Table Panel -->
-    <div><form action="#" method="post" id="myform">
-        <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
-         </form></div>
-
-         <!-- Buttons for adding to genesets to a project or exporting individual genes -->
-         <p></p><br><br><br>
-         <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
-            <i class="fa fa-folder-o pull-left"></i> Add to Project
-         </button>
-
-        <button type="button" class="btn btn-lg btn-warning divider" id="exportData">
-            <i class="fa fa-download pull-left"></i> Export Genes
-        </button>
-</div>
 
 <p>
 <div class="box-header clearfix">
@@ -209,27 +217,9 @@
       <div class="container middle-cell">
 
         <!-- Formatting the buttons in the correct div, Download buttons has a dropdown menu allowing user to select three options -->
-        <div class="">
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary">Download as...</button>
-                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <span class="caret"></span>
-                    <span class="sr-only">Toggle Dropdown</span>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="download-image" id="dl-pdf">PDF</a></li>
-                    <li><a class="download-image" id="dl-png">PNG</a></li>
-                    <li><a class="download-image" id="dl-svg">SVG</a></li>
-                </ul>
-            </div>
-        </div>
       </div>
             <!-- Reset Zoom button for the Venn Diagram view that allows users to view the data in its original display if they zoom or pan too much -->
             <div class="right-cell">
-         <button type="button" value="Update" id="zoomButton" class="btn btn-primary">Reset Zoom</button>
-             <!--
-         <button type="button" value="Update" id="zoomButton">Reset Zoom</button>
-         -->
       </div>
 </div>
 
@@ -238,7 +228,9 @@
 <div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis GeneSet</div>
 <div id="genesetLeg"> <img src="/static/images/cyandot.png" > = Same Geneset</div>
 <div id="empLeg"> <img src="/static/images/chartreusedot.png" > = Contains Emphasis Gene
-<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div></p></div>
+<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div>
+</p>
+</div>
 
 
 <!-- Error message displayed when no venn diagrams are displayed due to threshold being set too high -->
@@ -269,14 +261,6 @@
 <!-- Start of the javascipt corresponding to specific html elements -->
 <script type="text/javascript">
 
-// Checks to see if the coordinate is in the array created for the elimination matrix
- function isIn(arr, x) {
-    for(var i = 0; i < arr.length; i++) {
-        if(arr[i] === x) return true;
-    }
-    return false;
-}
-
 // Function to reduce matrix based on pValue threshold
 function reduceMatrix() {
 
@@ -305,7 +289,7 @@ function reduceMatrix() {
             str = str.replace("p =", "");
             str = str.replace(/^\s+|\s+$/g, '');
             str === "" ? str = "-1" : str = str;
-            if(parseFloat(str) < d.JaccardSimilarity_p_Value) {
+            if(parseFloat(str) > d.JaccardSimilarity_p_Value) {
               str = "-1";
             }
             // Pushes the p-value into the row
@@ -335,7 +319,691 @@ function reduceMatrix() {
 }
 
 
+var jaccardSimilarity = function() {
 
+    var exports = {},
+        // SVG object
+        svg = null,
+        // SVG width in pixels
+        width = 1100,
+        // SVG height in pixels
+        height = 900,
+        // Padding (in pixels) between each individual venn diagram
+        diagramPadding = 100,
+        // Venn diagram opacity
+        opacity = 0.70,
+        d3Circles = [],
+        d3Labels = [],
+        d3Text = [],
+        // Shift venn diagrams and their labels N pixels to the right
+        xShift = 150,
+        // Shift venn diagrams and their labels down N pixels
+        yShift = 120,
+        // Venn diagram colors: Emphasis gene green, left red, right blue
+        fillColors = ['#006400', '#EE0000', '#0000BB'],
+        // Data returned by the tool
+        data = null
+        ;
+
+    /** private **/
+
+    var parsePValue = function(str) {
+
+        var regex = new RegExp([
+            /[P|p]/,    // P or p
+            /\s+/,      // >= 1 spaces
+            /=/,        // Equals sign 
+            /\s+/,      // >= 1 spaces 
+            // >= 1 digits or >=1 digits, a period then >= 1 digits
+            /(\d+\.*\d+|\d+)/
+        ].map(function(r) { return r.source; }).join(''));
+
+        var match = regex.exec(str);
+
+        if (!match || match.length < 2)
+            return 1;
+
+        return parseFloat(match[1]);
+    }
+
+    /**
+      * Organizes the list of venn diagrams returned by the tool into a series 
+      * of rows and columns dependent on the number of genesets (e.g. four
+      * genesets should return a total of 16 comparisons, so four rows and four
+      * columns). Sets the final x and y coordinates for each diagram.
+      */
+    var positionDiagrams = function() {
+
+        var numSets = data.genesets.length;
+
+        for (var i = 0; i < data.venn_diagrams.length; i++) {
+            var venn = data.venn_diagrams[i];
+            
+            // Zero indexed row/column numbers
+            venn.column = i % numSets;
+            venn.row = Math.floor(i / numSets);
+            // GS IDs for the left and right genesets
+            venn.gsids = [data.gs_ids[venn.row], data.gs_ids[venn.column]];
+
+            if (venn.text.length > 2)
+                venn.pvalue = parsePValue(venn.text[2].text);
+            else
+                venn.pvalue = '';
+        }
+    };
+
+    /**
+      * Transforms the venn diagram data returned by the tool into a format 
+      * ready for display. Calculates proper x, y postiions, radii, and colors.
+      */
+    var makeCircles = function() {
+
+        for (var i = 0; i < data.venn_diagrams.length; i++) {
+            var venn = data.venn_diagrams[i];
+
+            // Each venn object has data for two circles
+            for (var j = 1; j <= 2; j++) {
+
+                // cx, cy, and radius keys
+                var vcx = 'c' + j + 'x',
+                    vcy = 'c' + j + 'y',
+                    vr = 'r' + j;
+
+                var circle = {
+                    cx: venn[vcx] + (venn.column * diagramPadding),
+                    cy: venn[vcy] + (venn.row * diagramPadding),
+                    r: venn[vr],
+                    fill: fillColors[j],
+                    column: venn.column,
+                    row: venn.row,
+                    title: venn['title1'],
+                    desc: venn['desc1']
+                };
+
+                d3Circles.push(circle);
+            }
+        }
+    };
+
+    var makeText = function() {
+
+        for (var i = 0; i < data.venn_diagrams.length; i++) {
+            var venn = data.venn_diagrams[i];
+
+            var c1x = venn['c1x'] + (venn.column * diagramPadding);
+                c2x = venn['c2x'] + (venn.column * diagramPadding),
+                c1y = venn['c1y'] + (venn.row * diagramPadding),
+                c2y = venn['c2y'] + (venn.row * diagramPadding),
+                r1 = venn.r1,
+                r2 = venn.r2;
+
+            // Distance between corcle midpoints
+            var d = Math.sqrt(Math.pow((c2x - c1x), 2) + 
+                              Math.pow((c2y - c1y), 2));
+            // Distance from the left circle midpoint to the intersection midpoint
+            var a = ((r1 * r1) - (r2 * r2) + (d * d)) / (2 * d);
+            var h = Math.sqrt((r1 * r1) - (a * a));
+            // Intersection midpoints
+            var p2x = c1x + a * (c2x - c1x) / d;
+            var p2y = c1y + a * (c2y - c1y) / d;
+            //
+            var cd = ((r1 * r1) + (r2 * r2)) / 2;
+            var c3x = c1x - r1;
+            // Each venn object has an array of text objects with (usually)
+            // three elements 
+            for (var j = 0; j < venn.text.length; j++) {
+
+                if (j === 0)
+                    var yShift = -30;
+                else if (j === 1)
+                    var yShift = 30;
+                else
+                    var yShift = 45;
+
+                var text = {
+                    //x: p2x,
+                    //x: c3x,// + cd,
+                    //y: p2y + yShift,
+                    //subRadius: (r1 < r2) ? r1 : r2, 
+                    x: venn.text[j].tx + (venn.column * diagramPadding) - 40,
+                    y: venn.text[j].ty + (venn.row * diagramPadding) - 20,
+                    text: venn.text[j].text
+                };
+
+                d3Labels.push(text);
+            }
+        }
+    };
+
+    var makeLabels = function() {
+
+        var gsTable = data.geneset_table;
+
+        for (var i = 0; i < gsTable.length; i++) {
+
+            var columnText = {
+                x: (i * diagramPadding),
+                y: 20,
+                text: gsTable[i].text,
+                isColumn: true,
+                isRow: false
+            };
+
+            var rowText = {
+                x: 0,
+                y: (i * diagramPadding),
+                text: gsTable[i].text,
+                isColumn: false,
+                isRow: true
+            }
+
+            d3Text.push(columnText);
+            d3Text.push(rowText);
+        }
+
+    };
+
+    var isClicked = (function() {
+        var clicked = false;
+
+        return function() { 
+            clicked = !clicked;
+
+            return !clicked;
+        };
+    })();
+    
+    exports.draw = function() {
+
+        positionDiagrams();
+        makeCircles();
+        makeText();
+        makeLabels();
+
+        svg = d3.select('#jaccard')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .call(d3.behavior.zoom().on('zoom', function() {
+                svg.attr('transform', function() {
+                    return 'translate(' + d3.event.translate + ')' + 
+                           ' scale(' + d3.event.scale + ')';
+                });
+            }))
+            .append('g');
+
+        var circles = svg.selectAll('circle')
+            .data(d3Circles)
+            .enter()
+            .append('circle')
+            .attr('transform', 'translate(' + xShift + ',' + yShift + ')')
+            .attr('cx', function(d) { return d.cx; })
+            .attr('cy', function(d) { return d.cy; })
+            .attr('r', function(d) { return d.r; })
+            .style('fill', function(d) { return d.fill; })
+            .style('fill-opacity', opacity)
+            .style('shape-rendering', 'geometricPrecision')
+            .style('stroke', '#000')
+            .style('stroke-width', '1px')
+            .style('stroke-opacity', 1)
+            .on('mouseover', function(d) {
+                
+                // Mouse over events generate and display a tooltip with 
+                // intersection data
+                d3.select("#jaccard")
+                    .append("div")
+                    .attr('id', 'jac-tooltip')
+                    .attr("class", "tooltip")
+                    .style('opacity', 0.9)
+                    .html(d.title + '<br />' + d.desc)
+                    .style('left', d3.event.pageX + 'px')
+                    .style('top', d3.event.pageY + 'px');
+            })
+            .on('mouseout', function(d) {
+                d3.select('#jac-tooltip').remove();
+            })
+            .on("click", function(d){
+
+                if(d3.event.shiftKey){
+                    var row = d.row;
+                    var col = d.col;
+
+                    if (isClicked()) {
+                        
+                        d3.select('#jaccard').selectAll("circle")  
+                            .style('stroke', 'black')
+                            .style("stroke-width", 1);
+
+                    } else {
+
+                        // Shift click rows and columns yellow of circle selected
+                        svg.selectAll('circle')
+                            .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
+                            .style('stroke', 'yellow')
+                            .style("stroke-width", 3)
+
+                        // Keeps the circles not in the clicked row and column black 
+                        svg.selectAll('circle')  
+                            .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
+                            .style('stroke', 'black')
+                            .style("stroke-width", 1);
+                    }
+                }
+            
+
+         // Alt click takes the highlighting off and resets the circles back to original state
+          if(d3.event.altKey){
+                  svgContainer.selectAll("circle")
+                    .style('stroke', 'black')
+                     .style("stroke-width", 1);
+                }
+            })
+        ;
+
+            /*
+     // When mouse is over object html output styling of label will display
+    .on("mouseover", function(d) {
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div .html((d.title)+ "<br/>" + (d.des))
+                .style("left", (d3.event.pageX) + "px")
+                .style("top", (d3.event.pageY) + "px");
+
+            })
+     // When mouse leaves change opacity to 0 so not displayed
+        .on("mouseout", function(d) {
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);   })
+
+    // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
+        .on("dblclick", function(d) {
+           window.open(
+                   d.url)});
+*/
+        var labels = svg.selectAll('text')
+            .data(d3Labels)
+            .enter()
+            .append('text')
+            .attr('transform', 'translate(' + xShift + ',' + yShift + ')')
+            .text(function(d) { return d.text; })
+            .attr('x', function(d) { 
+                var textWidth = this.getBoundingClientRect().width;
+                //return d.x - (textWidth / 2); 
+                //return d.x - d.subRadius;
+                return d.x;
+            })
+            .attr('y', function(d) { 
+                return d.y; 
+            })
+            .style('color', '#000')
+            .style('font-size', '11px')
+            ;
+
+        var xLabelShift = xShift - 20;
+        var yLabelShift = yShift + 40;
+
+        var labels = svg.selectAll('header-text')
+            .data(d3Text)
+            .enter()
+            .append('text')
+            .style('color', '#000')
+            .style('font-size', '11px')
+            .style('font-weight', 'bold')
+            //.text(function(d) { return d.text; })
+            .attr('transform', function(d) {
+                if (d.isColumn)
+                    return 'translate(' + xLabelShift + ',' + 20 + ')'
+                else
+                    return 'translate(' + 0 + ',' + yLabelShift + ')'
+            })
+            .attr('x', function(d) { 
+                var textWidth = this.getBoundingClientRect().width;
+                //return d.x - (textWidth / 2); 
+                //return d.x - d.subRadius;
+                return d.x;
+            })
+            .attr('y', function(d) { 
+                return d.y; 
+            })
+            // The text for each row/col label is split into chunks of 20 
+            // characters so everything fits properly and doesnt' overlap
+            .each(function(d) {
+                
+                var chunks = [];
+                var labelText = d.text;
+
+                while (true) {
+
+                    var chunk = labelText.slice(0, 25);
+
+                    if (!chunk)
+                        break;
+
+                    chunks.push(chunk);
+
+                    labelText = labelText.slice(25);
+                }
+
+                for (var i = 0; i < chunks.length; i++) {
+
+                    var textElem = d3.select(this)
+                        .append('tspan')
+                        .attr('x', d.x)
+                        .attr('y', d.y)
+                        .attr('dx', 0)
+                        .attr('dy', function() { return (i * 15); })
+                        .text(chunks[i])
+                        ;
+                }
+            })
+            ;
+    };
+
+    exports.data = function(_) {
+        if (!arguments.length) return data;
+        data = _;
+        return exports;
+    };
+
+    exports.diagramPadding = function(_) {
+        if (!arguments.length) return diagramPadding;
+        diagramPadding = +_;
+        return exports;
+    };
+
+    exports.height = function(_) {
+        if (!arguments.length) return height;
+        height = +_;
+        return exports;
+    };
+
+    exports.width = function(_) {
+        if (!arguments.length) return width;
+        width = +_;
+        return exports;
+    };
+
+    return exports;
+};
+
+var jaccardSimilarityMatrix = function() {
+
+    var exports = {},
+        // Data returned by the tool
+        data = null,
+        // Element wrapper ID containing the drawn similarity matrix
+        matrixElement = '#matrix',
+        // Table element 
+        table = null;
+
+    /** private **/
+
+    /**
+      * Generates the table header HTML for the similarity matrix.
+      */
+    var makeHeader = function() {
+
+        var headRow = table.append('tr');
+        var gsTable = data.geneset_table;
+
+        // Empty column for geneset names
+        headRow.append('th')
+            .attr('valign', 'bottom')
+            .attr('align', 'left');
+
+        headRow.selectAll('header')
+            .data(gsTable)
+            .enter()
+            .append('th')
+            .attr('align', 'cetner')
+            .style('text-align', 'center')
+            .style('border-top', '1px solid #000')
+            .style('border-left', '1px solid #000')
+            .style('border-right', '1px solid #000')
+            .style('border-bottom', '1px solid #000')
+            .style('padding-left', '3px')
+            .style('padding-right', '3px')
+            .style('background-color', function(d, i) {
+
+                if (i % 2)
+                    return '#E7F0E7';
+                else
+                    return '#FFF';
+            })
+            .append('a')
+            .attr('href', function(d) { 
+                // Removes the 'GS' prefix
+                return '/viewgenesetdetails/' + d.gsID.slice(2); 
+            })
+            .attr('target', '_blank')
+            .style('color', '#2e2e2e')
+            .text(function(d) { return d.gsID; });
+    };
+
+    /**
+      * Creates each individual row/column element.
+      */
+    var makeRows = function() {
+
+        // Iterate over each row; each row object contains n columns
+        for (var i = 0; i < data.geneset_table.length; i++) {
+
+            var dataRow = data.geneset_table[i];
+            var row = table.append('tr');
+
+            // Left side geneset IDs and names
+            var rowElem = row.append('td')
+                .attr('align', 'center')
+                .style('border', '1px solid #000')
+                .style('padding-right', '5px')
+                .style('padding-left', '5px')
+                .style('font-size', '12px')
+                .style('font-weight', 'bold')
+                ;
+
+            rowElem.append('input')
+                .attr('id', 'check-' + dataRow.gsID.slice(2))
+                .attr('class', 'ui-checkbox')
+                .attr('name', 'matrix-checkbox')
+                .attr('type', 'checkbox')
+                .style('margin-right', '3px');
+
+            rowElem.append('a')
+                .attr('href', '/viewgenesetdetails/' + dataRow.gsID.slice(2))
+                .attr('target', '_blank')
+                .style('color', '#2e2e2e')
+                .text(dataRow.text);
+
+            row.selectAll('row')
+                .data(dataRow.entries)
+                .enter()
+                .append('td')
+                .attr('align', 'center')
+                .style('border-left', '1px solid #000')
+                .style('border-right', '1px solid #000')
+                .style('border-bottom', function() {
+                    // Last table row has a black border, inner rows are grey
+                    if (i === (data.geneset_table.length - 1))
+                        return '1px solid #000';
+                    else
+                        return '1px solid #bbb';       
+                })
+                .style('font-size', '11px')
+                .style('padding', '0.5em')
+                .style('background-color', function(d, j) {
+                    // Indicates both genesets are the same
+                    if (i == j)
+                        return '#C7D0C7';
+                    else if (j % 2)
+                        return '#E7F0E7';
+                    else
+                        return '#FFF';
+                })
+                .append('a')
+                .attr('target', '_blank')
+                .attr('href', function(d, j) {
+                    // Removes the 'GS' prefix
+                    var idLeft = data.geneset_table[i].gsID.slice(2);
+                    var idRight = data.geneset_table[j].gsID.slice(2);
+
+                    // Same geneset
+                    if (i === j)
+                        return '/viewgenesetdetails/' + idLeft;
+                    else
+                        return '/viewgenesetoverlap/' + idLeft + '+' + idRight;
+                })
+                .style('color', function(d, j) {
+                    // Same geneset
+                    if (i === j)
+                        return '#CC0000';
+                    else
+                        return '#000';
+                })
+                .html(function(d) { return d.jval + '<br />' + d.pval; });
+        }
+    };
+
+    var makeAllOverlapLink = function() {
+
+        var gsTable = data.geneset_table;
+        // All the GS IDs without their 'GS' prefix, joined together with '+'
+        var gsIds = gsTable.map(function(t) { 
+            return t.gsID.slice(2); 
+        }).join('+');
+
+        // Left side geneset IDs and names
+        d3.select(matrixElement)
+            .append('a')
+            .attr('target', '_blank')
+            .attr('href', function() {
+                return '/viewgenesetoverlap/' + gsIds;
+            })
+            .style('color', '#006400')
+            .style('font-weight', 'bold')
+            .style('padding-top', '5px')
+            .text('View overlap between all sets');
+    };
+
+    /** public **/
+
+    exports.draw = function() {
+
+        table = d3.select('#matrix')
+            .append('table');
+
+        makeHeader();
+        makeRows();
+        makeAllOverlapLink();
+    };
+
+    exports.data = function(_) {
+        if (!arguments.length) return data;
+        data = _;
+        return exports;
+    };
+
+    exports.matrixElement = function(_) {
+        if (!arguments.length) return matrixElement;
+        matrixElement = _;
+        return exports;
+    };
+
+    return exports;
+};
+
+$(document).ready(function() {
+
+   var d = {{ data | safe }}; //Declaration of data as d variable
+    var js = jaccardSimilarity()
+        .data(d)
+        .diagramPadding(150)
+        .draw();
+        ;
+
+    // Draws the jaccard similarity table
+    var jsm = jaccardSimilarityMatrix()
+        .data(d)
+        .draw();
+
+    // The "Add GeneSets to Project" button
+    $('#addToProject').on('click', function (e) {
+        var checked = [];
+
+        // Checkbox element ids contain the gs_id
+        $('input[name="matrix-checkbox"]:checked').each(function() {
+
+            // Removes "check-"
+            var gsID = $(this).attr('id').slice(6);
+            gsID = 'GS' + gsID;
+
+            checked.push(gsID);
+        });
+
+
+        if (!checked.length) {
+
+          $('#myAlert').modal('show');  
+
+        } else {
+
+            var ids = checked.join(', ');
+
+            $('#myModalLabel').html(ids);
+            $('#myModalValue').val(ids);
+            $('#addToProjectModal').modal('show');
+        }
+    });
+
+    // The "Add GeneSets to Project" modal dialog. Should probably be moved to the
+    // modal fragment itself because this code is duplicated in a number of areas.
+    $('#addGenesetsToProjects').on('click', function(e) {
+
+        var checked = [];
+
+        $('input[name="options[]"]:checked').each(function () {
+            checked.push(parseInt($(this).val()));
+        });
+
+        var projectIds = JSON.stringify(checked);
+        var newProject = $('#newProjName').val();
+        var g = $('#myModalValue').val();
+        var user_id = '{{ g.user.user_id | safe }}';
+        console.log(g);
+
+        if (!checked.length && !newProject) {
+            $('#result')
+                .html('<div class="alert alert-danger fade in"> ' +
+                      '<button type="button" class="close" ' +
+                      'data-dismiss="alert" aria-hidden="true">x' +
+                      '</button>No Projects Were Selected</div>');
+
+        } else {
+            $.ajax({
+                type: 'GET',
+                url: '../addGenesetsToProjects',
+                data: {
+                    'user_id': user_id, 
+                    'npn': newProject, 
+                    'gs_id': g, 
+                    'option': projectIds
+                },
+                success: function (data) {
+                    console.log('wut');
+                    $("#result")
+                        .html('<div class="alert alert-success fade in"> ' +
+                              '<button type="button" class="close" ' +
+                              'data-dismiss="alert" aria-hidden="true">x' +
+                              '</button>GeneSets Successfully Added to ' +
+                              'Selected Projects</div>');
+
+                    //window.location.reload();
+                }
+            });
+        }
+    });
+});
    var d = {{ data | safe }}; //Declaration of data as d variable
 
    {# Checks number of objects venn_diagram has#}
@@ -431,25 +1099,33 @@ function reduceMatrix() {
                row_count = 0;
            }
 
-           if(isIn(elim, row_count)) { // Skip a row
+           // Skip a row
+           if (elim.includes(row_count)) {
+
                i += num_sets-1;
                continue;
-           }
-           else if(isIn(elim, i % num_sets)) {  // Skip a column
+
+           // Skip a column
+           } else if (elim.includes(i % num_sets)) {
+
                y_coord += 150;
                continue;
            }
 
            y_coord += 150;
-       }
-       else {
+
+       } else {
           
-           if(isIn(elim, i % num_sets)) {  // Skip a column
-               if(i % num_sets === 0) {
+           // Skip a column
+           if (elim.includes(i % num_sets)) {
+
+               if (i % num_sets === 0) {
+
                   i--;
                   xVal = -1;
                }
-              continue;
+
+               continue;
            }
        }
 
@@ -614,7 +1290,7 @@ function reduceMatrix() {
                           "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                           "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                           "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+ '+'+ gene_url[yVal],
                           "title" : d.venn_diagrams[i].title1,
                           "pvalue" : str,
                           "show" : threshold,
@@ -636,7 +1312,7 @@ function reduceMatrix() {
                           "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                           "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                           "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+ '+'+ gene_url[yVal],
                           "title" : d.venn_diagrams[i].title1,
                           "pvalue" : str,
                           "show" : threshold,
@@ -659,7 +1335,7 @@ function reduceMatrix() {
                           "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                           "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                           "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+ '+'+ gene_url[yVal],
                           "title" : d.venn_diagrams[i].title1,
                           "pvalue" : str,
                           "show" : threshold,
@@ -681,7 +1357,7 @@ function reduceMatrix() {
                           "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                           "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                           "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+ '+'+ gene_url[yVal],
                           "title" : d.venn_diagrams[i].title1,
                           "pvalue" : str,
                           "show" : threshold,
@@ -708,7 +1384,7 @@ function reduceMatrix() {
                           "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                           "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                           "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+ '+'+ gene_url[yVal],
                           "title" : d.venn_diagrams[i].title1,
                           "pvalue" : str,
                           "show" : threshold,
@@ -730,7 +1406,7 @@ function reduceMatrix() {
                         "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                         "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                         "des": d.venn_diagrams[i].desc1,
-                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+ '+'+ gene_url[yVal],
                         "title" : d.venn_diagrams[i].title1,
                         "pvalue" : str,
                         "show" : threshold,
@@ -755,7 +1431,7 @@ function reduceMatrix() {
                         "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                         "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                         "des": d.venn_diagrams[i].desc1,
-                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+ '+'+ gene_url[yVal],
                         "title" : d.venn_diagrams[i].title1,
                         "pvalue" : str,
                         "show" : threshold,
@@ -779,7 +1455,7 @@ function reduceMatrix() {
                         "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
                         "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
                         "des": d.venn_diagrams[i].desc1,
-                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
+                        "url":  '/viewgenesetoverlap/' + gene_url[xVal] + '+' + gene_url[yVal],
                         "title" : d.venn_diagrams[i].title1,
                         "pvalue" : str,
                         "show" : threshold,
@@ -971,12 +1647,12 @@ function reduceMatrix() {
 
         // If circle pValue is less than slider text set opacity to 0
         svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue < nOpacity ) return true;})
+            .filter(function (d) {if (d.pvalue > nOpacity ) return true;})
             .style("fill-opacity",0);
 
         // If circle pValue is greater or equal to slider text set opacity to 1
         svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue >= nOpacity ) return true;})
+            .filter(function (d) {if (d.pvalue <= nOpacity ) return true;})
             .style("fill-opacity",1);
        }
 
@@ -1350,7 +2026,7 @@ function zoom() {
 }
 
 // Adds the geneset to project, again taken from previous files in GeneWeaver
-$('#addToProject').on('click', function () {
+$('#addToProject1').on('click', function () {
         //get all checked gene sets
         //also split off the name from the number
         console.log("inside")
@@ -1395,12 +2071,8 @@ $('#addNewProject').on('click', function () {
                 '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
 });
 
-// Cooresponds to the add geneset to project button used from previous file found within Geneweaver (analyze)
-$('#addGenesetsToProjects').on('click', function (e) {
-        var checked = [];
-        $("input[name='options[]']:checked").each(function () {
-            checked.push(parseInt($(this).val()));
-        });
+
+        /*
         var option = JSON.stringify(checked);
         var g = $('#myCombineGSValue').val();
         var npn = $('#newProjName').val();
@@ -1428,7 +2100,7 @@ $('#addGenesetsToProjects').on('click', function (e) {
                 }
             });
         }
-    });
+        */
 
 
     $('.download-image').on('click', function(event) {
@@ -1536,6 +2208,12 @@ $('#what').popover({
         });
 
 </script>
+
+{% if g.user is defined %}
+    {% include 'modal/addGenesetsToProjects.html' %}
+{% endif %}
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 <!-- Includes the footer for the page -->
 {% include 'footer.html' %}
