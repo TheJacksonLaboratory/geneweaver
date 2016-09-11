@@ -201,50 +201,19 @@
 		</a>
 	</div>
 	<div id="sim-matrix" class="panel-collapse collapse" style="">
-		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
-            <div class="row" align="center">
+		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px;border-radius:5px; border:1px solid #006400">
                 <div id="matrix" align="center">
                 </div>
-                {#
-				<div class="col-md-2">
-				</div>
-				<div class="col-md-2">
-                </div>
-                #}
+            {#
+            <div class="row" align="center">
             </div>
+            #}
 		</div>
 	</div>
 </div>
 
 <br>
 
-<!-- Panel for the Geneset Table-->
-{#
-<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">GeneSet Table Panel</i></div>
-<div id="panel" class="badger-left">
-
-<!-- Reset button for the Geneset Table Panel, so user can see original set shown by table -->
-<button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
-
-<!-- Chart where the D3 for the Geneset Table Panel is appended onto in the JavaScript below -->
-<div id="chart"></div>
-    
-    <!-- Ability to select all genesets that user can see corresponds to Geneset Table Panel -->
-    <div><form action="#" method="post" id="myform">
-        <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
-         </form></div>
-
-         <!-- Buttons for adding to genesets to a project or exporting individual genes -->
-         <p></p><br><br><br>
-         <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
-            <i class="fa fa-folder-o pull-left"></i> Add to Project
-         </button>
-
-        <button type="button" class="btn btn-lg btn-warning divider" id="exportData">
-            <i class="fa fa-download pull-left"></i> Export Genes
-        </button>
-</div>
-#}
 <p>
 <div class="box-header clearfix">
       <!-- Venn Diagram view the users intially see -->
@@ -266,7 +235,9 @@
 <div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis GeneSet</div>
 <div id="genesetLeg"> <img src="/static/images/cyandot.png" > = Same Geneset</div>
 <div id="empLeg"> <img src="/static/images/chartreusedot.png" > = Contains Emphasis Gene
-<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div></p></div>
+<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div>
+</p>
+</div>
 
 
 <!-- Error message displayed when no venn diagrams are displayed due to threshold being set too high -->
@@ -451,7 +422,9 @@ var jaccardSimilarity = function() {
                     r: venn[vr],
                     fill: fillColors[j],
                     column: venn.column,
-                    row: venn.row
+                    row: venn.row,
+                    title: venn['title1'],
+                    desc: venn['desc1']
                 };
 
                 d3Circles.push(circle);
@@ -536,6 +509,16 @@ var jaccardSimilarity = function() {
         }
 
     };
+
+    var isClicked = (function() {
+        var clicked = false;
+
+        return function() { 
+            clicked = !clicked;
+
+            return !clicked;
+        };
+    })();
     
     exports.draw = function() {
 
@@ -570,22 +553,48 @@ var jaccardSimilarity = function() {
             .style('stroke', '#000')
             .style('stroke-width', '1px')
             .style('stroke-opacity', 1)
+            .on('mouseover', function(d) {
+                
+                // Mouse over events generate and display a tooltip with 
+                // intersection data
+                d3.select("#jaccard")
+                    .append("div")
+                    .attr('id', 'jac-tooltip')
+                    .attr("class", "tooltip")
+                    .style('opacity', 0.9)
+                    .html(d.title + '<br />' + d.desc)
+                    .style('left', d3.event.pageX + 'px')
+                    .style('top', d3.event.pageY + 'px');
+            })
+            .on('mouseout', function(d) {
+                d3.select('#jac-tooltip').remove();
+            })
             .on("click", function(d){
+
                 if(d3.event.shiftKey){
                     var row = d.row;
                     var col = d.col;
 
-                  // Shift click rows and columns yellow of circle selected
-                  svgContainer.selectAll("circle")
-                    .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
-                    .style('stroke', 'yellow')
-                    .style("stroke-width", 3)
+                    if (isClicked()) {
+                        
+                        d3.select('#jaccard').selectAll("circle")  
+                            .style('stroke', 'black')
+                            .style("stroke-width", 1);
 
-                  // Keeps the circles not in the clicked row and column black 
-                  svgContainer.selectAll("circle")  
-                    .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
-                    .style('stroke', 'black')
-                    .style("stroke-width", 1);
+                    } else {
+
+                        // Shift click rows and columns yellow of circle selected
+                        svg.selectAll('circle')
+                            .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
+                            .style('stroke', 'yellow')
+                            .style("stroke-width", 3)
+
+                        // Keeps the circles not in the clicked row and column black 
+                        svg.selectAll('circle')  
+                            .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
+                            .style('stroke', 'black')
+                            .style("stroke-width", 1);
+                    }
                 }
             
 
