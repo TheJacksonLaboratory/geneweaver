@@ -97,12 +97,6 @@
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
-
-{% if g.user is defined %}
-    {% include 'modal/addGenesetsToProjects.html' %}
-{% endif %}
-{% include 'modal/addGenesetsToProjectsAlert.html' %}
-
 <!-- Panel for reruning tool, similar to the analyze genesets panel -->
 <div class="page-header">
     <h1>{{ title }}
@@ -203,11 +197,10 @@
 	<div id="sim-matrix" class="panel-collapse collapse" style="">
 		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px;border-radius:5px; border:1px solid #006400">
                 <div id="matrix" align="center">
+                        <button type="button" class="btn btn-block btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add GeneSet(s) to Project
+                        </button>
                 </div>
-            {#
-            <div class="row" align="center">
-            </div>
-            #}
 		</div>
 	</div>
 </div>
@@ -813,6 +806,7 @@ var jaccardSimilarityMatrix = function() {
             rowElem.append('input')
                 .attr('id', 'check-' + dataRow.gsID.slice(2))
                 .attr('class', 'ui-checkbox')
+                .attr('name', 'matrix-checkbox')
                 .attr('type', 'checkbox')
                 .style('margin-right', '3px');
 
@@ -875,7 +869,6 @@ var jaccardSimilarityMatrix = function() {
 
         var gsTable = data.geneset_table;
         // All the GS IDs without their 'GS' prefix, joined together with '+'
-        //var gsIds = gsTable.map(function(t) { 
         var gsIds = gsTable.map(function(t) { 
             return t.gsID.slice(2); 
         }).join('+');
@@ -933,6 +926,80 @@ $(document).ready(function() {
     var jsm = jaccardSimilarityMatrix()
         .data(d)
         .draw();
+
+    // The "Add GeneSets to Project" button
+    $('#addToProject').on('click', function (e) {
+        var checked = [];
+
+        // Checkbox element ids contain the gs_id
+        $('input[name="matrix-checkbox"]:checked').each(function() {
+
+            // Removes "check-"
+            var gsID = $(this).attr('id').slice(6);
+            gsID = 'GS' + gsID;
+
+            checked.push(gsID);
+        });
+
+
+        if (!checked.length) {
+
+          $('#myAlert').modal('show');  
+
+        } else {
+
+            var ids = checked.join(', ');
+
+            $('#myModalLabel').html(ids);
+            $('#myModalValue').html(ids);
+            $('#addToProjectModal').modal('show');
+        }
+    });
+
+    // The "Add GeneSets to Project" modal dialog. Should probably be moved to the
+    // modal fragment itself because this code is duplicated in a number of areas.
+    $('#addGenesetsToProjects').on('click', function(e) {
+
+        var checked = [];
+
+        $('input[name="options[]"]:checked').each(function () {
+            checked.push(parseInt($(this).val()));
+        });
+
+        var projectIds = JSON.stringify(checked);
+        var newProject = $('#newProjName').val();
+        var g = $('#myModalValue').val();
+
+        if (!checked.length && !newProject) {
+            $('#result')
+                .html('<div class="alert alert-danger fade in"> ' +
+                      '<button type="button" class="close" ' +
+                      'data-dismiss="alert" aria-hidden="true">x' +
+                      '</button>No Projects Were Selected</div>');
+
+        } else {
+            $.ajax({
+                type: 'GET',
+                url: '../addGenesetsToProjects',
+                data: {
+                    'user_id': user_id, 
+                    'npn': newProject, 
+                    'gs_id': g, 
+                    'option': option
+                },
+                success: function (data) {
+                    $("#result")
+                        .html('<div class="alert alert-success fade in"> ' +
+                              '<button type="button" class="close" ' +
+                              'data-dismiss="alert" aria-hidden="true">x' +
+                              '</button>GeneSets Successfully Added to ' +
+                              'Selected Projects</div>');
+
+                    //window.location.reload();
+                }
+            });
+        }
+    });
 });
    var d = {{ data | safe }}; //Declaration of data as d variable
 
@@ -1956,7 +2023,7 @@ function zoom() {
 }
 
 // Adds the geneset to project, again taken from previous files in GeneWeaver
-$('#addToProject').on('click', function () {
+$('#addToProject1').on('click', function () {
         //get all checked gene sets
         //also split off the name from the number
         console.log("inside")
@@ -2001,12 +2068,8 @@ $('#addNewProject').on('click', function () {
                 '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
 });
 
-// Cooresponds to the add geneset to project button used from previous file found within Geneweaver (analyze)
-$('#addGenesetsToProjects').on('click', function (e) {
-        var checked = [];
-        $("input[name='options[]']:checked").each(function () {
-            checked.push(parseInt($(this).val()));
-        });
+
+        /*
         var option = JSON.stringify(checked);
         var g = $('#myCombineGSValue').val();
         var npn = $('#newProjName').val();
@@ -2034,7 +2097,7 @@ $('#addGenesetsToProjects').on('click', function (e) {
                 }
             });
         }
-    });
+        */
 
 
     $('.download-image').on('click', function(event) {
@@ -2142,6 +2205,12 @@ $('#what').popover({
         });
 
 </script>
+
+{% if g.user is defined %}
+    {% include 'modal/addGenesetsToProjects.html' %}
+{% endif %}
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 <!-- Includes the footer for the page -->
 {% include 'footer.html' %}
