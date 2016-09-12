@@ -594,7 +594,7 @@ var jaccardSimilarity = function() {
 
                 if (d3.event.shiftKey) {
                     var row = d.row;
-                    var col = d.col;
+                    var col = d.column;
 
                     if (isClicked()) {
                         
@@ -607,16 +607,17 @@ var jaccardSimilarity = function() {
                         // Shift click rows and columns yellow of circle selected
                         svg.selectAll('circle')
                             .filter(function (d) {
-                                if ((d.row == row) || (d.col == col)) 
+                                if ((d.row == row) || (d.column == col))
                                     return true;
                             })
-                            .style('stroke', 'yellow')
-                            .style("stroke-width", 3)
+                            //.style('stroke', '#FB9A99')
+                            .style('stroke', '#B2DF8A')
+                            .style("stroke-width", 4)
 
                         // Keeps the circles not in the clicked row and column black 
                         svg.selectAll('circle')  
                             .filter(function (d) {
-                                if (!((d.row == row) || (d.col == col))) 
+                                if (!((d.row == row) || (d.column == col)))
                                     return true;
                             })
                             .style('stroke', 'black')
