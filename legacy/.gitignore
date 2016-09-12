@@ -65,3 +65,6 @@ docs/_build/
 # Some of Astrid's personal project code unrelated to the GW application
 gtexsvc.py
 psygenet.py
+
+## Prevent changes to any sample configs
+sample-configs/**
