@@ -254,70 +254,8 @@
 <br>
 <br>
 
-
-
-
-
 <!-- Start of the javascipt corresponding to specific html elements -->
 <script type="text/javascript">
-
-// Function to reduce matrix based on pValue threshold
-function reduceMatrix() {
-
-    var pMatrix = []; // Array of Arrays (Matrix data structure)
-    var row = [];     // Each Array element of pMatrix
-    var elim = [];    // Array of rows (and columns) git to be removed
-
-    // 
-    for(var i = 0; i < count; i++) {
-        var str = "-1";
-        if(i % num_sets === 0 && i > 2) {
-            pMatrix.push(row);
-            row = [];
-        }
-        // Goes through each text value and checks how many text values each venn diagram element has in the json
-        count_text = 0;
-        for(var key in d.venn_diagrams[i].text) {
-            if(d.venn_diagrams[i].text.hasOwnProperty(key)) {
-                ++count_text;
-            }
-        }
-        // When the count_text is greater than or equal to 3, check the pValue with the threshold input by the user
-        // if its less set its value to -1
-        if(count_text >= 3) {
-            str = d.venn_diagrams[i].text[2].text;
-            str = str.replace("p =", "");
-            str = str.replace(/^\s+|\s+$/g, '');
-            str === "" ? str = "-1" : str = str;
-            if(parseFloat(str) > d.JaccardSimilarity_p_Value) {
-              str = "-1";
-            }
-            // Pushes the p-value into the row
-            row.push(str);
-        } else {
-            row.push("-1");
-        }
-    }
-
-    // Push the row at the pMatrix
-    pMatrix.push(row);
-    var counter = 0;
-    for(var h = 0; h < pMatrix.length; h++) {
-        var isNull = true;
-        for(var j = 0; j < pMatrix[h].length; j++) {
-            if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) {
-                isNull = false;
-                break;
-            }
-        }
-        if(isNull == true) {
-            elim.push(counter);
-        }
-        counter++;
-    }
-   return elim;
-}
-
 
 var jaccardSimilarity = function() {
 
@@ -332,9 +270,12 @@ var jaccardSimilarity = function() {
         diagramPadding = 100,
         // Venn diagram opacity
         opacity = 0.70,
-        d3Circles = [],
-        d3Labels = [],
-        d3Text = [],
+        // Circle data for each venn diagram
+        vennCircles = [],
+        // Individual venn diagram text lines (jac value, p-value, etc.)
+        vennText = [],
+        // Row/column labels for the venn diagrams
+        vennLabels = [],
         // Shift venn diagrams and their labels N pixels to the right
         xShift = 150,
         // Shift venn diagrams and their labels down N pixels
@@ -342,11 +283,20 @@ var jaccardSimilarity = function() {
         // Venn diagram colors: Emphasis gene green, left red, right blue
         fillColors = ['#006400', '#EE0000', '#0000BB'],
         // Data returned by the tool
-        data = null
-        ;
+        data = null;
 
     /** private **/
 
+    /**
+      * Uses a regex to parse a string containing a p-value. The p-value string
+      * is in a format returned by the jaccard tool (e.g. p = 0.01).
+      * 
+      * arguments
+      *     str: a string containing a p-value in the form 'p = 0.1'
+      *
+      * returns
+      *     a float of the parsed p-value. Returns 1 if nothing could be parsed.
+      */
     var parsePValue = function(str) {
 
         var regex = new RegExp([
@@ -361,7 +311,7 @@ var jaccardSimilarity = function() {
         var match = regex.exec(str);
 
         if (!match || match.length < 2)
-            return 1;
+            return 1.0;
 
         return parseFloat(match[1]);
     }
@@ -420,7 +370,7 @@ var jaccardSimilarity = function() {
                     desc: venn['desc1']
                 };
 
-                d3Circles.push(circle);
+                vennCircles.push(circle);
             }
         }
     };
@@ -470,7 +420,7 @@ var jaccardSimilarity = function() {
                     text: venn.text[j].text
                 };
 
-                d3Labels.push(text);
+                vennText.push(text);
             }
         }
     };
@@ -497,8 +447,8 @@ var jaccardSimilarity = function() {
                 isRow: true
             }
 
-            d3Text.push(columnText);
-            d3Text.push(rowText);
+            vennLabels.push(columnText);
+            vennLabels.push(rowText);
         }
 
     };
@@ -535,7 +485,7 @@ var jaccardSimilarity = function() {
             .attr('transform', 'translate(50, 50)');
 
         var circles = svg.selectAll('circle')
-            .data(d3Circles)
+            .data(vennCircles)
             .enter()
             .append('circle')
             .attr('transform', 'translate(' + xShift + ',' + yShift + ')')
@@ -601,7 +551,7 @@ var jaccardSimilarity = function() {
         ;
 
         var labels = svg.selectAll('text')
-            .data(d3Labels)
+            .data(vennText)
             .enter()
             .append('text')
             .attr('transform', 'translate(' + xShift + ',' + yShift + ')')
@@ -623,7 +573,7 @@ var jaccardSimilarity = function() {
         var yLabelShift = yShift + 40;
 
         var labels = svg.selectAll('header-text')
-            .data(d3Text)
+            .data(vennLabels)
             .enter()
             .append('text')
             .style('color', '#000')
@@ -672,13 +622,14 @@ var jaccardSimilarity = function() {
                         .attr('y', d.y)
                         .attr('dx', 0)
                         .attr('dy', function() { return (i * 15); })
-                        .text(chunks[i])
-                        ;
+                        .text(chunks[i]);
                 }
-            })
-            ;
+            });
     };
 
+    /**
+      * Setters/getters
+      */
     exports.data = function(_) {
         if (!arguments.length) return data;
         data = _;
