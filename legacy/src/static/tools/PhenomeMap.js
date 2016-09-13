@@ -1,6 +1,8 @@
 /**
  * file: PhenomeMap.js
  * desc: d3js code for visualizing the HiSim graph. 
+ * auth: Capstone HiSim team
+ *       TR
  */
 
 //global variable containing the JSON data and the d3.force object
