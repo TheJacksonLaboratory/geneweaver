@@ -24,7 +24,6 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-from uploader import Uploader
 import cairosvg
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
@@ -730,9 +729,9 @@ def render_editgeneset_genes(gs_id):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        symbol2ode_search = Uploader().get_ode_genes(geneset.sp_id, contents)
-        keys = [list(query) for query in symbol2ode_search.keys()]
-        symbol2ode = dict([(k[0], symbol2ode_search[tuple(k)][0]) for k in keys])
+        symbol2ode = batch.getOdeGeneIds(geneset.sp_id, contents)
+        keys = [list(query) for query in symbol2ode.keys()]
+        symbol2ode = dict([(k[0], symbol2ode[tuple(k)][0]) for k in keys])
         ## Reverse to make our lives easier during templating
         for sym, ode in symbol2ode.items():
             symbol2ode[ode] = sym
@@ -1220,8 +1219,7 @@ def render_viewgenesetoverlap(gs_ids):
 
     if user_id != 0:
         if user_info.is_admin or\
-           user_info.is_curator or\
-           geneset.user_id == user_id:
+           user_info.is_curator:
             view = 'True' 
 
         else:
@@ -1447,7 +1445,7 @@ def get_pubmed_data():
         if 'pmid' in args:
             pmid = args['pmid']
 
-            pub = Uploader().search_pubmed(pmid)
+            #pub = Uploader().search_pubmed(pmid)
 
             pubmedValues.extend((pub['pub_title'], pub['pub_authors'], pub['pub_journal'],
                                  pub['pub_volume'], pub['pub_pages'], pub['pub_date'],
