@@ -3,6 +3,11 @@
 {% import 'macros.html' as macros %}
 <style>
 
+.key > * {
+    margin: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
 
 #panel, #flip {
     padding: 5px;
@@ -97,13 +102,6 @@
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
-
-{% if g.user is defined %}
-    {% include 'modal/addGenesetsToProjects.html' %}
-{% endif %}
-{% include 'modal/addGenesetsToProjectsAlert.html' %}
-
-<!-- Panel for reruning tool, similar to the analyze genesets panel -->
 <div class="page-header">
     <h1>{{ title }}
         {{ runhash }} </h1>
@@ -153,98 +151,69 @@
         </div>
     </div>
 </form>
-{#
-<div id="rerunFlip" style="font-size: 1.25em" class="ui-btn ui-btn-inline  ui-corner-all header project-link "><i class="fa fa-plus">  Rerun Tool Options</i></div>
 
-<div id="rerunPanel" >
-    <form id="todo-id" class="form-horizontal" role="form" method="post">
-        <div class="form-group" >{{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}</div>
-        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}</div>
-        <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}</div>
-        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-        <button id="rerun" class="btn btn-primary"
-           type='submit'x
-           value='run'
-           onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
-           Run
-        </button>
-     </form>
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Visualization Options
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="viz-options" class="panel-collapse collapse" style="">
+		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+            <div class="row">
+				<div class="col-md-2">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="download-image" id="dl-pdf">PDF</a></li>
+                            <li><a class="download-image" id="dl-png">PNG</a></li>
+                            <li><a class="download-image" id="dl-svg">SVG</a></li>
+                        </ul>
+                    </div>
+				</div>
+
+				<div class="col-md-2">
+                    <button type="button" value="Update" id="zoomButton" class="btn btn-primary">
+                        Reset Zoom
+                    </button>
+                </div>
+            </div>
+
+		</div>
+	</div>
 </div>
- #}
+
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Similarity Matrix
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="sim-matrix" class="panel-collapse collapse" style="">
+		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px; border-radius:5px; border:1px solid #006400; text-align:center;">
+            <div id="matrix" align="center">
+            </div>
+            <br />
+            <button align="center" type="button" class="btn btn-block btn-warning" id="addToProject" style="width:270px">
+                <i class="fa fa-folder-o pull-left"></i> 
+                Add GeneSet(s) to Project
+            </button>
+		</div>
+	</div>
+</div>
+
 <br>
 
-<!-- Panel for the Geneset Table-->
-<div id="flip" style="font-size: 1.25em" class="ui-btn ui-btn-inline ui-corner-all project-link header "> <i class="fa fa-plus">GeneSet Table Panel</i></div>
-<div id="panel" class="badger-left">
-
-<!-- Reset button for the Geneset Table Panel, so user can see original set shown by table -->
-<button type="button" value="Update" id="zoomButtonChart" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-btn-b  ui-icon-check header" onclick="updateZoom()">Reset Chart</button>
-
-<!-- Chart where the D3 for the Geneset Table Panel is appended onto in the JavaScript below -->
-<div id="chart"></div>
-    
-    <!-- Ability to select all genesets that user can see corresponds to Geneset Table Panel -->
-    <div><form action="#" method="post" id="myform">
-        <div class=" pull-left"><input type="checkbox" onClick="toggle(this)" name="checkall" id="checkall" style="font-weight: 300"> <label for="checkall">Select all</label></div>
-         </form></div>
-
-         <!-- Buttons for adding to genesets to a project or exporting individual genes -->
-         <p></p><br><br><br>
-         <button type="button" class="btn btn-lg btn-warning divider" id="addToProject">
-            <i class="fa fa-folder-o pull-left"></i> Add to Project
-         </button>
-
-        <button type="button" class="btn btn-lg btn-warning divider" id="exportData">
-            <i class="fa fa-download pull-left"></i> Export Genes
-        </button>
-</div>
-
-<p>
-<div class="box-header clearfix">
-      <!-- Venn Diagram view the users intially see -->
-      <div class = "left-cell">
-         <h4>Venn Diagram view:</h4>
-      </div>
-      <p style="font-size: 1em; font-weight: normal;">
-      <div class="container middle-cell">
-
-        <!-- Formatting the buttons in the correct div, Download buttons has a dropdown menu allowing user to select three options -->
-        <div class="">
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary">Download as...</button>
-                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <span class="caret"></span>
-                    <span class="sr-only">Toggle Dropdown</span>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="download-image" id="dl-pdf">PDF</a></li>
-                    <li><a class="download-image" id="dl-png">PNG</a></li>
-                    <li><a class="download-image" id="dl-svg">SVG</a></li>
-                </ul>
-            </div>
-        </div>
-      </div>
-            <!-- Reset Zoom button for the Venn Diagram view that allows users to view the data in its original display if they zoom or pan too much -->
-            <div class="right-cell">
-         <button type="button" value="Update" id="zoomButton" class="btn btn-primary">Reset Zoom</button>
-             <!--
-         <button type="button" value="Update" id="zoomButton">Reset Zoom</button>
-         -->
-      </div>
-</div>
-
-<!-- Key for the Venn Diagram, so users can understand the what each color of dot represents -->
-<div id="xaxisLeg"><img src="/static/images/lavenderdot.png" > = X-Axis GeneSet</div>
-<div id="yaxisLeg"><img src="/static/images/pinkreddot.png" > = Y-Axis GeneSet</div>
-<div id="genesetLeg"> <img src="/static/images/cyandot.png" > = Same Geneset</div>
-<div id="empLeg"> <img src="/static/images/chartreusedot.png" > = Contains Emphasis Gene
-<div id="pvalLeg"> <img src="/static/images/whitedot.png" > = GeneSet Did Not Meet Threshold</div></p></div>
-
-
-<!-- Error message displayed when no venn diagrams are displayed due to threshold being set too high -->
-<div id=divError class="alert alert-danger fade in">
-    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-    The p-value threshold is too high, please run the tool again at a lower threshold.
+<div id="jaccard-legend">
 </div>
 
 <!-- Div(Jaccard), where all the venn diagram D3 is appended to in the JavaScript below -->
@@ -262,1175 +231,103 @@
 <br>
 <br>
 
-
-
-
-
-<!-- Start of the javascipt corresponding to specific html elements -->
+<script src="/static/tools/JaccardSimilarity.js" charset="utf-8"></script>
 <script type="text/javascript">
 
-// Checks to see if the coordinate is in the array created for the elimination matrix
- function isIn(arr, x) {
-    for(var i = 0; i < arr.length; i++) {
-        if(arr[i] === x) return true;
-    }
-    return false;
-}
-
-// Function to reduce matrix based on pValue threshold
-function reduceMatrix() {
-
-    var pMatrix = []; // Array of Arrays (Matrix data structure)
-    var row = [];     // Each Array element of pMatrix
-    var elim = [];    // Array of rows (and columns) git to be removed
-
-    // 
-    for(var i = 0; i < count; i++) {
-        var str = "-1";
-        if(i % num_sets === 0 && i > 2) {
-            pMatrix.push(row);
-            row = [];
-        }
-        // Goes through each text value and checks how many text values each venn diagram element has in the json
-        count_text = 0;
-        for(var key in d.venn_diagrams[i].text) {
-            if(d.venn_diagrams[i].text.hasOwnProperty(key)) {
-                ++count_text;
-            }
-        }
-        // When the count_text is greater than or equal to 3, check the pValue with the threshold input by the user
-        // if its less set its value to -1
-        if(count_text >= 3) {
-            str = d.venn_diagrams[i].text[2].text;
-            str = str.replace("p =", "");
-            str = str.replace(/^\s+|\s+$/g, '');
-            str === "" ? str = "-1" : str = str;
-            if(parseFloat(str) < d.JaccardSimilarity_p_Value) {
-              str = "-1";
-            }
-            // Pushes the p-value into the row
-            row.push(str);
-        } else {
-            row.push("-1");
-        }
-    }
-
-    // Push the row at the pMatrix
-    pMatrix.push(row);
-    var counter = 0;
-    for(var h = 0; h < pMatrix.length; h++) {
-        var isNull = true;
-        for(var j = 0; j < pMatrix[h].length; j++) {
-            if(pMatrix[h][j].localeCompare("-1") != 0 && pMatrix[h][j].localeCompare("1") != 0) {
-                isNull = false;
-                break;
-            }
-        }
-        if(isNull == true) {
-            elim.push(counter);
-        }
-        counter++;
-    }
-   return elim;
-}
-
-
+$(document).ready(function() {
 
    var d = {{ data | safe }}; //Declaration of data as d variable
-
-   {# Checks number of objects venn_diagram has#}
-   var count = 0;
-   for (var key in d.venn_diagrams)
-       if (d.venn_diagrams.hasOwnProperty(key))
-           count++;
-
-   var count_text = 0; // Counts number of text objects in venn_diagrams text set
-   var check = 0; // Used to keep track of label id for gene sets that are overlapping with themselves
-   var gene_lab_coor = []; // Array used to define the coordinates of the graph
-   var circleData = []; // Array for all elements of each venn_diagram circle object
-   var num_sets = Math.sqrt(count); // Finds the length and width of entire chart (object wise)
-
-   var x_coord = 0, y_coord = 0; // Sets the graph coordinates to 0,0
-
-   var gene_sets = []; //Array to hold the value for gene_sets set in jSon data
-   gene_sets = d.geneset_table;
-
-   var gene_ids = []; //Array to hold individual gene set ids (w/o the GS) to get the url
-   var gid= "";
-
-   var str = ""; // Create string to hold titles
-   var row = -1; // Create variable to store row number
-
-   {# Intializes gene_ids array for click url functionality#}
-   for (i= 0; i<gene_sets.length; i++){
-       gene_ids[i] = gid;
-   }
-
-   // Gets URLs for click function
-   var gene_url = [];
-   var geneurl_text = "";
-   gene_url = d.genesets;
-
-   // Intializes gene_ids array for click url functionality
-   for (i= 0; i<gene_url.length; i++){
-       geneurl_text = gene_url[i].substring(2);
-       gene_url[i] = geneurl_text;
-   }
-
-   var threshold = false;
-   var pValues = [];
-   var pValueCount = 0;
-   var isPVal = "p = ";
-
-   for (i = 0; i < count; i++) {
-
-       count_text = 0;
-
-       for (var key in d.venn_diagrams[i].text) {
-           if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
-               ++count_text;
-           }
-       }
-
-       for (k = 0; k < count_text; k++) {
-
-           var str = d.venn_diagrams[i].text[k].text;
-
-           if(str.search(isPVal) != -1){
-               str = str.replace("p =", "");
-               str=str.replace(/^\s+|\s+$/g,'');
-               pValues[pValueCount] =  str;
-               pValueCount += 1;
-           }
-       }
-   }
-
-   var elim = reduceMatrix();
-   var row_count = 0;
-   var first_run = true;
-
-   // Plots the graph in a correct fashion by incrementing differently for different items in the set
-   var xVal = -1;
-   var yVal = -1;
-   var skipMe = false;
-   for (i = 0; i < count; i++) {
-       var str = "-1";
-
-       xVal++;
-
-       if (i % num_sets === 0) {
-
-           row_count++;
-           x_coord = 50;
-           yVal++;
-           xVal = 0;
-
-           if (first_run) {
-               y_coord = 50;
-               first_run = false;
-               row_count = 0;
-           }
-
-           if(isIn(elim, row_count)) { // Skip a row
-               i += num_sets-1;
-               continue;
-           }
-           else if(isIn(elim, i % num_sets)) {  // Skip a column
-               y_coord += 150;
-               continue;
-           }
-
-           y_coord += 150;
-       }
-       else {
-          
-           if(isIn(elim, i % num_sets)) {  // Skip a column
-               if(i % num_sets === 0) {
-                  i--;
-                  xVal = -1;
-               }
-              continue;
-           }
-       }
-
-       x_coord += 200;
-
-       if(i >= count) {
-          break;
-       }
-
-       // Hides elements if elimination matrix includes all of the sets
-       if(elim.length === num_sets){
-           $('#nOpacity-value').hide();
-           $('#nOpacity').hide();
-           $('#thresholdMsg').hide();
-           $('#zoomButton').hide();
-           $('#menu1').hide();
-           $('#empLeg').hide();
-           $('#pvalLeg').hide();
-           $('#genesetLeg').hide();
-           $('#yaxisLeg').hide();
-           $('#xaxisLeg').hide();
-           $('#pthresh').hide();
-           $('#jaccard').hide();
-      }
-      else{
-           $('#divError').hide();
-      }
-
-      {# Pushes the coordinates of tx and ty into the gene_lab_coord array #}
-       gene_lab_coor.push([d.venn_diagrams[i].tx, d.venn_diagrams[i].ty]);
-
-       {# Resets the count_text value to 0 #}
-       count_text = 0;
-
-        // Counts the number of objects in venn_diagram's text set
-       for (var key in d.venn_diagrams[i].text) {
-          if (d.venn_diagrams[i].text.hasOwnProperty(key)) {
-             ++count_text;
-          }
-       }
-
-       // Read through k times and create text labels based upon k's value
-       for (k = 0; k < count_text; k++) {
-          var isPVal = "p = ";
-
-             if (k === 2) {
-                str = d.venn_diagrams[i].text[k].text;
-                str = str.replace("p =", "");
-                str = str.replace(/^\s+|\s+$/g, '');
-             }
-
-            //  When values of c1,c2 are the same then make turquoise circle with initialized objects in json
-            if (d.venn_diagrams[i].r1 === d.venn_diagrams[i].r2) {
-              if((d.venn_diagrams[i].emphasis1 == "False" ) && (d.venn_diagrams[i].emphasis2 == "False")){
-                circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "#99FFFF",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                     "url":   '/viewgenesetdetails/' + gene_url[xVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold,
-                    "row" : xVal, 
-                    "col" : yVal
-
-
-                });
-              }
-              else{
-                circleData.push({
-                    "cx": d.venn_diagrams[i].c2x,
-                    "cy": d.venn_diagrams[i].c2y,
-                    "radius": d.venn_diagrams[i].r2,
-                    "fill": "chartreuse",
-                    "opacity": d.venn_diagrams[i].opacity,
-                    "cxshift": x_coord,
-                    "cyshift": y_coord,
-                    "des": d.venn_diagrams[i].desc1,
-                     "url":   '/viewgenesetdetails/' + gene_url[xVal],
-                    "title" : d.venn_diagrams[i].title1,
-                    "pvalue" : str,
-                    "show" : threshold,
-                    "row" : xVal, 
-                    "col" : yVal
-
-
-                });
-              }
-                 row +=1;
-
-                // When the object number i is 0 and its text value is k then read in the text for jaccard and p-value with appropriate coordinates
-                if((i === 0) && (k === 0)) {
-
-
-
-                     circleData.push({
-                            "gene_id": d.venn_diagrams[i].text[k].text,
-                            "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
-                            "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label": d.geneset_table[xVal].text.substring(0, 25), 
-                            "label1": d.geneset_table[xVal].text.substring(25, 50),
-                            "labelx": x_coord,
-                            "labely": y_coord,
-                            "pvalue" : str,
-                            "show" : threshold
-
-                        });
-                        check += 1;
-                }
-
-                // Else (FIXES OVERLAP) object is not i = 0, text k is 0, and is a diagonal then intializes jaccard, p and coordinate values
-                else if ( (k===0) && (i !== 0) && (i%(num_sets+1) ===0)){
-                        circleData.push({
-                            "gene_id": d.venn_diagrams[i].text[k].text,
-                            "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 27,
-                            "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 40,
-                            "label":  d.geneset_table[xVal].text.substring(0, 25),
-                            "label1": d.geneset_table[xVal].text.substring(25, 50),
-                            "labelx": x_coord,
-                            "labely": y_coord,
-                            "pvalue" : str,
-                            "show" : threshold
-
-                        });
-                        check += 1;
-                }
-
-                // If k or i is different push the label onto the circledata array
-                else {
-                    circleData.push({
-                        "gene_id": d.venn_diagrams[i].text[k].text,
-                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 18,
-                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 24,
-                        "pvalue" : str,
-                        "show" : threshold
-                    });
-                }
-
-            }
-
-// Else make circles for orange and blue with appropriate json values
-            else {
-                  // Checks if two circle should be made by seeing if the radii are the same, plots them accordingly
-                  if (d.venn_diagrams[i].r2 > d.venn_diagrams[i].r1) {
-
-                    // Checks the first circle in the venn diagram to see if it has an emphasis gene
-                    if (d.venn_diagrams[i].emphasis1 == "False"){
-                      circleData.push({
-                          "cx": d.venn_diagrams[i].c1x,
-                          "cy": d.venn_diagrams[i].c1y,
-                          "radius": d.venn_diagrams[i].r1,
-                          "fill": "#FF6666",
-                          "opacity": d.venn_diagrams[i].opacity,
-                          "cxshift": x_coord,
-                          "cyshift": y_coord,
-                          "gene_id": d.venn_diagrams[i].text[k].text,
-                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                          "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                          "title" : d.venn_diagrams[i].title1,
-                          "pvalue" : str,
-                          "show" : threshold,
-                          "url1":   d.venn_diagrams[i].url,
-                          "row" : xVal, 
-                          "col" : yVal
-                      });
-                    }
-                    else{
-                      circleData.push({
-                          "cx": d.venn_diagrams[i].c1x,
-                          "cy": d.venn_diagrams[i].c1y,
-                          "radius": d.venn_diagrams[i].r1,
-                          "fill": "chartreuse",
-                          "opacity": d.venn_diagrams[i].opacity,
-                          "cxshift": x_coord,
-                          "cyshift": y_coord,
-                          "gene_id": d.venn_diagrams[i].text[k].text,
-                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                          "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                          "title" : d.venn_diagrams[i].title1,
-                          "pvalue" : str,
-                          "show" : threshold,
-                          "url1":   d.venn_diagrams[i].url,
-                          "row" : xVal, 
-                          "col" : yVal
-                      });
-                    }
-                    // Checks the second circle in the venn diagram to see if it has an emphasis gene
-                    if (d.venn_diagrams[i].emphasis2 == "False"){
-                      circleData.push({
-                          "cx": d.venn_diagrams[i].c2x,
-                          "cy": d.venn_diagrams[i].c2y,
-                          "radius": d.venn_diagrams[i].r2,
-                          "fill": "#DD99FF",
-                          "opacity": d.venn_diagrams[i].opacity,
-                          "cxshift": x_coord,
-                          "cyshift": y_coord,
-                          "gene_id": d.venn_diagrams[i].text[k].text,
-                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                          "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                          "title" : d.venn_diagrams[i].title1,
-                          "pvalue" : str,
-                          "show" : threshold,
-                          "url1":   d.venn_diagrams[i].url,
-                          "row" : xVal, 
-                          "col" : yVal
-                      });
-                    }
-                    else{
-                      circleData.push({
-                          "cx": d.venn_diagrams[i].c2x,
-                          "cy": d.venn_diagrams[i].c2y,
-                          "radius": d.venn_diagrams[i].r2,
-                          "fill": "chartreuse",
-                          "opacity": d.venn_diagrams[i].opacity,
-                          "cxshift": x_coord,
-                          "cyshift": y_coord,
-                          "gene_id": d.venn_diagrams[i].text[k].text,
-                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                          "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                          "title" : d.venn_diagrams[i].title1,
-                          "pvalue" : str,
-                          "show" : threshold,
-                          "url1":   d.venn_diagrams[i].url,
-                          "row" : xVal, 
-                          "col" : yVal
-                      });
-                    }
-
-                }
-              // Corresponds to the if for plotting the circles in the correct order in relation to their radii size 
-              else{
-                     // Checks the second circle in the venn diagram to see if it has an emphasis gene
-                     if (d.venn_diagrams[i].emphasis2 == "False"){
-                      circleData.push({
-                          "cx": d.venn_diagrams[i].c2x,
-                          "cy": d.venn_diagrams[i].c2y,
-                          "radius": d.venn_diagrams[i].r2,
-                          "fill": "#DD99FF",
-                          "opacity": d.venn_diagrams[i].opacity,
-                          "cxshift": x_coord,
-                          "cyshift": y_coord,
-                          "gene_id": d.venn_diagrams[i].text[k].text,
-                          "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                          "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                          "des": d.venn_diagrams[i].desc1,
-                          "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                          "title" : d.venn_diagrams[i].title1,
-                          "pvalue" : str,
-                          "show" : threshold,
-                          "url1":   d.venn_diagrams[i].url,
-                          "row" : xVal, 
-                          "col" : yVal
-                     });
-                  }
-                  else{
-                    circleData.push({
-                        "cx": d.venn_diagrams[i].c2x,
-                        "cy": d.venn_diagrams[i].c2y,
-                        "radius": d.venn_diagrams[i].r2,
-                        "fill": "chartreuse",
-                        "opacity": d.venn_diagrams[i].opacity,
-                        "cxshift": x_coord,
-                        "cyshift": y_coord,
-                        "gene_id": d.venn_diagrams[i].text[k].text,
-                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                        "des": d.venn_diagrams[i].desc1,
-                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                        "title" : d.venn_diagrams[i].title1,
-                        "pvalue" : str,
-                        "show" : threshold,
-                        "url1":   d.venn_diagrams[i].url,
-                        "row" : xVal, 
-                        "col" : yVal
-
-
-                    });
-                  }
-                 // Checks the first circle in the venn diagram to see if it has an emphasis gene
-                 if (d.venn_diagrams[i].emphasis1 == "False"){
-                    circleData.push({
-                        "cx": d.venn_diagrams[i].c1x,
-                        "cy": d.venn_diagrams[i].c1y,
-                        "radius": d.venn_diagrams[i].r1,
-                        "fill": "#FF6666",
-                        "opacity": d.venn_diagrams[i].opacity,
-                        "cxshift": x_coord,
-                        "cyshift": y_coord,
-                        "gene_id": d.venn_diagrams[i].text[k].text,
-                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                        "des": d.venn_diagrams[i].desc1,
-                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                        "title" : d.venn_diagrams[i].title1,
-                        "pvalue" : str,
-                        "show" : threshold,
-                        "url1":   d.venn_diagrams[i].url,
-                        "row" : xVal, 
-                        "col" : yVal
-
-
-                    });
-                  }
-                  else{
-                    circleData.push({
-                        "cx": d.venn_diagrams[i].c1x,
-                        "cy": d.venn_diagrams[i].c1y,
-                        "radius": d.venn_diagrams[i].r1,
-                        "fill": "chartreuse",
-                        "opacity": d.venn_diagrams[i].opacity,
-                        "cxshift": x_coord,
-                        "cyshift": y_coord,
-                        "gene_id": d.venn_diagrams[i].text[k].text,
-                        "txshift": x_coord + d.venn_diagrams[i].text[k].tx + 20,
-                        "tyshift": y_coord + d.venn_diagrams[i].text[k].ty + 30,
-                        "des": d.venn_diagrams[i].desc1,
-                        "url":  '/viewgenesetoverlap/' + gene_url[xVal]+'/'+ gene_url[yVal],
-                        "title" : d.venn_diagrams[i].title1,
-                        "pvalue" : str,
-                        "show" : threshold,
-                        "url1":   d.venn_diagrams[i].url,
-                        "row" : xVal, 
-                        "col" : yVal
-
-
-                    });
-                  }
-
-              }
-              
-            }
-        }
-
-    }
-
-
-    // Intializes border for circles
-    var border = 1;
-    var bordercolor = 'black';
-
-    // Sets the width and height for the zoom functionality
-    var margin = {top: -5, right: -5, bottom: -5, left: -5},
-    width = 1100 - margin.left - margin.right,
-    height = 900 - margin.top - margin.bottom;
-    var counter = 0;
-
-    //Create the SVG Viewport
-    var svgContainer = d3.select("#jaccard").append("svg")
-            .attr("width", width )
-            .attr("height", height)
-            // Allows the zoom functionality for the svg that contains the venn diagrams
-            .call(d3.behavior.zoom()
-                .on("zoom", function () {
-                    svgContainer.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
-                }))
-            .append("g");
-
-
-       // Creates the functionality behing the button to reset zoom
-       $("#zoomButton").on("click", function () {
-                    counter++;
-                    svgContainer
-                          .transition()
-                        .duration(1000)
-                         .attr('transform', "translate(0,0)");
-                           zoom.scale(1);
-                          zoom.translate([0, 0]);
-                  });
-
-    // Allows tooltip functionality on the jaccard div- hover and clicks
-    var div = d3.select("#jaccard").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0);
-
-    // Add circles to the svgContainer
-    var circles = svgContainer.selectAll("circle")
-            .data(circleData)
-            .enter()
-            .append("circle");
-
-
-    // Circle attributes added to circles
-    var circleAttributes = circles
-            .attr("cx", function (d) { return d.cx + d.cxshift + 50; })
-            .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
-            .attr("r", function (d) {return d.radius; })
-            .style("fill", function (d) { return d.fill; })
-            .style("fill-opacity", function (d) {return d.opacity})
-            .attr("cxshift", function (d) {   return d.cxshift; })
-            .attr("cyshift", function (d) {  return d.cyshift; })
-            .attr("label", function (d) { return d.label; })
-            .attr("pValue", function (d) { return d.pvalue; })
-            .style("stroke", 'black')
-            .style("stroke-width", 1)
-
-    // Allows users to shift or alt click to turn on or off highlighting
-    .on("click", function(d){
-          if(d3.event.shiftKey){
-                  var row = d.row;
-                  var col = d.col;
-
-                  // Shift click rows and columns yellow of circle selected
-                  svgContainer.selectAll("circle")
-                    .filter(function (d) {if ((d.row == row) || (d.col == col)) return true;})
-                    .style('stroke', 'yellow')
-                    .style("stroke-width", 3)
-
-                  // Keeps the circles not in the clicked row and column black 
-                  svgContainer.selectAll("circle")  
-                    .filter(function (d) {if (!((d.row == row) || (d.col == col))) return true;})
-                    .style('stroke', 'black')
-                    .style("stroke-width", 1);
-                }
-            
-
-         // Alt click takes the highlighting off and resets the circles back to original state
-          if(d3.event.altKey){
-                  svgContainer.selectAll("circle")
-                    .style('stroke', 'black')
-                     .style("stroke-width", 1);
-                }
-            })
-
-     // When mouse is over object html output styling of label will display
-    .on("mouseover", function(d) {
-            div.transition()
-                .duration(200)
-                .style("opacity", .9);
-            div .html((d.title)+ "<br/>" + (d.des))
-                .style("left", (d3.event.pageX) + "px")
-                .style("top", (d3.event.pageY) + "px");
-
-            })
-     // When mouse leaves change opacity to 0 so not displayed
-        .on("mouseout", function(d) {
-            div.transition()
-                .duration(500)
-                .style("opacity", 0);   })
-
-    // When mouse click open new page to designated url (of geneset id view results) NEED TO MODIFY LATER!
-        .on("dblclick", function(d) {
-           window.open(
-                   d.url)});
-
-    //Add the SVG Text Element to the svgContainer
-    var text = svgContainer.selectAll("text")
-            .data(circleData)
-            .enter();
-
-    // X Gene_Set labels added to d3
-    text.append("text")
-            .text(function (d) { return d.label;})
-            .attr("x", function (d) {return d.labelx + 50; })
-            .attr("y", function (d) {return 50; })
-            .style("font-weight", "bold")
-            .attr("font-size", "10px");
-
-    // Y Gene_Set labels added to d3
-    text.append("text")
-            .text(function (d) {return d.label;})
-            .attr("x", function (d) {return 25;})
-            .attr("y", function (d) {return d.labely + 100;})
-            .style("font-weight", "bold")
-            .attr("font-size", "10px");
-
-    // X Gene_Set labels added to d3
-    text.append("text")
-            .text(function (d) { return d.label1;})
-            .attr("x", function (d) {return d.labelx + 50; })
-            .attr("y", function (d) {return 60; })
-            .style("font-weight", "bold")
-            .attr("font-size", "10px");
-
-    // Y Gene_Set labels added to d3
-    text.append("text")
-            .text(function (d) {return d.label1;})
-            .attr("x", function (d) {return 25;})
-            .attr("y", function (d) {return d.labely + 110;})
-            .style("font-weight", "bold")
-            .attr("font-size", "10px");
-
-    // Jaccard, p-value, and overlap display added to d3
-    text.append("text")
-            .text(function (d) { return d.gene_id;})
-            .attr("x", function (d) { return d.txshift; })
-            .attr("y", function (d) { return d.tyshift;  })
-            .attr("font-size", "11px");
-
-
-
-    // When the input range changes update the circle
-    d3.select("#nOpacity").on("input", function() {
-        updateOpacity(+this.value);
-    });
-
-
-    // Initial starting radius of the circle
-    updateOpacity(d.JaccardSimilarity_p_Value);
-
-    // update the elements
-    function updateOpacity(nOpacity) {
-
-      // Adjust the text on the range slider
-      d3.select("#nOpacity-value").text(nOpacity);
-      d3.select("#nOpacity").property("value", nOpacity);
-
-        // If circle pValue is less than slider text set opacity to 0
-        svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue < nOpacity ) return true;})
-            .style("fill-opacity",0);
-
-        // If circle pValue is greater or equal to slider text set opacity to 1
-        svgContainer.selectAll("circle")
-            .filter(function (d) {if (d.pvalue >= nOpacity ) return true;})
-            .style("fill-opacity",1);
-       }
-
- 
-
-    // Download types function and selection in prior to working on (not made by Team Jaccard 2015)
-    function changeImg(sel, dl) {
-
-        if (sel.value == 'svg') {
-            document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}";
-        }
-        else if (sel.value == 'png') {
-            document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.png') }}";
-        }
-        else if (sel.value == 'pdf') {
-            document.getElementById("svgFrame").src = "{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}";
-        }
-    }
-
-    
-    // Checkbox for selecting a geneset
-    function genesetCheckboxChanged(projCheckbox, genesetCheckboxes) {
-        var allChecked = true;
-        genesetCheckboxes.each(function (i, gsCheckbox) {
-            gsCheckbox = $(gsCheckbox);
-            if (!gsCheckbox.prop('checked')) {
-                allChecked = false;
-                return false;
-            }
+    var js = jaccardSimilarity()
+        .data(d)
+        .diagramPadding(150)
+        .draw()
+        .drawLegend();
+        ;
+
+    // Draws the jaccard similarity table
+    var jsm = jaccardSimilarityMatrix()
+        .data(d)
+        .draw();
+
+    // The "Add GeneSets to Project" button
+    $('#addToProject').on('click', function (e) {
+        var checked = [];
+
+        // Checkbox element ids contain the gs_id
+        $('input[name="matrix-checkbox"]:checked').each(function() {
+
+            // Removes "check-"
+            var gsID = $(this).attr('id').slice(6);
+            gsID = 'GS' + gsID;
+
+            checked.push(gsID);
         });
 
-        projCheckbox.prop('checked', allChecked);
-    }
 
-// Rerun tool panel functionality when clicked
-$(document).ready(function(){
-    $("#rerunFlip").click(function(){
-        $("#rerunPanel").slideToggle("slow");
+        if (!checked.length) {
+
+          $('#myAlert').modal('show');  
+
+        } else {
+
+            var ids = checked.join(', ');
+
+            $('#myModalLabel').html(ids);
+            $('#myModalValue').val(ids);
+            $('#addToProjectModal').modal('show');
+        }
     });
 
-      // Click functionaly when project is selected
-     $('.project-link').on('click', function (event) {
+    // The "Add GeneSets to Project" modal dialog. Should probably be moved to the
+    // modal fragment itself because this code is duplicated in a number of areas.
+    $('#addGenesetsToProjects').on('click', function(e) {
 
-      // Change chevron when project info is displayed specifically the +/-
-      var chev = $(this).children('.fa-plus').length ?
-             $(this).children('.fa-plus') :
-             $(this).children('.fa-minus');
+        var checked = [];
 
-      chev.toggleClass('fa-minus');
-      chev.toggleClass('fa-plus') });
+        $('input[name="options[]"]:checked').each(function () {
+            checked.push(parseInt($(this).val()));
+        });
 
+        var projectIds = JSON.stringify(checked);
+        var newProject = $('#newProjName').val();
+        var g = $('#myModalValue').val();
+        var user_id = '{{ g.user.user_id | safe }}';
+
+        if (!checked.length && !newProject) {
+            $('#result')
+                .html('<div class="alert alert-danger fade in"> ' +
+                      '<button type="button" class="close" ' +
+                      'data-dismiss="alert" aria-hidden="true">x' +
+                      '</button>No Projects Were Selected</div>');
+
+        // TODO: add alert indicating adding to projects was successful
+        } else {
+            $.ajax({
+                type: 'GET',
+                url: '../addGenesetsToProjects',
+                data: {
+                    'user_id': user_id, 
+                    'npn': newProject, 
+                    'gs_id': g, 
+                    'option': projectIds
+                },
+                success: function (data) {
+                    $("#result")
+                        .html('<div class="alert alert-success fade in"> ' +
+                              '<button type="button" class="close" ' +
+                              'data-dismiss="alert" aria-hidden="true">x' +
+                              '</button>GeneSets Successfully Added to ' +
+                              'Selected Projects</div>');
+                }
+            });
+        }
+    });
 });
 </script>
 
 
 <!-- Script for the geneset table panel and all functionality and buttons that go along with it -->
 <script>
-// Button to reset zoom
-$("#zoomButtonChart").on("click", function () {
-            svg.selectAll(".rectangles")
-               .transition()
-               .duration(1000)
-                .attr("transform", "translate(300," + (h-338) + ")")
-                    .call(zm).call(xAxis);
-          });
-
-// Panel ability for the geneset table chart
-$(document).ready(function() {
-            $("#flip").click(function(){
-                $("#panel").slideToggle("slow");
-            });
-    });
-    
-// Sets some attributes for the geneset tabel panel
-var border = 0.5;
-var bordercolor = 'black';
-
-// Gets data from the JSON file created
-var d = {{ data | safe }};
-
-console.log('data');
-console.log(d);
-
-// Sets some attributes to create the geneset table panel, specifically it places the values in the correct locations
-var count = 0;
-var entry= 0;
-var ent_len = 0;
-var genesettble = 0;
-
-// Counts the number of genesets
-for (var key in d.genesets) {
-    if (d.genesets.hasOwnProperty(key)) {
-        ++count;
-    }
-}
-
-// Sets the height and width of the svg container that holds the geneset table panel
-var h= (count * 90) + 150;
-var w = (count * 110) + 100;
-
-// Adds the width and height to the panel so it opens to the appropriate dimensions
-function addStyle(h,w) {
-    $('<style>.badger-left:after { height: ' + h + ';</style>').appendTo('#panel');
-    $('<style>.badger-left:after { width: ' + w + ';</style>').appendTo('#panel');
-}
-
-// Creates checkboxes in geneset table panel for each geneset in the panel
-function toggle(source) {
-    checkboxes = document.getElementsByName('foo');
-    for (var i = 0, n = checkboxes.length; i < n; i++) {
-        checkboxes[i].checked = source.checked;
-    }
-}
-
-// Sets width and height of panel for the zoom functionality
-var margin = {top: 30, right: 0, bottom: 20, left: 60},
-  width = 960 - margin.left - margin.right,
-  height = 500 - margin.top - margin.bottom;
-
-var xMax = 34,
-  xMin = 0,
-  yMax = 840,
-  yMin = 0;
-
-// Defines the scales
-var x = d3.scale.linear()
-  .domain([xMin, xMax])
-  .range([0, width-100]);
-
-var y = d3.scale.linear()
-  .domain([yMin, yMax])
-  .range([height+20, 0]);
-
-
-//Define X axis
-var xAxis = d3.svg.axis()
-  .scale(x)
-  .orient("bottom")
-  .tickSize(-height)
-  .tickFormat(d3.format("s"));
-
-// Adds the zoom functionality to the geneset table panel
-var zm = d3.behavior.zoom().x(x).scaleExtent([1, 8]).on("zoom", zoom);
-
-// Appends the geneset table panel onto the chart div on the html
-var svg = d3.select("#chart").append("svg")
-  .attr("width", width + margin.left + margin.right + 90)
-  .attr("height", h-100)
-  .append("g")
-  // Enables the pan functionality
-  .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-  .call(zm);
-
-// Pan functionality
-svg.append("g")
-  .attr("class", "x axis")
-  .attr("transform", "translate(0," + h + ")")
-  .call(xAxis);
-
-// Intializes values 
-var addOnX = 0;
-var addOnY = -520;
-var addOnYLast = 0;
-var c = 0;
-var offset = 0;
-var textX = 30;
-var textY = -390;
-var xcoord = 60;
-
-// Checks through each element in the geneset_table in the JSON
-for(i = 0; i < count; i++) {
-  for (var k = 0; k < count; k++) {
-      addOnX += 110;
-      if (c % count == 0) {
-          addOnY += 90;
-          addOnX = 0;
-      }
-
-     if(k == offset) {
-              //set the rectangles for diagonal of the geneset table
-               svg.append("rect")
-                     .attr("class", "rectangles")
-                    .attr("x", addOnX)
-                    .attr("y", addOnY)
-                    .attr("width", 110)
-                    .attr("height", 90)
-                    .attr("transform", function(d, i) {
-                    return "translate("+x(14)+","+y(50)+")";
-              })
-                    // fills the colors and the outlines for the rectangles
-                    .style("stroke", "#ffffff")
-                    .style("fill", "#ffa076")
-                    .attr("border", 1);
-     } else {
-              //set the rectangles for the geneset table
-               svg.append("rect")
-                     .attr("class", "rectangles")
-                    .attr("x", addOnX)
-                    .attr("y", addOnY)
-                    .attr("width", 110)
-                    .attr("height", 90)
-                      .attr("transform", function(d, i) {
-                    return "translate("+x(14)+","+y(50)+")";
-               })
-                    // offsets the columns of the geneset table to change colors every other one
-                    .style("stroke", "#ffffff")
-                       .style("fill", function() {
-                           if (k % 2) {
-                               return "#b9d9cf";
-                           }
-                           else {
-                               return "#d7ede6";
-                           }
-                       })
-                    .attr("border", 1);
-    }
-      c++;
-  }
-    //count how many elements are in geneset table
-   entry = 0;
-   for (var key in d.geneset_table[i].entries) {
-       if (d.geneset_table[i].entries.hasOwnProperty(key)) {
-           ++entry;
-       }
-
-       // If the entry length is equal to three (has both jaccard and p value) then include a hyperlink
-       if(Object.keys(d.geneset_table[i].entries[entry-1]).length == 3){
-
-            // set the link for the jaccard coefficients
-             svg.append("a")
-              .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
-              .append("text")
-               .attr("transform", function(d, i) {
-                        return "translate("+x(14)+","+y(50)+")";
-                   })
-               .attr("class", "rectangles")
-             .attr("x", textX)
-             .attr("y", textY)
-             .style("font-weight",  "bold")
-             .text( d.geneset_table[i].entries[entry-1].jval)
-             .attr("font-family", "sans-serif")
-             .attr("font-size", "12px")
-             .attr("fill", "blue");
-
-            // set the link for the jaccard coefficients
-             if((d.geneset_table[i].entries[entry-1].pval).length > 8){
-                  svg.append("a")
-                            .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
-                            .append("text")
-                             .attr("transform", function(d, i) {
-                        return "translate("+x(14)+","+y(50)+")";
-                       })
-                            .attr("class", "rectangles")
-                            .attr("x", textX )
-                            .attr("y", textY + 12)
-                            .style("font-weight", "bold")
-                            .text(d.geneset_table[i].entries[entry - 1].pval)
-                            .attr("font-family", "sans-serif")
-                            .attr("font-size", "12px")
-                            .attr("fill", "blue");
-
-              }else{
-                // set the link for the jaccard coefficients
-                svg.append("a")
-                             .attr("xlink:href", d.geneset_table[i].entries[entry - 1].url)
-                             .append("text")
-                             .attr("transform", function(d, i) {
-                        return "translate("+x(14)+","+y(50)+")";
-                       })
-                              .attr("class", "rectangles")
-                            .attr("x", textX + 4)
-                            .attr("y", textY + 12)
-                            .style("font-weight", "bold")
-                            .text(d.geneset_table[i].entries[entry - 1].pval)
-                            .attr("font-family", "sans-serif")
-                            .attr("font-size", "12px")
-                            .attr("fill", "blue");
-              }
-        }
-
-        // If the length of the geneset_table entry is 1 then no link is necessary
-        if(Object.keys(d.geneset_table[i].entries[entry-1]).length == 1){
-             svg.append("text")
-              .attr("class", "rectangles")
-              .attr("transform", function(d, i) {
-                        return "translate("+x(14)+","+y(50)+")";
-                       })
-             .attr("x", textX)
-             .attr("y", textY)
-             .style("font-weight",  "bold")
-             .text( d.geneset_table[i].entries[entry-1].jval)
-             .attr("font-family", "sans-serif")
-             .attr("font-size", "12px");
-        }
-        textX += 110;
-   }
-
-   // creates appropriate coordinates for the text
-   textX -= ((count) * 110);
-   textY += 90;
-
-  offset++;
-}
-
-var xCoordinate = 30;
-
-// Creates tables for genesets on the geneset table panel
-var gs_ids = d.genesets;
-
-for (i = 0; i < count; i++){
-    var text = svg.append("text")
-            .attr("class", "rectangles")
-           .attr("x", xCoordinate - 10)
-           .attr("y",  - 435)
-           .text(d.genesets[i])
-           .attr("transform", function(d, i) {
-                        return "translate("+x(14)+","+y(50)+")";
-                   })
-           .attr("font-family", "sans-serif")
-           .attr("font-size", "15px")
-            .style("font-weight",  "bold")
-           .attr("fill", "#fc9e54");
-
-    xCoordinate += 110;
-}
-
-//Adds the white boxes for the geneset names
-svg.append("rect")
-        .attr("x", -80)
-         .attr("y", -30)
-       .attr("width", 380)
-     .attr("height", h)
-    .style("fill","white");
-
-   for(i = 0; i < count; i++){
-    // Sets the checkboxes
-     svg.append("foreignObject")
-          .attr("width", 285)
-          .attr("height", 0)
-          .attr("x", 13)
-          .attr("y", xcoord - 37)
-          .append("xhtml:body")
-       .html( "<input type=checkbox name=foo value=bar id=" + d.geneset_table[i].text.replace(/\s/g, '').replace(":","_") + ">");
-
-       str.replace(/\s/g, '');
-       // Splits the geneset names on the geneset table
-        result = (d.geneset_table[i].text).replace(/.{30}\S*\s+/g, "$&@").split(/\s+@/);
-        var nextLine = 0;
-       for(j = 0; j < result.length; j++) {
-        // Sets the hyperlink of the geneset names on the geneset table
-           svg .append("a")
-                   .attr("xlink:href", d.geneset_table[i].url).append("text")
-                   .attr("x", -13)
-                    .style("font-weight",  "bold")
-                   .attr("y", xcoord  + nextLine)
-                   .text(result[j]);
-           nextLine += 14;
-       }
-
-         xcoord +=90;
-   }
-
-// Adds panning functionality to xAxis of the geneset table panel
-function zoom() {
-  svg.select(".x.axis").call(xAxis);
-      svg.selectAll(".rectangles")
-        .attr("transform", function(d, i) {
-    return "translate("+x(14)+","+y(50)+")";
-  })
-
-}
-
-// Adds the geneset to project, again taken from previous files in GeneWeaver
-$('#addToProject').on('click', function () {
-        //get all checked gene sets
-        //also split off the name from the number
-        console.log("inside")
-        var gsname = [];
-        var gsid = [];
-        jQuery("input[type=checkbox]:checked").each(function () {
-            console.log("inside jQuery");
-            var v = ($(this).attr("id"));
-            console.log("v = " + v);
-            gsid.push(v.split('_')[0]);
-            gsname.push('GS'+ v.split('_')[1]);
-            if(gsid.indexOf('checkall') != -1){
-              gsid.pop()
-            }
-            console.log(gsid);
-        });
-        //display error if no genesets are selected
-        if (gsname.length == 0) {
-            $(document).trigger("add-alerts", [
-                {
-                    'message': "No GeneSets were selected for combining into the same project.",
-                    'priority': 'danger'
-                }
-            ]);
-        }
-        // send the list to the modal.
-        else{
-          console.log("In else")
-            var n = gsname.join(", ");
-            var i = gsid.join(",");
-            console.log(n)
-            $("#myModalLabel").html(i);
-            $("#myModalValue").val(i);
-            $("#addToProjectModal").modal('show');
-
-        }
-    });
-
-// Cooresponds to adding genesets to new project, taken from another file in GeneWeaver
-$('#addNewProject').on('click', function () {
-        $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-                '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
-});
-
-// Cooresponds to the add geneset to project button used from previous file found within Geneweaver (analyze)
-$('#addGenesetsToProjects').on('click', function (e) {
-        var checked = [];
-        $("input[name='options[]']:checked").each(function () {
-            checked.push(parseInt($(this).val()));
-        });
-        var option = JSON.stringify(checked);
-        var g = $('#myCombineGSValue').val();
-        var npn = $('#newProjName').val();
-        if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
-            $(document).trigger("add-alerts", [
-                {
-                    'message': "No Projects were selected.",
-                    'priority': 'danger'
-                }
-            ]);
-        }
-        else {
-            $.ajax({
-                type: "GET",
-                url: "../addGenesetsToProjects",
-                data: {"user_id": 0, "npn": npn, "gs_id": g, "option": option},
-                success: function (data) {
-                    $(document).trigger("add-alerts", [
-                        {
-                            'message': "GeneSets Successfully Added to Selected Projects.",
-                            'priority': 'success'
-                        }
-                    ]);
-                    window.location.reload();
-                }
-            });
-        }
-    });
-
-
     $('.download-image').on('click', function(event) {
 
         var dlurl = '/downloadResult';
@@ -1485,35 +382,6 @@ $('#addGenesetsToProjects').on('click', function (e) {
 
 
 </script>
-<!-- Incomplete download as svg -->
-<!-- <button><a id="newWindow" href="#">new window</a></button>
-  <button><a id="download" href="#">SVG</a></button>
-<div id="line"></div> -->
-
-  <script type="text/javascript">
-  //   var w = 700;
-  //   var h = 300;
-
-  //   var svg = d3.select("#line")
-  //     .append("svg")
-  //     .attr("id", "visualization")
-  //     .attr("xmlns", "http://www.w3.org/2000/svg");
-
-
-  //       d3.select("#newWindow").on("click", function(){
-  //     d3.select(this)
-  //       .attr("href", 'data:application/octet-stream;base64,' + btoa(d3.select("#jaccard").html()))
-  //       .attr("download", "viz.svg")
-  //   });
-
-  // d3.select("#download").on("click", function(){
-  //     d3.select(this)
-  //       .attr("href", 'data:application/octet-stream;base64,' + btoa(d3.select("#line").html()))
-  //       .attr("download", "viz.svg")
-  //   });
-
-  </script>
-
 
 <script>
 
@@ -1536,6 +404,12 @@ $('#what').popover({
         });
 
 </script>
+
+{% if g.user is defined %}
+    {% include 'modal/addGenesetsToProjects.html' %}
+{% endif %}
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
 
 <!-- Includes the footer for the page -->
 {% include 'footer.html' %}

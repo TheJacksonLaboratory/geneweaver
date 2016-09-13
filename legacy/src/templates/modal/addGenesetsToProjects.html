@@ -12,17 +12,29 @@
                 <div class="modal-body">
                     <div class="row" id="modalError"></div>
                     <div class="row">
-                        <h4>Please select the Projects for GeneSet(s):
-                            <span class="rows" id="myModalLabel"></span>
+                        <h4>
+                            Please select the projects for GeneSet(s):
                         </h4>
                     </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <button type="button" class="btn btn-success btn-transparent"
-                                    id="addNewProject">
-                                <i class="fa fa-plus"></i> Add to New Project
-                            </button>
-                        </div>
+                    <div class="row" style="text-align:center;">
+                        <strong>
+							<span class="rows" id="myModalLabel" style="color: #006400;">
+							</span>
+						</strong>
+					</div>
+                    <div class="modal-footer" align="center" style="text-align:center;">
+                        <button type="button" class="btn btn-success btn-transparent"
+                                id="addNewProject" style="padding-left:12px;padding-right:12px">
+                            <i class="fa fa-plus"></i>
+                            Add to New Project
+                        </button>
+                        <button type="button" class="btn btn-warning" data-dismiss="modal"
+                                id="addGenesetsToProjects" style="padding-left:12px;padding-right:12px">
+                            Add to Selected Projects
+                        </button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal" style="padding-left:12px;padding-right:12px">
+                            Close
+                        </button>
                     </div>
                     <div class="row" id="reveal-if-active" style="display:none;">
                         <label for="newProjName"><h4>New Project Name: </h4></label>
@@ -44,14 +56,7 @@
                         <input type="hidden" id="myModalValue" name="gs_id" value=""/>
                         <input type="hidden" id="gsID" name="gs_id" value=""/>
                         <input type="hidden" id="projID" name="proj_id" value=""/>
-
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-warning" data-dismiss="modal"
-                            id="addGenesetsToProjects">Add to selected projects
-                    </button>
                 </div>
             </form>
         </div>

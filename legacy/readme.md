@@ -101,10 +101,7 @@ Or daemonization using systemctl:
 
 ## Configuring Sphinx
 
-Retrieve the sample config repo:
-
-	$ git clone https://YOUR_USERNAME@bitbucket.org/timothy_reynolds/geneweaver-configs.git
-
+A sample sphinx config can be found in the `sample-configs/` directory.
 The following example stores the Sphinx config and indices under `/var/lib`. 
 Create a folder to hold the Sphinx config file and indices:
 
@@ -189,7 +186,8 @@ GeneWeaver requires the following python packages:
 
 These can be installed individually using pip (which should also install their
 dependencies) or using our requirements.txt which also includes all
-dependendent packages:
+dependendent packages. The requirements file can be found in the
+`sample-configs` directory.
 
 	$ pip install -r requirements.txt
 
@@ -276,10 +274,10 @@ GeneWeaver application. Start by installing it:
 
 	$ sudo yum install supervisor
 
-Copy the sample supervisord config from the configs repo to a directory of your
-choosing. Here we use the geneweaver application directory:
+Copy the sample supervisord config from the `sample-configs` directory to a 
+directory of your choosing. Here we use the geneweaver application directory:
 
-	$ cp geneweaver-configs/supervisord.conf /srv/geneweaver
+	$ cp sample-configs/supervisord.conf /srv/geneweaver
 
 Create a folder to store the supervisord logs, or store them in any directory
 you wish:

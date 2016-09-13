@@ -59,85 +59,103 @@
 </style>
 
 {% if searchFilters is defined %}
-    <script>
+<script>
 
-        $(function () {
-//Set up the slider for gene count values, and change value on slider update
- $("#size-slider").slider({
-    range: true,
-    // Range based on geneset sizes
-    min: {{searchFilters.geneCounts.geneCountMin}},
-    max: {{searchFilters.geneCounts.geneCountMax}},
-    //Set the initial values
-    values: [
-        {% if userFilters is defined and userFilters.geneCounts is defined %}
-            {{userFilters.geneCounts.geneCountMin}}
-        {% else%}
-            {{searchFilters.geneCounts.geneCountMin}}
-        {% endif %} ,
-        {% if userFilters is defined and userFilters.geneCounts is defined %}
-            {{userFilters.geneCounts.geneCountMax}}
-        {% else%}
-            {{searchFilters.geneCounts.geneCountMax}}
-        {% endif %}
-    //]
-    ],
-    //Update the form on each slide event
-    slide: function(event, ui) {
-        $( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
-        $( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
-        //Update the label
-        $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slider( "values", 0 )+" to " + $( "#size-slider" ).slider( "values", 1 ));
-    },
-    start: function (event, ui) {
-        this.previous_low = ui.values[0];
-        this.previous_high = ui.values[1];
-    },
-    stop: function (event, ui) {
-        if (ui.values[0] != this.previous_low ||
-        ui.values[1] != this.previous_high) {
-        $( "#filterForm" ).change();
-        }
-    }
-});
+    $(function () {
+        // Slider for filtering sets based on their size
+        $("#size-slider").slider({
+            range: true,
+            min: {{searchFilters.geneCounts.geneCountMin}},
+            max: {{searchFilters.geneCounts.geneCountMax}},
+            //Set the initial values
+            values: [
+                {% if userFilters is defined and 
+                   userFilters.geneCounts is defined %}
 
-//Set initial values for minimum label
-$( "#geneCountMin" ).val( "" + $( "#size-slider" ).slider( "values", 0 ));
-//Set initial values for maximum label
-$( "#geneCountMax" ).val( "" + $( "#size-slider" ).slider( "values", 1 ));
-//Update the label
-$("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slider( "values", 0 )+" to " + $( "#size-slider" ).slider( "values", 1 ));
+                    {{userFilters.geneCounts.geneCountMin}}
 
-            // On filter form change, update the page, performing a new search.
-            // This script calls a new paginated search anytime a filter option is
-            // changed in the filter panel. The resulting HTML view of the results
-            // are put inside the search wrapper div.
-            $("#filterForm").on("change", function (event) {
+                {% else %}
 
-                // Stop form from submitting normally
-                event.preventDefault();
+                    {{searchFilters.geneCounts.geneCountMin}}
 
-                // Send the data using post
-                var $form = $(this),
-                        url = $form.attr("action");
-                var sortby = $('#sortBy').val();
-                //The data to send is both the parameters from the filters and the search bar
-                var data = $("#filterForm").serialize() + "&" + $("#searchBarForm").serialize();
-                //var data = $( ".fff" ).serialize() + "&"+$( "#searchBarForm").serialize();
-                //data += '&sortBy=' + sortby;
+                {% endif %} ,
+                {% if userFilters is defined and 
+                   userFilters.geneCounts is defined %}
 
-                console.log(data);
-                // Put the results in a div
+                    {{userFilters.geneCounts.geneCountMax}}
+
+                {% else %}
+
+                    {{searchFilters.geneCounts.geneCountMax}}
+
+                {% endif %}
+            ],
+            // Update the form on each slide event
+            slide: function(event, ui) {
+                $( "#geneCountMin" ).val( "" + ui.values[ 0 ] );
+                $( "#geneCountMax" ).val( "" + ui.values[ 1 ] );
+                // Update the label
+                $("#genesetCountLabel").empty()
+                    .append("Geneset Size: " + 
+                        $("#size-slider").slider("values", 0) + " to " + 
+                        $("#size-slider").slider( "values", 1 ));
+            },
+            start: function (event, ui) {
+                this.previous_low = ui.values[0];
+                this.previous_high = ui.values[1];
+            },
+            stop: function (event, ui) {
+                if (ui.values[0] != this.previous_low || 
+                    ui.values[1] != this.previous_high)
+                        $( "#filterForm" ).change();
+            }
+        });
+
+        // Set initial values for minimum label
+        $("#geneCountMin")
+            .val( "" + $("#size-slider").slider("values", 0));
+        // Set initial values for maximum label
+        $("#geneCountMax")
+            .val("" + $("#size-slider").slider("values", 1));
+        // Update the label
+        $("#genesetCountLabel").empty()
+            .append("Geneset Size: " + $("#size-slider").slider("values", 0) + 
+                    " to " + $("#size-slider").slider("values", 1));
+
+        var timeHandle = null;
+
+        // This function calls a new paginated search anytime a filter option is
+        // changed in the filter panel. The HTML view of the results is placed
+        // inside the search wrapper div.
+        $("#filterForm").on("change", function (event) {
+
+            // Stop form from submitting normally
+            event.preventDefault();
+
+            // Prevent a previously delayed form submission from activating
+            clearTimeout(timeHandle);
+
+            var $form = $(this),
+                url = $form.attr("action"),
+                sortby = $('#sortBy').val();
+
+            var data = $("#filterForm").serialize() + "&" + 
+                       $("#searchBarForm").serialize();
+
+            // After a user changes a filter option, we delay submission of 
+            // the form for a bit in case the user decides to change other
+            // options. This allows the user to change several options in quick
+            // succession without interrupting and resetting their selections.
+            timeHandle = setTimeout(function() {
                 $.post(url, data).done(function (data) {
-                    //Update the searchwrapper with the results
-                    $("#replaceConentsOnUpdatedSeach").html(data).trigger("create");
-                    // Continue to save our ordering
-                    //$('#sortBy').val(sortby);
+                    // Update the searchwrapper with the results
+                    $("#replaceConentsOnUpdatedSeach").html(data)
+                        .trigger("create");
                 });
-            });
-});
-
-    </script>
+            }, 1500);
+        });
+    });
+</script>
 
 {% endif %}
 
@@ -348,12 +366,12 @@ $("#genesetCountLabel").empty().append("Geneset Size: "+$( "#size-slider" ).slid
                             <div id="tab1_3" class="tab-pane">
                                 Species
                             </div>
-							-->
+                            -->
                             <!--
                             <div id="tab1_4" class="tab-pane">
                                 Attributions
                             </div>
-							-->
+                            -->
 
                         </div>
                     </div>

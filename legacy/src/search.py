@@ -153,18 +153,19 @@ def getUserFiltersFromApplicationRequest(form):
             'field_list': field_list, 'sort_by': sort_by}
 
 
-def applyUserRestrictions(client, select=''):
+def apply_user_restrictions(client, select=''):
     """
     Applies user and group restrictions to a sphinx query so users can't acces
     data that doesn't belong to them. If the select argument is null, the
     function resets the current select query otherwise the access restrictions
     are added to the given select statement.
 
-    :arg client: the current sphinx client
-    :type client: Sphinx client object
+    arguments
+        client: the current sphinx client object
+        select: a select statement
 
-    :arg select: A select statement to apply restrictions to
-    :type select: str
+    returns
+        Nothing since all modifications are made to the client object reference
     """
 
     if 'user_id' in flask.session:
@@ -186,10 +187,14 @@ def applyUserRestrictions(client, select=''):
         access = '*'
 
     # Admins don't get filtered results
-    if not user_info.is_admin:
+    if user_info and not user_info.is_admin:
         access += ', (usr_id=' + str(user_id)
-        access += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps)
-        access += ')) AS isReadable'
+        access += ' OR IN(grp_id,' + ','.join(str(s) for s in user_grps) + ')'
+        ## Couldn't get the SphinxQL query to work w/ NOT i.e. cur_id != 5
+        ## This also will prevent genesets that have a null cur_id from showing
+        ## up but that's a curation/database issue
+        access += ' OR IN(cur_id,1,2,3,4)' 
+        access += ') AS isReadable'
 
         client.SetFilter('isReadable', [1])
 
@@ -210,14 +215,14 @@ def getSearchFilterValues(query):
     sphinxSelect = '*'
     sphinxSelect += ', MIN(gs_count) low, MAX(gs_count) high, 0 as OneRow'
 
-    applyUserRestrictions(client, sphinxSelect)
+    apply_user_restrictions(client, sphinxSelect)
     #client.SetSelect(sphinxSelect)
     client.SetGroupBy('OneRow', sphinxapi.SPH_GROUPBY_ATTR);
     client.AddQuery(query, 'geneset, geneset_delta')
 
     ## Resets the select and limits
     #client.SetSelect(sphinxSelect)
-    applyUserRestrictions(client, sphinxSelect)
+    apply_user_restrictions(client, sphinxSelect)
     client.SetLimits(0, 1000, 1000)
 
     client.SetGroupBy('gs_status', sphinxapi.SPH_GROUPBY_ATTR)
@@ -232,7 +237,7 @@ def getSearchFilterValues(query):
     sphinxSelect += ', (cur_id*10000 + sp_id*100 + attribution) AS tsa_group'
 
     #client.SetSelect(sphinxSelect)
-    applyUserRestrictions(client, sphinxSelect)
+    apply_user_restrictions(client, sphinxSelect)
     client.SetGroupBy('tsa_group', sphinxapi.SPH_GROUPBY_ATTR)
     client.AddQuery(query, 'geneset, geneset_delta')
 
@@ -376,15 +381,22 @@ def getSearchFilterValues(query):
         at_counts[attr][tier] += cnt
         ats_counts[attr][tier][spec] += cnt
 
-    return {'tier_counts': tier_counts, 'ts_counts': ts_counts, 'tsa_counts':
-        tsa_counts, 'sp_counts': sp_counts, 'st_counts': st_counts,
-            'sta_counts': sta_counts, 'att_counts': att_counts, 'at_counts':
-                at_counts, 'ats_counts': ats_counts, 'status_counts':
-                status_counts, 'spmap': spmap, 'attrmap': attrmap, 'tiermap':
-                tiermap, 'geneCounts':geneCounts}
-
-
-
+    return {
+        'tier_counts': tier_counts, 
+        'ts_counts': ts_counts, 
+        'tsa_counts': tsa_counts, 
+        'sp_counts': sp_counts, 
+        'st_counts': st_counts,
+        'sta_counts': sta_counts, 
+        'att_counts': att_counts, 
+        'at_counts': at_counts, 
+        'ats_counts': ats_counts, 
+        'status_counts': status_counts, 
+        'spmap': spmap, 
+        'attrmap': attrmap, 
+        'tiermap': tiermap, 
+        'geneCounts':geneCounts
+    }
 
 
 '''
@@ -392,14 +404,13 @@ Given a set of filters from the user, and a client connection to a sphinx server
 appropriate filters to the client connection.
 '''
 
-
 def buildFilterSelectStatementSetFilters(userFilters, client):
     # Given a set of filters established by the user (this is a list of what is selected on the filter side bar) -
     # update the sphinxQL select statement, and set appropriate filters on the Sphinx client
     sphinx_select = '*'
 
     ## There are some things users shouldn't see...
-    applyUserRestrictions(client)
+    apply_user_restrictions(client)
 
     excludes = []
 
