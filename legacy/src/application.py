@@ -24,7 +24,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-from uploader import Uploader
+# from uploader import Uploader
 import cairosvg
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
