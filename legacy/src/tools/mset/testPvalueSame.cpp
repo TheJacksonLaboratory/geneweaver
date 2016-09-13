@@ -4,26 +4,18 @@ Created: Sun Sep 11 18:47:33 CDT 2016
 */
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 #include <set>
+#include <vector>
 #include <cstdlib>
 #include <ctime>
 using namespace std;
 
 //without replacement
-set<string> sample(set<string>& from, int size){
-    set<string> toReturn;
-    for(int i=0;i<size;i++){
-        int which=rand()%from.size();//choose a random index
-        int element=0;
-        set<string>::iterator j=from.begin();
-        while(element<which && j!=from.end()){
-            j++;//get to it
-            element++;
-        }
-        toReturn.insert(*j);//insert the element there into the return set
-        from.erase(j);//remove it from the input set (without replacement)
+void sample(vector<string>& sampleInto,vector<string>& from){
+    for(unsigned int i=0;i<sampleInto.size();i++){
+        sampleInto[i]=from[rand()%from.size()];
     }
-    return toReturn;
 }
 
 //gets the size of the intersection between the two ranges defined by the four
@@ -47,9 +39,9 @@ int intersectSize(Iter1 first1,Iter1 last1,
 
 int main(int argc, char** argv){
     srand(time(0));
-    set<string> background;
-    set<string> top;
-    set<string> listOfInterest;
+    set<string> backgroundRead;
+    set<string> listOfInterestRead;
+    vector<string> top;
 
 
     string bgFilename;
@@ -65,7 +57,7 @@ int main(int argc, char** argv){
     string inputStr;
     while(readLists>>inputStr){
         if(inputStr!="---"){
-            background.insert(inputStr);
+            backgroundRead.insert(inputStr);//read into sets so they're unique
         }
     }
     readLists.clear();
@@ -74,7 +66,7 @@ int main(int argc, char** argv){
 
     while(readLists>>inputStr){
         if(inputStr!="---"){
-            listOfInterest.insert(inputStr);
+            listOfInterestRead.insert(inputStr);
         }
     }
 
@@ -83,9 +75,12 @@ int main(int argc, char** argv){
     cin>>topResults;
 
     //copy that number from background into top
-    for(set<string>::iterator i=background.begin(); distance(background.begin(),i)<topResults;i++){
-        top.insert(*i);
+    for(set<string>::iterator i=backgroundRead.begin(); distance(backgroundRead.begin(),i)<topResults;i++){
+        top.push_back(*i);
     }
+
+    vector<string> background(backgroundRead.begin(),backgroundRead.end());//copy the set into a vector so it can be shuffled
+    vector<string> listOfInterest(listOfInterestRead.begin(),listOfInterestRead.end());//same deal
 
     int numSamples=0;
     cout<<"enter number of samples:>";
@@ -93,11 +88,12 @@ int main(int argc, char** argv){
 
 
     int checklength=intersectSize(top.begin(),top.end(),listOfInterest.begin(),listOfInterest.end());
-    int sampleSize=listOfInterest.size();
+    vector<string> sampledSet(listOfInterest.size());
 
+    cout<<"everything is read"<<endl;
     int numGreater=0;
     for(int i=0;i<numSamples;i++){
-        set<string> sampledSet=sample(background,sampleSize);
+        sample(sampledSet,background);
         if(intersectSize(sampledSet.begin(),sampledSet.end(),listOfInterest.begin(),listOfInterest.end())>checklength){
             numGreater++;
         }
@@ -106,6 +102,7 @@ int main(int argc, char** argv){
     double pvalue=((double)numGreater)/((double)numSamples);
 
     cout<<"pvalue: "<<pvalue<<endl;
+    cout<<"number with at least as many matches as actual: "<<numGreater<<endl;
 
     return 0;
 }

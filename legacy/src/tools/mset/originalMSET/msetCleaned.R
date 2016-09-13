@@ -29,7 +29,11 @@ gene_list_randomization = function(your_list, list_of_interest, background, numS
   results.short=substrRight(resultsfile, 30)
   interest.short=substrRight(interestfile, 30)
 
-  randomization.number = numSimulatedResults
+  #holds the number of results where the intersect length of the simulated
+  #results is greater than the intersect of the list of intrest with the top.
+  #its initialized to assume every result is greater, then subtracts out the
+  #ones that aren't
+  numSimulatedGreater= numSimulatedResults
   randomization.number2 = numSimulatedResults
 
   your_set = as.vector(unique(your_list), mode = "character")
@@ -59,28 +63,27 @@ gene_list_randomization = function(your_list, list_of_interest, background, numS
   #R is 1 indexed same as
   #for(int i=1;i<numSimulatedResults;i++) {
   for(i in 1:numSimulatedResults) {
-    r.list.unique = as.vector(sample(background, size = 2*your_set.length, replace = F))
-    check.length = length(r.list.unique)
-    r.list.unique2 = unique(r.list.unique, fromLast = FALSE)
-    r.list.unique2.length = length(r.list.unique2)
-    r.list.unique.short = r.list.unique2[1:your_set.length]
-    n.r.list = length(which(!is.na(match(x = r.list.unique.short, table = list_of_interest))))
-    enrich = n.r.list/your_set.length
+    sampledList = as.vector(sample(background, size = 2*your_set.length, replace = F))
+    sampledList.length= length(sampledList)
+    sampledSet = unique(sampledList, fromLast = FALSE)
+    sampledSet.length = length(sampledSet)
+    sampledSet = sampledSet[1:your_set.length]#truncate to match length of your_set
+
+    sampledSet_intersect.length = length(intersect(sampledSet,list_of_interest))
+    enrich = sampledSet_intersect.length/your_set.length
     enrich2 = enrich/baseline
     random.enrich.vector[i] = enrich
     enrich.vector[i] = enrich2
-    length.unique = length(r.list.unique.short)
-    check.unique.n[i] = r.list.unique2.length
+    length.unique = length(sampledSet)
+    check.unique.n[i] = sampledSet.length
     unique.n[i] = length.unique
-    random.gene.ns[i] = n.r.list
-    check.n[i] = check.length
+    random.gene.ns[i] = sampledSet_intersect.length
+    check.n[i] = sampledList.length
     
-      
-    if(n.r.list < your_set_intersect.length) {
-      randomization.number = (randomization.number - 1)
-    } else {
-      randomization.number = randomization.number
-    }
+      # with list of interest
+    if(sampledSet_intersect.length < your_set_intersect.length) {
+      numSimulatedGreater= (numSimulatedGreater- 1)#no -- in R but this is numSimulatedGreater--
+    } 
   }
 
   
@@ -91,7 +94,7 @@ gene_list_randomization = function(your_list, list_of_interest, background, numS
   mean.enrich = mean(enrich.vector)
   relative.enrich = fold.enrichment/mean.enrich
   mean.interest = mean(random.gene.ns)
-  r.p.value = randomization.number / numSimulatedResults
+  r.p.value = numSimulatedGreater/ numSimulatedResults
   relative.enrich.p = randomization.number2 / numSimulatedResults
   
 if(your_set_intersect.length>max(random.gene.ns))
@@ -119,7 +122,7 @@ plot(density(random.gene.ns), xlim=c(0, (max(random.gene.ns)+2)), main = "Probab
   write(paste(numSimulatedResults, " simulated results of length ", mean.unique, " generated from background.", sep = ""), file="")
   write(paste(your_set_intersect.length, " matches to database found in microarray results.", sep = ""), file="")
   write(paste(mean.interest, " mean matches to database in simulated results.", sep = ""), file="")
-  write(paste(randomization.number, " simulated results of length ", length(your_list), 
+  write(paste(numSimulatedGreater " simulated results of length ", length(your_list), 
               " contained at least as many matches 
 to database as the actual expression results.", sep = ""), file="")
   write("", file="") 
