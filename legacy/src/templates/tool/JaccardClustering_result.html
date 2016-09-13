@@ -196,7 +196,10 @@
 	<script type="text/javascript" src="../../static/tools/JaccardClustering.js"></script>
     <script type="text/javascript">
         if('{{ async_result.method }}' != 'Heatmap'){
-            $("select#visualizationType").append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>').append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
+            $("select#visualizationType")
+                .append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>')
+                .append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
+                ;
         }
         else
         {

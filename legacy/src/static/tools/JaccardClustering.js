@@ -1,7 +1,45 @@
 /**
- * file: PhenomeMap.js
- * desc: d3js code for visualizing the HiSim graph. 
+ * file: JaccardClustering.js
+ * desc: d3js code for drawing the force directed clustering visualization.
+ * auth: Capstone jaccard clustering team
+ *       TR
  */
+
+var jaccardClustering = function() {
+
+    var exports = {},
+        // SVG object
+        svg = null,
+        width = 1100,
+        height = 900,
+        // Path to tool generated JSON data
+        jsonPath = '',
+        // Parsed JSON object
+        jsonData = '',
+        // Node color palette
+        colors = [
+            "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", 
+            "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", 
+            "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", 
+            "#5574a6", "#3b3eac"
+        ]
+        ;
+
+    /** private **/
+
+    /** public **/
+
+    /*
+     * Setters/getters
+     */
+    exports.jsonPath = function(_) {
+        if (!arguments.length) return jsonPath;
+        jsonPath = _;
+        return exports;
+    };
+
+    return exports;
+};
 
 // Color palette for the nodes
 var COLORS = [
