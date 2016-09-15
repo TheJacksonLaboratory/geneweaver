@@ -22,7 +22,7 @@ substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
 }
 
-gene_list_randomization = function(your_list, list_of_interest, background, numSimulatedResults) { 
+gene_list_randomization = function(topGenesSet, interestGeneSet, background, numSimulatedResults) { 
   stopifnot(is.numeric(numSimulatedResults))
 
 
@@ -36,21 +36,21 @@ gene_list_randomization = function(your_list, list_of_interest, background, numS
   numSimulatedGreater= numSimulatedResults
   randomization.number2 = numSimulatedResults
 
-  your_set = as.vector(unique(your_list), mode = "character")
+  topGenesSet = as.vector(unique(topGenesSet), mode = "character")
 
-# #include<algorithm> set_intersection(your_set.begin,your_set.end,...
-  your_set_intersect = intersect(your_set,list_of_interest)
+# #include<algorithm> set_intersection(topGenesSet.begin,topGenesSet.end,...
+  topGenesSet_intersect = intersect(topGenesSet,interestGeneSet)
 
-  your_set.length= length(your_set)
-  your_set_intersect.length = length(your_set_intersect)
+  topGenesSet.length= length(topGenesSet)
+  topGenesSet_intersect.length = length(topGenesSet_intersect)
 
 
   background = as.vector(background, mode = "character")
   background_set = unique(background)
-  background_intersect = intersect(background_set,list_of_interest)
+  background_intersect = intersect(background_set,interestGeneSet)
 
   baseline = length(background_intersect)/length(background_set)
-  enrichment = your_set_intersect.length/your_set.length
+  enrichment = topGenesSet_intersect.length/topGenesSet.length
   fold.enrichment = enrichment/baseline
 
   random.gene.ns = vector(length = numSimulatedResults, mode = "numeric")#vector<double>
@@ -63,14 +63,14 @@ gene_list_randomization = function(your_list, list_of_interest, background, numS
   #R is 1 indexed same as
   #for(int i=1;i<numSimulatedResults;i++) {
   for(i in 1:numSimulatedResults) {
-    sampledList = as.vector(sample(background, size = 2*your_set.length, replace = F))
+    sampledList = as.vector(sample(background, size = 2*topGenesSet.length, replace = F))
     sampledList.length= length(sampledList)
     sampledSet = unique(sampledList, fromLast = FALSE)
     sampledSet.length = length(sampledSet)
-    sampledSet = sampledSet[1:your_set.length]#truncate to match length of your_set
+    sampledSet = sampledSet[1:topGenesSet.length]#truncate to match length of topGenesSet
 
-    sampledSet_intersect.length = length(intersect(sampledSet,list_of_interest))
-    enrich = sampledSet_intersect.length/your_set.length
+    sampledSet_intersect.length = length(intersect(sampledSet,interestGeneSet))
+    enrich = sampledSet_intersect.length/topGenesSet.length
     enrich2 = enrich/baseline
     random.enrich.vector[i] = enrich
     enrich.vector[i] = enrich2
@@ -81,7 +81,7 @@ gene_list_randomization = function(your_list, list_of_interest, background, numS
     check.n[i] = sampledList.length
     
       # with list of interest
-    if(sampledSet_intersect.length < your_set_intersect.length) {
+    if(sampledSet_intersect.length < topGenesSet_intersect.length) {
       numSimulatedGreater= (numSimulatedGreater- 1)#no -- in R but this is numSimulatedGreater--
     } 
   }
@@ -97,32 +97,32 @@ gene_list_randomization = function(your_list, list_of_interest, background, numS
   r.p.value = numSimulatedGreater/ numSimulatedResults
   relative.enrich.p = randomization.number2 / numSimulatedResults
   
-if(your_set_intersect.length>max(random.gene.ns))
-plot(density(random.gene.ns), xlim=c(0, (your_set_intersect.length+2)), main = "Probability density of simulations", ylab="Probability", xlab="Matches to database", sub=paste("Database: ...", interest.short))
+if(topGenesSet_intersect.length>max(random.gene.ns))
+plot(density(random.gene.ns), xlim=c(0, (topGenesSet_intersect.length+2)), main = "Probability density of simulations", ylab="Probability", xlab="Matches to database", sub=paste("Database: ...", interest.short))
 
-if(your_set_intersect.length<=max(random.gene.ns))
+if(topGenesSet_intersect.length<=max(random.gene.ns))
 plot(density(random.gene.ns), xlim=c(0, (max(random.gene.ns)+2)), main = "Probability density of simulations", ylab="Probability", xlab="Matches to database", sub=paste("Database: ...", interest.short))
 
-  abline(v=your_set_intersect.length, col=4)
+  abline(v=topGenesSet_intersect.length, col=4)
 
   write("", file="")
   write(paste("INPUT FILES", sep = ""), file="")
   write("Expression data file:", file="")
   write(paste(resultsfile, sep = ""), file="")
-  write(paste(your_set.length, " unique gene IDs in top ", U, " microarray results.", sep = ""), file="")
+  write(paste(topGenesSet.length, " unique gene IDs in top ", topListSize, " microarray results.", sep = ""), file="")
   write(paste(length(background), " gene IDs in microarray background.", sep = ""), file="")
   write("", file="")  
 
   write("Database of genes of interest file:", file="") 
   write(paste(interestfile, sep = ""), file="")
-  write(paste(length(list_of_interest), " unique gene IDs in gene list_of_interest.", sep = ""), file="")
+  write(paste(length(interestGeneSet), " unique gene IDs in gene interestGeneSet.", sep = ""), file="")
   write("", file="")  
 
   write(paste("RESULTS", sep = ""), file="")
   write(paste(numSimulatedResults, " simulated results of length ", mean.unique, " generated from background.", sep = ""), file="")
-  write(paste(your_set_intersect.length, " matches to database found in microarray results.", sep = ""), file="")
+  write(paste(topGenesSet_intersect.length, " matches to database found in microarray results.", sep = ""), file="")
   write(paste(mean.interest, " mean matches to database in simulated results.", sep = ""), file="")
-  write(paste(numSimulatedGreater " simulated results of length ", length(your_list), 
+  write(paste(numSimulatedGreater " simulated results of length ", length(topGenesSet), 
               " contained at least as many matches 
 to database as the actual expression results.", sep = ""), file="")
   write("", file="") 
@@ -136,7 +136,7 @@ to database as the actual expression results.", sep = ""), file="")
   write(paste("MATCHES TO DATABASE", sep = ""), file="")
   write(paste("Matches to database in top selected expression results:"), file="")
   write("", file="") 
-  write(paste(your_set_intersect), file="")
+  write(paste(topGenesSet_intersect), file="")
   write("============================================================================", file="")
 
 }
@@ -148,20 +148,18 @@ require(tcltk)
 
 
 
-#write.table(list_of_interest, file="listofinterest_check.txt", quote=F, row.names=FALSE, col.names=FALSE, sep="\t")
+#write.table(interestGeneSet, file="listofinterest_check.txt", quote=F, row.names=FALSE, col.names=FALSE, sep="\t")
 
 tkmessageBox(message="Select all expression results, in order of significance, as a single column text file with no header.  Enrichment for gene sets of interest will be assessed within these results.")
 expression=if(interactive()) tk_choose.files(caption="Select expression data.")
-your_list = scan(expression, what=character(), quiet=TRUE)
+topGenesSet = scan(expression, what=character(), quiet=TRUE)
 resultsfile=expression
 
-#your_list=scan(resultsfile<-tclvalue(tkgetOpenFile()), what=character(), quiet=TRUE)
-background = your_list
 
 tkmessageBox(message="Select one or more databases of genes of interest (e.g., disease/disorder associated gene list) as a single column text file with no header.  Enrichment of these sets will be evaluated within expression data.")
 files=if(interactive()) tk_choose.files(caption="Select database(s) of genes of interest")
 
-z=length(files)
+numFiles=length(files)
 
 
 
@@ -170,7 +168,7 @@ repeat {
 cat(sep="", "Enter how many of your top microarray results you would like to test 
 for enrichment ('1000' for the top 1000, '2000' for the top 2000, etc.)
 ")
-U = scan(what=numeric(), nmax = 1, quiet = TRUE)
+topListSize = scan(what=numeric(), nmax = 1, quiet = TRUE)
 break
 }
 
@@ -181,15 +179,10 @@ numSimulatedResults = scan(what=numeric(), nmax = 1, quiet = TRUE)
 break
 }
 
-u = your_list
-short = u[1:U]
-t = short
-accession = gsub(pattern = "---", replacement = "0", x=t)
-a = accession
-indices = which(a != "0")
-removed = a[indices]
-removed2 = unique(removed)
-your_list = removed2
+topGeneListDashes= background[1:topListSize] #get the top n rows from the 
+indices = which(topGeneListDashes != "---")# indices where element of topGeneListDashes != ---
+topGeneListClean = topGeneListDashes[indices]# remove the ones that are ---
+topGenesSet = unique(topGeneListClean)# to set
 
 
 q=ceiling(sqrt(z))
@@ -197,16 +190,12 @@ dev.new(width=12, height=6)
 par(mfcol = c(q,q))
 
 
-for(i in 1:z) {
-interestfile=files[i]
-list_of_interest = scan(files[i], what=character(), quiet=TRUE)
-t = list_of_interest
-accession = gsub(pattern = "---", replacement = "0", x=t)
-a = accession
-indices = which(a != "0")
-removed = a[indices]
-removed2 = unique(removed)
-list_of_interest = removed2
-gene_list_randomization(your_list, list_of_interest, background, numSimulatedResults)
+for(i in 1:numFiles) {
+    interestfile=files[i]
+    list_of_interest= scan(files[i], what=character(), quiet=TRUE)
+    indices = which(list_of_interest != "---")#indices where the element of list_of_interest is not ---
+    list_of_interestClean= list_of_interest[indices]# cut out all the --- entries
+    interestGeneSet = unique(list_of_interestClean)# to set
+    gene_list_randomization(topGenesSet, interestGeneSet, background, numSimulatedResults)
 }
 
