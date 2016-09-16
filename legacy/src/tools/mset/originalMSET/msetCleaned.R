@@ -69,7 +69,7 @@ gene_list_randomization = function(topGenesSet, interestGeneSet, background, num
     sampledSet.length = length(sampledSet)
     sampledSet = sampledSet[1:topGenesSet.length]#truncate to match length of topGenesSet
 
-    sampledSet_intersect.length = length(intersect(sampledSet,interestGeneSet))
+    sampledSet_intersect.length = length(intersect(sampledSet,interestGeneSet)) #TODO: clean this too
     enrich = sampledSet_intersect.length/topGenesSet.length
     enrich2 = enrich/baseline
     random.enrich.vector[i] = enrich

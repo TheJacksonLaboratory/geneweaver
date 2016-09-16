@@ -121,7 +121,6 @@ int main(int argc, char** argv){
     int numGreater=0;
     for(int i=0;i<numSamples;i++){
         sample(sampledList,background);//sample sampledList.size elements from background into sampledList without replacement
-        //*
         vector<string> sampledSet=unique(sampledList);//using a set directly to do unique would sort it
         //because the set needs to be truncated after being converted to a set,
         //it cannot be sorted if the behavior of the mset.R file is to be copied
