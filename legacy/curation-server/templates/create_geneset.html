@@ -1,0 +1,142 @@
+{% extends "_base.html" %}
+
+{% block nav_stubs %}active{% endblock %}
+
+{% block content %}
+  <form class="form-horizontal" method="post" enctype="multipart/form-data">
+    <fieldset>
+      <div id="legend" class="">
+        <legend class="">GeneSet from Stub</legend>
+				<div class="well">
+					<a href="{{stub.view_url}}"><b>{{stub.atitle}}</b></a><br/>
+					<p>{{stub.abstract}}</p>
+			</div>
+      </div>
+    <div class="control-group">
+
+          <!-- Text input-->
+          <label class="control-label" for="input01">Name</label>
+          <div class="controls">
+            <input type="text" name="gs_name" placeholder="" class="input-xlarge">
+            <p class="help-block">A short but descriptive title of the gene set</p>
+						{% if stub.genesets %}
+						<div class="well"><b>Other GeneSets on this stub:</b><br/>
+							{% for gs in stub.genesets %}
+							{{gs.gs_name}}<br/>
+							{% endfor %}
+						</div>
+						{% endif %}
+          </div>
+        </div>
+
+    <div class="control-group">
+
+          <!-- Text input-->
+          <label class="control-label" for="input01">Label</label>
+          <div class="controls">
+            <input type="text" name="gs_abbreviation" placeholder="" class="input-xlarge">
+            <p class="help-block">A unique abbreviated title mainly used in figures.</p>
+						{% if stub.genesets %}
+						<div class="well"><b>Other GeneSets on this stub:</b><br/>
+							{% for gs in stub.genesets %}
+								{{gs.gs_abbreviation}}<br/>
+							{% endfor %}
+						</div>
+						{% endif %}
+          </div>
+        </div>
+
+    <div class="control-group">
+
+          <!-- Textarea -->
+          <label class="control-label">Description</label>
+          <div class="controls">
+            <div class="textarea">
+                  <textarea name="gs_description" type="" class="" style="margin: 0px; width: 276px; height: 52px; "> </textarea>
+            </div>
+						<p class="help-block">A brief description of the important aspects
+						of the GeneSet, including but not limited to: protocols, sample
+						collection / tissue, experimental platforms, measurement
+						techniques, and statistical analysis.</p>
+
+						{% if stub.genesets %}
+						<b>Other GeneSets on this stub:</b>
+						<div class="tabbable well">
+						<ul class="nav nav-tabs" style="margin-bottom:0;">
+							{% for gs in stub.genesets %}
+								<li {%if loop.first%}class="active"{%endif%}><a href="#tab{{gs.gs_id}}" data-toggle="tab">GS{{gs.gs_id}}</a></li>
+							{% endfor %}
+						</ul>
+						<div class="tab-content" style="background-color:#fff;padding:8px;border: 1px solid #ddd;border-top:none;">
+							{% for gs in stub.genesets %}
+								<div class="tab-pane {%if loop.first%}active{%endif%}" id="tab{{gs.gs_id}}">
+									<p>{{gs.gs_description}}</p>
+								</div>
+							{% endfor %}
+						</div>
+						</div>
+						{% endif %}
+
+          </div>
+        </div>
+
+    <div class="control-group">
+
+          <!-- Select Basic -->
+          <label class="control-label">Species</label>
+          <div class="controls">
+            <select class="input-xlarge" name="sp_id">
+							{% for spid in species %}
+							<option 
+							{% if spid==last_sp_id %} selected="selected"{% endif %}
+							value="{{spid}}">{{species[spid]}}</option>
+							{% endfor %}
+						</select>
+          </div>
+
+        </div>
+
+    <div class="control-group">
+
+          <!-- Select Basic -->
+          <label class="control-label">Gene Identifiers</label>
+          <div class="controls">
+            <select class="input-xlarge" name="id_type">
+							{% for gdbid in genedbs %}
+							<option 
+							{% if -gdbid==last_id_type %} selected="selected"{% endif %}
+							value="-{{gdbid}}">{{genedbs[gdbid]}}</option>
+							{% endfor %}
+							<optgroup label="Platforms">
+								{% for pfid in platforms%}
+								<option 
+								{% if pfid==last_id_type %} selected="selected"{% endif %}
+								value="{{pfid}}">{{platforms[pfid]}}</option>
+								{% endfor %}
+							</optgroup>
+                </select>
+          </div>
+
+        </div>
+
+    <div class="control-group">
+          <label class="control-label">Gene List</label>
+          <div class="controls">
+            <input class="input-file" name="gs_file" id="fileInput" type="file">
+            <div class="textarea">
+                  <textarea type="" class="" name="gs_filetext" style="margin: 0px; height: 150px; width: 263px; "> </textarea>
+            </div>
+          </div>
+        </div>
+
+    <div class="control-group">
+          <label class="control-label"></label>
+          <div class="controls">
+            <input type="submit" class="btn btn-primary" value="Continue">
+          </div>
+        </div>
+
+    </fieldset>
+  </form>
+
+{% endblock %}

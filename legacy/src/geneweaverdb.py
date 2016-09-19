@@ -1041,7 +1041,6 @@ def add_geneset2project(pj_id, gs_id):
         cursor.connection.commit()
     return
 
-
 def add_genesets_to_projects(rargs):
     usr_id = rargs.get('user_id', type=int)
     ## Will occur when adding genesets to a project from search, since the
@@ -1101,6 +1100,43 @@ def remove_geneset_from_project(rargs):
             cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
             cursor.connection.commit()
             return
+
+def add_geneset_group(gs_id, grp_id):
+    """
+    Adds a new group to a geneset's gs_groups column. 
+
+    arguments
+        gs_id: geneset ID
+        group_id: group ID being added
+    """
+
+    grp_id = str(grp_id)
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gs_groups
+               FROM geneset
+               WHERE gs_id = %s;''', (gs_id,)
+        )
+
+        groups = cursor.fetchone()
+
+        if not groups:
+            return
+            
+        groups = groups[0].split(',')
+
+        if grp_id in groups:
+            return
+
+        groups.append(grp_id)
+        groups = ','.join(groups)
+
+        cursor.execute(
+            '''UPDATE geneset
+               SET gs_groups = %s
+               WHERE gs_id = %s;''', (gs_id, groups)
+        )
 
 
 def update_project_groups(proj_id, groups, user_id):

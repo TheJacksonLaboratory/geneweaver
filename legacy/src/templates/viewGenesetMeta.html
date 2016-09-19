@@ -11,6 +11,12 @@
 		<i class="fa fa-eye pull-left"></i> Similar GeneSets
 	</button>
 
+	{% if g.user is defined %}
+	<button type="button" class="btn btn-block btn-warning" id="addToProject">
+		<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
+	</button>
+	{% endif %}
+
 	{% if view == 'True' %}
 	<button type="button" class="btn btn-block btn-warning" id="setThreshold">
 		<i class="fa fa-signal pull-left"></i> Set Threshold

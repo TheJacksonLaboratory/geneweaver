@@ -24,7 +24,6 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-from uploader import Uploader
 import cairosvg
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
@@ -251,8 +250,32 @@ def json_login():
 
 @app.route('/analyze')
 def render_analyze():
+    grp2proj = OrderedDict()
     active_tools = geneweaverdb.get_active_tools()
-    return flask.render_template('analyze.html', active_tools=active_tools)
+
+    if 'user' not in flask.g:
+        return flask.render_template('analyze.html', active_tools=active_tools)
+
+    for p in flask.g.user.shared_projects:
+        p.group_id = p.group_id.split(',')
+        ## If a project is found in multiple groups we just use the
+        ## first group
+        p.group_id = p.group_id[0]
+        p.group = geneweaverdb.get_group_name(p.group_id)
+
+        if p.group not in grp2proj:
+            grp2proj[p.group] = [p]
+        else:
+            grp2proj[p.group].append(p)
+
+
+        grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
+
+    return flask.render_template(
+        'analyze.html', 
+        active_tools=active_tools,
+        grp2proj=grp2proj
+    )
 
 @app.route('/analyzeshared')
 def render_analyze_shared():
@@ -707,9 +730,9 @@ def render_editgeneset_genes(gs_id):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        symbol2ode_search = Uploader().get_ode_genes(geneset.sp_id, contents)
-        keys = [list(query) for query in symbol2ode_search.keys()]
-        symbol2ode = dict([(k[0], symbol2ode_search[tuple(k)][0]) for k in keys])
+        symbol2ode = batch.getOdeGeneIds(geneset.sp_id, contents)
+        keys = [list(query) for query in symbol2ode.keys()]
+        symbol2ode = dict([(k[0], symbol2ode[tuple(k)][0]) for k in keys])
         ## Reverse to make our lives easier during templating
         for sym, ode in symbol2ode.items():
             symbol2ode[ode] = sym
@@ -805,8 +828,14 @@ def update_project_groups():
     if 'user_id' in flask.session:
         user_id = request.args['user_id']
         proj_id = request.args['proj_id']
-        groups = (json.loads(request.args['groups'])) if json.loads(request.args['groups']) != '' else '-1'
-        if geneweaverdb.get_user(user_id).is_admin != 'False' or geneweaverdb.user_is_project_owner(user_id, proj_id):
+
+        if json.loads(request.args['groups']) != '':
+            groups = (json.loads(request.args['groups'])) 
+        else: 
+            groups = '-1'
+
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or\
+           geneweaverdb.user_is_project_owner(user_id, proj_id):
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
@@ -1043,6 +1072,8 @@ def render_viewgeneset(gs_id):
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
 
+    import sys
+
     for gtype in genetypes:
         genedict[gtype['gdb_id']] = gtype['gdb_name']
 
@@ -1073,7 +1104,7 @@ def render_viewgeneset(gs_id):
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Also some sets have a NULL status so that MUST be checked
     ## for, otherwise sad times ahead :(
-    if geneset and geneset.status == 'deleted':
+    if not geneset or (geneset and geneset.status == 'deleted'):
         return flask.render_template('viewgenesetdetails.html', geneset=None)
 
     if user_id != 0:
@@ -1416,7 +1447,7 @@ def get_pubmed_data():
         if 'pmid' in args:
             pmid = args['pmid']
 
-            pub = Uploader().search_pubmed(pmid)
+            #pub = Uploader().search_pubmed(pmid)
 
             pubmedValues.extend((pub['pub_title'], pub['pub_authors'], pub['pub_journal'],
                                  pub['pub_volume'], pub['pub_pages'], pub['pub_date'],
@@ -1654,9 +1685,13 @@ def render_searchFromHome():
     default_filters = {'statusList': {'deprecated': 'no', 'provisional': 'no'}}
 
     # Perform a search
-    search_values = search.keyword_paginated_search(terms, pagination_page,
-                                                    search_fields,
-                                                    default_filters, sortby)
+    search_values = search.keyword_paginated_search(
+        terms, 
+        pagination_page,
+        search_fields,
+        default_filters, 
+        sortby
+    )
 
     # If there is an error render a blank search page
     if search_values['STATUS'] == 'ERROR':
@@ -1679,7 +1714,8 @@ def render_searchFromHome():
         searchFilters=search_values['searchFilters'],
         filterLabels=search_values['filterLabels'],
         species=species,
-        userFilters=default_filters)
+        userFilters=default_filters
+    )
 
 
 @app.route('/searchFilter.json', methods=['POST'])

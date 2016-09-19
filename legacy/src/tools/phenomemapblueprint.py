@@ -6,11 +6,9 @@ import os
 
 import config
 import geneweaverdb as gwdb
-from uploader import Uploader
 import toolcommon as tc
 
 TOOL_CLASSNAME = 'PhenomeMap'
-uploader = Uploader()
 phenomemap_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
 """
@@ -55,7 +53,6 @@ some reason).
 Another is a JSON file containing the nodes and edges needed for the d3js viz.
 """
 
-
 @phenomemap_blueprint.route('/run-phenome-map.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
@@ -77,12 +74,10 @@ def run_tool():
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
-    tool_info = uploader.get_tool_info(TOOL_CLASSNAME, only_visible=True,
-                                       out_name=True)
-    for tool_name in tool_info:
-        params[tool_name] = form[tool_name]
-        if tool_name.endswith('_' + homology_str):
-            params[homology_str] = form[tool_name]
+    for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+        params[tool_param.name] = form[tool_param.name]
+        if tool_param.name.endswith('_' + homology_str):
+            params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
 
@@ -96,20 +91,23 @@ def run_tool():
         flask.flash("Internal error: user ID missing")
         return flask.redirect('analyze')
 
-    # Gather emphasis gene ids and put them in parameters
-    emphgeneids = uploader.get_gene_and_species_info_by_user(user_id=user_id,
-                                                             out_gene_id=True)
+    # Gather emphasis gene ids and put them in paramters
+    emphgeneids = []
+    user_id = flask.session['user_id']
+    emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(str(row['ode_gene_id']))
     params['EmphasisGenes'] = emphgeneids
 
     task_id = str(uuid.uuid4())
-    tools = uploader.get_tool_info(TOOL_CLASSNAME, out_name=True)
-    desc = '{} on {} GeneSets'.format(tools, len(selected_geneset_ids))
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
     gwdb.insert_result(
         user_id,
         task_id,
         selected_geneset_ids,
         json.dumps(params),
-        tools,
+        tool.name,
         desc,
         desc)
 

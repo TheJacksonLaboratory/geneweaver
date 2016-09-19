@@ -1,0 +1,79 @@
+{% extends "_base.html" %}
+
+{% block nav_gens %}active{% endblock %}
+
+{% block content %}
+
+{% if list %}
+<table class="table table-striped">
+	<thead><tr><th>Name</th><th>PubMed search</th><th>For Group</th><th>Last update</th><th>Actions</th></tr></thead>
+	<tbody>
+		{% for gen in list %}
+		{%if gen.name=='Manual' %}
+		<tr><td>{{gen.name}}</td><td>-- For manually added PubMed IDs--</td><td>{{gen.group}}</td><td>{{gen.updated}}</td>
+			<td><a class="btn btn-success" href="#quickAddModal" data-toggle="modal"><i class="icon-plus icon-white"></i></a>
+				</td></tr>
+		{%else%}
+		<tr><td>{{gen.name}}</td><td><a href="http://www.ncbi.nlm.nih.gov/pubmed?term={{gen.query}}">{{gen.query}}</a></td><td>{{gen.group}}</td><td>{{gen.updated}}</td>
+			<td><a class="btn btn-success" href="?refresh={{gen.name}}"><i class="icon-refresh icon-white"></i></a>
+				<a class="btn btn-danger" href="?delete={{gen.name}}"><i class="icon-trash icon-white"></i></a></td></tr>
+		{%endif%}
+		{% endfor %}
+	</tbody>
+</table>
+{% else %}
+	<div class="alert alert-warning">No generators defined! Get started now.</div>
+{% endif %}
+
+  <form class="form-horizontal" method="post" action="">
+    <fieldset>
+      <div id="legend" class="">
+        <legend class="">Create New Stub Generator</legend>
+      </div>
+    <div class="control-group">
+
+          <!-- Text input-->
+          <label class="control-label" for="input01">Generator Name</label>
+          <div class="controls">
+            <input type="text" name="name" placeholder="Addiction studies" class="input-xlarge">
+            <p class="help-block"></p>
+          </div>
+        </div>
+
+    <div class="control-group">
+
+          <!-- Text input-->
+          <label class="control-label" for="input01">PubMed Query</label>
+          <div class="controls">
+            <input type="text" name="querystring" placeholder="addiction[MeSH Terms]" class="input-xlarge">
+						<p class="help-block">A <a href="http://www.ncbi.nlm.nih.gov/pubmed/advanced">PubMed search string</a> - field modifiers supported.</p>
+          </div>
+        </div>
+
+    <div class="control-group">
+
+          <!-- Select Basic -->
+          <label class="control-label">Curation Group</label>
+          <div class="controls">
+            <select class="input-xlarge" name="forgroup">
+							<option value="">- select a group -</option>
+							{% for gid in session['groups'] %}
+								<option value="{{gid}}">{{session['groups'][gid]}}</option>
+							{% endfor %}
+						</select>
+          </div>
+        </div>
+
+    <div class="control-group">
+          <label class="control-label"></label>
+
+          <!-- Button -->
+          <div class="controls">
+            <button class="btn btn-primary">Submit</button>
+          </div>
+        </div>
+
+    </fieldset>
+  </form>
+
+{% endblock %}
