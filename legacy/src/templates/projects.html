@@ -244,10 +244,21 @@
         // Call modal to remove genesets from projects
         $('#callRemoveGenesets').on('click', function () {
             var gsid = [];
-            jQuery("input[type=checkbox]:checked").each(function () {
-                var v = ($(this).attr("id"));
-                gsid.push(v.split('_')[1]);
+            var gsname = [];
+
+            $('input[type=checkbox]:checked').each(function () {
+                var checkId = $(this).attr('id');
+				checkId = checkId.split('_');
+
+                // This selects other checkboxes that may not be genesets so we
+                // have to filter those out.
+				if (checkId[0] === 'geneset') {
+				
+					gsid.push(checkId[1]);
+					gsname.push('GS' + checkId[1]);
+				}
             });
+
             if (gsid.length == 0) {
                 $("html, body").animate({ scrollTop: 0 }, "slow");
                 $(document).trigger("add-alerts", [
@@ -300,13 +311,13 @@
             var gsname = [];
             var gsid = [];
 
-
-			// This selects other checkboxes that may not be genesets so we 
-			// have to filter those out.
             $('input[type=checkbox]:checked').each(function () {
                 var checkId = $(this).attr('id');
 				checkId = checkId.split('_');
 
+
+                // This selects other checkboxes that may not be genesets so we
+                // have to filter those out.
 				if (checkId[0] === 'geneset') {
 				
 					gsid.push(checkId[1]);
@@ -393,19 +404,36 @@
             var check = $(this).find('input[type=checkbox]');
             var allcheck = '#' + check.attr('id');
             var pid = allcheck.split('-')[1];
+            var pbid = '#project-body-' + pid;
             var gscheck = '.proj-' + pid + '-check';
+			var chkclass = '.proj-' + pid + '-check';
 
-            if ($(allcheck).attr('checked')) {
+			if ($(pbid).children().length === 0) {
 
-                $(gscheck).each(function (index) {
-                    $(this).attr('checked', false);
-                });
+				var data = {'project': pid};
 
-            } else {
+				$.get(url, data).done(function (data) {
+					$(pbid).append(data);
 
-                $(gscheck).each(function (index) {
-                    $(this).attr('checked', true);
-                });
+					$(chkclass).each(function (index) {
+						$(this).attr('checked', true);
+					});
+				});
+
+			} else {
+
+                if ($(allcheck).attr('checked')) {
+
+                    $(gscheck).each(function (index) {
+                        $(this).attr('checked', false);
+                    });
+
+                } else {
+
+                    $(gscheck).each(function (index) {
+                        $(this).attr('checked', true);
+                    });
+                }
             }
         });
 
