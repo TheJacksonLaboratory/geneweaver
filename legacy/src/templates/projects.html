@@ -232,14 +232,14 @@
             }
         });
 
-		// An attempt to prevent enter key presses from causing HTTP errors
-		// not working currently
-		$('#addGenesetsToProj').keypress(function(e) {
-
-			// 13 == ENTER key 
-			if (e.which && e.which === 13)
-				$('#addCombineGenesets').click();
-		});
+		// When a user is adding genesets to a new project, this allows them 
+        // to hit enter to execute that addition without the page throwing
+        // an http error
+        $(document).on('keypress', function(e) {
+            // 13 == ENTER
+            if (e.keyCode && e.keyCode === 13)
+                e.preventDefault();
+        });
 
         // Call modal to remove genesets from projects
         $('#callRemoveGenesets').on('click', function () {
