@@ -28,6 +28,7 @@ from uploader import Uploader
 import cairosvg
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
+import notifications
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -2376,6 +2377,52 @@ def quoted(s):
     if l:
         return l[0]
     return None
+
+
+@app.route('/notifications')
+def render_notifications():
+    return flask.render_template('notifications.html')
+
+
+@app.route('/notifications.json')
+def get_notifications_json():
+    if 'user_id' in flask.session:
+        if 'start' in request.args:
+            start = request.args['start']
+        else:
+            start = 0
+        if 'limit' in request.args:
+            #
+            limit = int(request.args['limit']) + 1
+            notes = notifications.get_notifications(flask.session['user_id'], start, limit)
+            if len(notes) < limit:
+                has_more = False
+            else:
+                has_more = True
+                del notes[-1]
+        else:
+            notes = notifications.get_notifications(flask.session['user_id'], start)
+            has_more = False
+
+        mark_as_read = []
+        for note in notes:
+            # need to format the timestamp as a string
+            note['time_sent'] = note['time_sent'].strftime("%b %d, %Y at %I:%M %p")
+            if not note['read']:
+                mark_as_read.append(note['notification_id'])
+        if mark_as_read:
+            notifications.mark_notifications_read(*mark_as_read)
+        return json.dumps({'notifications': notes, 'has_more': has_more})
+    else:
+        return json.dumps({'error': 'You must be logged in'})
+
+@app.route('/unread_notification_count.json')
+def get_unread_notification_count_json():
+    if 'user_id' in flask.session:
+        count = notifications.get_unread_count(flask.session['user_id'])
+        return json.dumps({'unread_notifications': count})
+    else:
+        return json.dumps({'error': 'You must be logged in'})
 
 
 # ********************************************
