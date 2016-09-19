@@ -25,6 +25,7 @@ import sphinxapi
 import search
 import math
 import cairosvg
+import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 
@@ -729,9 +730,9 @@ def render_editgeneset_genes(gs_id):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        symbol2ode = batch.getOdeGeneIds(geneset.sp_id, contents)
-        keys = [list(query) for query in symbol2ode.keys()]
-        symbol2ode = dict([(k[0], symbol2ode[tuple(k)][0]) for k in keys])
+        symbol2ode = batch.db.getOdeGeneIds(geneset.sp_id, contents)
+        #keys = [list(query) for query in symbol2ode.keys()]
+        #symbol2ode = dict([(k[0], symbol2ode[tuple(k)][0]) for k in keys])
         ## Reverse to make our lives easier during templating
         for sym, ode in symbol2ode.items():
             symbol2ode[ode] = sym

@@ -16,6 +16,10 @@ var jaccardClustering = function() {
         jsonPath = '',
         // Parsed JSON object
         jsonData = '',
+        // Data node objects returned by the clustering tool
+        nodes = null
+        // Force directed layout object
+        layout = null,
         // Node color palette
         colors = [
             "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", 
@@ -27,7 +31,283 @@ var jaccardClustering = function() {
 
     /** private **/
 
+    /**
+     * updates stuff
+     */
+    var updateLayout = function() {
+
+        //var nodes = flatten(root);
+        var links = d3.layout.tree().links(nodes);
+        var treeHeight = jsonData.height;
+        //var link = svg.selectAll(".link");
+        //var node = svg.selectAll(".node");
+
+        // Restart the force layout.
+        force.nodes(nodes)
+            .links(links)
+            .start();
+
+        link = link.data(links, function (d) { return d.target.id; });
+
+        link.exit().remove();
+
+        link.enter()
+            .insert('line', '.node')
+            .style('stroke', '#555')
+            .style('stroke-width', '2px')
+            .style('opacity', opac);
+
+        node = node.data(nodes, function (d) { return d.id; });
+
+        node.exit().remove();
+
+        var nodeEnter = node.enter()
+            .append('g')
+            .attr('class', 'node')
+            .on('click', click)
+            .call(layout.drag);
+
+        nodeEnter.append('circle')
+            .attr('r', radius)
+            .attr('shape-rendering', 'auto')
+            .style('stroke', '#000')
+            .style('stroke-width', '1.5px')
+            .style('fill', function(d) { return colorMap(d); })
+            .style('opacity', opac);
+
+        nodeEnter.append('text')
+            .attr('dy', dist)
+            .attr('dx', dist)
+            .text(label);
+
+        node.on('mouseover', mouseover);
+        node.on('mouseout', mouseout);
+        node.on('dblclick', dblclick);
+    }
+
+    /**
+     * Generates the force tree version of the clustering visualization.
+     */
+    var makeLayout = function() {
+
+        var root = null;
+        link = svg.selectAll(".link");
+        node = svg.selectAll(".node");
+        var width = svg.attr('width');
+        var height = svg.attr('height');
+
+        d3.json(jsonPath, function (error, json) {
+
+            if (error) 
+                throw error;
+
+            root = json;
+            jsonData = json;
+
+            //k = Math.sqrt(json.length / (width * height));
+
+            this.layout = d3.layout.force()
+                .linkDistance(function (d) {
+                    return d.target.level == 0 ? 150 : 50;
+                })
+                .charge(-50)
+                .linkDistance(60)
+                .gravity(0.02)
+                .size([width, height])
+                .on("tick", function tick() {
+
+                    link.attr("x1", function (d) {
+                        return d.source.x;
+                    })
+                    .attr("y1", function (d) {
+                        return d.source.y;
+                    })
+                    .attr("x2", function (d) {
+                        return d.target.x;
+                    })
+                    .attr("y2", function (d) {
+                        return d.target.y;
+                    });
+
+                    node.attr("transform", function (d) {
+                        return "translate(" + d.x + "," + d.y + ")";
+                    });
+                });
+
+            this.nodes = flatten(json);
+            var collapsedNodes = flatten(json);
+
+            //Collapse genes into genesets by default
+            for (var n in collapsedNodes) {
+                if (collapsedNodes[n].type == "geneset")
+                    collapse(collapsedNodes[n]);
+            }
+
+            visualizeKey(collapsedNodes);
+            updateLayout();
+        });
+
+        function dist(d) {
+            return -1 * (radius(d) + 5)
+        }
+
+        function radius(d) {
+            if (d.type === 'collapsed-cluster')
+                return d.size * 2;
+
+            if (d.size)
+                return d.size;
+
+            return 0;
+        }
+
+        // Toggle children on click.
+        function click(d) {
+
+            // Ignores drag events
+            if (d3.event.defaultPrevented) 
+                return;
+
+            if (d.genes) {
+
+                if (d.g_index >= d.genes.length) {
+                    
+                    d.children = null;
+                    d.g_index = 0;
+
+                } else if (d.g_index + 10 < d.genes.length) {
+                
+                    d.children = d.genes.slice(d.g_index, d.g_index + 10);
+                    d.g_index += 10;
+
+                } else {
+
+                    d.children = d.genes.slice(d.g_index);
+                    d.g_index = d.genes.length;
+                }
+
+            } else {
+
+                if (d.children) {
+
+                    d.type = 'collapsed-cluster';
+                    d._children = d.children;
+                    d.children = null;
+
+                } else {
+
+                    d.type = 'cluster';
+                    d.children = d._children;
+                    d._children = null;
+                }
+
+                var nodeSelected = d3.select(this);
+            }
+
+            update(jsonData);
+        }
+
+        // Toggle children on click.
+        function collapse(d) {
+            if (d.children) {
+                d.genes = d.children;
+                d.g_index = 0;
+                d.children = null;
+            }
+        }
+
+        function mouseover(d) {
+
+            if (d.type == "cluster") {
+                var nodeSelected = d3.select(this);
+                nodeSelected.select("circle").attr("r", d.size + 10);
+                nodeSelected.select("text").attr("dy", "0.5em");
+                nodeSelected.select("text").attr("dx", "0em");
+                nodeSelected.select("text").text(d.jaccard_index.toPrecision(2));
+
+            } else if (d.type == "geneset") {
+            
+                var nodeSelected = d3.select(this);
+                nodeSelected.select("text").text(d.info);
+            } else {
+            
+                var nodeSelected = d3.select(this);
+                nodeSelected.select("circle").attr("r", d.size * 2);
+                nodeSelected.select("text").text(d.name);
+            }
+        }
+
+        function mouseout(d) {
+
+            var nodeSelected = d3.select(this);
+            nodeSelected.select("circle").attr("r", radius);
+            nodeSelected.select("text").attr("dy", dist);
+            nodeSelected.select("text").attr("dx", dist);
+            nodeSelected.select("text").text(label);
+        }
+
+        // Returns a list of all nodes under the root.
+        function flatten(root) {
+            var nodes = [], i = 0;
+
+            var recurse = function(node) {
+                
+                if (node.children) 
+                    node.children.forEach(recurse);
+
+                if (!node.id) 
+                    node.id = ++i;
+
+                nodes.push(node);
+            };
+
+            recurse(root);
+
+            return nodes;
+        }
+    };
+
+    };
+
     /** public **/
+    
+    /**
+     * draw legend
+     */
+    exports.drawLegend = function() {
+
+        var added = {};
+
+        for (var i = 0; i < nodes.length; i++) {
+
+            if (nodes[i].species === undefined)
+                continue;
+
+            if (nodes[i].species in added)
+                continue;
+
+            added[nodes[i].species] = true;
+
+            var species = nodes[i].species.split(' ');
+            species = species[0][0] + '. ' + species[1];
+
+            var key = d3.select("#d3-legend")
+                .append("div")
+                .attr("class", "key");
+
+            key.append('span')
+                .style('width', '20px')
+                .style('height', '20px')
+                .style('border', 'solid 2px #000')
+                .style('background-color', 
+                    function() { return colorMap(nodes[i]); 
+                });
+
+            key.append('p')
+                .style('font-weight', 'bold')
+                .text(species);
+        }
+    };
 
     /*
      * Setters/getters
@@ -35,7 +315,16 @@ var jaccardClustering = function() {
     exports.jsonPath = function(_) {
         if (!arguments.length) return jsonPath;
         jsonPath = _;
-        return exports;
+
+        d3.json(jsonPath, function(err, json) {
+
+            if (err)
+                throw err;
+
+            jsonData = json;
+
+            return exports;
+        });
     };
 
     return exports;
