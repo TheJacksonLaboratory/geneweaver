@@ -1,8 +1,7 @@
 /*
 testPvalueSame.cpp: ...
 Created: Sun Sep 11 18:47:33 CDT 2016
-TODO: unit test unique function
-      test full program against mset.R
+seg fualting, but this version directly corresponds to original paper
 */
 #include <fstream>
 #include <iostream>
@@ -12,7 +11,6 @@ TODO: unit test unique function
 #include <cstdlib>
 #include <ctime>
 using namespace std;
-
 
 //without replacement
 void sample(vector<string>& sampleInto,vector<string>& from,vector<unsigned long>& ndxs){
@@ -127,33 +125,34 @@ int main(int argc, char** argv){
         top.insert(*i);
     }
 
-    vector<unsigned long> randomizedBackgroundNdxs;
-    for(unsigned long i=0;i<background.size();i++){
-        randomizedBackgroundNdxs.push_back(i);
-    }
-        
-        
-
     int numSamples=0;
     cout<<"enter number of samples:>";
     cin>>numSamples;
 
+    vector<unsigned long> randomizedBackgroundNdxs;
+    for(unsigned long i=0;i<background.size();i++){
+        randomizedBackgroundNdxs.push_back(i);
+    }
 
     //the length of the intersect with the top set and the intrest set to
     //compare to the simulations
     int checklength=intersectSize(top.begin(),top.end(),setOfInterest.begin(),setOfInterest.end());
 
-    vector<string> sampledSet(top.size());
+    vector<string> sampledList(top.size()*2);//don't know why times two but it is in the publication
 
     cout<<"everything is read"<<endl;
     int numGreater=0;
     for(int i=0;i<numSamples;i++){
-        sample(sampledSet,background,randomizedBackgroundNdxs);//sample sampledSet.size elements from background into sampledSet without replacement
-
+        sample(sampledList,background,randomizedBackgroundNdxs);//sample sampledList.size elements from background into sampledList without replacement
+        vector<string> sampledSet=unique(sampledList);//using a set directly to do unique would sort it
+        //because the set needs to be truncated after being converted to a set,
+        //it cannot be sorted if the behavior of the mset.R file is to be copied
+        sampledSet.resize(top.size());
         if(intersectSize(sampledSet.begin(),sampledSet.end(),setOfInterest.begin(),setOfInterest.end())>checklength){
             //if the size of the intersect of sampledSet and setOfInterest> the checklength intersect from before
             numGreater++;//increment the count
         }
+        //*/
     }
 
     double pvalue=((double)numGreater)/((double)numSamples);
