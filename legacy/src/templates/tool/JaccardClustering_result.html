@@ -208,11 +208,23 @@
 
 		var jsonPath = '{{ cluster_data | safe }}';
 
-        $(document).ready(visualize(jsonPath));
+        //$(document).ready(visualize(jsonPath));
+        $(document).ready(function() {
+
+            d3.json(jsonPath, function(err, json) {
+                var clustering = jaccardClustering()
+                    //.jsonPath(jsonPath)
+                    .jsonData(json)
+                    .drawGraph()
+                    .drawLegend()
+                    ;
+            });
+
+        });
 
         $("select#visualizationType").change(function(){
 
-            visualize(jsonPath);
+            //visualize(jsonPath);
         });
     </script>
 <script>

@@ -20,6 +20,8 @@ var jaccardClustering = function() {
         nodes = null
         // Force directed layout object
         layout = null,
+        // Element ID of the div to draw in
+        element = '#d3-visual',
         // Node color palette
         colors = [
             "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", 
@@ -32,18 +34,16 @@ var jaccardClustering = function() {
     /** private **/
 
     /**
-     * updates stuff
+     * Updates currently drawn nodes and edges based on user input (e.g.
+     * clicking nodes).
      */
     var updateLayout = function() {
-
-        //var nodes = flatten(root);
+        var nodes = flatten(jsonData);
         var links = d3.layout.tree().links(nodes);
         var treeHeight = jsonData.height;
-        //var link = svg.selectAll(".link");
-        //var node = svg.selectAll(".node");
 
         // Restart the force layout.
-        force.nodes(nodes)
+        layout.nodes(nodes)
             .links(links)
             .start();
 
@@ -83,191 +83,217 @@ var jaccardClustering = function() {
         node.on('mouseover', mouseover);
         node.on('mouseout', mouseout);
         node.on('dblclick', dblclick);
-    }
+    };
 
     /**
      * Generates the force tree version of the clustering visualization.
      */
     var makeLayout = function() {
 
-        var root = null;
         link = svg.selectAll(".link");
         node = svg.selectAll(".node");
-        var width = svg.attr('width');
-        var height = svg.attr('height');
 
-        d3.json(jsonPath, function (error, json) {
+        layout = d3.layout.force()
+            .linkDistance(function (d) {
+                return d.target.level == 0 ? 150 : 50;
+            })
+            .charge(-50)
+            .linkDistance(60)
+            .gravity(0.02)
+            .size([width, height])
+            .on("tick", function tick() {
 
-            if (error) 
-                throw error;
-
-            root = json;
-            jsonData = json;
-
-            //k = Math.sqrt(json.length / (width * height));
-
-            this.layout = d3.layout.force()
-                .linkDistance(function (d) {
-                    return d.target.level == 0 ? 150 : 50;
+                link.attr("x1", function (d) {
+                    return d.source.x;
                 })
-                .charge(-50)
-                .linkDistance(60)
-                .gravity(0.02)
-                .size([width, height])
-                .on("tick", function tick() {
-
-                    link.attr("x1", function (d) {
-                        return d.source.x;
-                    })
-                    .attr("y1", function (d) {
-                        return d.source.y;
-                    })
-                    .attr("x2", function (d) {
-                        return d.target.x;
-                    })
-                    .attr("y2", function (d) {
-                        return d.target.y;
-                    });
-
-                    node.attr("transform", function (d) {
-                        return "translate(" + d.x + "," + d.y + ")";
-                    });
+                .attr("y1", function (d) {
+                    return d.source.y;
+                })
+                .attr("x2", function (d) {
+                    return d.target.x;
+                })
+                .attr("y2", function (d) {
+                    return d.target.y;
                 });
 
-            this.nodes = flatten(json);
-            var collapsedNodes = flatten(json);
+                node.attr("transform", function (d) {
+                    return "translate(" + d.x + "," + d.y + ")";
+                });
+            });
 
-            //Collapse genes into genesets by default
-            for (var n in collapsedNodes) {
-                if (collapsedNodes[n].type == "geneset")
-                    collapse(collapsedNodes[n]);
-            }
+        nodes = flatten(jsonData);
+        var collapsedNodes = flatten(jsonData);
 
-            visualizeKey(collapsedNodes);
-            updateLayout();
-        });
-
-        function dist(d) {
-            return -1 * (radius(d) + 5)
+        //Collapse genes into genesets by default
+        for (var n in collapsedNodes) {
+            if (collapsedNodes[n].type == "geneset")
+                collapse(collapsedNodes[n]);
         }
 
-        function radius(d) {
-            if (d.type === 'collapsed-cluster')
-                return d.size * 2;
+        updateLayout();
+    };
 
-            if (d.size)
-                return d.size;
+    var label = function(d) { return d.type == "geneset" ? d.name : ''; };
 
-            return 0;
+    var opac = function(d) {
+        // Internal node opacity is a function of the jaccard coefficient between
+        // two genesets. Nice, but they can be difficult to see. Leaving this here
+        // in case we want to reenable it.
+        //if (d.name) {
+        //    return d.name == "root" ? "0"
+        //            : d.type == "geneset" ? 1
+        //            : d.type == "gene" ? .4
+        //            : d.jaccard_index + .08;
+        //}
+        //return d.source.name == "root" ? "0"
+        //        : d.source.type == "geneset" ? .2
+        //        : d.source.jaccard_index + .08;
+
+        // We're dealing with nodes
+        if (d.name) {
+
+            if (d.type === 'geneset')
+                return 1;
+
+            // Probably an internal node
+            return 0.8;
+            
+        // We're dealing with edges
+        } else {
+
+            // An invisible root node exists and we don't show the edge for it.
+            if (d.source.name === 'root')
+                return 0;
+
+            return 1;
         }
 
-        // Toggle children on click.
-        function click(d) {
+        return 0.8;
+    }
 
-            // Ignores drag events
-            if (d3.event.defaultPrevented) 
-                return;
+    var dist = function(d) { return -1 * (radius(d) + 5) };
 
-            if (d.genes) {
+    var radius = function(d) {
 
-                if (d.g_index >= d.genes.length) {
-                    
-                    d.children = null;
-                    d.g_index = 0;
+        if (d.type === 'collapsed-cluster')
+            return d.size * 2;
 
-                } else if (d.g_index + 10 < d.genes.length) {
+        if (d.size)
+            return d.size;
+
+        return 0;
+    }
+
+    // Toggle children on click.
+    var click = function(d) {
+
+        // Ignores drag events
+        if (d3.event.defaultPrevented) 
+            return;
+
+        if (d.genes) {
+
+            if (d.g_index >= d.genes.length) {
                 
-                    d.children = d.genes.slice(d.g_index, d.g_index + 10);
-                    d.g_index += 10;
-
-                } else {
-
-                    d.children = d.genes.slice(d.g_index);
-                    d.g_index = d.genes.length;
-                }
-
-            } else {
-
-                if (d.children) {
-
-                    d.type = 'collapsed-cluster';
-                    d._children = d.children;
-                    d.children = null;
-
-                } else {
-
-                    d.type = 'cluster';
-                    d.children = d._children;
-                    d._children = null;
-                }
-
-                var nodeSelected = d3.select(this);
-            }
-
-            update(jsonData);
-        }
-
-        // Toggle children on click.
-        function collapse(d) {
-            if (d.children) {
-                d.genes = d.children;
-                d.g_index = 0;
                 d.children = null;
-            }
-        }
+                d.g_index = 0;
 
-        function mouseover(d) {
-
-            if (d.type == "cluster") {
-                var nodeSelected = d3.select(this);
-                nodeSelected.select("circle").attr("r", d.size + 10);
-                nodeSelected.select("text").attr("dy", "0.5em");
-                nodeSelected.select("text").attr("dx", "0em");
-                nodeSelected.select("text").text(d.jaccard_index.toPrecision(2));
-
-            } else if (d.type == "geneset") {
+            } else if (d.g_index + 10 < d.genes.length) {
             
-                var nodeSelected = d3.select(this);
-                nodeSelected.select("text").text(d.info);
+                d.children = d.genes.slice(d.g_index, d.g_index + 10);
+                d.g_index += 10;
+
             } else {
-            
-                var nodeSelected = d3.select(this);
-                nodeSelected.select("circle").attr("r", d.size * 2);
-                nodeSelected.select("text").text(d.name);
-            }
-        }
 
-        function mouseout(d) {
+                d.children = d.genes.slice(d.g_index);
+                d.g_index = d.genes.length;
+            }
+
+        } else {
+
+            if (d.children) {
+
+                d.type = 'collapsed-cluster';
+                d._children = d.children;
+                d.children = null;
+
+            } else {
+
+                d.type = 'cluster';
+                d.children = d._children;
+                d._children = null;
+            }
 
             var nodeSelected = d3.select(this);
-            nodeSelected.select("circle").attr("r", radius);
-            nodeSelected.select("text").attr("dy", dist);
-            nodeSelected.select("text").attr("dx", dist);
-            nodeSelected.select("text").text(label);
         }
 
-        // Returns a list of all nodes under the root.
-        function flatten(root) {
-            var nodes = [], i = 0;
+        updateLayout();
+        //update(jsonData);
+    }
 
-            var recurse = function(node) {
-                
-                if (node.children) 
-                    node.children.forEach(recurse);
+    // Toggle children on click.
+    var collapse = function(d) {
 
-                if (!node.id) 
-                    node.id = ++i;
+        if (d.children) {
 
-                nodes.push(node);
-            };
-
-            recurse(root);
-
-            return nodes;
+            d.genes = d.children;
+            d.g_index = 0;
+            d.children = null;
         }
-    };
+    }
 
-    };
+    var mouseover = function(d) {
+
+        if (d.type == "cluster") {
+            var nodeSelected = d3.select(this);
+
+            nodeSelected.select("circle").attr("r", d.size + 10);
+            nodeSelected.select("text").attr("dy", "0.5em");
+            nodeSelected.select("text").attr("dx", "0em");
+            nodeSelected.select("text").text(d.jaccard_index.toPrecision(2));
+
+        } else if (d.type == "geneset") {
+            var nodeSelected = d3.select(this);
+
+            nodeSelected.select("text").text(d.info);
+
+        } else {
+            var nodeSelected = d3.select(this);
+
+            nodeSelected.select("circle").attr("r", d.size * 2);
+            nodeSelected.select("text").text(d.name);
+        }
+    }
+
+    var mouseout = function(d) {
+
+        var nodeSelected = d3.select(this);
+
+        nodeSelected.select("circle").attr("r", radius);
+        nodeSelected.select("text").attr("dy", dist);
+        nodeSelected.select("text").attr("dx", dist);
+        nodeSelected.select("text").text(label);
+    }
+
+    // Returns a list of all nodes under the root.
+    var flatten = function(root) {
+        var flatNodes = [], i = 0;
+
+        var recurse = function(node) {
+            
+            if (node.children) 
+                node.children.forEach(recurse);
+
+            if (!node.id) 
+                node.id = ++i;
+
+            flatNodes.push(node);
+        };
+
+        recurse(root);
+
+        return flatNodes;
+    }
 
     /** public **/
     
@@ -277,6 +303,8 @@ var jaccardClustering = function() {
     exports.drawLegend = function() {
 
         var added = {};
+        var key = svg
+            .append('g');
 
         for (var i = 0; i < nodes.length; i++) {
 
@@ -291,26 +319,90 @@ var jaccardClustering = function() {
             var species = nodes[i].species.split(' ');
             species = species[0][0] + '. ' + species[1];
 
-            var key = d3.select("#d3-legend")
-                .append("div")
-                .attr("class", "key");
+            //var key = d3.select('#d3-legend')
+            //    .append('div')
+            //    .attr('class', 'key');
+            //var key = d3.select('#d3-legend')
+            //    .append('svg')
+            //    .attr('class', 'key');
 
-            key.append('span')
-                .style('width', '20px')
-                .style('height', '20px')
-                .style('border', 'solid 2px #000')
-                .style('background-color', 
-                    function() { return colorMap(nodes[i]); 
-                });
+            //key.append('span')
+            //    .style('width', '20px')
+            //    .style('height', '20px')
+            //    .style('border', 'solid 2px #000')
+            //    .style('background-color', 
+            //        function() { return colorMap(nodes[i]); 
+            //    });
 
-            key.append('p')
-                .style('font-weight', 'bold')
-                .text(species);
+            //key.append('p')
+            //    .style('font-weight', 'bold')
+            //    .text(species);
+
+
+            key.append('circle')
+                .attr('cx', 15)
+                .attr('x', 15)
+                .attr('cy', 28 * Object.keys(added).length + 20)
+                .attr('y', 28 * Object.keys(added).length + 20)
+                .attr('r', 10)
+                .style('fill-opacity', 0.90)
+                .style('shape-rendering', 'geometricPrecision')
+                .style('stroke', '#000')
+                .style('stroke-width', '2px')
+                .style('fill', function(d) { return colorMap(nodes[i]); })
+                ;
+
+            key.append('text')
+                .attr('x', 33)
+                .attr('y', 29 * Object.keys(added).length + 24)
+                .text(species)
+            ;
         }
+
+        // Legend element for the cluster (internal) nodes
+        key.append('circle')
+            .attr('cx', 15)
+            .attr('x', 15)
+            .attr('cy', 28 * (Object.keys(added).length + 1) + 20)
+            .attr('y', 28 * (Object.keys(added).length + 1) + 20)
+            .attr('r', 6)
+            .style('fill-opacity', 0.90)
+            .style('shape-rendering', 'geometricPrecision')
+            .style('stroke', '#000')
+            .style('stroke-width', '2px')
+            .style('fill', '#0099FF')
+            ;
+
+        key.append('text')
+            .attr('x', 33)
+            .attr('y', 29 * (Object.keys(added).length + 1) + 23)
+            .text('Cluster')
+        ;
+
+        return exports;
+    };
+
+    /**
+     * Draws the force directed cluster graph.
+     */
+    exports.drawGraph = function() {
+
+        svg = d3.select(element)
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height);
+
+        makeLayout();
+
+        return exports;
     };
 
     /*
      * Setters/getters
+     */
+    
+    /**
+     * The jsonPath setter also serializes the JSON data into memory.
      */
     exports.jsonPath = function(_) {
         if (!arguments.length) return jsonPath;
@@ -325,6 +417,32 @@ var jaccardClustering = function() {
 
             return exports;
         });
+
+        return exports;
+    };
+
+    exports.jsonData = function(_) {
+        if (!arguments.length) return jsonData;
+        jsonData = _;
+        return exports;
+    };
+
+    exports.element = function(_) {
+        if (!arguments.length) return element;
+        element = _;
+        return exports;
+    };
+
+    exports.width = function(_) {
+        if (!arguments.length) return width;
+        width = +_;
+        return exports;
+    };
+
+    exports.height = function(_) {
+        if (!arguments.length) return height;
+        height = +_;
+        return exports;
     };
 
     return exports;
