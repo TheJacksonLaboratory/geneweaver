@@ -1,0 +1,97 @@
+{% extends "_base.html" %}
+
+{% block nav_stubs %}active{% endblock %}
+
+{% block content %}
+
+{% if stub.genesets%}
+<h2>GeneSets <a href="{{stub.add_url}}" class="btn btn-primary"><i class="icon icon-white icon-plus"></i> Add</a></h2>
+<table class="table table-striped">
+  <thead><tr><th width="50%">Name / Description</th><th width="25%">Metadata</th><th width="25%">Actions</th></tr></thead>
+  <tbody>
+    {% for geneset in stub.genesets %}
+		{%include "_geneset_abbv_row.html"%}
+		{#
+		<tr>
+			<td><a href="{{gs.view_url}}"><b>GS{{gs.gs_id}}: {{gs.gs_name}}</b></a><br/>
+				{{gs.gs_description}}</td>
+			
+			<td>Tier: {{gs.cur_id}}<br/>Group: {{gs.group}}</td>
+			<td></td>
+		</tr>
+		#}
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <h2 class="alert alert-warning">No GeneSets <a href="{{stub.add_url}}" class="btn btn-primary"><i class="icon icon-white icon-plus"></i> Add</a></h2>
+{% endif %}
+
+<h2>Stub Info</h2>
+<table class="table table-striped">
+  <thead><tr><th width="50%">Title / Abstract</th><th width="25%">PMID / Fulltext</th><th width="25%">Status</th></tr></thead>
+  <tbody>
+    <tr>
+            <td><b>{{stub.atitle}}</b><br/><i>{{stub.authors}}</i><br/><i>{{stub.pubinfo}}</i><br/>{{stub.abstract}}</td>
+      <td><a href="http://pubmed.gov/{{stub.pmid}}">PMID {{stub.pmid}}</a>
+        {%if stub.fulltext%}<br/><br/>
+        <a href="{{stub.fulltext}}">Fulltext</a>
+        {% endif %}
+      </td>
+      <td>
+        <div class="btn-toolbar">
+        <div class="btn-group">
+          {% if stub.priority==0 %}
+            <a class="btn btn-mini dropdown-toggle"
+                          data-toggle="dropdown" href="#">low
+          {% elif stub.priority==1 %}
+            <a class="btn btn-success btn-mini
+                          dropdown-toggle" data-toggle="dropdown"
+                          href="#">medium
+          {% elif stub.priority==2 %}
+            <a class="btn btn-warning btn-mini
+                          dropdown-toggle" data-toggle="dropdown"
+                          href="#">high
+                    {% elif stub.priority>=3 %}
+            <a class="btn btn-danger btn-mini dropdown-toggle"
+                          data-toggle="dropdown" href="#">urgent
+          {% endif %}
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                            <li><a href="{{stub.mod_url}}?pri=0">low
+                                {% if 0==stub.priority%}<i class="icon-ok"></i>{% endif %}</a></li>
+              <li><a href="{{stub.mod_url}}?pri=1">medium
+                                {% if 1==stub.priority%}<i class="icon-ok"></i>{% endif %}</a></li>
+              <li><a href="{{stub.mod_url}}?pri=2">high
+                                {% if 2==stub.priority%}<i class="icon-ok"></i>{% endif %}</a></li>
+              <li><a href="{{stub.mod_url}}?pri=3">urgent
+                                {% if 3<=stub.priority%}<i class="icon-ok"></i>{% endif %}</a></li>
+            </ul>
+        </div>
+
+        <div class="btn-group">
+            <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" href="#">
+              {{stub.status}} <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+              {% for stid in session['stato'] %}
+              <li><a href="{{stub.mod_url}}?stid={{stid}}">{{session['stati'][stid]}}
+                {% if session['stati'][stid]==stub.status%}<i class="icon-ok"></i>{% endif %}
+              </a></li>
+              {% endfor %}
+            </ul>
+        </div>
+        </div>
+    
+        <br/>
+                <i>{{stub.group}} // {{stub.stubgenerator}}</i><br/>
+                {% if stub.comment %}{{stub.comment}}<br/>{%endif%}
+                <br/>
+                Added: {{stub.added}}
+            </td>
+    </tr>
+  </tbody>
+</table>
+
+{% endblock %}
