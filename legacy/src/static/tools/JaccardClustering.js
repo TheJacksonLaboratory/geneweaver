@@ -10,16 +10,22 @@ var jaccardClustering = function() {
     var exports = {},
         // SVG object
         svg = null,
+        // SVG width
         width = 1100,
+        // SVG height
         height = 900,
-        // Path to tool generated JSON data
-        jsonPath = '',
         // Parsed JSON object
         jsonData = '',
         // Data node objects returned by the clustering tool
         nodes = null
         // Force directed layout object
         layout = null,
+        // Repulsion/attraction between nodes in the layout
+        charge = -50,
+        // Distance between nodes in the layout
+        linkDistance = 60,
+        // Layout gravity
+        gravity = 0.02,
         // Element ID of the div to draw in
         element = '#d3-visual',
         // Node color palette
@@ -28,8 +34,7 @@ var jaccardClustering = function() {
             "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", 
             "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", 
             "#5574a6", "#3b3eac"
-        ]
-        ;
+        ];
 
     /** private **/
 
@@ -97,9 +102,9 @@ var jaccardClustering = function() {
             .linkDistance(function (d) {
                 return d.target.level == 0 ? 150 : 50;
             })
-            .charge(-50)
-            .linkDistance(60)
-            .gravity(0.02)
+            .charge(charge)
+            .linkDistance(linkDistance)
+            .gravity(gravity)
             .size([width, height])
             .on("tick", function tick() {
 
@@ -124,31 +129,35 @@ var jaccardClustering = function() {
         nodes = flatten(jsonData);
         var collapsedNodes = flatten(jsonData);
 
-        //Collapse genes into genesets by default
+        // Don't draw geneset genes initially
         for (var n in collapsedNodes) {
-            if (collapsedNodes[n].type == "geneset")
-                collapse(collapsedNodes[n]);
+
+            var cnode = collapsedNodes[n];
+
+            if (cnode.type == "geneset") {
+
+                if (cnode.children) {
+
+                    cnode.genes = cnode.children;
+                    cnode.g_index = 0;
+                    cnode.children = null;
+                }
+                //collapse(collapsedNodes[n]);
+            }
         }
 
+        /*
         updateLayout();
+        */
     };
 
+    /**
+     * Returns the label for geneset nodes and an empty string for all others
+     * (i.e. internal/root nodes).
+     */
     var label = function(d) { return d.type == "geneset" ? d.name : ''; };
 
     var opac = function(d) {
-        // Internal node opacity is a function of the jaccard coefficient between
-        // two genesets. Nice, but they can be difficult to see. Leaving this here
-        // in case we want to reenable it.
-        //if (d.name) {
-        //    return d.name == "root" ? "0"
-        //            : d.type == "geneset" ? 1
-        //            : d.type == "gene" ? .4
-        //            : d.jaccard_index + .08;
-        //}
-        //return d.source.name == "root" ? "0"
-        //        : d.source.type == "geneset" ? .2
-        //        : d.source.jaccard_index + .08;
-
         // We're dealing with nodes
         if (d.name) {
 
@@ -191,7 +200,17 @@ var jaccardClustering = function() {
         if (d3.event.defaultPrevented) 
             return;
 
-        if (d.genes) {
+        // Hide displayed genes when a user clicks on a geneset node
+        if (d.type === 'geneset' && d.children) {
+
+            if (d.children) {
+
+                d.genes = d.children;
+                d.g_index = 0;
+                d.children = null;
+            }
+        
+        } else if (d.genes) {
 
             if (d.g_index >= d.genes.length) {
                 
@@ -223,12 +242,9 @@ var jaccardClustering = function() {
                 d.children = d._children;
                 d._children = null;
             }
-
-            var nodeSelected = d3.select(this);
         }
 
         updateLayout();
-        //update(jsonData);
     }
 
     // Toggle children on click.
@@ -316,28 +332,9 @@ var jaccardClustering = function() {
 
             added[nodes[i].species] = true;
 
+            // Abbreviate species names
             var species = nodes[i].species.split(' ');
             species = species[0][0] + '. ' + species[1];
-
-            //var key = d3.select('#d3-legend')
-            //    .append('div')
-            //    .attr('class', 'key');
-            //var key = d3.select('#d3-legend')
-            //    .append('svg')
-            //    .attr('class', 'key');
-
-            //key.append('span')
-            //    .style('width', '20px')
-            //    .style('height', '20px')
-            //    .style('border', 'solid 2px #000')
-            //    .style('background-color', 
-            //        function() { return colorMap(nodes[i]); 
-            //    });
-
-            //key.append('p')
-            //    .style('font-weight', 'bold')
-            //    .text(species);
-
 
             key.append('circle')
                 .attr('cx', 15)
@@ -393,6 +390,7 @@ var jaccardClustering = function() {
             .attr('height', height);
 
         makeLayout();
+        updateLayout();
 
         return exports;
     };
@@ -401,29 +399,27 @@ var jaccardClustering = function() {
      * Setters/getters
      */
     
-    /**
-     * The jsonPath setter also serializes the JSON data into memory.
-     */
-    exports.jsonPath = function(_) {
-        if (!arguments.length) return jsonPath;
-        jsonPath = _;
-
-        d3.json(jsonPath, function(err, json) {
-
-            if (err)
-                throw err;
-
-            jsonData = json;
-
-            return exports;
-        });
-
-        return exports;
-    };
-
     exports.jsonData = function(_) {
         if (!arguments.length) return jsonData;
         jsonData = _;
+        return exports;
+    };
+
+    exports.charge = function(_) {
+        if (!arguments.length) return charge;
+        charge = +_;
+        return exports;
+    };
+
+    exports.linkDistance = function(_) {
+        if (!arguments.length) return linkDistance;
+        linkDistance = +_;
+        return exports;
+    };
+
+    exports.gravity = function(_) {
+        if (!arguments.length) return gravity;
+        gravity = +_;
         return exports;
     };
 
