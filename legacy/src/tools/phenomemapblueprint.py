@@ -314,16 +314,22 @@ def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
-    ## The progress structure contains the fields at (the current execution
-    ## time), message (progress message), and percent (% completion of the
-    ## current state). 
     if async_result.state == states.PENDING:
-        progress = async_result.info
+        progress = async_result.info['message']
+        percent = async_result.info['percent']
+
+    elif async_result.state == states.FAILURE:
+        progress = 'Failed'
+        percent = ''
+
     else:
-        progress = None
+        progress = 'Done'
+        percent = ''
 
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
-        'progress': progress,
         'state': async_result.state,
+        'progress': progress,
+        'percent': percent
     })
+
