@@ -224,7 +224,7 @@
 		{% for gs in gs_map.values() %}
 
 			{# 
-				All headers except theh first contain a column of empty space 
+				All headers except the first contain a column of empty space 
 				and another with the geneset abbreviation.
 			#}
 			{% if loop.index0 != 0 %}
@@ -248,7 +248,7 @@
     		{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %}
 			text-align:center;">
 
-    		<a class="gs-link" href="/viewgenesetdetails/{{gs.geneset_id}}">
+    		<a class="gs-link" href="/viewgenesetdetails/{{gs.geneset_id}}" style="font-size:14px">
 				{{gs.abbreviation}}
 			</a>
 		</th>
