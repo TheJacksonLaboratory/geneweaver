@@ -1229,6 +1229,69 @@ def render_viewgenesetoverlap(gs_ids):
     else:
         view = None
 
+    def venn_circles(i,ii,j, size=100):
+        """
+        Taken from the jaccard sim. tool source code. Calculates x, y positions
+        for each circle in the venn diagram so the proper overlap area is
+        shown.
+
+        arguments
+            i: size of the left side geneset
+            ii: size of the right side geneset
+            j: size of the intersection
+            size: visualization scale
+
+        returns
+            a dictionary with x, y positions and radius sizes for both circles
+        """
+        pi = math.acos(-1.0)
+        r1 = math.sqrt(i/pi)
+        r2 = math.sqrt(ii/pi)
+        if r1==0:
+            r1=1.0
+        if r2==0:
+            r2=1.0
+        scale=size/2.0/(r1+r2)
+
+        if i==j or ii==j:  # complete overlap
+            c1x=c1y=c2x=c2y=size/2.0
+        elif j==0:  # no overlap
+            c1x=c1y=r1*scale
+            c2x=c2y=size-(r2*scale)
+        else:
+            # originally written by zuopan, rewritten a number of times
+            step = .001
+            beta = pi
+            if r1<r2:
+                r2_=r1
+                r1_=r2
+            else:
+                r1_=r1
+                r2_=r2
+            r2o1=r2_/r1_
+            r1_2=r1_*r1_
+            r2_2=r2_*r2_
+
+            while beta > 0:
+                beta -= step
+                alpha = math.asin(math.sin(beta)/r1_ * r2_)
+                Sj = r1_2*alpha + r2_2*(pi-beta) - 0.5*(r1_2*math.sin(2*alpha) + r2_2*math.sin(2*beta));
+                if Sj > j:
+                    break
+
+            oq= r1_*math.cos(alpha) - r2_*math.cos(beta)
+            oq=(oq*scale)/2.0
+
+            c1x=(size/2.0) - oq
+            c2x=(size/2.) + oq
+            c1y=c2y=size/2.0
+
+        r1=r1*scale
+        r2=r2*scale
+
+        return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2}
+
+
     ## TODO: fix emphasis genes
     #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
@@ -1256,10 +1319,21 @@ def render_viewgenesetoverlap(gs_ids):
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
+    ## Pairwise comparison so we provide additional data for the venn diagram
+    if len(genesets) == 2:
+        venn = venn_circles(genesets[0].count, genesets[1].count, len(intersects), 300)
+        venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
+                {'cx': venn['c2x'], 'cy': venn['c2y'], 'r': venn['r2']}];
+
+    else:
+        venn = None
+
+
     return flask.render_template('viewgenesetoverlap.html', 
         gs_map=gs_map,
         intersects=intersects,
-        species=species
+        species=species,
+        venn=venn
     )
 
 
