@@ -1286,10 +1286,18 @@ def render_viewgenesetoverlap(gs_ids):
             c2x=(size/2.) + oq
             c1y=c2y=size/2.0
 
+        vsize = 100
+        if r1 > r2:
+            r = r1
+        else:
+            r = r2
+
+        tx = (vsize/2)*(4.0/3.0)
+        ty = (vsize/2 - (r) -5)*(4.0/3.0)
         r1=r1*scale
         r2=r2*scale
 
-        return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2}
+        return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2, 'tx': tx, 'ty': ty}
 
 
     ## TODO: fix emphasis genes
@@ -1322,18 +1330,24 @@ def render_viewgenesetoverlap(gs_ids):
     ## Pairwise comparison so we provide additional data for the venn diagram
     if len(genesets) == 2:
         venn = venn_circles(genesets[0].count, genesets[1].count, len(intersects), 300)
+        venn_text = {'tx': venn['tx'], 'ty': venn['ty']}
         venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
                 {'cx': venn['c2x'], 'cy': venn['c2y'], 'r': venn['r2']}];
 
     else:
         venn = None
 
+    left_count = genesets[0].count - len(intersects)
+    right_count = genesets[1].count - len(intersects)
+
+    venn_text['text'] = '(%s (%s) %s)' % (left_count, len(intersects), right_count)
 
     return flask.render_template('viewgenesetoverlap.html', 
         gs_map=gs_map,
         intersects=intersects,
         species=species,
-        venn=venn
+        venn=venn,
+        venn_text=venn_text
     )
 
 
