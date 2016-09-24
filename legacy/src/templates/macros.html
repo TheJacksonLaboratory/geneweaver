@@ -21,7 +21,7 @@
     {% endfor %}
 {% endmacro %}
 
-{% macro tool_param_select(tool_param) %}
+{%  macro tool_param_select(tool_param) %}
     <div class="form-group">
         <div class="col-md-6" style="text-align:right;">
             <label for="{{ tool_param.name|e }}" class="control-label">{{ tool_param.label_name|e }}:</label>

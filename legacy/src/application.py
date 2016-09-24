@@ -20,7 +20,7 @@ import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
+    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint, dbscanblueprint
 import sphinxapi
 import search
 import math
@@ -32,6 +32,7 @@ import notifications
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
+app.register_blueprint(dbscanblueprint.dbscan_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 app.register_blueprint(genesetviewerblueprint.geneset_viewer_blueprint)
@@ -257,20 +258,20 @@ def render_analyze():
     if 'user' not in flask.g:
         return flask.render_template('analyze.html', active_tools=active_tools)
 
-    for p in flask.g.user.shared_projects:
-        p.group_id = p.group_id.split(',')
-        ## If a project is found in multiple groups we just use the
-        ## first group
-        p.group_id = p.group_id[0]
-        p.group = geneweaverdb.get_group_name(p.group_id)
-
-        if p.group not in grp2proj:
-            grp2proj[p.group] = [p]
-        else:
-            grp2proj[p.group].append(p)
-
-
-        grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
+    # for p in flask.g.user.shared_projects:
+    #     p.group_id = p.group_id.split(',')
+    #     ## If a project is found in multiple groups we just use the
+    #     ## first group
+    #     p.group_id = p.group_id[0]
+    #     p.group = geneweaverdb.get_group_name(p.group_id)
+    #
+    #     if p.group not in grp2proj:
+    #         grp2proj[p.group] = [p]
+    #     else:
+    #         grp2proj[p.group].append(p)
+    #
+    #
+    #     grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
 
     return flask.render_template(
         'analyze.html', 
