@@ -6,17 +6,8 @@ Created: Wed Sep  7 10:43:48 CDT 2016
 #include <ctime>
 #include <vector>
 #include <cstdlib>
+#include "printVec.h"
 
-template<typename T>
-void printVec(std::vector<T>& v){
-    if(v.size()>0){
-        std::cout<<"c("<<v[0];
-        for(int i=1;i<v.size();i++){
-            std::cout<<","<<v[i];
-        }
-        std::cout<<")";
-    }
-}
 
 template<typename T>
 void printResVec(std::vector<T>& v){
