@@ -444,7 +444,15 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
             cursor.connection.commit()
             # return the primary ID for the insert that we just performed
             # grp_id = cursor.fetchone()[0]
-            notifications.send_usr_notification()
+
+            #send user a notification that they have been added to the group
+
+            group_name = get_group_name(group_id)
+            owner = get_user(owner_id)
+            owner_name = owner.first_name + " " + owner.last_name
+            notifications.send_usr_notification_by_email(usr_email,
+                                                         "Added to Group",
+                                                         "You have been added to the group {} by {}".format(group_name, owner_name))
             return {'error': 'None'}
 
 
