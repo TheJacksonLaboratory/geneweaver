@@ -87,16 +87,19 @@
                 url: "{{ url_for(tool.classname + '.status_json', task_id=async_result.task_id) }}",
                 success: function (data) {
 
-                    //statusLabel.text(data.state);
-
                     if (data.isReady) {
                         // the task is ready so forcing a reload will show results
+						statusMessage.text(data.progress);
                         document.location.reload(true);
 
 					} else if (data.progress) {
 
-						//statusMessage.html(makeStatusMessage(data.progress.message));
-						statusMessage.text(data.progress.message);
+                        var message = data.progress;
+
+                        if (data.percent)
+                            message += ' (' + $.trim(data.percent) + ')';
+
+						statusMessage.text(message);
 
 						window.setTimeout(checkStatus, checkStatusTimeoutMS);
 

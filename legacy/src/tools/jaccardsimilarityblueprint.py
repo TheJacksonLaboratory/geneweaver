@@ -183,17 +183,28 @@ def view_result(task_id):
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
 
-
-
-
 @jaccardsimilarity_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
+    if async_result.state == states.PENDING:
+        progress = async_result.info['message']
+        percent = async_result.info['percent']
+
+    elif async_result.state == states.FAILURE:
+        progress = 'Failed'
+        percent = ''
+
+    else:
+        progress = 'Done'
+        percent = ''
+
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
+        'progress': progress,
+        'percent': percent
     })
 
 @jaccardsimilarity_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>.html')
