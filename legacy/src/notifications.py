@@ -10,26 +10,18 @@ import config
 import geneweaverdb
 
 
-def send_usr_notification_by_id(uid, subject, message):
-    send_usr_notification(uid, subject, message, False)
-
-
-def send_usr_notification_by_email(user_email, subject, message):
-    send_usr_notification(user_email, subject, message, True)
-
-
-def send_usr_notification(to, subject, message, email=False):
+def send_usr_notification(to, subject, message, to_is_email=False):
     """
 
     :param to: user to send email notification to, can be user id or email
     :param subject: subject of notificatino
     :param message: body of notification
-    :param email: boolean, if True "to" is a user's email address, otherwise
+    :param to_is_email: boolean, if True "to" is a user's email address, otherwise
                   "to" is a user id
     :return:
     """
 
-    if email:
+    if to_is_email:
         usr = geneweaverdb.get_user_byemail(to)
     else:
         usr = geneweaverdb.get_user(to)
