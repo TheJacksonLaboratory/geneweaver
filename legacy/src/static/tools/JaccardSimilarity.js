@@ -37,7 +37,7 @@ var jaccardSimilarity = function() {
         // Shift venn diagrams and their labels down N pixels
         yShift = 120,
         // Venn diagram colors: Emphasis gene green, left red, right blue
-        fillColors = ['#006400', '#EE0000', '#0000BB'],
+        fillColors = ['#006400', '#EE0000', '#0000BB', '#FDBB84'],
         // Data returned by the tool
         data = null;
 
@@ -119,7 +119,7 @@ var jaccardSimilarity = function() {
                     cx: venn[vcx] + (venn.column * diagramPadding),
                     cy: venn[vcy] + (venn.row * diagramPadding),
                     r: venn[vr],
-                    fill: fillColors[j],
+                    fill: (venn.gsids[0] == venn.gsids[1]) ? fillColors[3] : fillColors[j],
                     column: venn.column,
                     row: venn.row,
                     title: venn['title1'],
@@ -262,7 +262,7 @@ var jaccardSimilarity = function() {
                     else if (i === 1)
                         return fillColors[2];
                     else if (i === 2)
-                        return fillColors[1];
+                        return fillColors[3];
                     else if (i === 3)
                         return fillColors[0];
                     else
@@ -275,20 +275,6 @@ var jaccardSimilarity = function() {
                 .attr('y', 29 * i + 24)
                 .text(function() { return '= ' + types[i]; });
             ;
-
-            // Another circle is drawn with the second color to show
-            // the correct overlap color
-            if (i === 2) {
-                key.append('circle')
-                    .attr('cx', 15)
-                    .attr('cy', 28 * i + 20)
-                    .attr('r', 10)
-                    .style('fill-opacity', 0.70)
-                    .style('shape-rendering', 'geometricPrecision')
-                    .style('stroke', '#000')
-                    .style('stroke-width', '2px')
-                    .style('fill', fillColors[2]);
-            }
         }
     };
     

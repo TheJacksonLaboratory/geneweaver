@@ -1,0 +1,44 @@
+{% extends "_base.html" %}
+
+{% block content %}
+
+  <form class="form-horizontal" action="" method="post">
+    <fieldset>
+      <div id="legend" class="">
+        <legend class="">Login to Curation</legend>
+				{% if errmsg %}
+					<div class="alert alert-error"><a class="close" href="#" data-dismiss="alert">x</a>{{errmsg}}</p>
+				{% endif %}
+      </div>
+    <div class="control-group">
+
+          <!-- Text input-->
+          <label class="control-label" for="input01">Email</label>
+          <div class="controls">
+            <input type="email" name="email" class="input-xlarge">
+            <p class="help-block"></p>
+          </div>
+        </div>
+
+    <div class="control-group">
+
+          <!-- Text input-->
+          <label class="control-label" for="input01">Password</label>
+          <div class="controls">
+            <input type="password" name="password" class="input-xlarge">
+          </div>
+        </div>
+
+    <div class="control-group">
+          <label class="control-label"></label>
+
+          <!-- Button -->
+          <div class="controls">
+            <button class="btn btn-primary">Login</button>
+          </div>
+        </div>
+
+    </fieldset>
+  </form>
+
+{% endblock %}

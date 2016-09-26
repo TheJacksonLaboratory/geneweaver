@@ -1,0 +1,239 @@
+{% extends "_base.html" %}
+
+{% block nav_genesets %}active{% endblock %}
+
+{% block content %}
+
+<h2>GeneSet Info</h2>
+<table class="table table-striped">
+  <thead><tr><th width="50%">Name / Label / Description</th><th width="25%">Metadata</th><th width="25%">Author / Status</th></tr></thead>
+  <tbody>
+		{%include "_geneset_row.html"%}
+    <tr>
+      <td>
+        <h3>Uploaded data file:</h3>
+        <pre style="overflow:auto; height:400px;">{{geneset.file_contents}}</pre>
+      </td>
+        <td colspan="2">
+          <h3>Top 10 Similar GeneSets:</h3>
+          <ul>
+            {% if geneset.similarsets %}
+          {% for simgs in geneset.similarsets %}
+          <li>
+          {%if simgs.sim>0.5 %}<b>{{simgs.sim}}</b>
+          {%else%}{{simgs.sim}}
+          {%endif%}
+          - <a href="{{url_for('view_geneset', gsid=simgs.gs_id)}}">GS{{simgs.gs_id}}: {{simgs.gs_name}}</a></li>
+          {% endfor %}
+          <li><a href="/index.php?action=manage&cmd=similargenesets&gs_id={{geneset.gs_id}}">view all</a></li>
+          </ul>
+          {% endif%}
+					(Last sim check on: {{geneset.last_sim}})
+          <br/>
+          <a href="{{geneset.sims_url}}" class="btn">Calculate Similar GeneSets</a>
+        </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+          <h3>Ontology Associations:</h3>
+          <table class="table-condensed">
+          {% for ontid,term,source in geneset.ontology_terms %}
+          {% if 'GeneWeaver Data Type' not in source %}
+          <tr><td>{{term}}<br/><span style="font-size:10px;">({{source}})</span></td>
+            <td>
+              {% if 'GeneWeaver Primary Annotation' in source %}
+              <a href="{{url_for('add_geneset_term',gsid=geneset.gs_id,ontid=ontid,assoctype='nr')}}"
+                class="btn btn-small btn-warning"> Not Primary </a>
+              {% elif source=='Blacklist' %}
+              <a href="{{url_for('add_geneset_term',gsid=geneset.gs_id,ontid=ontid,assoctype='dl')}}"
+                class="btn btn-small btn-inverse"> Remove </a>
+              {% else %}
+              <a href="{{url_for('add_geneset_term',gsid=geneset.gs_id,ontid=ontid,assoctype='pr')}}"
+                class="btn btn-small"> Primary </a>
+              <a href="{{url_for('add_geneset_term',gsid=geneset.gs_id,ontid=ontid,assoctype='dl')}}"
+                class="btn btn-small btn-inverse"> Remove </a>
+              <a href="{{url_for('add_geneset_term',gsid=geneset.gs_id,ontid=ontid,assoctype='bl')}}"
+                class="btn btn-small btn-danger"> Blacklist </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+          {% else %}
+          <tr><td><br/><br/><br/>No Annotations made yet. Try the annotator --&gt;
+          </td></tr>
+          {% endfor %}
+          </table>
+          <br/>
+        </td>
+        <td>
+        <h3>Add Assocs:</h3>
+        <input type="text" id="add_ontology" /><br/><br/><br/>
+        <a href="{{geneset.ncbo_url}}" class="btn">Run Annotator</a>
+        <br/><br/>
+        <br/><br/>
+        <h3>Data Type:</h3>
+
+    <div class="btn-group">
+        <a class="btn btn-success dropdown-toggle" data-toggle="dropdown" href="#">
+          {%if 'data_type' in geneset %}
+          {{geneset_data_types[geneset.data_type]}}
+          {%else%}
+           (None)
+          {%endif%}
+             <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+        {% for ontid,term in geneset_data_types.items() %}
+          <li><a href="{{url_for('add_geneset_term',gsid=geneset.gs_id,ontid=ontid,assoctype='dt')}}">{{term}}
+          {%if ontid==geneset.data_type %}<i class="icon-ok"></i>{%endif%}
+        </a></li>
+        {% endfor %}
+          <li><a href="{{url_for('add_geneset_term',gsid=geneset.gs_id,ontid=0,assoctype='dt')}}">(None)
+        </a></li>
+        </ul>
+    </div>
+      </td>
+    </tr>
+    <tr>
+      <td><h3>Curator Notes <span style="font-weight:normal; font-size:12px; background-color:#ffff00;padding:5px;"
+id="comment-status-curator"></span></h3>
+				<textarea style="width:90%;height:250px;" id="comment-curator" onkeyup="delayedsave('curator');">{{geneset._comments_curator}}</textarea>
+      </td>
+      <td colspan="2"><h3>Comments to Author <span style="font-weight:normal; font-size:12px; background-color:#ffff00;padding:5px;" id="comment-status-author"></span></h3>
+				<textarea style="width:90%;height:250px;" id="comment-author" onkeyup="delayedsave('author');">{%if geneset._comments_author -%}
+{{geneset._comments_author}}
+					{%- else -%}
+Hello,
+          
+The GeneSet you uploaded to GeneWeaver.org needs a few modifications to meet our curation standards for public dissemination.  These standards help us maintain the usefulness of GeneWeaver to the research community.
+
+GeneSet #{{geneset.gs_id}} has the following deficiencies:
+ - Name does not adequately describe the data.
+ - Label is not unique enough.
+ - Label is too obscure.
+ - Description is missing important information such as: X,Y,Z
+ - Original data is from an Array, but platform identifiers (i.e. Affymetrix probes) were not uploaded.
+ 
+You can make changes to these descriptors at:
+  http://geneweaver.org/index.php?action=manage&cmd=updategeneset&gs_id={{geneset.gs_id}}
+
+For more information about our curation standards, please see the relevant pages of our Wiki:
+	http://geneweaver.org/wiki/index.php?title=Curation_Standards
+
+ - GeneWeaver Curation team
+{%-endif%} 
+</textarea>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <label style="font-size:18px; line-height: 27px;font-weight:bold;display:inline;">
+          <input id="approve_tiers" type="checkbox" /> Approve and assign to:</label>
+        &nbsp; &nbsp; <input type="button" class="btn btn-primary" onclick="return approve_geneset(2);" value="Tier II" />
+        &nbsp; &nbsp; <input type="button" class="btn btn-success" onclick="return approve_geneset(3);" value="Tier III" /><br/><br/>
+        <!-- label>&nbsp; &nbsp; <input type="checkbox" id="promote_geneset"/> Promote on front page</label -->
+      </td>
+      <td colspan="2">
+        <label style="font-size:18px; line-height: 27px;font-weight:bold;display:inline;">
+          <input id="needs_work" type="checkbox" /> Requires Modifications:</label>
+        &nbsp; &nbsp; <input type="button" class="btn" onclick="return send_comments();" value="Send Comments to Author"><br/><br/>
+        <label>&nbsp; &nbsp; <input type="checkbox" id="demote_to_5" /> Major deficiency - demote to Tier V</label>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<script>
+function approve_geneset(thetier) {
+  if( !$('#approve_tiers')[0].checked ) {
+    alert('Check the box to confirm approval');
+    return false;
+  }
+  var theurl="/curation/genesets/{{geneset.gs_id}}/approve/"+thetier;
+  if( $('#promote_geneset')[0].checked ) {
+    theurl+="?promote=yes";
+  }
+  window.location.href=theurl;
+  return false;
+}
+function send_comments() {
+  if( !$('#needs_work')[0].checked ) {
+    alert('Check the box to confirm comments');
+    return false;
+  }
+  var theurl="/curation/genesets/{{geneset.gs_id}}/reject";
+  if( $('#demote_to_5')[0].checked ) {
+    theurl+="?demote=yes";
+  }
+  window.location.href=theurl;
+  return false;
+}
+var delayedsaveTID=0, delayedsavefor='';
+function delayedsave(kind) {
+  if( delayedsaveTID!=0 ) {
+    window.clearTimeout(delayedsaveTID);
+    if(delayedsavefor!=kind) save_comments(delayedsavefor);
+  }
+  delayedsavefor=kind;
+  delayedsaveTID=window.setTimeout(save_comments, 750, kind);
+}
+function save_comments(kind) {
+  delayedsaveTID=0;
+  $('#comment-status-'+kind).html('Saving...');
+  thecontent = $('#comment-'+kind).val()
+  $.ajax('/curation/genesets/{{geneset.gs_id}}/comment/'+kind, {
+    data: {content: thecontent}, success: function(d,t,x) {
+      $('#comment-status-'+kind).html('');
+  }, error: function(d,t,x) {
+      $('#comment-status-'+kind).html('error');
+  }}
+  );
+}
+</script>
+
+{% endblock %}
+
+{% block onreadyjavascript %}
+var ontdb={};
+ontdb[ 1 ] = "Gene Ontology";
+ontdb[ 2 ] = "Mammalian Phenotype";
+ontdb[ 3 ] = "Adult Mouse Anatomy";
+ontdb[ 5 ] = "EMBRACE Data and Methods";
+ontdb[ 4 ] = "Mesh Terms";
+
+  $('#add_ontology').autocomplete({
+    source: function( request, response ) {
+        $.ajax({
+          url: '/index.php?ajax_req=manage&cmd=ontology',
+          dataType: "json",
+          data: { term: request.term },
+          success: function( data ) {
+            response( $.map( data, function( item ) {
+              return {
+                label: item.ont_ref_id + ": " + item.ont_name,
+                value: item.ont_id,
+                fulldata: item
+              }
+            }));
+          }
+        });
+      }, 
+    minLength: 3,
+    select: function(e,ui){
+      var url="/curation/genesets/{{geneset.gs_id}}/assoc/"+ui.item.fulldata.ont_id;
+      var params="assoctype=nr";
+      $.get(url, params, function(resp){
+       //  $('#ontology_adder').after(resp);
+      });
+      $('#add_ontology').val('');
+      return false;
+    }
+  }).data( "autocomplete" )._renderItem = function( ul, item ) {
+      var regex = new RegExp( '(' + $('#add_ontology').val().replace(' ','|') + ')', 'gi' );
+      mylabel = item.label.replace(regex, '<span style="font-weight:bold;">$1</span>');
+      return $( '<li style="list-style:none;font-size:11px;"></li>' ).data( "item.autocomplete", item )
+        .append( "<a>" + mylabel + "&nbsp;<span style=\"color: #0000ff;float:right;\">(" + ontdb[item.fulldata.ontdb_id] + ")</span></a>" )
+        .appendTo( ul );
+    };
+
+{% endblock %}

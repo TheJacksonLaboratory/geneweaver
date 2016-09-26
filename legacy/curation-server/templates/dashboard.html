@@ -1,0 +1,51 @@
+{% extends "_base.html" %}
+
+{% block content %}
+
+<div class="row-fluid">
+  <div class="span6">
+    <h2>Pending GeneSets</h2>
+    {% if pending_genesets %}
+<table class="table table-striped">
+  <thead><tr><th width="50%">GeneSet Info</th><th width="25%"> </th><th width="25%">Uploaded By</th></tr></thead>
+  <tbody>
+    {% for gs in pending_genesets %}
+    <tr><td><a href="{{gs.view_url}}"><b>GS{{gs.gs_id}}: {{gs.gs_name}}</b></a></td>
+      <td><b>{{gs.gs_count}}</b> genes in <br/>{{gs.species}}</td><td>{{gs.usr_email}}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+    {% else %}
+      <div class="alert alert-warning">No pending GeneSets! Woo!</div>
+    {% endif %}
+  </div>
+
+  <div class="span6">
+    <h2>Stub Stats</h2>
+    {% if stub_stats %}
+    <table class="table table-striped">
+      <thead><tr><th width="75%">Name // Group</th><th width="25%">Last update</th></tr></thead>
+      <tbody>
+        {% for stubgenid,gen in stub_stats.items() %}
+        {%if gen.name!='Manual' %}
+        <tr><td><a href="{{gen.view_url}}">{{gen.name}}</a> // {{gen.group}}<br/>
+            <br/>
+              <ul>
+                {% for pri,count in gen.counts.items() %}
+                <li>{{pri}}: <b style="font-size:24px;">{{count}}</b></li>
+                {% endfor %}
+              </ul>
+            
+            </td><td>{{gen.updated}}
+          <a class="btn btn-success" href="{{gen.refresh_url}}"><i class="icon-refresh icon-white"></i></a>
+          </td></tr>
+        {%endif%}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="alert alert-warning">No generators defined! Get started now.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
