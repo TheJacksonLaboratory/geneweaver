@@ -196,7 +196,10 @@
 	<script type="text/javascript" src="../../static/tools/JaccardClustering.js"></script>
     <script type="text/javascript">
         if('{{ async_result.method }}' != 'Heatmap'){
-            $("select#visualizationType").append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>').append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
+            $("select#visualizationType")
+                .append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>')
+                .append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
+                ;
         }
         else
         {
@@ -205,11 +208,23 @@
 
 		var jsonPath = '{{ cluster_data | safe }}';
 
-        $(document).ready(visualize(jsonPath));
+        //$(document).ready(visualize(jsonPath));
+        $(document).ready(function() {
+
+            d3.json(jsonPath, function(err, json) {
+                var clustering = jaccardClustering()
+                    //.jsonPath(jsonPath)
+                    .jsonData(json)
+                    .drawGraph()
+                    .drawLegend()
+                    ;
+            });
+
+        });
 
         $("select#visualizationType").change(function(){
 
-            visualize(jsonPath);
+            //visualize(jsonPath);
         });
     </script>
 <script>

@@ -1,0 +1,54 @@
+{% extends "_base.html" %}
+
+{% block content %}
+
+<div class="row-fluid">
+  <div class="span6">
+    <h2>Statistics</h2>
+<table class="table table-striped">
+	<tbody>
+		<tr><th rowspan="2" width="25%">Active Users:</th>
+			<td>All: {{stats.active_users}}</td></tr>
+		<tr><td>Registered: {{stats.active_users_registered}}</td></tr>
+
+		<tr><th rowspan="4" width="25%">Jobs Executed:</th>
+			<td>24h: {{stats.jobs_24h}}</td></tr>
+		<tr><td>1w: {{stats.jobs_1w}}</td></tr>
+		<tr><td>30d: {{stats.jobs_30d}}</td></tr>
+		<tr><td>6m: {{stats.jobs_6m}}</td></tr>
+
+		<tr><th rowspan="4">Projects Modified:</th>
+			<td>24h: {{stats.projects_24h}} ({{stats.projects_24h_full}})</td></tr>
+		<tr><td>1w: {{stats.projects_1w}} ({{stats.projects_1w_full}})</td></tr>
+		<tr><td>30d: {{stats.projects_30d}} ({{stats.projects_30d_full}})</td></tr>
+		<tr><td>6m: {{stats.projects_6m}} ({{stats.projects_6m_full}})</td></tr>
+
+		<tr><th rowspan="4">GeneSets uploaded:</th>
+			<td>24h: {{stats.genesets_24h}}</td></tr>
+		<tr><td>1w: {{stats.genesets_1w}}</td></tr>
+		<tr><td>30d: {{stats.genesets_30d}}</td></tr>
+		<tr><td>6m: {{stats.genesets_6m}}</td></tr>
+
+		<tr><th colspan="2"><br><br></th></tr>
+		<tr><th rowspan="{{num_resources}}">Public Resources:</th>
+			{% for attribution,rinfo in resources.items() %}
+			  {%if not loop.first %}<tr>{%endif%}
+					<td>{{attribution}}<br/><b>{{rinfo[1]}} GeneSets</b> - {{rinfo[0]}}</td></tr>
+			{% endfor %}
+	</tbody>
+</table>
+  </div>
+
+  <div class="span6">
+    <h2>Current Power Users</h2>
+    <table class="table table-striped">
+      <thead><tr><th width="75%">Email Address</th><th width="25%">Role</th></tr></thead>
+      <tbody>
+        {% for admin_email,admin_info in admins.items() %}
+				<tr><td>{{admin_email}}</td><td>{{admin_info.role}}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
