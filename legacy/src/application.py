@@ -1434,8 +1434,21 @@ def render_user_genesets():
         headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
     else:
         headerCols, user_id, columns = None, 0, None
-    return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns,
-                                 table=table)
+
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
+
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+
+    return flask.render_template(
+        'mygenesets.html', 
+        headerCols=headerCols, 
+        user_id=user_id, 
+        columns=columns,
+        table=table,
+        species=species
+    )
 
 
 def top_twenty_simgenesets(simgs):
