@@ -44,9 +44,14 @@
 
 </style>
 
-{% if geneset.geneset_id is not defined %}
+{% if no_access is defined %}
+
+    {% include 'htmlfragments/genesetPermissionError.html' %}
+
+{% elif deleted is defined %}
 
     {% include 'htmlfragments/genesetNotFound.html' %}
+
 
 {% else %}
 

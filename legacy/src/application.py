@@ -1102,12 +1102,26 @@ def render_viewgeneset(gs_id):
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
-    ## Nothing is ever deleted but that doesn't mean users should be able
-    ## to see them. Also some sets have a NULL status so that MUST be checked
-    ## for, otherwise sad times ahead :(
     if not user_info.is_admin and not user_info.is_curator:
+        ## get_geneset takes into account permissions, if a geneset is returned
+        ## by *_no_user then we know they can't view it b/c of access rights
+        if not geneset and geneweaverdb.get_geneset_no_user(gs_id):
+            return flask.render_template(
+                'viewgenesetdetails.html',
+                no_access=True,
+                user_id=user_id
+            )
+
+        ## Nothing is ever deleted but that doesn't mean users should be able
+        ## to see them. Some sets have a NULL status so that MUST be
+        ## checked for, otherwise sad times ahead :(
         if not geneset or (geneset and geneset.status == 'deleted'):
-            return flask.render_template('viewgenesetdetails.html', geneset=None)
+            return flask.render_template(
+                'viewgenesetdetails.html', 
+                geneset=None,
+                deleted=True,
+                user_id=user_id
+            )
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
