@@ -32,7 +32,7 @@ int main(int argc, char** argv){
     string inputStr;
     while(readLists>>inputStr){
         if(inputStr!="---"){
-            background.push_back(inputStr);//read into sets so they're unique
+            background.push_back(inputStr);
         }
     }
     readLists.clear();
@@ -54,9 +54,12 @@ int main(int argc, char** argv){
 
     //copy that number from background into top, converting to set in the
     //process
+    int count=0;
     for(vector<string>::iterator i=background.begin(); distance(background.begin(),i)<topResults;i++){
+        count++;
         top.insert(*i);
     }
+    cout<<"count: "<<count<<", top.size(): "<<top.size()<<endl;
 
     int numSamples=0;
     cout<<"enter number of samples:>";
@@ -70,6 +73,12 @@ int main(int argc, char** argv){
     //the length of the intersect with the top set and the intrest set to
     //compare to the simulations
     int checklength=isectFinder.getIntersectionSizeWith(top);
+    cout<<"matches to database found in microarray results "<<checklength<<endl;
+    vector<string> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
+    cout<<"matches are: "<<endl;
+    for(int i=0;i<(int)matches.size();i++){
+        cout<<matches[i]<<endl;
+    }
 
     vector<string> sampledList(top.size()*2);//don't know why times two but it is in the publication
 
@@ -81,7 +90,9 @@ int main(int argc, char** argv){
         //because the set needs to be truncated after being converted to a set,
         //it cannot be sorted if the behavior of the mset.R file is to be copied
         sampledSet.resize(top.size());
-        if(isectFinder.getIntersectionSizeWith(sampledSet)>checklength){
+        int intersectSize=isectFinder.getIntersectionSizeWith(sampledSet);
+        //cout<<intersectSize<<endl;
+        if(intersectSize>=checklength){
             //if the size of the intersect of sampledSet and setOfInterest> the checklength intersect from before
             numGreater++;//increment the count
         }

@@ -15,10 +15,16 @@ seg fualting, but this version directly corresponds to original paper
 #include <ctime>
 
 using namespace std;
+random_device rd;
+mt19937 gen(rd());
 
 //without replacement
-void sample(vector<string>& sampleInto,vector<string>& from,vector<unsigned long>& ndxs){
-    random_shuffle(ndxs.begin(),ndxs.end());
+void sample(vector<string>& sampleInto,vector<string>& from){
+    vector<int> ndxs(from.size());
+    for(int i=0;i<(int)from.size();i++){
+        ndxs[i]=i;
+    }
+    shuffle(ndxs.begin(),ndxs.end(),gen);
     for(unsigned long i=0;i<sampleInto.size();i++){
         sampleInto[i]=from[ndxs[i]];//copy the random element
     }
@@ -133,11 +139,6 @@ int main(int argc, char** argv){
     cout<<"enter number of samples:>";
     cin>>numSamples;
 
-    vector<unsigned long> randomizedBackgroundNdxs;
-    for(unsigned long i=0;i<background.size();i++){
-        randomizedBackgroundNdxs.push_back(i);
-    }
-
     //the length of the intersect with the top set and the intrest set to
     //compare to the simulations
     int checklength=intersectSize(top.begin(),top.end(),setOfInterest.begin(),setOfInterest.end());
@@ -148,11 +149,12 @@ int main(int argc, char** argv){
     cout<<"everything is read"<<endl;
     int numGreater=0;
     for(int i=0;i<numSamples;i++){
-        sample(sampledList,background,randomizedBackgroundNdxs);//sample sampledList.size elements from background into sampledList without replacement
+        sample(sampledList,background);//sample sampledList.size elements from background into sampledList without replacement
         vector<string> sampledSet=unique(sampledList);//using a set directly to do unique would sort it
         //because the set needs to be truncated after being converted to a set,
         //it cannot be sorted if the behavior of the mset.R file is to be copied
         //sampledSet.resize(top.size());
+        //int intersectSizeSampleInterest=intersectSize(sampledSet.begin(),sampledSet.end(),setOfInterest.begin(),setOfInterest.end());
         int intersectSizeSampleInterest=intersectSize(sampledSet.begin(),sampledSet.end(),setOfInterest.begin(),setOfInterest.end());
         cout<<intersectSizeSampleInterest<<" ";
         if(i%50==0){

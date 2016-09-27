@@ -17,7 +17,6 @@
 
 
 
-
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
 }
@@ -70,6 +69,7 @@ gene_list_randomization = function(topGenesSet, interestGeneSet, background, num
     sampledSet = sampledSet[1:topGenesSet.length]#truncate to match length of topGenesSet
 
     sampledSet_intersect.length = length(intersect(sampledSet,interestGeneSet)) #TODO: clean this too
+    #print(sampledSet_intersect.length)
     enrich = sampledSet_intersect.length/topGenesSet.length
     enrich2 = enrich/baseline
     random.enrich.vector[i] = enrich
@@ -122,7 +122,7 @@ plot(density(random.gene.ns), xlim=c(0, (max(random.gene.ns)+2)), main = "Probab
   write(paste(numSimulatedResults, " simulated results of length ", mean.unique, " generated from background.", sep = ""), file="")
   write(paste(topGenesSet_intersect.length, " matches to database found in microarray results.", sep = ""), file="")
   write(paste(mean.interest, " mean matches to database in simulated results.", sep = ""), file="")
-  write(paste(numSimulatedGreater " simulated results of length ", length(topGenesSet), 
+  write(paste(numSimulatedGreater, " simulated results of length ", length(topGenesSet), 
               " contained at least as many matches 
 to database as the actual expression results.", sep = ""), file="")
   write("", file="") 
@@ -152,7 +152,7 @@ require(tcltk)
 
 tkmessageBox(message="Select all expression results, in order of significance, as a single column text file with no header.  Enrichment for gene sets of interest will be assessed within these results.")
 expression=if(interactive()) tk_choose.files(caption="Select expression data.")
-topGenesSet = scan(expression, what=character(), quiet=TRUE)
+background = scan(expression, what=character(), quiet=TRUE)
 resultsfile=expression
 
 
@@ -179,13 +179,14 @@ numSimulatedResults = scan(what=numeric(), nmax = 1, quiet = TRUE)
 break
 }
 
+indices = which(background!= "---")# indices where element of topGeneListDashes != ---
+background= background[indices]# remove the ones that are ---
+
 topGeneListDashes= background[1:topListSize] #get the top n rows from the 
-indices = which(topGeneListDashes != "---")# indices where element of topGeneListDashes != ---
-topGeneListClean = topGeneListDashes[indices]# remove the ones that are ---
-topGenesSet = unique(topGeneListClean)# to set
+topGenesSet = unique(topGeneListDashes)# to set
 
 
-q=ceiling(sqrt(z))
+q=ceiling(sqrt(numFiles))
 dev.new(width=12, height=6)
 par(mfcol = c(q,q))
 

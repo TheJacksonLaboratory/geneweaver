@@ -1,7 +1,7 @@
 
 #include <vector>
 #include <set>
-#include <map>
+#include <unordered_map>
 //this stores all the strings in the interest set in a map, making this a hashmap allows constant time lookup
 //of if a string is in the iterestset, so for any set, to find the intersect with the interest set, just iterate over each
 //element in the set to see if it is in this map, allowing intersections to be done in linear time
@@ -17,6 +17,16 @@ class IntersectSizeFinder{
         }
         int getIntersectionSizeWith(std::vector<T>& me){
             return intersectSizeWith(me.begin(),me.end());
+        }
+        template<typename Iterator>
+        std::vector<T> getIntersectionWith(Iterator beginIterator, Iterator endIterator){
+            std::vector<T> toReturn;
+            for(;beginIterator!=endIterator;beginIterator++){
+                if(intersectCheck[*beginIterator]){
+                    toReturn.push_back(*beginIterator);
+                }
+            }
+            return toReturn;
         }
 
     private:
@@ -38,7 +48,7 @@ class IntersectSizeFinder{
             }
             return toReturn;
         }
-        std::map<T,bool> intersectCheck;//bool defaults to false
+        std::unordered_map<T,bool> intersectCheck;//bool defaults to false
 };
 
 
