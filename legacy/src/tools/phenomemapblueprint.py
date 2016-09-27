@@ -295,6 +295,13 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
 
     elif async_result.state in states.READY_STATES:
+        result_data = json.loads(async_result.result)
+
+        if result_data['error']:
+            flask.flash(result_data['error'])
+
+            return flask.redirect('analyze')
+
         json_file = os.path.join(resultpath, task_id + '.json')
         json_result = ''
 
@@ -328,9 +335,6 @@ def status_json(task_id):
     else:
         progress = 'Done'
         percent = ''
-        print 'DONE DONE'
-        print async_result.result
-
 
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
