@@ -1103,11 +1103,26 @@ def render_viewgeneset(gs_id):
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
-    ## Nothing is ever deleted but that doesn't mean users should be able
-    ## to see them. Also some sets have a NULL status so that MUST be checked
-    ## for, otherwise sad times ahead :(
-    if not geneset or (geneset and geneset.status == 'deleted'):
-        return flask.render_template('viewgenesetdetails.html', geneset=None)
+    if not user_info.is_admin and not user_info.is_curator:
+        ## get_geneset takes into account permissions, if a geneset is returned
+        ## by *_no_user then we know they can't view it b/c of access rights
+        if not geneset and geneweaverdb.get_geneset_no_user(gs_id):
+            return flask.render_template(
+                'viewgenesetdetails.html',
+                no_access=True,
+                user_id=user_id
+            )
+
+        ## Nothing is ever deleted but that doesn't mean users should be able
+        ## to see them. Some sets have a NULL status so that MUST be
+        ## checked for, otherwise sad times ahead :(
+        if not geneset or (geneset and geneset.status == 'deleted'):
+            return flask.render_template(
+                'viewgenesetdetails.html', 
+                geneset=None,
+                deleted=True,
+                user_id=user_id
+            )
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
@@ -1287,10 +1302,18 @@ def render_viewgenesetoverlap(gs_ids):
             c2x=(size/2.) + oq
             c1y=c2y=size/2.0
 
+        vsize = 100
+        if r1 > r2:
+            r = r1
+        else:
+            r = r2
+
+        tx = (vsize/2)*(4.0/3.0)
+        ty = (vsize/2 - (r) -5)*(4.0/3.0)
         r1=r1*scale
         r2=r2*scale
 
-        return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2}
+        return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2, 'tx': tx, 'ty': ty}
 
 
     ## TODO: fix emphasis genes
@@ -1323,18 +1346,24 @@ def render_viewgenesetoverlap(gs_ids):
     ## Pairwise comparison so we provide additional data for the venn diagram
     if len(genesets) == 2:
         venn = venn_circles(genesets[0].count, genesets[1].count, len(intersects), 300)
+        venn_text = {'tx': venn['tx'], 'ty': venn['ty']}
         venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
                 {'cx': venn['c2x'], 'cy': venn['c2y'], 'r': venn['r2']}];
 
     else:
         venn = None
 
+    left_count = genesets[0].count - len(intersects)
+    right_count = genesets[1].count - len(intersects)
+
+    venn_text['text'] = '(%s (%s) %s)' % (left_count, len(intersects), right_count)
 
     return flask.render_template('viewgenesetoverlap.html', 
         gs_map=gs_map,
         intersects=intersects,
         species=species,
-        venn=venn
+        venn=venn,
+        venn_text=venn_text
     )
 
 
@@ -1406,8 +1435,21 @@ def render_user_genesets():
         headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
     else:
         headerCols, user_id, columns = None, 0, None
-    return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns,
-                                 table=table)
+
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
+
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+
+    return flask.render_template(
+        'mygenesets.html', 
+        headerCols=headerCols, 
+        user_id=user_id, 
+        columns=columns,
+        table=table,
+        species=species
+    )
 
 
 def top_twenty_simgenesets(simgs):
@@ -1522,13 +1564,16 @@ def get_pubmed_data():
         if 'pmid' in args:
             pmid = args['pmid']
 
-            #pub = Uploader().search_pubmed(pmid)
+            pub = batch.getPubmedInfo(pmid)
+
+            if not pub[0]:
+                return json.dumps({})
+            else:
+                pub = pub[0]
 
             pubmedValues.extend((pub['pub_title'], pub['pub_authors'], pub['pub_journal'],
-                                 pub['pub_volume'], pub['pub_pages'], pub['pub_date'],
+                                 pub['pub_volume'], pub['pub_pages'], '',#pub['pub_date'],
                                  pub['pub_abstract']))
-
-            print pubmedValues
 
     return json.dumps(pubmedValues)
 
@@ -1648,7 +1693,7 @@ def render_view_same_publications(gs_id):
     return flask.render_template('viewsamepublications.html', user_id=user_id, gs_id=gs_id, geneset=results)
 
 
-@app.route('/emphasis.html', methods=['GET', 'POST'])
+@app.route('/emphasis', methods=['GET', 'POST'])
 def render_emphasis():
     '''
     Emphasis_AddGene

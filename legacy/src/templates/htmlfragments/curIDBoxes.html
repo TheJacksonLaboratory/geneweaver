@@ -17,6 +17,11 @@
             {% if geneset.cur_id == 5 %}
                 <span class="tier5" style="vertical-align: middle">Tier V</span>
             {% endif %}
+            {% if 'deprecated' in geneset.status %}
+                <span class="gs_deprecated" style="vertical-align: middle">Deprecated</span>
+            {% elif 'deleted' == geneset.status %}
+                <span class="gs_deleted" style="vertical-align: middle">Deleted</span>
+            {% endif %}
             GS{{ geneset.geneset_id }} &bull; {{ geneset.name }}
 		</h3>
     </div>

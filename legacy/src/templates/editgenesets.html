@@ -462,6 +462,7 @@
                     data: {"pmid": pmid},
                     success: function(data)
                     {
+                        console.log(data);
                         $(document).trigger("add-alerts", [
                             {
                                 'message': "PubMed ID " + pmid + " successfully loaded",

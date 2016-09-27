@@ -68,7 +68,9 @@ def run_tool():
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
     if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 genes!")
+        flask.flash(('You need to select at least 2 genesets as input for '
+                    'this tool.'))
+
         return flask.redirect('analyze')
 
     # gather the params into a dictionary
@@ -88,7 +90,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        flask.flash("Internal error: user ID missing")
+        flask.flash('Please log in to run the tool.')
+
         return flask.redirect('analyze')
 
     # Gather emphasis gene ids and put them in paramters
@@ -292,6 +295,13 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
 
     elif async_result.state in states.READY_STATES:
+        result_data = json.loads(async_result.result)
+
+        if result_data['error']:
+            flask.flash(result_data['error'])
+
+            return flask.redirect('analyze')
+
         json_file = os.path.join(resultpath, task_id + '.json')
         json_result = ''
 
@@ -325,9 +335,6 @@ def status_json(task_id):
     else:
         progress = 'Done'
         percent = ''
-        print 'DONE DONE'
-        print async_result.result
-
 
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,

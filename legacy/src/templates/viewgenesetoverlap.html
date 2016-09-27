@@ -384,6 +384,7 @@
 
     var numIntersects = {{ intersects | length | safe }};
     var vennData = {{ venn | safe }};
+    var vennText = {{ venn_text | safe }};
 
     svg = d3.select('#intersection')
         .append('svg')
@@ -396,7 +397,6 @@
         .data(vennData)
         .enter()
         .append('circle')
-        //.attr('transform', 'translate(' + xShift + ',' + yShift + ')')
         .attr('cx', function(d, i) { 
             // Small hack to move the circles slightly closer so their overlap
             // is better visualized
@@ -405,9 +405,7 @@
             else
                 return d.cx - (0.02 * d.cx); 
         })
-        .attr('cy', function(d) { 
-            return d.cy; 
-        })
+        .attr('cy', function(d) { return d.cy; })
         .attr('r', function(d) { return d.r; })
         .style('fill', function(d, i) { 
             if (i == 0)
@@ -415,11 +413,23 @@
             else
                 return '#0000BB';
         })
-        .style('fill-opacity', 0.8)
+        .style('fill-opacity', 0.7)
         .style('shape-rendering', 'geometricPrecision')
         .style('stroke', '#000')
         .style('stroke-width', '1px')
         .style('stroke-opacity', 1)
+        ;
+
+    var label = svg //.selectAll('text')
+        .datum(vennText)
+        //.enter()
+        .append('text')
+        .text(function(d) { return d.text; })
+        .attr('x', function(d) { return d.tx; })
+        .attr('y', function(d) { return d.ty; })
+        .attr('transform', 'translate(20, 0)')
+        .style('color', '#000')
+        .style('font-size', '14px')
         ;
 
     //Adds the help icon text to the help button

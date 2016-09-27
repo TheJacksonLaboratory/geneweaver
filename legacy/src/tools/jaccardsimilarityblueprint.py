@@ -31,7 +31,9 @@ def run_tool():
         
 
     if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 genes!")
+        flask.flash(('You need to select at least 2 genesets as input for '
+                    'this tool.'))
+
         return flask.redirect('analyze')
 
     # gather the params into a dictionary
@@ -53,7 +55,7 @@ def run_tool():
         user_id = flask.session['user_id']
 
     else:
-        flask.flash('Please log in to run the tool')
+        flask.flash('Please log in to run the tool.')
 
         return flask.redirect('analyze')
 

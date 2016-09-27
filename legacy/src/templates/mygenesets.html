@@ -135,6 +135,47 @@
     });
     var r = false;
     var editor;
+
+    var makeSpeciesTag = function(spid) {
+
+        // The alist returned by the server should already be sorted
+        var splist = {{ species|tojson|safe }};
+        var spname = '';
+        // Extra element padding since sp_ids are not zero indexed
+        var colors = [
+            '', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1', 
+            '#f4dfff', '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'
+        ];
+        var borders = [
+            '', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a', 
+            '#b4d1fb', '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'
+        ];
+
+        for (var i = 0; i < splist.length; i++) {
+            if (spid === splist[i][0]) {
+                spid = i;
+                spname = splist[i][1];
+
+                break;
+            }
+        }
+
+        // Abbreviate the name
+        spname = spname.split(' ');
+
+        // Mus musculus and Macaca mulatta have the same abbreviation
+        if (spname[1].slice(0, 3) == 'mul')
+            spname = spname[0][0].toUpperCase() + '.' + 'mul' + '.';
+        else
+            spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
+
+        var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+                '; border:1px solid ' + borders[spid] + '">' +
+                spname + '</span>';
+
+        return tag;
+    };
+
     $(document).ready(function () {
 
         //var trindex = 0;
@@ -212,26 +253,7 @@
                     "aTargets": [1],
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                         $(nTd).empty();
-                        switch (sData) {
-                            case 1:
-                                $(nTd).append('<span class="mouse">Mouse</span>');
-                                break;
-                            case 2:
-                                $(nTd).append('<span class="human">Human</span>');
-                                break;
-                            case 3:
-                                $(nTd).append('<span class="rat">Rat</span>');
-                                break;
-                            case 4:
-                                $(nTd).append('<span class="zebrafish">ZFish</span>');
-                                break;
-                            case 5:
-                                $(nTd).append('<span class="fly">Fly</span>');
-                                break;
-                            case 6:
-                                $(nTd).append('<span class="monkey">Monkey</span>');
-                                break;
-                        }
+                        $(nTd).append(makeSpeciesTag(sData));
                     }
                 },
                 {
