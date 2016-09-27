@@ -31,10 +31,18 @@ def run_tool():
         flask.flash("Warning: You need at least 2 genes!")
         return flask.redirect('analyze')
 
-    # gather the params into a dictionary
-    params = {}
+    homology_str = 'Homology'
+    params = {homology_str: None}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         params[tool_param.name] = form[tool_param.name]
+        if tool_param.name.endswith('_' + homology_str):
+            params[homology_str] = form[tool_param.name]
+    if params[homology_str] != 'Excluded':
+        params[homology_str] = 'Included'
+    # # gather the params into a dictionary
+    # params = {}
+    # for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+    #     params[tool_param.name] = form[tool_param.name]
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
