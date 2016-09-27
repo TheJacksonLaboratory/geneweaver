@@ -1679,7 +1679,7 @@ def render_view_same_publications(gs_id):
     return flask.render_template('viewsamepublications.html', user_id=user_id, gs_id=gs_id, geneset=results)
 
 
-@app.route('/emphasis.html', methods=['GET', 'POST'])
+@app.route('/emphasis', methods=['GET', 'POST'])
 def render_emphasis():
     '''
     Emphasis_AddGene
