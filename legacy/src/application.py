@@ -1535,13 +1535,16 @@ def get_pubmed_data():
         if 'pmid' in args:
             pmid = args['pmid']
 
-            #pub = Uploader().search_pubmed(pmid)
+            pub = batch.getPubmedInfo(pmid)
+
+            if not pub[0]:
+                return json.dumps({})
+            else:
+                pub = pub[0]
 
             pubmedValues.extend((pub['pub_title'], pub['pub_authors'], pub['pub_journal'],
-                                 pub['pub_volume'], pub['pub_pages'], pub['pub_date'],
+                                 pub['pub_volume'], pub['pub_pages'], '',#pub['pub_date'],
                                  pub['pub_abstract']))
-
-            print pubmedValues
 
     return json.dumps(pubmedValues)
 

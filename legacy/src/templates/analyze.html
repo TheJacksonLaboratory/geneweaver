@@ -102,9 +102,13 @@
             {% with errors = get_flashed_messages() %}
                 {% if errors %}
                     {%- for msg in errors %}
-                        <div class="alert alert-danger fade in">
-                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                        <div class="alert alert-danger fade in" style="text-align:center">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                                x
+                            </button>
+                            <strong>
                             {{ msg }}
+                            </strong>
                         </div>
                     {% endfor -%}
                 {% endif %}

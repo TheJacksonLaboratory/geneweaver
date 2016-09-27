@@ -53,11 +53,15 @@ def run_tool():
         params1[homology_str] = 'Included'
     if params2[method_str] != 'Jaccard Overlap':
         params2[method_str] = 'ExactGeneOverlap'
+
         if len(selected_project_ids) != 2:
-            flask.flash("Warning: You must select exactly 2 projects!")
+            flask.flash('You must select exactly 2 projects.')
+
             return flask.redirect('analyze')
+
     elif len(selected_project_ids) < 3:
-            flask.flash("Warning: You must select at least 3 projects!")
+            flask.flash('You must select at least 3 projects.')
+
             return flask.redirect('analyze')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)

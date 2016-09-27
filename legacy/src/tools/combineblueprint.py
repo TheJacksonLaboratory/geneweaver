@@ -18,8 +18,9 @@ def run_tool():
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
     if len(selected_geneset_ids) < 2:
-        # TODO add nice error message about missing genesets
-        flask.flash("Warning: You need at least 2 gene sets!")
+        flask.flash(('You need to select at least 2 genesets as input for '
+                    'this tool.'))
+
         return flask.redirect('analyze')
 
     # gather the params into a dictionary
@@ -38,7 +39,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        flask.flash("Internal error: user ID missing")
+        flask.flash('Please log in to run the tool.')
+
         return flask.redirect('analyze')
 
     task_id = str(uuid.uuid4())
