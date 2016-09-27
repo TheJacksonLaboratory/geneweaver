@@ -1105,8 +1105,9 @@ def render_viewgeneset(gs_id):
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Also some sets have a NULL status so that MUST be checked
     ## for, otherwise sad times ahead :(
-    if not geneset or (geneset and geneset.status == 'deleted'):
-        return flask.render_template('viewgenesetdetails.html', geneset=None)
+    if not user_info.is_admin and not user_info.is_curator:
+        if not geneset or (geneset and geneset.status == 'deleted'):
+            return flask.render_template('viewgenesetdetails.html', geneset=None)
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
