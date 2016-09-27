@@ -428,6 +428,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
         if cursor.rowcount == 0:
             return {'error': 'No User'}
         else:
+            email_from_db = list(dictify_cursor(cursor))[0]['usr_email']
             cursor.execute(
                     '''
                 INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
@@ -450,7 +451,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
             group_name = get_group_name(group_id)
             owner = get_user(owner_id)
             owner_name = owner.first_name + " " + owner.last_name
-            notifications.send_usr_notification(usr_email, "Added to Group",
+            notifications.send_usr_notification(email_from_db, "Added to Group",
                                                 "You have been added to the group {} by {}".format(group_name, owner_name),
                                                 True)
             return {'error': 'None'}
@@ -478,12 +479,25 @@ def remove_user_from_group(group_name, owner_id, usr_email):
                 (group_name, owner_id, group_name, usr_email, usr_email,)
         )
         cursor.connection.commit()
-    # return the primary ID for the insert that we just performed
-    return
+
+        #send notification
+
+        owner = get_user(owner_id)
+        owner_name = owner.first_name + " " + owner.last_name
+        notifications.send_usr_notification(usr_email, "Removed from Group",
+                                            "You have been removed from the group {} by {}".format(group_name, owner_name),
+                                            True)
+
 
 
 def remove_selected_users_from_group(user_id, user_emails, grp_id):
     user_email = user_emails.split(',')
+
+    # group name/owner names are used for notifications
+    group_name = get_group_name(grp_id)
+    owner = get_user(user_id)
+    owner_name = owner.first_name + " " + owner.last_name
+
     for e in user_email:
         with PooledCursor() as cursor:
             cursor.execute(
@@ -495,7 +509,13 @@ def remove_selected_users_from_group(user_id, user_emails, grp_id):
                     (grp_id, e, grp_id, user_id,))
             cursor.connection.commit()
             print cursor.statusmessage
-            # return the primary ID for the insert that we just performed
+
+            # if we deleted a user from the group send that user a notification
+            if cursor.rowcount:
+                notifications.send_usr_notification(e, "Removed from Group",
+                                                    "You have been removed from the group {} by {}".format(group_name, owner_name),
+                                                    True)
+
     return {'error': 'None'}
 
 
