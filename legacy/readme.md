@@ -1,4 +1,3 @@
-
 GeneWeaver 2.0 Setup and Deployment
 ===================================
 
@@ -122,6 +121,8 @@ typically use the sphinx folder. Set the `stopwords` variable to the full
 path containing the list of stop words we copied into the sphinx folder above.
 Make the same changes under the `index geneset_delta` section too.
 
+Create a 'log' directory; 'chown [sphinxuser]'.
+
 Under the `searchd` section, change the `log`, `query_log`, and
 `pid_file` variables to point to full paths for each of those files.
 
@@ -225,6 +226,8 @@ Edit the newly generated configuration file with the proper application,
 celery, database, and sphinx information. In most cases, the default celery
 configuration is appropriate.
 
+Create a results directory with 777 permissions. The path will be placed in the config file.
+
 ### Configuring the Toolset
 
 Like the web application, edit `tools/config.py` change the `CONFIG_PATH`
@@ -235,6 +238,8 @@ If you installed virtualenv, be user to run the tools from that environment.
 	$ celery -A tools.celeryapp worker --loglevel=info
 
 Edit the config with the appropriate information.
+
+#### NOTE: The tool table may be incompatible with the celeryapp.py tool list. You may drop the tool table data and reload with ODE-data-only-tool.dump to correct.
 
 #### Compiling the Graph Tools
 
@@ -292,4 +297,3 @@ directories. After editing, you can start the supervisor:
 To manage your applications use:
 
 	$ sudo supervisorctl -c /srv/geneweaver/supervisord.conf
-

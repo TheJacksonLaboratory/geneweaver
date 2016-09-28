@@ -224,7 +224,7 @@
 		{% for gs in gs_map.values() %}
 
 			{# 
-				All headers except theh first contain a column of empty space 
+				All headers except the first contain a column of empty space 
 				and another with the geneset abbreviation.
 			#}
 			{% if loop.index0 != 0 %}
@@ -248,7 +248,7 @@
     		{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %}
 			text-align:center;">
 
-    		<a class="gs-link" href="/viewgenesetdetails/{{gs.geneset_id}}">
+    		<a class="gs-link" href="/viewgenesetdetails/{{gs.geneset_id}}" style="font-size:14px">
 				{{gs.abbreviation}}
 			</a>
 		</th>
@@ -381,328 +381,46 @@
 
 
 <script type="text/javascript">
-    // include all of your jquery here
 
-	/*
-    var circleData = [];
-    //stores all the data to draw a circle
-    var d = {{venn | safe}};
-    //stores the jaccard value
-    var jaccard = {{jaccard | safe}};
-    //Stores the p value
-    var pval = {{pval | safe }};
-    //Stores the sizes of the sections of the venn diagram
-    var vennOverlap = {{sizes | safe}};
-    //Stores whether geneset1 has an emphasis gene
-    var empInGeneset1 = {{gs1_emphasis | safe}};
-    //Stores whether geneset1 has an emphasis gene
-    var empInGeneset2 = {{gs2_emphasis | safe}};
-    //Adds the circles to the circle data array
-    if (d.circledata.r2 != d.circledata.r1){
-        if (d.circledata.r2 < d.circledata.r1){
-            if(empInGeneset2 == 1){
-                circleData.push({
-                        "cx": d.circledata.c1x,
-                        "cy": d.circledata.c1y,
-                        "radius": d.circledata.r1,
-                        "fill": "chartreuse",
-                        "opacity": 1,
-                        "cxshift": 0,
-                        "cyshift": 0,
-                        "jaccard": jaccard
-                    });
+    var numIntersects = {{ intersects | length | safe }};
+    var vennData = {{ venn | safe }};
 
-                circleData.push({
-                                "cx": d.circledata.c2x,
-                                "cy": d.circledata.c2y,
-                                "radius": d.circledata.r2,
-                                "fill": "#FF6666",
-                                "opacity": 1,
-                                "cxshift": 0,
-                                "cyshift": 0,
-                                "jaccard": jaccard
+    svg = d3.select('#intersection')
+        .append('svg')
+        .attr('width', 350)
+        .attr('height', 300)
+        .append('g')
+        .attr('transform', 'translate(5, 20)');
 
-                           });
-
-            }
-            else if (empInGeneset1 == 1){
-            circleData.push({
-                            "cx": d.circledata.c1x,
-                            "cy": d.circledata.c1y,
-                            "radius": d.circledata.r1,
-                            "fill": "#DD99FF",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-                        });
-
-            circleData.push({
-                            "cx": d.circledata.c2x,
-                            "cy": d.circledata.c2y,
-                            "radius": d.circledata.r2,
-                            "fill": "chartreuse",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-
-                       });
-        }
-        else if ((empInGeneset1) == 1 && (empInGeneset2 == 1)){
-            circleData.push({
-                            "cx": d.circledata.c1x,
-                            "cy": d.circledata.c1y,
-                            "radius": d.circledata.r1,
-                            "fill": "chartreuse",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-                        });
-
-            circleData.push({
-                            "cx": d.circledata.c2x,
-                            "cy": d.circledata.c2y,
-                            "radius": d.circledata.r2,
-                            "fill": "chartreuse",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-
-                       });
-        }
-        else{
-            circleData.push({
-                            "cx": d.circledata.c1x,
-                            "cy": d.circledata.c1y,
-                            "radius": d.circledata.r1,
-                            "fill": "#DD99FF",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-                        });
-
-            circleData.push({
-                            "cx": d.circledata.c2x,
-                            "cy": d.circledata.c2y,
-                            "radius": d.circledata.r2,
-                            "fill": "#FF6666",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-
-                       });
-        }
-    }
-        else{
-            if(empInGeneset2 == 1){
-                circleData.push({
-                        "cx": d.circledata.c1x,
-                        "cy": d.circledata.c1y,
-                        "radius": d.circledata.r1,
-                        "fill": "chartreuse",
-                        "opacity": 1,
-                        "cxshift": 0,
-                        "cyshift": 0,
-                        "jaccard": jaccard
-                    });
-
-                circleData.push({
-                                "cx": d.circledata.c2x,
-                                "cy": d.circledata.c2y,
-                                "radius": d.circledata.r2,
-                                "fill": "#FF6666",
-                                "opacity": 1,
-                                "cxshift": 0,
-                                "cyshift": 0,
-                                "jaccard": jaccard
-
-                           });
-
-            }
-            else if (empInGeneset1 == 1){
-            circleData.push({
-                            "cx": d.circledata.c1x,
-                            "cy": d.circledata.c1y,
-                            "radius": d.circledata.r1,
-                            "fill": "#DD99FF",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-                        });
-
-            circleData.push({
-                            "cx": d.circledata.c2x,
-                            "cy": d.circledata.c2y,
-                            "radius": d.circledata.r2,
-                            "fill": "chartreuse",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-
-                       });
-        }
-        else if ((empInGeneset1) == 1 && (empInGeneset2 == 1)){
-            circleData.push({
-                            "cx": d.circledata.c1x,
-                            "cy": d.circledata.c1y,
-                            "radius": d.circledata.r1,
-                            "fill": "chartreuse",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-                        });
-
-            circleData.push({
-                            "cx": d.circledata.c2x,
-                            "cy": d.circledata.c2y,
-                            "radius": d.circledata.r2,
-                            "fill": "chartreuse",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-
-                       });
-        }
-        else{
-            circleData.push({
-                            "cx": d.circledata.c1x,
-                            "cy": d.circledata.c1y,
-                            "radius": d.circledata.r1,
-                            "fill": "#DD99FF",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-                        });
-
-            circleData.push({
-                            "cx": d.circledata.c2x,
-                            "cy": d.circledata.c2y,
-                            "radius": d.circledata.r2,
-                            "fill": "#FF6666",
-                            "opacity": 1,
-                            "cxshift": 0,
-                            "cyshift": 0,
-                            "jaccard": jaccard
-
-                       });
-        }
-
-        }
-    }
-    else{
-        circleData.push({
-                        "cx": d.circledata.c1x,
-                        "cy": d.circledata.c1y,
-                        "radius": d.circledata.r1,
-                        "fill": "#66FFFF",
-                        "opacity": 1,
-                        "cxshift": 20,
-                        "cyshift": 30,
-                        "jaccard": jaccard
-                    });
-    }
-
-    // Intializes border for circles
-    var border = 1;
-    var bordercolor = 'black';
-    var width = 300;
-    var height= 300;
-
-      //Create the SVG Viewport
-    var svgContainer = d3.select("#intersection").append("svg")
-            .attr("width", width )
-            .attr("height", height);
-
-    //Add circles to the svgContainer
-    var circles = svgContainer.selectAll("circle")
-            .data(circleData)
-            .enter()
-            .append("circle");
-
-     //Add the circle attributes
-    var circleAttributes = circles
-            .attr("cx", function (d) { return d.cx + d.cxshift + 50; })
-            .attr("cy", function (d) {return d.cy + d.cyshift + 50; })
-            .attr("r", function (d) {return d.radius; })
-            .style("fill", function (d) { return d.fill; })
-            .style("fill-opacity", function (d) {return d.opacity - .2})
-            .attr("cxshift", function (d) {   return d.cxshift; })
-            .attr("cyshift", function (d) {  return d.cyshift; })
-            .style("stroke", bordercolor)
-            .attr("border", border);
-
-    textData = [{"tx": 110, "ty": 200}];
-
-     //Add the SVG Text Element to the svgContainer
-    var text = svgContainer.selectAll("text")
-            .data(circleData)
-            .enter();
-
-    //Add the section sizes, jaccard value, and p value to the svgContainer
-    if (d.circledata.r2 != d.circledata.r1){
-        text.append("text")
-            .text( function(d) { return "(" + vennOverlap[0] + " (" + vennOverlap[1] + ") " + vennOverlap[2] + ")"; })
-            .attr("x", function (d) { return 100 ;})
-            .attr("y",  function (d) { return 50; })
-            .attr("font-size", "18px");
-        text.append("text")
-            .text( function(d) { return "J = "+ jaccard;})
-            .attr("x", function (d) { return 115; })
-            .attr("y", function (d) { return 255;  })
-            .attr("font-size", "18px")
-            .style("font-weight", "bold");
-        text.append("text")
-            .text( function(d) { return "p = " +pval;})
-            .attr("x", function (d) { return 110; })
-            .attr("y", function (d) { return 273;  })
-            .attr("font-size", "18px")
-            .style("font-weight", "bold");
-    }
-    else{
-        text.append("text")
-            .text( function(d) { return "(" + vennOverlap[1] + ")" ;})
-            .attr("x", function (d) { return 108; })
-            .attr("y", function (d) { return 50;  })
-            .attr("font-size", "18px");
-        text.append("text")
-            .text( function(d) { return "J = "+ jaccard;})
-            .attr("x", function (d) { return 100; })
-            .attr("y", function (d) { return 255;  })
-            .attr("font-size", "18px")
-            .style("font-weight", "bold");
-        text.append("text")
-            .text( function(d) { return "p = " +pval;})
-            .attr("x", function (d) { return 95; })
-            .attr("y", function (d) { return 273;  })
-            .attr("font-size", "18px")
-            .style("font-weight", "bold");
-
-    }
-
-
-
-
-    function emphasize(id) {
-        if (document.getElementById(id).checked) {
-            $.get("/emphasize/" + id + ".html", function (data, status) {
-            });
-        }
-        else {
-            $.get("/deemphasize/" + id + ".html", function (data, status) {
-            });
-        }
-    }
-	*/
+    var circles = svg.selectAll('circle')
+        .data(vennData)
+        .enter()
+        .append('circle')
+        //.attr('transform', 'translate(' + xShift + ',' + yShift + ')')
+        .attr('cx', function(d, i) { 
+            // Small hack to move the circles slightly closer so their overlap
+            // is better visualized
+            if (i == 0)
+                return d.cx + (0.02 * d.cx); 
+            else
+                return d.cx - (0.02 * d.cx); 
+        })
+        .attr('cy', function(d) { 
+            return d.cy; 
+        })
+        .attr('r', function(d) { return d.r; })
+        .style('fill', function(d, i) { 
+            if (i == 0)
+                return '#EE0000';
+            else
+                return '#0000BB';
+        })
+        .style('fill-opacity', 0.8)
+        .style('shape-rendering', 'geometricPrecision')
+        .style('stroke', '#000')
+        .style('stroke-width', '1px')
+        .style('stroke-opacity', 1)
+        ;
 
     //Adds the help icon text to the help button
     $('#clickableFontAwesome').popover({

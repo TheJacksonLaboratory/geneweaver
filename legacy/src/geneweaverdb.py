@@ -9,6 +9,7 @@ import os
 import flask
 from flask import session
 import config
+import notifications
 
 app = flask.Flask(__name__)
 
@@ -34,7 +35,7 @@ pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database=config.get('db', 'database'),
     user=config.get('db', 'user'),
-    password=config.get('db', 'password'),
+    #password=config.get('db', 'password'),
     host=config.get('db', 'host'),
     port=config.getInt('db', 'port')
 )
@@ -443,6 +444,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
             cursor.connection.commit()
             # return the primary ID for the insert that we just performed
             # grp_id = cursor.fetchone()[0]
+            notifications.send_usr_notification()
             return {'error': 'None'}
 
 
