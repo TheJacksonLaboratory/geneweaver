@@ -95,7 +95,7 @@ def run_tool():
     return response
 
 
-def run_tool_api(apikey, minPts, genesets, epsilon):
+def run_tool_api(apikey, minPts, genesets, epsilon, homology):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -107,7 +107,8 @@ def run_tool_api(apikey, minPts, genesets, epsilon):
         raise Exception('there must be at least two genesets selected to run this tool')
 
     # gather the params into a dictionary
-    params = {}
+    homology_str = 'Homology'
+    params = {homology_str: None}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         if tool_param.name.endswith('_epsilon'):
             params[tool_param.name] = epsilon
@@ -117,9 +118,12 @@ def run_tool_api(apikey, minPts, genesets, epsilon):
             params[tool_param.name] = minPts
             if minPts not in ['3', '4']:
                 params[tool_param.name] = '3'
-
-    # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
-
+        if tool_param.name.endswith('_' + homology_str):
+            params[homology_str] = 'Excluded'
+            params[tool_param.name] = 'Excluded'
+            if homology != 'Excluded':
+                params[homology_str] = 'Included'
+                params[tool_param.name] = 'Included'
 
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
@@ -166,7 +170,7 @@ def view_result(task_id):
         json.dumps(data, indent=4)
         # results are ready. render the page for the user
         return flask.render_template(
-            'tool/JaccardSimilarity_result.html',
+            'tool/DBSCAN_result.html',
             data=data,
             async_result=json.loads(async_result.result),
             tool=tool, list=gwdb.get_all_projects(user_id))
@@ -175,30 +179,30 @@ def view_result(task_id):
         return tc.render_tool_pending(async_result, tool)
 
 
-# @dbscan_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
-# def status_json(task_id):
-#     # TODO need to check for read permissions on task
-#     async_result = tc.celery_app.AsyncResult(task_id)
-#
-#     if async_result.state == states.PENDING:
-#         progress = async_result.info['message']
-#         percent = async_result.info['percent']
-#
-#     elif async_result.state == states.FAILURE:
-#         progress = 'Failed'
-#         percent = ''
-#
-#     else:
-#         progress = 'Done'
-#         percent = ''
-#
-#     return flask.jsonify({
-#         'isReady': async_result.state in states.READY_STATES,
-#         'state': async_result.state,
-#         'progress': progress,
-#         'percent': percent
-#     })
-#
+@dbscan_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+def status_json(task_id):
+    # TODO need to check for read permissions on task
+    async_result = tc.celery_app.AsyncResult(task_id)
+
+    if async_result.state == states.PENDING:
+        progress = async_result.info['message']
+        percent = async_result.info['percent']
+
+    elif async_result.state == states.FAILURE:
+        progress = 'Failed'
+        percent = ''
+
+    else:
+        progress = 'Done'
+        percent = ''
+
+    return flask.jsonify({
+        'isReady': async_result.state in states.READY_STATES,
+        'state': async_result.state,
+        'progress': progress,
+        'percent': percent
+    })
+
 #
 # @dbscan_blueprint.route('/geneset_intersection/<gsID_1>/<gsID_2>/<i>.html')
 # def geneset_intersection(gsID_1, gsID_2, i):
