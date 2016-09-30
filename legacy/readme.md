@@ -272,6 +272,41 @@ By default the web app runs on port 5000. You can point your browser to the
 host you assigned and you should see the GeneWeaver home page. They application
 may require sudo privileges to establish a connection on the given port.
 
+### Serving Application Requests Through Nginx
+
+Handling multiple requests using the Flask application alone may result in some
+performance issues. A web server can be used to handle user requests and route
+those requests to the web app. Start by installing nginx:
+
+	$ sudo yum install nginx
+
+Serving Flask applications with nginx requires an additional deployment
+application such as uWSGI:
+
+	$ pip install uwsgi
+
+Copy the sample uWSGI config, `uwsgi.ini` to an easily accessible 
+directory such as `/srv/geneweaver`. Change the `chdir`, `venv`, and `socket`
+variables to match your installation directories. If you want to change the
+number of worker processes to spawn, and the number of threads per process,
+change the `processes` and `threads` variables.
+
+There is a sample nginx config file in the `sample-configs` directory. The
+default nginx config, typically found in `/etc/nginx` should only require minor
+edits. Copy the custom geneweaver location blocks, `location /` and `location
+@geneweaver` from the sample nginx config to the one in `/etc/nginx`. Also
+ensure that the `uwsgi_pass` variable points to the correct socket location 
+found in the uWSGI config. Start the nginx service:
+	
+	$ sudo systemctl start nginx
+
+Start uWSGI using the given configuration file:
+
+	$ uwsgi --ini uwsgi.conf
+
+GeneWeaver should now be accessible using just the server name or IP address;
+all requests are routed through the default HTTP port (80).
+
 ### Managing GeneWeaver with Supervisor (optional)
 
 Supervisor is a system management utility that can be used to control the
@@ -297,3 +332,4 @@ directories. After editing, you can start the supervisor:
 To manage your applications use:
 
 	$ sudo supervisorctl -c /srv/geneweaver/supervisord.conf
+
