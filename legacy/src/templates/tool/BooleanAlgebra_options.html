@@ -3,23 +3,25 @@
 <div class="panel">
 <!--<div class="panel panel-info"> -->
     <div class="panel-heading">
-		<div class="row panel-title" style="width:100%;">
-			<div class="col-md-2">
-				<button type="submit" {{ macros.tool_run_click(tool) }} 
-					style="background:transparent; margin:0; padding:0; border:none !important;">
-				<img src="/static/images/GW2-bool.png" width=50 height=50 style="margin-top:5px">
-				</button>
+		<div class="" style="width:100%; display:table">
+			<div style="width:100%; display:table-row">
+				<div style="height:100%; display:table-cell;">
+					<button type="submit" {{ macros.tool_run_click(tool) }} 
+						style="background:transparent; margin:0; padding:0; border:none !important;">
+					<img  src="/static/images/GW2-bool.png" width=50 height=50 style="margin-top:5px">
+					</button>
+				</div>
+				<div style="padding-left:5px; display:table-cell; vertical-align:middle;">
+					<a data-toggle="collapse" data-parent="#accordion" href="#pmCollapse" style="color:black;">
+						<u class="tool-title">Boolean Algebra</u>
+						<span class="caret"></span>
+					<span class="tool-description">
+						Use advanced set logic to integrate multiple GeneSets.
+					</span>
+					</a>
+				</div>
 			</div>
-			<div class="col-md-10" style="margin:0">
-				<a data-toggle="collapse" data-parent="#accordion" href="#baCollapse" style="color:black;">
-					<u>Boolean Algebra</u>
-					<span class="caret"></span>
-				<span style="font-size:11px; display:inline-block;">
-					Use advanced set logic to integrate multiple GeneSets.
-				</span>
-				</a>
-			</div>
-		</div>
+        </div>
 	</div>
 	<div id="baCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
