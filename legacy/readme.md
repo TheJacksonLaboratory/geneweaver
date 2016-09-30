@@ -302,7 +302,7 @@ found in the uWSGI config. Start the nginx service:
 
 Start uWSGI using the given configuration file:
 
-	$ uwsgi --ini uwsgi.conf
+	$ uwsgi --ini uwsgi.ini
 
 GeneWeaver should now be accessible using just the server name or IP address;
 all requests are routed through the default HTTP port (80).
