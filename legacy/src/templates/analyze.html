@@ -337,6 +337,22 @@
 
         var url = '/projectGenesets.json';
 
+		// Changes caret position when tool options are expanded.
+		$('.tool-link').on('click', function(event) {
+
+			var caret = $(this).children('.fa-caret-left');
+			var allCarets = $('.fa-caret-left');
+
+			if (!$(this).children('.fa-rotate-270').length) {
+
+				allCarets.attr('class', 'fa fa-caret-left');
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+			} else {
+				allCarets.attr('class', 'fa fa-caret-left');
+			}
+		});
+
 		// TODO: this should be refactored
 		// All selector checkbox
 		$('.proj-checkbox').on('click', function(event) {
