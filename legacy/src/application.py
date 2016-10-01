@@ -369,6 +369,7 @@ def render_editgenesets(gs_id):
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
+
     if not (user_info.is_admin or user_info.is_curator):
         ref_types = ["Publication, NCBO Annotator",
                      "Description, NCBO Annotator",
@@ -376,8 +377,17 @@ def render_editgenesets(gs_id):
                      "Description, MI Annotator",
                      "GeneWeaver Primary Inferred",
                      "Manual Association", ]
-    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, ref_types=ref_types, onts=onts)
+
+    return flask.render_template(
+        'editgenesets.html', 
+        geneset=geneset, 
+        user_id=user_id, 
+        species=species, 
+        pubs=pubs,
+        view=view, 
+        ref_types=ref_types, 
+        onts=onts
+    )
 
 
 @app.route('/updateGenesetOntologyDB')
@@ -1554,22 +1564,28 @@ def render_sim_genesets(gs_id, grp_by):
 
 @app.route('/getPubmed', methods=['GET', 'POST'])
 def get_pubmed_data():
+    """
+    """
+
+    from pubmedsvc import get_pubmed_info
+
     pubmedValues = []
+
     if flask.request.method == 'GET':
         args = flask.request.args
+
         if 'pmid' in args:
             pmid = args['pmid']
 
-            pub = batch.getPubmedInfo(pmid)
+            pub = get_pubmed_info(pmid)
 
-            if not pub[0]:
+            if not pub:
                 return json.dumps({})
-            else:
-                pub = pub[0]
 
-            pubmedValues.extend((pub['pub_title'], pub['pub_authors'], pub['pub_journal'],
-                                 pub['pub_volume'], pub['pub_pages'], '',#pub['pub_date'],
-                                 pub['pub_abstract']))
+            pubmedValues.extend((pub['pub_title'], pub['pub_authors'], 
+                                 pub['pub_journal'],
+                                 pub['pub_volume'], pub['pub_pages'],
+                                 pub['pub_year'], pub['pub_month'], pub['pub_abstract']))
 
     return json.dumps(pubmedValues)
 
