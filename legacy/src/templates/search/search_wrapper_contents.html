@@ -247,6 +247,15 @@
         }
     });
 
+    // When a user is adding genesets to a new project, this allows them 
+    // to hit enter to execute that addition without the page throwing
+    // an http error
+    $(document).on('keypress', function(e) {
+        // 13 == ENTER
+        if (e.keyCode && e.keyCode === 13)
+            e.preventDefault();
+    });
+
     // The right side button 'Add GeneSet(s) to Project'
     $('#addToProject').on('click', function (e) {
 
@@ -269,10 +278,11 @@
 
             var gstr = genesets.map(function(s){ return 'GS' + s; }).join(', ');
 
-            $('#addToProjectModal').find('.modal-title')
-                    .html('Add Selected to Project(s)');
-            $('#addToProjectModal').find('h4')
-                    .html('Add ' + gstr + ' to the following project(s):');
+            //$('#addToProjectModal').find('.modal-title')
+            //        .html('Add Selected to Project(s)');
+           // $('#addToProjectModal').find('h4')
+           //         .html('Add ' + gstr + ' to the following project(s):');
+            $('#modal-label').html(gstr);
             $("#myModalValue").val(genesets.join(','));
             $('#addToProjectModal').modal('show');
         }
