@@ -1356,13 +1356,15 @@ def render_viewgenesetoverlap(gs_ids):
         venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
                 {'cx': venn['c2x'], 'cy': venn['c2y'], 'r': venn['r2']}];
 
+        left_count = genesets[0].count - len(intersects)
+        right_count = genesets[1].count - len(intersects)
+
+        venn_text['text'] = '(%s (%s) %s)' % (left_count, len(intersects), right_count)
+
     else:
         venn = None
+        venn_text = None
 
-    left_count = genesets[0].count - len(intersects)
-    right_count = genesets[1].count - len(intersects)
-
-    venn_text['text'] = '(%s (%s) %s)' % (left_count, len(intersects), right_count)
 
     return flask.render_template('viewgenesetoverlap.html', 
         gs_map=gs_map,
