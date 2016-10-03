@@ -61,6 +61,22 @@
 
     {% include 'htmlfragments/permissionError.html' %}
 
+{% elif same_geneset is defined %}
+
+<div class="alert alert-danger fade in" style="text-align:center">
+	<strong>
+    The same GeneSet was provided for all arguments.
+    </strong> 
+</div>
+
+{% elif intersects | length == 0 %}
+
+<div class="alert alert-danger fade in" style="text-align:center">
+	<strong>
+    There are no intersecting genes between these GeneSets.
+    </strong> 
+</div>
+
 {% else %}
 
     <!-- Header for the Geneset Overlap page -->

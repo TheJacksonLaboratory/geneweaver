@@ -1175,6 +1175,14 @@ def render_viewgenesetoverlap(gs_ids):
 
     genesets = []
 
+    ## The same geneset provided for all arguments
+    if len(list(set(gs_ids))) == 1:
+
+        return flask.render_template(
+            'viewgenesetoverlap.html', 
+            same_geneset=True
+        )
+
     for gs_id in gs_ids:
         gs = geneweaverdb.get_geneset(gs_id, user_id)
 
