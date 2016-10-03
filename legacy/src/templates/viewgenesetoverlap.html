@@ -194,15 +194,32 @@
 <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
     <h3 class="panel-title">Gene List</h3>
 </div>
+
 <br />
-{#
-<button type="button" class="btn btn-block btn-warning" id="export-gene-list">
-    <i class="fa fa-download pull-left"></i> Export Genes
-</button>
-#}
-<a href="" id="export-gene-list">Export Gene List</a>
+
+<div class="btn-group">
+    <button type="button" class="btn btn-primary dropdown-toggle" 
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Download as...
+        <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <a class="export-gene-list" id="export-tabs" href="">
+                Tab Separated (TSV)
+            </a>
+        </li>
+        <li>
+            <a class="export-gene-list" id="export-commas" href="">
+                Comma Separated (CSV)
+            </a>
+        </li>
+    </ul>
+</div>
+
 <br />
 <br />
+
 <div class="xfloatGeneList" align="center">
 
 <style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
@@ -467,22 +484,31 @@
          * or missing) are extracted from the intersection table and converted
          * into an ASCII format the user can download.
          */
-        $('#export-gene-list').on('click', function(event) {
+        $('.export-gene-list').on('click', function(event) {
 
             event.preventDefault();
 
+            var separator = $(this).attr('id') == 'export-tabs' ? '%09' : ',';
             var exports = '';
             var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>' 
             var gsElems = $('.gs-link').toArray();
             var genesets = [];
+            var comments = [
+                ';; A 0 in the GeneSet column indicates the gene is missing from that set',
+                ';; A 1 in the GeneSet column indicates the exact gene is in that set',
+                ';; A 2 in the GeneSet column indicates a homologous gene (i.e. that row is a homology cluster)'
+            ];
 
             $('.gs-link').each(function() {
 
                 genesets.push($.trim($(this).text()));
             });
 
+            // Export format comments
+            exports += comments.join('%0A') + '%0A';
             // Top row == column labels
-            exports += 'gene symbol' + ',' + genesets.join(',') + '%0A';
+            //exports += 'gene symbol' + ',' + genesets.join(',') + '%0A';
+            exports += 'gene symbol' + separator + genesets.join(separator) + '%0A';
 
             $('.intersect-row').each(function() {
 
@@ -501,10 +527,12 @@
                         values.push(0);
                 });
 
-                values = values.join(',');
+                //values = values.join(',');
+                values = values.join(separator);
                 // Tabs and newlines
                 //exports += symbol + '%09' + values + '%0A';
-                exports += symbol + ',' + values + '%0A';
+                //exports += symbol + ',' + values + '%0A';
+                exports += symbol + separator + values + '%0A';
             });
 
             exportURL += exports;
