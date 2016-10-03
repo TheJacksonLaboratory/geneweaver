@@ -250,7 +250,7 @@
     // an http error
     $(document).on('keypress', function(e) {
         // 13 == ENTER
-        if (e.keyCode && e.keyCode === 13)
+        if (e.keyCode && e.keyCode === 13 && $('#addToProjectModal').is(':visible'))
             e.preventDefault();
     });
 
