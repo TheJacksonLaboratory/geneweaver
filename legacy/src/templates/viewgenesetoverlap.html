@@ -192,7 +192,7 @@
 
 
 <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-    <h3 class="panel-title">Gene List</h3>
+    <h3 class="panel-title">Gene Intersection Table</h3>
 </div>
 
 <br />
@@ -413,6 +413,7 @@
     var numIntersects = {{ intersects | length | safe }};
     var vennData = {{ venn | safe }};
     var vennText = {{ venn_text | safe }};
+    var emphGenes = {{ emphgenes | safe }};
 
     svg = d3.select('#intersection')
         .append('svg')

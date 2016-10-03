@@ -1365,13 +1365,15 @@ def render_viewgenesetoverlap(gs_ids):
         venn = None
         venn_text = None
 
+    #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
     return flask.render_template('viewgenesetoverlap.html', 
         gs_map=gs_map,
         intersects=intersects,
         species=species,
         venn=venn,
-        venn_text=venn_text
+        venn_text=venn_text,
+        #emphgenes=emphgenes
     )
 
 
