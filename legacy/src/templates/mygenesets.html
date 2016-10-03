@@ -411,6 +411,20 @@
             }
         });
 
+        // When a user is adding genesets to a new project, this allows them 
+        // to hit enter to execute that addition without the page throwing
+        // an http error
+        $(document).on('keypress', function(e) {
+            // 13 == ENTER
+            if (e.keyCode && e.keyCode === 13 && 
+                $('#addToProjectModal').is(':visible')) {
+
+                e.preventDefault();
+
+                //$('#addGenesetsToProj').submit();
+            }
+        });
+
         $('#addToProject').on('click', function () {
             var oTT = TableTools.fnGetInstance('mygenesetsViewer');
             var aselectedTrs = oTT.fnGetSelectedData();
@@ -420,20 +434,22 @@
                 gsid.push(aselectedTrs[k][5]);
                 gs.push('GS' + aselectedTrs[k][5]);
             }
+            console.log(gs);
             if (aselectedTrs == 0) {
                 $("#myAlert").modal('show');
             }
             else {
                 var g = gs.join(", ");
-                $("#myModalLabel").html(g);
+                $("#modal-label").html(g);
                 $("#myModalValue").val(g);
                 $("#addToProjectModal").modal('show');
             }
         });
 
         $('#addNewProject').on('click', function () {
-            $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-                    '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+            $('#reveal-if-active').toggle();
+            //$('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
+            //        '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
         });
 
         $('#mygenesetsViewer tbody').on('click', 'tr', function () {
