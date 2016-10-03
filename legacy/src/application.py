@@ -1698,7 +1698,7 @@ def render_export_jac_genelist(gs_id):
     else:
         user_id = 0
     string = ''
-    results = geneweaverdb.get_similar_genesets(gs_id, user_id)
+    results = geneweaverdb.get_similar_genesets(gs_id, user_id, 0)
     for k in results:
         string = string + str(k.geneset_id) + ',' + k.name + ',' + k.abbreviation + ',' + str(k.count) + ',' + str(
             k.jac_value) + '\n'
