@@ -2,6 +2,9 @@
 #installLibpqxx: Script to install the library needed to use database from C++
 #Created: Sun Oct  2 18:08:01 CDT 2016
 #after running this, run the following commands in psql as postgres
+#
+#  ALTER USER postgres WITH PASSWORD 'example_password';
+#
 #  CREATE TABLE background (
 #      ID INT PRIMARY KEY NOT NULL,
 #      NAME CHAR(30) NOT NULL,
