@@ -168,13 +168,17 @@
             }
     </script>
 
-    <!-- Location for where the d3 is appended to in the html -->
+    {# 
+        This is the area where the venn diagram is drawn. It is only shown for
+        pairwise comparisons. 
+    #}
+    {% if venn is defined and venn is not none %}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h3 class="panel-title">GeneSet Intersect</h3>
-    </div>
+            <h3 class="panel-title">GeneSet Intersect</h3>
+        </div>
 
-    <!-- Displays the jaccard results for the intersection -->
-    <div id="intersection"></div>
+        <div id="intersection"></div>
+    {% endif %}
             
     
 	{#
