@@ -21,7 +21,7 @@
 		padding: 10px;
     }
 
-	.gene-circle {
+	.gene-circle, .gene-exact, .gene-homolog {
 
 		border: 1px solid black;
 		border-radius: 50%;
@@ -187,9 +187,17 @@
 
 
 <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h3 class="panel-title">Gene List</h3>
-    </div>
-<br></br>
+    <h3 class="panel-title">Gene List</h3>
+</div>
+<br />
+{#
+<button type="button" class="btn btn-block btn-warning" id="export-gene-list">
+    <i class="fa fa-download pull-left"></i> Export Genes
+</button>
+#}
+<a href="" id="export-gene-list">Export Gene List</a>
+<br />
+<br />
 <div class="xfloatGeneList" align="center">
 
 <style type="text/css">.containedGene {display: inline; } .containedHomology {display: inline;}</style>
@@ -206,17 +214,14 @@
 	<tr>
 		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom" style="width:20%;">
 			<p style="font-size: 1em; font-weight: normal;">
-				<div class="gene-circle gene-exact" style="display:inline-block; height:20px; width:20px;">
+				<div class="gene-exact" style="display:inline-block; height:20px; width:20px;">
 				</div> = Exact same gene in all sets<br />
-				<div class="gene-circle gene-homolog" style="display:inline-block; height:20px; width:20px;">
+				<div class="gene-homolog" style="display:inline-block; height:20px; width:20px;">
 				</div> = Homologous gene cluster<br />
 			</p>
 			<br />
 			Gene Symbol
 		</th>
-		{#
-		<th width="20%" rowspan="2" valign="bottom">
-		#}
 		<th rowspan="{{ gs_map.keys() | length }}" valign="bottom" style="width:20%;">
 			Links
     	</th>
@@ -246,9 +251,10 @@
 		<th align="left" colspan="{{ gs_map.keys() | length + 1 - loop.index0 }}" 
 			style="border-top: 1px solid #000; border-left: 1px solid #000; border-bottom: none;
     		{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %}
-			text-align:center;">
+			text-align:right; padding-right:20px">
 
-    		<a class="gs-link" href="/viewgenesetdetails/{{gs.geneset_id}}" style="font-size:14px">
+    		<a class="gs-link" href="/viewgenesetdetails/{{gs.geneset_id}}" 
+               style="font-size:14px">
 				{{gs.abbreviation}}
 			</a>
 		</th>
@@ -259,8 +265,8 @@
 	</tr>
 
 	{% for intersect in intersects %}
-		<tr>
-			<td> 
+		<tr class="intersect-row">
+			<td class="gene"> 
 				<p style="font-size:13px;">
 					{{ intersect.gene }} 
 				</p>
@@ -276,21 +282,21 @@
 				{% if gs.geneset_id in intersect.gs_ids %}
 
 					{% if intersect.is_homolog %}
-						<td style="border-left:1px solid #000; padding:0.5em;
-							{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %}" 
-							valign="top">  
-							<div class="gene-circle gene-homolog"></div>
+						<td class="gene-value" style="border-left:1px solid #000; padding:0.5em;
+							{% if (loop.index0 % 2) == 0 %} 
+                            background-color: #eee; {% endif %}" valign="top">
+							<div class="gene-homolog"></div>
 						</td>
 					{% else %}
-						<td style="border-left:1px solid #000; padding:0.5em;
+						<td class="gene-value" style="border-left:1px solid #000; padding:0.5em;
 							{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %}" 
 							valign="top">  
-							<div class="gene-circle gene-exact"></div>
+							<div class="gene-exact"></div>
 						</td>
 					{% endif %}
 
 				{% else %}
-					<td style="border-left:1px solid #000; padding:0.5em; 
+					<td class="gene-value" style="border-left:1px solid #000; padding:0.5em; 
 						{% if (loop.index0 % 2) == 0 %} background-color: #eee; {% endif %} 
 						{% if loop.index != loop.length %} text-align:center; {% endif %}"
 						valign="top">  
@@ -443,10 +449,64 @@
     });
 
 
-
 </script>
 
-
 {% endif %}
+
+<script>
+    $(document).ready(function() {
+
+        /*
+         * Generates a text document containing the geneset-gene value list.
+         * The geneset labels, gene symbols, and gene values (exact, homology,
+         * or missing) are extracted from the intersection table and converted
+         * into an ASCII format the user can download.
+         */
+        $('#export-gene-list').on('click', function(event) {
+
+            event.preventDefault();
+
+            var exports = '';
+            var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>' 
+            var gsElems = $('.gs-link').toArray();
+            var genesets = [];
+
+            $('.gs-link').each(function() {
+
+                genesets.push($.trim($(this).text()));
+            });
+
+            // Top row == column labels
+            exports += 'gene symbol' + ',' + genesets.join(',') + '%0A';
+
+            $('.intersect-row').each(function() {
+
+                var symbol = $(this).children('.gene').text();
+                var values = [];
+
+                symbol = $.trim(symbol);
+
+                $(this).children('.gene-value').children().each(function() {
+
+                    if ($(this).attr('class') == 'gene-exact')
+                        values.push(1);
+                    else if ($(this).attr('class') == 'gene-homolog')
+                        values.push(2);
+                    else
+                        values.push(0);
+                });
+
+                values = values.join(',');
+                // Tabs and newlines
+                //exports += symbol + '%09' + values + '%0A';
+                exports += symbol + ',' + values + '%0A';
+            });
+
+            exportURL += exports;
+
+            window.open(exportURL);
+        });
+    });
+</script>
 
 {% include 'footer.html' %}
