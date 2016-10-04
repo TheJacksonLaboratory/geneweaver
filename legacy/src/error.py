@@ -39,7 +39,7 @@ def send_sos(msg):
 
     try:
         s = smtplib.SMTP('localhost')
-        s.sendmail(me, HELPERS, emsg.as_string())
+        s.sendmail(me, DEVS, emsg.as_string())
         s.quit()
 
     ## The most common reason for this failing is the SMTP server isn't running

@@ -35,7 +35,7 @@
 
         <div class="panel panel-default panel-heading bg-gray-light">
             <h3 class="panel-title"><strong>{{ title }}</strong>
-            <span id="clickableFontAwesome" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
+            <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
         </div>
 
 
@@ -72,7 +72,9 @@
                     {% for gene in emphgenes %}
                         <strong>{{ gene.ode_ref_id|lower }} ({{ gene.sp_name }})</strong>
                         <a href="{{ url_for('render_emphasis', Emphasis_RemoveGene=gene.ode_gene_id) }}">
-                            <span class="fa fa-trash-o"></span></a><br/>
+                            <span class="fa fa-times" style="color:#FF0000"></span>
+                        </a>
+                        <br/>
                     {% endfor %}
                     </div>
 

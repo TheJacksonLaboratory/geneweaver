@@ -250,13 +250,13 @@
                 {% if onts %}
                 <div class="panel panel-default panel-heading bg-gray-light">
                     <h3 class="panel-title"><strong>Annotation Information</strong>
-                        <span id="anotologyInformation" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
+                        <span id="anotologyInformation" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
                 </div>
 
                 {% else %}
                 <div class="panel panel-default panel-heading bg-gray-light">
                     <h3 class="panel-title"><strong>No Annotation Information is Associated with this GeneSet</strong>
-                        <span id="noAnotologyInformation" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
+                        <span id="noAnotologyInformation" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
                 </div>
 
                 {% endif %}
@@ -462,6 +462,7 @@
                     data: {"pmid": pmid},
                     success: function(data)
                     {
+                        console.log(data);
                         $(document).trigger("add-alerts", [
                             {
                                 'message': "PubMed ID " + pmid + " successfully loaded",
