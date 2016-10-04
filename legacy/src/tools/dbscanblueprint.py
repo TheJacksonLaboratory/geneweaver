@@ -5,14 +5,9 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 import sys
-
 TOOL_CLASSNAME = 'DBSCAN'
 dbscan_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-
-# class result():
-#    async_result=''
-# r = result()
 
 @dbscan_blueprint.route('/run-dbscan.html', methods=['POST'])
 def run_tool():
@@ -30,15 +25,14 @@ def run_tool():
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
 
-    if len(selected_geneset_ids) < 3:
-        flask.flash(('You need to select at least 3 genesets as input for '
+    if len(selected_geneset_ids) < 2:
+        flask.flash(('You need to select at least 2 genesets as input for '
                     'this tool.'))
 
         return flask.redirect('analyze')
 
     # info dictionary
     gs_dict = {}
-
 
     # retrieve gene symbols
     gene_symbols = {}
@@ -124,8 +118,8 @@ def run_tool():
     # genes = {}
     # genesets = {}
     # links = ""
-    #
-    # # sys.stderr.write("#####\n#####\n#####\n")
+
+    # sys.stderr.write("#####\n#####\n#####\n")
     # gene_symbols = gs_dict["gene_symbols"]
     # for key in gene_symbols:
     #     if str(key) not in genesets:
@@ -135,15 +129,16 @@ def run_tool():
     #         if str(element) not in genes:
     #             genes[str(element)] = num_genes
     #             num_genes += 1
-    #         links += str(genes[element])+"*"+str(genesets[key])+"*"
+     #        links += str(genes[element])+"*"+str(genesets[key])+"*"
     #         num_links += 1
     # data_input = str(num_genes) + "*" + str(num_genesets) + "*" + str(num_links) + "*" + links
-    # # sys.stderr.write(data_input)
+    # sys.stderr.write(data_input)
 
-
+    # sys.stderr.write("#####\n#####\n#####\n")
+    # for key in gs_dict["gene_symbols"]:
+    #   sys.stderr.write(str(key)+": "+str(gs_dict["gene_symbols"][key])+"\n")
 
     return response
-
 
 
 def run_tool_api(apikey, minPts, genesets, epsilon, homology):
