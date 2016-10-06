@@ -2903,13 +2903,16 @@ api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byproject
 # END API BLOCK
 # ********************************************
 
+## Config loading should occur outside __main__ when proxying requests through
+## a web server like nginx. uWSGI doesn't load anything in the __main__ block
+app.secret_key = config.get('application', 'secret')
+app.debug = True
+
 if __name__ == '__main__':
 
     # config.loadConfig()
     # print config.CONFIG.sections()
 
-    app.secret_key = config.get('application', 'secret')
-    app.debug = True
 
     ## Register error handlers, should be turned off during debugging since
     ## stack traces are printed then
