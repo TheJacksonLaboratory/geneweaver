@@ -232,7 +232,7 @@ def json_login():
         json_result['usr_email'] = user.email
 
     # return flask.jsonify(json_result)
-    return flask.redirect("index.html")
+    return flask.redirect('/')
 
 
 @app.route('/analyze')
