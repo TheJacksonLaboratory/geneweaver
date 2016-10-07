@@ -934,7 +934,7 @@ def update_notification_pref():
         response.status_code = 403
 
 
-@app.route('/login.html')
+@app.route('/login')
 def render_login():
     return flask.render_template('login.html')
 
