@@ -900,7 +900,7 @@ def render_accountsettings():
                                  groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail)
 
 
-@app.route('/login.html')
+@app.route('/login')
 def render_login():
     return flask.render_template('login.html')
 
