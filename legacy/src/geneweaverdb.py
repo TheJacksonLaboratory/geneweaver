@@ -568,20 +568,20 @@ def update_group_admins(admin_id, user_ids, grp_id):
             # anyone still left in current_admins at the end will get removed
             # as a group administrator
             admin_uids.remove(uid)
-
-        with PooledCursor() as cursor:
-            cursor.execute(
-                    '''
-                UPDATE production.usr2grp SET u2g_privileges=1
-                WHERE grp_id=%s AND usr_id=%s
-                ''',
-                    (grp_id, uid)
-            )
-            cursor.connection.commit()
-            # send notification that user has been promoted to admin
-            if cursor.rowcount:
-                notifications.send_usr_notification(uid, "Promoted to Group Admin",
-                                                    "You have been promoted to admin of the group {} by {}".format(group_name, admin_name))
+        else:
+            with PooledCursor() as cursor:
+                cursor.execute(
+                        '''
+                    UPDATE production.usr2grp SET u2g_privileges=1
+                    WHERE grp_id=%s AND usr_id=%s
+                    ''',
+                        (grp_id, uid)
+                )
+                cursor.connection.commit()
+                # send notification that user has been promoted to admin
+                if cursor.rowcount:
+                    notifications.send_usr_notification(uid, "Promoted to Group Admin",
+                                                        "You have been promoted to admin of the group {} by {}".format(group_name, admin_name))
 
     # do we have anyone left in current_admins?  if so, they were not passed in
     # as part of the list of new admins,  so we need to remove their admin
