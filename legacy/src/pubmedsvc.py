@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 # this is a template for a URL that looks like:
 # http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=24818216&retmode=xml
-PUB_MED_XML_SVC_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={0}&retmode=xml'
+PUB_MED_XML_SVC_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={0}&retmode=xml'
 
 
 def get_pubmed_info(pub_med_id):
@@ -17,11 +17,11 @@ def get_pubmed_info(pub_med_id):
             if val is not None:
                 pubmed_info[name] = val
 
-        add_if_some_val('title', root.findtext('.//ArticleTitle'))
-        add_if_some_val('abstract', root.findtext('.//AbstractText'))
-        add_if_some_val('journal', root.findtext('.//Journal/Title'))
-        add_if_some_val('volume', root.findtext('.//Volume'))
-        add_if_some_val('pages', root.findtext('.//MedlinePgn'))
+        add_if_some_val('pub_title', root.findtext('.//ArticleTitle'))
+        add_if_some_val('pub_abstract', root.findtext('.//AbstractText'))
+        add_if_some_val('pub_journal', root.findtext('.//Journal/Title'))
+        add_if_some_val('pub_volume', root.findtext('.//Volume'))
+        add_if_some_val('pub_pages', root.findtext('.//MedlinePgn'))
 
         pub_date_node = root.find('.//PubDate')
         if pub_date_node is not None:
@@ -56,12 +56,11 @@ def get_pubmed_info(pub_med_id):
                 except KeyError:
                     pass
 
-                pubmed_info['authors'] = authors
+                pubmed_info['pub_authors'] = authors
 
         return pubmed_info
     else:
         raise Exception('unexpected response status code from pubmed service: {0}'.format(resp.status_code))
-
 
 
 # run a little test code if this is the main module

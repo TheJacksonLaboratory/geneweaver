@@ -183,7 +183,7 @@ messages = array of messages
             });
             $('#logout-button').click(function (event) {
                 $.get("{{ url_for('json_logout')|safe }}", function () {
-                    window.location = "/index.html"
+                    window.location = "/"
                 });
             });
             $('#admin-button').click(function (event) {

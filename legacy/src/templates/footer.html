@@ -11,7 +11,8 @@
                         <h4>Manage GeneSets</h4>
                         <hr>
                         <ul class="manageGenesetLinks">
-                            <li><a href="/mygenesets">My GeneSets</a></li>
+                            <li><a href="/projects">Manage Projects</a></li>
+                            <li><a href="/mygenesets">View My GeneSets</a></li>
                             <li><a href="/search">Search GeneSets</a></li>
                             <li><a href="/uploadgeneset">Upload GeneSets</a></li>
                             <li><a href="/batchupload">Batch Upload GeneSets</a></li>
@@ -21,9 +22,8 @@
                         <h4>Analyze GeneSets</h4>
                         <hr style="size: 40px;">
                         <ul class="analyzeGenesetLinks" role="menu">
-                            <li><a href="/analyze">My Projects</a></li>
-                            <li><a href="/share_projects"> Shared Projects</a></li>
-                            <li><a href="/results">Results</a></li>
+                            <li><a href="/analyze">Analyze GeneSets</a></li>
+                            <li><a href="/results">View Results</a></li>
                             {% if "user" in g %}
                                 <li><a href="/emphasis">Emphasize Genes</a></li>
                             {% endif %}
@@ -34,6 +34,9 @@
                             <h4>Manage Accounts</h4>
                             <hr>
                             <ul class="loggedInLinks">
+                            {% if g.user.is_admin == true %}
+                                <li><a href="/admin">Admin Page</a></li>
+                            {% endif %}
                                 <li><a href="/accountsettings">Account Settings</a></li>
                             </ul>
                         </div>
