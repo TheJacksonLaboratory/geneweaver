@@ -846,6 +846,16 @@ def remove_users_from_group():
         results = geneweaverdb.remove_selected_users_from_group(user_id, user_emails, grp_id)
         return json.dumps(results)
 
+@app.route('/updateGroupAdmins', methods=['GET'])
+def update_group_admins():
+    if 'user_id' in flask.session:
+        user_id = request.args['user_id']
+        users = [int(u) for u in request.args.getlist('uids')]
+        grp_id = request.args['grp_id']
+
+        results = geneweaverdb.update_group_admins(user_id, users, grp_id)
+        return json.dumps(results)
+
 
 @app.route('/deleteProjectByID', methods=['GET'])
 def delete_projects():
@@ -867,7 +877,6 @@ def add_projects():
 def get_project_groups_by_user_id():
     if 'user_id' in flask.session:
         results = geneweaverdb.get_project_groups()
-        print results
         return json.dumps(results)
     else:
         return json.dumps({"error": "An error occurred while retrieving groups"})
@@ -886,8 +895,14 @@ def render_accountsettings():
     groupsMemberOf = geneweaverdb.get_all_member_groups(flask.session.get('user_id'))
     groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
     groupsEmail = geneweaverdb.get_all_members_of_group(flask.session.get('user_id'))
+
+    groupAdmins = {}
+    for group in groupsOwnerOf:
+        groupAdmins[group['grp_id']] = geneweaverdb.get_group_admins(group['grp_id'])
+
     return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
-                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail)
+                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail, groupAdmins=groupAdmins)
+
 
 
 @app.route('/login.html')
