@@ -910,9 +910,28 @@ def render_accountsettings():
     for group in groupsOwnerOf:
         groupAdmins[group['grp_id']] = geneweaverdb.get_group_admins(group['grp_id'])
 
-    return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
-                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail, groupAdmins=groupAdmins)
+    prefs = json.loads(user.prefs)
+    email_pref = prefs.get('email_notification', 0)
 
+
+    return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
+                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail,
+                                 groupAdmins=groupAdmins, emailNotifications=email_pref)
+
+
+@app.route('/update_notification_pref.json', methods=['GET'])
+def update_notification_pref():
+    user_id = int(flask.request.args['user_id'])
+    if 'user_id' in flask.session and user_id == flask.session.get('user_id'):
+        state = int(flask.request.args['new_state'])
+        result = geneweaverdb.update_notification_pref(user_id, state)
+        response = flask.jsonify(**result)
+        if 'error' in result:
+            response.status_code = 500
+        return response
+    else:
+        response = flask.jsonify(error='Unable to set email notification preference: permission error')
+        response.status_code = 403
 
 
 @app.route('/login.html')

@@ -2315,6 +2315,24 @@ def change_password(user_id, new_password):
     return
 
 
+def update_notification_pref(user_id, state):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''select usr_prefs FROM usr WHERE usr_id=%s''', (user_id,)
+        )
+        results = cursor.fetchall()
+        if len(results) == 1:
+            preferences = json.loads(results[0][0])
+            preferences['email_notification'] = state
+            cursor.execute(
+                '''UPDATE usr SET usr_prefs=%s WHERE usr_id=%s''', (json.dumps(preferences), user_id)
+            )
+            cursor.connection.commit()
+            return {'success': True}
+
+    return {'error': 'unable to update user notification email preference'}
+
+
 def get_geneset(geneset_id, user_id=None, temp=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user

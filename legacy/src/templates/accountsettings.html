@@ -76,7 +76,7 @@
 
                         <div class="row" id="groups">
                             <div class="page-header2">
-                                <h4>Groups That I Own</h4>
+                                <h4>Groups That I Administer</h4>
                             </div>
                             {% if groupsOwnerOf | length > 0 %}
                                 <table class="table table-striped">
@@ -289,6 +289,17 @@
                             </button>
                             <br><br>
                         </form>
+                    </div>
+
+                </div>
+
+                <div class="panel panel-primary">
+                    <div class="panel-body">
+                        <div class="row">
+                            <label class="checkbox-inline" for="email_notifications"><h4>Receive Notifications As Email</h4>
+                                <input type="checkbox" name="email_notifications" id="email_notifications" {% if emailNotifications %}checked{% endif %}>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -691,5 +702,29 @@
         }
     }
 
+    function handleError(data) {
+        console.log('failure occurred');
+        console.log(data);
+
+        if(data.error) {
+            $(document).trigger("add-alerts", [
+                {
+                    'message': data.error,
+                    'priority': 'danger'
+                }
+            ]);
+        }
+    }
+
+    $('#email_notifications').change(function() {
+        var state = 0;
+        var usr = {{ g.user.user_id }};
+        if ($(this).is(':checked')) {
+            state = 1;
+        }
+        $.getJSON("{{ url_for('update_notification_pref') }}", {'user_id': usr, 'new_state': state}, function(data) {
+            console.log('notification preferences updated');
+        }).fail(handleError);
+    });
 
 </script>
