@@ -302,13 +302,13 @@
 				var npn = $('#newProjName').val();
 				var geneset = 'GS' + gs_id;
 
+				console.log(geneset);
 				// Alter the modal text a bit since we're only adding a single
 				// geneset, not several which is the default.
 				$('#addToProjectModal').find('.modal-title')
-					.html('Add GeneSet to Projects');
-				$('#addToProjectModal').find('h4')
-					.html('Add ' + geneset + ' to the following project(s):');
+					.html('Add GeneSet to Project(s)');
                 $("#myModalValue").val(geneset);
+                $("#modal-label").html(geneset);
 				$('#addToProjectModal').modal('show');
             });
 
@@ -346,8 +346,7 @@
 
 			// The button for this is found on the addGenesetsToProjects modal
 			$('#addNewProject').on('click', function () {
-				$('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-						'<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+				$('#reveal-if-active').toggle();
 			});
 
 			// Generates a text version of the gene/value list using the 
@@ -466,7 +465,6 @@
         //});
 
 	$('#addNewGeneset').on('click', function () {
-	//function blah() {
 
 		var checkedArray = [];
 		$("input:checkbox[name='gsoptions[]']:checked").each(function(){
