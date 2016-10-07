@@ -587,11 +587,13 @@ def update_group_admins(admin_id, user_ids, grp_id):
     # as part of the list of new admins,  so we need to remove their admin
     # permissions. They are not being removed from the group, just demoted.
 
-    # This can be improved.  We could just set everyone to be a
-    # regular user, then set the new admins based on the list passed in
-    # and we could roll things back to the original list of admins  if there is
-    # a problem
+    # This can be improved.  We do need to keep track of who loses admin privs
+    # so that we can notify them.  That is why we don't just clear everyone's
+    # admin privileges first, and then set the permissions for the new list
+    # of admins.
 
+    # iterate over everyone that was an admin but is not in the new list
+    # remove their admin privs and send them a notification
     for uid in admin_uids:
         with PooledCursor() as cursor:
             cursor.execute(
