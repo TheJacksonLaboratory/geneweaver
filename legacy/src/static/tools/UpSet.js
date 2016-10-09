@@ -16,9 +16,9 @@ var upset = function () {
         // SVG object
         svg = null,
         // SVG width in pixels
-        width = 1100,
+        width = 900,
         // SVG height in pixel
-        height = 900,
+        height = 500,
         // Bar chart margins
         margin = {
             top: 20,
@@ -28,15 +28,17 @@ var upset = function () {
         },
         //Padding between each individual bar
         diagramPadding = 0.5,
-        // Bar data for each bar
+        // Bar data for each intersection bar
         Intersectionbars = [],
+        //Bar data for each set size bar
+        Setbars = [],
         // Individual bar text lines
         barText = [],
         // Y-axis/X-axis labels for the bar chart
         chartLabels = [],
         // Chart dimensions
         chartWidth = +width - margin.left - margin.right,
-        chartHeight = 450,
+        chartHeight = +height - margin.top - margin.bottom,
         // Bar chart colours: un-query black-grey, and query purple
         fillColours = ['#C0C0C0', '#8E44AD'],
         // Data returned by the tool
@@ -51,6 +53,8 @@ var upset = function () {
      * Assumptions:
      */
     var makeBars = function () {
+
+        //Makes bars for the intersection size bar diagram
         for (var i = 0; i < data.bar_diagrams.length; i++) {
             var set = data.bar_diagrams[i];
 
@@ -63,6 +67,20 @@ var upset = function () {
 
             Intersectionbars.push(bar);
         }
+
+        //Make bars for the set size bar diagram
+        /*for (var j = 0; j < data.set_diagrams.length; j++){
+            set = data.set_diagrams[j];
+
+            var rect = {
+                fill: fillColours[0],
+                height: set['size'],
+                desc: set['desc1'],
+                name: set['name1']
+            };
+
+            Setbars.push(rect);
+        }*/
     };
 
     /** public **/
@@ -71,10 +89,10 @@ var upset = function () {
      * Draws the bar graph
      */
     exports.draw = function () {
-        makeBars();
+       makeBars();
 
-        var x = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; })).padding(diagramPadding),
-            y = d3.scaleLinear().range([chartHeight, 0]).domain([0, d3.max(Intersectionbars, function(d) { return d.height})]);
+        var x = d3.scaleLinear().range([0, chartHeight]).domain([0, d3.max(Intersectionbars, function(d) { return d.height})]),
+            y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; }));
 
         //Append svg to the upset area
         svg = d3.select("#upset").append("svg")
@@ -83,9 +101,9 @@ var upset = function () {
             .append("g")
             .attr("transform", "translate(" + (margin.left + margin.right) + "," + margin.top + ")");
 
-        //Append the y axis the svg
+        //Append the x and y axis the svg
         svg.append("g")
-            .call(d3.axisLeft(y));
+            .call(d3.axisTop(x));
 
         //TODO this does not show the axis title
         svg.selectAll("g")
@@ -98,14 +116,14 @@ var upset = function () {
             .text("Intersection Size");
 
         //Append Intersectionbars to the graph
-        svg.selectAll("bar")
+       svg.selectAll("bar")
             .data(Intersectionbars)
             .enter().append("rect")
             .attr("class", "bar")
-            .attr("width", x.bandwidth())
-            .attr("x", function(d) { return x(d.name); })
-            .attr("y", function(d) { return y(d.height); })
-            .attr("height", function (d) { return chartHeight - y(d.height); })
+            .attr("width", function(d) { return x(d.height)})
+            .attr("x", 0)
+            .attr("y", function(d) { return y(d.name) + 2; })
+            .attr("height", function (d) { return (chartHeight / Intersectionbars.length); })
             .style("fill", function (d) { return d.fill; })
             .on("mouseover", function(d){
 
@@ -126,14 +144,6 @@ var upset = function () {
                 d3.select("#up-tooltip").remove();
             });
 
-        svg.selectAll("text.bar")
-            .data(Intersectionbars)
-            .enter().append("text")
-            .attr("class", "bar")
-            .attr("text-anchor", "right")
-            .attr("x", function(d) { return x(d.name);})
-            .attr("y", function(d) { return y(d.height) - 10;})
-            .text(function(d) {return d.height;});
 
         return exports;
     };
