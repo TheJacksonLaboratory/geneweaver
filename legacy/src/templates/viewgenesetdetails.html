@@ -44,9 +44,14 @@
 
 </style>
 
-{% if geneset.geneset_id is not defined %}
+{% if no_access is defined %}
+
+    {% include 'htmlfragments/genesetPermissionError.html' %}
+
+{% elif deleted is defined %}
 
     {% include 'htmlfragments/genesetNotFound.html' %}
+
 
 {% else %}
 
@@ -57,6 +62,18 @@
     <div class="panel panel-default panel-heading bg-gray-light">
         <h2 class="panel-title"><strong>GeneSet Information</strong></h2>
     </div>
+
+    {% if 'deprecated' in geneset.status %}
+        <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+                &times;
+            </button>
+            This GeneSet has been deprecated. An updated version can be found 
+            <strong>
+                <a id="deprecated-link" href="">here.</a>
+            </strong>
+        </div>
+    {% endif %}
 
     <div class="panel panel-default">
         {% include 'htmlfragments/curIDBoxes.html' %}
@@ -100,10 +117,20 @@
                                 <i class="fa fa-gear"></i>
                             </span>
                         </th>
-                        <th>Homology <span id="clickableHomology" data-trigger="hover"><i class="fa fa-info-circle"></i></span></th>
+                        <th>
+                            Homology 
+                            <span id="clickableHomology" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Value</th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority"><i class="fa fa-sort"></i></a> Priority
-                            <span id="clickablePriority" data-trigger="hover"><i class="fa fa-info-circle"></i></span></th>
+                        <th>
+                            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority">
+                                <i class="fa fa-sort"></i></a> Priority
+                            <span id="clickablePriority" data-trigger="focus" tabindex="0">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th>LinkOuts</th>
                         <th>Emphasis</th>
                         <th>&nbsp;</th>
@@ -255,6 +282,18 @@
 
             var gs_id = {{ geneset.geneset_id }};
 			var user_id = {{ user_id }};
+
+            {% if 'deprecated' in geneset.status %}
+
+                var status = '{{ geneset.status | safe }}';
+                var gsId = status.split(':')[1];
+
+                if (!gsid) {
+                    $('#deprecated-message').hide();
+                else
+                    $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsId);
+
+            {% endif %}
 
 			// The right side button 'Add to Project'
             $('#addToProject').on('click', function (e) {

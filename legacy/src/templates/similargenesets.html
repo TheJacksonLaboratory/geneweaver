@@ -178,7 +178,7 @@
         <div class="panel panel-default">
             <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
                 <h3 class="panel-title">Top 150 Similar GeneSets
-                    <span id="clickableFontAwesome" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
+                    <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
             </div>
 
             {# Group by filter #}
@@ -436,7 +436,7 @@
             $(document).ready(function () {
                 var gs_id = {{ geneset.geneset_id }};
                 $('#exportData').on('click', function (e) {
-                    window.open('../exportJacGeneList/' + gs_id);
+                    window.open('/exportJacGeneList/' + gs_id);
                 });
 
                 $('#distribution').on('click', function (e) {

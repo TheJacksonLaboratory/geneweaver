@@ -76,6 +76,19 @@
 		margin: 0;
 	}
 
+	.tool-title {
+
+		font-family:'Carrois Gothic', sans-serif;
+		font-size: 18px;
+	}
+
+	.tool-description {
+
+		display: inline-block;
+		font-family:'Carrois Gothic', sans-serif;
+		font-size: 11px;
+	}
+
 </style>
 
 
@@ -93,7 +106,7 @@
 
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>Analyze Gene Sets and Projects</strong>
-                    <span id="clickableFontAwesome" data-trigger="hover"><i class="fa fa-info-circle"></i></span></h3>
+                    <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
             </div>
 
 
@@ -102,9 +115,13 @@
             {% with errors = get_flashed_messages() %}
                 {% if errors %}
                     {%- for msg in errors %}
-                        <div class="alert alert-danger fade in">
-                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                        <div class="alert alert-danger fade in" style="text-align:center">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                                x
+                            </button>
+                            <strong>
                             {{ msg }}
+                            </strong>
                         </div>
                     {% endfor -%}
                 {% endif %}
@@ -319,6 +336,22 @@
     $(document).ready(function () {
 
         var url = '/projectGenesets.json';
+
+		// Changes caret position when tool options are expanded.
+		$('.tool-link').on('click', function(event) {
+
+			var caret = $(this).children('.fa-caret-left');
+			var allCarets = $('.fa-caret-left');
+
+			if (!$(this).children('.fa-rotate-270').length) {
+
+				allCarets.attr('class', 'fa fa-caret-left');
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+			} else {
+				allCarets.attr('class', 'fa fa-caret-left');
+			}
+		});
 
 		// TODO: this should be refactored
 		// All selector checkbox

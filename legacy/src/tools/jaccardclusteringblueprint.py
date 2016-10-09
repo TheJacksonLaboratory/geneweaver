@@ -29,7 +29,9 @@ def run_tool():
 
 
     if len(selected_geneset_ids) < 3:
-        flask.flash("Warning: You need at least 3 genes!")
+        flask.flash(('You need to select at least 3 genesets as input for '
+                    'this tool.'))
+
         return flask.redirect('analyze')
 
     # info dictionary
@@ -81,7 +83,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        flask.flash("Internal error: user ID missing")
+        flask.flash('Please log in to run the tool.')
+
         return flask.redirect('analyze')
 
     task_id = str(uuid.uuid4())

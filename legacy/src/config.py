@@ -26,6 +26,8 @@ def createConfig():
         print >> fl, ''
         print >> fl, '[application]'
         print >> fl, 'host = 127.0.0.1'
+        print >> fl, 'smtp = localhost'
+        print >> fl, 'admin_email = NoReply@geneweaver.org'
         print >> fl, 'results = /path/to/results/folder'
         print >> fl, 'secret = ' + os.urandom(32).encode('hex')
         print >> fl, ''
