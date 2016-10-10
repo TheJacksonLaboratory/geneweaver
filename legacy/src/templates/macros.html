@@ -87,19 +87,17 @@
     <div class="form-group">
         <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
         <div class="col-md-8">
-            {% for opt in tool_param.options %}
-                <div>
-                    <label>
-                        <input
-                                type="text"
-                                name="{{ tool_param.name|e }}"
-                                id="{{ tool_param.name|e }}_{{ loop.index }}"
-                                value="{{ opt|e }}"
-                                {% if opt|e == tool_param.default %}  checked{% endif %}>
-                        {{ opt|e }}
-                    </label>
-                </div>
-            {% endfor %}
+            <div>
+                <label>
+                    <input
+                        type="number"
+                        name="{{ tool_param.name|e }}"
+                        id="{{ tool_param.name|e }}"
+                        min="1"
+                        placeholder="{{ tool_param.default|e }}"
+                    >
+                </label>
+            </div>
         </div>
     </div>
 {% endmacro %}
@@ -121,8 +119,16 @@
     </div>
 {% endmacro %}
 
+{% macro parse_cluster(clusters) %}
+    {%  for clus in clusters %}
+        <div>Cluster:</div>
+        {%  for g in clus %}
+            <div>{{ g }}</div>
+        {% endfor %}
+    {% endfor %}
+{% endmacro %}
+
 {# Generates the onclick url so non-default button styles can be used. #}
 {% macro tool_run_click(tool) %}
     onclick='this.form.action="{{ url_for(tool.classname + '.run_tool') }}";'
 {% endmacro %}
-

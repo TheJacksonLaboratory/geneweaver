@@ -1,13 +1,44 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
+
+<style>
+
+.node{
+  cursor: pointer;
+}
+
+.node:hover {
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.node--leaf {
+  fill: white;
+}
+
+.label {
+  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-anchor: middle;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+}
+
+.label,
+.node--root,
+.node--leaf {
+  pointer-events: none;
+}
+
+</style>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+{#<script src="/static/d3/d3.min.js" charset="utf-8"></script>#}
+
 <div class="page-header">
     <h1>{{ title }}
         {{ runhash }} </h1>
 </div>
 <p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
 
-{#//need to work on re-run: the geneset parameter is not passing in by default#}
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="panel panel-info" >
         <div class="panel-heading bg-green" style="border-radius:4px;">
@@ -25,17 +56,15 @@
                         {{ macros.tool_param_radio(tool.params['DBSCAN_Homology']) }}
                     </div>
                     <div class="col-md-4">
-                        {{ macros.tool_param_select(tool.params['DBSCAN_epsilon']) }}
+                        {{ macros.tool_param_textbox(tool.params['DBSCAN_epsilon']) }}
                     </div>
                     <div class="col-md-4">
-                        {{ macros.tool_param_select(tool.params['DBSCAN_minPts']) }}
+                        {{ macros.tool_param_textbox(tool.params['DBSCAN_minPts']) }}
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-4">
-{#no default geneset...need to fix it #}
                         <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
-{#                        <input name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>#}
                     </div>
                     <div class="col-md-8">
                     </div>
@@ -54,8 +83,6 @@
         </div>
     </div>
 </form>
-{#TODO: get data from back end...format it..maybe in dbscan.js}
-{#need to show some even make up results returned from backend#}
 <div class="panel panel-info" >
 	<div class="panel-heading bg-green" style="border-radius:4px;">
 		<a data-toggle="collapse" data-parent="#accordion" href="#result"style="color:#FFFFFF; width:100%;">
@@ -67,10 +94,18 @@
 	</div>
 	<div id="result" class="panel-collapse collapse" style="">
 		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px; border-radius:5px; border:1px solid #006400; text-align:center;">
-            <p>testing</p>
-
+            <div>
+                epsilon: {{ async_result.epsilon|safe }}<br>
+                minPts: {{ async_result.minPts|safe }}<br>
+                Result clusters: {{ macros.parse_cluster(async_result.resClusters) }}
+            </div>
 		</div>
 	</div>
 </div>
-
+<svg width="960" height="960"></svg>
+<script src="/static/tools/DBSCAN.js" charset="utf-8"></script>
+<script charset="utf-8">
+{#    console.log({{ async_result.resClustersStr|safe }});#}
+    draw(parse({{ async_result.resClustersStr|safe }}));
+</script>
 {% include 'footer.html' %}

@@ -12,7 +12,7 @@ dbscan_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 @dbscan_blueprint.route('/run-dbscan.html', methods=['POST'])
 def run_tool():
 
-     # TODO need to check for read permissions on genesets
+    # TODO need to check for read permissions on genesets
 
     form = flask.request.form
 
@@ -23,7 +23,6 @@ def run_tool():
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-
 
     if len(selected_geneset_ids) < 2:
         flask.flash(('You need to select at least 2 genesets as input for '
@@ -129,7 +128,7 @@ def run_tool():
     #         if str(element) not in genes:
     #             genes[str(element)] = num_genes
     #             num_genes += 1
-     #        links += str(genes[element])+"*"+str(genesets[key])+"*"
+    #        links += str(genes[element])+"*"+str(genesets[key])+"*"
     #         num_links += 1
     # data_input = str(num_genes) + "*" + str(num_genesets) + "*" + str(num_links) + "*" + links
     # sys.stderr.write(data_input)
@@ -231,9 +230,9 @@ def status_json(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
 
     if async_result.state == states.PENDING:
-        progress = async_result.info['message']
-        percent = async_result.info['percent']
-
+        # progress = async_result.info['message']
+        # percent = async_result.info['percent']
+        pass
     elif async_result.state == states.FAILURE:
         progress = 'Failed'
         percent = ''
@@ -245,8 +244,8 @@ def status_json(task_id):
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
-        'progress': progress,
-        'percent': percent
+        # 'progress': progress,
+        # 'percent': percent
     })
 
 
