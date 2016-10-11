@@ -183,7 +183,7 @@ messages = array of messages
             });
             $('#logout-button').click(function (event) {
                 $.get("{{ url_for('json_logout')|safe }}", function () {
-                    window.location = "/index.html"
+                    window.location = "/"
                 });
             });
             $('#admin-button').click(function (event) {
@@ -280,7 +280,7 @@ messages = array of messages
                     <!-- Not logged in user -->
                     {% if "user" not in g %}
                         <li {% if "user" in g %} style="display: none"{% endif %}>
-                            <a href="/login.html">
+                            <a href="/login">
                                 <i class="fa fa-sign-in"></i> Sign In
                             </a>
                         </li>
