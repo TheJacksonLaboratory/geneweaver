@@ -2,300 +2,152 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-<div class="page-header">
-    <h1>{{ title }}</h1>
-</div>
+<style>
+  .result-search-input{
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 
-{% if async_result.parameters.ABBA_ShowInter == "yes" %}
-    {% set show_inter=1  %}
-{% else %}
-    {% set show_inter=0  %}
-{% endif %}
+  .title-col{
+      margin-bottom: 10px;
+  }
 
-{% if async_result.parameters.ABBA_IgnHom == "yes" %}
-    {% set ign_hom=1  %}
-{% else %}
-    {% set ign_hom=0  %}
-{% endif %}
+  .extra-info-header{
+      margin-top: 0;
+  }
 
+  .nav.nav-tabs>li>a{
+    background-color: #006400;
+    color: #EEEEEE;
+  }
 
-<div>Enter your genes of interest below, then click search. You may search for gene identifiers from the major databases.
-</div>
-<br />
-<form id="abba_search" method="post" action="{ode_link action=search cmd=genes}">
-<table width="80%">
-    <tr>
-        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%"><b>Input Genes:</b>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <textarea rows="2" class="form-control valid" name='ABBA_InputGenes' id="textbox" style=" min-height:30px; max-height:100px; resize:vertical; width:40%;">{{async_result.InputGenes}}</textarea>
-        </td>
-    </tr>
-    <tr>
-        <td align="left" valign="top" width="10%">
-            
-  	        <label>
-                <br>
-                <input button class="btn btn-primary" type='submit' name='Update' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>  <br  />
-                <br>
-            </label>
-        </td>
-    </tr>
-</table>
+  .table-col{
+      padding-left: 0;
+  }
 
-<table width="80%">
-{% if async_result.InputGenes %}
-    {% set have_results=1 %}
-    <tr>
-        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%"><b>Genes of Interest:</b>
-  	        <div>
-                <label>
-                    <input type="checkbox" name="ABBA_IgnHom" value="yes" {% if ign_hom %} checked="checked" {% endif %} /> Ignore homologous genes
-                </label>
-  	        </div>
-            <input button class="btn btn-primary" type='submit' name='Update' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>  <br  />
-            <br>
-        </td>
-        <td style="border-top: 1px solid #555;">
-            <table class="table table-striped"width="100%" style="font-size: 0.8em;">
-            {% for sym, gene in async_result.CollapsedInputGenes.items() %}
-                <tr class="{cycle values="even,odd"}">
-                    <td valign="top">{{sym}}</td>
-                    <td>
-                        <a href="#" onclick="return ODE.toggle('#gene_expand_{{sym}}');">
-                            ({{gene['species_count']}} direct species hit {% if not ign_hom %}, {{gene['homology_count']}} hits via homology {% endif %})
-                        </a>
-                        
-                        <ul id="gene_expand_{{sym}}" style="display: none;">
-                            {% for sp,ogid in gene['species'].items() %}
-                                <li>Direct Match: {{sp}}
-                                    <a href="{ode_link action=search cmd=genes other="&remgene=ogid"}">[remove]</a>
-                                </li>
-                            {% endfor %}
-                            {% for sp,ogid in gene['homology'].items() %}
-                                <li>Homology: {{sp}}
-                                    <a href="{ode_link action=search cmd=genes other="&remgene=ogid"}">[remove]</a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </td>
-                </tr>
-            {% endfor %}
-            </table>
-        </td>
-    </tr>
-{% else %}
-    <tr>
-        <td align="left" valign="top" width="10%"><b>Genes of Interest:</b>
-  	        <label><input type="checkbox" name="ABBA_IgnHom" value="yes" />Ignore homologous genes</label>
-        </td>
-        <td>
-            <textarea name="input_genes" style="width: 75%;" rows="10" cols="40"></textarea>
-        </td>
-    </tr>
-{% endif %}
+</style>
 
-{% if have_results==1  %}
-    <tr>
-        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%">
-            <b>{{async_result.GSResultCount}} Matching GeneSets:</b>
-            <label>
-                <input onclick="toggle('inter0'); toggle('inter1'); toggle('inter2'); toggle('inter3'); toggle('inter4'); toggle('inter5');" type="checkbox" name="ABBA_ShowInter" value="yes" {% if show_inter %} checked="checked" {% endif %} ch /> Show Intermediate Results
-            </label>
-            <label id = "inter0">Minimum Genes:
-                <select name="ABBA_MinGenes"  class="form-control" data-live-search="true" >
-                    {% for i in range(10) %}
-                        {% if i == async_result.MinGenes %}
-                            <option selected="selected">{{loop.index0}}</option>
-                        {% else %}
-                            <option>{{loop.index}}</option>
-                        {% endif %}
-                    {% endfor %}
-                </select>
-            </label>
-            <br  /><br  />
-            <label id="inter1">Curation Tiers:
-                <select name="ABBA_Tierset"  class="form-control" data-live-search="true">
-                    <option value="0" {% if async_result.parameters.ABBA_Tierset == '0' %} selected="selected" {%endif%}>All</option>
-                    <option value="4" {% if async_result.parameters.ABBA_Tierset == '4' %} selected="selected" {%endif%}>Curated or Provisional (Tier I-IV)</option>
-                    <option value="3" {% if async_result.parameters.ABBA_Tierset == '3' %} selected="selected" {%endif%}>Curated (Tier I-III)</option>
-                    <option value="2" {% if async_result.parameters.ABBA_Tierset == '2' %} selected="selected" {%endif%}>Pro-curated (Tier I-II)</option>
-                    <option value="1" {% if async_result.parameters.ABBA_Tierset == '1' %} selected="selected" {%endif%}>Public Resource (Tier I)</option>
-                    <option value="-1" {% if async_result.parameters.ABBA_Tierset == '-1' %} selected="selected" {%endif%}>Non-Resource (Tier II-V)</option>
-                    <option value="-2" {% if async_result.parameters.ABBA_Tierset == '-2' %} selected="selected" {%endif%}>Curated Non-Resource (Tier II-III)</option>
-                    <option value="-10" {% if async_result.parameters.ABBA_Tierset == '-10' %} selected="selected" {%endif%}>Private/Group Only (Tier V)</option>
-                </select>
-            </label>
-            <br  /><br  />
-            <label id="inter2">Restrict Species:
-                <select name="ABBA_RestrictSpecies"  class="form-control" data-live-search="true">
-                    <option value="0" {% if async_result.parameters.ABBA_RestrictSpecies == '0' %} selected="selected" {%endif%}>None</option>
-                    <option value="1" {% if async_result.parameters.ABBA_RestrictSpecies == '1' %} selected="selected" {%endif%}>Mus musculus</option>
-                    <option value="2" {% if async_result.parameters.ABBA_RestrictSpecies == '2' %} selected="selected" {%endif%}>Homo sapiens</option>
-                    <option value="3" {% if async_result.parameters.ABBA_RestrictSpecies == '3' %} selected="selected" {%endif%}>Rattus norvegicus</option>
-                    <option value="4" {% if async_result.parameters.ABBA_RestrictSpecies == '4' %} selected="selected" {%endif%}>Danio rerio</option>
-                    <option value="5" {% if async_result.parameters.ABBA_RestrictSpecies == '5' %} selected="selected" {%endif%}>Drosophila melanogaster</option>
-                    <option value="6" {% if async_result.parameters.ABBA_RestrictSpecies == '6' %} selected="selected" {%endif%}>Macaca mulatta</option>
-                    <option value="8" {% if async_result.parameters.ABBA_RestrictSpecies == '8' %} selected="selected" {%endif%}>Caenorhabditis elegans</option>
-                    <option value="9" {% if async_result.parameters.ABBA_RestrictSpecies == '9' %} selected="selected" {%endif%}>Saccharomyces cerevisiae</option>
-                    <option value="10" {% if async_result.parameters.ABBA_RestrictSpecies == '10' %} selected="selected" {%endif%}>Gallus gallus</option>
-                </select>
-            </label>
-            <br  /><br  />
-            <input id="inter4" type='submit' button class="btn btn-primary" name='Update' value='Update'  onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
-        </td>
-		<td id="inter5" style="border-top: 1px solid #555;"></td>
-        <td id="inter3" style="border-top: 1px solid #555;">
-            {% if async_result.GSResults and async_result.GSResultCount<400 %}
-            <table class="table table-striped" width="100%" style="font-size: 0.8em;">
-                {% for key, values in async_result.GSResults.items() %}
-	                {% set gs_id=values['gs_id'] %}
-                    <tr class="{cycle values="even,odd"}">
-			<td valign="top" width="10%" style="vertical-align: middle; text-align: center;"><input type="checkbox" name="gs_id[]" value="{{values['gs_id']}}" /></td>
-                        <td valign="top"><a href="/viewgenesetdetails/{{values['gs_id']}}">GS {{values['ode_ref_id']}}{{values['gs_id']}}: {{values['gs_name']}}</a>
-                            <ul id="geneset_{{values['gs_id']}}_genes" style="display: none;">
-                                {% for gene in values.genes %}<li {% if gene[0] in emphgeneids %}style="background-color:#FF66FF" {% endif %}>{{gene[2]}} ({{gene[1]}})</li>{% endfor %}
-                            </ul>
-                        </td>
-                        <td valign="top"><a href="#" onclick="return ODE.toggle('#geneset_{{values['gs_id']}}_genes');">({{values['matched']}}/{{values['gs_count']}}&nbsp;genes)</a></td>
-	                        {% set gs_id=values['gs_id'] %}
-                    </tr>
-                {% endfor %}
-                <tr class="header">
-                    <td colspan="4">
-						<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'gs_id[]');"> Select All </label>
-    <select name="addToProject" onchange="javascript:handleSelect(this)">
-        <option value="-1">Add selected to project...</option>
-        {% for project, attr in async_result.parameters.UserProjects.items() %}
-            <option value="{{attr.id}}">{{attr.name}} ({{attr.count}})</option>
-        {% endfor %}
-        <option value="-2">+ Create new project...</option>
-	</select>
-	<script type="text/javascript">
-		function handleSelect(elm)
-		{
-			var genesets = []
-            if (elm.value != "-1") {
-                if (elm.value == "-2") {
-                    var name = prompt("Enter a name for the new project:");
-                    $.get("/create_project/" + name + ".html", function (data, status) {
-                        $('input:checkbox[name="gs_id[]"]').each(function () {
-                            if (this.checked) {
-                                genesets.push(this.value);
-                            }
-                        });
-                        if (genesets.length != 0) {
-                            for (var i = 0; i < genesets.length; i++) {
-                                $.get("/add_geneset_to_project/" + data + "/" + genesets[i] + ".html");
-                            }
-                        }
-                        else {
-                            window.alert("Please select GeneSet(s) to add first!")
-                        }
-                    });
-                }
-                else {
-                    $('input:checkbox[name="gs_id[]"]').each(function () {
-                        if (this.checked) {
-                            genesets.push(this.value);
-                        }
-                    });
-                    if (genesets.length != 0) {
-                        for (var i = 0; i < genesets.length; i++) {
-                            $.get("/add_geneset_to_project/" + elm.value + "/" + genesets[i] + ".html", function (data, status) {
-                            });
-                        }
-                    }
-                    else {
-                        window.alert("Please select GetSet(s) to add first!")
-                    }
-                }
-            }
-		}
-	</script>
-					</td>
-                </tr>
-			{% if not show_inter %}
-			<script> 
-			document.getElementById("inter0").style.display = 'none';
-			document.getElementById("inter1").style.display = 'none';
-			document.getElementById("inter2").style.display = 'none';
-   			document.getElementById("inter3").style.display = 'none';
-			document.getElementById("inter4").style.display = 'none';
-			</script>
-			{% else %}
-			<script>
-			document.getElementById("inter5").style.display = 'none';
-			</script>
-			{% endif %}
-            </table>
-            {% elif async_result.GSResultCount>400 %}
-                <div class="message">More than 400 GeneSets, not listing them all for brevity. Increase the thresholds on the left to get a more manageable result.</div>
-            {% else %}
-                <div class="message">No results. Try decreasing the thresholds on the left...</div>
-            {% endif %}
-        </td>
-    </tr>
-{% endif %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 title-col">
+      <h1>ABBA Gene-Centered Search Results</h1>
+      <table class="table">
+        <tbody>
+          <tr>
+            <td>
+              <strong>Curation Tiers:</strong>&nbsp;VALUE<br>
+              <strong>Minimum Genes:&nbsp;</strong>VALUE<br>
+              <strong>Restricted to Species:&nbsp;</strong>VALUE<br>
+              <strong>Minimum Genesets:&nbsp;</strong>VALUE<br>
+              <strong>Include Homology:&nbsp;</strong>VALUE<br>
+            </td>
+            <td>
+              <strong>User:&nbsp;</strong>VALUE<br>
+              <strong>Date:&nbsp;</strong>VALUE<br>
+              <br>
+              <strong>Available Genes:&nbsp;</strong>VALUE<br>
+              <strong>Available Genesets:&nbsp;</strong>VALUE<br>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="progress progress-striped">
+        <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%;"></div>
+      </div>
+    </div>
+  </div><!-- end row -->
 
-{% if have_results==1 %}
-    <tr>
-	{% set GeneCount = async_result.GeneResultCount %}
-        <td style="border-top: 1px solid #555;" align="left" valign="top" width="10%">
-            <b>{{GeneCount}} Result Genes:</b>
-            <label>Minimum GeneSets:
-                <select name="ABBA_MinGenesets"  class="form-control" data-live-search="true">
-                    {% for i in range(async_result.GSResultCount) %}
-                        {% if i == async_result.MinGenesets %}
-                            <option selected="selected">{{loop.index0}}</option>
-                        {% else %}
-                            <option>{{loop.index}}</option>
-                        {% endif %}
-                    {% endfor %}
-                </select>
-            </label>
-            
-            
-            <input type='submit' button class="btn btn-primary" value='Update' name='Update' onclick='this.form.action="{{ url_for('ABBA.run_tool') }}";'/>
-            
-            
-        </td>
-        <td style="border-top: 1px solid #555;">
-            {% if async_result.GeneResults and async_result.GeneResultCount<400 %}
-                <table class="table table-striped" width="100%" style="font-size: 0.8em;">
-                    {% for key, values in async_result.GeneResults.items() %}
-                        <tr id="{{key}}" class="{cycle values="even,odd"}"{% if values['ode_gene_id'] in emphgeneids %} style="border:solid 6px #FF66FF" {% endif %}>
-				<td valign="top" width="10%" style="vertical-align: middle; text-align: center;"><input type="checkbox" name="g_id[]" value="{{values['ode_ref_id']}}" /></td>
-                                <td valign="top" width="10%"><a href="http://lazlo.ecs.baylor.edu/search/?searchbar={{values['ode_ref_id']}}&pagination_page=1&searchGenes=yes">{{values['ode_ref_id']}}</a></td>
-                           	<td valign="top">
-                                <a href="#" onclick="return ODE.toggle('#genes_{{values['ode_ref_id']}}_genesets');">({{values['matched']}} GeneSets)</a>
-                                <ul id="genes_{{values['ode_ref_id']}}_genesets" style="display: none;">
-                                {% for gs in values['genesets'] %}
-                                    <li>
-                                        <a href="/viewgenesetdetails/{{gs[0]}}">GS{{gs[0]}}: {{gs[1]}}</a>
-                                    </li>
-                                {% endfor %}
-                                </ul>
-                            </td>
-                            {% set ogid= values['ode_gene_id'] %}
-                        </tr>
-                    {% endfor %}
-					<tr><td>	
-							<label><input type="checkbox" value="all" onclick="ODE.select_all(this.checked, 'g_id[]');"> Select All </label>
-					<input type="button" value="Save to GeneSet" onclick="newGeneset();"></tr></td>
-                </table>
-            {% elif async_result.GeneResultCount>400 %}
-                <div class="message">More than 400 results. Try increasing the thresholds on the left to get a more manageable result.</div>
-            {% else %}
-                <div class="message">No results. Try decreasing the thresholds on the left.</div>
-            {% endif %}
-        </td>
-    </tr>
-{% endif %}
-</table>
-</form>
+  <div class="row">
+    <div class="col-md-12 title-col">
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="active"><a href="#GenesOfInterest" aria-controls="GenesOfInterest" role="tab" data-toggle="tab">Genes of Interest (#)</a></li>
+        <li><a href="#MatchingGenesets" aria-controls="MatchingGenesets" role="tab" data-toggle="tab">Matching Genesets (#)</a></li>
+        <li><a href="#ResultGenes" aria-controls="ResultGenes" role="tab" data-toggle="tab">Result Genes (#)</a></li>
+      </ul>
+    </div>
+
+    <div class="tab-content">
+
+      <div role="tabpanel" class="tab-pane active" id="GenesOfInterest">
+        <div class="col-md-4 table-col">
+          <input class="form-control result-search-input" placeholder="Search"/>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Gene<br></th>
+                <th>Species<br></th>
+                <th>Matching Genesets<br></th>
+              </tr>
+            </thead>
+          <tbody>
+            <tr>
+              <td>VALUE<br></td>
+              <td>VALUE<br></td>
+              <td>VALUE</td>
+            </tr>
+          </tbody>
+          </table>
+        </div>
+        <div class="col-md-8">
+          <h2 class="extra-info-header">TODO: genes of interest info</h2>
+        </div>
+      </div>
+
+      <div role="tabpanel" class="tab-pane" id="MatchingGenesets">
+        <div class="col-md-4 table-col">
+          <input class="form-control result-search-input" placeholder="Search"/>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Geneset<br></th>
+                <th>Matching Genes<br></th>
+              </tr>
+            </thead>
+          <tbody>
+            <tr>
+              <td>VALUE<br></td>
+              <td>VALUE<br></td>
+            </tr>
+          </tbody>
+          </table>
+        </div>
+        <div class="col-md-8">
+          <h2 class="extra-info-header">TODO: matching geneset info</h2>
+        </div>
+      </div>
+
+      <div role="tabpanel" class="tab-pane" id="ResultGenes">
+        <div class="col-md-4 table-col">
+          <input class="form-control result-search-input" placeholder="Search"/>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Gene<br></th>
+                <th>Species<br></th>
+                <th>Matching Genesets<br></th>
+              </tr>
+            </thead>
+          <tbody>
+            <tr>
+              <td>VALUE<br></td>
+              <td>VALUE<br></td>
+              <td>VALUE</td>
+            </tr>
+          </tbody>
+          </table>
+        </div>
+        <div class="col-md-8">
+          <h2 class="extra-info-header">TODO: result genes info</h2>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- end row-->
+
+</div><!-- end container -->
 
 
 <script>
@@ -621,4 +473,3 @@ function newGeneset()
 }
 </script>
 {% include 'footer.html' %}
-
