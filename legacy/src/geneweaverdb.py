@@ -337,7 +337,7 @@ def get_group_admins(grp_id):
     get all of the admins (aka owners) for a specified group id
     :param grp_id: group id
     :return: list of ordered dictionaries,
-             each dictionary has keys usr_email, usr_id. These are the email
+             each dictionary has keys 'usr_email', 'usr_id'. These are the email
              and usr_ids for each group admin
     """
     with PooledCursor() as cursor:
@@ -1358,7 +1358,10 @@ def get_server_side_genesets(rargs):
 
     select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
     select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
-					to_char(gs_created, '%s'), to_char(gs_updated, '%s') FROM geneset WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
+					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
+					LEFT JOIN curation_assignments CA ON CA.object_id = GS.gs_id AND CA.object_type = 1
+					LEFT JOIN grp G ON G.grp_id = CA.curation_group
+					WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
                       'cast(gs_count as text)',
