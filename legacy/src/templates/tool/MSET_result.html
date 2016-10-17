@@ -1,0 +1,210 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+<style>
+
+.key > * {
+    margin: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#panel, #flip {
+    padding: 5px;
+    text-align: left;
+}
+
+#panel {
+    display: none;
+    background-color: #FFFFFF;
+}
+
+#flip {
+ height: 50px;
+}
+
+#rerunPanel, #rerunFlip {
+    padding: 5px;
+    text-align: left;
+}
+
+#rerunPanel {
+    height: 350px;
+    text-align: left;
+    display: none;
+}
+
+#rerunFlip {
+   height: 50px;
+   text-shadow: none;
+}
+#rerun{
+ float:right;
+    display:block;
+    margin-right: 585px;
+    clear:left;
+ }
+
+.left-cell {
+  vertical-align: middle;
+  width: 200px;
+}
+
+.right-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: right;
+  right: 0;
+}
+
+.middle-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: left;
+  padding-left: 320px;
+}
+
+.box-header {
+  padding-bottom: 5px;
+  display: table;
+  width: 90%;
+}
+
+#addToProject, #exportData {
+    float: left;
+}
+
+ .divider{
+    margin: 5px;
+}
+
+#checkall{
+    float: left;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+}
+
+ div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 300px;
+  height: 60px;
+  padding: 2px;
+  font: 10px sans-serif;
+  background: ghostwhite;
+  pointer-events: none;}
+
+
+</style>
+
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+
+<div class="page-header">
+    <h1>{{ title }}
+        {{ runhash }} </h1>
+</div>
+
+<form id="todo-id" class="form-horizontal" role="form" method="post">
+    <div class="panel panel-info" >
+        <div class="panel-heading bg-green" style="border-radius:4px;">
+			<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
+				<div class="panel-title" style="width:100%;">
+					Tool Options
+					<span class="caret"></span>
+				</div>
+			</a>
+        </div>
+        <div id="jcCollapse" class="panel-collapse collapse" style="">
+            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['MSET_Homology']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['MSET_NumberofSamples']) }}
+                    </div>
+
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                    <div class="col-md-8">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('MSET.run_tool') }}";'>
+                            Re-Run Tool
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Visualization Options
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="viz-options" class="panel-collapse collapse" style="">
+		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+            <div class="row">
+				<div class="col-md-2">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="download-image" id="dl-pdf">PDF</a></li>
+                            <li><a class="download-image" id="dl-png">PNG</a></li>
+                            <li><a class="download-image" id="dl-svg">SVG</a></li>
+                        </ul>
+                    </div>
+				</div>
+
+				<div class="col-md-2">
+                    <button type="button" value="Update" id="zoomButton" class="btn btn-primary">
+                        Reset Zoom
+                    </button>
+                </div>
+            </div>
+
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Similarity Matrix
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="sim-matrix" class="panel-collapse collapse" style="">
+		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px; border-radius:5px; border:1px solid #006400; text-align:center;">
+            <div id="matrix" align="center">
+            </div>
+            <br />
+            <button align="center" type="button" class="btn btn-block btn-warning" id="addToProject" style="width:270px">
+                <i class="fa fa-folder-o pull-left"></i>
+                Add GeneSet(s) to Project
+            </button>
+		</div>
+	</div>
+</div>
