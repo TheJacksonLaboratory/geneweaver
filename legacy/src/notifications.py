@@ -35,6 +35,23 @@ def send_usr_notification(to, subject, message, to_is_email=False):
 
     if user_prefs.get('email_notification', False):
         send_email(usr.email, subject, message)
+        
+
+def send_group_admin_notification(group_id, subject, message):
+    """
+
+    send a notification to each admin of a group. users will recieve email
+    in addition to in-app notification if they have enabled that option in their
+    user preferences
+
+    :param group_id: group id of the group we need to send an admin notification
+    :param subject: subject of the notification (text)
+    :param message: notification body (text)
+    :return: None
+    """
+
+    for admin in geneweaverdb.get_group_admins(group_id):
+        send_usr_notification(admin['usr_id'], subject, message)
 
 
 def send_email(to, subject, message):
