@@ -78,3 +78,4 @@ def get_unread_count(usr_id):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM production.notifications WHERE read = FALSE AND usr_id = %s", (usr_id,))
         return cursor.fetchone()[0]
+

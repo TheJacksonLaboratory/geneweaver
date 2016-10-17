@@ -48,20 +48,25 @@
             <div class="row" id="result"></div>
 
             <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>My GeneSets </strong>
-                    <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
+                <h3 class="panel-title"><strong>{{ title }}</strong>
             </div>
+
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
             <div class="panel panel-default">
 
                 <div class="row">
-                    <div class="col-xs-6 col-md-3">
-
-                        <button type="button" class="btn btn-block btn-warning" id="addToProject">
-                            <i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
+                    <div class="col-md-12">
+                        <button type="button" class="btn btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add to Project
                         </button>
 
+
+                        <button type="button" class="btn  btn-warning" id="assignCuration">
+                            <i class="fa fa-folder-o pull-left"></i> Assign to Curation Group
+                        </button>
                     </div>
+
                 </div>
 
                 <div class="row">
@@ -97,6 +102,7 @@
         {% if g.user is defined %}
 
             {% include 'modal/addGenesetsToProjects.html' %}
+            {% include 'modal/assignGenesetForCuration.html'  %}
 
         {% endif %}
 
@@ -444,6 +450,55 @@
                 $("#myModalValue").val(g);
                 $("#addToProjectModal").modal('show');
             }
+        });
+
+        // this function handles the click event on the "assignCuration" button
+        // it takes the selected genesets updates the modal window with those
+        // selections and displays it.  It also makes sure the group selection
+        // is cleared on the modal.
+        $('#assignCuration').on('click', function () {
+            var aselectedTrs = TableTools.fnGetInstance('mygenesetsViewer').fnGetSelectedData();
+            if (aselectedTrs == 0) {
+                // let the user know they need to select at least on geneset
+                $("#myAlert").modal('show');
+            }
+            else {
+
+                var selectedGeneSetLabels = [];
+                for (var k in aselectedTrs) {
+                    selectedGeneSetLabels.push('GS' + aselectedTrs[k][5]);
+                }
+                var geneSetString = selectedGeneSetLabels.join(", ");
+                $('#curationModalLabel').html(geneSetString);
+
+                // when we show the modal window, we don't want a group selected.
+                $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+
+                // submit button will be disabled until the user selects a group radio button
+                $('#assignGenesets').prop("disabled", true).button("refresh");
+
+                $('#assignGenesetForCurationModal').modal('show');
+            }
+        });
+
+        $("input:radio[name='group']").on('click', function () {
+            // submit button will be disabled until the user selects a group
+            // radio button
+            $('#assignGenesets').prop("disabled", false).button("refresh");
+        });
+
+        $('#assignGenesets').on('click', function () {
+
+            // TODO make sure none of the seleted genesets already have curation assignment
+
+            // TODO need to make call to server here and check results
+
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "GeneSets assigned for curation",
+                    'priority': 'success'
+                }
+            ]);
         });
 
         $('#addNewProject').on('click', function () {

@@ -858,13 +858,15 @@ def remove_users_from_group():
 
 @app.route('/updateGroupAdmins', methods=['GET'])
 def update_group_admins():
-    if 'user_id' in flask.session:
+    if 'user_id' in flask.session and flask.session['user_id'] == int(request.args['user_id']):
         user_id = request.args['user_id']
         users = [int(u) for u in request.args.getlist('uids')]
         grp_id = request.args['grp_id']
 
         results = geneweaverdb.update_group_admins(user_id, users, grp_id)
         return json.dumps(results)
+    else:
+        return json.dumps({'error': 'You do not have permission to modify this group'})
 
 
 @app.route('/deleteProjectByID', methods=['GET'])
@@ -1475,6 +1477,7 @@ def createVennDiagram(i, ii, j, size=100):
 @app.route('/mygenesets')
 def render_user_genesets():
     table = 'production.geneset'
+    groups = []
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         columns = []
@@ -1485,6 +1488,8 @@ def render_user_genesets():
         columns.append({'name': 'gs_id'})
         columns.append({'name': 'gs_name'})
         headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
+
+        groups = geneweaverdb.get_groups_owned_by_user(user_id) + geneweaverdb.get_all_member_groups(user_id)
     else:
         headerCols, user_id, columns = None, 0, None
 
@@ -1500,7 +1505,8 @@ def render_user_genesets():
         user_id=user_id, 
         columns=columns,
         table=table,
-        species=species
+        species=species,
+        myGroups=groups
     )
 
 

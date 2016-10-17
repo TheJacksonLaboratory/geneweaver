@@ -547,14 +547,15 @@ def update_group_admins(admin_id, user_ids, grp_id):
     """
     admins = get_group_admins(grp_id)
 
-    # get_group_admins gives us a list of OrderedDics with keys usr_id and usr_email
-    # we want to convert it to a list of just usr_ids
+    # get_group_admins gives us a list of OrderedDics with keys usr_id and usr_
+    # email we want to convert it to a list of just usr_ids
     admin_uids = []
     for a in admins:
         admin_uids.append(a['usr_id'])
 
     # make sure submitting user has appropriate permissions
-    if int(flask.session['user_id']) != int(admin_id) or int(admin_id) not in admin_uids:
+    # application has already made sure admin_id == flask.session['user_id']
+    if int(admin_id) not in admin_uids:
         return {'error': 'You do not have permission to modify this group'}
 
     # group name/owner names are used for notifications
