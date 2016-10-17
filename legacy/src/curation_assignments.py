@@ -42,12 +42,6 @@
 
 from __future__ import print_function
 
-import json
-import smtplib
-import sys
-from email.mime.text import MIMEText
-
-import config
 import geneweaverdb
 
 
