@@ -44,9 +44,14 @@
 
 </style>
 
-{% if geneset.geneset_id is not defined %}
+{% if no_access is defined %}
+
+    {% include 'htmlfragments/genesetPermissionError.html' %}
+
+{% elif deleted is defined %}
 
     {% include 'htmlfragments/genesetNotFound.html' %}
+
 
 {% else %}
 
@@ -57,6 +62,18 @@
     <div class="panel panel-default panel-heading bg-gray-light">
         <h2 class="panel-title"><strong>GeneSet Information</strong></h2>
     </div>
+
+    {% if 'deprecated' in geneset.status %}
+        <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+                &times;
+            </button>
+            This GeneSet has been deprecated. An updated version can be found 
+            <strong>
+                <a id="deprecated-link" href="">here.</a>
+            </strong>
+        </div>
+    {% endif %}
 
     <div class="panel panel-default">
         {% include 'htmlfragments/curIDBoxes.html' %}
@@ -100,10 +117,20 @@
                                 <i class="fa fa-gear"></i>
                             </span>
                         </th>
-                        <th>Homology <span id="clickableHomology" data-trigger="hover"><i class="fa fa-info-circle"></i></span></th>
+                        <th>
+                            Homology 
+                            <span id="clickableHomology" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Value</th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority"><i class="fa fa-sort"></i></a> Priority
-                            <span id="clickablePriority" data-trigger="hover"><i class="fa fa-info-circle"></i></span></th>
+                        <th>
+                            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority">
+                                <i class="fa fa-sort"></i></a> Priority
+                            <span id="clickablePriority" data-trigger="focus" tabindex="0">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th>LinkOuts</th>
                         <th>Emphasis</th>
                         <th>&nbsp;</th>
@@ -211,6 +238,8 @@
 
 
     <!-- <body onload="myFunction()"> -->
+	<iframe id="ie-export" style="display:none;">
+	</iframe>
 
     <script type="text/javascript">
         $("[name='g_id[]']").bootstrapSwitch();
@@ -256,6 +285,18 @@
             var gs_id = {{ geneset.geneset_id }};
 			var user_id = {{ user_id }};
 
+            {% if 'deprecated' in geneset.status %}
+
+                var status = '{{ geneset.status | safe }}';
+                var gsId = status.split(':')[1];
+
+                if (!gsid) {
+                    $('#deprecated-message').hide();
+                else
+                    $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsId);
+
+            {% endif %}
+
 			// The right side button 'Add to Project'
             $('#addToProject').on('click', function (e) {
 
@@ -263,13 +304,13 @@
 				var npn = $('#newProjName').val();
 				var geneset = 'GS' + gs_id;
 
+				console.log(geneset);
 				// Alter the modal text a bit since we're only adding a single
 				// geneset, not several which is the default.
 				$('#addToProjectModal').find('.modal-title')
-					.html('Add GeneSet to Projects');
-				$('#addToProjectModal').find('h4')
-					.html('Add ' + geneset + ' to the following project(s):');
+					.html('Add GeneSet to Project(s)');
                 $("#myModalValue").val(geneset);
+                $("#modal-label").html(geneset);
 				$('#addToProjectModal').modal('show');
             });
 
@@ -307,8 +348,7 @@
 
 			// The button for this is found on the addGenesetsToProjects modal
 			$('#addNewProject').on('click', function () {
-				$('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-						'<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+				$('#reveal-if-active').toggle();
 			});
 
 			// Generates a text version of the gene/value list using the 
@@ -331,7 +371,30 @@
 
 				exportURL += exports;
 
-				window.open(exportURL);
+				// Determines if the browser is some IE version, which doesn't
+				// support opening a new window with data: for "security" 
+				// reasons. Typecasts results to a bool. 
+				var isIE = !!navigator.appName.match(/Internet Explorer/);
+				var isIE11 = !!navigator.userAgent.match(/Trident/);
+
+				if (isIE || isIE11) {
+
+					exports = exports.replace(/%09/g, '\t');
+					exports = exports.replace(/%0A/g, '\r\n');
+
+					var iframe = document.getElementById('ie-export');
+					iframe = iframe.contentWindow || iframe.contentDocument;
+
+					iframe.document.open('text/html', 'replace');
+					iframe.document.write(exports);
+					iframe.document.close();
+					iframe.document.execCommand('SaveAs', true, 'data.tsv');
+
+				} else {
+
+					window.open(exportURL);
+				}
+
             });
 
             $('#viewSimilarGenesets').on('click', function (e) {
@@ -427,7 +490,6 @@
         //});
 
 	$('#addNewGeneset').on('click', function () {
-	//function blah() {
 
 		var checkedArray = [];
 		$("input:checkbox[name='gsoptions[]']:checked").each(function(){

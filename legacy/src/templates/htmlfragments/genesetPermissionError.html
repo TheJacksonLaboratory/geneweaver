@@ -1,12 +1,19 @@
-{# The geneset no longer exists. #}
+{# The user doesn't have access to this geneset. #}
 
 <div class="alert alert-danger fade in" style="text-align:center">
     <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
         &times;
     </button>
     <strong>
-        The GeneSet you are looking for does not exist.
-        {% if user_id == 0 %}
+        You do not have permission to view this GeneSet.
+        {% if user_id != 0 and user_id != -1 %}
+            <p>You may want to check your group permission settings.</p>
+            <a href="/accountsettings">
+                <button type="button" class="btn btn-danger m-t-10 m-r-10" id="acount-redirect">Account Settings
+                </button>
+            </a>
+        {% else %}
+            <br />
             <a href="/login">
                 <button type="button" class="btn btn-danger m-t-10 m-r-10" id="login-redirect">Login</button>
             </a>

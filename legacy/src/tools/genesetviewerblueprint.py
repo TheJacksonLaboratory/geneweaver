@@ -24,7 +24,9 @@ def run_tool():
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
     
     if len(selected_geneset_ids) < 2:
-        flask.flash("Warning: You need at least 2 genes!")
+        flask.flash(('You need to select at least 2 genesets as input for '
+                    'this tool.'))
+
         return flask.redirect('analyze')
 
     # gather the params into a dictionary
@@ -43,7 +45,8 @@ def run_tool():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
-        flask.flash("Internal error: user ID missing")
+        flask.flash('Please log in to run the tool.')
+
         return flask.redirect('analyze')
 
     # Gather emphasis gene ids and put them in paramters
@@ -170,7 +173,22 @@ def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
+    if async_result.state == states.PENDING:
+        progress = async_result.info['message']
+        percent = async_result.info['percent']
+
+    elif async_result.state == states.FAILURE:
+        progress = 'Failed'
+        percent = ''
+
+    else:
+        progress = 'Done'
+        percent = ''
+
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
+        'progress': progress,
+        'percent': percent
     })
+
