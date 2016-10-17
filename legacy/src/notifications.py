@@ -35,7 +35,7 @@ def send_usr_notification(to, subject, message, to_is_email=False):
 
     if user_prefs.get('email_notification', False):
         send_email(usr.email, subject, message)
-        
+
 
 def send_group_admin_notification(group_id, subject, message):
     """
