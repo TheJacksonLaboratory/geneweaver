@@ -238,6 +238,8 @@
 
 
     <!-- <body onload="myFunction()"> -->
+	<iframe id="ie-export" style="display:none;">
+	</iframe>
 
     <script type="text/javascript">
         $("[name='g_id[]']").bootstrapSwitch();
@@ -369,7 +371,30 @@
 
 				exportURL += exports;
 
-				window.open(exportURL);
+				// Determines if the browser is some IE version, which doesn't
+				// support opening a new window with data: for "security" 
+				// reasons. Typecasts results to a bool. 
+				var isIE = !!navigator.appName.match(/Internet Explorer/);
+				var isIE11 = !!navigator.userAgent.match(/Trident/);
+
+				if (isIE || isIE11) {
+
+					exports = exports.replace(/%09/g, '\t');
+					exports = exports.replace(/%0A/g, '\r\n');
+
+					var iframe = document.getElementById('ie-export');
+					iframe = iframe.contentWindow || iframe.contentDocument;
+
+					iframe.document.open('text/html', 'replace');
+					iframe.document.write(exports);
+					iframe.document.close();
+					iframe.document.execCommand('SaveAs', true, 'data.tsv');
+
+				} else {
+
+					window.open(exportURL);
+				}
+
             });
 
             $('#viewSimilarGenesets').on('click', function (e) {
