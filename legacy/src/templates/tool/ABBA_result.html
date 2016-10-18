@@ -8,6 +8,7 @@
     border-top-right-radius: 0;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+    width: 100%;
   }
 
   .title-col{
@@ -27,6 +28,64 @@
       padding-left: 0;
   }
 
+  .table-list-search th {
+    position: relative;
+    cursor: pointer;
+    text-transform: none;
+    padding-left: 10px;
+  }
+
+  .table-list-search th.desc:after {
+    border-top-color: #666;
+  }
+
+  .table-list-search th.asc:before {
+    border-bottom-color: #666;
+  }
+
+  .table-list-search th:after, .table-list-search th:before {
+    content: '';
+    display: block;
+    position: absolute;
+    right: 0;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 5px;
+    width: 0;
+    height: 0;
+  }
+
+  .table-list-search th:after {
+    border-top-color: #ddd;
+    top: 20px;
+  }
+
+  .table-list-search th:before {
+    border-bottom-color: #ddd;
+    top: 6px;
+  }
+
+  .table-list-search td{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 10ch;
+  }
+
+  .no-margin {
+    margin: 0px;
+  }
+  .scroll-body {
+    height: 500px;
+    overflow-y: auto;
+    display: block;
+  }
+
+  .scroll-body tr {
+    width: 100%;
+    display: inline-table;
+    table-layout: fixed;
+  }
 </style>
 
 <div class="container">
@@ -72,44 +131,24 @@
 
       <div role="tabpanel" class="tab-pane active" id="GenesOfInterest">
         <div class="col-md-4 table-col">
-          <input class="form-control result-search-input" placeholder="Search"/>
-          <table class="table table-striped">
+              <input class="form-control result-search-input" id="system-searchGOI"  data-type="GOI" name="q" placeholder="Search..." required>
+          <table class="table table-striped table-list-search no-margin">
             <thead>
               <tr>
-                <th>Gene<br></th>
-                <th>Species<br></th>
-                <th>Matching Genesets<br></th>
+                <th row-type="GOI" class="headrow">Gene<br></th>
+                <th row-type="GOI" class="headrow">Species<br></th>
+                <th row-type="GOI" class="headrow">Genesets<br></th>
               </tr>
             </thead>
-          <tbody>
-            <tr>
-              <td>VALUE<br></td>
-              <td>VALUE<br></td>
-              <td>VALUE</td>
-            </tr>
-          </tbody>
           </table>
-        </div>
-        <div class="col-md-8">
-          <h2 class="extra-info-header">TODO: genes of interest info</h2>
-        </div>
-      </div>
-
-      <div role="tabpanel" class="tab-pane" id="MatchingGenesets">
-        <div class="col-md-4 table-col">
-          <input class="form-control result-search-input" placeholder="Search"/>
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>Geneset<br></th>
-                <th>Matching Genes<br></th>
-              </tr>
-            </thead>
-          <tbody>
-            <tr>
-              <td>VALUE<br></td>
-              <td>VALUE<br></td>
+          <table class="table table-striped table-list-search scroll-body">
+        <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
+            <tr row-type="GOI">
+              <td>VALUE1aVALUE1aVALUE1a<br></td>
+              <td>VALUE1b<br></td>
+              <td>VALUE1c</td>
             </tr>
+
           </tbody>
           </table>
         </div>
@@ -120,22 +159,24 @@
 
       <div role="tabpanel" class="tab-pane" id="ResultGenes">
         <div class="col-md-4 table-col">
-          <input class="form-control result-search-input" placeholder="Search"/>
-          <table class="table table-striped">
+              <input class="form-control result-search-input" id="system-searchRG" data-type="RG" name="q" placeholder="Search..." required>
+          <table class="table table-striped table-list-search no-margin">
             <thead>
               <tr>
-                <th>Gene<br></th>
-                <th>Species<br></th>
-                <th>Matching Genesets<br></th>
+                <th row-type="RG" class="headrow">Gene<br></th>
+                <th row-type="RG" class="headrow">Species<br></th>
+                <th row-type="RG" class="headrow">Genesets<br></th>
               </tr>
             </thead>
-          <tbody>
-            <tr>
-              <td>VALUE<br></td>
-              <td>VALUE<br></td>
-              <td>VALUE</td>
-            </tr>
-          </tbody>
+          </table>
+          <table class="table table-striped table-list-search scroll-body">
+            <tbody  class="scroll-tbody" id="ResultGenesTableBody">
+              <tr row-type="RG">
+                <td>aVALUE<br></td>
+                <td>bVALUE<br></td>
+                <td>cVALUE</td>
+              </tr>
+            </tbody>
           </table>
         </div>
         <div class="col-md-8">
@@ -149,6 +190,165 @@
 
 </div><!-- end container -->
 
+
+<script type="text/javascript">
+$(document).ready(function() {
+
+
+  var activeSystemClass = $('.list-group-item.active');
+
+  var LightTableSorter = (function(Arr) {
+
+    var _th, _cellIndex, _order = '';
+
+    function _text(row) {
+      return row.cells.item(_cellIndex).textContent.toLowerCase();
+    }
+
+    function _sort(a, b) {
+      var va = _text(a), vb = _text(b), n = parseInt(va, 10);
+      if (n) {
+        va = n;
+        vb = parseInt(vb, 10);
+      }
+      return va > vb ? 1 : va < vb ? -1 : 0;
+    }
+
+    function _toggle() {
+      var c = _order !== 'asc' ? 'asc' : 'desc';
+      _th.className = (_th.className.replace(_order, '') + ' ' + c).trim();
+      _order = c;
+    }
+
+    function _reset() {
+      _th.className = _th.className.replace('asc', '').replace('desc', '');
+      _order = '';
+    }
+
+    function onClickEvent(e) {
+      var bodyID;
+      var workingTab = e.target.getAttribute("row-type");
+      console.log(workingTab);
+
+      if(workingTab == "GOI"){
+        bodyID = '#GenesOfInterestTableBody';
+      }else if(workingTab == "MG"){
+        bodyID = '#MatchingGenesetsTableBody';
+      }else if(workingTab == "RG"){
+        bodyID = '#ResultGenesTableBody';
+      }
+
+      if(_th && _th !== e.target){
+        _reset();
+      }
+      _th = e.target;
+      _cellIndex = _th.cellIndex;
+      var tbody = $(bodyID)[0];
+      var rows = tbody.rows;
+      var intialRowCount = rows.length;
+      for(var r=0; r<intialRowCount; r++){
+        if(!rows.item(r).hasAttribute("row-type")){
+          rows.item(r).remove();
+        }
+      }
+
+      if (rows) {
+        rows = Arr.sort.call(Arr.slice.call(rows, 0), _sort);
+        if (_order === 'asc') {
+          Arr.reverse.call(rows);
+        }
+        _toggle();
+        tbody.innerHtml = '';
+        Arr.forEach.call(rows, function(row) { tbody.appendChild(row); });
+      }
+    }
+
+    return {
+      init: function() {
+        var ths = $('.headrow')//document.getElementsByTagName('th');
+        Arr.forEach.call(ths, function(th) { th.onclick = onClickEvent; });
+      }
+    };
+  })(Array.prototype);
+
+  LightTableSorter.init();
+
+  //something is entered in search form
+
+
+  $('#system-searchGOI').keyup( function(){
+    search_tab("GOI");
+  });
+  $('#system-searchMG').keyup( function(){
+    search_tab("MG");
+  });
+  $('#system-searchRG').keyup( function(){
+    search_tab("RG");
+  });
+
+
+  function search_tab(workingTab) {
+     var workingTab;// = that.getAttribute("data-type");
+
+     var that;
+     var tableBody;
+     var tableRowsClass;
+
+     if(workingTab == "GOI"){
+       that = $('#system-searchGOI');
+       tableBody = $('#GenesOfInterestTableBody');
+       tableRowsClass = $('#GenesOfInterestTableBody tr');
+     }else if(workingTab == "MG"){
+       that = $('#system-searchMG');
+       tableBody = $('#MatchingGenesetsTableBody');
+       tableRowsClass = $('#MatchingGenesetsTableBody tr');
+     }else if(workingTab == "RG"){
+       that = $('#system-searchRG');
+       tableBody = $('#ResultGenesTableBody');
+       tableRowsClass = $('#ResultGenesTableBody tr');
+     }
+
+      $('.search-sf').remove();
+      tableRowsClass.each( function(i, val) {
+
+          //Lower text for case insensitive
+          var rowText = $(val).text().toLowerCase();
+          var inputText = $(that).val().toLowerCase();
+          if(inputText != '')
+          {
+              $('.search-query-sf').remove();
+              tableBody.prepend('<tr class="search-query-sf"><td colspan="6"><strong>Searching for: "'
+                  + $(that).val()
+                  + '"</strong></td></tr>');
+          }
+          else
+          {
+              $('.search-query-sf').remove();
+          }
+
+          if( rowText.indexOf( inputText ) == -1 )
+          {
+              //hide rows
+              tableRowsClass.eq(i).hide();
+
+          }
+          else
+          {
+              $('.search-sf').remove();
+              tableRowsClass.eq(i).show();
+          }
+      });
+      //all tr elements are hidden
+      if(tableRowsClass.children(':visible').length == 0)
+      {
+          tableBody.append('<tr class="search-sf"><td class="text-muted" colspan="6">No entries found.</td></tr>');
+      }
+
+      LightTableSorter.init();
+  };
+
+});
+</script><!-- end table filter script-->
 
 <script>
     (function ($) {
