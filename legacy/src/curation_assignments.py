@@ -189,7 +189,31 @@ def geneset_curation_review_passed(geneset_id, note):
             (curation_state, log_entry, geneset_id, curation_type))
         cursor.connection.commit()
 
-        # JGP - send notification to ???
+        cursor.execute(
+            '''
+            SELECT gs_name
+            FROM production.geneset
+            WHERE gs_id=%s
+            ''',
+            (geneset_id,)
+        )
+        geneset_name = cursor.fetchone()[0]
+
+        cursor.execute(
+            '''
+            SELECT curator
+            FROM production.curation_assignments
+            WHERE object_id=%s AND object_type=%s
+            ''',
+            (geneset_id, curation_type)
+        )
+        curator_id = cursor.fetchone()[0]
+
+    # Send notification to curator
+    subject = 'Geneset Curation Review PASSED'
+    message = 'Review of GS' + str(geneset_id) + ' (' + geneset_name + ') PASSED.' + '\n'
+    notifications.send_usr_notification(curator_id, subject, message)
+
     return
 
 
@@ -212,7 +236,6 @@ def geneset_curation_review_failed(geneset_id, note):
             (curation_state, log_entry, geneset_id, curation_type))
         cursor.connection.commit()
 
-        # JGP - send notification curator
         cursor.execute(
             '''
             SELECT gs_name
@@ -233,7 +256,7 @@ def geneset_curation_review_failed(geneset_id, note):
         )
         curator_id = cursor.fetchone()[0]
 
-    # Send notification to reviewer
+    # Send notification to curator
     subject = 'Geneset Curation Review FAILED'
     message = 'Review of GS' + str(geneset_id) + ' (' + geneset_name + ') FAILED.' + '\n'
     notifications.send_usr_notification(curator_id, subject, message)
