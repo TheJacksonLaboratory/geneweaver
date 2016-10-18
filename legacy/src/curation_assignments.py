@@ -8,8 +8,9 @@
 #
 # CREATE TABLE production.curation_assignments
 # (
-#   object_id integer NOT NULL,
+#   object_id bigint NOT NULL,
 #   object_type integer NOT NULL,
+#   created timestamp without time zone DEFAULT now(),
 #   updated timestamp without time zone DEFAULT now(),
 #   curation_group integer NOT NULL,
 #   curation_state integer NOT NULL,
@@ -102,20 +103,34 @@ def assign_geneset_curator(geneset_id, curator_id, reviewer_id, note):
         log_entry = 'Geneset assigned curator\n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curator=%s, reviewer=%s, curation_state=%s, notes=%s, updated=now() WHERE object_id=%s AND object_type=%s",
-            (curator_id, reviewer_id, curation_state, log_entry, geneset_id, curation_type))
+            (curator_id, reviewer_id, curation_state, log_entry, geneset_id, curation_type)
+        )
         cursor.connection.commit()
 
-        # Send notification to curator
-        subject = 'Geneset curation assigned to you'
-        # JGP - need a meaningful message with link to geneset
-        message = 'Geneset curation assigned to you'
-        sendEmail = False
-        notifications.send_usr_notification(curator_id, subject, message, sendEmail)
+        cursor.execute(
+            '''
+            SELECT gs_name
+            FROM production.geneset
+            WHERE gs_id=%s
+            ''',
+            (geneset_id,)
+        )
+        geneset_name = cursor.fetchone()[0]
 
+    # Send notification to curator
+    subject = 'Geneset Curation Assignment'
+    message = 'You have been assigned curration of geneset GS' + str(geneset_id) + ': ' + geneset_name + '\n'
+    notifications.send_usr_notification(curator_id, subject, message)
     return
 
 
 def submit_geneset_curation_for_review(geneset_id, note):
+    """
+    :param geneset_id: geneset being curated
+    :param note: message that will be sent to the assigned curator
+    :return:
+    """
+
     print("Submit for review...")
     curation_type = 1
     curation_state = 3
@@ -127,12 +142,41 @@ def submit_geneset_curation_for_review(geneset_id, note):
             "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE object_id=%s AND object_type=%s",
             (curation_state, log_entry, geneset_id, curation_type))
         cursor.connection.commit()
-        # JGP - send notification to reviewer
 
+        cursor.execute(
+            '''
+            SELECT gs_name
+            FROM production.geneset
+            WHERE gs_id=%s
+            ''',
+            (geneset_id,)
+        )
+        geneset_name = cursor.fetchone()[0]
+
+        cursor.execute(
+            '''
+            SELECT reviewer
+            FROM production.curation_assignments
+            WHERE object_id=%s AND object_type=%s
+            ''',
+            (geneset_id, curation_type)
+        )
+        reviewer_id = cursor.fetchone()[0]
+
+    # Send notification to reviewer
+    subject = 'Geneset Curation Review'
+    message = 'Curation of GS' + str(geneset_id) + ' (' + geneset_name + ') is ready for review.' + '\n'
+    notifications.send_usr_notification(reviewer_id, subject, message)
     return
 
 
 def geneset_curation_review_passed(geneset_id, note):
+    """
+    :param geneset_id: geneset being curated
+    :param note: message that will be sent to the assigned curator
+    :return:
+    """
+
     print("Passed team review...")
     curation_type = 1
     curation_state = 4
@@ -150,7 +194,13 @@ def geneset_curation_review_passed(geneset_id, note):
 
 
 def geneset_curation_review_failed(geneset_id, note):
-    print("Passed team review...")
+    """
+    :param geneset_id: geneset being curated
+    :param note: message that will be sent to the assigned curator
+    :return:
+    """
+
+    print("Failed team review...")
     curation_type = 1
     curation_state = 2
     with geneweaverdb.PooledCursor() as cursor:
@@ -163,7 +213,35 @@ def geneset_curation_review_failed(geneset_id, note):
         cursor.connection.commit()
 
         # JGP - send notification curator
+        cursor.execute(
+            '''
+            SELECT gs_name
+            FROM production.geneset
+            WHERE gs_id=%s
+            ''',
+            (geneset_id,)
+        )
+        geneset_name = cursor.fetchone()[0]
 
+        cursor.execute(
+            '''
+            SELECT curator
+            FROM production.curation_assignments
+            WHERE object_id=%s AND object_type=%s
+            ''',
+            (geneset_id, curation_type)
+        )
+        curator_id = cursor.fetchone()[0]
+
+    # Send notification to reviewer
+    subject = 'Geneset Curation Review FAILED'
+    message = 'Review of GS' + str(geneset_id) + ' (' + geneset_name + ') FAILED.' + '\n'
+    notifications.send_usr_notification(curator_id, subject, message)
+
+    return
+
+
+def delete_geneset_curation_assignment(geneset_id):
     return
 
 
@@ -172,13 +250,14 @@ def geneset_curation_review_failed(geneset_id, note):
 #
 def main():
     print("curation_assignments testing...")
-    geneset_id=42
+    geneset_id=248306
     group_id=136
     curator=8446948
     reviewer=8446948
 
-    #submit_geneset_for_curation(geneset_id, group_id, "submission_note")
-    #assign_geneset_curator(geneset_id, curator, reviewer, "assignment_note")
-    #submit_geneset_curation_for_review(geneset_id, "ready_for_review_note")
+    submit_geneset_for_curation(geneset_id, group_id, "submission_note")
+    assign_geneset_curator(geneset_id, curator, reviewer, "assignment_note")
+    submit_geneset_curation_for_review(geneset_id, "ready_for_review_note")
+    geneset_curation_review_failed(geneset_id, "Review failed - what were you thinking?")
 
 if __name__ == "__main__": main()
