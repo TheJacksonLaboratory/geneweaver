@@ -261,6 +261,17 @@ def geneset_curation_review_failed(geneset_id, note):
 def delete_geneset_curation_assignment(geneset_id):
     return
 
+def get_geneset_curation_assignment(geneset_id):
+
+    with geneweaverdb.PooledCursor() as cursor:
+
+        cursor.execute("SELECT * FROM production.curation_assignments WHERE object_id=%s AND object_type=1", (geneset_id,))
+
+        assignments = list(geneweaverdb.dictify_cursor(cursor))
+        if len(assignments) == 1:
+            return assignments[0]
+        else:
+            return None
 
 #
 # Start of TEST program
@@ -276,5 +287,7 @@ def main():
     assign_geneset_curator(geneset_id, curator, reviewer, "assignment_note")
     submit_geneset_curation_for_review(geneset_id, "ready_for_review_note")
     geneset_curation_review_failed(geneset_id, "Review failed - what were you thinking?")
+
+    print(get_geneset_curation_assignment(geneset_id))
 
 if __name__ == "__main__": main()
