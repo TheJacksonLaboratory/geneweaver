@@ -12,27 +12,33 @@
                     <div class="row" style="text-align:center;">
 						<h4>The following GeneSets will be assigned for curation:</h4>
                     </div>
+
                     <div class="row" style="text-align:center;">
                         <strong>
-							<span class="rows" id="curationModalLabel" style="color: #006400;">
-							</span>
+							<span class="rows" id="curationModalLabel" style="color: #006400;"></span>
 						</strong>
 					</div>
 
                     <div class="row">
-                        <label for="newProjName"><h4>Curation Group: </h4></label>
+
                     </div>
-                    <div class="row" style="padding-top: 10px">
+                    <div class="form-group" >
+                        <label for="groupSelection"><h4>Curation Group: </h4></label>
                         {% for group in myGroups %}
                             <label for="{{ group.grp_id }}_radio"
-                                           class="ui-btn ui-corner-all ui-btn-icon-right">{{ group.grp_name }}</label>
-                         <input type="radio" name="group" value="{{ group.grp_id }}" id="{{ group.grp_id }}_radio">
+                                           class="ui-btn ui-corner-all ui-btn-icon-right" id="label_{{ group.grp_id }}">{{ group.grp_name }}</label>
+                         <input class="form-control" type="radio" name="group" value="{{ group.grp_id }}" id="{{ group.grp_id }}_radio">
                         {% endfor %}
+                    </div>
+
+                    <div class="form-group" style="padding: 10px">
+                        <label for="curationNotes"><h4>Notes:</h4></label>
+                        <textarea class="form-control" rows="5" id="curationNotes" ></textarea>
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-warning" id="assignGenesets" data-dismiss="modal" >
-							Add to Selected Project(s)
+							Assign For Curation
 						</button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">
 							Close

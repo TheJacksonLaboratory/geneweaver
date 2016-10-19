@@ -10,6 +10,8 @@ import config
 import adminviews
 import genesetblueprint
 import geneweaverdb
+import notifications
+import curation_assignments
 import error
 import uploadfiles
 import json
@@ -28,7 +30,7 @@ import cairosvg
 import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
-import notifications
+
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -388,6 +390,39 @@ def render_editgenesets(gs_id):
         ref_types=ref_types, 
         onts=onts
     )
+
+@app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
+def assign_genesets_to_curation_group():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        user_info = geneweaverdb.get_user(user_id)
+
+        #TODO do we need to sanitize the note?
+        note = request.form.get('note', '')
+        grp_id = request.form.get('grp_id')
+
+        gs_ids = request.form.getlist('gs_ids[]', type=int)
+
+        status = {}
+        for gs_id in gs_ids:
+            geneset = geneweaverdb.get_geneset(gs_id, user_id)
+
+            # allow a geneset owner or GW admin to assign the geneset for curation
+            if geneset and (user_info.user_id == geneset.user_id or user_info.is_admin):
+                curation_assignments.submit_geneset_for_curation(geneset.geneset_id, grp_id, note)
+                status[gs_id] = {'success': True}
+            else:
+                status[gs_id] = {'success': False}
+
+            response = flask.jsonify(results=status)
+
+    else:
+
+        #user is not logged in
+        response = flask.jsonify(success=False, message='You do not have permissions to assign this GeneSet for curation')
+        response.status_code = 403
+
+    return response
 
 
 @app.route('/updateGenesetOntologyDB')
@@ -930,10 +965,11 @@ def update_notification_pref():
         response = flask.jsonify(**result)
         if 'error' in result:
             response.status_code = 500
-        return response
     else:
         response = flask.jsonify(error='Unable to set email notification preference: permission error')
         response.status_code = 403
+
+    return response
 
 
 @app.route('/login')
@@ -1087,6 +1123,35 @@ def create_geneset_meta():
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
+    return render_viewgeneset_main(gs_id)
+
+
+@app.route('/curategeneset/<int:gs_id>', methods=['GET', 'POST'])
+def render_curategeneset(gs_id):
+    if 'user_id' in flask.session:
+        assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+        curation_view = None
+        if assignment:
+            if flask.session['user_id'] == assignment['curator']:
+                curation_view = 'curator'
+            elif flask.session['user_id'] == assignment['reviewer']:
+                curation_view = 'reviewer'
+            else:
+                owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
+                if assignment['curation_group'] in [x['grp_id'] for x in owned_groups]:
+                    curation_view = 'curation_leader'
+
+            print curation_view
+            if curation_view:
+                return render_viewgeneset_main(gs_id, True)
+
+    # not assigned curation task,  just render the normal viewgeneset page
+    # if user is admin or GW curator, they will be able to view/edit this
+    # otherwise user will get whatever viewing status they should have
+    return render_viewgeneset_main(gs_id, False)
+
+
+def render_viewgeneset_main(gs_id, curation_view=None):
     # get values for sorting result columns
     # i'm saving these to a session variable
     # probably not the correct format
@@ -1101,6 +1166,9 @@ def render_viewgeneset(gs_id):
                     session['dir'] = 'ASC'
             else:
                 session['dir'] = 'ASC'
+
+    print flask.request.method
+
 
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
@@ -1188,8 +1256,7 @@ def render_viewgeneset(gs_id):
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
                                  altGeneSymbol=altGeneSymbol, view=view,
                                  ontology=ontology, alt_gdb_id=alt_gdb_id,
-                                 species=species)
-
+                                 species=species, curation_view=curation_view)
 
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
@@ -1489,7 +1556,9 @@ def render_user_genesets():
         columns.append({'name': 'gs_name'})
         headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
 
-        groups = geneweaverdb.get_groups_owned_by_user(user_id) + geneweaverdb.get_all_member_groups(user_id)
+        groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)# + geneweaverdb.get_other_visible_groups(user_id)
+        groups = sorted(groups, key=lambda k: k['grp_name'])
+
     else:
         headerCols, user_id, columns = None, 0, None
 

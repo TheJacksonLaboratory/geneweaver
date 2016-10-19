@@ -377,6 +377,20 @@ def get_all_member_groups(usr_id):
 
         return list(dictify_cursor(cursor))
 
+def get_other_visible_groups(usr_id):
+    """
+    get all visible groups that a user is not a member (regular or admin) of
+    basically returns all public groups a user is NOT a member of
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''SELECT * FROM production.grp WHERE grp_id NOT IN (SELECT grp_id
+               FROM production.usr2grp
+               WHERE usr_id = %s)''', (usr_id,)
+        )
+
+        return list(dictify_cursor(cursor))
+
 
 # group_name is a string provided by user, group_private should be either true or false
 # true, the group is private. false the group is public.
@@ -1359,8 +1373,8 @@ def get_server_side_genesets(rargs):
     select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
     select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
 					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
-					LEFT JOIN curation_assignments CA ON CA.object_id = GS.gs_id AND CA.object_type = 1
-					LEFT JOIN grp G ON G.grp_id = CA.curation_group
+					LEFT OUTER JOIN curation_assignments CA ON CA.object_id = GS.gs_id AND CA.object_type = 1
+					LEFT OUTER JOIN grp G ON G.grp_id = CA.curation_group
 					WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
@@ -2362,7 +2376,9 @@ def get_geneset(geneset_id, user_id=None, temp=None):
         cursor.execute(
                 '''
             SELECT *
-            FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
+            FROM geneset
+            LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
+            LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.object_id AND curation_assignments.object_type = 1
             WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
                 {

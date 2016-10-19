@@ -94,7 +94,7 @@
                     </div>
                 </div>
                 <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
-					{% if g.user is defined %}
+					{% if g.user is defined and not curation_view %}
 					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
 						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
 					</button>
