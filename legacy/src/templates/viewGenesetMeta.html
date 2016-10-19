@@ -35,10 +35,10 @@
 
     {% elif curation_view == 'curation_leader' %}
         <button type="button" class="btn btn-block btn-primary" id="assignCurator">
-            <i class="fa fa-trash-o pull-left"></i> Assign Curator
+            <i class="fa fa-user pull-left"></i> Assign Curator
         </button>
 
-    {% elif curation_view == 'curator'  %}
+    {% elif curation_view == 'curator' and curation_assignment.state == 2 %}
         <button type="button" class="btn btn-block btn-warning" id="setThreshold">
             <i class="fa fa-signal pull-left"></i> Set Threshold
         </button>
@@ -49,9 +49,9 @@
             <i class="fa fa-edit pull-left"></i> Edit Genes
         </button>
         <button type="button" class="btn btn-block btn-primary" id="readyForReview">
-            <i class="fa fa-trash-o pull-left"></i> Ready For Review
+            <i class="fa fa-check pull-left"></i> Ready For Review
         </button>
-    {% elif curation_view == 'reviewer' %}
+    {% elif curation_view == 'reviewer' and curation_assignment.state == 3 %}
 
     {% endif %}
 </div>

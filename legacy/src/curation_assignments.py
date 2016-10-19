@@ -48,6 +48,18 @@ import geneweaverdb
 import notifications
 
 
+class CurationAssignment(object):
+    def __init__(self, row_dict):
+        self.state = row_dict['curation_state']
+        self.gs_id = row_dict['object_id']
+        self.curator = row_dict['curator']
+        self.reviewer = row_dict['reviewer']
+        self.notes = row_dict['notes']
+        self.group = row_dict['curation_group']
+        self.created = row_dict['created']
+        self.updated = row_dict['updated']
+
+
 def submit_geneset_for_curation(geneset_id, group_id, note):
     """
     :param geneset_id: geneset submitted for curation
@@ -261,6 +273,7 @@ def geneset_curation_review_failed(geneset_id, note):
 def delete_geneset_curation_assignment(geneset_id):
     return
 
+
 def get_geneset_curation_assignment(geneset_id):
 
     with geneweaverdb.PooledCursor() as cursor:
@@ -269,7 +282,7 @@ def get_geneset_curation_assignment(geneset_id):
 
         assignments = list(geneweaverdb.dictify_cursor(cursor))
         if len(assignments) == 1:
-            return assignments[0]
+            return CurationAssignment(assignments[0])
         else:
             return None
 

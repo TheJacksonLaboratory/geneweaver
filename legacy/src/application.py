@@ -417,7 +417,40 @@ def assign_genesets_to_curation_group():
             response = flask.jsonify(results=status)
 
     else:
+        #user is not logged in
+        response = flask.jsonify(success=False, message='You do not have permissions to assign this GeneSet for curation')
+        response.status_code = 403
 
+    return response
+
+
+@app.route("/assigncurator.json", methods=['POST'])
+def assign_curator():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        #TODO do we need to sanitize the note?
+        notes = request.form.get('note', '')
+        gs_id = request.form.get('gs_id', type=int)
+        curator = request.form.get('curator', type=int)
+
+        assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+
+        if assignment:
+            owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
+            if assignment.group in [g['grp_id'] for g in owned_groups]:
+
+                curator_info = geneweaverdb.get_user(curator)
+
+                curation_assignments.assign_geneset_curator(gs_id, curator, user_id, notes)
+
+                response = flask.jsonify(success=True, curator_name=curator_info.first_name + " " + curator_info.last_name, curator_email=curator_info.email)
+
+        else:
+            response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
+            response.status_code = 500
+
+    else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to assign this GeneSet for curation')
         response.status_code = 403
@@ -1131,19 +1164,30 @@ def render_curategeneset(gs_id):
     if 'user_id' in flask.session:
         assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
         curation_view = None
+        curation_team_members = None
+        curator_info = None
         if assignment:
-            if flask.session['user_id'] == assignment['curator']:
+
+            if flask.session['user_id'] == assignment.curator:
                 curation_view = 'curator'
-            elif flask.session['user_id'] == assignment['reviewer']:
+            elif flask.session['user_id'] == assignment.reviewer:
                 curation_view = 'reviewer'
             else:
                 owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
-                if assignment['curation_group'] in [x['grp_id'] for x in owned_groups]:
+                if assignment.group in [x['grp_id'] for x in owned_groups]:
                     curation_view = 'curation_leader'
+
+                    if assignment.curator:
+                        curator_info = geneweaverdb.get_user(assignment.curator)
+
+                    # curation_leader view needs a list of users that belong to
+                    # the group so it can render the assignment dialog
+                    curation_team_members = [geneweaverdb.get_user(uid) for uid in geneweaverdb.get_group_users(assignment.group)]
 
             print curation_view
             if curation_view:
-                return render_viewgeneset_main(gs_id, True)
+
+                return render_viewgeneset_main(gs_id, curation_view, curation_team_members, assignment, curator_info)
 
     # not assigned curation task,  just render the normal viewgeneset page
     # if user is admin or GW curator, they will be able to view/edit this
@@ -1151,7 +1195,7 @@ def render_curategeneset(gs_id):
     return render_viewgeneset_main(gs_id, False)
 
 
-def render_viewgeneset_main(gs_id, curation_view=None):
+def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None):
     # get values for sorting result columns
     # i'm saving these to a session variable
     # probably not the correct format
@@ -1256,7 +1300,10 @@ def render_viewgeneset_main(gs_id, curation_view=None):
                                  colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
                                  altGeneSymbol=altGeneSymbol, view=view,
                                  ontology=ontology, alt_gdb_id=alt_gdb_id,
-                                 species=species, curation_view=curation_view)
+                                 species=species, curation_view=curation_view,
+                                 curation_team=curation_team,
+                                 curation_assignment=curation_assignment,
+                                 curator_info=curator_info)
 
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])

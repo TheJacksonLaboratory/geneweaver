@@ -292,6 +292,7 @@
                     $('#deprecated-message').hide();
                 else
                     $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsId);
+                }
 
             {% endif %}
 
@@ -449,23 +450,83 @@
 
             });
 
-		console.log('done loading?');
+            {% if curation_view == 'curation_leader' %}
+                $('#assignCurator').on('click', function () {
+
+                    // when we show the modal window, we don't want a group selected.
+                    $("input:radio[name='curator']:checked").prop('checked', false).checkboxradio("refresh");
+
+                    // submit button will be disabled until the user selects a group radio button
+                    $('#assignToCurator').prop("disabled", true).button("refresh");
+                    $('#assignGenesetToCuratorModal').modal('show');
+                });
+
+                $("input:radio[name='curator']").on('click', function () {
+                    // submit button will be disabled until the user selects a curator
+                    // radio button
+                    $('#assignToCurator').prop("disabled", false).button("refresh");
+                });
+
+                function handleError(data) {
+                    console.error("something bad happened: " + data.responseJSON.message);
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': data.responseJSON.message,
+                            'priority': 'danger'
+                        }
+                    ]);
+                }
+
+                $('#assignToCurator').on('click', function () {
+
+                    var selectedUserId = $('input[name=curator]:checked').val();
+
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "gs_id": {{geneset.geneset_id}},
+                        "curator": selectedUserId,
+                    };
+
+                    console.log(selectedUserId);
+                    console.log(params);
+
+                    $.post("{{ url_for('assign_curator') }}", params ,function(data) {
+
+                        var curatorName  = data.curator_name;
+                        var curatorEmail = data.curator_email;
+
+                        var html =      "<strong>" +
+                                        "This Geneset is Currently Assigned To " +
+                                        curatorName + "(" + curatorEmail + "). " +
+                                        "Are you sure you want to reassign it?" +
+                                        "</strong>";
+
+
+                        $('#alreadyAssignedWarning').html(html);
+
+                    }, "json").fail(handleError);
+
+
+                });
+
+            {% endif %}
+
+		    console.log('done loading?');
         });
 
         $( document.body ).on( 'click', '#geneSymbol li', function( event ) {
-            //WARNING: This function previously interfered with the dropdown menu
-            //at the top of the page. I added IDs instead of classes. Seems to
-            // work now
-            $(this).parents('#geneSymbol').find( '.newName').text($(this).text())
-                    .end()
-                    .children( '.dropdown-toggle').dropdown( 'toggle');
-            return false;
-        });
+        //WARNING: This function previously interfered with the dropdown menu
+        //at the top of the page. I added IDs instead of classes. Seems to
+        // work now
+        $(this).parents('#geneSymbol').find( '.newName').text($(this).text())
+                .end()
+                .children( '.dropdown-toggle').dropdown( 'toggle');
+        return false;
+    });
 
 
-        //});
-
-	$('#addNewGeneset').on('click', function () {
+    	$('#addNewGeneset').on('click', function () {
 	//function blah() {
 
 		var checkedArray = [];
@@ -514,5 +575,9 @@
 {% include 'modal/selectGeneDisplayType.html' %}
 
 {% include 'modal/deleteGeneset.html' %}
+
+{% if curation_view == 'curation_leader' %}
+    {% include 'modal/assignGenesetToCurator.html' %}
+{% endif  %}
 
 {% include 'footer.html' %}
