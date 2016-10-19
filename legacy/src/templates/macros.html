@@ -120,12 +120,16 @@
 {% endmacro %}
 
 {% macro parse_cluster(clusters) %}
+    <table class="table">
     {%  for clus in clusters %}
-        <div>Cluster:</div>
+        <tr>
+        <td>Cluster{{ loop.index0 }}:</td>
         {%  for g in clus %}
-            <div>{{ g }}</div>
+            <td>{{ g }}</td>
         {% endfor %}
+        </tr>
     {% endfor %}
+    </table>
 {% endmacro %}
 
 {# Generates the onclick url so non-default button styles can be used. #}

@@ -1,5 +1,7 @@
 /**
  * Visualize the output of DBSCAN
+ * There is great example I found at
+ * https://bl.ocks.org/mbostock/7607535
  * */
 
 var svg = d3.select("svg"),
@@ -46,8 +48,17 @@ function draw(root) {
     .data(nodes)
     .enter().append("circle")
       .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-      .style("fill", function(d) { return d.children ? color(d.depth) : null; })
-      .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+      .style("fill", function(d) {
+          if(!d.parent)
+              return "rgba(117, 220, 205, 0.49)";
+          return d.children ? color(d.depth) : null; })
+      .on("click", function(d) {
+          if (focus !== d)
+              if(!d.children)
+                  zoom(d.parent), d3.event.stopPropagation();
+              else
+                  zoom(d), d3.event.stopPropagation();
+      });
 
   var text = g.selectAll("text")
     .data(nodes)
@@ -55,12 +66,18 @@ function draw(root) {
       .attr("class", "label")
       .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
       .style("display", function(d) { return d.parent === root ? "inline" : "none"; })
-      .text(function(d) { return d.data.name; });
+      .on("click", function(d) {
+          if(!d.children) {
+              var url = "/search/?searchbar=" + d.data.name + "&pagination_page=1&searchGenes=yes";
+              location.href = url;
+              d3.event.stopPropagation();  }})
+      .text(function(d) {
+          return d.data.name; });
 
   var node = g.selectAll("circle,text");
 
   svg
-      .style("background", color(-1))
+      .style("background", "white")
       .on("click", function() { zoom(root); });
 
   zoomTo([root.x, root.y, root.r * 2 + margin]);
