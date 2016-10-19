@@ -1373,7 +1373,7 @@ def get_server_side_genesets(rargs):
     select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
     select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
 					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
-					LEFT OUTER JOIN curation_assignments CA ON CA.object_id = GS.gs_id AND CA.object_type = 1
+					LEFT OUTER JOIN curation_assignments CA ON CA.gs_id = GS.gs_id
 					LEFT OUTER JOIN grp G ON G.grp_id = CA.curation_group
 					WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
@@ -2378,7 +2378,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
             SELECT *
             FROM geneset
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
-            LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.object_id AND curation_assignments.object_type = 1
+            LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
             WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
                 {
