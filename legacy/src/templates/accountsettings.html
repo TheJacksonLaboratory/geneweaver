@@ -703,17 +703,19 @@
     }
 
     function handleError(data) {
-        console.log('failure occurred');
-        console.log(data);
 
-        if(data.error) {
+        // unable to set preferences, put checkbox back the way it was
+        $('#email_notifications').prop('checked', !($('#email_notifications').is(':checked'))).checkboxradio("refresh");
+
+        if(data.responseJSON.error) {
             $(document).trigger("add-alerts", [
                 {
-                    'message': data.error,
+                    'message': data.responseJSON.error,
                     'priority': 'danger'
                 }
             ]);
         }
+
     }
 
     $('#email_notifications').change(function() {
