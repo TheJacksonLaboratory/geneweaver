@@ -560,8 +560,7 @@
                 "grp_id": selectedGroupId,
             };
 
-            // since params["gs_ids"] is a list we need to use $.param() to
-            // encode it properly and the server needs to use
+            // since params["gs_ids"] is a list the server needs to use
             // request.args.getlist('gs_ids') instead of request.args['gs_ids']
             $.post("{{ url_for('assign_genesets_to_curation_group') }}", params ,function(data) {
 

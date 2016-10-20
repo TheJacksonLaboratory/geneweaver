@@ -43,7 +43,7 @@ import notifications
 class CurationAssignment(object):
     def __init__(self, row_dict):
         self.state = row_dict['curation_state']
-        self.gs_id = row_dict['object_id']
+        self.gs_id = row_dict['gs_id']
         self.curator = row_dict['curator']
         self.reviewer = row_dict['reviewer']
         self.notes = row_dict['notes']
@@ -254,7 +254,7 @@ def get_geneset_curation_assignment(geneset_id):
 
         assignments = list(geneweaverdb.dictify_cursor(cursor))
         if len(assignments) == 1:
-            return assignments[0]
+            return CurationAssignment(assignments[0])
         else:
             return None
 

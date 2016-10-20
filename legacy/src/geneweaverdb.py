@@ -2379,7 +2379,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
             FROM geneset
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
-            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
                 {
                     'geneset_id': geneset_id,
