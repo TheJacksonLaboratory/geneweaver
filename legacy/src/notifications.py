@@ -74,7 +74,7 @@ def send_email(to, subject, message):
         smtp = smtplib.SMTP(smtp_server)
         smtp.sendmail(admin_email, to, msg.as_string())
         smtp.quit()
-    except smtplib.SMTPException as e:
+    except Exception as e:
         print("Error sending email: {}".format(e), file=sys.stderr)
 
 

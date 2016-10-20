@@ -425,7 +425,7 @@ def assign_genesets_to_curation_group():
 
 
 @app.route("/assigncurator.json", methods=['POST'])
-def assign_curator():
+def assign_curator_to_geneset():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
@@ -457,6 +457,33 @@ def assign_curator():
 
     return response
 
+@app.route("/geneset_ready_for_review.json", methods=['POST'])
+def geneset_ready_for_review():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        #TODO do we need to sanitize the note?
+        notes = request.form.get('note', '')
+        gs_id = request.form.get('gs_id', type=int)
+
+        assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+
+        if assignment:
+            if user_id == assignment.curator:
+                curation_assignments.submit_geneset_curation_for_review(gs_id, notes)
+                response = flask.jsonify(success=True)
+            else:
+                response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
+                response.status_code = 403
+        else:
+            response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
+            response.status_code = 500
+    else:
+        #user is not logged in
+        response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
+        response.status_code = 403
+
+    return response
 
 @app.route('/updateGenesetOntologyDB')
 def update_geneset_ontology_db():
@@ -1166,26 +1193,40 @@ def render_curategeneset(gs_id):
         curation_view = None
         curation_team_members = None
         curator_info = None
+
+        def user_is_curation_leader():
+            owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
+            if assignment.group in [x['grp_id'] for x in owned_groups]:
+                return True
+
         if assignment:
 
-            if flask.session['user_id'] == assignment.curator:
-                curation_view = 'curator'
-            elif flask.session['user_id'] == assignment.reviewer:
-                curation_view = 'reviewer'
-            else:
-                owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
-                if assignment.group in [x['grp_id'] for x in owned_groups]:
+            #figure out the proper view depending on the state and your role(s)
+            if assignment.state == 1 and user_is_curation_leader():
+                curation_view = 'curation_leader'
+            elif assignment.state == 2:
+                if flask.session['user_id'] == assignment.curator:
+                    curation_view = 'curator'
+                elif user_is_curation_leader():
                     curation_view = 'curation_leader'
+            elif assignment.state == 3:
+                if flask.session['user_id'] == assignment.reviewer:
+                    curation_view = 'reviewer'
+                elif flask.session['user_id'] == assignment.curator:
+                    curation_view = 'curator'
 
+
+            print curation_view
+
+            if curation_view:
+                if curation_view == 'curation_leader':
+                    # this curation task already assigned a curator, get the info
                     if assignment.curator:
                         curator_info = geneweaverdb.get_user(assignment.curator)
 
                     # curation_leader view needs a list of users that belong to
                     # the group so it can render the assignment dialog
                     curation_team_members = [geneweaverdb.get_user(uid) for uid in geneweaverdb.get_group_users(assignment.group)]
-
-            print curation_view
-            if curation_view:
 
                 return render_viewgeneset_main(gs_id, curation_view, curation_team_members, assignment, curator_info)
 

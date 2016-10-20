@@ -450,7 +450,18 @@
 
             });
 
-            {% if curation_view == 'curation_leader' %}
+            function handleError(data) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+            {% if curation_view == 'curation_leader' and (curation_assignment.state == 1 or curation_assignment.state == 1) %}
                 $('#assignCurator').on('click', function () {
 
                     // when we show the modal window, we don't want a group selected.
@@ -467,16 +478,6 @@
                     $('#assignToCurator').prop("disabled", false).button("refresh");
                 });
 
-                function handleError(data) {
-                    console.error("something bad happened: " + data.responseJSON.message);
-
-                    $(document).trigger("add-alerts", [
-                        {
-                            'message': data.responseJSON.message,
-                            'priority': 'danger'
-                        }
-                    ]);
-                }
 
                 $('#assignToCurator').on('click', function () {
 
@@ -491,7 +492,7 @@
                     console.log(selectedUserId);
                     console.log(params);
 
-                    $.post("{{ url_for('assign_curator') }}", params ,function(data) {
+                    $.post("{{ url_for('assign_curator_to_geneset') }}", params ,function(data) {
 
                         var curatorName  = data.curator_name;
                         var curatorEmail = data.curator_email;
@@ -507,9 +508,25 @@
 
                     }, "json").fail(handleError);
 
-
                 });
 
+            {% elif curation_view == 'curator' and curation_assignment.state == 2  %}
+                $('#readyForReview').on('click', function() {
+
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "gs_id": {{geneset.geneset_id}},
+                    };
+
+                    $.post("{{ url_for('geneset_ready_for_review') }}", params ,function(data) {
+                        $('#readyForReview').prop("disabled", true).button("refresh");
+                        $('#readyForReview').html('Pending Review');
+                        $('#setThreshold').remove();
+                        $('#editGeneset').remove();
+                        $('#editGenesetGenes').remove();
+
+                    }, "json").fail(handleError);
+                });
             {% endif %}
 
 		    console.log('done loading?');
