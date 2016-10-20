@@ -100,15 +100,14 @@ def submit_geneset_for_curation(geneset_id, group_id, note):
             "DELETE FROM production.curation_assignments WHERE gs_id=%s", (geneset_id,))
 
         # Add a record to the table
-        log_entry = 'Geneset submitted for curation\n' + note
+        #log_entry = 'Geneset submitted for curation\n' + note
         cursor.execute(
             "INSERT INTO production.curation_assignments (gs_id, curation_group, curation_state, notes) VALUES (%s, %s, %s, %s)",
-            (geneset_id, group_id, 1, log_entry))
+            (geneset_id, group_id, 1, note))
         cursor.connection.commit()
 
         # send notification to the group admins
         subject = 'New Geneset Awaiting Curation'
-        # JGP - need a meaningful message with link to geneset
         message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
         notifications.send_group_admin_notification(group_id, subject, message)
     return
@@ -126,10 +125,10 @@ def assign_geneset_curator(geneset_id, curator_id, reviewer_id, note):
     curation_state = 2
 
     with geneweaverdb.PooledCursor() as cursor:
-        log_entry = 'Geneset assigned curator: \n' + note
+        #log_entry = 'Geneset assigned curator: \n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curator=%s, reviewer=%s, curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curator_id, reviewer_id, curation_state, log_entry, geneset_id)
+            (curator_id, reviewer_id, curation_state, note, geneset_id)
         )
         cursor.connection.commit()
 
@@ -151,10 +150,10 @@ def submit_geneset_curation_for_review(geneset_id, note):
     curation_state = 3
 
     with geneweaverdb.PooledCursor() as cursor:
-        log_entry = 'Curation submitted for review: \n' + note
+        #log_entry = 'Curation submitted for review: \n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curation_state, log_entry, geneset_id))
+            (curation_state, note, geneset_id))
         cursor.connection.commit()
 
         cursor.execute(
@@ -185,10 +184,10 @@ def geneset_curation_review_passed(geneset_id, note):
     curation_state = 4
 
     with geneweaverdb.PooledCursor() as cursor:
-        log_entry = 'Curation passed team review: \n' + note
+        #log_entry = 'Curation passed team review: \n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curation_state, log_entry, geneset_id))
+            (curation_state, note, geneset_id))
         cursor.connection.commit()
 
         cursor.execute(
@@ -222,10 +221,10 @@ def geneset_curation_review_failed(geneset_id, note):
     geneset_name = get_geneset_name(geneset_id)
 
     with geneweaverdb.PooledCursor() as cursor:
-        log_entry = 'Curation failed team review: \n' + note
+        #log_entry = 'Curation failed team review: \n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curation_state, log_entry, geneset_id))
+            (curation_state, note, geneset_id))
         cursor.connection.commit()
 
         cursor.execute(
