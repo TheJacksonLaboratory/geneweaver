@@ -1439,6 +1439,8 @@ def get_server_side_genesets(rargs):
             cursor.execute(sql)
             iTotalDisplayRecords = cursor.rowcount
 
+        print things
+
         response = {'sEcho': sEcho,
                     'iTotalRecords': iTotalRecords,
                     'iTotalDisplayRecords': iTotalDisplayRecords,
@@ -2097,6 +2099,7 @@ class Publication:
 
 class Geneset:
     def __init__(self, gs_dict):
+        print gs_dict
         self.geneset_id = gs_dict['gs_id']
         self.user_id = gs_dict['usr_id']
         if self.user_id is not None:
@@ -2375,7 +2378,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT *
+            SELECT geneset.*, curation_assignments.curation_group
             FROM geneset
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
