@@ -139,6 +139,7 @@ to database as the actual expression results.", sep = ""), file="")
   write(paste(topGenesSet_intersect), file="")
   write("============================================================================", file="")
 
+  write(paste(random.gene.ns), file="plotpoints")
 }
 
 
