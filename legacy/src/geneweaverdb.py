@@ -1371,7 +1371,7 @@ def get_server_side_genesets(rargs):
     user_id = rargs.get('user_id', type=int)
 
     select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
-    select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
+    select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, GS.gs_id, gs_name, gs_abbreviation, gs_description,
 					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
 					LEFT OUTER JOIN curation_assignments CA ON CA.gs_id = GS.gs_id
 					LEFT OUTER JOIN grp G ON G.grp_id = CA.curation_group
