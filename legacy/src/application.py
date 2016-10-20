@@ -772,9 +772,12 @@ def update_geneset():
         data.update({'usr_id': user_id})
         return json.dumps(data)
 
+@app.route('/curategenesetgenes/<int:gs_id>')
+def render_curategenesetgenes(gs_id):
+    return render_editgeneset_genes(gs_id, curation=True)
 
 @app.route('/editgenesetgenes/<int:gs_id>')
-def render_editgeneset_genes(gs_id):
+def render_editgeneset_genes(gs_id, curation=False):
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
     user_info = geneweaverdb.get_user(user_id)
     uploadfiles.create_temp_geneset_from_value(gs_id)
@@ -785,6 +788,11 @@ def render_editgeneset_genes(gs_id):
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+        if view is None and curation:
+            curation_assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+            if curation_assignment and curation_assignment.curator == user_id and curation_assignment.state == 2:
+                view = 'True'
+
     else:
         view = None
 
@@ -842,7 +850,8 @@ def render_editgeneset_genes(gs_id):
         view=view, 
         meta=meta, 
         ontology=ontology,
-        id_map=symbol2ode
+        id_map=symbol2ode,
+        curation=curation
     )
 
 
@@ -863,6 +872,11 @@ def render_set_threshold(gs_id):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+
+        if view is None:
+            curation_assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+            if curation_assignment and curation_assignment.curator == user_id and curation_assignment.state == 2:
+                view = 'curator'
     else:
         view = None
     # Determine if this is bi-modal, we won't display these
@@ -1215,9 +1229,6 @@ def render_curategeneset(gs_id):
                 elif flask.session['user_id'] == assignment.curator:
                     curation_view = 'curator'
 
-
-            print curation_view
-
             if curation_view:
                 if curation_view == 'curation_leader':
                     # this curation task already assigned a curator, get the info
@@ -1233,6 +1244,8 @@ def render_curategeneset(gs_id):
     # not assigned curation task,  just render the normal viewgeneset page
     # if user is admin or GW curator, they will be able to view/edit this
     # otherwise user will get whatever viewing status they should have
+
+    #TODO this should go to some permission error page
     return render_viewgeneset_main(gs_id, False)
 
 

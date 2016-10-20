@@ -971,6 +971,11 @@ def user_is_owner(usr_id, gs_id):
         cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''', (usr_id, gs_id))
         return cursor.fetchone()[0]
 
+def user_is_curator(usr_id, gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(gs_id) FROM curation_assignments WHERE curator=%s AND gs_id=%s AND curation_state=2''', (usr_id, gs_id))
+        return cursor.fetchone()[0]
+
 
 def edit_geneset_id_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
@@ -1438,8 +1443,6 @@ def get_server_side_genesets(rargs):
             # cursor.execute(sql, ac_patterns + pc_patterns)
             cursor.execute(sql)
             iTotalDisplayRecords = cursor.rowcount
-
-        print things
 
         response = {'sEcho': sEcho,
                     'iTotalRecords': iTotalRecords,
@@ -2099,7 +2102,6 @@ class Publication:
 
 class Geneset:
     def __init__(self, gs_dict):
-        print gs_dict
         self.geneset_id = gs_dict['gs_id']
         self.user_id = gs_dict['usr_id']
         if self.user_id is not None:

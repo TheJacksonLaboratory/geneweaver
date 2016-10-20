@@ -107,10 +107,10 @@ def submit_geneset_for_curation(geneset_id, group_id, note):
         cursor.connection.commit()
 
         # send notification to the group admins
-        subject = 'Geneset added for curation'
+        subject = 'New Geneset Awaiting Curation'
         # JGP - need a meaningful message with link to geneset
-        message = 'Geneset added for curation'
-        #notifications.send_group_admin_notification(group_id, subject, message)
+        message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
+        notifications.send_group_admin_notification(group_id, subject, message)
     return
 
 

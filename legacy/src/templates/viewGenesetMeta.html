@@ -64,7 +64,11 @@
             <i class="fa fa-check pull-left"></i> Review Pending
         </button>
     {% elif curation_view == 'reviewer' and curation_assignment.state == 3 %}
-
+        <div class="form-group" style="padding: 10px">
+            <label for="curationNotes"><h4>Curation Notes:</h4></label>
+            <textarea class="form-control" rows="5" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
+        </div>
+        TODO ADD Accept/Reject
     {% endif %}
 </div>
 
