@@ -161,7 +161,6 @@ def create_new_geneset(args):
     except psycopg2.Error as e:
         return {'error': e}
 
-    import sys
     ## For some reason this function was missing the part where geneset values
     ## are inserted, so I'm just using the batch upload's version of this.
     gs_values = form_text.strip().split('\n')
