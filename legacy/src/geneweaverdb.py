@@ -325,11 +325,29 @@ def get_all_members_of_group(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT u2g.grp_id, u.usr_email FROM usr2grp u2g, usr u WHERE u2g.grp_id IN
-            (SELECT grp_id FROM usr2grp WHERE usr_id=%s) AND u.usr_id=u2g.usr_id''', (usr_id,)
+            SELECT u2g.grp_id, u.usr_email, u.usr_id FROM usr2grp u2g, usr u WHERE u2g.grp_id IN
+            (SELECT grp_id FROM usr2grp WHERE usr_id=%s) AND u.usr_id=u2g.usr_id ORDER BY u.usr_email''', (usr_id,)
         )
     usr_emails = list(dictify_cursor(cursor))
     return usr_emails if len(usr_emails) > 0 else None
+
+
+def get_group_admins(grp_id):
+    """
+    get all of the admins (aka owners) for a specified group id
+    :param grp_id: group id
+    :return: list of ordered dictionaries,
+             each dictionary has keys 'usr_email', 'usr_id'. These are the email
+             and usr_ids for each group admin
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT usr_email, usr_id  FROM usr WHERE usr_id IN
+            (SELECT usr_id FROM usr2grp WHERE u2g_privileges=1 AND grp_id=%s) ORDER BY usr_email''', (grp_id,)
+        )
+    admin_emails = list(dictify_cursor(cursor))
+    return admin_emails if len(admin_emails) > 0 else []
 
 
 def get_all_owned_groups(usr_id):
@@ -355,6 +373,20 @@ def get_all_member_groups(usr_id):
                 '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
                FROM production.usr2grp
                WHERE usr_id = %s and (u2g_privileges = 0 or u2g_privileges IS NULL))''', (usr_id,)
+        )
+
+        return list(dictify_cursor(cursor))
+
+def get_other_visible_groups(usr_id):
+    """
+    get all visible groups that a user is not a member (regular or admin) of
+    basically returns all public groups a user is NOT a member of
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''SELECT * FROM production.grp WHERE grp_id NOT IN (SELECT grp_id
+               FROM production.usr2grp
+               WHERE usr_id = %s)''', (usr_id,)
         )
 
         return list(dictify_cursor(cursor))
@@ -518,6 +550,82 @@ def remove_selected_users_from_group(user_id, user_emails, grp_id):
 
     return {'error': 'None'}
 
+
+def update_group_admins(admin_id, user_ids, grp_id):
+    """
+
+    :param admin_id: ID of the admin making the request
+    :param user_ids: list of user ids to set as administrators
+    :param grp_id: group id that we are updating
+    :return:
+    """
+    admins = get_group_admins(grp_id)
+
+    # get_group_admins gives us a list of OrderedDics with keys usr_id and usr_
+    # email we want to convert it to a list of just usr_ids
+    admin_uids = []
+    for a in admins:
+        admin_uids.append(a['usr_id'])
+
+    # make sure submitting user has appropriate permissions
+    # application has already made sure admin_id == flask.session['user_id']
+    if int(admin_id) not in admin_uids:
+        return {'error': 'You do not have permission to modify this group'}
+
+    # group name/owner names are used for notifications
+    admin = get_user(admin_id)
+    group_name = get_group_name(grp_id)
+    admin_name = admin.first_name + " " + admin.last_name
+
+    for uid in user_ids:
+        if uid in admin_uids:
+            # don't need to update, but remove from our list of current admins
+            # anyone still left in current_admins at the end will get removed
+            # as a group administrator
+            admin_uids.remove(uid)
+        else:
+            with PooledCursor() as cursor:
+                cursor.execute(
+                        '''
+                    UPDATE production.usr2grp SET u2g_privileges=1
+                    WHERE grp_id=%s AND usr_id=%s
+                    ''',
+                        (grp_id, uid)
+                )
+                cursor.connection.commit()
+                # send notification that user has been promoted to admin
+                if cursor.rowcount:
+                    notifications.send_usr_notification(uid, "Promoted to Group Admin",
+                                                        "You have been promoted to admin of the group {} by {}".format(group_name, admin_name))
+
+    # do we have anyone left in current_admins?  if so, they were not passed in
+    # as part of the list of new admins,  so we need to remove their admin
+    # permissions. They are not being removed from the group, just demoted.
+
+    # This can be improved.  We do need to keep track of who loses admin privs
+    # so that we can notify them.  That is why we don't just clear everyone's
+    # admin privileges first, and then set the permissions for the new list
+    # of admins.
+
+    # iterate over everyone that was an admin but is not in the new list
+    # remove their admin privs and send them a notification
+    for uid in admin_uids:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                    '''
+                UPDATE production.usr2grp SET u2g_privileges=0
+                WHERE grp_id=%s AND usr_id=%s
+                ''',
+                    (grp_id, uid)
+            )
+            cursor.connection.commit()
+            #send notification that user has been demoted from admin
+            if cursor.rowcount:
+                notifications.send_usr_notification(uid, "Admin Privileges Revoked",
+                                                    "Your admin privileges of the group {} have been removed by {}. "
+                                                    "You now have standard group membership.".format(group_name, admin_name))
+
+    return {'success': True}
 
 # switches group active field between false and true, and true and false
 def toggle_group_active(group_id, user_id):
@@ -861,6 +969,11 @@ def delete_geneset_value_by_id(rargs):
 def user_is_owner(usr_id, gs_id):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''', (usr_id, gs_id))
+        return cursor.fetchone()[0]
+
+def user_is_curator(usr_id, gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(gs_id) FROM curation_assignments WHERE curator=%s AND gs_id=%s AND curation_state=2''', (usr_id, gs_id))
         return cursor.fetchone()[0]
 
 
@@ -1263,8 +1376,11 @@ def get_server_side_genesets(rargs):
     user_id = rargs.get('user_id', type=int)
 
     select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
-    select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
-					to_char(gs_created, '%s'), to_char(gs_updated, '%s') FROM geneset WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
+    select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, GS.gs_id, gs_name, gs_abbreviation, gs_description,
+					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
+					LEFT OUTER JOIN curation_assignments CA ON CA.gs_id = GS.gs_id
+					LEFT OUTER JOIN grp G ON G.grp_id = CA.curation_group
+					WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
                       'cast(gs_count as text)',
@@ -2229,6 +2345,24 @@ def change_password(user_id, new_password):
     return
 
 
+def update_notification_pref(user_id, state):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''select usr_prefs FROM usr WHERE usr_id=%s''', (user_id,)
+        )
+        results = cursor.fetchall()
+        if len(results) == 1:
+            preferences = json.loads(results[0][0])
+            preferences['email_notification'] = state
+            cursor.execute(
+                '''UPDATE usr SET usr_prefs=%s WHERE usr_id=%s''', (json.dumps(preferences), user_id)
+            )
+            cursor.connection.commit()
+            return {'success': True}
+
+    return {'error': 'unable to update user notification email preference'}
+
+
 def get_geneset(geneset_id, user_id=None, temp=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user
@@ -2246,9 +2380,11 @@ def get_geneset(geneset_id, user_id=None, temp=None):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT *
-            FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
-            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            SELECT geneset.*, curation_assignments.curation_group
+            FROM geneset
+            LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
+            LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
+            WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
                 {
                     'geneset_id': geneset_id,
