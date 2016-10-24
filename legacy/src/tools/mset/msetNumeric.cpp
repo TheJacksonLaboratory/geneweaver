@@ -74,13 +74,18 @@ int main(int argc, char** argv){
         cout<<matches[i]<<endl;
     }
 
-    vector<int> sampledList(top.size()*2);//don't know why times two but it is in the publication
+    vector<vector<int> > samples;
+    for(int i=0;i<numSamples;i++){
+        samples.push_back(vector<int>(top.size()*2));//don't know why times two but it is in the publication
+        sampler.sample(samples[i]);//sample samples[i].size elements from background into samples[i] without replacement
+    }
 
+
+    cout<<endl<<"samples generated"<<endl;
     int maxIntersectLength=0;
     int numGreater=0;
     for(int i=0;i<numSamples;i++){
-        sampler.sample(sampledList);//sample sampledList.size elements from background into sampledList without replacement
-        vector<int> sampledSet=unique(sampledList);//using a set directly to do unique would sort it
+        vector<int> sampledSet=unique(samples[i]);//using a set directly to do unique would sort it
         //because the set needs to be truncated after being converted to a set,
         //it cannot be sorted if the behavior of the mset.R file is to be copied
         sampledSet.resize(top.size());
