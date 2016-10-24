@@ -11,6 +11,7 @@ int main(int argc, char** argv){
     vector<int> expectedOutput{2,5,6,3,7,9,1,10};
     cout<<"unique on: "<<uniquify<<endl;
     cout<<"expected to be "<<expectedOutput<<endl;
-    cout<<"actual: "<<unique(uniquify)<<endl;
+    unique(uniquify);
+    cout<<"actual: "<<uniquify<<endl;
     return 0;
 }
