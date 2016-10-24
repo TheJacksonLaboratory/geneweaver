@@ -41,6 +41,12 @@ import notifications
 
 
 class CurationAssignment(object):
+
+    UNASSIGNED = 1
+    ASSIGNED = 2
+    READY_FOR_TEAM_REVIEW = 3
+    REVIEWED = 4
+
     def __init__(self, row_dict):
         self.state = row_dict['curation_state']
         self.gs_id = row_dict['gs_id']
