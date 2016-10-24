@@ -1274,8 +1274,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
 
-    import sys
-
     for gtype in genetypes:
         genedict[gtype['gdb_id']] = gtype['gdb_name']
 

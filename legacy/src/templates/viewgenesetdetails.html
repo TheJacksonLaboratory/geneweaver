@@ -238,6 +238,8 @@
 
 
     <!-- <body onload="myFunction()"> -->
+	<iframe id="ie-export" style="display:none;">
+	</iframe>
 
     <script type="text/javascript">
         $("[name='g_id[]']").bootstrapSwitch();
@@ -303,13 +305,13 @@
 				var npn = $('#newProjName').val();
 				var geneset = 'GS' + gs_id;
 
+				console.log(geneset);
 				// Alter the modal text a bit since we're only adding a single
 				// geneset, not several which is the default.
 				$('#addToProjectModal').find('.modal-title')
-					.html('Add GeneSet to Projects');
-				$('#addToProjectModal').find('h4')
-					.html('Add ' + geneset + ' to the following project(s):');
+					.html('Add GeneSet to Project(s)');
                 $("#myModalValue").val(geneset);
+                $("#modal-label").html(geneset);
 				$('#addToProjectModal').modal('show');
             });
 
@@ -347,8 +349,7 @@
 
 			// The button for this is found on the addGenesetsToProjects modal
 			$('#addNewProject').on('click', function () {
-				$('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-						'<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
+				$('#reveal-if-active').toggle();
 			});
 
 			// Generates a text version of the gene/value list using the 
@@ -371,7 +372,30 @@
 
 				exportURL += exports;
 
-				window.open(exportURL);
+				// Determines if the browser is some IE version, which doesn't
+				// support opening a new window with data: for "security" 
+				// reasons. Typecasts results to a bool. 
+				var isIE = !!navigator.appName.match(/Internet Explorer/);
+				var isIE11 = !!navigator.userAgent.match(/Trident/);
+
+				if (isIE || isIE11) {
+
+					exports = exports.replace(/%09/g, '\t');
+					exports = exports.replace(/%0A/g, '\r\n');
+
+					var iframe = document.getElementById('ie-export');
+					iframe = iframe.contentWindow || iframe.contentDocument;
+
+					iframe.document.open('text/html', 'replace');
+					iframe.document.write(exports);
+					iframe.document.close();
+					iframe.document.execCommand('SaveAs', true, 'data.tsv');
+
+				} else {
+
+					window.open(exportURL);
+				}
+
             });
 
             $('#viewSimilarGenesets').on('click', function (e) {
@@ -552,8 +576,7 @@
     });
 
 
-    	$('#addNewGeneset').on('click', function () {
-	//function blah() {
+	$('#addNewGeneset').on('click', function () {
 
 		var checkedArray = [];
 		$("input:checkbox[name='gsoptions[]']:checked").each(function(){

@@ -163,7 +163,7 @@ def create_new_geneset(args):
 
     ## For some reason this function was missing the part where geneset values
     ## are inserted, so I'm just using the batch upload's version of this.
-    gs_values = form_text.split('\n')
+    gs_values = form_text.strip().split('\n')
     gs_values = map(lambda s: s.encode('ascii', 'ignore'), gs_values)
     gs_values = map(lambda s: s.split(), gs_values)
 
