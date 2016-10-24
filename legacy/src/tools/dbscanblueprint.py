@@ -49,6 +49,7 @@ def run_tool():
     gene_set_names = {}
     gene_set_abbreviations = {}
     species_info = {}
+    species_map = {}
 
     for gs_id in selected_geneset_ids:
         raw = gwdb.get_gsinfo_by_gs_id(gs_id)
@@ -60,6 +61,7 @@ def run_tool():
     gs_dict["gene_set_names"] = gene_set_names
     gs_dict["gene_set_abbr"] = gene_set_abbreviations
     gs_dict["species_info"] = species_info
+    gs_dict["species_map"] = species_map
 
     # gather the params into a dictionary
     homology_str = 'Homology'
@@ -70,6 +72,14 @@ def run_tool():
             params[homology_str] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
+
+    # add mapping of (key) gene to (entry) species for visualization
+    for gene_set_id in gs_dict["gene_symbols"]:
+        species = gs_dict["species_info"][gene_set_id]
+        for gene_id in gs_dict["gene_symbols"][gene_set_id]:
+            if gene_id not in gs_dict["species_map"]:
+                gs_dict["species_map"][gene_id] = species
+
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -134,8 +144,8 @@ def run_tool():
     # sys.stderr.write(data_input)
 
     # sys.stderr.write("#####\n#####\n#####\n")
-    # for key in gs_dict["gene_symbols"]:
-    #   sys.stderr.write(str(key)+": "+str(gs_dict["gene_symbols"][key])+"\n")
+    # for key in gs_dict:
+    #   sys.stderr.write(str(key)+": "+str(gs_dict[key])+"\n")
 
     return response
 
