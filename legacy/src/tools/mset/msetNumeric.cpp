@@ -158,8 +158,20 @@ int main(int argc, char** argv){
         delete samples[i];
     } 
     cout<<"                                          "<<endl;
+    stringstream jsonOutput;
 
     double pvalue=((double)numGreater)/((double)numSamples);
+
+    string tb="    ";
+    jsonOutput<<"{"<<endl;
+    jsonOutput<<tb<<"pValue: "<<pvalue<<","<<endl;
+    jsonOutput<<tb<<"densityPointCount: "<<counts.size()<<","<<endl;
+    jsonOutput<<tb<<"density: ["<<endl;
+    for(unsigned int i=0;i<counts.size();i++){
+        jsonOutput<<tb<<tb<<tb<<tb<<double(counts[i])/double(numSamples)<<","<<endl;
+    }
+    jsonOutput<<tb<<"]"<<endl;
+    jsonOutput<<"}"<<endl;
 
     cout<<"p-value: "<<pvalue<<endl;
     cout<<endl;
@@ -169,5 +181,10 @@ int main(int argc, char** argv){
     for(unsigned int i=0;i<counts.size();i++){
         cout<<i<<" "<<double(counts[i])/double(numSamples)<<endl;
     }
+    cout<<endl;
+    cout<<endl;
+    cout<<"json:"<<endl;
+    cout<<jsonOutput.str()<<endl;
+
     return 0;
 }
