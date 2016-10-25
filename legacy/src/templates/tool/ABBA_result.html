@@ -81,10 +81,14 @@
     display: block;
   }
 
-  .scroll-body tr {
+  .scroll-body tr{
     width: 100%;
     display: inline-table;
     table-layout: fixed;
+  }
+
+  .headrow{
+    width:auto;
   }
 </style>
 
@@ -143,8 +147,36 @@
           </table>
           <table class="table table-striped table-list-search scroll-body">
         <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
+
             <tr row-type="GOI">
               <td>VALUE1aVALUE1aVALUE1a<br></td>
+              <td>VALUE1b<br></td>
+              <td>VALUE1c</td>
+            </tr>
+
+          </tbody>
+          </table>
+        </div>
+        <div class="col-md-8">
+          <h2 class="extra-info-header">TODO: matching geneset info</h2>
+        </div>
+      </div>
+
+      <div role="tabpanel" class="tab-pane" id="MatchingGenesets">
+        <div class="col-md-4 table-col">
+              <input class="form-control result-search-input" id="system-searchMG"  data-type="MG" name="q" placeholder="Search..." required>
+          <table class="table table-striped table-list-search no-margin">
+            <thead>
+              <tr>
+                <th row-type="MG" class="headrow">Geneset<br></th>
+                <th row-type="MG" class="headrow">Matches<br></th>
+              </tr>
+            </thead>
+          </table>
+          <table class="table table-striped table-list-search scroll-body">
+        <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
+
+            <tr row-type="MG">
               <td>VALUE1b<br></td>
               <td>VALUE1c</td>
             </tr>
@@ -171,11 +203,13 @@
           </table>
           <table class="table table-striped table-list-search scroll-body">
             <tbody  class="scroll-tbody" id="ResultGenesTableBody">
+
               <tr row-type="RG">
                 <td>aVALUE<br></td>
                 <td>bVALUE<br></td>
                 <td>cVALUE</td>
               </tr>
+
             </tbody>
           </table>
         </div>
