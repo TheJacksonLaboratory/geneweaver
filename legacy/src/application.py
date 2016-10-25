@@ -2057,6 +2057,15 @@ def render_searchFromHome():
     species = geneweaverdb.get_all_species()
     species = species.items()
 
+    ## Used to generate attribution tags
+    attribs = geneweaverdb.get_all_attributions()
+    #attlist = []
+    #attcounts = {}
+    #for at_id, at_abbrev in attribs.items():
+    #    attlist.append(at_abbrev)
+    #    #attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
+    #    attcounts[at_abbrev] = geneweaverdb.get_attributed_genesets(at_id, at_abbrev)
+
     return flask.render_template(
         'search.html',
         searchresults=search_values['searchresults'],
@@ -2066,6 +2075,7 @@ def render_searchFromHome():
         searchFilters=search_values['searchFilters'],
         filterLabels=search_values['filterLabels'],
         species=species,
+        attribs=attribs,
         userFilters=default_filters
     )
 
@@ -2086,30 +2096,34 @@ def render_search_json():
     # print 'debug vals: ' + str(userValues)
     userValues['search_term'] = [userValues['search_term']]
     # Get a sphinx search
-    print userValues['userFilters']
-    search_values = search.keyword_paginated_search(userValues['search_term'],
-                                                    userValues['pagination_page'], userValues['search_fields'],
-                                                    userValues['userFilters'], userValues['sort_by'])
+    search_values = search.keyword_paginated_search(
+        userValues['search_term'],
+        userValues['pagination_page'], 
+        userValues['search_fields'],
+        userValues['userFilters'], 
+        userValues['sort_by']
+    )
 
-    print userValues['userFilters']
-    ## sp_id -> sp_name map so species tags can be dynamically generated
+    ## Used to dynamically generate species tags
     species = geneweaverdb.get_all_species()
-    splist = []
+    species = species.items()
 
-    for sp_id, sp_name in species.items():
-        splist.append([sp_id, sp_name])
+    ## Used to generate attribution tags
+    attribs = geneweaverdb.get_all_attributions()
+    print attribs
 
-    species = splist
-
-    return flask.render_template('search/search_wrapper_contents.html',
-                                 searchresults=search_values['searchresults'],  # genesets = search_values['genesets'],
-                                 genesets=search_values['genesets'],
-                                 paginationValues=search_values['paginationValues'],
-                                 field_list=userValues['field_list'],
-                                 searchFilters=search_values['searchFilters'],
-                                 userFilters=userValues['userFilters'],
-                                 filterLabels=search_values['filterLabels'],
-                                 sort_by=userValues['sort_by'], species=species)
+    return flask.render_template(
+        'search/search_wrapper_contents.html',
+        searchresults=search_values['searchresults'],
+        genesets=search_values['genesets'],
+        paginationValues=search_values['paginationValues'],
+        field_list=userValues['field_list'],
+        searchFilters=search_values['searchFilters'],
+        userFilters=userValues['userFilters'],
+        filterLabels=search_values['filterLabels'],
+        sort_by=userValues['sort_by'], 
+        species=species,
+        attribs=attribs)
 
 
 @app.route('/searchsuggestionterms.json')
@@ -2620,7 +2634,6 @@ def render_datasources():
         #attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
         attcounts[at_abbrev] = geneweaverdb.get_attributed_genesets(at_id, at_abbrev)
 
-    print attcounts
     return flask.render_template('datasources.html', attributions=attlist, attcounts=attcounts)
 
 @app.route('/privacy')
