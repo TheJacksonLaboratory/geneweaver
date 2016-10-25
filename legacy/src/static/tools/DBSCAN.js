@@ -1,7 +1,7 @@
 /**
  * Visualize the output of DBSCAN
- * There is great example I found at
- * https://bl.ocks.org/mbostock/7607535
+ *
+ * http://d3-legend.susielu.com/
  * */
 
 var svg = d3.select("svg"),
@@ -14,13 +14,25 @@ var color = d3.scaleLinear()
     .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
     .interpolate(d3.interpolateHcl);
 
+var species = "Drosophila melanogaster";
+
+var geneToSpecies = {"Arr1":species, "car":species, "veli":species, "Prp31":species, "baz":species, "CdsA":species, "Arr2":species, "Calx":species, "Cerk":species, "Pis":species};
+var speciesToColorZoomout = {"Drosophila melanogaster":"rgba(255, 220, 124, 0.63)", "abc":"red"};
+var speciesToColorZoomin = {"Drosophila melanogaster":"rgb(255, 220, 124)","abc":"red"};
+
+var ordinal = d3.scaleOrdinal()
+  .domain(Object.keys(speciesToColorZoomin))
+  .range(Object.keys(speciesToColorZoomin).map(function(e){return speciesToColorZoomin[e]}));
+
 var pack = d3.pack()
     .size([diameter - margin, diameter - margin])
     .padding(2);
 
+
+
 function parse(cluster) {
     var clusters = {};
-    clusters.name = "Clusters"
+    clusters.name = "Clusters";
     clusters.children = cluster.map(function(e, i){
         var obj = {};
         obj.name = "Cluster" + i;
@@ -28,6 +40,8 @@ function parse(cluster) {
             var geneObj = {};
             geneObj.name = gene;
             geneObj.size = 1;
+            geneObj.colorZoomin = speciesToColorZoomin[geneToSpecies[gene]];
+            geneObj.colorZoomout = speciesToColorZoomout[geneToSpecies[gene]];
             return geneObj
         });
         return obj;
@@ -50,14 +64,16 @@ function draw(root) {
       .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
       .style("fill", function(d) {
           if(!d.parent)
-              return "rgba(117, 220, 205, 0.49)";
-          return d.children ? color(d.depth) : null; })
+              return "#96C7DF";
+          return d.children ? "#64A5C4" : focus === root ? d.data.colorZoomout : d.data.colorZoomin; })
       .on("click", function(d) {
           if (focus !== d)
               if(!d.children)
                   zoom(d.parent), d3.event.stopPropagation();
-              else
+              else {
                   zoom(d), d3.event.stopPropagation();
+              }
+
       });
 
   var text = g.selectAll("text")
@@ -76,9 +92,22 @@ function draw(root) {
 
   var node = g.selectAll("circle,text");
 
-  svg
+    svg
       .style("background", "white")
       .on("click", function() { zoom(root); });
+
+    //legend
+    svg.append("g")
+      .attr("class", "legendOrdinal")
+      .attr("transform", "translate(20,20)");
+
+    var legendOrdinal = d3.legendColor()
+      .shape("path", d3.symbol().type(d3.symbolCircle).size(500)())
+      .shapePadding(10)
+      .scale(ordinal);
+
+    svg.select(".legendOrdinal")
+      .call(legendOrdinal);
 
   zoomTo([root.x, root.y, root.r * 2 + margin]);
 
@@ -91,6 +120,14 @@ function draw(root) {
           var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
           return function(t) { zoomTo(i(t)); };
         });
+    transition.selectAll("circle")
+      .filter(function(d) { return !d.children; })
+        .style("fill", function(d) { return d.parent === focus ? d.data.colorZoomin : d.data.colorZoomout; });
+        // .append("title")
+        //   .text(function(d) {
+        //     return d.data.colorZoomin
+        //         + "\ngene: " + d.data.name;
+        //   });
 
     transition.selectAll("text")
       .filter(function(d) { return d.parent === focus || this.style.display === "inline"; })
@@ -105,3 +142,24 @@ function draw(root) {
     circle.attr("r", function(d) { return d.r * k; });
   }
 };
+
+function drawLegend() {
+var quantize = d3.scaleQuantize()
+  .domain([ 0, 0.15 ])
+  .range(d3.range(9).map(function(i) { return "q" + i + "-9"; }));
+
+var svg = d3.select("svg");
+
+svg.append("g")
+  .attr("class", "legendQuant")
+  .attr("transform", "translate(20,20)");
+
+var legend = d3.legendColor()
+  .labelFormat(d3.format(".2f"))
+  .useClass(true)
+  .scale(quantize);
+
+svg.select(".legendQuant")
+  .call(legend);
+
+}
