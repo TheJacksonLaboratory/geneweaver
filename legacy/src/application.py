@@ -2059,12 +2059,6 @@ def render_searchFromHome():
 
     ## Used to generate attribution tags
     attribs = geneweaverdb.get_all_attributions()
-    #attlist = []
-    #attcounts = {}
-    #for at_id, at_abbrev in attribs.items():
-    #    attlist.append(at_abbrev)
-    #    #attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
-    #    attcounts[at_abbrev] = geneweaverdb.get_attributed_genesets(at_id, at_abbrev)
 
     return flask.render_template(
         'search.html',
@@ -2110,7 +2104,6 @@ def render_search_json():
 
     ## Used to generate attribution tags
     attribs = geneweaverdb.get_all_attributions()
-    print attribs
 
     return flask.render_template(
         'search/search_wrapper_contents.html',

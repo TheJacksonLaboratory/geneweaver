@@ -52,8 +52,6 @@
                 // Hidden form value has to be changed too so when other
                 // filters are applied, we don't lose our ordering
                 //$('#sortBy').val(sortby);
-				console.log('calling tags');
-				//makeAttributionTags();
             });
         });
     });
@@ -217,9 +215,9 @@
 
 <script type="text/javascript">
 
+	// Dynamically generates attribution tags
+	//
 	var makeAttributionTags = function() {
-		// Dynamically generates attribution tags
-		//
 		// Two, combined color Brewer palettes
 		var colors = ['rgb(228,26,28);','rgb(55,126,184);','rgb(77,175,74);',
 					  'rgb(152,78,163);','rgb(255,127,0);','rgb(255,255,51);',
