@@ -70,27 +70,13 @@
     </td>
 
     <td>
-		<!-- Label the attribution {{ attribs[gs.attribution] }} -->
-		{% if not gs.attribution or gs.attribution == 1 %}
+		<!-- Label the attribution -->
+		{% if not gs.attribution or gs.attribution == 1 or not attribs %}
 			{# nothing! #}
+		{% else %}
+			<span class="att-{{ attribs[gs.attribution] }}">
+			</span>
 		{% endif %}
-
-		<span class="att-{{ attribs[gs.attribution] }}">
-		</span>
-		{#
-        {% if gs.attribution == 2 %}
-            <span class="ctd">CTD</span>
-        {% endif %}
-        {% if gs.attribution == 7 %}
-            <span class="drg">DRG</span>
-        {% endif %}
-        {% if gs.attribution == 8 %}
-            <span class="go">GO</span>
-        {% endif %}
-        {% if gs.attribution == 9 %}
-            <span class="mp">MP</span>
-        {% endif %}
-		#}
 
     </td>
 
