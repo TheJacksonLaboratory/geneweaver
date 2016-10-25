@@ -1,22 +1,18 @@
-{# Geneset is not found. Must also pass in user_id #}
+{# The geneset no longer exists. #}
 
-    <div class="alert alert-danger fade in">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="false">&times;</button>
-        The GeneSet that you are looking for does not exist or you do not have permission to view its properties.
-        <p>
-            {% if user_id != 0 %}
-                <p>You may also want to check your group permission settings.</p>
-                <a href="/accountsettings.html">
-                    <button type="button" class="btn btn-danger m-t-10 m-r-10" id="acount-redirect">Account Settings
-                    </button>
-                </a>
-            {% else %}
-                <a href="/login.html">
-                    <button type="button" class="btn btn-danger m-t-10 m-r-10" id="login-redirect">Login</button>
-                </a>
-                <a href="/register.html">
-                    <button type="button" class="btn btn-default m-t-10">Or Create a New Account</button>
-                </a>
-            {% endif %}
-        </p>
-    </div>
+<div class="alert alert-danger fade in" style="text-align:center">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+        &times;
+    </button>
+    <strong>
+        The GeneSet you are looking for does not exist.
+        {% if user_id == 0 %}
+            <a href="/login">
+                <button type="button" class="btn btn-danger m-t-10 m-r-10" id="login-redirect">Login</button>
+            </a>
+            <a href="/register">
+                <button type="button" class="btn btn-default m-t-10">Register</button>
+            </a>
+        {% endif %}
+    </strong>
+</div>

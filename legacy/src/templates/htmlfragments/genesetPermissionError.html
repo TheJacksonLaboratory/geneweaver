@@ -1,0 +1,25 @@
+{# The user doesn't have access to this geneset. #}
+
+<div class="alert alert-danger fade in" style="text-align:center">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+        &times;
+    </button>
+    <strong>
+        You do not have permission to view this GeneSet.
+        {% if user_id != 0 and user_id != -1 %}
+            <p>You may want to check your group permission settings.</p>
+            <a href="/accountsettings">
+                <button type="button" class="btn btn-danger m-t-10 m-r-10" id="acount-redirect">Account Settings
+                </button>
+            </a>
+        {% else %}
+            <br />
+            <a href="/login">
+                <button type="button" class="btn btn-danger m-t-10 m-r-10" id="login-redirect">Login</button>
+            </a>
+            <a href="/register">
+                <button type="button" class="btn btn-default m-t-10">Register</button>
+            </a>
+        {% endif %}
+    </strong>
+</div>

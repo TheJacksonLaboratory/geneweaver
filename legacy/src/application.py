@@ -24,10 +24,11 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-from uploader import Uploader
 import cairosvg
+import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
+import notifications
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -194,20 +195,6 @@ def _form_login():
 
     flask.g.user = user
     return user
-
-
-def send_mail(to, subject, body):
-    #print to, subject, body
-    sendmail_location = "/usr/bin/mail"  # sendmail location
-    p = os.popen("%s -t" % sendmail_location, "w")
-    p.write("From: NoReply@geneweaver.org\n")
-    p.write("To: %s\n" % to)
-    p.write("Subject: %s\n" % subject)
-    p.write("\n")  # blank line separating headers from body
-    p.write(body)
-    status = p.close()
-    if status != 0:
-        print "Sendmail exit status", status
 
 
 def _form_register():
@@ -382,6 +369,7 @@ def render_editgenesets(gs_id):
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
+
     if not (user_info.is_admin or user_info.is_curator):
         ref_types = ["Publication, NCBO Annotator",
                      "Description, NCBO Annotator",
@@ -389,8 +377,17 @@ def render_editgenesets(gs_id):
                      "Description, MI Annotator",
                      "GeneWeaver Primary Inferred",
                      "Manual Association", ]
-    return flask.render_template('editgenesets.html', geneset=geneset, user_id=user_id, species=species, pubs=pubs,
-                                 view=view, ref_types=ref_types, onts=onts)
+
+    return flask.render_template(
+        'editgenesets.html', 
+        geneset=geneset, 
+        user_id=user_id, 
+        species=species, 
+        pubs=pubs,
+        view=view, 
+        ref_types=ref_types, 
+        onts=onts
+    )
 
 
 @app.route('/updateGenesetOntologyDB')
@@ -730,9 +727,9 @@ def render_editgeneset_genes(gs_id):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        symbol2ode_search = Uploader().get_ode_genes(geneset.sp_id, contents)
-        keys = [list(query) for query in symbol2ode_search.keys()]
-        symbol2ode = dict([(k[0], symbol2ode_search[tuple(k)][0]) for k in keys])
+        symbol2ode = batch.db.getOdeGeneIds(geneset.sp_id, contents)
+        #keys = [list(query) for query in symbol2ode.keys()]
+        #symbol2ode = dict([(k[0], symbol2ode[tuple(k)][0]) for k in keys])
         ## Reverse to make our lives easier during templating
         for sym, ode in symbol2ode.items():
             symbol2ode[ode] = sym
@@ -1101,11 +1098,37 @@ def render_viewgeneset(gs_id):
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
+    ## User account
+    if user_info:
+        if not user_info.is_admin and not user_info.is_curator:
+            ## get_geneset takes into account permissions, if a geneset is
+            ## returned by *_no_user then we know they can't view it b/c of 
+            ## access rights
+            if not geneset and geneweaverdb.get_geneset_no_user(gs_id):
+                return flask.render_template(
+                    'viewgenesetdetails.html',
+                    no_access=True,
+                    user_id=user_id
+                )
+
+    ## Guest account attempting to view geneset without proper access
+    if not geneset:
+        return flask.render_template(
+            'viewgenesetdetails.html',
+            no_access=True,
+            user_id=user_id
+        )
+
     ## Nothing is ever deleted but that doesn't mean users should be able
-    ## to see them. Also some sets have a NULL status so that MUST be checked
-    ## for, otherwise sad times ahead :(
+    ## to see them. Some sets have a NULL status so that MUST be
+    ## checked for, otherwise sad times ahead :(
     if not geneset or (geneset and geneset.status == 'deleted'):
-        return flask.render_template('viewgenesetdetails.html', geneset=None)
+        return flask.render_template(
+            'viewgenesetdetails.html', 
+            geneset=None,
+            deleted=True,
+            user_id=user_id
+        )
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
@@ -1151,6 +1174,14 @@ def render_viewgenesetoverlap(gs_ids):
         user_id = 0
 
     genesets = []
+
+    ## The same geneset provided for all arguments
+    if len(list(set(gs_ids))) == 1:
+
+        return flask.render_template(
+            'viewgenesetoverlap.html', 
+            same_geneset=True
+        )
 
     for gs_id in gs_ids:
         gs = geneweaverdb.get_geneset(gs_id, user_id)
@@ -1220,14 +1251,84 @@ def render_viewgenesetoverlap(gs_ids):
 
     if user_id != 0:
         if user_info.is_admin or\
-           user_info.is_curator or\
-           geneset.user_id == user_id:
+           user_info.is_curator:
             view = 'True' 
 
         else:
             view = None
     else:
         view = None
+
+    def venn_circles(i,ii,j, size=100):
+        """
+        Taken from the jaccard sim. tool source code. Calculates x, y positions
+        for each circle in the venn diagram so the proper overlap area is
+        shown.
+
+        arguments
+            i: size of the left side geneset
+            ii: size of the right side geneset
+            j: size of the intersection
+            size: visualization scale
+
+        returns
+            a dictionary with x, y positions and radius sizes for both circles
+        """
+        pi = math.acos(-1.0)
+        r1 = math.sqrt(i/pi)
+        r2 = math.sqrt(ii/pi)
+        if r1==0:
+            r1=1.0
+        if r2==0:
+            r2=1.0
+        scale=size/2.0/(r1+r2)
+
+        if i==j or ii==j:  # complete overlap
+            c1x=c1y=c2x=c2y=size/2.0
+        elif j==0:  # no overlap
+            c1x=c1y=r1*scale
+            c2x=c2y=size-(r2*scale)
+        else:
+            # originally written by zuopan, rewritten a number of times
+            step = .001
+            beta = pi
+            if r1<r2:
+                r2_=r1
+                r1_=r2
+            else:
+                r1_=r1
+                r2_=r2
+            r2o1=r2_/r1_
+            r1_2=r1_*r1_
+            r2_2=r2_*r2_
+
+            while beta > 0:
+                beta -= step
+                alpha = math.asin(math.sin(beta)/r1_ * r2_)
+                Sj = r1_2*alpha + r2_2*(pi-beta) - 0.5*(r1_2*math.sin(2*alpha) + r2_2*math.sin(2*beta));
+                if Sj > j:
+                    break
+
+            oq= r1_*math.cos(alpha) - r2_*math.cos(beta)
+            oq=(oq*scale)/2.0
+
+            c1x=(size/2.0) - oq
+            c2x=(size/2.) + oq
+            c1y=c2y=size/2.0
+
+        vsize = 100
+        if r1 > r2:
+            r = r1
+        else:
+            r = r2
+
+        tx = (vsize/2)*(4.0/3.0)
+        ty = (vsize/2 - (r) -5)*(4.0/3.0)
+        r1=r1*scale
+        r2=r2*scale
+
+        return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2, 'tx': tx, 'ty': ty}
+
 
     ## TODO: fix emphasis genes
     #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
@@ -1256,10 +1357,31 @@ def render_viewgenesetoverlap(gs_ids):
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
+    ## Pairwise comparison so we provide additional data for the venn diagram
+    if len(genesets) == 2:
+        venn = venn_circles(genesets[0].count, genesets[1].count, len(intersects), 300)
+        venn_text = {'tx': venn['tx'], 'ty': venn['ty']}
+        venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
+                {'cx': venn['c2x'], 'cy': venn['c2y'], 'r': venn['r2']}];
+
+        left_count = genesets[0].count - len(intersects)
+        right_count = genesets[1].count - len(intersects)
+
+        venn_text['text'] = '(%s (%s) %s)' % (left_count, len(intersects), right_count)
+
+    else:
+        venn = None
+        venn_text = None
+
+    #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+
     return flask.render_template('viewgenesetoverlap.html', 
         gs_map=gs_map,
         intersects=intersects,
-        species=species
+        species=species,
+        venn=venn,
+        venn_text=venn_text,
+        #emphgenes=emphgenes
     )
 
 
@@ -1331,8 +1453,21 @@ def render_user_genesets():
         headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
     else:
         headerCols, user_id, columns = None, 0, None
-    return flask.render_template('mygenesets.html', headerCols=headerCols, user_id=user_id, columns=columns,
-                                 table=table)
+
+    ## sp_id -> sp_name map so species tags can be dynamically generated
+    species = []
+
+    for sp_id, sp_name in geneweaverdb.get_all_species().items():
+        species.append([sp_id, sp_name])
+
+    return flask.render_template(
+        'mygenesets.html', 
+        headerCols=headerCols, 
+        user_id=user_id, 
+        columns=columns,
+        table=table,
+        species=species
+    )
 
 
 def top_twenty_simgenesets(simgs):
@@ -1441,19 +1576,28 @@ def render_sim_genesets(gs_id, grp_by):
 
 @app.route('/getPubmed', methods=['GET', 'POST'])
 def get_pubmed_data():
+    """
+    """
+
+    from pubmedsvc import get_pubmed_info
+
     pubmedValues = []
+
     if flask.request.method == 'GET':
         args = flask.request.args
+
         if 'pmid' in args:
             pmid = args['pmid']
 
-            pub = Uploader().search_pubmed(pmid)
+            pub = get_pubmed_info(pmid)
 
-            pubmedValues.extend((pub['pub_title'], pub['pub_authors'], pub['pub_journal'],
-                                 pub['pub_volume'], pub['pub_pages'], pub['pub_date'],
-                                 pub['pub_abstract']))
+            if not pub:
+                return json.dumps({})
 
-            print pubmedValues
+            pubmedValues.extend((pub['pub_title'], pub['pub_authors'], 
+                                 pub['pub_journal'],
+                                 pub['pub_volume'], pub['pub_pages'],
+                                 pub['pub_year'], pub['pub_month'], pub['pub_abstract']))
 
     return json.dumps(pubmedValues)
 
@@ -1554,7 +1698,7 @@ def render_export_jac_genelist(gs_id):
     else:
         user_id = 0
     string = ''
-    results = geneweaverdb.get_similar_genesets(gs_id, user_id)
+    results = geneweaverdb.get_similar_genesets(gs_id, user_id, 0)
     for k in results:
         string = string + str(k.geneset_id) + ',' + k.name + ',' + k.abbreviation + ',' + str(k.count) + ',' + str(
             k.jac_value) + '\n'
@@ -1573,7 +1717,7 @@ def render_view_same_publications(gs_id):
     return flask.render_template('viewsamepublications.html', user_id=user_id, gs_id=gs_id, geneset=results)
 
 
-@app.route('/emphasis.html', methods=['GET', 'POST'])
+@app.route('/emphasis', methods=['GET', 'POST'])
 def render_emphasis():
     '''
     Emphasis_AddGene
@@ -2299,8 +2443,8 @@ def reset_password():
         return flask.render_template('reset.html', reset_failed=True)
     else:
         new_password = geneweaverdb.reset_password(user.email)
-        send_mail(user.email, "Password Reset Request",
-                  "Your new temporary password is: " + new_password)
+        notifications.send_email(user.email, "Password Reset Request",
+                                 "Your new temporary password is: " + new_password)
         return flask.redirect('reset_success')
 
 
@@ -2413,6 +2557,52 @@ def quoted(s):
     if l:
         return l[0]
     return None
+
+
+@app.route('/notifications')
+def render_notifications():
+    return flask.render_template('notifications.html')
+
+
+@app.route('/notifications.json')
+def get_notifications_json():
+    if 'user_id' in flask.session:
+        if 'start' in request.args:
+            start = request.args['start']
+        else:
+            start = 0
+        if 'limit' in request.args:
+            #
+            limit = int(request.args['limit']) + 1
+            notes = notifications.get_notifications(flask.session['user_id'], start, limit)
+            if len(notes) < limit:
+                has_more = False
+            else:
+                has_more = True
+                del notes[-1]
+        else:
+            notes = notifications.get_notifications(flask.session['user_id'], start)
+            has_more = False
+
+        mark_as_read = []
+        for note in notes:
+            # need to format the timestamp as a string
+            note['time_sent'] = note['time_sent'].strftime("%b %d, %Y at %I:%M %p")
+            if not note['read']:
+                mark_as_read.append(note['notification_id'])
+        if mark_as_read:
+            notifications.mark_notifications_read(*mark_as_read)
+        return json.dumps({'notifications': notes, 'has_more': has_more})
+    else:
+        return json.dumps({'error': 'You must be logged in'})
+
+@app.route('/unread_notification_count.json')
+def get_unread_notification_count_json():
+    if 'user_id' in flask.session:
+        count = notifications.get_unread_count(flask.session['user_id'])
+        return json.dumps({'unread_notifications': count})
+    else:
+        return json.dumps({'error': 'You must be logged in'})
 
 
 # ********************************************

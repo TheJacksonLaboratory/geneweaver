@@ -1,0 +1,103 @@
+{% set title="Notifications" %}
+{% include 'header.html' %}
+
+<style>
+    .subject {
+        font-size: larger;
+        float: left;
+    }
+
+    .subject-unread {
+        font-weight: bold;
+    }
+
+
+    .message {
+        margin: 10px;
+        margin-top: 20px;
+        clear: both;
+    }
+
+    .time-sent {
+        font-size: smaller;
+        float: right;
+    }
+</style>
+
+{% if not g.user or g.user.user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>Notifications</strong></h3>
+            </div>
+
+            <div class="panel-group" id="notifications"></div>
+            <div class="row">
+                <div class="col-xs-6 col-md-3">
+                    <button type="button" class="btn btn-block" id="loadMessages">
+                        <span><i class="fa fa-refresh pull-left"></i></span> <span id="btn_text">Load More Notifications</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    {% endblock %}
+
+    <script type="text/javascript">
+
+        var startIndex = 0;
+        var messageLimit = 10;
+
+        function load_messages() {
+            $.getJSON( "/notifications.json?start=" + startIndex + "&limit=" + messageLimit, function( data ) {
+                console.log("in load_messages");
+                if (!data['has_more']) {
+                    $('#loadMessages').prop("disabled", true);
+                    $('#btn_text').text("No more notifications")
+                }
+                $.each( data['notifications'], function( key, val ) {
+                    var subjectClass = "";
+                    if (!val['read']) {
+                        subjectClass = " subject-unread";
+                    }
+
+
+                    var html = "<div>\n" +
+                                    "<div><span class=\"subject " + subjectClass + "\">" + val['subject'] + "</span><span class=\"time-sent\">" + val['time_sent'] + "</span></div>\n" +
+                                    "<p class=\"message\">" + val['message'] + "</p>\n" +
+                                    "<hr></div>\n";
+                    $("#notifications").append(html);
+                });
+                update_notification_badge();
+            });
+            startIndex += messageLimit;
+        }
+
+        $(document).ready(function () {
+
+            $('#loadMessages').prop("disabled", false);
+
+
+            $('#loadMessages').on('click', function () {
+                load_messages();
+            });
+
+            console.log("loading messages");
+            load_messages();
+
+        });
+
+    </script>
+
+{% endif %}
+
+{% include 'footer.html' %}

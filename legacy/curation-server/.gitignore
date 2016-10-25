@@ -1,0 +1,17 @@
+## Ignore the following shit:
+#
+
+## Sensitive details
+#settings.py
+
+## Stupid compiled python files
+*.pyc
+
+## vim swap files
+*.sw*
+
+## Text files which are usually script output
+## *.txt
+
+## Apple OS X custom attributes folder file
+.DS_Store

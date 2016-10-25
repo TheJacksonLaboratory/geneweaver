@@ -1,4 +1,3 @@
-
 GeneWeaver 2.0 Setup and Deployment
 ===================================
 
@@ -101,10 +100,7 @@ Or daemonization using systemctl:
 
 ## Configuring Sphinx
 
-Retrieve the sample config repo:
-
-	$ git clone https://YOUR_USERNAME@bitbucket.org/timothy_reynolds/geneweaver-configs.git
-
+A sample sphinx config can be found in the `sample-configs/` directory.
 The following example stores the Sphinx config and indices under `/var/lib`. 
 Create a folder to hold the Sphinx config file and indices:
 
@@ -124,6 +120,8 @@ using the `path` variable. This path can be anywhere on the system--we
 typically use the sphinx folder. Set the `stopwords` variable to the full
 path containing the list of stop words we copied into the sphinx folder above.
 Make the same changes under the `index geneset_delta` section too.
+
+Create a 'log' directory; 'chown [sphinxuser]'.
 
 Under the `searchd` section, change the `log`, `query_log`, and
 `pid_file` variables to point to full paths for each of those files.
@@ -189,7 +187,8 @@ GeneWeaver requires the following python packages:
 
 These can be installed individually using pip (which should also install their
 dependencies) or using our requirements.txt which also includes all
-dependendent packages:
+dependendent packages. The requirements file can be found in the
+`sample-configs` directory.
 
 	$ pip install -r requirements.txt
 
@@ -227,6 +226,8 @@ Edit the newly generated configuration file with the proper application,
 celery, database, and sphinx information. In most cases, the default celery
 configuration is appropriate.
 
+Create a results directory with 777 permissions. The path will be placed in the config file.
+
 ### Configuring the Toolset
 
 Like the web application, edit `tools/config.py` change the `CONFIG_PATH`
@@ -237,6 +238,8 @@ If you installed virtualenv, be user to run the tools from that environment.
 	$ celery -A tools.celeryapp worker --loglevel=info
 
 Edit the config with the appropriate information.
+
+#### NOTE: The tool table may be incompatible with the celeryapp.py tool list. You may drop the tool table data and reload with ODE-data-only-tool.dump to correct.
 
 #### Compiling the Graph Tools
 
@@ -269,6 +272,41 @@ By default the web app runs on port 5000. You can point your browser to the
 host you assigned and you should see the GeneWeaver home page. They application
 may require sudo privileges to establish a connection on the given port.
 
+### Serving Application Requests Through Nginx
+
+Handling multiple requests using the Flask application alone may result in some
+performance issues. A web server can be used to handle user requests and route
+those requests to the web app. Start by installing nginx:
+
+	$ sudo yum install nginx
+
+Serving Flask applications with nginx requires an additional deployment
+application such as uWSGI:
+
+	$ pip install uwsgi
+
+Copy the sample uWSGI config, `uwsgi.ini` to an easily accessible 
+directory such as `/srv/geneweaver`. Change the `chdir`, `venv`, and `socket`
+variables to match your installation directories. If you want to change the
+number of worker processes to spawn, and the number of threads per process,
+change the `processes` and `threads` variables.
+
+There is a sample nginx config file in the `sample-configs` directory. The
+default nginx config, typically found in `/etc/nginx` should only require minor
+edits. Copy the custom geneweaver location blocks, `location /` and `location
+@geneweaver` from the sample nginx config to the one in `/etc/nginx`. Also
+ensure that the `uwsgi_pass` variable points to the correct socket location 
+found in the uWSGI config. Start the nginx service:
+	
+	$ sudo systemctl start nginx
+
+Start uWSGI using the given configuration file:
+
+	$ uwsgi --ini uwsgi.ini
+
+GeneWeaver should now be accessible using just the server name or IP address;
+all requests are routed through the default HTTP port (80).
+
 ### Managing GeneWeaver with Supervisor (optional)
 
 Supervisor is a system management utility that can be used to control the
@@ -276,10 +314,10 @@ GeneWeaver application. Start by installing it:
 
 	$ sudo yum install supervisor
 
-Copy the sample supervisord config from the configs repo to a directory of your
-choosing. Here we use the geneweaver application directory:
+Copy the sample supervisord config from the `sample-configs` directory to a 
+directory of your choosing. Here we use the geneweaver application directory:
 
-	$ cp geneweaver-configs/supervisord.conf /srv/geneweaver
+	$ cp sample-configs/supervisord.conf /srv/geneweaver
 
 Create a folder to store the supervisord logs, or store them in any directory
 you wish:

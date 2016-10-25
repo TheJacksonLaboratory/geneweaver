@@ -1,0 +1,38 @@
+<tr>
+	<td><a href="{{geneset.view_url}}"><b>GS{{geneset.gs_id}}: {{geneset.gs_name}}</b></a><br/>
+		<i>{{geneset.gs_label}}</i><br/><br/>
+		{{geneset.gs_description}}<br/>
+	  {%if geneset.gs_attribution -%}<br/>
+		<b>Attribution: </b> {{geneset.gs_attribution}}
+		{%- endif %}
+	  {%if geneset.gs_uri -%}<br/>
+		<b>URI: </b> <a href="{{geneset.gs_uri}}">{{geneset.gs_uri}}</a>
+		{%- endif %}
+	</td>
+	<td>
+		{%if geneset.pmid %}
+		<a href="http://pubmed.gov/{{geneset.pmid}}">PMID {{geneset.pmid}}</a><br/>
+		{%else%}
+		(No PMID)<br/>
+		{%endif%}
+		<br/>
+		<b>{{geneset.gs_count}}</b> genes in <br/>{{geneset.species}}<br/>
+		<br/>
+		<b>{{geneset.geneid_type}}</b> identifiers<br/>
+		with {{geneset.threshold}}<br/>
+	</td>
+	<td><a href="mailto:{{geneset.usr_email}}">{{geneset.usr_email}}</a><br/>{{geneset.last_updated}}<br/><br/>
+		Tier {{geneset.cur_id}}<br/>
+		{% if geneset.cur_id==5 %}
+		{% if '-1' in geneset.gs_groups %}(Private){%else%}
+		Groups: 
+		{%for grp_id in geneset.gs_groups %}
+		{{session.groups[grp_id]}}<br/>
+		{%endfor%}
+		{%endif%}
+		{%endif%}
+		<br/>
+	<a href="/index.php?action=manage&cmd=viewgeneset&gs_id={{geneset.gs_id}}" class="btn">View on Main Site</a>
+	<br/><br/>
+	</td>
+</tr>
