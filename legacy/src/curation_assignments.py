@@ -8,14 +8,14 @@
 #
 # CREATE TABLE production.curation_assignments
 # (
-#   gs_id bigint NOT NULL,
-#   created timestamp without time zone DEFAULT now(),
-#   updated timestamp without time zone DEFAULT now(),
-#   curation_group integer NOT NULL,
-#   curation_state integer NOT NULL,
-#   curator integer DEFAULT '-1'::integer,
-#   reviewer integer DEFAULT '-1'::integer,
-#   notes character varying,
+#   gs_id bigint NOT NULL,                             -- geneset for curation (geneset.gs_id)
+#   created timestamp without time zone DEFAULT now(), -- time the geneset was submitted for curation
+#   updated timestamp without time zone DEFAULT now(), -- time of last modification of this record
+#   curation_group integer NOT NULL,                   -- group assigned for curation (grp.grp_id)
+#   curation_state integer NOT NULL,                   -- 1=unassigned, 2=assigned, 3=curated, 4=reviewed, 5=approved
+#   curator integer DEFAULT '-1'::integer,             -- assigned curator (usr.usr_id)
+#   reviewer integer DEFAULT '-1'::integer,            -- assigned reviewer (usr.usr_id)
+#   notes character varying,                           --
 #   CONSTRAINT curation_assignments_pkey PRIMARY KEY (gs_id)
 # )
 #
@@ -97,7 +97,6 @@ def submit_geneset_for_curation(geneset_id, group_id, note):
     :return:
     """
 
-    print("Adding geneset to group...")
     curation_state = 1
     with geneweaverdb.PooledCursor() as cursor:
 
@@ -127,7 +126,6 @@ def assign_geneset_curator(geneset_id, curator_id, reviewer_id, note):
     :return:
     """
 
-    print("Assigning curator...")
     curation_state = 2
 
     with geneweaverdb.PooledCursor() as cursor:
@@ -152,7 +150,6 @@ def submit_geneset_curation_for_review(geneset_id, note):
     :return:
     """
 
-    print("Submit for review...")
     curation_state = 3
 
     with geneweaverdb.PooledCursor() as cursor:
@@ -186,7 +183,6 @@ def geneset_curation_review_passed(geneset_id, note):
     :return:
     """
 
-    print("Passed team review...")
     curation_state = 4
 
     with geneweaverdb.PooledCursor() as cursor:
@@ -221,8 +217,6 @@ def geneset_curation_review_failed(geneset_id, note):
     :return:
     """
 
-    print("Failed team review...")
-    curation_type = 1
     curation_state = 2
     geneset_name = get_geneset_name(geneset_id)
 
@@ -273,10 +267,19 @@ def main():
     curator=8446948
     reviewer=8446948
 
+    print("Adding geneset to group...")
     submit_geneset_for_curation(geneset_id, group_id, "submission_note")
+
+    print("Assigning curator...")
     assign_geneset_curator(geneset_id, curator, reviewer, "assignment_note")
+
+    print("Submit for review...")
     submit_geneset_curation_for_review(geneset_id, "ready_for_review_note")
+
+    print("Failed team review...")
     geneset_curation_review_failed(geneset_id, "failed_review_note")
+
+    #print("Passed team review...")
 
     #print(get_geneset_curation_assignment(geneset_id))
 
