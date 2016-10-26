@@ -2641,12 +2641,12 @@ def render_usage():
     return flask.render_template('usage.html')
 
 
-@app.route('/register.html', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def render_register():
     return flask.render_template('register.html')
 
 
-@app.route('/reset.html', methods=['GET', 'POST'])
+@app.route('/reset', methods=['GET', 'POST'])
 def render_reset():
     return flask.render_template('reset.html')
 
