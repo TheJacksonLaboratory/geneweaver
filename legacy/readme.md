@@ -264,12 +264,12 @@ This tool will generate a connection to the database and requires you to set the
 
 To change all the necessary lines in a single sitting, run the following command in the tools directory:
 
-        $ cd tools
-        $ find . -name "*.cpp" -exec sed -i "s/129.62.148.19/DATABASE_IP/g" '{}' \;
+    $ cd tools
+    $ find . -name "*.cpp" -exec sed -i "s/129.62.148.19/DATABASE_IP/g" '{}' \;
 
 Then compile the distribution generator:
 
-        $ cd cpp_tools && make
+    $ cd cpp_tools && make
 
 ### Running the Application
 
