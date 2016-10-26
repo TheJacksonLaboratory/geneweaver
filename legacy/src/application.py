@@ -1076,13 +1076,12 @@ def download_result():
     form = flask.request.form
     svg = form['svg'].strip()
     filetype = form['filetype'].lower().strip()
-    oldver = form['oldver']
     svgout = StringIO()
     imgout = StringIO()
     resultpath = config.get('application', 'results')
     dpi = 600
 
-    if oldver:
+    if 'oldver' in form:
         with open(os.path.join(resultpath, oldver), 'r') as fl:
             svg = fl.read()
 

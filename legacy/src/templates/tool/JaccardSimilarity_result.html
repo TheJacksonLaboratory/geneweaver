@@ -330,6 +330,7 @@ $(document).ready(function() {
 <script>
     $('.download-image').on('click', function(event) {
 
+		console.log('dl');
         var dlurl = '/downloadResult';
         // Removes 'dl-' from the id string
         var filetype = event.target.id.slice(3);
@@ -359,7 +360,9 @@ $(document).ready(function() {
         html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
                html + '</svg>'
 
+		console.log('dl-2');
         $.post(dlurl, {svg: html, filetype: filetype}).done(function (data) {
+			console.log(data);
 
             if (filetype == 'png')
                 var png = 'data:image/png;base64,' + data;
@@ -373,6 +376,8 @@ $(document).ready(function() {
             var a = document.createElement("a");
             a.download = 'result.' + filetype;
             a.href = png;
+
+			console.log(a);
 
             document.body.appendChild(a);
 
