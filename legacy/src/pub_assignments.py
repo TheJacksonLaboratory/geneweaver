@@ -8,6 +8,7 @@
 #
 # CREATE TABLE production.pub_assignments
 # (
+#   id serial NOT NULL,
 #   pub_id bigint NOT NULL,                            -- geneset for curation (publication.pub_id)
 #   curation_group integer NOT NULL,                   -- group assigned for assignment (grp.grp_id)
 #   created timestamp without time zone DEFAULT now(), -- time the geneset was submitted for curation
@@ -17,13 +18,8 @@
 #   assigner integer DEFAULT '-1'::integer,            -- assigner of task (usr.usr_id)
 #   notes character varying,                           --
 #   CONSTRAINT pub_assignments_pkey PRIMARY KEY (pub_id, curation_group)
-# )
-#
-#  WITH (
-#   OIDS=FALSE
-# );
-# ALTER TABLE production.pub_assignments
-#   OWNER TO postgres;
+#  )
+#  WITH (OIDS=FALSE);
 #
 
 from __future__ import print_function
@@ -57,7 +53,7 @@ def queue_publication(pub_id, group_id, note):
     :return:
     """
 
-    state = 1
+    state = PubAssignment.UNASSIGNED
     with geneweaverdb.PooledCursor() as cursor:
 
         # JGP - for now delete the object to prevent exception on the INSERT...
@@ -87,7 +83,7 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
     :return:
     """
 
-    state = 2
+    state = PubAssignment.ASSIGNED
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
@@ -111,12 +107,12 @@ def assignment_complete(pub_id, group_id, note):
     :return:
     """
 
-    curation_state = 3
+    state = PubAssignment.READY_FOR_TEAM_REVIEW
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
             "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
-            (curation_state, note, pub_id, group_id))
+            (state, note, pub_id, group_id))
         cursor.connection.commit()
 
         cursor.execute(
@@ -144,7 +140,7 @@ def review_accepted(pub_id, group_id, note):
     :return:
     """
 
-    state = 4
+    state = PubAssignment.REVIEWED
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
@@ -178,12 +174,12 @@ def review_rejected(pub_id, group_id, note):
     :return:
     """
 
-    curation_state = 2
+    state = PubAssignment.ASSIGNED
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
             "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
-            (curation_state, note, pub_id, group_id))
+            (state, note, pub_id, group_id))
         cursor.connection.commit()
 
         cursor.execute(
