@@ -354,8 +354,14 @@ def render_analyze_new_project(pj_name):
     return flask.render_template('analyze.html', active_tools=active_tools)
 
 
+
+@app.route('/curategeneset/edit/<int:gs_id>')
+def render_curategeneset_edit(gs_id):
+    return render_editgenesets(gs_id, True)
+
+
 @app.route('/editgeneset/<int:gs_id>')
-def render_editgenesets(gs_id):
+def render_editgenesets(gs_id, curation_view=False):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
     else:
@@ -368,7 +374,7 @@ def render_editgenesets(gs_id):
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
-        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
+        view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id or geneweaverdb.user_is_assigned_curation(user_id, gs_id) else None
     else:
         view = None
 
@@ -388,7 +394,8 @@ def render_editgenesets(gs_id):
         pubs=pubs,
         view=view, 
         ref_types=ref_types, 
-        onts=onts
+        onts=onts,
+        curation_view=curation_view
     )
 
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
@@ -774,10 +781,10 @@ def update_geneset():
 
 @app.route('/curategenesetgenes/<int:gs_id>')
 def render_curategenesetgenes(gs_id):
-    return render_editgeneset_genes(gs_id, curation=True)
+    return render_editgeneset_genes(gs_id, curation_view=True)
 
 @app.route('/editgenesetgenes/<int:gs_id>')
-def render_editgeneset_genes(gs_id, curation=False):
+def render_editgeneset_genes(gs_id, curation_view=False):
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
     user_info = geneweaverdb.get_user(user_id)
     uploadfiles.create_temp_geneset_from_value(gs_id)
@@ -788,10 +795,8 @@ def render_editgeneset_genes(gs_id, curation=False):
 
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
-        if view is None and curation:
-            curation_assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
-            if curation_assignment and curation_assignment.curator == user_id and curation_assignment.state == 2:
-                view = 'True'
+        if view is None and curation_view and geneweaverdb.user_is_assigned_curation(user_id, gs_id):
+            view = 'True'
 
     else:
         view = None
@@ -851,7 +856,7 @@ def render_editgeneset_genes(gs_id, curation=False):
         meta=meta, 
         ontology=ontology,
         id_map=symbol2ode,
-        curation=curation
+        curation_view=curation_view
     )
 
 
@@ -873,10 +878,8 @@ def render_set_threshold(gs_id):
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
 
-        if view is None:
-            curation_assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
-            if curation_assignment and curation_assignment.curator == user_id and curation_assignment.state == 2:
-                view = 'curator'
+        if view is None and geneweaverdb.user_is_assigned_curation(user_id, gs_id):
+            view = 'curator'
     else:
         view = None
     # Determine if this is bi-modal, we won't display these

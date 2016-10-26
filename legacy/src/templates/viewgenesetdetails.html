@@ -411,7 +411,7 @@
             $('#editGeneset').on('click', function (e) {
                 var gsid = {{ geneset.geneset_id }};
                 {% if curation_view == 'curator' %}
-                    window.location.href = '../curategeneset/' +gsid;
+                    window.location.href = '/curategeneset/edit/' +gsid;
                 {% else %}
                     window.location.href = '../editgeneset/'+gsid;
                 {% endif %}
@@ -421,7 +421,7 @@
             $('#editGenesetGenes').on('click', function (e) {
                 var gsid = {{ geneset.geneset_id }};
                 {% if curation_view == 'curator' %}
-                    window.location.href = '../curategenesetgenes/' +gsid;
+                    window.location.href = '/curategenesetgenes/' +gsid;
                 {% else %}
                     window.location.href = '../editgenesetgenes/' +gsid;
                 {% endif %}
@@ -494,7 +494,7 @@
                 ]);
             }
 
-            {% if curation_view == 'curation_leader' and (curation_assignment.state == 1 or curation_assignment.state == 1) %}
+            {% if curation_view == 'curation_leader' and (curation_assignment.state == 1 or curation_assignment.state == 2) %}
                 $('#assignCurator').on('click', function () {
 
                     // when we show the modal window, we don't want a group selected.

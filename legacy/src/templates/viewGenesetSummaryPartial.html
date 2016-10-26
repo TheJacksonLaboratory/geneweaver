@@ -192,7 +192,7 @@
             <!-- TODO account for null authors, get Publication info -->
             <tr>
                 <th>Authors:</th>
-                <td><i>{% if gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
+                <td><i>{% if gs.publication is defined and gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
             </tr>
 
         </table>

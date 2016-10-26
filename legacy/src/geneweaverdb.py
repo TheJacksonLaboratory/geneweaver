@@ -10,6 +10,7 @@ import flask
 from flask import session
 import config
 import notifications
+from curation_assignments import CurationAssignment
 
 app = flask.Flask(__name__)
 
@@ -971,10 +972,14 @@ def user_is_owner(usr_id, gs_id):
         cursor.execute('''SELECT COUNT(gs_id) FROM geneset WHERE usr_id=%s AND gs_id=%s''', (usr_id, gs_id))
         return cursor.fetchone()[0]
 
-def user_is_curator(usr_id, gs_id):
+
+def user_is_assigned_curation(usr_id, gs_id):
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT COUNT(gs_id) FROM curation_assignments WHERE curator=%s AND gs_id=%s AND curation_state=2''', (usr_id, gs_id))
-        return cursor.fetchone()[0]
+        cursor.execute('''SELECT COUNT(gs_id) FROM curation_assignments WHERE curator=%s AND gs_id=%s AND curation_state=%s''', (usr_id, gs_id, CurationAssignment.ASSIGNED))
+
+        if cursor.fetchone()[0] == 0:
+            return False
+        return True
 
 
 def edit_geneset_id_value_by_id(rargs):
@@ -1057,8 +1062,8 @@ def updategeneset(usr_id, form):
     # ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
     # ont_ids = (form["onts"].strip()) if form["onts"] else None
     pmid = None
-    if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id,
-                                                                                                          gs_id) != 1:
+    if ((get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or
+            (user_is_owner(usr_id, gs_id) != 1) and not user_is_assigned_curation(usr_id, gs_id)):
         return 'You do not have permission to update this GeneSet'
     if gs_abbreviation is None or gs_description is None or gs_name is None:
         return 'Required Field is not provided'
@@ -1363,7 +1368,7 @@ def update_threshold_values(rargs):
     max = rargs.get('max', type=float)
     gs_id = rargs.get('gs_id', type=int)
     if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id,
-                                                                                                           gs_id) != 0:
+                                                                                                           gs_id) != 0 or user_is_assigned_curation(user_id, gs_id):
         minmax = str(min) + ',' + str(max)
         with PooledCursor() as cursor:
             cursor.execute('''UPDATE geneset SET gs_threshold_type=5, gs_threshold=%s WHERE gs_id=%s''',
