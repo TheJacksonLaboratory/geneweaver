@@ -1,25 +1,21 @@
 /**
  * Visualize the output of DBSCAN
  *
- * http://d3-legend.susielu.com/
  * */
 
+// Define colors for different species
+// When zooming in, color becomes solid
+
+var speciesToColorZoomout ={"Mus musculus":"rgba(17,91,127,0.5)","Homo sapiens":"rgba(160,168,228,0.5)","Rattus norvegicus":"rgba(79,91,182,0.5)","Danio rerio":"rgba(29,42,138,0.5)","Drosophila melanogaster":"rgba(151,230,186,0.5)","Macaca mulatta":"rgba(65,188,118,0.5)","Caenorhabditis elegans":"rgba(13,143,70,0.5)","Saccharomyces cerevisiae":"rgba(255,215,168,0.5)","Gallus gallus":"rgba(255,178,88,0.5)","Canis familiaris":"rgba(201,116,18,0.5)"};
+var speciesToColorZoomin = {"Mus musculus":"rgb(17,91,127)","Homo sapiens":"rgb(160,168,228)","Rattus norvegicus":"rgb(79,91,182)","Danio rerio":"rgb(29,42,138)","Drosophila melanogaster":"rgb(151,230,186)","Macaca mulatta":"rgb(65,188,118)","Caenorhabditis elegans":"rgb(13,143,70)","Saccharomyces cerevisiae":"rgb(255,215,168)","Gallus gallus":"rgb(255,178,88)","Canis familiaris":"rgb(201,116,18)"};
+
+// Define properties for svg
 var svg = d3.select("svg"),
     margin = 20,
     diameter = +svg.attr("width"),
     g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
 
-var color = d3.scaleLinear()
-    .domain([-1, 5])
-    .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
-    .interpolate(d3.interpolateHcl);
-
-var species = "Drosophila melanogaster";
-
-var geneToSpecies = {"Arr1":species, "car":species, "veli":species, "Prp31":species, "baz":species, "CdsA":species, "Arr2":species, "Calx":species, "Cerk":species, "Pis":species};
-var speciesToColorZoomout = {"Drosophila melanogaster":"rgba(255, 220, 124, 0.63)", "abc":"red"};
-var speciesToColorZoomin = {"Drosophila melanogaster":"rgb(255, 220, 124)","abc":"red"};
-
+//define domain and colors for legend
 var ordinal = d3.scaleOrdinal()
   .domain(Object.keys(speciesToColorZoomin))
   .range(Object.keys(speciesToColorZoomin).map(function(e){return speciesToColorZoomin[e]}));
@@ -28,15 +24,16 @@ var pack = d3.pack()
     .size([diameter - margin, diameter - margin])
     .padding(2);
 
-
-
-function parse(cluster) {
+//Parse the cluster to a format which d3 code can accept
+//Basiclly root - cluster layer - gene layer(leaf)
+function parse(cluster, geneToSpecies) {
     var clusters = {};
     clusters.name = "Clusters";
     clusters.children = cluster.map(function(e, i){
         var obj = {};
         obj.name = "Cluster" + i;
         obj.children = e.map(function(gene){
+            console.log(geneToSpecies[gene]);
             var geneObj = {};
             geneObj.name = gene;
             geneObj.size = 1;
@@ -49,11 +46,14 @@ function parse(cluster) {
     return clusters;
 }
 
+//Main function to draw svg
 function draw(root) {
+  //get the root
   root = d3.hierarchy(root)
       .sum(function(d) { return d.size; })
       .sort(function(a, b) { return b.value - a.value; });
 
+  //set focus, will be used for zooming function
   var focus = root,
       nodes = pack(root).descendants(),
       view;
@@ -63,9 +63,13 @@ function draw(root) {
     .enter().append("circle")
       .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
       .style("fill", function(d) {
+          //set color for the largest circle(root)
           if(!d.parent)
               return "#96C7DF";
+          //if d has children, then d is cluster layer, else d is in gene layer.
+          //at gene layer, when the focus is root, it is at zoom out mode, otherwise zoom in mode
           return d.children ? "#64A5C4" : focus === root ? d.data.colorZoomout : d.data.colorZoomin; })
+      //set onClick function to the circle, which is the zoom function
       .on("click", function(d) {
           if (focus !== d)
               if(!d.children)
@@ -75,7 +79,7 @@ function draw(root) {
               }
 
       });
-
+  //change the text when zooming between cluster and gene's name
   var text = g.selectAll("text")
     .data(nodes)
     .enter().append("text")
@@ -83,6 +87,7 @@ function draw(root) {
       .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
       .style("display", function(d) { return d.parent === root ? "inline" : "none"; })
       .on("click", function(d) {
+          //make the gene clickable--url will redirect to a search gene page
           if(!d.children) {
               var url = "/search/?searchbar=" + d.data.name + "&pagination_page=1&searchGenes=yes";
               location.href = url;
@@ -96,7 +101,7 @@ function draw(root) {
       .style("background", "white")
       .on("click", function() { zoom(root); });
 
-    //legend
+    //set legend
     svg.append("g")
       .attr("class", "legendOrdinal")
       .attr("transform", "translate(20,20)");
@@ -109,6 +114,7 @@ function draw(root) {
     svg.select(".legendOrdinal")
       .call(legendOrdinal);
 
+  //zoom function
   zoomTo([root.x, root.y, root.r * 2 + margin]);
 
   function zoom(d) {
@@ -123,11 +129,6 @@ function draw(root) {
     transition.selectAll("circle")
       .filter(function(d) { return !d.children; })
         .style("fill", function(d) { return d.parent === focus ? d.data.colorZoomin : d.data.colorZoomout; });
-        // .append("title")
-        //   .text(function(d) {
-        //     return d.data.colorZoomin
-        //         + "\ngene: " + d.data.name;
-        //   });
 
     transition.selectAll("text")
       .filter(function(d) { return d.parent === focus || this.style.display === "inline"; })
@@ -143,23 +144,3 @@ function draw(root) {
   }
 };
 
-function drawLegend() {
-var quantize = d3.scaleQuantize()
-  .domain([ 0, 0.15 ])
-  .range(d3.range(9).map(function(i) { return "q" + i + "-9"; }));
-
-var svg = d3.select("svg");
-
-svg.append("g")
-  .attr("class", "legendQuant")
-  .attr("transform", "translate(20,20)");
-
-var legend = d3.legendColor()
-  .labelFormat(d3.format(".2f"))
-  .useClass(true)
-  .scale(quantize);
-
-svg.select(".legendQuant")
-  .call(legend);
-
-}

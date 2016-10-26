@@ -119,7 +119,7 @@ td, th {
 <script src="/static/tools/DBSCAN.js" charset="utf-8"></script>
 <script charset="utf-8">
     {% if async_result.resClusters | length != 0 %}
-        draw(parse({{ async_result.resClustersStr|safe }}));
+        draw(parse({{ async_result.resClustersStr|safe }}, {{ async_result.species_map|safe }}));
     {% endif %}
 
     function download() {
