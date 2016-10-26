@@ -97,7 +97,7 @@ def submit_geneset_for_curation(geneset_id, group_id, note):
     :return:
     """
 
-    curation_state = 1
+    curation_state = CurationAssignment.UNASSIGNED
     with geneweaverdb.PooledCursor() as cursor:
 
         # JGP - for now delete the object to prevent exception on the INSERT...
@@ -105,7 +105,6 @@ def submit_geneset_for_curation(geneset_id, group_id, note):
             "DELETE FROM production.curation_assignments WHERE gs_id=%s", (geneset_id,))
 
         # Add a record to the table
-        #log_entry = 'Geneset submitted for curation\n' + note
         cursor.execute(
             "INSERT INTO production.curation_assignments (gs_id, curation_group, curation_state, notes) VALUES (%s, %s, %s, %s)",
             (geneset_id, group_id, 1, note))
@@ -126,10 +125,9 @@ def assign_geneset_curator(geneset_id, curator_id, reviewer_id, note):
     :return:
     """
 
-    curation_state = 2
+    curation_state = CurationAssignment.ASSIGNED
 
     with geneweaverdb.PooledCursor() as cursor:
-        #log_entry = 'Geneset assigned curator: \n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curator=%s, reviewer=%s, curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
             (curator_id, reviewer_id, curation_state, note, geneset_id)
@@ -150,7 +148,7 @@ def submit_geneset_curation_for_review(geneset_id, note):
     :return:
     """
 
-    curation_state = 3
+    curation_state = CurationAssignment.READY_FOR_TEAM_REVIEW
 
     with geneweaverdb.PooledCursor() as cursor:
         #log_entry = 'Curation submitted for review: \n' + note
@@ -183,10 +181,9 @@ def geneset_curation_review_passed(geneset_id, note):
     :return:
     """
 
-    curation_state = 4
+    curation_state = CurationAssignment.REVIEWED
 
     with geneweaverdb.PooledCursor() as cursor:
-        #log_entry = 'Curation passed team review: \n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
             (curation_state, note, geneset_id))
@@ -217,11 +214,10 @@ def geneset_curation_review_failed(geneset_id, note):
     :return:
     """
 
-    curation_state = 2
+    curation_state = CurationAssignment.ASSIGNED
     geneset_name = get_geneset_name(geneset_id)
 
     with geneweaverdb.PooledCursor() as cursor:
-        #log_entry = 'Curation failed team review: \n' + note
         cursor.execute(
             "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
             (curation_state, note, geneset_id))
