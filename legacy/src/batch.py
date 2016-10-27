@@ -169,14 +169,20 @@ class TheDB():
         if type(syms) == list:
             syms = tuple(syms)
 
-        query = ('SELECT DISTINCT ode_ref_id, ode_gene_id FROM extsrc.gene '
-                 'WHERE sp_id = %s AND ode_pref = true AND ode_ref_id IN %s;')
+        query = '''SELECT DISTINCT ode_ref_id, ode_gene_id 
+                   FROM extsrc.gene
+                   WHERE sp_id = %s AND 
+                         ode_pref = true AND 
+                         lower(ode_ref_id) IN %s;'''
 
         self.cur.execute(query, [sp, syms])
 
         ## Returns a list of tuples [(ode_ref_id, ode_gene_id)]
         res = self.cur.fetchall()
         d = {}
+
+        print 'res'
+        print res
 
         ## Ignore this wall of bullshit for now, unless you want to read
         ## about my failures.

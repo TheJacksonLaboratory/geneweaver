@@ -166,6 +166,11 @@ def create_new_geneset(args):
     gs_values = form_text.strip().split('\n')
     gs_values = map(lambda s: s.encode('ascii', 'ignore'), gs_values)
     gs_values = map(lambda s: s.split(), gs_values)
+    ## Identifiers are converted to lowercase so user's don't have to specify
+    ## proper capitalization
+    gs_values = map(lambda t: (t[0].lower(), t[1]), gs_values)
+    print 'gs_values'
+    print gs_values
 
     ## Generate a minimal geneset for the batch system's value upload
     gs = {'gs_id': gs_id,
@@ -180,7 +185,6 @@ def create_new_geneset(args):
     ## TODO
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
-    print gs
     vals = batch.buGenesetValues(gs)
 
     batch.db.commit()
