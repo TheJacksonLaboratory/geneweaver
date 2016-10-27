@@ -333,7 +333,7 @@
                                         {% if searchFilters.att_counts[atID] > 0 %}
                                             <input
                                                     type="checkbox"
-                                                    {% if userFilters.attributionList is not defined or userFilters.attributionsList[atID] == "yes" %}
+                                                    {% if userFilters.attributionsList is not defined or userFilters.attributionsList[atID] == "yes" %}
                                                     checked="checked"
                                                     {% endif %}
                                                     name="{{ atID }}" id="{{ atID }}Checkbox">
