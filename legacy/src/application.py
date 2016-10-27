@@ -1084,7 +1084,7 @@ def download_result():
     dpi = 600
 
     if 'oldver' in form:
-        with open(os.path.join(resultpath, oldver), 'r') as fl:
+        with open(os.path.join(resultpath, form['oldver']), 'r') as fl:
             svg = fl.read()
 
         dpi = 300
