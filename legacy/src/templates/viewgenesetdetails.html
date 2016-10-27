@@ -531,7 +531,7 @@
                     var selectedUserId = $('input[name=curator]:checked').val();
 
                     var params = {
-                        "note": $('#curationNotes').val(),
+                        "note": $('#modalCurationNotes').val(),
                         "gs_id": {{geneset.geneset_id}},
                         "curator": selectedUserId,
                     };
@@ -552,6 +552,7 @@
 
 
                         $('#alreadyAssignedWarning').html(html);
+                        $('#curationNotes').val($('#modalCurationNotes').val());
 
 
                         {% if curation_view == 'reviewer' %}
