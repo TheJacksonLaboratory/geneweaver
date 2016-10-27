@@ -1,0 +1,198 @@
+{% set title="Group Tasks" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+    td.details-control:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    tr.shown td.details-control:before {
+        content: "\f068";
+    }
+
+    .datatablerowhighlight {
+        background-color: #ECFFB3;
+    }
+
+    .row_selected {
+        background-color: #000000;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+</style>
+
+
+{% if user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% else %}
+
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+
+            <p>
+
+            <div class="row" id="result"></div>
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>{{ title }}</strong>
+            </div>
+
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+            <div class="panel panel-default">
+
+                <div class="row">
+                    <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
+
+                        <table id="groupTasksViewer"
+                               class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
+
+                            <thead>
+                            <tr>
+                                {% for col in headerCols %}
+                                    <th style="text-align: left">{{ col.capitalize() }}</th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                            <tfoot>
+                            <tr>
+                                {% for col in headerCols %}
+                                    <th style="text-align: left">{{ col.capitalize() }}</th>
+                                {% endfor %}
+                            </tr>
+                            </tfoot>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    {% endblock %}
+
+
+{% endif %}
+
+
+
+{% include 'footer.html' %}
+
+<script>
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+    $(document).ready(function () {
+
+        var group_id = '{{ group_id }}'
+        var user_id = '{{user_id}}';
+        var columns = {{columns | safe}};
+        var headerCols = {{headerCols | safe}};
+        var table = $('#groupTasksViewer').dataTable({
+            "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+            "iDisplayLength": 25,
+            "bLengthChange": true,
+            "tableTools": {
+                "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                "sRowSelect": "single"
+            },
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                'url': "/../getServersideGroupTasksdb",
+                'type': 'GET',
+                "data": {"group": group_id, "user_id": user_id}
+            },
+            "columns": [
+                {
+                    "name": "full_name",
+                    "width": "5%"
+                },
+                {
+                    "name": "task_id",
+                    "width": "5%"
+                },
+                {
+                    "name": "task_name",
+                    "width": "5%"
+                },
+                {
+                    "name": "task_type",
+                    "width": "5%"
+                },
+                {"name": "assignment_date"},
+                {"name": "task_status"}
+            ],
+            "aoColumnDefs": [
+
+                {
+                    "aTargets": [0],
+                   "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var memberName = sData;
+                        $(nTd).empty();
+                        $(nTd).append('<strong>' + memberName + '</strong>');
+                    }
+                },
+                {
+                    "aTargets": [1],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var taskID = sData;
+                        $(nTd).empty();
+                        $(nTd).append('<strong>GS' + taskID + '</span>');
+                    }
+                },
+                {
+                    "aTargets": [2],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        $(nTd).empty();
+                        // TODO:  Add an if here when we support tasks other than just genesets doing a check on type (oData[3])
+                        $(nTd).append('<p><a href=\"/viewgenesetdetails/' + oData[1] + '\">' + sData + '</a></p>');
+                    }
+                },
+                {
+                    "aTargets": [3],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var taskType = sData;
+                        $(nTd).empty();
+                        // TODO:  Add an if here when we support tasks other than just genesets doing a check on type (oData[3])
+                        $(nTd).append('<strong>' + taskType + '</strong>');
+                    }
+                },
+                {
+                    "aTargets": [4],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var assignDate = sData;
+                        $(nTd).empty();
+                        $(nTd).append('<strong>' + assignDate + '</strong>');
+                    }
+                },
+                {
+                    "aTargets": [5],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var status = sData;
+                        $(nTd).empty();
+                        $(nTd).append('<strong>' + status + '</span>');
+                    }
+                }
+            ]
+
+        });
+
+    });
+
+</script>
