@@ -1642,7 +1642,6 @@ def createVennDiagram(i, ii, j, size=100):
 
     return json.dumps(data)
 
-
 @app.route('/mygenesets')
 def render_user_genesets():
     table = 'production.geneset'
@@ -1671,13 +1670,39 @@ def render_user_genesets():
         species.append([sp_id, sp_name])
 
     return flask.render_template(
-        'mygenesets.html', 
-        headerCols=headerCols, 
-        user_id=user_id, 
+        'mygenesets.html',
+        headerCols=headerCols,
+        user_id=user_id,
         columns=columns,
         table=table,
         species=species,
         myGroups=groups
+    )
+
+@app.route('/grouptasks')
+def render_group_tasks():
+    if 'group_id' in flask.session:
+        group = flask.session['group_id']
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        columns = []
+        columns.append({'name': 'full_name'})
+        columns.append({'name': 'task_id'})
+        columns.append({'name': 'task_name'})
+        columns.append({'name': 'task_type'})
+        columns.append({'name': 'assignment_date'})
+        columns.append({'name': 'task_status'})
+        headerCols = ["Member Name", "Task Id", "Task", "Task Type", "Assign Date", "Status"]
+
+    else:
+        headerCols, user_id, columns = None, 0, None
+
+    return flask.render_template(
+        'groupTasks.html',
+        headerCols=headerCols, 
+        user_id=user_id, 
+        columns=columns,
+        group_id=group
     )
 
 
@@ -2374,6 +2399,12 @@ def get_db_results_data():
 @app.route('/getServersideGenesetsdb')
 def get_db_genesets_data():
     results = geneweaverdb.get_server_side_genesets(request.args)
+    return json.dumps(results)
+
+
+@app.route('/getServersideGroupTasksdb')
+def get_db_grouptasks_data():
+    results = geneweaverdb.get_server_side_grouptasks(request.args)
     return json.dumps(results)
 
 
