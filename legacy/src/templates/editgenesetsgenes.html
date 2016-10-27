@@ -50,6 +50,33 @@
 
 {% else %}
 
+	{% if geneset.status == 'delayed' %}
+		<div class="alert alert-warning fade in" style="text-align:center">
+			<button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+				&times;
+			</button>
+			<strong>
+				<u>
+					This GeneSet requires your approval.
+				</u>
+			</strong>
+			<br />
+			<br />
+			<p>
+				<strong>
+				Please ensure all the GeneSet metadata on this page is correct.
+				<br />
+				If any information is incorrect make the appropriate changes.
+				Once you are finished, scroll to the bottom of the page and click
+				the "Save Updates" button. This GeneSet will only be available for
+				analysis and searching (if it is public) after updates are
+				saved.
+				</strong>
+			</p>
+		</div>
+
+	{% endif %}
+
     <div class="loader"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
