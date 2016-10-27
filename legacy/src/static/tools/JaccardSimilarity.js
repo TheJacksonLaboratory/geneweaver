@@ -10,7 +10,7 @@
  * visualization options and two functions, draw and drawLegend, for
  * drawing the venn diagram matrix and associated matrix.
  *
- * The only variable required to be set by this module is data, which should 
+ * The only variable required to be set by this module is data, which should
  * be the object returned by the jaccard tool.
  */
 var jaccardSimilarity = function() {
@@ -46,7 +46,7 @@ var jaccardSimilarity = function() {
     /**
       * Uses a regex to parse a string containing a p-value. The p-value string
       * is in a format returned by the jaccard tool (e.g. p = 0.01).
-      * 
+      *
       * arguments
       *     str: a string containing a p-value in the form 'p = 0.1'
       *
@@ -58,8 +58,8 @@ var jaccardSimilarity = function() {
         var regex = new RegExp([
             /[P|p]/,    // P or p
             /\s+/,      // >= 1 spaces
-            /=/,        // Equals sign 
-            /\s+/,      // >= 1 spaces 
+            /=/,        // Equals sign
+            /\s+/,      // >= 1 spaces
             // >= 1 digits or >=1 digits, a period then >= 1 digits
             /(\d+\.*\d+|\d+)/
         ].map(function(r) { return r.source; }).join(''));
@@ -73,7 +73,7 @@ var jaccardSimilarity = function() {
     }
 
     /**
-      * Organizes the list of venn diagrams returned by the tool into a series 
+      * Organizes the list of venn diagrams returned by the tool into a series
       * of rows and columns dependent on the number of genesets (e.g. four
       * genesets should return a total of 16 comparisons, so four rows and four
       * columns). Sets the final x and y coordinates for each diagram.
@@ -84,7 +84,7 @@ var jaccardSimilarity = function() {
 
         for (var i = 0; i < data.venn_diagrams.length; i++) {
             var venn = data.venn_diagrams[i];
-            
+
             // Zero indexed row/column numbers
             venn.column = i % numSets;
             venn.row = Math.floor(i / numSets);
@@ -99,7 +99,7 @@ var jaccardSimilarity = function() {
     };
 
     /**
-      * Transforms the venn diagram data returned by the tool into a format 
+      * Transforms the venn diagram data returned by the tool into a format
       * ready for display. Calculates proper x, y postiions, radii, and colors.
       */
     var makeCircles = function() {
@@ -147,7 +147,7 @@ var jaccardSimilarity = function() {
                 r2 = venn.r2;
 
             // Distance between corcle midpoints
-            var d = Math.sqrt(Math.pow((c2x - c1x), 2) + 
+            var d = Math.sqrt(Math.pow((c2x - c1x), 2) +
                               Math.pow((c2y - c1y), 2));
             // Distance from the left circle midpoint to the intersection midpoint
             var a = ((r1 * r1) - (r2 * r2) + (d * d)) / (2 * d);
@@ -159,7 +159,7 @@ var jaccardSimilarity = function() {
             var cd = ((r1 * r1) + (r2 * r2)) / 2;
             var c3x = c1x - r1;
             // Each venn object has an array of text objects with (usually)
-            // three elements 
+            // three elements
             for (var j = 0; j < venn.text.length; j++) {
 
                 if (j === 0)
@@ -173,7 +173,7 @@ var jaccardSimilarity = function() {
                     //x: p2x,
                     //x: c3x,// + cd,
                     //y: p2y + yShift,
-                    //subRadius: (r1 < r2) ? r1 : r2, 
+                    //subRadius: (r1 < r2) ? r1 : r2,
                     x: venn.text[j].tx + (venn.column * diagramPadding) - 40,
                     y: venn.text[j].ty + (venn.row * diagramPadding) - 20,
                     text: venn.text[j].text
@@ -218,7 +218,7 @@ var jaccardSimilarity = function() {
     var isClicked = (function() {
         var clicked = false;
 
-        return function() { 
+        return function() {
             clicked = !clicked;
 
             return !clicked;
@@ -255,7 +255,7 @@ var jaccardSimilarity = function() {
                 .style('shape-rendering', 'geometricPrecision')
                 .style('stroke', '#000')
                 .style('stroke-width', '2px')
-                .style('fill', function(d) { 
+                .style('fill', function(d) {
 
                     if (i === 0)
                         return fillColors[1];
@@ -277,7 +277,7 @@ var jaccardSimilarity = function() {
             ;
         }
     };
-    
+
     /**
      * Draws the venn diagram matrix.
      */
@@ -294,7 +294,7 @@ var jaccardSimilarity = function() {
             .attr('height', height)
             .call(d3.behavior.zoom().on('zoom', function() {
                 svg.attr('transform', function() {
-                    return 'translate(' + d3.event.translate + ')' + 
+                    return 'translate(' + d3.event.translate + ')' +
                            ' scale(' + d3.event.scale + ')';
                 });
             }))
@@ -317,8 +317,8 @@ var jaccardSimilarity = function() {
             .style('stroke-width', '1px')
             .style('stroke-opacity', 1)
             .on('mouseover', function(d) {
-                
-                // Mouse over events generate and display a tooltip with 
+
+                // Mouse over events generate and display a tooltip with
                 // intersection data
                 d3.select("#jaccard")
                     .append("div")
@@ -339,8 +339,8 @@ var jaccardSimilarity = function() {
                     var col = d.column;
 
                     if (isClicked()) {
-                        
-                        d3.select('#jaccard').selectAll("circle")  
+
+                        d3.select('#jaccard').selectAll("circle")
                             .style('stroke', 'black')
                             .style("stroke-width", 1);
 
@@ -356,8 +356,8 @@ var jaccardSimilarity = function() {
                             .style('stroke', '#B2DF8A')
                             .style("stroke-width", 4)
 
-                        // Keeps the circles not in the clicked row and column black 
-                        svg.selectAll('circle')  
+                        // Keeps the circles not in the clicked row and column black
+                        svg.selectAll('circle')
                             .filter(function (d) {
                                 if (!((d.row == row) || (d.column == col)))
                                     return true;
@@ -375,14 +375,14 @@ var jaccardSimilarity = function() {
             .append('text')
             .attr('transform', 'translate(' + xShift + ',' + yShift + ')')
             .text(function(d) { return d.text; })
-            .attr('x', function(d) { 
+            .attr('x', function(d) {
                 var textWidth = this.getBoundingClientRect().width;
-                //return d.x - (textWidth / 2); 
+                //return d.x - (textWidth / 2);
                 //return d.x - d.subRadius;
                 return d.x;
             })
-            .attr('y', function(d) { 
-                return d.y; 
+            .attr('y', function(d) {
+                return d.y;
             })
             .style('color', '#000')
             .style('font-size', '11px')
@@ -405,19 +405,19 @@ var jaccardSimilarity = function() {
                 else
                     return 'translate(' + (-10) + ',' + yLabelShift + ')'
             })
-            .attr('x', function(d) { 
+            .attr('x', function(d) {
                 var textWidth = this.getBoundingClientRect().width;
-                //return d.x - (textWidth / 2); 
+                //return d.x - (textWidth / 2);
                 //return d.x - d.subRadius;
                 return d.x;
             })
-            .attr('y', function(d) { 
-                return d.y; 
+            .attr('y', function(d) {
+                return d.y;
             })
-            // The text for each row/col label is split into chunks of 20 
+            // The text for each row/col label is split into chunks of 20
             // characters so everything fits properly and doesnt' overlap
             .each(function(d) {
-                
+
                 var chunks = [];
                 var labelText = d.text;
 
@@ -495,7 +495,7 @@ var jaccardSimilarity = function() {
  * visualization options and another function, draw, which draws the similarity
  * matrix.
  *
- * The only variable required to be set by this module is data, which should 
+ * The only variable required to be set by this module is data, which should
  * be the object returned by the jaccard tool.
  */
 var jaccardSimilarityMatrix = function() {
@@ -505,7 +505,7 @@ var jaccardSimilarityMatrix = function() {
         data = null,
         // Element wrapper ID containing the drawn similarity matrix
         matrixElement = '#matrix',
-        // Table element 
+        // Table element
         table = null;
 
     /** private **/
@@ -543,9 +543,9 @@ var jaccardSimilarityMatrix = function() {
                     return '#FFF';
             })
             .append('a')
-            .attr('href', function(d) { 
+            .attr('href', function(d) {
                 // Removes the 'GS' prefix
-                return '/viewgenesetdetails/' + d.gsID.slice(2); 
+                return '/viewgenesetdetails/' + d.gsID.slice(2);
             })
             .attr('target', '_blank')
             .style('color', '#2e2e2e')
@@ -598,7 +598,7 @@ var jaccardSimilarityMatrix = function() {
                     if (i === (data.geneset_table.length - 1))
                         return '1px solid #000';
                     else
-                        return '1px solid #bbb';       
+                        return '1px solid #bbb';
                 })
                 .style('font-size', '11px')
                 .style('padding', '0.5em')
@@ -643,8 +643,8 @@ var jaccardSimilarityMatrix = function() {
 
         var gsTable = data.geneset_table;
         // All the GS IDs without their 'GS' prefix, joined together with '+'
-        var gsIds = gsTable.map(function(t) { 
-            return t.gsID.slice(2); 
+        var gsIds = gsTable.map(function(t) {
+            return t.gsID.slice(2);
         }).join('+');
 
         // Left side geneset IDs and names
