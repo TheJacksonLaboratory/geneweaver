@@ -33,9 +33,31 @@
             </button>
         {% endif %}
 
-    {% elif curation_view == 'curation_leader' and (curation_assignment.state == 1 or curation_assignment.state == 2) %}
+    {% elif curation_view == 'curation_leader' and curation_assignment.state == 1 %}
+
+        <div class="form-group">
+            <label for="curationNotes"><h4>Curation Notes:</h4></label>
+            <textarea class="form-control" rows="10" id="curationNotes" readonly>{{ curation_assignment.notes }}</textarea>
+        </div>
+
         <button type="button" class="btn btn-block btn-primary" id="assignCurator">
             <i class="fa fa-user pull-left"></i> Assign Curator
+        </button>
+
+    {% elif curation_view == 'curation_leader' and curation_assignment.state == 2 %}
+
+        <div class="form-group">
+            <label for="curationNotes"><h4>Curation Notes:</h4></label>
+            <textarea class="form-control" rows="10" id="curationNotes" readonly>{{ curation_assignment.notes }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="curator"><h4>Assigned To: </h4></label>
+            <p id="curator">{{ curator_info.first_name }} {{ curator_info.last_name }}</p>
+        </div>
+
+        <button type="button" class="btn btn-block btn-warning" id="assignCurator">
+            <i class="fa fa-user pull-left"></i> Reassign Curator
         </button>
 
     {% elif curation_view == 'curator' and curation_assignment.state == 2 %}
@@ -48,7 +70,7 @@
         <button type="button" class="btn btn-block btn-warning" id="editGenesetGenes">
             <i class="fa fa-edit pull-left"></i> Edit Genes
         </button>
-        <div class="form-group" style="padding: 10px">
+        <div class="form-group">
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
             <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
         </div>
@@ -56,19 +78,62 @@
             <i class="fa fa-check pull-left"></i> Ready For Review
         </button>
     {% elif curation_view == 'curator' and curation_assignment.state == 3 %}
-        <div class="form-group" style="padding: 10px">
+        <div class="form-group" >
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
-            <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
+            <textarea class="form-control" rows="10" id="curationNotes" disabled>{{ curation_assignment.notes }}</textarea>
         </div>
         <button type="button" class="btn btn-block btn-primary" id="readyForReview" disabled="true">
-            <i class="fa fa-check pull-left"></i> Review Pending
+            <i class="fa fa-check pull-left"></i> Pending Review
         </button>
     {% elif curation_view == 'reviewer' and curation_assignment.state == 3 %}
-        <div class="form-group" style="padding: 10px">
+        <div class="form-group">
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
             <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
         </div>
-        TODO ADD Accept/Reject
+
+        <div class="form-group">
+            <label for="curator"><h4>Curated By: </h4></label>
+            <p id="curator">{{ curator_info.first_name }} {{ curator_info.last_name }}</p>
+        </div>
+
+        <div class="form-group" id="review_div">
+            <label for="radio_group"><h4>Review Decision:</h4></label>
+            <div id="radio_group">
+                <label for="review_ok_radio" id="label_review_ok">Accept</label>
+                <input class="form-control" type="radio" name="review" value="accept" id="review_ok_radio">
+                <small class="form-text text-muted" >Mark curation task as complete</small>
+                <label for="review_reject_radio"id="label_review_reject">Reject</label>
+                <input class="form-control" type="radio" name="review" value="reject" id="review_reject_radio">
+                <small class="form-text text-muted" >Send GeneSet back to curator for additional work. Please provide feedback in the curation notes.</small>
+            </div>
+
+        </div>
+        <div class="form-group" stype="padding-top: 30px">
+            <button type="button" class="btn btn-block btn-primary" id="reviewed" disabled="true">
+                    <i class="fa fa-check pull-left"></i>Save Review State
+                </button>
+            <button type="button" class="btn btn-block btn-warning" id="assignCurator">
+                <i class="fa fa-user pull-left"></i> Reassign
+            </button>
+        </div>
+
+    {% elif (curation_view == 'reviewer' or curation_view == 'curation_leader' or curation_view =='curator') and curation_assignment.state == 4 %}
+        <div class="form-group" >
+            <label for="curationNotes"><h4>Curation Notes:</h4></label>
+            <textarea class="form-control" rows="10" id="curationNotes" disabled>{{ curation_assignment.notes }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="curator"><h4>Curated By: </h4></label>
+            <p id="curator">{{ curator_info.first_name }} {{ curator_info.last_name }}</p>
+        </div>
+
+        <div class="form-group" style="padding-top: 20px">
+            <button type="button" class="btn btn-block btn-primary" id="reviewed" disabled="true">
+                    <i class="fa fa-check pull-left"></i>Approved
+                </button>
+        </div>
+
     {% endif %}
 
 </div>
