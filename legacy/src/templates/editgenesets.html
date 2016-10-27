@@ -336,6 +336,10 @@
                 })
             },
 
+			// Does nothing but needs to be present for nodes to be unselected.
+            onClick: function (node, event) {
+
+			},
             //Performs lazy ajax call to update the database when an ontology is selected or unselected
             onSelect: function (flag, node) {
                 $.ajax({
@@ -347,7 +351,6 @@
                         gs_id: $(location).attr("href").split('/').pop()
                     },
                     success: function(data){
-
                     }
                 })
             }

@@ -589,9 +589,11 @@ def init_ont_tree():
                     ontpath[i]['isFolder'] = False
                     ontpath[i]['select'] = True
                     ontpath[i]['expand'] = False
+                    ontpath[i]['unselectable'] = False
 
                 else:
                     ontpath[i]['expand'] = True
+                    ontpath[i]['unselectable'] = False
 
                 if i == 0:
                     break

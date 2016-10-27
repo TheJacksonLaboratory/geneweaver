@@ -1152,15 +1152,14 @@ def clear_geneset_ontology(gs_id):
 
 
 def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
-    print(gs_id, ", ", ont_id)
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''INSERT INTO geneset_ontology
-            (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, %s);
+        cursor.execute('''
+            INSERT INTO geneset_ontology
+                (gs_id, ont_id, gso_ref_type) 
+            VALUES 
+                (%s, %s, %s);
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
-    return  # cursor.fetchone()
-
 
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
@@ -1320,11 +1319,11 @@ def remove_genesets_from_multiple_projects(rargs):
 
 def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''
+        cursor.execute('''
             DELETE FROM geneset_ontology
-            WHERE gs_id=%s AND ont_id=%s AND gso_ref_type=%s
-            ''', (gs_id, ont_id, gso_ref_type)
+            WHERE gs_id = %s AND 
+                  ont_id = %s
+            ''', (gs_id, ont_id)
         )
         cursor.connection.commit()
         return
@@ -2121,7 +2120,6 @@ class Geneset:
         self.name = gs_dict['gs_name']
         self.abbreviation = gs_dict['gs_abbreviation']
         self.pub_id = gs_dict['pub_id']
-        #print self.pub_id
         if self.pub_id is not None:
             try:
                 self.publication = get_all_publications(self.geneset_id)

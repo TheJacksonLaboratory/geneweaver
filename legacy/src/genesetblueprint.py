@@ -108,7 +108,6 @@ def create_batch_geneset():
     for gs in batchFile[0]:
         ## If a PMID was provided, we get the info from NCBI
         if gs['pub_id']:
-            #pub = batch.getPubmedInfo(gs['pub_id'])
             pub = pubmedsvc.get_pubmed_info(gs['pub_id'])
 
             if pub:
@@ -117,18 +116,6 @@ def create_batch_geneset():
 
             else:
                 gs['pub_id'] = None
-
-            #gs['pub_id'] = pub[0]
-
-            ### Non-critical pubmed retrieval errors
-            #if pub[1]:
-            #    batchFile[1].append(pub[1])
-
-            ### New row in the publication table
-            #if gs['pub_id']:
-            #    gs['pub_id'] = batch.db.insertPublication(gs['pub_id'])
-            #else:
-            #    gs['pub_id'] = None  # empty pub
 
         else:
             gs['pub_id'] = None  # empty pub
