@@ -108,18 +108,27 @@ def create_batch_geneset():
     for gs in batchFile[0]:
         ## If a PMID was provided, we get the info from NCBI
         if gs['pub_id']:
-            pub = batch.getPubmedInfo(gs['pub_id'])
-            gs['pub_id'] = pub[0]
+            #pub = batch.getPubmedInfo(gs['pub_id'])
+            pub = pubmedsvc.get_pubmed_info(gs['pub_id'])
 
-            ## Non-critical pubmed retrieval errors
-            if pub[1]:
-                batchFile[1].append(pub[1])
+            if pub:
+                pub['pub_pubmed'] = gs['pub_id']
+                gs['pub_id'] = batch.db.insertPublication(pub)
 
-            ## New row in the publication table
-            if gs['pub_id']:
-                gs['pub_id'] = batch.db.insertPublication(gs['pub_id'])
             else:
-                gs['pub_id'] = None  # empty pub
+                gs['pub_id'] = None
+
+            #gs['pub_id'] = pub[0]
+
+            ### Non-critical pubmed retrieval errors
+            #if pub[1]:
+            #    batchFile[1].append(pub[1])
+
+            ### New row in the publication table
+            #if gs['pub_id']:
+            #    gs['pub_id'] = batch.db.insertPublication(gs['pub_id'])
+            #else:
+            #    gs['pub_id'] = None  # empty pub
 
         else:
             gs['pub_id'] = None  # empty pub
@@ -152,7 +161,7 @@ def create_batch_geneset():
             if not pub:
                 abstract = ''
             else:
-                abstract = pub[0]['pub_abstract']
+                abstract = pub['pub_abstract']
 
             ## Annotate the geneset using the NCBO/MI services and insert new
             ## annotations into the DB
