@@ -181,9 +181,6 @@ class TheDB():
         res = self.cur.fetchall()
         d = {}
 
-        print 'res'
-        print res
-
         ## Ignore this wall of bullshit for now, unless you want to read
         ## about my failures.
         #
@@ -194,7 +191,7 @@ class TheDB():
         ## ode_gene_id for the species given. This way we add the pref. symbol
         ## and the user provided one to the gsv_source_list. If we still can't
         ## find it, then all hope is lost.
-        found = map(lambda x: x[0], res)
+        found = map(lambda x: x[0].lower(), res)
         notfound = list(set(syms) - set(found))
 
         if notfound:
@@ -202,7 +199,8 @@ class TheDB():
 
         ## We return a dict of ode_ref_id --> ode_gene_ids
         for tup in res:
-            d[tup[0].lower()] = tup[1]
+            #d[tup[0].lower()] = tup[1]
+            d[tup[0]] = tup[1]
 
         return d
 
@@ -1015,6 +1013,10 @@ def buGenesetValues(gs):
     if gs['gs_gene_id_type'] < 0:
         sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
 
+        ## Save gene symbol with proper capitalization
+        for sym in sym2ode.keys():
+            sym2ode[sym.lower()] = (sym, sym2ode[sym])
+
     else:
         sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
         prbids = []
@@ -1068,7 +1070,7 @@ def buGenesetValues(gs):
             continue
 
         ## Not platform stuff
-        if not sym2ode[tup[0].lower()]:
+        if not sym2ode[tup[0].lower()][1]:
             err = ("Error! There doesn't seem to be any gene/locus data for "
                    "%s in the database." % tup[0])
             noncrit.append(err)
@@ -1086,8 +1088,8 @@ def buGenesetValues(gs):
             continue
 
         ## Remember to lower that shit, forgot earlier :(
-        db.insertGenesetValue(gs['gs_id'], sym2ode[tup[0].lower()], tup[1],
-                              tup[0], gs['gs_threshold'])
+        db.insertGenesetValue(gs['gs_id'], sym2ode[tup[0].lower()][1], tup[1],
+                              sym2ode[tup[0].lower()][0], gs['gs_threshold'])
 
         total += 1
 

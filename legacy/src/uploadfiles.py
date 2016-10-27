@@ -168,15 +168,13 @@ def create_new_geneset(args):
     gs_values = map(lambda s: s.split(), gs_values)
     ## Identifiers are converted to lowercase so user's don't have to specify
     ## proper capitalization
-    gs_values = map(lambda t: (t[0].lower(), t[1]), gs_values)
-    print 'gs_values'
-    print gs_values
+    gs_values_lower = map(lambda t: (t[0].lower(), t[1]), gs_values)
 
     ## Generate a minimal geneset for the batch system's value upload
     gs = {'gs_id': gs_id,
           'gs_gene_id_type': gene_identifier,
           'sp_id': formData['sp_id'][0],
-          'values': gs_values,
+          'values': gs_values_lower,
           'gs_threshold': 1}
 
     with PooledCursor() as cursor:
@@ -188,7 +186,6 @@ def create_new_geneset(args):
     vals = batch.buGenesetValues(gs)
 
     batch.db.commit()
-    #print vals
 
     return {'error': 'None', 'gs_id': gs_id}
 
