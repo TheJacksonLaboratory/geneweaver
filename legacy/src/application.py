@@ -503,8 +503,6 @@ def mark_geneset_reviewed():
         gs_id = request.form.get('gs_id', type=int)
         review_ok = request.form.get('review_ok') in ['true', '1']
 
-        print review_ok
-
         assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
 
         if assignment:
@@ -1253,14 +1251,15 @@ def render_curategeneset(gs_id):
         if assignment:
 
             #figure out the proper view depending on the state and your role(s)
-            if assignment.state == 1 and user_is_curation_leader():
+            if assignment.state == curation_assignments.CurationAssignment.UNASSIGNED and user_is_curation_leader():
                 curation_view = 'curation_leader'
-            elif assignment.state == 2:
+            elif assignment.state == curation_assignments.CurationAssignment.ASSIGNED:
                 if flask.session['user_id'] == assignment.curator:
                     curation_view = 'curator'
                 elif user_is_curation_leader():
                     curation_view = 'curation_leader'
-            elif assignment.state == 3 or assignment.state == 4:
+            elif (assignment.state == curation_assignments.CurationAssignment.READY_FOR_TEAM_REVIEW or
+                          assignment.state == curation_assignments.CurationAssignment.REVIEWED):
                 if flask.session['user_id'] == assignment.reviewer:
                     curation_view = 'reviewer'
                 elif flask.session['user_id'] == assignment.curator:
@@ -1300,8 +1299,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                     session['dir'] = 'ASC'
             else:
                 session['dir'] = 'ASC'
-
-    print flask.request.method
 
 
     genetypes = geneweaverdb.get_gene_id_types()

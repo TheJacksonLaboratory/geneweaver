@@ -33,7 +33,7 @@
             </button>
         {% endif %}
 
-    {% elif curation_view == 'curation_leader' and curation_assignment.state == 1 %}
+    {% elif curation_view == 'curation_leader' and curation_assignment.state == curation_assignment.UNASSIGNED %}
 
         <div class="form-group">
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
@@ -44,7 +44,7 @@
             <i class="fa fa-user pull-left"></i> Assign Curator
         </button>
 
-    {% elif curation_view == 'curation_leader' and curation_assignment.state == 2 %}
+    {% elif curation_view == 'curation_leader' and curation_assignment.state == curation_assignment.ASSIGNED %}
 
         <div class="form-group">
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
@@ -60,7 +60,7 @@
             <i class="fa fa-user pull-left"></i> Reassign Curator
         </button>
 
-    {% elif curation_view == 'curator' and curation_assignment.state == 2 %}
+    {% elif curation_view == 'curator' and curation_assignment.state == curation_assignment.ASSIGNED %}
         <button type="button" class="btn btn-block btn-warning" id="setThreshold">
             <i class="fa fa-signal pull-left"></i> Set Threshold
         </button>
@@ -77,7 +77,7 @@
         <button type="button" class="btn btn-block btn-primary" id="readyForReview">
             <i class="fa fa-check pull-left"></i> Ready For Review
         </button>
-    {% elif curation_view == 'curator' and curation_assignment.state == 3 %}
+    {% elif curation_view == 'curator' and curation_assignment.state == curation_assignment.READY_FOR_TEAM_REVIEW %}
         <div class="form-group" >
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
             <textarea class="form-control" rows="10" id="curationNotes" disabled>{{ curation_assignment.notes }}</textarea>
@@ -85,7 +85,7 @@
         <button type="button" class="btn btn-block btn-primary" id="readyForReview" disabled="true">
             <i class="fa fa-check pull-left"></i> Pending Review
         </button>
-    {% elif curation_view == 'reviewer' and curation_assignment.state == 3 %}
+    {% elif curation_view == 'reviewer' and curation_assignment.state == curation_assignment.READY_FOR_TEAM_REVIEW %}
         <div class="form-group">
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
             <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
@@ -117,7 +117,7 @@
             </button>
         </div>
 
-    {% elif (curation_view == 'reviewer' or curation_view == 'curation_leader' or curation_view =='curator') and curation_assignment.state == 4 %}
+    {% elif curation_view in['reviewer', 'curation_leader', 'curator'] and curation_assignment.state == curation_assignment.REVIEWED %}
         <div class="form-group" >
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
             <textarea class="form-control" rows="10" id="curationNotes" disabled>{{ curation_assignment.notes }}</textarea>

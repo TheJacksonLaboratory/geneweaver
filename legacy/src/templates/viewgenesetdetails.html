@@ -498,7 +498,7 @@
                 $("input:radio[name='review']:checked").prop('checked', false).checkboxradio("refresh");
             {% endif %}
 
-            {% if curation_view == 'curation_leader' or curation_view == 'reviewer' %}
+            {% if curation_view in ['curation_leader', 'reviewer'] %}
 
                 // this block contains functions only required for the
                 // curation_leader or reviewer views. don't bother including
@@ -586,7 +586,6 @@
                     var buttonTxt = "Rejected";
 
                     if ($("input[name='review']:checked").val() == 'accept') {
-                        alert($("input[name='review']:checked").val());
                         params.review_ok = true;
                         buttonTxt = "Approved";
                     }

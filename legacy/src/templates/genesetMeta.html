@@ -143,7 +143,7 @@
                             <span id="genesetOntologyInfo" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
                     </div>
                 </div>
-                {% if curation_view is not defined or (curation_view == 'curator' and curation_assignment.state == 2) %}
+                {% if curation_view is not defined or (curation_view == 'curator' and curation_assignment.state == curation_assignment.ASSIGNED) %}
                     <div class="row">
                         <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
