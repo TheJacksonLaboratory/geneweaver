@@ -1688,8 +1688,11 @@ def render_user_genesets():
         columns.append({'name': 'gs_name'})
         headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
 
-        groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)# + geneweaverdb.get_other_visible_groups(user_id)
-        groups = sorted(groups, key=lambda k: k['grp_name'])
+        my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
+        my_groups = sorted(my_groups, key=lambda k: k['grp_name'])
+
+        other_groups = [g for g in geneweaverdb.get_other_visible_groups(user_id) if g not in my_groups]
+        other_groups = sorted(other_groups, key=lambda k: k['grp_name'])
 
     else:
         headerCols, user_id, columns = None, 0, None
@@ -1707,7 +1710,8 @@ def render_user_genesets():
         columns=columns,
         table=table,
         species=species,
-        myGroups=groups
+        myGroups=my_groups,
+        otherGroups=other_groups
     )
 
 
