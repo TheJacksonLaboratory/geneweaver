@@ -1676,7 +1676,8 @@ def createVennDiagram(i, ii, j, size=100):
 @app.route('/mygenesets')
 def render_user_genesets():
     table = 'production.geneset'
-    groups = []
+    my_groups = []
+    other_groups = []
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         columns = []
