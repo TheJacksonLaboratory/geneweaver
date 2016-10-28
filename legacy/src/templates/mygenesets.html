@@ -548,11 +548,14 @@
 
         $("input:radio[name='group']").on('click', function () {
             // submit button will be disabled until the user selects a group
-            // radio button, if they selected the public_gropu option we don't
+            // radio button, if they selected the public_group option we don't
             // want to enable the button until they've made a group selection in
             // the drop down
             if (this.value != 'public_group' || $('#publicGroupSelect').val() != null) {
                 $('#assignGenesets').prop("disabled", false).button("refresh");
+            }
+            else {
+                 $('#assignGenesets').prop("disabled", true).button("refresh");
             }
         });
 
