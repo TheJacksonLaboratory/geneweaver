@@ -44,7 +44,7 @@ private:
     }
 
 public:
-    int main(int argc, char** argv){
+    int run(int numSamples,string topFile, string backgroundFile,string interestFile){
         ofstream progress;
         //stringstream cout;
         set<T> setOfInterest;
@@ -54,17 +54,9 @@ public:
         int countsArraySize=1000;
         vector<int> counts(countsArraySize);//assume intersect length wont exceed 40, but pushback if it is
 
-        int topResults=0;
-        int numSamples=0;
-        if(argc!=5){
-            cerr<<"expected <num top results> <num samples> <set-of-intrest filepath> <background filepath> as arguments"<<endl; //TODO: change to log file, add support for multiple files
-            exit(1);
-        }
-        topResults=atoi(argv[1]);
-        numSamples=atoi(argv[2]);
-        ifstream readLists(argv[3]);
+        ifstream readLists(interestFile.c_str());
         if(!readLists){
-            cerr<<"unable to open "<<argv[3]<<endl;
+            cerr<<"unable to open "<<interestFile<<endl;
             exit(1);
         }
         T input;
@@ -74,22 +66,24 @@ public:
 
         readLists.clear();
         readLists.close();
-        readLists.open(argv[4]);
+        readLists.open(backgroundFile);
         if(!readLists){
-            cerr<<"unable to open "<<argv[4]<<endl;
+            cerr<<"unable to open "<<backgroundFile<<endl;
             exit(1);
         }
         while(readLists>>input){
             background.push_back(input);
         }
 
-
-        //copy that number from background into top, converting to set in the
-        //process
-        int count=0;
-        for(typename vector<T>::iterator i=background.begin(); distance(background.begin(),i)<topResults;i++){
-            count++;
-            top.insert(*i);
+        readLists.clear();
+        readLists.close();
+        readLists.open(topFile);
+        if(!readLists){
+            cerr<<"unable to open "<<topFile<<endl;
+            exit(1);
+        }
+        while(readLists>>input){
+            top.insert(input);
         }
 
         WithoutReplacementSampler<T> sampler;
