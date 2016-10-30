@@ -3645,6 +3645,22 @@ def get_genesymbols_by_gs_id(gs_id):
 
     return cursor.fetchall()
 
+def get_genesymbols_by_pj_id(pj_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT g.ode_ref_id
+            FROM extsrc.gene g, extsrc.geneset_value gv
+            WHERE (gv.gs_id IN
+             (SELECT gs_id AS geneSetId
+               FROM production.project2geneset
+               WHERE pj_id = %s))
+             AND gv.ode_gene_id=g.ode_gene_id AND g.gdb_id=7 AND ode_pref='t';
+            ''', (pj_id,)
+        )
+
+    return cursor.fetchall()
+
 
 def get_gsinfo_by_gs_id(gs_id):
     with PooledCursor() as cursor:
@@ -3656,6 +3672,30 @@ def get_gsinfo_by_gs_id(gs_id):
 
     return cursor.fetchall()
 
+def get_gsinfo_by_pj_id(pj_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT gs_name, gs_abbreviation, sp_id
+            FROM production.geneset
+            WHERE gs_id IN
+              (SELECT gs_id
+                FROM production.project2geneset
+                WHERE pj_id = %s);
+            ''', (pj_id,)
+        )
+
+    return cursor.fetchall()
+
+def get_pjname_by_pj_id(pj_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            select pj_name from project where pj_id = %s;
+            ''', (pj_id,)
+        )
+
+    return cursor.fetchall()
 
 def get_species_name_by_sp_id(sp_id):
     with PooledCursor() as cursor:
