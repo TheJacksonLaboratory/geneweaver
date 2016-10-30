@@ -1,7 +1,6 @@
 /*
 mset.cpp: ...
 Created: Sun Sep 11 18:47:33 CDT 2016
-seg fualting, but this version directly corresponds to original paper
 */
 #include <iostream>
 #include <fstream>
@@ -15,12 +14,12 @@ using namespace std;
 
 mutex countLock;
 mutex numLock;
-void uniquify(vector<int>* sample,long size){
+void uniquify(vector<string>* sample,long size){
     unique(*sample);
     sample->resize(size);
 }
-void calculateIntersections(IntersectSizeFinder<int>* isectFinder, vector<int>* counts,
-        vector<int>* sampledSet, long& numGreater,long checklength,long& maxIsectSize,long topSize){
+void calculateIntersections(IntersectSizeFinder<string>* isectFinder, vector<int>* counts,
+        vector<string>* sampledSet, long& numGreater,long checklength,long& maxIsectSize,long topSize){
     //uniquify(sampledSet,topSize);
 
 
@@ -41,17 +40,17 @@ void calculateIntersections(IntersectSizeFinder<int>* isectFinder, vector<int>* 
 int main(int argc, char** argv){
     ofstream progress;
     //stringstream cout;
-    set<int> setOfInterest;
-    set<int> top;
-    vector<int> background;
+    set<string> setOfInterest;
+    set<string> top;
+    vector<string> background;
 
     int countsArraySize=1000;
-    vector<int> counts(countsArraySize);//assume intersect length wont exceed 40, but pushback if it is
+    vector<int> counts(countsArraySize);//assume stringersect length wont exceed 40, but pushback if it is
 
     int topResults=0;
     int numSamples=0;
     if(argc!=5){
-        cerr<<"expected <num top results> <num samples> <set-of-intrest filepath> <background filepath> as arguments"<<endl; //TODO: change to log file, add support for multiple files
+        cerr<<"expected <num top results> <num samples> <set-of-stringrest filepath> <background filepath> as arguments"<<endl; //TODO: change to log file, add support for multiple files
         exit(1);
     }
     topResults=atoi(argv[1]);
@@ -61,7 +60,7 @@ int main(int argc, char** argv){
         cerr<<"unable to open "<<argv[3]<<endl;
         exit(1);
     }
-    int input=0;
+    string input="";
     while(readLists>>input){
         setOfInterest.insert(input);
     }
@@ -73,41 +72,40 @@ int main(int argc, char** argv){
         cerr<<"unable to open "<<argv[4]<<endl;
         exit(1);
     }
-    input=0;
+    input="";
     while(readLists>>input){
         background.push_back(input);
     }
-    //*
 
 
-    //copy that number from background into top, converting to set in the
+    //copy that number from background stringo top, converting to set in the
     //process
     int count=0;
-    for(vector<int>::iterator i=background.begin(); distance(background.begin(),i)<topResults;i++){
+    for(vector<string>::iterator i=background.begin(); distance(background.begin(),i)<topResults;i++){
         count++;
         top.insert(*i);
     }
 
-    WithoutReplacementSampler<int> sampler;
+    WithoutReplacementSampler<string> sampler;
     sampler.setSource(&background);
 
-    IntersectSizeFinder<int> isectFinder(setOfInterest.begin(),setOfInterest.end());
+    IntersectSizeFinder<string> isectFinder(setOfInterest.begin(),setOfInterest.end());
 
     cout<<numSamples<<" simulated results of length "<<top.size()<<" generated from background"<<endl;
-    //the length of the intersect with the top set and the intrest set to
+    //the length of the stringersect with the top set and the stringrest set to
     //compare to the simulations
     long checklength=isectFinder.getIntersectionSizeWith(top);
     cout<<checklength<<" matches to database found in microarray results"<<endl;
-    vector<int> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
+    vector<string> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
     cout<<"matches are: "<<endl;
-    for(int i=0;i<(int)matches.size();i++){
+    for(int i=0;i<(int )matches.size();i++){
         cout<<matches[i]<<endl;
     }
 
-    vector<vector<int>* > samples;
+    vector<vector<string>* > samples;
     for(int i=0;i<numSamples;i++){
-        samples.push_back(new vector<int>(top.size()*2));//don't know why times two but it is in the publication
-        sampler.sample(*samples[i]);//sample samples[i].size elements from background into samples[i] without replacement
+        samples.push_back(new vector<string>(top.size()*2));//don't know why times two but it is in the publication
+        sampler.sample(*samples[i]);//sample samples[i].size elements from background stringo samples[i] without replacement
     }
 
 
@@ -117,7 +115,7 @@ int main(int argc, char** argv){
     const int maxConcurentThreads=1000;
     thread threads[maxConcurentThreads];
 
-    IntersectSizeFinder<int>* isectFinderPtr=&isectFinder;
+    IntersectSizeFinder<string>* isectFinderPtr=&isectFinder;
     vector<int>* countsPtr=&counts;
 
     long numberOfCycles=numSamples/maxConcurentThreads;
@@ -165,7 +163,7 @@ int main(int argc, char** argv){
     string tb="    ";
     jsonOutput<<"{"<<endl;
     jsonOutput<<tb<<"pValue: "<<pvalue<<","<<endl;
-    jsonOutput<<tb<<"densityPointCount: "<<counts.size()<<","<<endl;
+    jsonOutput<<tb<<"densityPostringCount: "<<counts.size()<<","<<endl;
     jsonOutput<<tb<<"density: ["<<endl;
     for(unsigned int i=0;i<counts.size();i++){
         jsonOutput<<tb<<tb<<tb<<tb<<double(counts[i])/double(numSamples)<<","<<endl;
@@ -186,5 +184,6 @@ int main(int argc, char** argv){
     cout<<"json:"<<endl;
     cout<<jsonOutput.str()<<endl;
 
+    //*/
     return 0;
 }
