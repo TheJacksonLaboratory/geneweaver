@@ -163,15 +163,18 @@ def create_new_geneset(args):
 
     ## For some reason this function was missing the part where geneset values
     ## are inserted, so I'm just using the batch upload's version of this.
-    gs_values = form_text.split('\n')
+    gs_values = form_text.strip().split('\n')
     gs_values = map(lambda s: s.encode('ascii', 'ignore'), gs_values)
     gs_values = map(lambda s: s.split(), gs_values)
+    ## Identifiers are converted to lowercase so user's don't have to specify
+    ## proper capitalization
+    gs_values_lower = map(lambda t: (t[0].lower(), t[1]), gs_values)
 
     ## Generate a minimal geneset for the batch system's value upload
     gs = {'gs_id': gs_id,
           'gs_gene_id_type': gene_identifier,
           'sp_id': formData['sp_id'][0],
-          'values': gs_values,
+          'values': gs_values_lower,
           'gs_threshold': 1}
 
     with PooledCursor() as cursor:
@@ -180,11 +183,9 @@ def create_new_geneset(args):
     ## TODO
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
-    print gs
     vals = batch.buGenesetValues(gs)
 
     batch.db.commit()
-    #print vals
 
     return {'error': 'None', 'gs_id': gs_id}
 

@@ -5,7 +5,7 @@ int main(int argc, char** argv){
         cerr<<"expected <num samples> <topFile path> <background filepath> <number of interestFiles> <set-of-intrest filepath>"<<endl; //TODO: change to log file, add support for multiple files
         exit(1);
     }
-    /*    //string
+    //*    //string
     MSET<string> msetFinder;
     /*/   //numeric
     MSET<int> msetFinder;
@@ -14,8 +14,12 @@ int main(int argc, char** argv){
     string topFile=argv[2];
     string backgroundFile=argv[3];
     int numInterestFiles=atoi(argv[4]);
-    for(int i=0;i<numInterestFiles;i++){
-        msetFinder.run(numSamples,topFile,backgroundFile,argv[i+5]);
+    cout<<"data: ["<<endl;
+    cout<<msetFinder.run(numSamples,topFile,backgroundFile,argv[5]);
+    for(int i=1;i<numInterestFiles;i++){
+        cout<<","<<endl<<msetFinder.run(numSamples,topFile,backgroundFile,argv[i+5]);
     }
+    cout<<endl;
+    cout<<"]"<<endl;
     return 0;
 }

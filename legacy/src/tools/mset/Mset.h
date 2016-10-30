@@ -44,15 +44,13 @@ private:
     }
 
 public:
-    int run(int numSamples,string topFile, string backgroundFile,string interestFile){
-        ofstream progress;
-        //stringstream cout;
+    string run(int numSamples,string topFile, string backgroundFile,string interestFile){
         set<T> setOfInterest;
         set<T> top;
         vector<T> background;
 
         int countsArraySize=1000;
-        vector<int> counts(countsArraySize);//assume intersect length wont exceed 40, but pushback if it is
+        vector<int> counts(countsArraySize);//assume intersect length wont exceed 1000
 
         ifstream readLists(interestFile.c_str());
         if(!readLists){
@@ -85,22 +83,17 @@ public:
         while(readLists>>input){
             top.insert(input);
         }
+        readLists.clear();
+        readLists.close();
 
         WithoutReplacementSampler<T> sampler;
         sampler.setSource(&background);
 
         IntersectSizeFinder<T> isectFinder(setOfInterest.begin(),setOfInterest.end());
 
-        cout<<numSamples<<" simulated results of length "<<top.size()<<" generated from background"<<endl;
         //the length of the intersect with the top set and the intrest set to
         //compare to the simulations
         long checklength=isectFinder.getIntersectionSizeWith(top);
-        cout<<checklength<<" matches to database found in microarray results"<<endl;
-        vector<T> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
-        cout<<"matches are: "<<endl;
-        for(int i=0;i<(int)matches.size();i++){
-            cout<<matches[i]<<endl;
-        }
 
         vector<vector<T>* > samples;
         for(int i=0;i<numSamples;i++){
@@ -109,7 +102,6 @@ public:
         }
 
 
-        cout<<endl<<"samples generated"<<endl;
         long numGreater=0;
 
         const int maxConcurentThreads=1000;
@@ -155,35 +147,44 @@ public:
         for(int i=0;i<numSamples;i++){
             delete samples[i];
         } 
-        cout<<"                                          "<<endl;
         stringstream jsonOutput;
 
         double pvalue=((double)numGreater)/((double)numSamples);
 
         string tb="    ";
-        jsonOutput<<"{"<<endl;
+        jsonOutput<<interestFile<<": {"<<endl;
+        //matches to database found in microarray results
+        jsonOutput<<tb<<"inTopAndInterestCount: "<<checklength<<","<<endl;
+        jsonOutput<<tb<<"inTopAndInterest: ["<<endl;
+        vector<T> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
+        for(unsigned int i=0;i<matches.size();i++){
+            jsonOutput<<tb<<tb<<matches[i];
+            if(i!=(counts.size()-1)){
+                jsonOutput<<",";
+            }
+            jsonOutput<<endl;
+        }
+        jsonOutput<<tb<<"],"<<endl;
+          //number of samples where
+         //simulated results of length n contained at least as many matches
+        //to database as actual expression results.
+        jsonOutput<<tb<<"numSamples: "<<numSamples<<","<<endl;
+        jsonOutput<<tb<<"intersectGreaterCount: "<<numGreater<<","<<endl;
+        jsonOutput<<tb<<"sampleLength: "<<top.size()<<","<<endl;//length of each sample
         jsonOutput<<tb<<"pValue: "<<pvalue<<","<<endl;
-        jsonOutput<<tb<<"densityPointCount: "<<counts.size()<<","<<endl;
-        jsonOutput<<tb<<"density: ["<<endl;
+        jsonOutput<<tb<<"densityPointCount: "<<counts.size()<<","<<endl;//length of density array
+        jsonOutput<<tb<<"density: ["<<endl;//density array
         for(unsigned int i=0;i<counts.size();i++){
-            jsonOutput<<tb<<tb<<tb<<tb<<double(counts[i])/double(numSamples)<<","<<endl;
+            jsonOutput<<tb<<tb<<double(counts[i])/double(numSamples);
+            if(i!=(counts.size()-1)){
+                jsonOutput<<",";
+            }
+            jsonOutput<<endl;
         }
         jsonOutput<<tb<<"]"<<endl;
-        jsonOutput<<"}"<<endl;
+        jsonOutput<<"}";
 
-        cout<<"p-value: "<<pvalue<<endl;
-        cout<<endl;
-        cout<<numGreater<<" simulated results of length "<<top.size()<<" contained at least as many matches"<<endl;
-        cout<<"to database as actual expression results."<<endl;
-        cout<<"density:"<<endl;
-        for(unsigned int i=0;i<counts.size();i++){
-            cout<<i<<" "<<double(counts[i])/double(numSamples)<<endl;
-        }
-        cout<<endl;
-        cout<<endl;
-        cout<<"json:"<<endl;
-        cout<<jsonOutput.str()<<endl;
+        return jsonOutput.str();
 
-        return 0;
     }
 };

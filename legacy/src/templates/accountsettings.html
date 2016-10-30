@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr {
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins {
         cursor: pointer;
     }
 
@@ -76,7 +76,7 @@
 
                         <div class="row" id="groups">
                             <div class="page-header2">
-                                <h4>Groups That I Own</h4>
+                                <h4>Groups That I Administer</h4>
                             </div>
                             {% if groupsOwnerOf | length > 0 %}
                                 <table class="table table-striped">
@@ -132,12 +132,21 @@
                                                 <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
                                                       data-grp="{{ grpO.grp_id }}"><i class="fa fa-plus"></i></span>
                                                 </span>
+
+                                                 &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Admins" type="button" title="Set Group Admins"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_setAdmins" id="groupAdminModal_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-wrench"></i>
+                                                </span></span>
                                             </td>
                                         </tr>
                                         {% include 'modal/deleteGroup.html' %}
                                         {% include 'modal/editGroupName.html' %}
                                         {% include 'modal/addUserToGroup.html' %}
                                         {% include 'modal/deleteGroupUsers.html' %}
+                                        {% include 'modal/setGroupAdmins.html' %}
 
 
                                     {% endfor %}
@@ -281,6 +290,17 @@
                             <br><br>
                         </form>
                     </div>
+
+                </div>
+
+                <div class="panel panel-primary">
+                    <div class="panel-body">
+                        <div class="row">
+                            <label class="checkbox-inline" for="email_notifications"><h4>Receive Notifications As Email</h4>
+                                <input type="checkbox" name="email_notifications" id="email_notifications" {% if emailNotifications %}checked{% endif %}>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="panel panel-primary">
@@ -325,6 +345,9 @@
 
 <script>
     $(document).ready(function () {
+
+        var groupAdmins = {{ groupAdmins | tojson }};
+
         $("#password_2").keyup(validate);
 
         $(function () {
@@ -408,6 +431,86 @@
         });
 
 
+        $('.setGroupAdmins').on('click', function () {
+            var g = $(this).attr("data-modal-id");
+            var checked = [];
+            $("input[name='admin_email_" + g + "[]']:checked").each(function () {
+                checked.push($(this).val());
+            });
+
+            if ($.isEmptyObject(checked)) {
+                // a group needs at least one admin,  if none were selected then
+                // show an error alert and don't contact the server
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "You must select at least one admin.",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+            else {
+
+                // at least one admin was selected.  show an alert that we are
+                // updating group admins (since getJSON is asynchronous, once
+                // the server returns the page will refresh and this alert will
+                // go away)
+                $(document).trigger("add-alerts", [
+                            {
+                                'message': "Updating group admins.",
+                                'priority': 'warning'
+                            }
+                ]);
+
+                var params = {
+                    "user_id": {{ g.user.user_id }},
+                    "grp_id": g,
+                    "uids": checked
+                };
+
+                // since params["uids"] is a list we need to use $.param() to
+                // encode it properly and the server needs to use
+                // request.args.getlist('uids') instead of request.args['uids']
+                $.getJSON('{{ url_for('update_group_admins') }}', $.param(params, true), function(data) {
+                    if ('error' in data) {
+                        // if there was an error show the message and don't
+                        // reload the page
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': data['error'],
+                                'priority': 'danger'
+                            }
+                        ]);
+
+                    }
+                    else {
+                        // no error, reload window
+                        window.location.reload(true);
+                    }
+                });
+
+            }
+
+        });
+
+
+        $('.clickable_setAdmins').on('click', function () {
+            var grp_id = ($(this).attr("data-grp"));
+
+            // when we show this modal, reset the checkboxes to show the
+            // correct state of group admins when the page was rendered
+
+            // first uncheck everything
+            $("#groupAdminModal_" + grp_id).find('input[type=checkbox]:checked').prop('checked', false).checkboxradio("refresh");
+
+            // then check the right users
+            for (var i = 0; i < groupAdmins[grp_id].length; i++) {
+                $("#adminEmail_" + grp_id + "_" + groupAdmins[grp_id][i]['usr_id']).prop('checked', true).checkboxradio("refresh");
+            }
+
+            $('#groupAdminModal_' + grp_id).modal('show');
+        });
+
+
         $('.clickable_addUsr').on('click', function () {
             var grp_id = ($(this).attr("data-grp"));
             $("#add_user_id_" + grp_id).val({{ user.user_id }});
@@ -454,6 +557,7 @@
                 }
             })
         });
+
 
         $('.clickable_edit').on('click', function () {
             var grp_name = ($(this).attr("data-grp-name"));
@@ -598,5 +702,31 @@
         }
     }
 
+    function handleError(data) {
+
+        // unable to set preferences, put checkbox back the way it was
+        $('#email_notifications').prop('checked', !($('#email_notifications').is(':checked'))).checkboxradio("refresh");
+
+        if(data.responseJSON.error) {
+            $(document).trigger("add-alerts", [
+                {
+                    'message': data.responseJSON.error,
+                    'priority': 'danger'
+                }
+            ]);
+        }
+
+    }
+
+    $('#email_notifications').change(function() {
+        var state = 0;
+        var usr = {{ g.user.user_id }};
+        if ($(this).is(':checked')) {
+            state = 1;
+        }
+        $.getJSON("{{ url_for('update_notification_pref') }}", {'user_id': usr, 'new_state': state}, function(data) {
+            console.log('notification preferences updated');
+        }).fail(handleError);
+    });
 
 </script>
