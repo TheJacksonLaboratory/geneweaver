@@ -25,6 +25,12 @@ def run_tool():
                     'this tool.'))
 
         return flask.redirect('analyze')
+    
+    if 'BooleanAlgebra_Relation' not in form:
+        flask.flash(('You need to select a boolean algebra relation for '
+                    'this tool.'))
+
+        return flask.redirect('analyze')
 
     else:
 
