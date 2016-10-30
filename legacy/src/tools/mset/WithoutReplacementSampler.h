@@ -2,27 +2,29 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <random>
+#include <iostream>
 template<typename T>
 class WithoutReplacementSampler{
     public:
         WithoutReplacementSampler(){
-            srand(time(0));
+            gen=std::mt19937(rd());
         }
         void setSource(std::vector<T>* from){
-            ndxs=std::vector<unsigned long>(from->size());
-            for(unsigned long i=0;i<ndxs.size();i++){
-                ndxs[i]=i;
-            }
             fromVector=from;
+            std::cout<<fromVector->size()<<std::endl;
+            ndxs=std::uniform_int_distribution<unsigned long>(0,fromVector->size()-1);
         }
     //without replacement
     void sample(std::vector<T>& sampleInto){
-        random_shuffle(ndxs.begin(),ndxs.end());
         for(unsigned long i=0;i<sampleInto.size();i++){
-            sampleInto[i]=(*fromVector)[ndxs[i]];//copy the random element
+            unsigned long pull=ndxs(gen);
+            sampleInto[i]=(*fromVector)[pull];
         }
     }
     private:
+        std::random_device rd;
+        std::mt19937 gen;
         std::vector<T>* fromVector;
-        std::vector<unsigned long> ndxs;
+        std::uniform_int_distribution<unsigned long> ndxs;
 };

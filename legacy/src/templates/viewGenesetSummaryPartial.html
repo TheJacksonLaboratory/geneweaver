@@ -9,7 +9,7 @@
 
     {% if proj is defined %}
         <td width="40px">
-            <div class="ui-checkbox" style="padding: 0; border: 0;">
+            <div class="ui-checkbox" style="padding: 0; border: 0;" align="center">
                 <label for="geneset_{{ gs.geneset_id }}">
                     <input type="checkbox" name="geneset_{{ gs.geneset_id }}" data-project="{{ proj.project_id }}"
                            data-parentproject="{{ proj.project_id }}"
@@ -29,6 +29,17 @@
         </td>
     {% endif %}
 
+    {# 
+		Used to select genesets from the search results page. Should only be
+		shown on the search page. render_search_json added to prevent
+		checkboxes disappearing as a user is flipping through paginated results.
+	#}
+    {% if request.endpoint == "render_searchFromHome" or  request.endpoint == "render_search_json" %}
+        <td>
+            <input type="checkbox" class="search-check" id="gs-check-{{ gs.geneset_id }}">
+            <label class="checkbox" for="gs-check-{{ gs.geneset_id }}"></label>
+        </td>
+	{% endif %}
 
     <td>
 
@@ -51,27 +62,6 @@
     </td>
 
     <td id="sp-tag-{{gs.geneset_id}}">
-        {#
-        <!-- Label the species -->
-        {% if gs.sp_id == 1 %}
-            <span class="mouse">Mouse</span>
-        {% endif %}
-        {% if gs.sp_id == 2 %}
-            <span class="human">Human</span>
-        {% endif %}
-        {% if gs.sp_id == 3 %}
-            <span class="rat">Rat</span>
-        {% endif %}
-        {% if gs.sp_id == 4 %}
-            <span class="zebrafish">Zebrafish</span>
-        {% endif %}
-        {% if gs.sp_id == 5 %}
-            <span class="fly">Fly</span>
-        {% endif %}
-        {% if gs.sp_id == 6 %}
-            <span class="monkey">Monkey</span>
-        {% endif %}
-        #}
     </td>
 
     <td>
@@ -186,18 +176,6 @@
 
         {% endif %}
     </td>
-
-    {# 
-		Used to select genesets from the search results page. Should only be
-		shown on the search page. render_search_json added to prevent
-		checkboxes disappearing as a user is flipping through paginated results.
-	#}
-    {% if request.endpoint == "render_searchFromHome" or  request.endpoint == "render_search_json" %}
-        <td>
-            <input type="checkbox" class="search-check" id="gs-check-{{ gs.geneset_id }}">
-            <label class="checkbox" for="gs-check-{{ gs.geneset_id }}"></label>
-        </td>
-	{% endif %}
 
 </tr>
 

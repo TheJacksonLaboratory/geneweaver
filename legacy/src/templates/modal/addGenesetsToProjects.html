@@ -7,35 +7,35 @@
                   class="form-horizontal" novalidate="novalidate">
 
                 <div class="modal-header bg-green">
-                    <h3 class="modal-title" style="color: #f5f5f5">Add Selected GeneSets to Projects</h3>
+                    <h3 class="modal-title" style="color: #f5f5f5">
+                        Add Selected GeneSets to Project(s)
+                    </h3>
                 </div>
                 <div class="modal-body">
                     <div class="row" id="modalError"></div>
-                    <div class="row">
-                        <h4>
-                            Please select the projects for GeneSet(s):
-                        </h4>
+
+                    <div class="row" style="text-align:center;">
+						<h4>The following GeneSet(s) will be added:</h4>
                     </div>
                     <div class="row" style="text-align:center;">
                         <strong>
-							<span class="rows" id="myModalLabel" style="color: #006400;">
+							<span class="rows" id="modal-label" style="color: #006400;">
 							</span>
 						</strong>
 					</div>
-                    <div class="modal-footer" align="center" style="text-align:center;">
-                        <button type="button" class="btn btn-success btn-transparent"
-                                id="addNewProject" style="padding-left:12px;padding-right:12px">
-                            <i class="fa fa-plus"></i>
-                            Add to New Project
-                        </button>
-                        <button type="button" class="btn btn-warning" data-dismiss="modal"
-                                id="addGenesetsToProjects" style="padding-left:12px;padding-right:12px">
-                            Add to Selected Projects
-                        </button>
-                        <button type="button" class="btn btn-default" data-dismiss="modal" style="padding-left:12px;padding-right:12px">
-                            Close
-                        </button>
-                    </div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-success btn-transparent"
+								id="addNewProject"style="padding-left:12px;padding-right:12px">
+							<i class="fa fa-plus"></i> Add to New Project
+						</button>
+						<button type="button" class="btn btn-warning" id="addGenesetsToProjects" data-dismiss="modal"style="padding-left:12px;padding-right:12px">
+							Add to Selected Project(s)
+						</button>
+						<button type="button" class="btn btn-default" data-dismiss="modal">
+							Close
+						</button>
+					</div>
+
                     <div class="row" id="reveal-if-active" style="display:none;">
                         <label for="newProjName"><h4>New Project Name: </h4></label>
                         <input type="text" id="newProjName" name="newProjName" class="form-control input-lg">

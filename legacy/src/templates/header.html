@@ -110,14 +110,56 @@ messages = array of messages
         .link-panel:hover {
             background-color: rgba(153, 184, 190, 0.2) !important;
         }
+
+
+
+        .button_badge {
+            background-color: #fa3e3e;
+
+            color: white;
+
+            font-size: 8px;
+            line-height: 8px;
+            padding: 1px 4px;
+
+            position: relative;
+            top: -6px;
+            right: 5px;
+
+            border-radius: 6px;
+            box-shadow: 1px 1px black;
+        }
+}
     </style>
     <script>
+
+        function update_notification_badge() {
+            $.getJSON('{{ url_for('get_unread_notification_count_json') }}', function(data) {
+                if ('unread_notifications' in data) {
+                    if (data['unread_notifications'] != 0) {
+                        $("#notification_badge").text(data['unread_notifications']);
+                        $("#notification_badge").show();
+                    }
+                    else {
+                        $("#notification_badge").hide();
+                    }
+                }
+            });
+        }
+
         $(function () {
             var anonUserSpan = $('#anon-user-span');
             var validUserSpan = $('#valid-user-span');
             var userEmail = $('#usr_email');
             var userPassword = $('#usr_password');
             var userName = $('#user-name');
+
+
+            // if the user has unread notifications, set the notification badge
+            // text and then show it.
+            update_notification_badge();
+
+
             $('#loginform').submit(function (event) {
                 // stop the form from submitting normally
                 event.preventDefault();
@@ -141,7 +183,7 @@ messages = array of messages
             });
             $('#logout-button').click(function (event) {
                 $.get("{{ url_for('json_logout')|safe }}", function () {
-                    window.location = "/index.html"
+                    window.location = "/"
                 });
             });
             $('#admin-button').click(function (event) {
@@ -181,6 +223,11 @@ messages = array of messages
             <li>
                 <a href="/search"><span class="fa fa-search fa-lg"></span></a>
             </li>
+            {% if "user" in g%}
+                <li>
+                    <a href="/notifications"><span class="fa fa-envelope"></span><span class="button_badge" id="notification_badge" hidden></span></a>
+                </li>
+            {% endif %}
             <li class="dropdown">
                 <a href="/mygenesets" class="dropdown-toggle" data-hover="dropdown">Manage GeneSets <span
                         class="caret"></span></a>
@@ -233,7 +280,7 @@ messages = array of messages
                     <!-- Not logged in user -->
                     {% if "user" not in g %}
                         <li {% if "user" in g %} style="display: none"{% endif %}>
-                            <a href="/login.html">
+                            <a href="/login">
                                 <i class="fa fa-sign-in"></i> Sign In
                             </a>
                         </li>

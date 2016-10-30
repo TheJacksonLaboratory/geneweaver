@@ -1,98 +1,21 @@
-/*
-mset.cpp: ...
-Created: Sun Sep 11 18:47:33 CDT 2016
-seg fualting, but this version directly corresponds to original paper
-*/
-#include <fstream>
-#include <iostream>
-#include "vectorUnique.h"//move to separate h files so they can be linked
-#include "WithoutReplacementSampler.h"//with this and with separate driver files
-#include "IntersectSizeFinder.h"
-using namespace std;
-
-
+#include "./Mset.h"
 
 int main(int argc, char** argv){
-
-    set<string> setOfInterest;
-    set<string> top;
-    vector<string> background;
-
-
-    string bgFilename;
-    cout<<"enter filename for background:>";
-    cin>>bgFilename;
-
-    string interestFilename;
-    cout<<"enter filename for list of interest:>";
-    cin>>interestFilename;
-
-    ifstream readLists(bgFilename.c_str());
-
-    string inputStr;
-    while(readLists>>inputStr){
-        if(inputStr!="---"){
-            background.push_back(inputStr);//read into sets so they're unique
-        }
+    if(argc<6){
+        cerr<<"expected <num samples> <topFile path> <background filepath> <number of interestFiles> <set-of-intrest filepath>"<<endl; //TODO: change to log file, add support for multiple files
+        exit(1);
     }
-    readLists.clear();
-    readLists.close();
-    readLists.open(interestFilename.c_str());
-
-    while(readLists>>inputStr){
-        if(inputStr!="---"){
-            setOfInterest.insert(inputStr);
-        }
+    /*    //string
+    MSET<string> msetFinder;
+    /*/   //numeric
+    MSET<int> msetFinder;
+    //*/
+    int numSamples=atoi(argv[1]);//TODO: use error checking version
+    string topFile=argv[2];
+    string backgroundFile=argv[3];
+    int numInterestFiles=atoi(argv[4]);
+    for(int i=0;i<numInterestFiles;i++){
+        msetFinder.run(numSamples,topFile,backgroundFile,argv[i+5]);
     }
-
-    readLists.clear();
-    readLists.close();
-
-    int topResults=0;
-    cout<<"enter number of top results:>";
-    cin>>topResults;
-
-    //copy that number from background into top, converting to set in the
-    //process
-    for(vector<string>::iterator i=background.begin(); distance(background.begin(),i)<topResults;i++){
-        top.insert(*i);
-    }
-
-    int numSamples=0;
-    cout<<"enter number of samples:>";
-    cin>>numSamples;
-
-    WithoutReplacementSampler<string> sampler;
-    sampler.setSource(&background);
-
-    IntersectSizeFinder<string> isectFinder(setOfInterest.begin(),setOfInterest.end());
-
-    //the length of the intersect with the top set and the intrest set to
-    //compare to the simulations
-    int checklength=isectFinder.getIntersectionSizeWith(top);
-
-    vector<string> sampledList(top.size()*2);//don't know why times two but it is in the publication
-
-    cout<<"everything is read"<<endl;
-    int numGreater=0;
-    for(int i=0;i<numSamples;i++){
-        sampler.sample(sampledList);//sample sampledList.size elements from background into sampledList without replacement
-        vector<string> sampledSet=unique(sampledList);//using a set directly to do unique would sort it
-        //because the set needs to be truncated after being converted to a set,
-        //it cannot be sorted if the behavior of the mset.R file is to be copied
-        sampledSet.resize(top.size());
-        if(isectFinder.getIntersectionSizeWith(sampledSet)>checklength){
-            //if the size of the intersect of sampledSet and setOfInterest> the checklength intersect from before
-            numGreater++;//increment the count
-        }
-        //*/
-    }
-
-    double pvalue=((double)numGreater)/((double)numSamples);
-
-    cout<<"pvalue: "<<pvalue<<endl;
-    cout<<"number with at least as many matches as actual: "<<numGreater<<endl;
-
     return 0;
 }
-//*/

@@ -143,6 +143,11 @@
                     <table id="results" class="table table-hover">
                         <tbody>
                         <tr>
+                            <th align="center" style="text-align:center;">
+                                <nobr>
+                                    <i id="geneset" class="fa fa-check"></i>
+                                </nobr>
+                            </th>
                             <th>
                                 <nobr>
                                     <a id="tier" href="#">
@@ -184,13 +189,6 @@
                                 <nobr>
                                     <a id="gs-expand" href="#">
                                         <i id="gs-expand" class="fa"></i>
-                                    </a>
-                                </nobr>
-                            </th>
-                            <th>
-                                <nobr>
-                                    <a id="search-select" href="#">
-                                        <i id="geneset" class="fa"></i>
                                     </a>
                                 </nobr>
                             </th>
@@ -247,6 +245,15 @@
         }
     });
 
+    // When a user is adding genesets to a new project, this allows them 
+    // to hit enter to execute that addition without the page throwing
+    // an http error
+    $(document).on('keypress', function(e) {
+        // 13 == ENTER
+        if (e.keyCode && e.keyCode === 13 && $('#addToProjectModal').is(':visible'))
+            e.preventDefault();
+    });
+
     // The right side button 'Add GeneSet(s) to Project'
     $('#addToProject').on('click', function (e) {
 
@@ -269,10 +276,11 @@
 
             var gstr = genesets.map(function(s){ return 'GS' + s; }).join(', ');
 
-            $('#addToProjectModal').find('.modal-title')
-                    .html('Add Selected to Project(s)');
-            $('#addToProjectModal').find('h4')
-                    .html('Add ' + gstr + ' to the following project(s):');
+            //$('#addToProjectModal').find('.modal-title')
+            //        .html('Add Selected to Project(s)');
+           // $('#addToProjectModal').find('h4')
+           //         .html('Add ' + gstr + ' to the following project(s):');
+            $('#modal-label').html(gstr);
             $("#myModalValue").val(genesets.join(','));
             $('#addToProjectModal').modal('show');
         }
@@ -316,7 +324,5 @@
     // click handler
     $('#addNewProject').on('click', function () {
         $('#reveal-if-active').toggle();
-        //$('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-        //        '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
     });
 </script>

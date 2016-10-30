@@ -1,0 +1,38 @@
+#!/bin/bash
+#installLibpqxx: Script to install the library needed to use database from C++
+#Created: Sun Oct  2 18:08:01 CDT 2016
+#after running this, run the following commands in psql as postgres
+#
+#  ALTER USER postgres WITH PASSWORD 'example_password';
+#
+#  CREATE TABLE background (
+#      ID INT PRIMARY KEY NOT NULL,
+#      NAME CHAR(30) NOT NULL,
+#      GENE_NO INT NOT NULL
+#  );
+#
+#  CREATE TABLE amMGI (
+#      ID INT PRIMARY KEY NOT NULL,
+#      NAME CHAR(30) NOT NULL,
+#      GENE_NO INT NOT NULL
+#  );
+#
+#  \i bgInsert;
+#  \i amMGIinsert;
+#
+sudo apt update
+sudo apt install postgresql-server-dev-9.5
+wget http://pqxx.org/download/software/libpqxx/libpqxx-4.0.tar.gz
+tar xvfz libpqxx-4.0.tar.gz
+cd libpqxx-4.0
+./configure
+make
+make install
+confPath=$(find / -name "pg_hba.conf" 2>/dev/null)
+if egrep -q "host[ ]*all[ ]*127.0.0.1/32[ ]*md5" $confPath; then
+    printf ''
+else
+    echo "host    all         all         127.0.0.1/32          md5">> $confPath
+    service postgresql restart
+fi
+exit 0
