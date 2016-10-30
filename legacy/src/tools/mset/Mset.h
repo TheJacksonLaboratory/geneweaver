@@ -155,7 +155,7 @@ public:
         jsonOutput<<interestFile<<": {"<<endl;
         //matches to database found in microarray results
         jsonOutput<<tb<<"inTopAndInterestCount: "<<checklength<<","<<endl;
-        jsonOutput<<tb<<"inTopAndInterestCount: ["<<endl;
+        jsonOutput<<tb<<"inTopAndInterest: ["<<endl;
         vector<T> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
         for(unsigned int i=0;i<matches.size();i++){
             jsonOutput<<tb<<tb<<matches[i];

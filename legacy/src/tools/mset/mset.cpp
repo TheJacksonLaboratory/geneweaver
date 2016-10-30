@@ -5,7 +5,7 @@ int main(int argc, char** argv){
         cerr<<"expected <num samples> <topFile path> <background filepath> <number of interestFiles> <set-of-intrest filepath>"<<endl; //TODO: change to log file, add support for multiple files
         exit(1);
     }
-    /*    //string
+    //*    //string
     MSET<string> msetFinder;
     /*/   //numeric
     MSET<int> msetFinder;
