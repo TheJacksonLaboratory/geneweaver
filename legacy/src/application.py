@@ -20,7 +20,7 @@ import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
+    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint, upsetblueprint
 import sphinxapi
 import search
 import math
@@ -40,6 +40,7 @@ app.register_blueprint(jaccardclusteringblueprint.jaccardclustering_blueprint)
 app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
+app.register_blueprint(upsetblueprint.upset_blueprint)
 
 # *************************************
 
@@ -1007,6 +1008,12 @@ def viewStoredResults_by_runhash():
     elif results['res_tool'] == 'Boolean Algebra':
         return flask.url_for(
             booleanalgebrablueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
+    elif results['res_tool'] == 'UpSet':
+        return flask.url_for(
+            upsetblueprint.TOOL_CLASSNAME + '.view_result',
             task_id=runhash
         )
 
@@ -2829,6 +2836,16 @@ class ToolBooleanAlgebraProjects(restful.Resource):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
 
+class ToolUpSet(restful.Resource):
+    def get(self, apikey, homology, pairwiseDeletion, genesets):
+        return upsetblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+
+
+class ToolUpSetProjects(restful.Resource):
+    def get(self, apikey, homology, pairwiseDeletion, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return upsetblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+
 
 class KeywordSearchGuest(restful.Resource):
     def get(self, apikey, search_term):
@@ -2898,6 +2915,11 @@ api.add_resource(ToolPhenomeMapProjects,
 
 api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relation>/<genesets>/')
 api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byprojects/<apikey>/<relation>/<projects>/')
+
+api.add_resource(ToolUpSet,
+                 '/api/tool/upset/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+api.add_resource(ToolUpSetProjects,
+                 '/api/tool/upset/byprojects/<apikey>/<homology>/<pairwiseDeletion>/<projects>/')
 
 # ********************************************
 # END API BLOCK
