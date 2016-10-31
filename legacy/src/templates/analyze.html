@@ -295,6 +295,7 @@
 
 {% include 'footer.html' %}
 
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 <script type="text/javascript">
 
     $(function () {
@@ -336,6 +337,24 @@
     $(document).ready(function () {
 
         var url = '/projectGenesets.json';
+
+		// Tag generation
+		//
+		{% if attribs %}
+			makeAttributionTags({{ attribs | tojson | safe }});
+		{% else %}
+			makeAttributionTags();
+		{% endif %}
+
+		{% for gs in genesets %}
+			makeSpeciesTag(
+				{{ gs.geneset_id }}, 
+				{{ gs.sp_id }}, 
+				{{ species | tojson | safe }}
+			);
+		{% endfor %}
+		//
+		 
 
 		// Changes caret position when tool options are expanded.
 		$('.tool-link').on('click', function(event) {

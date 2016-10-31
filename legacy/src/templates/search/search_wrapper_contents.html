@@ -213,42 +213,24 @@
 {% include 'modal/addGenesetsToProjects.html' %}
 {% include 'modal/showGenericMessage.html' %}
 
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 <script type="text/javascript">
 
-	// Dynamically generates attribution tags
-	//
-	var makeAttributionTags = function() {
-		// Two, combined color Brewer palettes
-		var colors = ['rgb(228,26,28);','rgb(55,126,184);','rgb(77,175,74);',
-					  'rgb(152,78,163);','rgb(255,127,0);','rgb(255,255,51);',
-					  'rgb(166,86,40);','rgb(247,129,191);','rgb(153,153,153);',
-					  'rgb(102,194,165)','rgb(252,141,98)','rgb(141,160,203)',
-					  'rgb(231,138,195)','rgb(166,216,84)','rgb(255,217,47)',
-					  'rgb(229,196,148)','rgb(179,179,179)'];
+	/**
+	  * Although attribution and species tags are part of the
+	  * viewGenesetSummaryPartial template, we generate the tags out here in
+	  * the wrapper section otherwise this bit of javascript will be injected
+	  * into every single search result (50 per page).
+	  */
+    $(document).ready(function () {
 
-		{# Otherwise terrible things happen #}
 		{% if attribs %}
-			var attlist = {{ attribs | tojson | safe }};
+			makeAttributionTags({{ attribs | tojson | safe }});
 		{% else %}
-			var attlist = {};
+			makeAttributionTags();
 		{% endif %}
 
-		var i = 0;
-
-		//for (var i = 0; i < attlist.length; i++) {
-		for (var key in attlist) {
-			attrib = attlist[key];
-
-			$('.att-' + attrib).attr('class', 'group_name att-' + attrib);
-			$('.att-' + attrib).css('background-color', colors[i]);
-			$('.att-' + attrib).css('margin', '-5px 0 0 5px');
-			$('.att-' + attrib).html(attrib.toUpperCase());
-			i++;
-		}
-	};
-
-    $(document).ready(function () {
-		makeAttributionTags();
+		makeSpeciesTags({{ species | tojson | safe }});
 	});
 
     //var user_id = {{ user_id }};
