@@ -114,11 +114,11 @@
         <tbody>
           <tr>
             <td>
-              <strong>Curation Tiers:</strong>&nbsp;VALUE<br>
-              <strong>Minimum Genes:&nbsp;</strong>VALUE<br>
-              <strong>Restricted to Species:&nbsp;</strong>VALUE<br>
-              <strong>Minimum Genesets:&nbsp;</strong>VALUE<br>
-              <strong>Include Homology:&nbsp;</strong>VALUE<br>
+              <strong>Curation Tiers:</strong>&nbsp;{{async_result.SelectedTierset}}<br>
+              <strong>Minimum Genes:&nbsp;</strong>{{async_result.MinGenes}}<br>
+              <strong>Restricted to Species:&nbsp;</strong>{{async_result.RestrictSpecies}}<br>
+              <strong>Minimum Genesets:&nbsp;</strong>{{async_result.MinGenesets}}<br>
+              <strong>Include Homology:&nbsp;</strong>{{async_result.IncludeHomology}}<br>
             </td>
             <td>
               <strong>User:&nbsp;</strong>VALUE<br>
@@ -139,9 +139,26 @@
   <div class="row">
     <div class="col-md-12 title-col">
       <ul class="nav nav-tabs" role="tablist">
-        <li class="active"><a href="#GenesOfInterest" aria-controls="GenesOfInterest" role="tab" data-toggle="tab">Genes of Interest (#)</a></li>
-        <li><a href="#MatchingGenesets" aria-controls="MatchingGenesets" role="tab" data-toggle="tab">Matching Genesets (#)</a></li>
-        <li><a href="#ResultGenes" aria-controls="ResultGenes" role="tab" data-toggle="tab">Result Genes (#)</a></li>
+        {% if async_result.GenesOfInterestCount %}
+          {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
+        {% else %}
+          {% set genesOfInterestCnt=0 %}
+        {% endif %}
+        <li class="active"><a href="#GenesOfInterest" aria-controls="GenesOfInterest" role="tab" data-toggle="tab">Genes of Interest ({{genesOfInterestCnt}})</a></li>
+        
+        {% if async_result.GenesetResultsCount %}
+          {% set genesetCount=async_result.GenesetResultsCount %}
+        {% else %}
+          {% set genesetCount=0 %}
+        {% endif %}
+        <li><a href="#MatchingGenesets" aria-controls="MatchingGenesets" role="tab" data-toggle="tab">Matching Genesets ({{genesetCount}})</a></li>
+
+        {% if async_result.GeneResultsCount %}
+          {% set geneCount=async_result.GeneResultsCount %}
+        {% else %}
+          {% set geneCount=0 %}
+        {% endif %}  
+        <li><a href="#ResultGenes" aria-controls="ResultGenes" role="tab" data-toggle="tab">Result Genes ({{async_result.GeneResultsCount}})</a></li>
       </ul>
     </div>
 
@@ -160,27 +177,20 @@
             </thead>
           </table>
           <table class="table table-striped table-list-search scroll-body">
-              <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
 
-              <tr class="result-row" row-type="GOI">
-                <td>BBBB<br></td>
-                <td>VALUE1b<br></td>
-                <td>VALUE1c</td>
-              </tr>
-
-              <tr class="result-row" row-type="GOI">
-                <td>AAAA<br></td>
-                <td>VALUE1A<br></td>
-                <td>VALUE1c</td>
-              </tr>
-
-              <tr class="result-row" row-type="GOI">
-                <td>CCCC<br></td>
-                <td>VALUE2c<br></td>
-                <td>VALUE2c</td>
-              </tr>
-
-            </tbody>
+        {% if async_result.GenesOfInterest %}
+        <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
+            {% for gene in async_result.GenesOfInterest %}
+            <tr row-type="GOI">
+              
+              <td>{{gene[1]}}<br></td>
+              <td>{{gene[2]}}<br></td>
+              <td>TODO</td>
+              
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% endif %}
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
@@ -200,14 +210,16 @@
             </thead>
           </table>
           <table class="table table-striped table-list-search scroll-body">
+            {% if async_result.GenesetResults %}
             <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
-
-              <tr class="result-row" row-type="MG">
-                <td>VALUE1b<br></td>
-                <td>VALUE1c</td>
+              {% for geneset in async_result.GenesetResults %}
+              <tr row-type="MG">
+                <td>{{geneset[1]}}<br></td>
+                <td>{{geneset[2]}}</td>
               </tr>
-
+              {% endfor %}
             </tbody>
+            {% endif %}
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
@@ -228,15 +240,17 @@
             </thead>
           </table>
           <table class="table table-striped table-list-search scroll-body">
+            {% if async_result.GeneResults %}
             <tbody  class="scroll-tbody" id="ResultGenesTableBody">
-
-              <tr class="result-row" row-type="RG">
-                <td>aVALUE<br></td>
-                <td>bVALUE<br></td>
-                <td>cVALUE</td>
+              {% for gene in async_result.GeneResults %}
+              <tr row-type="RG">
+                <td>{{gene[1]}}<br></td>
+                <td>{{gene[2]}}<br></td>
+                <td>{{gene[3]}}</td>
               </tr>
-
+              {% endfor %}
             </tbody>
+            {% endif %}
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
