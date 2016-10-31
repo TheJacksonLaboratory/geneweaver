@@ -160,7 +160,7 @@
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                         $(nTd).empty();
                         // TODO:  Add an if here when we support tasks other than just genesets doing a check on type (oData[3])
-                        $(nTd).append('<a href=\"/viewgenesetdetails/' + oData[1] + '\">' + sData + '</a>');
+                        $(nTd).append('<a href=\"/curategeneset/' + oData[1] + '\">' + sData + '</a>');
                     }
                 },
                 {
