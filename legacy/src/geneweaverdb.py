@@ -1458,6 +1458,112 @@ def get_server_side_genesets(rargs):
         return response
 
 
+def get_server_side_grouptasks(rargs):
+    group_id = rargs.get('group_id', type=int)
+    sEcho = rargs.get('sEcho', type=int)
+    response = {'sEcho': sEcho,
+                'iTotalRecords': 0,
+                'iTotalDisplayRecords': 0,
+                'aaData': []
+                }
+    if group_id:
+        select_columns = ['full_name', 'task_id', 'task_name', 'task_type', 'assignment_date', 'task_status', 'reviewer']
+        select_clause = """
+          SELECT uc.usr_last_name || ', ' || uc.usr_first_name AS full_name,
+                 gs.gs_id AS task_id,
+                 gs.gs_name AS task_name,
+                 'Gene Set' AS task_type,
+                 to_char(ca.created, 'YYYY-MM-DD') AS assignment_date,
+                 ca.curation_state AS task_status,
+                 ur.usr_last_name || ', ' || ur.usr_first_name AS reviewer
+        """
+
+        # Separate FROM and WHERE for counting purposes
+        from_where = """
+          FROM production.grp g,
+               production.curation_assignments ca,
+               production.geneset gs,
+               production.usr uc,
+               production.usr ur
+          WHERE g.grp_id = %s
+            AND g.grp_id = ca.curation_group
+            AND ca.gs_id = gs.gs_id
+            AND ca.curator = uc.usr_id
+            AND ca.reviewer = ur.usr_id
+        """ % (group_id)
+
+        source_columns = ['cast(full_name as text)',
+                          'cast(task_id as text)',
+                          'cast(task_name as text)',
+                          'cast(task_type as text)',
+                          'cast(assignment_date as text)',
+                          'cast(task_status as text)',
+                          'cast(reviewer as text)']
+
+        # Paging
+        iDisplayStart = rargs.get('start', type=int)
+        iDisplayLength = rargs.get('length', type=int)
+        limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
+            if (iDisplayStart is not None and iDisplayLength != -1) \
+            else ''
+
+        # Searching
+        # search_value = rargs.get('search[value]')
+        # search_clauses = []
+        # if search_value:
+        #     for i in range(len(source_columns)):
+        #         search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
+        #     search_clause = 'OR '.join(search_clauses)
+        # else:
+        search_clause = ''
+
+        # Sorting
+        sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+        sorting_direction = rargs.get('order[0][dir]', type=str)
+        sort_dir = 'ASC NULLS LAST' \
+            if sorting_direction == 'asc' \
+            else 'DESC NULLS LAST'
+        order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
+
+        # Joins all clauses together as a query
+        if search_clause:
+            where_clause = ' AND (%s' % search_clause
+            where_clause += ') '
+
+        else:
+            where_clause = ''
+
+        sql = ' '.join([select_clause,
+                        from_where,
+                        where_clause,
+                        order_clause,
+                        limit_clause]) + ';'
+
+        with PooledCursor() as cursor:
+            cursor.execute(sql)
+            things = cursor.fetchall()
+
+            # Count of all values in table
+            count_query = ' '.join(["SELECT COUNT(1)", from_where]) + ';'
+            cursor.execute(count_query)
+            iTotalRecords = cursor.fetchone()[0]
+
+            # Count of all values that satisfy WHERE clause
+            iTotalDisplayRecords = iTotalRecords
+            if where_clause:
+                sql = ' '.join([select_clause, from_where, where_clause]) + ';'
+                cursor.execute(sql)
+                iTotalDisplayRecords = cursor.rowcount
+
+            response = {'sEcho': sEcho,
+                        'iTotalRecords': iTotalRecords,
+                        'iTotalDisplayRecords': iTotalDisplayRecords,
+                        'aaData': things
+                        }
+
+    return response
+
+
 def get_server_side_results(rargs):
     user_id = rargs.get('user_id', type=int)
 
@@ -2083,12 +2189,29 @@ def get_groups_owned_by_user(user_id):
                           WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
     return [Groups(row_dict) for row_dict in dictify_cursor(cursor)]
 
+def get_group_by_id(group_id):
+    """
+    Returns a Group by it's ID
+    :param group_id:   Identifier for the group in question
+    :return: A group object for given ID
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
+                          WHERE g.grp_id=%s''', (group_id,))
+    return [Group(row_dict) for row_dict in dictify_cursor(cursor)]
+
 
 class Groups:
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
+
+class Group:
+    def __init__(self, grp_dict):
+        self.grp_id = grp_dict['grp_id']
+        self.grp_name = grp_dict['grp_name']
+        self.private = grp_dict['private']
 
 
 class Publication:

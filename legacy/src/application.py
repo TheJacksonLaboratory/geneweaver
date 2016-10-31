@@ -1679,11 +1679,10 @@ def render_user_genesets():
         myGroups=groups
     )
 
-@app.route('/grouptasks')
-def render_group_tasks():
-    if 'group_id' in flask.session:
-        group = flask.session['group_id']
-    if 'user_id' in flask.session:
+@app.route('/groupTasks/<int:group_id>')
+def render_group_tasks(group_id):
+    group = None
+    if group_id and 'user_id' in flask.session:
         user_id = flask.session['user_id']
         columns = []
         columns.append({'name': 'full_name'})
@@ -1692,7 +1691,17 @@ def render_group_tasks():
         columns.append({'name': 'task_type'})
         columns.append({'name': 'assignment_date'})
         columns.append({'name': 'task_status'})
-        headerCols = ["Member Name", "Task Id", "Task", "Task Type", "Assign Date", "Status"]
+        columns.append({'name': 'reviewer'})
+        headerCols = ["Assignee Name",
+                      "Task Id",
+                      "Task",
+                      "Task Type",
+                      "Assign Date",
+                      "Status",
+                      "Reviewer"]
+
+        group = geneweaverdb.get_group_by_id(group_id)
+        print("Group -> " + group[0].grp_name)
 
     else:
         headerCols, user_id, columns = None, 0, None
@@ -1702,7 +1711,7 @@ def render_group_tasks():
         headerCols=headerCols, 
         user_id=user_id, 
         columns=columns,
-        group_id=group
+        group=group[0]
     )
 
 
@@ -2407,6 +2416,11 @@ def get_db_grouptasks_data():
     results = geneweaverdb.get_server_side_grouptasks(request.args)
     return json.dumps(results)
 
+@app.route('/assignmentStatusAsString/<int:status>')
+def get_assignment_status_string(status):
+    status_text = {'status': curation_assignments.CurationAssignment.status_to_string(status)}
+    return flask.jsonify(status_text)
+
 
 def str_handler(obj):
     return str(obj)
@@ -2749,7 +2763,7 @@ def json_register_successful():
 
     else:
         ## The only data required by reCAPTCHA is secret and response. An
-        ## optional parameter, remoteip, containing the end user's IP can also
+        ## optional parameter, remotep, containing the end user's IP can also
         ## be appended.
         pdata = {'secret': RECAP_SECRET, 'response': captcha}
         resp = http.request('POST', RECAP_URL, fields=pdata)
