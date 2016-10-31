@@ -1676,7 +1676,8 @@ def createVennDiagram(i, ii, j, size=100):
 @app.route('/mygenesets')
 def render_user_genesets():
     table = 'production.geneset'
-    groups = []
+    my_groups = []
+    other_groups = []
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         columns = []
@@ -1688,8 +1689,11 @@ def render_user_genesets():
         columns.append({'name': 'gs_name'})
         headerCols = ["", "Species", "Tier", "Source", "Count", "ID", "Name", ""]
 
-        groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)# + geneweaverdb.get_other_visible_groups(user_id)
-        groups = sorted(groups, key=lambda k: k['grp_name'])
+        my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
+        my_groups.sort(key=lambda k: k['grp_name'])
+
+        other_groups = geneweaverdb.get_other_visible_groups(user_id)
+        other_groups.sort(key=lambda k: k['grp_name'])
 
     else:
         headerCols, user_id, columns = None, 0, None
@@ -1707,7 +1711,8 @@ def render_user_genesets():
         columns=columns,
         table=table,
         species=species,
-        myGroups=groups
+        myGroups=my_groups,
+        otherGroups=other_groups
     )
 
 

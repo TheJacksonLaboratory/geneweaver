@@ -19,21 +19,32 @@
 						</strong>
 					</div>
 
-                    <div class="row">
 
-                    </div>
-                    <div class="form-group" >
-                        <label for="groupSelection"><h4>Curation Group: </h4></label>
+                    <div class="form-group">
+                    <label><h4>Select a Curation Group: </h4></label>
                         {% for group in myGroups %}
                             <label for="{{ group.grp_id }}_radio"
-                                           class="ui-btn ui-corner-all ui-btn-icon-right" id="label_{{ group.grp_id }}">{{ group.grp_name }}</label>
-                            <input class="form-control" type="radio" name="group" value="{{ group.grp_id }}" id="{{ group.grp_id }}_radio">
+                                           class="form-check-label" id="label_{{ group.grp_id }}">{{ group.grp_name }}</label>
+                            <input class="form-check-input" type="radio" name="group" value="{{ group.grp_id }}" id="{{ group.grp_id }}_radio">
                         {% endfor %}
+
+                        <label for="public_group_radio" class="form-check-label">Other Public Group</label>
+                        <input class="form-check-input" type="radio" name="group" value="public_group" id="public_group_radio">
+
+                        <div style="padding-left: 30px; padding-right: 30px" id="publicGroupDiv">
+                            <!-- TODO I want to add a filter on this,  the list is pretty big -->
+                            <select class="form-control" id="publicGroupSelect">
+                                {% for public_group in otherGroups %}
+                                    <option value='{{ public_group.grp_id }}'>{{ public_group.grp_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                     </div>
 
                     <div class="form-group" style="padding: 10px">
                         <label for="curationNotes"><h4>Notes:</h4></label>
-                        <textarea class="form-control" rows="5" id="curationNotes" ></textarea>
+                        <textarea class="form-control" rows="5" id="curationNotes"></textarea>
                     </div>
 
                     <div class="modal-footer">
