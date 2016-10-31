@@ -338,22 +338,25 @@
 
         var url = '/projectGenesets.json';
 
-		// Tag generation
-		//
+		/**
+		  * Although attribution and species tags are part of the
+		  * viewGenesetSummaryPartial template, we generate the tags out here in
+		  * in the wrapper section otherwise this bit of javascript will be
+		  * injected into every single search result (50 per page).
+		  */
 		{% if attribs %}
 			makeAttributionTags({{ attribs | tojson | safe }});
 		{% else %}
 			makeAttributionTags();
 		{% endif %}
 
-		{% for gs in genesets %}
-			makeSpeciesTag(
-				{{ gs.geneset_id }}, 
-				{{ gs.sp_id }}, 
-				{{ species | tojson | safe }}
-			);
-		{% endfor %}
-		//
+		// Species tags are generated each time a project is expanded since we
+		// use lazy loading.
+		{% if species %}
+			var species = {{ species | tojson | safe }};
+		{% else %}
+			var species = [];
+		{% endif %}
 		 
 
 		// Changes caret position when tool options are expanded.
@@ -449,46 +452,6 @@
 
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
-        $('.project-link').on('click', function (event) {
-
-            // Get the project ID from the link href, but gotta strip out
-            // '#genesets-' first
-            var pid = $(this).attr('href').slice('#genesets-'.length);
-            var pbid = '#project-body-' + pid;
-            var data = {'project': pid};
-
-            // Check to see if we've already made an AJAX call for this project
-            if ($(pbid).children().length !== 0)
-                return;
-
-            // Flask should return the rendered HTML, inject it into the DOM
-            $.get(url, data).done(function (data) {
-
-				var tbody = pbid + ' tbody'
-                $(pbid).append(data);
-
-                var allclass = '#proj-' + pid + '-allcheck';
-                var chkclass = '.proj-' + pid + '-check';
-
-                // Now start checking to see if we need to mark the checkboxes
-                // under this particular project
-                if ($(allclass).attr('checked')) {
-
-                    $(chkclass).each(function (index) {
-                        $(this).attr('checked', true);
-                    });
-                }
-            });
-        });
-
-        $('#clickableFontAwesome').popover({
-            title: 'Select Projects or Gene Sets', content: 'Select entire projects on the right or expand ' +
-            'to select individual gene sets within those projects. Next, select a tool from the left, including ' +
-            'the appropriate options.'
-        });
-
-        // Project genesets are only loaded when necessary (i.e. when a user
-        // clicks on the project link.
         $('.toggler').click(function (e) {
 
             e.preventDefault();
@@ -531,9 +494,18 @@
                         $(this).attr('checked', true);
                     });
                 }
+
+				// Generate these tags once we actually have loaded data
+				makeSpeciesTags(species);
             });
         });
 
+
+        $('#clickableFontAwesome').popover({
+            title: 'Select Projects or Gene Sets', content: 'Select entire projects on the right or expand ' +
+            'to select individual gene sets within those projects. Next, select a tool from the left, including ' +
+            'the appropriate options.'
+        });
     });
     
 

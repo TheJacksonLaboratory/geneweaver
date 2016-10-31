@@ -230,7 +230,11 @@
 			makeAttributionTags();
 		{% endif %}
 
-		makeSpeciesTags({{ species | tojson | safe }});
+		{% if species %}
+			makeSpeciesTags({{ species | tojson | safe }});
+		{% else %}
+			makeSpeciesTags();
+		{% endif %}
 	});
 
     //var user_id = {{ user_id }};

@@ -61,6 +61,9 @@ var makeSpeciesTags = function(splist) {
         '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'
     ];
 
+    if (!splist)
+        return;
+
     for (var i = 0; i < splist.length; i++) {
 
         var spid = splist[i][0];
