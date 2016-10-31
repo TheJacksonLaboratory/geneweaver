@@ -4,33 +4,73 @@
 {# Right Side List of Buttons #}
 
 <div class="col-xs-6 col-md-3">
-	<button type="button" class="btn btn-block btn-warning" id="exportData">
-		<i class="fa fa-download pull-left"></i> Export Genes
-	</button>
-	<button type="button" class="btn btn-block btn-warning" id="viewSimilarGenesets">
-		<i class="fa fa-eye pull-left"></i> Similar GeneSets
-	</button>
+    {% if not curation_view %}
+        <button type="button" class="btn btn-block btn-warning" id="exportData">
+            <i class="fa fa-download pull-left"></i> Export Genes
+        </button>
+        <button type="button" class="btn btn-block btn-warning" id="viewSimilarGenesets">
+            <i class="fa fa-eye pull-left"></i> Similar GeneSets
+        </button>
 
-	{% if g.user is defined %}
-	<button type="button" class="btn btn-block btn-warning" id="addToProject">
-		<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
-	</button>
-	{% endif %}
+        {% if g.user is defined %}
+        <button type="button" class="btn btn-block btn-warning" id="addToProject">
+            <i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
+        </button>
+        {% endif %}
 
-	{% if view == 'True' %}
-	<button type="button" class="btn btn-block btn-warning" id="setThreshold">
-		<i class="fa fa-signal pull-left"></i> Set Threshold
-	</button>
-	<button type="button" class="btn btn-block btn-warning" id="editGeneset">
-		<i class="fa fa-edit pull-left"></i> Edit MetaData
-	</button>
-	<button type="button" class="btn btn-block btn-warning" id="editGenesetGenes">
-		<i class="fa fa-edit pull-left"></i> Edit Genes
-	</button>
-	<button type="button" class="btn btn-block btn-danger" id="deleteGeneset">
-		<i class="fa fa-trash-o pull-left"></i> Delete GeneSet
-	</button>
-	{% endif %}
+        {% if view == 'True' %}
+            <button type="button" class="btn btn-block btn-warning" id="setThreshold">
+                <i class="fa fa-signal pull-left"></i> Set Threshold
+            </button>
+            <button type="button" class="btn btn-block btn-warning" id="editGeneset">
+                <i class="fa fa-edit pull-left"></i> Edit MetaData
+            </button>
+            <button type="button" class="btn btn-block btn-warning" id="editGenesetGenes">
+                <i class="fa fa-edit pull-left"></i> Edit Genes
+            </button>
+            <button type="button" class="btn btn-block btn-danger" id="deleteGeneset">
+                <i class="fa fa-trash-o pull-left"></i> Delete GeneSet
+            </button>
+        {% endif %}
+
+    {% elif curation_view == 'curation_leader' and (curation_assignment.state == 1 or curation_assignment.state == 2) %}
+        <button type="button" class="btn btn-block btn-primary" id="assignCurator">
+            <i class="fa fa-user pull-left"></i> Assign Curator
+        </button>
+
+    {% elif curation_view == 'curator' and curation_assignment.state == 2 %}
+        <button type="button" class="btn btn-block btn-warning" id="setThreshold">
+            <i class="fa fa-signal pull-left"></i> Set Threshold
+        </button>
+        <button type="button" class="btn btn-block btn-warning" id="editGeneset">
+            <i class="fa fa-edit pull-left"></i> Edit MetaData
+        </button>
+        <button type="button" class="btn btn-block btn-warning" id="editGenesetGenes">
+            <i class="fa fa-edit pull-left"></i> Edit Genes
+        </button>
+        <div class="form-group" style="padding: 10px">
+            <label for="curationNotes"><h4>Curation Notes:</h4></label>
+            <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
+        </div>
+        <button type="button" class="btn btn-block btn-primary" id="readyForReview">
+            <i class="fa fa-check pull-left"></i> Ready For Review
+        </button>
+    {% elif curation_view == 'curator' and curation_assignment.state == 3 %}
+        <div class="form-group" style="padding: 10px">
+            <label for="curationNotes"><h4>Curation Notes:</h4></label>
+            <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
+        </div>
+        <button type="button" class="btn btn-block btn-primary" id="readyForReview" disabled="true">
+            <i class="fa fa-check pull-left"></i> Review Pending
+        </button>
+    {% elif curation_view == 'reviewer' and curation_assignment.state == 3 %}
+        <div class="form-group" style="padding: 10px">
+            <label for="curationNotes"><h4>Curation Notes:</h4></label>
+            <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
+        </div>
+        TODO ADD Accept/Reject
+    {% endif %}
+
 </div>
 
 {# What are these for? #}

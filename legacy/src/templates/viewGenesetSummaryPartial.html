@@ -70,19 +70,13 @@
     </td>
 
     <td>
-        <!-- Label the attribution -->
-        {% if gs.attribution == 2 %}
-            <span class="ctd">CTD</span>
-        {% endif %}
-        {% if gs.attribution == 7 %}
-            <span class="drg">DRG</span>
-        {% endif %}
-        {% if gs.attribution == 8 %}
-            <span class="go">GO</span>
-        {% endif %}
-        {% if gs.attribution == 9 %}
-            <span class="mp">MP</span>
-        {% endif %}
+		<!-- Label the attribution -->
+		{% if not gs.attribution or gs.attribution == 1 or not attribs %}
+			{# nothing! #}
+		{% else %}
+			<span class="att-{{ attribs[gs.attribution] }}">
+			</span>
+		{% endif %}
 
     </td>
 
@@ -198,7 +192,7 @@
             <!-- TODO account for null authors, get Publication info -->
             <tr>
                 <th>Authors:</th>
-                <td><i>{% if gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
+                <td><i>{% if gs.publication is defined and gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
             </tr>
 
         </table>
