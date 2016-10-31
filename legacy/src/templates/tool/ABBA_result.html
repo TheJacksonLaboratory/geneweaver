@@ -3,6 +3,30 @@
 {% import 'macros.html' as macros %}
 
 <style>
+
+
+  .nav-justified > li {
+    display: table-cell;
+
+    max-width: 10ch;
+    width: 1%;
+    padding-right: 1px;
+  }
+  .nav-justified > li > a  {
+    border-bottom: 1px solid #ddd !important;
+    border-radius: 4px 4px 0 0 !important;
+    margin-bottom: 0 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-tabs.nav-justified > .active > a,
+  .nav-tabs.nav-justified > .active > a:hover,
+  .nav-tabs.nav-justified > .active > a:focus {
+    border-bottom-color: #fff !important;
+  }
+
+
   .result-search-input{
     border-top-left-radius: 0;
     border-top-right-radius: 0;
@@ -11,6 +35,17 @@
     width: 100%;
   }
 
+  .progress {
+      position: relative;
+  }
+
+  .progress span {
+      position: absolute;
+      display: block;
+      width: 100%;
+      color: white;
+
+   }
   .title-col{
       margin-bottom: 10px;
   }
@@ -130,22 +165,26 @@
           </tr>
         </tbody>
       </table>
+
       <div class="progress progress-striped">
-        <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%;"></div>
+        <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%;">
+          <span>100% Complete</span>
+        </div>
       </div>
     </div>
+
   </div><!-- end row -->
 
   <div class="row">
     <div class="col-md-12 title-col">
-      <ul class="nav nav-tabs" role="tablist">
+      <ul class="nav nav-tabs nav-justified" role="tablist">
         {% if async_result.GenesOfInterestCount %}
           {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
         {% else %}
           {% set genesOfInterestCnt=0 %}
         {% endif %}
         <li class="active"><a href="#GenesOfInterest" aria-controls="GenesOfInterest" role="tab" data-toggle="tab">Genes of Interest ({{genesOfInterestCnt}})</a></li>
-        
+
         {% if async_result.GenesetResultsCount %}
           {% set genesetCount=async_result.GenesetResultsCount %}
         {% else %}
@@ -157,7 +196,7 @@
           {% set geneCount=async_result.GeneResultsCount %}
         {% else %}
           {% set geneCount=0 %}
-        {% endif %}  
+        {% endif %}
         <li><a href="#ResultGenes" aria-controls="ResultGenes" role="tab" data-toggle="tab">Result Genes ({{async_result.GeneResultsCount}})</a></li>
       </ul>
     </div>
@@ -172,7 +211,6 @@
               <tr>
                 <th row-type="GOI" class="headrow">Gene<br></th>
                 <th row-type="GOI" class="headrow">Species<br></th>
-                <th row-type="GOI" class="headrow">Genesets<br></th>
               </tr>
             </thead>
           </table>
@@ -181,12 +219,11 @@
         {% if async_result.GenesOfInterest %}
         <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
             {% for gene in async_result.GenesOfInterest %}
-            <tr row-type="GOI">
-              
+            <tr class="result-row" row-type="GOI">
+
               <td>{{gene[1]}}<br></td>
               <td>{{gene[2]}}<br></td>
-              <td>TODO</td>
-              
+
             </tr>
             {% endfor %}
           </tbody>
@@ -194,7 +231,7 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header">TODO: matching geneset info</h2>
+          <h2 class="extra-info-header"></h2>
         </div>
       </div>
 
@@ -213,7 +250,7 @@
             {% if async_result.GenesetResults %}
             <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
               {% for geneset in async_result.GenesetResults %}
-              <tr row-type="MG">
+              <tr class="result-row" row-type="MG">
                 <td>{{geneset[1]}}<br></td>
                 <td>{{geneset[2]}}</td>
               </tr>
@@ -223,7 +260,7 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header">TODO: matching geneset info</h2>
+          <h2 class="extra-info-header"></h2>
         </div>
       </div>
 
@@ -243,7 +280,7 @@
             {% if async_result.GeneResults %}
             <tbody  class="scroll-tbody" id="ResultGenesTableBody">
               {% for gene in async_result.GeneResults %}
-              <tr row-type="RG">
+              <tr class="result-row" row-type="RG">
                 <td>{{gene[1]}}<br></td>
                 <td>{{gene[2]}}<br></td>
                 <td>{{gene[3]}}</td>
@@ -254,7 +291,7 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header">TODO: result genes info</h2>
+          <h2 class="extra-info-header"></h2>
         </div>
       </div>
 
@@ -349,7 +386,6 @@ $(document).ready(function() {
   //Change active result
   $('.result-row').click(function() {
     $('.result-row-active').switchClass('result-row-active', 'result-row');
-    console.log($(this));
     $(this).switchClass('result-row', 'result-row-active');
     updateInfoPane($(this));
   });
@@ -357,20 +393,17 @@ $(document).ready(function() {
   function updateInfoPane(activeRow){
     var parentTab = activeRow.parent().closest('.tab-pane');
     var infoPane = parentTab.children('div').last();
-    console.log(parentTab);
-    console.log(infoPane);
-
     var headerText = activeRow.children('td').first().text();
     infoPane.children('h2').closest('.extra-info-header').text(headerText);
   }
 
-  $('#system-searchGOI').keyup( function(){
+  $('#system-searchGOI').keyup( function(e){
     search_tab("GOI");
   });
-  $('#system-searchMG').keyup( function(){
+  $('#system-searchMG').keyup( function(e){
     search_tab("MG");
   });
-  $('#system-searchRG').keyup( function(){
+  $('#system-searchRG').keyup( function(e){
     search_tab("RG");
   });
 
