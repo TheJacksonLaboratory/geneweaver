@@ -156,11 +156,11 @@ public:
         jsonOutput<<tb<<"name: \""<<interestFile<<"\","<<endl;
 
         //matches to database found in microarray results
-        jsonOutput<<tb<<"inTopAndInterestCount: "<<checklength<<","<<endl;
-        jsonOutput<<tb<<"inTopAndInterest: ["<<endl;
+        jsonOutput<<tb<<"\"inTopAndInterestCount\": "<<checklength<<","<<endl;
+        jsonOutput<<tb<<"\"inTopAndInterest\": ["<<endl;
         vector<T> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
         for(unsigned int i=0;i<matches.size();i++){
-            jsonOutput<<tb<<tb<<matches[i];
+            jsonOutput<<tb<<tb<<\"<<matches[i]<<\";
             if(i!=(counts.size()-1)){
                 jsonOutput<<",";
             }
@@ -170,12 +170,12 @@ public:
           //number of samples where
          //simulated results of length n contained at least as many matches
         //to database as actual expression results.
-        jsonOutput<<tb<<"numSamples: "<<numSamples<<","<<endl;
-        jsonOutput<<tb<<"intersectGreaterCount: "<<numGreater<<","<<endl;
-        jsonOutput<<tb<<"sampleLength: "<<top.size()<<","<<endl;//length of each sample
-        jsonOutput<<tb<<"pValue: "<<pvalue<<","<<endl;
-        jsonOutput<<tb<<"densityPointCount: "<<counts.size()<<","<<endl;//length of density array
-        jsonOutput<<tb<<"density: ["<<endl;//density array
+        jsonOutput<<tb<<"\"numSamples\": "<<numSamples<<","<<endl;
+        jsonOutput<<tb<<"\"intersectGreaterCount\": "<<numGreater<<","<<endl;
+        jsonOutput<<tb<<"\"sampleLength\": "<<top.size()<<","<<endl;//length of each sample
+        jsonOutput<<tb<<"\"pValue\": "<<pvalue<<","<<endl;
+        jsonOutput<<tb<<"\"densityPointCount\": "<<counts.size()<<","<<endl;//length of density array
+        jsonOutput<<tb<<"\"density\": ["<<endl;//density array
         for(unsigned int i=0;i<counts.size();i++){
             jsonOutput<<tb<<tb<<double(counts[i])/double(numSamples);
             if(i!=(counts.size()-1)){

@@ -14,7 +14,7 @@ int main(int argc, char** argv){
     string topFile=argv[2];
     string backgroundFile=argv[3];
     int numInterestFiles=atoi(argv[4]);
-    cout<<"{data:["<<endl;
+    cout<<"{\"data\":["<<endl;
     cout<<msetFinder.run(numSamples,topFile,backgroundFile,argv[5]);
     for(int i=1;i<numInterestFiles;i++){
         cout<<","<<endl<<msetFinder.run(numSamples,topFile,backgroundFile,argv[i+5]);
