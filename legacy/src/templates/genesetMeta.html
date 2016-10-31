@@ -173,17 +173,7 @@
                 </div>
             </div>
 
-            <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
             <script>
-
-                $(document).ready(function () {
-
-                    {% if species %}
-                        makeSpeciesTags({{ species | tojson | safe }}, true);
-                    {% else %}
-                        makeSpeciesTags();
-                    {% endif %}
-                });
 
                 //Popover that gives Geneset Ontology functionality overview for the user
                 //Displayed when ontologies are linked with the geneset
