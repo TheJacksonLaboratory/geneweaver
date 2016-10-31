@@ -34,7 +34,12 @@
         width: 100%;
         height: 100%;
         z-index: 9999;
-        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+        {% if curation_view %}
+            background: url('../../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+        {% else %}
+            background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+        {% endif %}
+
     }
 
     #anotologyInformation, #noAnotologyInformation {
@@ -74,8 +79,13 @@
             <p>(<strong>*</strong>) = mandatory.</p>
         </div>
         <div class="col-md-4 pull-right">
-            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
+            {% if curation_view %}
+                <a href="/curategeneset/{{ geneset.geneset_id }}">
+            {% else %}
+                <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
+            {% endif %}
             <b>Go to GeneSet Details <i class="fa fa-step-forward"></i></b></a>
+
         </div>
     </div>
 
@@ -326,6 +336,10 @@
                 })
             },
 
+			// Does nothing but needs to be present for nodes to be unselected.
+            onClick: function (node, event) {
+
+			},
             //Performs lazy ajax call to update the database when an ontology is selected or unselected
             onSelect: function (flag, node) {
                 $.ajax({
@@ -337,7 +351,6 @@
                         gs_id: $(location).attr("href").split('/').pop()
                     },
                     success: function(data){
-
                     }
                 })
             }
@@ -410,7 +423,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "../updategeneset",
+                url: "/updategeneset",
                 data: data, //{data: data, onts: onts},
                 //processData: false,
                 //contentType: false,
@@ -419,7 +432,11 @@
                     var v = JSON.parse(r);
                     if (v["success"] == 'True') {
                         var gs_id = {{ geneset.geneset_id }};
-                        window.location = '../editgenesetgenes/' + gs_id;
+                        {% if curation_view %}
+                            window.location = '/curategenesetgenes/' + gs_id;
+                        {% else %}
+                            window.location = '/editgenesetgenes/' + gs_id;
+                        {% endif %}
                     }
                     else {
                         $("html, body").animate({ scrollTop: 0 }, "slow");
@@ -458,7 +475,7 @@
             else {
                 $.ajax({
                     type: "GET",
-                    url: "../getPubmed",
+                    url: "/getPubmed",
                     data: {"pmid": pmid},
                     success: function(data)
                     {
