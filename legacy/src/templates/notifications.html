@@ -73,7 +73,7 @@
 
                     var html = "<div>\n" +
                                     "<div><span class=\"subject " + subjectClass + "\">" + val['subject'] + "</span><span class=\"time-sent\">" + val['time_sent'] + "</span></div>\n" +
-                                    "<p class=\"message\">" + val['message'] + "</p>\n" +
+                                    "<p class=\"message\">" + val['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + "</p>\n" +
                                     "<hr></div>\n";
                     $("#notifications").append(html);
                 });

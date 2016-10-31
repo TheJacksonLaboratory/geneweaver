@@ -156,7 +156,7 @@
                 <button type="button" class="btn btn-block btn-warning" id="viewGenesetDetails">
                     <i class="fa fa-arrow-left pull-left"></i> Back to GeneSet
                 </button>
-                {% if view == 'True' %}
+                {% if view is defined %}
                     <button type="button" class="btn btn-block btn-warning" id="saveThreshold">
                         <i class="fa fa-save pull-left"></i> Save Threshold
                     </button>
@@ -222,11 +222,19 @@
         $(document).ready(function () {
             $('#viewGenesetDetails').on('click', function (e) {
                 var gsid = {{ geneset.geneset_id }};
-                window.location.href = '../viewgenesetdetails/'+gsid;
+                {% if view == 'curator' %}
+                    window.location.href = '../curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
             });
             $('#cancelThreshold').on('click', function (e) {
                 var gsid = {{ geneset.geneset_id }};
-                window.location.href = '../viewgenesetdetails/'+gsid;
+                {% if view == 'curator' %}
+                    window.location.href = '../curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
             });
             $('#saveThreshold').on('click', function (e) {
                 var min = $('#sliderMin').text();

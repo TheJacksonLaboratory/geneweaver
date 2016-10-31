@@ -135,7 +135,7 @@
             <br>
             {# Keep this indentation since <pre> preserves whitespace. #}
             <pre style="border-radius: 10px; border: 1px solid #337700; border-left: 11px solid #337700;">
-    Metadata (header) format is as follows:
+    MetaContent (header) format is as follows:
         # comments start with '#'
         : GeneSet Abbreviation starts with ':' <span class="required">(required)</span>
         = GeneSet Name starts with '=' <span class="required">(required)</span>
@@ -229,11 +229,11 @@
         % microarray Illumina MouseWG-6 v1.1
         % microarray Illumina MouseWG-6 v2.0
 
-    After the metadata, leave a blank line. Then list all data points in
+    After the MetaContent, leave a blank line. Then list all data points in
     the following format: gene id [tab] data value [enter].
 
     At the end of the data points leave another blank line.  Then you may start
-    another metadata section and keep repeating for all datasets in the same file.
+    another MetaContent section and keep repeating for all datasets in the same file.
     The 'P', 'A', '!', '@', and '%' sections may be ommitted in later sections if
     they do not differ from the first, they will default to the last seen value.
     The ':', '=', and '+' sections are required for all datasets.
