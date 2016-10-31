@@ -50,7 +50,7 @@ var makeAttributionTags = function(attribs) {
  * arguments
  *      splist: a list of tuples; (sp_id, sp_name)
  */
-var makeSpeciesTags = function(splist) {
+var makeSpeciesTags = function(splist, fullName) {
 
     var colors = [
         '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1', '#f4dfff',
@@ -75,17 +75,20 @@ var makeSpeciesTags = function(splist) {
         // Elissa mentioned we shouldn't use common, pleb names for species
         // (and that monkey isn't technically a species), so we properly abbreviate
         // the species name.
-        spname = spname.split(' ');
+        if (fullName === undefined || !fullName) {
 
-        if (spname.length === 1)
-            continue;
+            spname = spname.split(' ');
 
-        // Mus musculus and Macaca mulatta have the same abbreviation, so the
-        // latter is abbreviated to M. mul instead of Mm.
-        if (spname[1].slice(0, 3) == 'mul')
-            spname = spname[0][0].toUpperCase() + '.' + 'mul' + '.';
-        else
-            spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
+            if (spname.length === 1)
+                continue;
+
+            // Mus musculus and Macaca mulatta have the same abbreviation, so the
+            // latter is abbreviated to M. mul instead of Mm.
+            if (spname[1].slice(0, 3) == 'mul')
+                spname = spname[0][0].toUpperCase() + '.' + 'mul' + '.';
+            else
+                spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
+        }
 
         $('.sp-tag-' + spid).attr('class', 'group_name sp-tag-' + spid);
         $('.sp-tag-' + spid).css('background-color', colors.shift());
