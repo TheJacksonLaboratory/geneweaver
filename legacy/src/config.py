@@ -38,7 +38,7 @@ def createConfig():
         print >> fl, 'user = odeadmin'
         print >> fl, 'password = odeadmin'
         print >> fl, 'host = lazlo.ecs.baylor.edu'
-        print >> fl, 'port = 32770'
+        print >> fl, 'port = 32769'
         print >> fl, ''
         print >> fl, '[sphinx]'
         print >> fl, 'host = crick.ecs.baylor.edu'

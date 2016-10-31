@@ -12,8 +12,7 @@ class WithoutReplacementSampler{
         }
         void setSource(std::vector<T>* from){
             fromVector=from;
-            std::cout<<fromVector->size()<<std::endl;
-            ndxs=std::uniform_int_distribution<unsigned long>(0,fromVector->size());
+            ndxs=std::uniform_int_distribution<unsigned long>(0,fromVector->size()-1);
         }
     //without replacement
     void sample(std::vector<T>& sampleInto){
