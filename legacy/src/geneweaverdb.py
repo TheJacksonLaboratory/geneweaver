@@ -35,7 +35,7 @@ pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database=config.get('db', 'database'),
     user=config.get('db', 'user'),
-    #password=config.get('db', 'password'),
+    password=config.get('db', 'password'),
     host=config.get('db', 'host'),
     port=config.getInt('db', 'port')
 )
