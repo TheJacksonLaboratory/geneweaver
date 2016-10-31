@@ -152,7 +152,9 @@ public:
         double pvalue=((double)numGreater)/((double)numSamples);
 
         string tb="    ";
-        jsonOutput<<interestFile<<": {"<<endl;
+        jsonOutput<<"{"<<endl;
+        jsonOutput<<tb<<"name: \""<<interestFile<<"\","<<endl;
+
         //matches to database found in microarray results
         jsonOutput<<tb<<"inTopAndInterestCount: "<<checklength<<","<<endl;
         jsonOutput<<tb<<"inTopAndInterest: ["<<endl;
