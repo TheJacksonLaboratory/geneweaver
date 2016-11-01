@@ -16,9 +16,9 @@ var upset = function () {
         // SVG object
         svg = null,
         // SVG width in pixels
-        width = 900,
+        width = 1100,
         // SVG height in pixel
-        height = 500,
+        height = 800,
         // Bar chart margins
         margin = {
             top: 20,
@@ -34,8 +34,8 @@ var upset = function () {
         IntersectionCircles = [],
         //Bar data for each set size bar
         Setbars = [],
-        // Individual bar text lines
-        barText = [],
+        // Individual set text lines
+        setText = [],
         // Padding (in pixels) between each individual diagram
         diagramPadding = 20,
         // Y-axis/X-axis labels for the bar chart
@@ -43,6 +43,7 @@ var upset = function () {
         // Chart dimensions
         chartWidth = +width - margin.left - margin.right,
         chartHeight = +height - margin.top - margin.bottom,
+        textHeight = 50,
         // Bar chart colours: un-query black-grey, and query purple
         barFillColours = ['#C0C0C0', '#8E44AD'],
         // Circle diagram colours: un-query light grey. and query dark grey
@@ -76,7 +77,8 @@ var upset = function () {
                 desc: set['desc1'],
                 name: set['name1'],
                 x: bx,
-                y: by
+                y: by,
+                textFill: '#000000'
             };
 
             Intersectionbars.push(bar);
@@ -141,6 +143,29 @@ var upset = function () {
         }
     };
 
+    /**
+     * Formats and positions text elements for each individual geneset
+     */
+    var makeText = function() {
+        bx = 0;
+
+        for (var i = 0; i < data.set_diagrams.length; i++){
+            var set = data.set_diagrams[i];
+
+            var text = {
+                fill: '#E7ECED',
+                height: 60,
+                width: 18,
+                x: bx,
+                y: 0,
+                name: set['name']
+            }
+
+            setText.push(text);
+            bx = bx + 20;
+        }
+    };
+
     /** public **/
 
     /**
@@ -149,6 +174,7 @@ var upset = function () {
     exports.draw = function () {
         makeCircles();
         makeBars();
+        makeText();
 
         var x = d3.scaleLinear().range([0, chartHeight]).domain([0, d3.max(Intersectionbars, function(d) { return d.height})]),
             y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; }));
@@ -164,7 +190,7 @@ var upset = function () {
         svg.selectAll("circle")
             .data(IntersectionCircles)
             .enter().append("circle")
-            .attr("transform", "translate(0," + yShift + ")")
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
             .attr("cx", function(d) { return d.cx; })
             .attr("cy", function(d) { return d.cy; })
             .attr("r", function(d) { return d.r; })
@@ -176,11 +202,11 @@ var upset = function () {
             .enter().append("rect")
             .attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; })
-            .attr("transform", "translate(" + (xShift * data.set_diagrams.length) + "," + (yShift - 9) + ")")
+            .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) * 1.5) + "," + ((yShift + textHeight) - 9) + ")")
             .attr("height", 18)
             .attr("width", function(d) { return x(d.height); })
             .style("fill", function(d) { return d.fill; })
-            .text(function(d) { return d.height; });
+            .text(function(d) { return d.height; })
 
         var x = d3.scaleBand().range([0, (yShift - diagramPadding)]).domain(Setbars.map(function(d) { return d.name; })).padding(0.5),
             y = d3.scaleLinear().range([(yShift - diagramPadding), 0]).domain([0, d3.max(Setbars, function(d) { return d.height})]);
@@ -189,12 +215,23 @@ var upset = function () {
         svg.selectAll("bar")
             .data(Setbars)
             .enter().append("rect")
-            .attr("transform", "translate(-10,0)")
+            .attr("transform", "translate(-" + xShift + ",0)")
             .attr("class", "bar")
             .attr("width", function (d) {return d.width; })
             .attr("x", function (d) { return d.x; })
             .attr("y", function(d) { return y(d.height); })
             .attr("height", function (d) { return (yShift - diagramPadding) - y(d.height); })
+            .style("fill", function (d) { return d.fill; });
+
+        //adding the set names to the diagram
+        svg.selectAll("bar")
+            .data(setText)
+            .enter().append("rect")
+            .attr("transform", "translate(-" + xShift + "," + (yShift - xShift) + ") skewX(45)")
+            .attr("x", function (d) { return d.x; })
+            .attr("y", function (d) { return d.y; })
+            .attr("height", function (d) { return d.height; })
+            .attr("width", function (d) { return d.width;})
             .style("fill", function (d) { return d.fill; });
 
         return exports;
