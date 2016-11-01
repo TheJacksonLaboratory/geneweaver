@@ -250,7 +250,11 @@
         {# Annotation Information #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h2 class="panel-title">
-                Annotation Information
+                Ontology Annotations
+                <span id="anotologyInformation" tabindex="0" 
+                      data-trigger="focus">
+                    <i class="fa fa-info-circle"></i>
+                </span>
             </h2>
         </div>
 
@@ -258,14 +262,13 @@
             <br>
             <div class="row">
                 {% if onts %}
-                <div class="panel panel-default panel-heading bg-gray-light">
-                    <h3 class="panel-title"><strong>Annotation Information</strong>
-                        <span id="anotologyInformation" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
-                </div>
 
                 {% else %}
                 <div class="panel panel-default panel-heading bg-gray-light">
-                    <h3 class="panel-title"><strong>No Annotation Information is Associated with this GeneSet</strong>
+                    <h3 class="panel-title">
+                        <strong>
+                            No annotations are associated with this GeneSet
+                        </strong>
                         <span id="noAnotologyInformation" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
                 </div>
 
@@ -280,9 +283,16 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div id="genesetOntologyAlert" class="alert alert-warning fade in col-xs-3">
-                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-                            GeneSet-Ontology Link Changes Persist on Select/Deselect.
+                    <div id="genesetOntologyAlert" 
+                         class="alert alert-warning fade in col-xs-3"
+                         style="width:400px;">
+                            <button type="button" class="close" 
+                                    data-dismiss="alert" aria-hidden="true">
+                                x
+                            </button>
+                            <strong>
+                                Annotation changes persist on (de)selection.
+                            </strong>
                     </div>
                 </div>
 
