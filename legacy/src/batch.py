@@ -52,7 +52,7 @@ class TheDB():
         host = config.get('db', 'host')
         port = config.getInt('db', 'port')
 
-        cs = "host='%s' dbname='%s' user='%s' password='%s'" % (host, db, user, password)
+        cs = "host='%s' port='%s' dbname='%s' user='%s' password='%s'" % (host, port, db, user, password)
 
         try:
             self.conn = psycopg2.connect(cs)
@@ -169,10 +169,10 @@ class TheDB():
         if type(syms) == list:
             syms = tuple(syms)
 
-        query = '''SELECT DISTINCT ode_ref_id, ode_gene_id 
+        query = '''SELECT DISTINCT ode_ref_id, ode_gene_id
                    FROM extsrc.gene
-                   WHERE sp_id = %s AND 
-                         ode_pref = true AND 
+                   WHERE sp_id = %s AND
+                         ode_pref = true AND
                          lower(ode_ref_id) IN %s;'''
 
         self.cur.execute(query, [sp, syms])
@@ -1199,4 +1199,3 @@ if __name__ == '__main__':
         for er in stuff[1]:
             print er
         print ''
-
