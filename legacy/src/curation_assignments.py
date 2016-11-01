@@ -65,7 +65,7 @@ class CurationAssignment(object):
             return "Assigned"
         elif (status == CurationAssignment.READY_FOR_TEAM_REVIEW):
             return "Ready for team review"
-        elif (status == CurationAssignment.UNASSIGNED):
+        elif (status == CurationAssignment.REVIEWED):
             return "Reviewed"
 
 
