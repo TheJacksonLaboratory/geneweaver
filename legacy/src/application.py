@@ -496,28 +496,70 @@ def geneset_ready_for_review():
 
     return response
 
-@app.route('/updateGenesetOntologyDB')
+@app.route('/updateGenesetOntologyDB', methods=['POST'])
 def update_geneset_ontology_db():
-    # ##########################################
-    # Updates the geneset by calling a function
-    #	to either add or remove an geneset-
-    #	ontology link.
-    # param: passed in by ajax data (ont_id,
-    #		 gs_id, flag, gso_ref_type)
-    # return: True
-    # ##########################################
+    """
+    Updates an ontology annotation for a geneset. This endpoint should only be
+    called when updating annotations using the tree view on the edit geneset
+    page. If the flag provided in the arguments is true, the ontology term is 
+    annotated to the geneset with the the reference type, "Manual Association".
+    If the flag is false, the term is added (if it is not currently annotated) 
+    but its reference type is set to "Manual Rejection" indicating that it is 
+    an incorrect annotation. This prevents the term from being re-annotated if 
+    an automatic annotation tool is run again.
+    """
 
-    ont_id = request.args['key']
-    gs_id = request.args['gs_id']
-    flag = request.args['flag']
-    gso_ref_type = request.args['universe']
+    form = request.form
+    user_id = session['user_id'] if session['user_id'] else 0
+    ont_id = form['key'] if form['key'] else 0
+    gs_id = form['gs_id'] if form['gs_id'] else 0
+    flag = form['flag'] if form['flag'] else 'true'
 
-    if (flag == "true"):
-        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        return json.dumps({
+            'success': False,
+            'error': 'You must be logged in to make changes to this GeneSet'
+        })
+
+    ## This should never happen
+    if not ont_id or not gs_id:
+        return json.dumps({
+            'success': False,
+            'error': 'An unknown error occurred while updating this GeneSet'
+        })
+
+    ## Only admins, curators, and owners can make changes
+    if (not user.is_admin and not user.is_curator) or\
+       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
+        not user_is_assigned_curation(user_id, gs_id)):
+           return json.dumps({
+               'success': False,
+               'error': 'You do not have permission to update this GeneSet'
+           });
+
+    if geneweaverdb.does_geneset_have_annotation(gs_id, ont_id):
+        if flag == 'true':
+            geneweaverdb.update_geneset_ontology_reference(
+                gs_id, ont_id, 'Manual Association'
+            )
+        else:
+            geneweaverdb.update_geneset_ontology_reference(
+                gs_id, ont_id, 'Manual Rejection'
+            )
     else:
-        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
+        if flag == 'true':
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Manual Association'
+            )
 
-    return json.dumps(True)
+        else:
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Manual Rejection'
+            )
+
+    return json.dumps({'success': True})
 
 
 def get_ontology_terms(gsid):

@@ -1161,6 +1161,51 @@ def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
 
+def does_geneset_have_annotation(gs_id, ont_id):
+    """
+    Checks to see if a particular ontology term has been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID 
+    :param ont_id:  ontology ID for the term being checked
+    :return:        true if the term is annotated to the given geneset,
+                    otherwise false
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT EXISTS(
+                SELECT 1
+                FROM geneset_ontology
+                WHERE gs_id = %s AND
+                      ont_id = %s
+            );
+            ''', (gs_id, ont_id))
+
+        return cursor.fetchone()[0]
+
+def update_geneset_ontology_reference(gs_id, ont_id, ref_type):
+    """
+    Updates the ontology reference type for the given geneset and ontology
+    term.
+
+    :param gs_id:       geneset ID 
+    :param ont_id:      ontology ID for the term being checked
+    :param ref_type:    new reference type
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            UPDATE geneset_ontology
+            SET gso_ref_type = %s
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (ref_type, gs_id, ont_id))
+
+        cursor.connection.commit()
+
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
         cursor.execute(

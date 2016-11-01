@@ -358,6 +358,28 @@
         return $.trim(ref);
     };
 
+    /*
+     * Retrieves and concatenates GS name/description text and publication
+     * title/abstract text so it can be sent to the annotator. Description and
+     * publication text is returned separately because the annotator tool has
+     * specific reference types for each.
+     *
+     * returns
+     *      an object containing text from the GS description and publication
+     */
+    var getGenesetText = function() {
+
+        var gsName = $.trim($('#genesetName').text()),
+            gsDesc = $.trim($('#genesetDescription').text()),
+            pubTitle = $.trim($('#pub_title').text()),
+            pubAbs = $.trim($('#pub_abstract').text());
+
+        return {
+            description: gsName + ' ' + gsDesc,
+            publication: pubTitle + ' ' + pubAbs
+        };
+    }
+
     $(function(){
         //Initialize dynatree data and functions
         $("#tree").dynatree({
@@ -391,21 +413,41 @@
             // Updates the database based on the ontology terms a user selects.
             onSelect: function (flag, node) {
                 $.ajax({
-                    url: "/updateGenesetOntologyDB",
+                    url: '/updateGenesetOntologyDB',
+                    type: 'POST',
                     data: {
                         key: node.data.key,
                         flag: flag,
-                        universe: getSelectedRefType(),
                         gs_id: gsID
                     },
                     success: function(data){
+                        data = JSON.parse(data);
+
+                        if (!data.success && data.error) {
+
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#result').html(
+                                '<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" ' +
+                                'data-dismiss="alert" aria-hidden="true">x' +
+                                '</button><strong>Error:</strong> ' +
+                                data.error + '</div>');
+                        }
+                    },
+                    error: function(req, error, thrownError) {
                     }
                 })
             }
         })
-    });
 
-    var user_id = {{ user_id }}
+        $('#run-annotator').on('click', function(event) {
+            event.preventDefault();
+        });
+
+        $('#edit-genes').on('click', function(event) {
+            event.preventDefault();
+        });
+    });
 
     //This refreshes all tree data based on changing gso_ref_type (universe) seen in the gso_ref_type select tag
     $($("#gso_ref_type").change(function () {
@@ -457,14 +499,6 @@
 	genes1 = genes1.concat("\t1");
 	document.getElementById("genesetValues").value= genes1;
     };
-
-    $('#run-annotator').on('click', function(event) {
-        event.preventDefault();
-    });
-
-    $('#edit-genes').on('click', function(event) {
-        event.preventDefault();
-    });
 
         $('#upload-geneset-form').submit(function(event) {
             event.preventDefault();
