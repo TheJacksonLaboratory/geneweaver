@@ -16,9 +16,9 @@ var upset = function () {
         // SVG object
         svg = null,
         // SVG width in pixels
-        width = 900,
+        width = 1100,
         // SVG height in pixel
-        height = 500,
+        height = 800,
         // Bar chart margins
         margin = {
             top: 20,
@@ -30,17 +30,28 @@ var upset = function () {
         diagramPadding = 0.5,
         // Bar data for each intersection bar
         Intersectionbars = [],
+        //Circle data for each intersection circle
+        IntersectionCircles = [],
         //Bar data for each set size bar
         Setbars = [],
-        // Individual bar text lines
-        barText = [],
+        // Individual set text lines
+        setText = [],
+        // Padding (in pixels) between each individual diagram
+        diagramPadding = 20,
         // Y-axis/X-axis labels for the bar chart
         chartLabels = [],
         // Chart dimensions
         chartWidth = +width - margin.left - margin.right,
         chartHeight = +height - margin.top - margin.bottom,
+        textHeight = 50,
         // Bar chart colours: un-query black-grey, and query purple
-        fillColours = ['#C0C0C0', '#8E44AD'],
+        barFillColours = ['#C0C0C0', '#8E44AD'],
+        // Circle diagram colours: un-query light grey. and query dark grey
+        circleFillColours = ['#F0F0F0', '#636363'],
+        // Shift bar diagrams and their labels N pixels to the right
+        xShift = 20,
+        // Shift bar diagrams and their labels down N pixels
+        yShift = 100,
         // Data returned by the tool
         data = null;
 
@@ -53,97 +64,175 @@ var upset = function () {
      * Assumptions:
      */
     var makeBars = function () {
+        var bx = 0,
+            by = 0;
 
         //Makes bars for the intersection size bar diagram
-        for (var i = 0; i < data.bar_diagrams.length; i++) {
-            var set = data.bar_diagrams[i];
+        for (var i = 0; i < data.intersection_diagrams.length; i++) {
+            var set = data.intersection_diagrams[i];
 
             var bar = {
-                fill: fillColours[0],
+                fill: barFillColours[0],
                 height: set['intersection'],
                 desc: set['desc1'],
-                name: set['name1']
+                name: set['name1'],
+                x: bx,
+                y: by,
+                textFill: '#000000'
             };
 
             Intersectionbars.push(bar);
+            by = by + 30;
         }
 
         //Make bars for the set size bar diagram
-        /*for (var j = 0; j < data.set_diagrams.length; j++){
+        bx = 0;
+
+        for (var j = 0; j < data.set_diagrams.length; j++){
             set = data.set_diagrams[j];
 
             var rect = {
-                fill: fillColours[0],
+                fill: barFillColours[0],
                 height: set['size'],
+                width: 18,
+                x: bx,
                 desc: set['desc1'],
                 name: set['name1']
             };
 
             Setbars.push(rect);
-        }*/
+            bx = bx + 20;
+        }
+    };
+
+    /**
+     * Transforms the circle data returned by the tool.
+     */
+    var makeCircles = function () {
+
+        var vcx = 0,
+            vcy = 0,
+            vfill = circleFillColours[0];
+
+        var genesets = data.genesets;
+        for (var y = 0; y < data.intersection_diagrams.length; y++){
+            for ( var x = 0; x < data.genesets.length; x++){
+
+                var intersect = data.intersection_diagrams[y];
+                for (var i = 0; i < intersect.sets.length; i++){
+                    if (genesets.indexOf("GS" + intersect.sets[i]) === x){
+                        vfill = circleFillColours[1];
+                    }
+                }
+
+                var circle = {
+                    cx: vcx,
+                    cy: vcy,
+                    r: 9,
+                    fill: vfill
+                };
+
+                IntersectionCircles.push(circle);
+                vfill = circleFillColours[0];
+                vcx = vcx + 20;
+
+            }
+
+            vcy = vcy + 30;
+            vcx = 0;
+        }
+    };
+
+    /**
+     * Formats and positions text elements for each individual geneset
+     */
+    var makeText = function() {
+        bx = 0;
+
+        for (var i = 0; i < data.set_diagrams.length; i++){
+            var set = data.set_diagrams[i];
+
+            var text = {
+                fill: '#E7ECED',
+                height: 60,
+                width: 18,
+                x: bx,
+                y: 0,
+                name: set['name']
+            }
+
+            setText.push(text);
+            bx = bx + 20;
+        }
     };
 
     /** public **/
 
     /**
-     * Draws the bar graph
+     * Draws the bar graph for the Intersection Size!!!
      */
     exports.draw = function () {
-       makeBars();
+        makeCircles();
+        makeBars();
+        makeText();
 
         var x = d3.scaleLinear().range([0, chartHeight]).domain([0, d3.max(Intersectionbars, function(d) { return d.height})]),
             y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; }));
 
         //Append svg to the upset area
-        svg = d3.select("#upset").append("svg")
+        svg = d3.select("#upset-set-graph").append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
             .attr("transform", "translate(" + (margin.left + margin.right) + "," + margin.top + ")");
 
-        //Append the x and y axis the svg
-        svg.append("g")
-            .call(d3.axisTop(x));
+        //Adding the circle diagrams
+        svg.selectAll("circle")
+            .data(IntersectionCircles)
+            .enter().append("circle")
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
+            .attr("cx", function(d) { return d.cx; })
+            .attr("cy", function(d) { return d.cy; })
+            .attr("r", function(d) { return d.r; })
+            .style("fill", function(d) { return d.fill; });
 
-        //TODO this does not show the axis title
-        svg.selectAll("g")
-            .append("text")
-            .attr("transform", "rotate(-90")
-            .attr("y",chartHeight - margin.left)
-            .attr("x",chartWidth - (height / 2))
-            .attr("dy", "1em")
-            .style("text-anchor", "middle")
-            .text("Intersection Size");
-
-        //Append Intersectionbars to the graph
-       svg.selectAll("bar")
+        //Adding the intersect size diagrams
+        svg.selectAll("bar")
             .data(Intersectionbars)
             .enter().append("rect")
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; })
+            .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) * 1.5) + "," + ((yShift + textHeight) - 9) + ")")
+            .attr("height", 18)
+            .attr("width", function(d) { return x(d.height); })
+            .style("fill", function(d) { return d.fill; })
+            .text(function(d) { return d.height; })
+
+        var x = d3.scaleBand().range([0, (yShift - diagramPadding)]).domain(Setbars.map(function(d) { return d.name; })).padding(0.5),
+            y = d3.scaleLinear().range([(yShift - diagramPadding), 0]).domain([0, d3.max(Setbars, function(d) { return d.height})]);
+
+        //adding the set size diagrams
+        svg.selectAll("bar")
+            .data(Setbars)
+            .enter().append("rect")
+            .attr("transform", "translate(-" + xShift + ",0)")
             .attr("class", "bar")
-            .attr("width", function(d) { return x(d.height)})
-            .attr("x", 0)
-            .attr("y", function(d) { return y(d.name) + 2; })
-            .attr("height", function (d) { return (chartHeight / Intersectionbars.length); })
-            .style("fill", function (d) { return d.fill; })
-            .on("mouseover", function(d){
+            .attr("width", function (d) {return d.width; })
+            .attr("x", function (d) { return d.x; })
+            .attr("y", function(d) { return y(d.height); })
+            .attr("height", function (d) { return (yShift - diagramPadding) - y(d.height); })
+            .style("fill", function (d) { return d.fill; });
 
-                //Mouse over events generate and display a tooltip with
-                //with intersection data
-
-                d3.select("#upset")
-                    .append("div")
-                    .attr("id", "up-tooltip")
-                    .attr("class", "tooltip")
-                    .style("opacity", 0.9)
-                    .html(d.name + "<br />" + d.desc)
-                    .style("left", d3.event.pageX + "px")
-                    .style("top", d3.event.pageY + "px");
-
-            })
-            .on("mouseout", function(d) {
-                d3.select("#up-tooltip").remove();
-            });
-
+        //adding the set names to the diagram
+        svg.selectAll("bar")
+            .data(setText)
+            .enter().append("rect")
+            .attr("transform", "translate(-" + xShift + "," + (yShift - xShift) + ") skewX(45)")
+            .attr("x", function (d) { return d.x; })
+            .attr("y", function (d) { return d.y; })
+            .attr("height", function (d) { return d.height; })
+            .attr("width", function (d) { return d.width;})
+            .style("fill", function (d) { return d.fill; });
 
         return exports;
     };

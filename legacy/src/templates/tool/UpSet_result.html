@@ -237,15 +237,13 @@
 $(document).ready(function() {
 
    var d = {{ data | safe }}; //Declaration of data as d variable
-    var js = jaccardSimilarity()
+    var us = upset()
         .data(d)
-        .diagramPadding(150)
-        .draw()
-        .drawLegend();
+        .draw();
         ;
 
-    // Draws the jaccard similarity table
-/*    var jsm = jaccardSimilarityMatrix()
+    // Draws the UpSet Set graph
+/*    var uss = jaccardSimilarityMatrix()
         .data(d)
         .draw();
 */
