@@ -44,8 +44,6 @@
 
             <p>
 
-            <div class="row" id="result"></div>
-
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>{{ title }}{{ group.grp_name }}</strong>
                     {% if group.private %}
@@ -103,7 +101,6 @@
         var group_id = '{{ group.grp_id }}';
         var group_name = '{{ group.grp_name }}';
         var private = Boolean('{{ group.private }}');
-        console.log(group_name + " private?" + private);
         var user_id = '{{user_id}}';
         var columns = {{columns | safe}};
         var headerCols = {{headerCols | safe}};
