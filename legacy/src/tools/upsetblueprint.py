@@ -12,7 +12,7 @@ from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 TOOL_CLASSNAME = 'UpSet'
 upset_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
-@upset_blueprint.route('/run-up-set.html', methods=['POST'])
+@upset_blueprint.route('/run-upset.html', methods=['POST'])
 def run_tool():
     # TODO need to check for read permissions on genesets
 
@@ -20,6 +20,12 @@ def run_tool():
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
+    # Used only when rerunning the tool from the results page
+    if 'genesets' in form:
+        add_genesets = form['genesets'].split(' ')
+        edited_add_genesets = [gs[2:] for gs in add_genesets]
+        selected_geneset_ids = selected_geneset_ids + edited_add_genesets
+
     if len(selected_geneset_ids) < 2:
         flask.flash("Warning: You need at least 2 genes!")
         return flask.redirect('analyze')
@@ -43,7 +49,7 @@ def run_tool():
         user_id = flask.session['user_id']
 
     else:
-        flask.flash("Internal error: user ID missing")
+        flask.flash('Please log in to run the tool.')
         return flask.redirect('analyze')
 
     # Gather emphasis gene ids and put them in parameters
@@ -71,6 +77,7 @@ def run_tool():
         task_id,
         selected_geneset_ids,
         json.dumps(params),
+        tool.name,
         desc,
         desc)
     async_result = tc.celery_app.send_task(
