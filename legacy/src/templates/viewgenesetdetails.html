@@ -287,7 +287,17 @@
 	<iframe id="ie-export" style="display:none;">
 	</iframe>
 
+    <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
     <script type="text/javascript">
+        $(document).ready(function () {
+
+            {% if species %}
+                makeSpeciesTags({{ species | tojson | safe }}, true);
+            {% else %}
+                makeSpeciesTags();
+            {% endif %}
+        });
+
         $("[name='g_id[]']").bootstrapSwitch();
 
         $(window).load(function() {
