@@ -290,55 +290,73 @@
             <div class="row">
                 {% if onts %}
 
-                {% else %}
-                <div class="panel panel-default panel-heading bg-gray-light">
-                    <h3 class="panel-title">
-                        <strong>
-                            No annotations are associated with this GeneSet
-                        </strong>
-                        <span id="noAnotologyInformation" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
-                </div>
-
-                {% endif %}
-
-                <div class="row">
-                    <div class="col-xs-3";>
-                        <select name="gso_ref_type" id="gso_ref_type" class="form-control" style="margin-bottom: 20px;" required>
-                            <option value="all" selected>All Reference Types</option>
-                            {% for ref_type in ref_types %}
-                            <option value="ref_type">{{ ref_type }}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="row">
+                        <div class="col-xs-3";>
+                            <select name="gso_ref_type" id="gso_ref_type" 
+                                    class="form-control" 
+                                    style="margin-bottom: 20px;" required>
+                                <option value="all" selected>
+                                    All Reference Types
+                                </option>
+                                {% for ref_type in ref_types %}
+                                    <option value="ref_type">
+                                        {{ ref_type }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="genesetOntologyAlert" 
+                             class="alert alert-warning fade in col-xs-3"
+                             style="width:400px;">
+                                <button type="button" class="close" 
+                                        data-dismiss="alert" aria-hidden="true">
+                                    x
+                                </button>
+                                <strong>
+                                    Annotation changes persist on (de)selection.
+                                </strong>
+                        </div>
                     </div>
-                    <div id="genesetOntologyAlert" 
-                         class="alert alert-warning fade in col-xs-3"
-                         style="width:400px;">
-                            <button type="button" class="close" 
-                                    data-dismiss="alert" aria-hidden="true">
-                                x
-                            </button>
+
+                    <div style="border: 1px solid #afafaf;">
+                        <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
+                    </div>
+
+                {% else %}
+                    <div id="genesetOntologyAlert" align="center"
+                         class="alert alert-danger fade in col-xs-3"
+                         style="width:100%">
                             <strong>
-                                Annotation changes persist on (de)selection.
+                                No annotations are associated with this
+                                GeneSet.
                             </strong>
                     </div>
-                </div>
 
-                <div style="border: 1px solid #afafaf;">
-                    <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
-                </div>
-                <!--<span id="echoActive">-</span>-->
+                {% endif %}
             </div>
         </div>
 
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
 
     </form>
-
-
 
 {% endif %}
 
 <script>
+
+    var gsID = {{ geneset.geneset_id | safe }};
+
+    /*
+     * Retrieves the currently selected annotation reference type.
+     *
+     * returns
+     *      the name of the currently selected reference type
+     */
+    var getSelectedRefType = function() {
+
+        var ref = $('#gso_ref_type option:selected').text();
+
+        return $.trim(ref);
+    };
 
     $(function(){
         //Initialize dynatree data and functions
@@ -348,8 +366,8 @@
             initAjax: {
                 url: "/initOntTree",
                 data: {
-                    "gs_id": $(location).attr("href").split('/').pop(),
-                    universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+                    gs_id: gsID,
+                    universe: getSelectedRefType()
                 }
             },
 
@@ -360,7 +378,7 @@
                     data: {
                         key: node.data.key,
                         is_db: node.data.db,
-                        universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+                        universe: getSelectedRefType()
                     }
                 })
             },
@@ -369,15 +387,16 @@
             onClick: function (node, event) {
 
 			},
-            //Performs lazy ajax call to update the database when an ontology is selected or unselected
+
+            // Updates the database based on the ontology terms a user selects.
             onSelect: function (flag, node) {
                 $.ajax({
                     url: "/updateGenesetOntologyDB",
                     data: {
                         key: node.data.key,
                         flag: flag,
-                        universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML,
-                        gs_id: $(location).attr("href").split('/').pop()
+                        universe: getSelectedRefType(),
+                        gs_id: gsID
                     },
                     success: function(data){
                     }
@@ -393,8 +412,8 @@
         $("#tree").dynatree("option", "initAjax", {
             url: "/initOntTree",
             data: {
-                "gs_id": $(location).attr("href").split('/').pop(),
-                universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+                gs_id: gsID,
+                universe: getSelectedRefType()
             }
         });
         $("#tree").dynatree("getTree").reload();

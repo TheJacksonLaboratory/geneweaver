@@ -774,6 +774,13 @@ def get_ont_root_nodes():
         info.append(data)
     return (json.dumps(info))
 
+@app.route('/reannotate', methods=['GET'])
+def reannotate():
+    """
+    This function re-runs the annotator tool on text from geneset and 
+    publication descriptions.
+    """
+    pass
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
