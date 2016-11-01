@@ -156,8 +156,15 @@
               <strong>Include Homology:&nbsp;</strong>{{async_result.IncludeHomology}}<br>
             </td>
             <td>
-              <strong>User:&nbsp;</strong>VALUE<br>
-              <strong>Date:&nbsp;</strong>VALUE<br>
+              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }}{% else %} guest{% endif %}<br>
+              <strong>Date:&nbsp;</strong>
+                  <script> 
+                  <!-- 
+                  var d = new Date(); 
+                  document.write(d.toLocaleDateString() + " " + d.toLocaleTimeString());
+                  //-->
+                  </script>
+              <br>
               <br>
               <strong>Available Genes:&nbsp;</strong>{{async_result.AvailableGenes}}<br>
               <strong>Available Genesets:&nbsp;</strong>{{async_result.AvailableGenesets}}<br>
@@ -300,7 +307,6 @@
   </div><!-- end row-->
 
 </div><!-- end container -->
-
 
 <script type="text/javascript">
 $(document).ready(function() {
