@@ -160,7 +160,7 @@ public:
         jsonOutput<<tb<<"\"inTopAndInterest\": ["<<endl;
         vector<T> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
         for(unsigned int i=0;i<matches.size();i++){
-            jsonOutput<<tb<<tb<<\"<<matches[i]<<\";
+            jsonOutput<<tb<<tb<<"\""<<matches[i]<<"\"";
             if(i!=(counts.size()-1)){
                 jsonOutput<<",";
             }
