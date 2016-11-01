@@ -48,20 +48,25 @@
             <div class="row" id="result"></div>
 
             <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>My GeneSets </strong>
-                    <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
+                <h3 class="panel-title"><strong>{{ title }}</strong>
             </div>
+
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
             <div class="panel panel-default">
 
                 <div class="row">
-                    <div class="col-xs-6 col-md-3">
-
-                        <button type="button" class="btn btn-block btn-warning" id="addToProject">
-                            <i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
+                    <div class="col-md-12">
+                        <button type="button" class="btn btn-warning" id="addToProject">
+                            <i class="fa fa-folder-o pull-left"></i> Add to Project
                         </button>
 
+
+                        <button type="button" class="btn  btn-warning" id="assignCuration">
+                            <i class="fa fa-folder-o pull-left"></i> Assign to Curation Group
+                        </button>
                     </div>
+
                 </div>
 
                 <div class="row">
@@ -97,6 +102,7 @@
         {% if g.user is defined %}
 
             {% include 'modal/addGenesetsToProjects.html' %}
+            {% include 'modal/assignGenesetForCuration.html'  %}
 
         {% endif %}
 
@@ -115,18 +121,28 @@
 <script>
     function format(d) {
         // `d` is the original data object for the row
-        return '<tr><td colspan=7><table class="table">' +
+        var html = '<tr><td colspan=7><table class="table">' +
                 '<tr>' +
                 '<td align=right width=25%><strong>GeneSet Label:</strong> </td>' +
                 '<td><p>' + d[7] + '</p></td></tr>' +
-                '<tr><td align=right width=25%><strong>Desscription:</strong> </td>' +
+                '<tr><td align=right width=25%><strong>Description:</strong> </td>' +
                 '<td><p>' + d[8] + '</p></td></tr>' +
                 '<tr><td align=right width=25%><strong>Date Created:</strong> </td>' +
                 '<td><p>' + d[9] + '</p></td></tr>' +
                 '<tr><td align=right width=25%><strong>Last Updated:</strong> </td>' +
-                '<td><p>' + d[10] + '</p></td>' +
-                '</tr>' +
-                '</table></td></tr>';
+                '<td><p>' + d[10] + '</p></td></tr>';
+
+        // add in details about the curration assignment if it exists
+        if (d[11]) {
+            html = html + '<tr><td align=right width=25%><strong>Assigned Curation Group:</strong> </td>' +
+                '<td><p>' + d[12] + '</p></td></tr>';
+        }
+
+        // close up the table
+        html = html + '</table></td></tr>';
+
+
+        return html;
     }
 
 
@@ -177,6 +193,9 @@
     };
 
     $(document).ready(function () {
+
+        var selectedGeneSets = [];
+        var selected = [];
 
         //var trindex = 0;
         var dbtable = '{{table}}';
@@ -345,6 +364,12 @@
 										    title="Edit Gene Set" style="margin: 2px; padding: 0px 2px;"> \
 										    <i class="fa fa-edit"></i></span>');
 
+                        /* show the geneset has been assigned for curation */
+                        var curation_icon = $('<span class="pointer" data-placement="top" \
+										    data-toggle="tooltip" data-rel="tooltip" data-original-title="Curation" \
+										    title="Assigned For Curation" style="margin: 2px; padding: 0px 2px;"> \
+										    <i class="fa fa-eye"></i></span>');
+
 
                         b.tooltip();
                         b.click(function () {
@@ -382,6 +407,14 @@
 
                         $(nTd).empty();
                         $(nTd).append(b).append(c);
+
+                        // oData[11] is the curation group. If this is not null,
+                        // then the geneset has been assigned to a group for
+                        // curation
+                        if (oData[11]) {
+                            curation_icon.tooltip();
+                            $(nTd).append(curation_icon);
+                        }
                     }
 
                 }
@@ -444,6 +477,165 @@
                 $("#myModalValue").val(g);
                 $("#addToProjectModal").modal('show');
             }
+        });
+
+        // this function handles the click event on the "assignCuration" button
+        // it takes the selected genesets updates the modal window with those
+        // selections and displays it.  It also makes sure the group selection
+        // is cleared on the modal.
+        $('#assignCuration').on('click', function () {
+            var aselectedTrs = TableTools.fnGetInstance('mygenesetsViewer').fnGetSelectedData();
+            if (aselectedTrs == 0) {
+                // let the user know they need to select at least on geneset
+                $("#myAlert").modal('show');
+            }
+            else {
+
+                selectedGeneSets = [];
+
+                var selectedGeneSetLabels = [];
+                var genesetsWithCurationAssignments = [];
+                for (var k in aselectedTrs) {
+                    selectedGeneSetLabels.push('GS' + aselectedTrs[k][5]);
+                    selectedGeneSets.push(aselectedTrs[k][5]);
+
+                    if (aselectedTrs[k][11]) {
+                        genesetsWithCurationAssignments.push('GS' + aselectedTrs[k][5]);
+                    }
+
+                }
+
+                if (genesetsWithCurationAssignments.length) {
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "GeneSets already have curation assignment: "+ genesetsWithCurationAssignments.join(", "),
+                            'priority': 'error'
+                        }
+                    ]);
+
+                } else {
+
+                    var geneSetString = selectedGeneSetLabels.join(", ");
+                    $('#curationModalLabel').html(geneSetString);
+
+                    // when we show the modal window, we don't want a group selected.
+                    $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+
+                    // submit button will be disabled until the user selects a group radio button
+                    $('#assignGenesets').prop("disabled", true).button("refresh");
+
+                    // clear out the notes field too
+                    $('#curationNotes').val("");
+
+                    $('#assignGenesetForCurationModal').modal('show');
+                }
+            }
+        });
+
+        $("input:radio[name='group']").on('click', function () {
+            // submit button will be disabled until the user selects a group
+            // radio button
+            $('#assignGenesets').prop("disabled", false).button("refresh");
+        });
+
+        function handleCurationAssignmentError(data) {
+            console.error("something bad happened: " + data.responseJSON.message);
+
+            $(document).trigger("add-alerts", [
+                {
+                    'message': data.responseJSON.message,
+                    'priority': 'danger'
+                }
+            ]);
+        }
+
+        $('#assignGenesets').on('click', function () {
+
+            var selectedGroupId = $("input[name=group]:checked").val();
+
+            var params = {
+                "note": $('#curationNotes').val(),
+                "gs_ids[]": selectedGeneSets,
+                "grp_id": selectedGroupId,
+            };
+
+            // since params["gs_ids"] is a list the server needs to use
+            // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+            $.post("{{ url_for('assign_genesets_to_curation_group') }}", params ,function(data) {
+
+                var successful = [];
+                var successfulLabels = [];
+                var failed = [];
+
+                console.log(data);
+
+                for (var key in data.results) {
+                    if (data.results[key].success) {
+                        successfulLabels.push("GS" + key);
+                        successful.push(key);
+                    }
+                    else {
+                        failed.push("GS" + key);
+                    }
+                }
+
+                if (failed.length) {
+                    // this shouldn't happen, but lets check for it anyway and display/log an error message...
+                    console.error("Unable to assign these GeneSets for curation: ", failed.join(', '));
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Unable to assign for curation: " + failed.join(', '),
+                            'priority': 'danger'
+                        }
+                    ]);
+                }
+
+                if (successful.length) {
+                    // update table to reflect new curation assignments
+
+
+                    var table = $('#mygenesetsViewer').DataTable();
+
+                    var rowCount = table.rows().count;
+                    for (var i = 0; i < rowCount; i++) {
+                        var tableRow = table.row(i);
+                        if ($.inArray(tableRow[5], successful)) {
+
+                            // update the data for the updated GeneSets
+
+                            // this is the group ID of the group assigned
+                            // responsibility for curating this GeneSet
+                            tableRow.data()[11] = selectedGroupId;
+
+                            // this is the string group name, we can obtain it
+                            // from the selected raido button in the modal window
+                            // contained in assignGenesetForCuration.html
+                            tableRow.data()[12] = $('#label_' + selectedGroupId).text();
+
+                            // need to invalidate the row so it will get redrawn
+                            tableRow.invalidate();
+                        }
+
+                    }
+                    table.draw();
+
+                    // select all and select none buttons appear to be out of
+                    // sync after redrawing the table, make sure none are selected
+                    TableTools.fnGetInstance('mygenesetsViewer').fnSelectNone();
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "GeneSets assigned for curation: " + successfulLabels.join(', '),
+                            'priority': 'success'
+                        }
+                    ]);
+                }
+
+
+            }, "json").fail(handleCurationAssignmentError);
+
+
         });
 
         $('#addNewProject').on('click', function () {

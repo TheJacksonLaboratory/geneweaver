@@ -20,7 +20,7 @@ import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
+    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint, upsetblueprint
 import sphinxapi
 import search
 import math
@@ -40,6 +40,7 @@ app.register_blueprint(jaccardclusteringblueprint.jaccardclustering_blueprint)
 app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
+app.register_blueprint(upsetblueprint.upset_blueprint)
 
 # *************************************
 
@@ -232,7 +233,7 @@ def json_login():
         json_result['usr_email'] = user.email
 
     # return flask.jsonify(json_result)
-    return flask.redirect('/')
+    return flask.redirect("index.html")
 
 
 @app.route('/analyze')
@@ -258,10 +259,14 @@ def render_analyze():
 
         grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
 
+    ## Dynamically generated species tags
+    species = geneweaverdb.get_all_species().items()
+
     return flask.render_template(
         'analyze.html', 
         active_tools=active_tools,
-        grp2proj=grp2proj
+        grp2proj=grp2proj,
+        species=species
     )
 
 @app.route('/analyzeshared')
@@ -900,7 +905,7 @@ def render_accountsettings():
                                  groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail)
 
 
-@app.route('/login')
+@app.route('/login.html')
 def render_login():
     return flask.render_template('login.html')
 
@@ -1007,6 +1012,12 @@ def viewStoredResults_by_runhash():
     elif results['res_tool'] == 'Boolean Algebra':
         return flask.url_for(
             booleanalgebrablueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
+    elif results['res_tool'] == 'UpSet':
+        return flask.url_for(
+            upsetblueprint.TOOL_CLASSNAME + '.view_result',
             task_id=runhash
         )
 
@@ -2829,6 +2840,16 @@ class ToolBooleanAlgebraProjects(restful.Resource):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
 
+class ToolUpSet(restful.Resource):
+    def get(self, apikey, homology, pairwiseDeletion, genesets):
+        return upsetblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+
+
+class ToolUpSetProjects(restful.Resource):
+    def get(self, apikey, homology, pairwiseDeletion, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return upsetblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+
 
 class KeywordSearchGuest(restful.Resource):
     def get(self, apikey, search_term):
@@ -2899,20 +2920,22 @@ api.add_resource(ToolPhenomeMapProjects,
 api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relation>/<genesets>/')
 api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byprojects/<apikey>/<relation>/<projects>/')
 
+api.add_resource(ToolUpSet,
+                 '/api/tool/upset/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+api.add_resource(ToolUpSetProjects,
+                 '/api/tool/upset/byprojects/<apikey>/<homology>/<pairwiseDeletion>/<projects>/')
+
 # ********************************************
 # END API BLOCK
 # ********************************************
-
-## Config loading should occur outside __main__ when proxying requests through
-## a web server like nginx. uWSGI doesn't load anything in the __main__ block
-app.secret_key = config.get('application', 'secret')
-app.debug = True
 
 if __name__ == '__main__':
 
     # config.loadConfig()
     # print config.CONFIG.sections()
 
+    app.secret_key = config.get('application', 'secret')
+    app.debug = True
 
     ## Register error handlers, should be turned off during debugging since
     ## stack traces are printed then
