@@ -1672,7 +1672,6 @@ def createVennDiagram(i, ii, j, size=100):
 
     return json.dumps(data)
 
-
 @app.route('/mygenesets')
 def render_user_genesets():
     table = 'production.geneset'
@@ -1705,14 +1704,48 @@ def render_user_genesets():
         species.append([sp_id, sp_name])
 
     return flask.render_template(
-        'mygenesets.html', 
-        headerCols=headerCols, 
-        user_id=user_id, 
+        'mygenesets.html',
+        headerCols=headerCols,
+        user_id=user_id,
         columns=columns,
         table=table,
         species=species,
         myGroups=my_groups,
         otherGroups=other_groups
+    )
+
+@app.route('/groupTasks/<int:group_id>')
+def render_group_tasks(group_id):
+    group = None
+    if group_id and 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        columns = [
+            {'name': 'full_name'},
+            {'name': 'task_id'},
+            {'name': 'task_name'},
+            {'name': 'task_type'},
+            {'name': 'assignment_date'},
+            {'name': 'task_status'},
+            {'name': 'reviewer'}
+        ]
+        headerCols = ["Assignee Name",
+                      "Task Id",
+                      "Task",
+                      "Task Type",
+                      "Assign Date",
+                      "Status",
+                      "Reviewer"]
+
+        group = geneweaverdb.get_group_by_id(group_id)
+    else:
+        headerCols, user_id, columns = None, 0, None
+
+    return flask.render_template(
+        'groupTasks.html',
+        headerCols=headerCols, 
+        user_id=user_id, 
+        columns=columns,
+        group=group
     )
 
 
@@ -2419,6 +2452,17 @@ def get_db_genesets_data():
     return json.dumps(results)
 
 
+@app.route('/getServersideGroupTasksdb')
+def get_db_grouptasks_data():
+    results = geneweaverdb.get_server_side_grouptasks(request.args)
+    return json.dumps(results)
+
+@app.route('/assignmentStatusAsString/<int:status>')
+def get_assignment_status_string(status):
+    status_text = {'status': curation_assignments.CurationAssignment.status_to_string(status)}
+    return flask.jsonify(status_text)
+
+
 def str_handler(obj):
     return str(obj)
 
@@ -2759,7 +2803,7 @@ def json_register_successful():
 
     else:
         ## The only data required by reCAPTCHA is secret and response. An
-        ## optional parameter, remoteip, containing the end user's IP can also
+        ## optional parameter, remotep, containing the end user's IP can also
         ## be appended.
         pdata = {'secret': RECAP_SECRET, 'response': captcha}
         resp = http.request('POST', RECAP_URL, fields=pdata)

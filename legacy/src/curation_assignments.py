@@ -57,6 +57,17 @@ class CurationAssignment(object):
         self.created = row_dict['created']
         self.updated = row_dict['updated']
 
+    @staticmethod
+    def status_to_string(status):
+        if (status == CurationAssignment.UNASSIGNED):
+            return "Unassigned"
+        elif (status == CurationAssignment.ASSIGNED):
+            return "Assigned"
+        elif (status == CurationAssignment.READY_FOR_TEAM_REVIEW):
+            return "Ready for team review"
+        elif (status == CurationAssignment.REVIEWED):
+            return "Reviewed"
+
 
 def get_geneset_url(geneset_id):
     """

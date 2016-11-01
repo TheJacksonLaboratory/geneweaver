@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins {
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks {
         cursor: pointer;
     }
 
@@ -140,6 +140,13 @@
                                                 <span class="clickable_setAdmins" id="groupAdminModal_{{ grpO.grp_id }}"
                                                       data-grp="{{ grpO.grp_id }}"><i class="fa fa-wrench"></i>
                                                 </span></span>
+
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Tasks" type="button" title="View Tasks"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-eye"></i>
+                                                </span></span>
                                             </td>
                                         </tr>
                                         {% include 'modal/deleteGroup.html' %}
@@ -221,7 +228,15 @@
                                                       style="margin: 2px; padding: 0px 2px;">
                                                     {{ grpM.grp_created }}
                                             </td>
-                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                            <td>
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Tasks" type="button" title="View Tasks"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpM.grp_id }}"
+                                                      data-grp="{{ grpM.grp_id }}"><i class="fa fa-eye"></i>
+                                                </span></span>
+
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Delete" type="button" title="Exit Group"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_member" id="deleteMemberGroupModal_{{ grpM.grp_id }}"
@@ -229,7 +244,7 @@
                                                         style="color: #E95753">
                                                       <i class="fa fa-times"></i></span>
                                                 </span>
-
+                                            </td>
                                         </tr>
                                         {% include 'modal/deleteMemberGroup.html' %}
 
@@ -339,7 +354,6 @@
 
 {% endif %}
 </div>
-
 
 {% include 'footer.html' %}
 
@@ -509,6 +523,12 @@
 
             $('#groupAdminModal_' + grp_id).modal('show');
         });
+
+        $('.clickable_viewGroupTasks').on('click', function () {
+            var grp_id = ($(this).attr("data-grp"));
+            window.location.href = '../groupTasks/' + grp_id;
+        });
+
 
 
         $('.clickable_addUsr').on('click', function () {
