@@ -182,16 +182,22 @@
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                         var status = sData;
                         $(nTd).empty();
-                        $.ajax({
-                            type: "GET",
-                            url: "../assignmentStatusAsString/" + status,
-                            success: function (data) {
-                                $(nTd).append(data.status);
-                            },
-                            error: function() {
-                                $(nTd).append(status);
-                            }
-                        });
+                        // TODO:  Replace this with a mechanism that uses url: "../assignmentStatusAsString/" + status,
+                        // and caching (probably done through another function)
+                        switch (status) {
+                            case 1:
+                                $(nTd).append('Unassigned');
+                                break;
+                            case 2:
+                                $(nTd).append('Assigned');
+                                break;
+                            case 3:
+                                $(nTd).append('Ready for team review');
+                                break;
+                            case 4:
+                                $(nTd).append('Reviewed');
+                                break;
+                        }
                     }
                 },
                 {
