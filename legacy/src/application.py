@@ -259,10 +259,14 @@ def render_analyze():
 
         grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
 
+    ## Dynamically generated species tags
+    species = geneweaverdb.get_all_species().items()
+
     return flask.render_template(
         'analyze.html', 
         active_tools=active_tools,
-        grp2proj=grp2proj
+        grp2proj=grp2proj,
+        species=species
     )
 
 @app.route('/analyzeshared')

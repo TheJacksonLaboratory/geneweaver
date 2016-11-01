@@ -78,7 +78,7 @@
     <div class="panel panel-default">
         {% include 'htmlfragments/curIDBoxes.html' %}
 
-    <!-- View GeneSet MetaData -->
+    <!-- View GeneSet MetaContent -->
     {% include 'viewGenesetMeta.html' %}
 
     <!-- Show the Geneset List -->
@@ -112,10 +112,56 @@
                             <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt">
                                 <i class="fa fa-sort"></i>
                             </a>
-                            <span id="altSymbolHeader">{{ altGeneSymbol }}</span>
-                            <span id="clickableGeneSymbol">
-                                <i class="fa fa-gear"></i>
-                            </span>
+
+							<span class="dropdown">
+	
+								<span id="clickableGeneSymbol"
+									  data-toggle="dropdown" 
+									  aria-haspopup="true"
+									  aria-expanded="true">
+
+									<span id="altSymbolHeader">
+										{{ altGeneSymbol }}
+									</span>
+									<i id="type-loading" class="fa fa-caret-down"></i>
+
+								</span>
+
+								{# 
+									TODO: Should be rewritten to dynamically
+									load gene types from the DB
+								#}
+								<ul class="dropdown-menu"
+									aria-labelledby="clickableGeneSymbol">
+									<li class="gene-type" rel="0"><a tabindex="0" class="" style="">
+										<span class="text">Gene Symbol</span>
+									</a></li>
+									<li class="gene-type" rel="1"><a tabindex="0" class="" style="">
+										<span class="text">Entrez</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">Ensembl Gene</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">UniGene</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">MGI</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">FlyBase</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">WormBase</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">RGD</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">ZFIN</span>
+									</a></li>
+								</ul>
+							</span>
                         </th>
                         <th>
                             Homology 
@@ -123,7 +169,7 @@
                                 <i class="fa fa-info-circle"></i>
                             </span>
                         </th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Value</th>
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Score</th>
                         <th>
                             <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority">
                                 <i class="fa fa-sort"></i></a> Priority
@@ -241,7 +287,17 @@
 	<iframe id="ie-export" style="display:none;">
 	</iframe>
 
+    <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
     <script type="text/javascript">
+        $(document).ready(function () {
+
+            {% if species %}
+                makeSpeciesTags({{ species | tojson | safe }}, true);
+            {% else %}
+                makeSpeciesTags();
+            {% endif %}
+        });
+
         $("[name='g_id[]']").bootstrapSwitch();
 
         $(window).load(function() {
@@ -264,7 +320,7 @@
         });
 
         $('#clickableGeneSymbol').on('click', function (e) {
-                $("#selectGeneDisplayType").modal('show');
+			//$("#selectGeneDisplayType").modal('show');
         });
 
 
@@ -446,16 +502,17 @@
                 });
             });
 
-            $('#selectGeneType').on('click', function (e) {
-                var val = $('.dropdown-menu li a').parents('.btn-group')
-                        .find('[data-bind="label"]').text();
+            //$('#selectGeneType').on('click', function (e) {
+            $('.gene-type').on('click', function (e) {
 
-                val = $.trim(val);
+				var geneType = $.trim($(this).text());
+
+				$('#type-loading').attr('class', 'fa fa-cog fa-spin');
 
                 $.ajax({
                     type: "GET",
                     url: "../updateAltGeneSymbol",
-                    data: {"altSymbol": val, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
+                    data: {"altSymbol": geneType, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
                     success: function (genesetValues) {
                         genesetValues = JSON.parse(genesetValues);
 
@@ -469,7 +526,7 @@
                             // Should check if this is null and handle
                             var altElement = $.find('[ode-gene-id="' + odeId + '"]')[0];
 
-                            $('#altSymbolHeader').html(val);
+                            $('#altSymbolHeader').html(geneType);
 
                             // Indicates an alternate ID type does exist for
                             // this particular gene
@@ -477,6 +534,8 @@
                                 $(altElement).html('<strong>' + refId + '</strong>');
                             else
                                 $(altElement).html('<strong>None</strong>');
+
+							$('#type-loading').attr('class', 'fa fa-caret-down');
                         }
                     }
                 })
@@ -620,8 +679,6 @@
 {% endif %}
 
 {% include 'modal/addGenesetsToProjects.html' %}
-
-{% include 'modal/selectGeneDisplayType.html' %}
 
 {% include 'modal/deleteGeneset.html' %}
 
