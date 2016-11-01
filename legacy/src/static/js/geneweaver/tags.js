@@ -15,8 +15,6 @@
  * arguments
  *      attribs: an object mapping attribution IDs -> to their labels
  *
- * returns
- *
  */
 var makeAttributionTags = function(attribs) {
     // Two, combined color Brewer palettes
@@ -49,6 +47,8 @@ var makeAttributionTags = function(attribs) {
  * 
  * arguments
  *      splist: a list of tuples; (sp_id, sp_name)
+ *      fullName: if true, creates a tag using the full species name instead 
+ *                of the abbreviation
  */
 var makeSpeciesTags = function(splist, fullName) {
 
@@ -72,13 +72,17 @@ var makeSpeciesTags = function(splist, fullName) {
         if (!spname)
             continue;
 
-        // Elissa mentioned we shouldn't use common, pleb names for species
-        // (and that monkey isn't technically a species), so we properly abbreviate
-        // the species name.
+        if (!colors)
+            break;
+
         if (fullName === undefined || !fullName) {
 
+            // Elissa mentioned we shouldn't use common, pleb names for species
+            // (and that monkey isn't technically a species), so we properly 
+            // abbreviate the species name.
             spname = spname.split(' ');
 
+            // Probably the null species (sp_id == 0)
             if (spname.length === 1)
                 continue;
 
