@@ -1684,14 +1684,15 @@ def render_group_tasks(group_id):
     group = None
     if group_id and 'user_id' in flask.session:
         user_id = flask.session['user_id']
-        columns = []
-        columns.append({'name': 'full_name'})
-        columns.append({'name': 'task_id'})
-        columns.append({'name': 'task_name'})
-        columns.append({'name': 'task_type'})
-        columns.append({'name': 'assignment_date'})
-        columns.append({'name': 'task_status'})
-        columns.append({'name': 'reviewer'})
+        columns = [
+            {'name': 'full_name'},
+            {'name': 'task_id'},
+            {'name': 'task_name'},
+            {'name': 'task_type'},
+            {'name': 'assignment_date'},
+            {'name': 'task_status'},
+            {'name': 'reviewer'}
+        ]
         headerCols = ["Assignee Name",
                       "Task Id",
                       "Task",
