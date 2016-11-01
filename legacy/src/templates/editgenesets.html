@@ -245,6 +245,33 @@
             </div>
         </div>
 
+        <div class="row pull-right">
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-block btn-warning" 
+                        id="run-annotator">
+                    <i class="fa fa-play"></i>
+                    Run Annotator
+                </button>
+            </div>
+
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-block btn-warning" 
+                        id="save-updates">
+                    <i class="fa fa-save "></i>
+                    Save Updates
+                </button>
+            </div>
+
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-block btn-warning" 
+                        id="edit-genes">
+                    <i class="fa fa-fast-forward "></i> Edit Genes
+                </button>
+            </div>
+
+        </div>
+
+        <br>
         <br>
 
         {# Annotation Information #}
@@ -304,14 +331,6 @@
         </div>
 
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
-
-        <div class="panel-heading">
-            <div class="pull-right">
-                <button type="submit" class="btn btn-block btn-warning" id="upload-geneset-button">
-                    <i class="fa fa-fast-forward pull-right"></i> Edit Genes
-                </button>
-            </div>
-        </div>
 
     </form>
 
@@ -420,10 +439,17 @@
 	document.getElementById("genesetValues").value= genes1;
     };
 
+    $('#run-annotator').on('click', function(event) {
+        event.preventDefault();
+    });
+
+    $('#edit-genes').on('click', function(event) {
+        event.preventDefault();
+    });
 
         $('#upload-geneset-form').submit(function(event) {
             event.preventDefault();
-            $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') });
+            $('#save-updates').prop('disabled',function() { return !$(this).prop('disabled') });
 
             var data = $("#upload-geneset-form").serialize();
             var tree = $("#tree").dynatree("getTree");
