@@ -1701,8 +1701,6 @@ def render_group_tasks(group_id):
                       "Reviewer"]
 
         group = geneweaverdb.get_group_by_id(group_id)
-        print("Group -> " + group[0].grp_name)
-
     else:
         headerCols, user_id, columns = None, 0, None
 
@@ -1711,7 +1709,7 @@ def render_group_tasks(group_id):
         headerCols=headerCols, 
         user_id=user_id, 
         columns=columns,
-        group=group[0]
+        group=group
     )
 
 

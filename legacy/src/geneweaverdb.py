@@ -2198,7 +2198,8 @@ def get_group_by_id(group_id):
     with PooledCursor() as cursor:
         cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
                           WHERE g.grp_id=%s''', (group_id,))
-    return [Group(row_dict) for row_dict in dictify_cursor(cursor)]
+        groups = [Group(row_dict) for row_dict in dictify_cursor(cursor)]
+    return groups[0]
 
 
 class Groups:
