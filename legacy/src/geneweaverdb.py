@@ -36,7 +36,7 @@ pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database=config.get('db', 'database'),
     user=config.get('db', 'user'),
-    #password=config.get('db', 'password'),
+    password=config.get('db', 'password'),
     host=config.get('db', 'host'),
     port=config.getInt('db', 'port')
 )
@@ -2921,7 +2921,7 @@ def get_geneset_values(geneset_id):
         elif session['sort'] == 'symbol':
             s = ' ORDER BY gsv.gsv_source_list ' + d
         elif session['sort'] == 'alt':
-            s = ' ORDER BY g.ode_ref ' + d
+            s = ' ORDER BY g.ode_ref_id ' + d
 
     ode_ref = '1'
     if 'extsrc' in session:
