@@ -153,7 +153,7 @@ public:
 
         string tb="    ";
         jsonOutput<<"{"<<endl;
-        jsonOutput<<tb<<"name: \""<<interestFile<<"\","<<endl;
+        jsonOutput<<tb<<"\"name\": \""<<interestFile<<"\","<<endl;
 
         //matches to database found in microarray results
         jsonOutput<<tb<<"\"inTopAndInterestCount\": "<<checklength<<","<<endl;
@@ -161,7 +161,7 @@ public:
         vector<T> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
         for(unsigned int i=0;i<matches.size();i++){
             jsonOutput<<tb<<tb<<"\""<<matches[i]<<"\"";
-            if(i!=(counts.size()-1)){
+            if(i!=(matches.size()-1)){
                 jsonOutput<<",";
             }
             jsonOutput<<endl;
