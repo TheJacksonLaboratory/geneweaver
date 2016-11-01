@@ -2191,7 +2191,7 @@ def get_groups_owned_by_user(user_id):
 
 def get_group_by_id(group_id):
     """
-    Returns a Group by it's ID
+    Returns a Group by its ID
     :param group_id:   Identifier for the group in question
     :return: A group object for given ID
     """
