@@ -44,9 +44,12 @@ var makeAttributionTags = function(attribs) {
  * Generates all species tags using the given list of species. Each species tag
  * element should have the class sp-tag-SPID, where SPID is the species ID
  * present in the species table. 
+ *
+ * Assumes the species list is in a particular order since geneweaverdb almost
+ * always returns an OrderedDict.
  * 
  * arguments
- *      splist: a list of tuples; (sp_id, sp_name)
+ *      splist: a list of tuples, (sp_id, sp_name)
  *      fullName: if true, creates a tag using the full species name instead 
  *                of the abbreviation
  */
@@ -102,4 +105,46 @@ var makeSpeciesTags = function(splist, fullName) {
         $('.sp-tag-' + spid).html(spname);
     }
 };
+
+/**
+ * Returns a mapping of sp_ids to the associated species color. Used to color
+ * the species name on the upload page so users get the idea that species have
+ * a speciel coloring/tag (Elissa's suggestion).
+ *
+ * Assumes the species list is in a particular order since geneweaverdb almost
+ * always returns an OrderedDict.
+ *
+ * arguments
+ *      species: an object mapping sp_ids to species names
+ *
+ * returns
+ *      an object whose keys are sp_ids and values are colors
+ */
+var getSpeciesColors = function(species) {
+
+    var colors = [
+        '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1', '#f4dfff',
+        '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'
+    ];
+    var mapping = {};
+
+    if (!species)
+        return;
+
+    for (var spid in species) {
+
+        if (spid == 0) {
+
+            mapping[spid] = '';
+            continue;
+        }
+
+        if (!colors)
+            break;
+
+        mapping[spid] = colors.shift();
+    }
+
+    return mapping;
+}
 
