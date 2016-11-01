@@ -6,8 +6,11 @@
 // Define colors for different species
 // When zooming in, color becomes solid
 
-var speciesToColorZoomout ={"Mus musculus":"rgba(17,91,127,0.5)","Homo sapiens":"rgba(160,168,228,0.5)","Rattus norvegicus":"rgba(79,91,182,0.5)","Danio rerio":"rgba(29,42,138,0.5)","Drosophila melanogaster":"rgba(151,230,186,0.5)","Macaca mulatta":"rgba(65,188,118,0.5)","Caenorhabditis elegans":"rgba(13,143,70,0.5)","Saccharomyces cerevisiae":"rgba(255,215,168,0.5)","Gallus gallus":"rgba(255,178,88,0.5)","Canis familiaris":"rgba(201,116,18,0.5)"};
-var speciesToColorZoomin = {"Mus musculus":"rgb(17,91,127)","Homo sapiens":"rgb(160,168,228)","Rattus norvegicus":"rgb(79,91,182)","Danio rerio":"rgb(29,42,138)","Drosophila melanogaster":"rgb(151,230,186)","Macaca mulatta":"rgb(65,188,118)","Caenorhabditis elegans":"rgb(13,143,70)","Saccharomyces cerevisiae":"rgb(255,215,168)","Gallus gallus":"rgb(255,178,88)","Canis familiaris":"rgb(201,116,18)"};
+var speciesToColorZoomout ={"Mus musculus":"rgba(17,91,127,0.5)","Homo sapiens":"rgba(160,168,228,0.5)","Rattus norvegicus":"rgba(79,91,182,0.5)","Danio rerio":"rgba(29,42,138,0.5)","Drosophila melanogaster":"rgba(151,230,186,0.5)","Macaca mulatta":"rgba(255,178,88,0.5)","Caenorhabditis elegans":"rgba(13,143,70,0.5)","Saccharomyces cerevisiae":"rgba(255,215,168,0.5)","Gallus gallus":"rgba(255,178,88,0.5)","Canis familiaris":"rgba(201,116,18,0.5)"};
+var speciesToColorZoomin = {"Mus musculus":"rgb(17,91,127)","Homo sapiens":"rgb(160,168,228)","Rattus norvegicus":"rgb(79,91,182)","Danio rerio":"rgb(29,42,138)","Drosophila melanogaster":"rgb(151,230,186)","Macaca mulatta":"rgb(255,178,88)","Caenorhabditis elegans":"rgb(13,143,70)","Saccharomyces cerevisiae":"rgb(255,215,168)","Gallus gallus":"rgb(255,178,88)","Canis familiaris":"rgb(201,116,18)"};
+
+// 65,188,118,0.5
+// 65,188,118
 
 // Define properties for svg
 var svg = d3.select("svg"),
