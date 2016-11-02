@@ -249,8 +249,10 @@
             <div class="col-md-4">
                 <button type="submit" class="btn btn-block btn-warning" 
                         id="run-annotator">
-                    <i class="fa fa-play"></i>
-                    Run Annotator
+                    <i id="annotator-icon" class="fa fa-play"></i>
+                    <span id="annotator-text">
+                        Run Annotator
+                    </span>
                 </button>
             </div>
 
@@ -410,7 +412,10 @@
 
 			},
 
-			// Does nothing but needs to be present for nodes to be unselected.
+			/**
+              * Called during node creation. If a node has the "Manual
+              * Rejection" reference type we alter the style.
+              */
             onCreate: function (node, nodeSpan) {
 
                 if (node.data.ref === undefined)
@@ -429,7 +434,7 @@
             // Updates the database based on the ontology terms a user selects.
             onSelect: function (flag, node) {
                 $.ajax({
-                    url: '/updateGenesetAnnotation',
+                    url: '/update_geneset_annotation.json',
                     type: 'POST',
                     data: {
                         key: node.data.key,
@@ -450,7 +455,7 @@
                                 data.error + '</div>');
                         }
                     },
-                    error: function(req, error, thrownError) {
+                    error: function(request, error, thrownError) {
                     }
                 })
             }
@@ -458,6 +463,38 @@
 
         $('#run-annotator').on('click', function(event) {
             event.preventDefault();
+
+            var postData = getGenesetText();
+            postData.gs_id = gsID;
+
+            // Style changes so the user knows something is happening
+            $('#annotator-icon').attr('class', 'fa fa-cog fa-spin');
+            $('#annotator-text').text('Running...');
+            $('#run-annotator').prop('disabled', function() { 
+                return !$(this).prop('disabled') 
+            });
+
+            $.ajax({
+                url: '/rerun_annotator.json',
+                type: 'POST',
+                data: postData,
+                success: function(data) {
+
+                    $('#annotator-icon').attr('class', 'fa fa-play');
+                    $('#annotator-text').text('Run Annotator');
+                    $('#run-annotator').prop('disabled', function() { 
+                        return !$(this).prop('disabled') 
+                    });
+                },
+                error: function(request, error, thrownError) {
+
+                    $('#annotator-text').text('Run Annotator');
+                    $('#annotator-icon').attr('class', 'fa fa-play');
+                    $('#run-annotator').prop('disabled', function() { 
+                        return !$(this).prop('disabled') 
+                    });
+                }
+            });
         });
 
         $('#edit-genes').on('click', function(event) {

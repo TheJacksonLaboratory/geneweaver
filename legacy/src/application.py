@@ -6,6 +6,7 @@ from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from sys import exc_info
 from urlparse import parse_qs, urlparse
+import annotator
 import config
 import adminviews
 import genesetblueprint
@@ -496,7 +497,40 @@ def geneset_ready_for_review():
 
     return response
 
-@app.route('/updateGenesetAnnotation', methods=['POST'])
+@app.route('/rerun_annotator.json', methods=['POST'])
+def rerun_annotator():
+    """
+    Reruns the annotator tool for a given geneset and updates its annotations.
+    """
+
+    publication = request.form['publication']
+    description = request.form['description']
+    gs_id = request.form['gs_id']
+    user_id = session['user_id'] if session['user_id'] else 0
+
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        return json.dumps({
+            'success': False,
+            'error': 'You must be logged in to make changes to this GeneSet'
+        })
+
+    ## Only admins, curators, and owners can make changes
+    if (not user.is_admin and not user.is_curator) or\
+       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
+        not user_is_assigned_curation(user_id, gs_id)):
+           return json.dumps({
+               'success': False,
+               'error': 'You do not have permission to update this GeneSet'
+           });
+
+    pub_annos = annotator.annotate_text(publication, annotator.ONT_IDS)
+    desc_annos = annotator.annotate_text(description, annotator.ONT_IDS)
+
+    return json.dumps(True)
+
+@app.route('/update_geneset_annotation.json', methods=['POST'])
 def update_geneset_annotation():
     """
     Updates an ontology annotation for a geneset. This endpoint should only be
