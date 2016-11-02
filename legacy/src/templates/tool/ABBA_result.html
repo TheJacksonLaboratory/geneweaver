@@ -158,9 +158,9 @@
             <td>
               <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }}{% else %} guest{% endif %}<br>
               <strong>Date:&nbsp;</strong>
-                  <script> 
-                  <!-- 
-                  var d = new Date(); 
+                  <script>
+                  <!--
+                  var d = new Date();
                   document.write(d.toLocaleDateString() + " " + d.toLocaleTimeString());
                   //-->
                   </script>
@@ -401,7 +401,7 @@ $(document).ready(function() {
     var url;
 
     infoPane.children('h2').closest('.extra-info-header').text(id);
-    
+
     var request = new XMLHttpRequest();
 
     if(type != "gene" && type != "geneset"){
@@ -413,20 +413,40 @@ $(document).ready(function() {
       url = '/api/get/gene/bygeneid/' + id + '/';
       request.open("GET", url, false);
       request.send();
-      xmlDoc = request.responseXML;
+
       infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
 
-      //Store results
+      formatExtraInfo(infoPane, "gene", request.responseText);
 
     } else if (type == "geneset") {
       url = '/api/get/geneset/byid/' + id + '/';
       request.open("GET", url, false);
       request.send();
-      xmlDoc = request.responseXML;
+
       infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
 
+      formatExtraInfo(infoPane, "geneset", request.responseText);
     }
-    
+
+  }
+
+  function formatExtraInfo(infoPane, infoType, responseText){
+    switch(infoType){
+      case "gene": formatGeneInfo(infoPane, responseText);
+        break;
+      case "geneset": formatGenesetInfo(infoPane, responseText);
+        break;
+      default: infoPane.children('h2').closest('.extra-info-header').text("An error occured gene more info.");
+    }
+  }
+
+  function formatGeneInfo(infoPane, responseText){
+    var parser = JSON.parse(responseText);
+    console.log(parser);
+  }
+
+  function formatGenesetInfo(infoPane, responseText){
+    var parser = JSON.parse(responseText);
   }
 
   $('#system-searchGOI').keyup( function(e){
