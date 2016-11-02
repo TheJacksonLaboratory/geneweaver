@@ -413,7 +413,7 @@
             // Updates the database based on the ontology terms a user selects.
             onSelect: function (flag, node) {
                 $.ajax({
-                    url: '/updateGenesetOntologyDB',
+                    url: '/updateGenesetAnnotation',
                     type: 'POST',
                     data: {
                         key: node.data.key,

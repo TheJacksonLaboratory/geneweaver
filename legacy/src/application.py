@@ -496,8 +496,8 @@ def geneset_ready_for_review():
 
     return response
 
-@app.route('/updateGenesetOntologyDB', methods=['POST'])
-def update_geneset_ontology_db():
+@app.route('/updateGenesetAnnotation', methods=['POST'])
+def update_geneset_annotation():
     """
     Updates an ontology annotation for a geneset. This endpoint should only be
     called when updating annotations using the tree view on the edit geneset
