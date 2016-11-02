@@ -13,11 +13,17 @@ import geneweaverdb
 def send_usr_notification(to, subject, message, to_is_email=False):
     """
 
+    send a user a notification. notificatinos can be sent to a user id or an
+    email address.
+
+    TODO should we get rid of the optional 'to_is_email' and if the "to" param
+    is an integer assume it is a user id, otherwise assume it is an email?
+
     :param to: user to send email notification to, can be user id or email
     :param subject: subject of notificatino
     :param message: body of notification
-    :param to_is_email: boolean, if True "to" is a user's email address, otherwise
-                  "to" is a user id
+    :param to_is_email: boolean, if True "to" is a user's email address,
+                  otherwise "to" is a user id
     :return:
     """
 
@@ -27,7 +33,8 @@ def send_usr_notification(to, subject, message, to_is_email=False):
         usr = geneweaverdb.get_user(to)
 
     with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute("INSERT INTO production.notifications (usr_id, message, subject) VALUES (%s, %s, %s)", (usr.user_id, message, subject))
+        cursor.execute("INSERT INTO production.notifications (usr_id, message, subject) "
+                       "VALUES (%s, %s, %s)", (usr.user_id, message, subject))
         cursor.connection.commit()
 
     # if user wants to receive email notification, send that now
@@ -35,6 +42,23 @@ def send_usr_notification(to, subject, message, to_is_email=False):
 
     if user_prefs.get('email_notification', False):
         send_email(usr.email, subject, message)
+
+
+def send_group_admin_notification(group_id, subject, message):
+    """
+
+    send a notification to each admin of a group. users will recieve email
+    in addition to in-app notification if they have enabled that option in their
+    user preferences
+
+    :param group_id: group id of the group we need to send an admin notification
+    :param subject: subject of the notification (text)
+    :param message: notification body (text)
+    :return: None
+    """
+
+    for admin in geneweaverdb.get_group_admins(group_id):
+        send_usr_notification(admin['usr_id'], subject, message)
 
 
 def send_email(to, subject, message):
@@ -50,7 +74,7 @@ def send_email(to, subject, message):
         smtp = smtplib.SMTP(smtp_server)
         smtp.sendmail(admin_email, to, msg.as_string())
         smtp.quit()
-    except smtplib.SMTPException as e:
+    except Exception as e:
         print("Error sending email: {}".format(e), file=sys.stderr)
 
 
@@ -58,23 +82,30 @@ def mark_notifications_read(*ids):
     with geneweaverdb.PooledCursor() as cursor:
         # build the proper format string for the list of IDs
         format_string = ','.join(['%s'] * len(ids))
-        cursor.execute("UPDATE production.notifications SET read = True WHERE notification_id IN (%s)" % format_string, ids)
+        cursor.execute("UPDATE production.notifications "
+                       "SET read = True "
+                       "WHERE notification_id IN (%s)" % format_string, ids)
         cursor.connection.commit()
 
 
 def delete_notification(note_id):
     with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute("DELETE FROM production.notifications WHERE notification_id = %s", (note_id,))
+        cursor.execute("DELETE FROM production.notifications "
+                       "WHERE notification_id = %s", (note_id,))
         cursor.connection.commit()
 
 
 def get_notifications(usr_id, offset=0, limit=None):
     with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute("SELECT * FROM production.notifications WHERE usr_id = %s ORDER BY time_sent DESC OFFSET %s LIMIT %s", (usr_id, offset, limit))
+        cursor.execute("SELECT * FROM production.notifications "
+                       "WHERE usr_id = %s ORDER BY time_sent DESC "
+                       "OFFSET %s LIMIT %s", (usr_id, offset, limit))
         return list(geneweaverdb.dictify_cursor(cursor))
 
 
 def get_unread_count(usr_id):
     with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM production.notifications WHERE read = FALSE AND usr_id = %s", (usr_id,))
+        cursor.execute("SELECT COUNT(*) FROM production.notifications "
+                       "WHERE read = FALSE AND usr_id = %s", (usr_id,))
         return cursor.fetchone()[0]
+
