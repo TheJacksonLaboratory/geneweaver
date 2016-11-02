@@ -1185,6 +1185,32 @@ def does_geneset_have_annotation(gs_id, ont_id):
 
         return cursor.fetchone()[0]
 
+def get_geneset_annotation_reference(gs_id, ont_id):
+    """
+    Returns the reference type for an ontology term that's been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID
+    :param ont_id:  ontology term ID
+    :return:        the reference type (a string) if it exists, otherwise None
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT gso_ref_type
+            FROM geneset_ontology
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (gs_id, ont_id))
+
+        result = cursor.fetchone()
+
+        if not result:
+            return None
+
+        return result[0]
+
 def update_geneset_ontology_reference(gs_id, ont_id, ref_type):
     """
     Updates the ontology reference type for the given geneset and ontology

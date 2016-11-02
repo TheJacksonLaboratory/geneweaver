@@ -636,6 +636,8 @@ def init_ont_tree():
                     ontpath[i]['select'] = True
                     ontpath[i]['expand'] = False
                     ontpath[i]['unselectable'] = False
+                    ontpath[i]['ref'] =\
+                        geneweaverdb.get_geneset_annotation_reference(gs_id, ontid)
 
                 else:
                     ontpath[i]['expand'] = True

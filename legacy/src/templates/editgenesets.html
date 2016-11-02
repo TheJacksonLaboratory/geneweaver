@@ -307,7 +307,7 @@
                         </div>
                         <div id="genesetOntologyAlert" 
                              class="alert alert-warning fade in col-xs-3"
-                             style="width:400px;">
+                             style="width:400px; text-align:center;">
                                 <button type="button" class="close" 
                                         data-dismiss="alert" aria-hidden="true">
                                     x
@@ -408,6 +408,23 @@
 			// Does nothing but needs to be present for nodes to be unselected.
             onClick: function (node, event) {
 
+			},
+
+			// Does nothing but needs to be present for nodes to be unselected.
+            onCreate: function (node, nodeSpan) {
+
+                if (node.data.ref === undefined)
+                    return;
+
+                if (node.data.ref === 'Manual Rejection') {
+
+                    $(nodeSpan)
+                        .children('.dynatree-title')
+                        .css('text-decoration', 'line-through')
+                        .css('background-color', 'none')
+                        .css('font-weight', 'normal');
+                }
+                    //$(nodeSpan).css('text-decoration', 'line-through');
 			},
 
             // Updates the database based on the ontology terms a user selects.
