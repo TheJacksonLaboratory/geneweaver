@@ -226,11 +226,9 @@
         {% if async_result.GenesOfInterest %}
         <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
             {% for gene in async_result.GenesOfInterest %}
-            <tr class="result-row" row-type="GOI">
-
+            <tr class="result-row" row-type="GOI" data-id="{{gene[0]}}" data-type="gene">
               <td>{{gene[1]}}<br></td>
               <td>{{gene[2]}}<br></td>
-
             </tr>
             {% endfor %}
           </tbody>
@@ -257,7 +255,7 @@
             {% if async_result.GenesetResults %}
             <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
               {% for geneset in async_result.GenesetResults %}
-              <tr class="result-row" row-type="MG">
+              <tr class="result-row" row-type="MG" data-id="{{geneset[0]}}" data-type="geneset">
                 <td>{{geneset[1]}}<br></td>
                 <td>{{geneset[2]}}</td>
               </tr>
@@ -287,7 +285,7 @@
             {% if async_result.GeneResults %}
             <tbody  class="scroll-tbody" id="ResultGenesTableBody">
               {% for gene in async_result.GeneResults %}
-              <tr class="result-row" row-type="RG">
+              <tr class="result-row" row-type="RG" data-id="{{gene[0]}}" data-type="gene">
                 <td>{{gene[1]}}<br></td>
                 <td>{{gene[2]}}<br></td>
                 <td>{{gene[3]}}</td>
@@ -310,8 +308,6 @@
 
 <script type="text/javascript">
 $(document).ready(function() {
-
-
   var activeSystemClass = $('.list-group-item.active');
 
   var LightTableSorter = (function(Arr) {
@@ -400,7 +396,37 @@ $(document).ready(function() {
     var parentTab = activeRow.parent().closest('.tab-pane');
     var infoPane = parentTab.children('div').last();
     var headerText = activeRow.children('td').first().text();
-    infoPane.children('h2').closest('.extra-info-header').text(headerText);
+    var id = activeRow.data('id')
+    var type = activeRow.data('type')
+    var url;
+
+    infoPane.children('h2').closest('.extra-info-header').text(id);
+    
+    var request = new XMLHttpRequest();
+
+    if(type != "gene" && type != "geneset"){
+      infoPane.children('h2').closest('.extra-info-header').text("ERROR PROCESSING REQUEST! Contact an Administrator.");
+      return;
+    }
+
+    if(type == "gene"){
+      url = '/api/get/gene/bygeneid/' + id + '/';
+      request.open("GET", url, false);
+      request.send();
+      xmlDoc = request.responseXML;
+      infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
+
+      //Store results
+
+    } else if (type == "geneset") {
+      url = '/api/get/geneset/byid/' + id + '/';
+      request.open("GET", url, false);
+      request.send();
+      xmlDoc = request.responseXML;
+      infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
+
+    }
+    
   }
 
   $('#system-searchGOI').keyup( function(e){
