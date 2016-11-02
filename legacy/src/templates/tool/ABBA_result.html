@@ -172,12 +172,13 @@
           </tr>
         </tbody>
       </table>
-
+<!--
       <div class="progress progress-striped">
         <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%;">
           <span>100% Complete</span>
         </div>
       </div>
+-->
     </div>
 
   </div><!-- end row -->
@@ -237,6 +238,7 @@
         </div>
         <div data-type="InfoPane" class="col-md-8">
           <h2 class="extra-info-header"></h2>
+          <br>
         </div>
       </div>
 
@@ -266,6 +268,7 @@
         </div>
         <div data-type="InfoPane" class="col-md-8">
           <h2 class="extra-info-header"></h2>
+          <br>
         </div>
       </div>
 
@@ -297,6 +300,7 @@
         </div>
         <div data-type="InfoPane" class="col-md-8">
           <h2 class="extra-info-header"></h2>
+          <br>
         </div>
       </div>
 
@@ -436,17 +440,61 @@ $(document).ready(function() {
         break;
       case "geneset": formatGenesetInfo(infoPane, responseText);
         break;
-      default: infoPane.children('h2').closest('.extra-info-header').text("An error occured gene more info.");
+      default: infoPane.append("<h2>Error retrieving more info.</h2>");
     }
   }
 
   function formatGeneInfo(infoPane, responseText){
-    var parser = JSON.parse(responseText);
-    console.log(parser);
+    infoPane.empty();
+    var parser = JSON.parse(responseText)[0][0];
+
+    infoPane.append("<h2>" + parser.gi_symbol + "</h2>");
+    infoPane.append("<p>Full Name: " + parser.gi_name + "</p>");
+    infoPane.append("<p>Description: " + parser.gi_description + "</p>");
+    infoPane.append("<p>Species ID: " + parser.sp_id + "</p>");
+    infoPane.append("<p>Type: " + parser.gi_type + "</p>");
+    infoPane.append("<p>Ode Gene ID: " + parser.ode_gene_id + "</p>");
+    infoPane.append("<p>Chromosome: " + parser.gi_chromosome + "</p>");
+    infoPane.append("<p>Date added: " + parser.gi_date + "</p>");
+    infoPane.append("<p>Start: " + parser.gi_start_bp + "</p>");
+    infoPane.append("<p>End: " + parser.gi_end_bp + "</p>");
+    infoPane.append("<p>Strand: " + parser.gi_strand + "</p>");
+
   }
 
   function formatGenesetInfo(infoPane, responseText){
-    var parser = JSON.parse(responseText);
+    infoPane.empty();
+    var parser = JSON.parse(responseText)[0][0];
+
+    infoPane.append("<h2>" + parser.gs_abbreviation + "</h2>");
+    infoPane.append("<p>Curator Comments: " + parser._comments_curator + "</p>");
+    infoPane.append("<p>Search Text: " + parser._searchtext + "</p>");
+    infoPane.append("<p>Admin Flag: " + parser.admin_flag + "</p>");
+    infoPane.append("<p>Curration ID: " + parser.cur_id + "</p>");
+    infoPane.append("<p>File ID: " + parser.file_id + "</p>");
+    infoPane.append("<p>Author Comments: " + parser._comments_author + "</p>");
+    infoPane.append("<p>Attribution: " + parser.gs_attribution + "</p>");
+    infoPane.append("<p>Attribution Old: " + parser.gs_attribution_old + "</p>");
+    infoPane.append("<p>Size: " + parser.gs_count + "</p>");
+    infoPane.append("<p>Date Created: " + parser.gs_created + "</p>");
+
+    infoPane.append("<p>Description: " + parser.gs_description + "</p>");
+    infoPane.append("<p>Gene Id Type: " + parser.gs_gene_id_type + "</p>");
+    infoPane.append("<p>Groups: " + parser.gs_groups + "</p>");
+    infoPane.append("<p>Geneset ID: " + parser.gs_id + "</p>");
+    infoPane.append("<p>Is Edgelist: " + parser.gs_is_edgelist + "</p>");
+    infoPane.append("<p>Full Name: " + parser.gs_name + "</p>");
+    infoPane.append("<p>Status: " + parser.gs_status + "</p>");
+    infoPane.append("<p>Threshold: " + parser.gs_threshold + "</p>");
+    infoPane.append("<p>Threshold Type: " + parser.gs_threshold_type + "</p>");
+    infoPane.append("<p>Last Updated: " + parser.gs_updated + "</p>");
+
+    infoPane.append("<p>URI: " + parser.gs_uri + "</p>");
+    infoPane.append("<p>gsv_qual: " + parser.gsv_qual + "</p>");
+    infoPane.append("<p>Publisher ID: " + parser.pub_id + "</p>");
+    infoPane.append("<p>Res ID: " + parser.res_id + "</p>");
+    infoPane.append("<p>Species ID: " + parser.sp_id + "</p>");
+    infoPane.append("<p>User ID: " + parser.usr_id + "</p>");
   }
 
   $('#system-searchGOI').keyup( function(e){
