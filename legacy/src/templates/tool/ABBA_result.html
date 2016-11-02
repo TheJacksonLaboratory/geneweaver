@@ -138,13 +138,105 @@
     border-radius: 0px
   }
 
+   #ABBA_head{
+     margin-top: 10px;
+     margin-bottom: 5px;
+   }
+
+   .popover-content{
+    min-width: 250px;
+    width: auto;
+    box-shadow: 5px 5px 4px grey;
+    -moz-box-shadow: 5px 5px 4px grey;
+    -webkit-box-shadow: 5px 5px 4px grey;
+   }
 
 </style>
 
 <div class="container">
   <div class="row">
     <div class="col-md-12 title-col">
-      <h1>ABBA Gene-Centered Search Results</h1>
+      <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>
+      <button type="button" class="btn btn-primary pull-right" data-toggle="popover" title="Update Search">Update</button>
+      <div id="update_form_wrapper" style="display: none;">
+        {# Tool params need to be added to the DB for the ABBA tool.
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_InputGenes']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_IgnHom']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_ShowInter']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenes']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenesets']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_Tierset']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_RestrictSpecies']) }}</div>
+                <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+        #}
+          <div class="form-group">
+              <label>
+                  Input Genes:
+              </label>
+              <textarea rows="2" class="form-control valid" name='ABBA_InputGenes' id="textbox" style=" min-height:30px; max-height:100px; resize:vertical;"></textarea>
+          </div>
+          <div class="form-group">
+              <label>
+                  Ignore Homology
+                  <input type="checkbox" name="ABBA_IgnHom" value="yes">
+              </label>
+          </div>
+          <div class="form-group">
+              <label>
+                  Show Intermediate
+                  <input type="checkbox" name="ABBA_ShowInter" checked="checked" value="yes">
+              </label>
+          </div>
+          <div class="form-group">
+              <label>Minimum Genes:</label>
+              <select name="ABBA_MinGenes"  class="form-control">
+                  <option selected="selected">Auto</option>
+                  {% for i in range(10) %}
+                      <option>{{loop.index0}}</option>
+                  {% endfor %}
+              </select>
+          </div>
+          <div class="form-group">
+              <label>
+                  Minimum GeneSets:
+              </label>
+              <input type=text class="form-control" name='ABBA_MinGenesets'/>
+          </div>
+          <div class="form-group">
+              <label>
+                  Tierset:
+              </label>
+              <select name="ABBA_Tierset"  class="form-control">
+                  <option value="0" selected="selected">All</option>
+                  <option value="4">Curated or Provisional (Tier I-IV)</option>
+                  <option value="3">Curated (Tier I-III)</option>
+                  <option value="2">Pro-curated (Tier I-II)</option>
+                  <option value="1">Public Resource (Tier I)</option>
+                  <option value="-1">Non-Resource (Tier II-V)</option>
+                  <option value="-2">Curated Non-Resource (Tier II-III)</option>
+                  <option value="-10">Private/Group Only (Tier V)</option>
+              </select>
+          </div>
+          <div class="form-group">
+              <label>
+                  Restrict Species:
+              </label>
+              <select name="ABBA_RestrictSpecies"  class="form-control">
+                  <option value="0" selected="selected">None</option>
+                  <option value="1">Mus musculus</option>
+                  <option value="2">Homo sapiens</option>
+                  <option value="3">Rattus norvegicus</option>
+                  <option value="4">Danio rerio</option>
+                  <option value="5">Drosophila melanogaster</option>
+                  <option value="6">Macaca mulatta</option>
+                  <option value="8">Caenorhabditis elegans</option>
+                  <option value="9">Saccharomyces cerevisiae</option>
+                  <option value="10">Gallus gallus</option>
+              </select>
+          </div>
+          <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+      </div>
+
       <table class="table">
         <tbody>
           <tr>
@@ -237,7 +329,7 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header"></h2>
+          <h2 class="extra-info-header">No Gene Selected</h2>
           <br>
         </div>
       </div>
@@ -267,7 +359,7 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header"></h2>
+          <h2 class="extra-info-header">No Geneset Selected</h2>
           <br>
         </div>
       </div>
@@ -299,7 +391,7 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header"></h2>
+          <h2 class="extra-info-header">No Gene Selected</h2>
           <br>
         </div>
       </div>
@@ -310,8 +402,32 @@
 
 </div><!-- end container -->
 
+
+
+
 <script type="text/javascript">
 $(document).ready(function() {
+
+
+
+  $('html').on('mouseup', function(e) {
+      if(!$(e.target).closest('.popover').length) {
+          $('.popover').each(function(){
+              $(this.previousSibling).popover('hide');
+          });
+      }
+  });
+
+  $(function () {
+    $('[data-toggle="popover"]').popover({
+      html: true,
+      placement: "bottom",
+      content: function(){
+        return $('#update_form_wrapper').html();
+      }
+    });
+  });
+
   var activeSystemClass = $('.list-group-item.active');
 
   var LightTableSorter = (function(Arr) {
@@ -345,7 +461,6 @@ $(document).ready(function() {
     function onClickEvent(e) {
       var bodyID;
       var workingTab = e.target.getAttribute("row-type");
-      console.log(workingTab);
 
       if(workingTab == "GOI"){
         bodyID = '#GenesOfInterestTableBody';
@@ -396,7 +511,12 @@ $(document).ready(function() {
     updateInfoPane($(this));
   });
 
+
   function updateInfoPane(activeRow){
+    if(activeRow == null){
+      return;
+    }
+
     var parentTab = activeRow.parent().closest('.tab-pane');
     var infoPane = parentTab.children('div').last();
     var headerText = activeRow.children('td').first().text();
@@ -891,4 +1011,5 @@ function newGeneset(){
 	window.location.href = "/uploadgenesetpre/"+genes.join("_")+".html";
 }
 </script>
+
 {% include 'footer.html' %}
