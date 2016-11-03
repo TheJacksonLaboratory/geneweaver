@@ -2229,20 +2229,6 @@ class Publication:
         self.year = pub_dict['pub_year']
         self.pubmed_id = pub_dict['pub_pubmed']
 
-    def to_json(self):
-        return json.dumps({
-            'pub_id': self.pub_id,
-            'authors': self.authors,
-            'title': self.title,
-            'abstract': self.abstract,
-            'journal': self.journal,
-            'volume': self.volume,
-            'pages': self.pages,
-            'month': self.month,
-            'year': self.year,
-            'pubmed_id': self.pubmed_id,
-        })
-
 
 def get_publication_by_pubmed(pubmed_id, create=False):
     """
@@ -2270,7 +2256,7 @@ def get_publication_by_pubmed(pubmed_id, create=False):
                 columns = ', '.join(article_dict.keys())
                 values = article_dict.values()
 
-                sql = '''INSERT INTO publication  ( %s ) VALUES ( %s ) RETURNING pub_id''' % (columns, placeholders)
+                sql = '''INSERT INTO publication (%s) VALUES (%s) RETURNING pub_id''' % (columns, placeholders)
                 cursor.execute(sql, values)
                 cursor.connection.commit()
 

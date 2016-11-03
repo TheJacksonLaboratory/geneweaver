@@ -545,7 +545,7 @@ def get_publication_by_pubmed_id(pubmed_id):
         publication = geneweaverdb.get_publication_by_pubmed(pubmed_id, create=True)
 
         if publication:
-            response = flask.Response(publication.to_json(), 'application/json')
+            response = flask.Response(json.dumps(publication.__dict__), 'application/json')
         else:
             response = flask.jsonify(message="Publication Not Found")
             response.status_code = 404
