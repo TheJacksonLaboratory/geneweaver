@@ -82,9 +82,33 @@
     float: left;
 }
 
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: brown;
+}
+
+body {
+    font: 10px sans-serif;
+}
+
 .axis path,
 .axis line {
     fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.axis--x path {
+  display: none;
+}
+
+.line {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 1.5px;
 }
 
  div.tooltip {
@@ -97,8 +121,161 @@
   background: ghostwhite;
   pointer-events: none;}
 
-
 </style>
+<script>
+    var showHideBox=function(targetId,checkedNow){
+        var setTo="block";
+        if(checkedNow){
+            setTo="none";
+        }
+        document.getElementById(targetId).setAttribute("display",setTo);
+    };
+</script>
+<!--note to future developers: this was done as a group project in undergrad, where we are not taught website development
+therefore everything here is a kludge. the intention of the table is to be the same type of checkboxes
+as on the previous page, but to get it to work, things that experienced web developer would scoff at have been done.
+
+the checkboxes are supposed to toggle which graphs show up
+fix the code to be maintainable and consistent with the rest of the website code if you can-->
+<table>
+    <tr>
+        <td>
+            <div class="ui-checkbox">
+<label for="lineGraphCheckbox" class="ui-btn ui-corner-all ui-btn-inherit ui-btn-icon-left ui-checkbox-on"></label>
+<input type="checkbox" onclick="showHideBox('lineGraph',this.checked)" id="lineGraphCheckbox" checked="true">
+
+            </div>
+        </td>
+        <td>
+            <strong>Line Graph</strong>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div class="ui-checkbox">
+
+<label for="barGraphCheckbox" class="ui-btn ui-corner-all ui-btn-inherit ui-btn-icon-left ui-checkbox-on"></label>
+<input type="checkbox" onclick="showHideBox('barGraph',this.checked)" id="barGraphCheckbox" checked="true">
+            </div>
+        </td>
+        <td>
+            <strong>Bar Graph</strong>
+        </td>
+    </tr>
+</table>
+
+<div>
+<svg id="barGraph" width="960" height="500"></svg>
+</div>
+<div>
+<svg id="lineGraph" width="960" height="500" fill-opacity="0.0" style="position:absolute; top:0; margin-top: 110px"></svg>
+</div>
+<script src="//d3js.org/d3.v4.0.0-alpha.4.min.js"></script>
+<script>
+
+
+var data = d3.range({{ async_result.datafile['data'][0]['densityPointCount']}}).map(function(i) {
+
+    var value={intersectSize: i , frequency: {{ async_result.datafile['data'][0]['density'] }}[i] };
+
+    console.log(value);
+    return value;
+});
+var graphBar=function(){
+    var svg = d3.select("#barGraph"),
+    margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom;
+
+
+    var x = d3.scaleBand().rangeRound([0, width]).padding(0.1), y = d3.scaleLinear().rangeRound([height, 0]);
+
+    var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  x.domain(data.map(function(d) { return d.intersectSize; }));
+  y.domain([0, d3.max(data, function(d) { return d.frequency; })]);
+
+  g.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  g.append("g")
+      .attr("class", "axis axis--y")
+      .call(d3.axisLeft(y).ticks(10, "%"))
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", "0.71em")
+      .attr("text-anchor", "end")
+      .text("Frequency");
+
+  g.selectAll(".bar")
+    .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", function(d) { return x(d.intersectSize); })
+      .attr("y", function(d) { return y(d.frequency); })
+      .attr("width", x.bandwidth())
+      .attr("height", function(d) { return height - y(d.frequency); });
+};
+var graphLine=function() {
+    var svg = d3.select("#lineGraph"),
+            margin = {top: 20, right: 20, bottom: 30, left: 40},
+            width = +svg.attr("width") - margin.left - margin.right,
+            height = +svg.attr("height") - margin.top - margin.bottom;
+    g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+    var x = d3.scaleLinear().rangeRound([0, width]),
+            y = d3.scaleLinear().rangeRound([height, 0]);
+
+    var line = d3.line()
+            .x(function (d) {
+                return x(d.intersectSize);
+            })
+            .y(function (d) {
+                return y(d.frequency);
+            });
+
+    var g = svg.append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    x.domain([0, {{ async_result.datafile['data'][0]['densityPointCount']}}]);
+    y.domain([0, 1]);
+
+    g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+    g.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y))
+            .append("text")
+            .attr("fill", "#000")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", "0.71em")
+            .attr("text-anchor", "end")
+            .text("Frequency");
+
+    g.append("path")
+            .datum(data)
+            .attr("class", "line")
+            .attr("d", line)
+};
+graphBar();
+
+graphLine();
+
+</script>
+
+
+<h3>p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
+{{ async_result.datafile['data'][0]['numSamples'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} generated from background<br/>
+{{ async_result.datafile['data'][0]['intersectGreaterCount'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} contained at least as many matches to database as the actual expression results.<br/>
+{{ async_result.datafile['data'][0]['inTopAndIntersectCount'] }} matches to database found in microarray results</h3>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
@@ -208,3 +385,4 @@
 		</div>
 	</div>
 </div>
+
