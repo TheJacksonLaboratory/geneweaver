@@ -11,6 +11,7 @@ from flask import session
 import config
 import notifications
 from curation_assignments import CurationAssignment
+import pubmed
 
 app = flask.Flask(__name__)
 
@@ -378,6 +379,7 @@ def get_all_member_groups(usr_id):
 
         return list(dictify_cursor(cursor))
 
+
 def get_other_visible_groups(usr_id):
     """
     get all visible groups that a user is not a member (regular or admin) of
@@ -520,7 +522,6 @@ def remove_user_from_group(group_name, owner_id, usr_email):
         notifications.send_usr_notification(usr_email, "Removed from Group",
                                             "You have been removed from the group {} by {}".format(group_name, owner_name),
                                             True)
-
 
 
 def remove_selected_users_from_group(user_id, user_emails, grp_id):
@@ -2103,6 +2104,59 @@ class Publication:
         self.month = pub_dict['pub_month']
         self.year = pub_dict['pub_year']
         self.pubmed_id = pub_dict['pub_pubmed']
+
+    def to_json(self):
+        return json.dumps({
+            'pub_id': self.pub_id,
+            'authors': self.authors,
+            'title': self.title,
+            'abstract': self.abstract,
+            'journal': self.journal,
+            'volume': self.volume,
+            'pages': self.pages,
+            'month': self.month,
+            'year': self.year,
+            'pubmed_id': self.pubmed_id,
+        })
+
+
+def get_publication_by_pubmed(pubmed_id, create=False):
+    """
+    get a Publication for a pubmed id
+    :param pubmed_id: pubmed id
+    :param create: if true, a new database record will be created if the
+     Publication does not exist in the database
+    :return: Publication object for the specified publication
+    """
+    with PooledCursor() as cursor:
+        cursor.execute("SELECT * from publication WHERE pub_pubmed=CAST(%s as VARCHAR)",
+                       (pubmed_id,))
+
+        publications = list(dictify_cursor(cursor))
+
+        if len(publications) >= 1:
+            #TODO what to do about pubmed_ids with multiple records?
+            return Publication(publications[0])
+        elif create:
+            #publication is not in database, need to fetch it
+            article_dict = pubmed.get_article_from_pubmed(pubmed_id)
+
+            if article_dict:
+                placeholders = ', '.join(['%s'] * len(article_dict))
+                columns = ', '.join(article_dict.keys())
+                values = article_dict.values()
+
+                sql = '''INSERT INTO publication  ( %s ) VALUES ( %s ) RETURNING pub_id''' % (columns, placeholders)
+                cursor.execute(sql, values)
+                cursor.connection.commit()
+
+                article_dict['pub_id'] = cursor.fetchone()[0]
+
+                return Publication(article_dict)
+
+        # pubmed id not found
+        return None
+
 
 
 class Geneset:
