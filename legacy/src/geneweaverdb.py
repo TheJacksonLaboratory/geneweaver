@@ -2244,29 +2244,29 @@ def get_publication_by_pubmed(pubmed_id, create=False):
 
         publications = list(dictify_cursor(cursor))
 
+        publication = None
+
         if len(publications) >= 1:
             #TODO what to do about pubmed_ids with multiple records?
-            return Publication(publications[0])
+            publication = Publication(publications[0])
         elif create:
             #publication is not in database, need to fetch it
-            article_dict = pubmed.get_article_from_pubmed(pubmed_id)
+            pub_dict = pubmed.get_article_from_pubmed(pubmed_id)
 
-            if article_dict:
-                placeholders = ', '.join(['%s'] * len(article_dict))
-                columns = ', '.join(article_dict.keys())
-                values = article_dict.values()
+            if pub_dict:
+                placeholders = ', '.join(['%s'] * len(pub_dict))
+                columns = ', '.join(pub_dict.keys())
+                values = pub_dict.values()
 
                 sql = '''INSERT INTO publication (%s) VALUES (%s) RETURNING pub_id''' % (columns, placeholders)
                 cursor.execute(sql, values)
                 cursor.connection.commit()
 
-                article_dict['pub_id'] = cursor.fetchone()[0]
+                pub_dict['pub_id'] = cursor.fetchone()[0]
 
-                return Publication(article_dict)
+                publication = Publication(pub_dict)
 
-        # pubmed id not found
-        return None
-
+        return publication
 
 
 class Geneset:
