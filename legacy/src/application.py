@@ -586,7 +586,7 @@ def assign_publication_to_group():
                 response.status_code = 500
             else:
                 pub_assignments.queue_publication(publication.pub_id, group_id, user_id, notes)
-                response = flask.jsonify(message="Publicaiton successfully assigned to group")
+                response = flask.jsonify(message="Publication successfully assigned to group")
 
     else:
         #user is not logged in
