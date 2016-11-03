@@ -332,6 +332,22 @@ def get_all_members_of_group(usr_id):
     usr_emails = list(dictify_cursor(cursor))
     return usr_emails if len(usr_emails) > 0 else None
 
+def get_group_members(grp_id):
+    """
+    return a list of dictionaries of all members for a given group
+    :param grp_id:
+    :return: list
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT u.usr_id, u.usr_first_name, u.usr_last_name, u.usr_email FROM usr2grp u2g, usr u WHERE u2g.grp_id=%s
+            AND u.usr_id=u2g.usr_id ORDER BY u.usr_last_name, u.usr_first_name, u.usr_email''', (grp_id,)
+        )
+    members = list(dictify_cursor(cursor))
+    return members if len(members) > 0 else None
+
+
 
 def get_group_admins(grp_id):
     """
@@ -1467,11 +1483,10 @@ def get_server_side_grouptasks(rargs):
                 'aaData': []
                 }
     if group_id:
-        select_columns = ['full_name', 'task_id', 'task_name', 'task_type', 'assignment_date', 'task_status', 'reviewer']
+        select_columns = ['full_name', 'task_id', 'task_type', 'assignment_date', 'task_status', 'reviewer']
         select_clause = """
           SELECT uc.usr_last_name || ', ' || uc.usr_first_name AS full_name,
                  gs.gs_id AS task_id,
-                 gs.gs_name AS task_name,
                  'Gene Set' AS task_type,
                  to_char(ca.created, 'YYYY-MM-DD') AS assignment_date,
                  ca.curation_state AS task_status,
@@ -1481,20 +1496,17 @@ def get_server_side_grouptasks(rargs):
         # Separate FROM and WHERE for counting purposes
         from_where = """
           FROM production.grp g,
-               production.curation_assignments ca,
                production.geneset gs,
-               production.usr uc,
-               production.usr ur
+               production.curation_assignments ca
+               LEFT OUTER JOIN production.usr uc on ca.curator = uc.usr_id
+               LEFT OUTER JOIN production.usr ur on ca.reviewer = ur.usr_id
           WHERE g.grp_id = %s
             AND g.grp_id = ca.curation_group
             AND ca.gs_id = gs.gs_id
-            AND ca.curator = uc.usr_id
-            AND ca.reviewer = ur.usr_id
         """ % (group_id)
 
         source_columns = ['cast(full_name as text)',
                           'cast(task_id as text)',
-                          'cast(task_name as text)',
                           'cast(task_type as text)',
                           'cast(assignment_date as text)',
                           'cast(task_status as text)',
