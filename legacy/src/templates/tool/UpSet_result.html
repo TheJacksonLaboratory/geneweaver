@@ -100,7 +100,7 @@
 
 </style>
 
-<script src="/static/d3/d3.min.js" charset="utf-8"></script>
+<script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
 
 <div class="page-header">
     <h1>{{ title }}
@@ -189,47 +189,22 @@
 	</div>
 </div>
 
-<div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
-			<div class="panel-title" style="width:100%;">
-				Similarity Matrix
-				<span class="caret"></span>
-			</div>
-		</a>
-	</div>
-	<div id="sim-matrix" class="panel-collapse collapse" style="">
-		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px; border-radius:5px; border:1px solid #006400; text-align:center;">
-            <div id="matrix" align="center">
-            </div>
-            <br />
-            <button align="center" type="button" class="btn btn-block btn-warning" id="addToProject" style="width:270px">
-                <i class="fa fa-folder-o pull-left"></i> 
-                Add GeneSet(s) to Project
-            </button>
-		</div>
-	</div>
-</div>
-
 <br>
-
-<div id="upset-legend">
-</div>
 
 <!-- Div(UpSet), where all the bar chart D3 is appended to in the JavaScript below -->
 <div id="upset">
 </div>
 
 <!-- Opacity slider that allows users to change the opacity of the circles based on meeting the p-value threshold on the slider -->
- <!-- <label for="nOpacity">
+    <label for="nOpacity">
         <h2 id="pthresh">P-Value Threshold (0.01 increments):
       <label  style="font-weight: bold" id="nOpacity-value">…</label></h2>
-  </label>
+    </label>
   <!-- Specifies the slider's range, min, max and step values -->
- <!-- <input type="range" min="0" max="1" step = "0.01" id="nOpacity">
+ <input type="range" min="0" max="1" step = "0.01" id="nOpacity">
 </p>
 <br>
-<br>-->
+<br>
 
 <script src="/static/tools/UpSet.js" charset="utf-8"></script>
 <script type="text/javascript">
@@ -242,11 +217,6 @@ $(document).ready(function() {
         .draw();
         ;
 
-    // Draws the UpSet Set graph
-/*    var uss = jaccardSimilarityMatrix()
-        .data(d)
-        .draw();
-*/
     // The "Add GeneSets to Project" button
     $('#addToProject').on('click', function (e) {
         var checked = [];
@@ -335,18 +305,18 @@ $(document).ready(function() {
         // Gives our SVG a white background color prior to conversion.
         // This actually changes the image the user is seeing, but they
         // shouldn't be able to notice.
-        d3.select('#jaccard > svg')
+        d3.select('#upset > svg')
                 .insert('rect', 'g')
                 .attr('width', '100%')
                 .attr('height', '100%')
                 .attr('fill', 'white');
 
-        var html = d3.select("#jaccard > svg")
+        var html = d3.select("#upset > svg")
                 .attr("version", 1.1)
                 .attr("xmlns", "http://www.w3.org/2000/svg")
                 .node().innerHTML;
 
-        // The jaccard tool appends extra divs inside the SVG container
+        // The upset tool appends extra divs inside the SVG container
         // for tooltips. When we try to convert the image to a PNG, the SVG
         // parser chokes, because these are picked up along with the SVG. So
         // we recreate the SVG element.
