@@ -52,11 +52,7 @@ class TheDB():
         host = config.get('db', 'host')
         port = config.getInt('db', 'port')
 
-<<<<<<< Updated upstream
         cs = "host='%s' port='%s' dbname='%s' user='%s' password='%s'" % (host, port, db, user, password)
-=======
-        cs = "host='%s' dbname='%s' user='%s' password='%s' port='%s'" % (host, db, user, password, port)
->>>>>>> Stashed changes
 
         try:
             self.conn = psycopg2.connect(cs)
