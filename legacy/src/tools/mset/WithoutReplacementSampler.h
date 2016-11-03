@@ -5,16 +5,31 @@
 #include <random>
 #include <iostream>
 template<typename T>
+/*
+ * this class holds the state of the rng and the function to use it to sample 
+ * into a given vector
+ *
+ * unfortunately, since each successive sample changes the state of the rng,
+ * they cant be pulled in parrallel if the probability is to match the R implementation
+ */
 class WithoutReplacementSampler{
     public:
         WithoutReplacementSampler(){
+            /* mt19937 is a c++11 addition to random that implements
+             * the mersenne twister random engine used in R as the default number generator
+             *
+             * it just so happens that the same configuration parameters used in R's mt engine
+             * are the default arguments for mt19937
+             */
             gen=std::mt19937(rd());
         }
+
         void setSource(std::vector<T>* from){
             fromVector=from;
             ndxs=std::uniform_int_distribution<unsigned long>(0,fromVector->size()-1);
         }
-    //without replacement
+    //this is currently sampling with replacement, but doing so is an order of magnitude
+    //faster than without, and didn't seem to affect the probabilities in a significant way
     void sample(std::vector<T>& sampleInto){
         for(unsigned long i=0;i<sampleInto.size();i++){
             unsigned long pull=ndxs(gen);
