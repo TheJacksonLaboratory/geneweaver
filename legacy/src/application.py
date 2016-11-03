@@ -527,8 +527,50 @@ def rerun_annotator():
 
     pub_annos = annotator.annotate_text(publication, annotator.ONT_IDS)
     desc_annos = annotator.annotate_text(description, annotator.ONT_IDS)
+    ## These are the only annotations we preserve
+    assoc_annos =\
+        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Association')
+    reject_annos =\
+        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Rejection')
 
-    return json.dumps(True)
+    ## Convert to ont_ids
+    for i in range(len(pub_annos)):
+        if pub_annos[i]:
+            pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
+
+    for i in range(len(desc_annos)):
+        if desc_annos[i]:
+            desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
+
+    assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
+    reject_annos = map(lambda a: a.ontology_id, reject_annos)
+
+    geneweaverdb.clear_geneset_ontology(gs_id)
+
+    ## There's probably a cleaner way to do this but idk
+    for ont_id in assoc_annos:
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Association')
+
+    for ont_id in reject_annos:
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Rejection')
+
+    for ont_id in pub_annos[0]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, MI Annotator')
+
+    for ont_id in pub_annos[1]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, NCBO Annotator')
+
+    for ont_id in desc_annos[0]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, MI Annotator')
+
+    for ont_id in desc_annos[1]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, NCBO Annotator')
+    
+    return json.dumps({'success': True})
 
 @app.route('/update_geneset_annotation.json', methods=['POST'])
 def update_geneset_annotation():

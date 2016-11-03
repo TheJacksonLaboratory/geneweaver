@@ -245,6 +245,7 @@
             </div>
         </div>
 
+        {# Elissa will probably want these buttons moved #}
         <div class="row pull-right">
             <div class="col-md-4">
                 <button type="submit" class="btn btn-block btn-warning" 
@@ -380,7 +381,31 @@
             description: gsName + ' ' + gsDesc,
             publication: pubTitle + ' ' + pubAbs
         };
-    }
+    };
+
+    /**
+      * Changes the "Run Annotator" button between its disabled, running and 
+      * enabled, ready states. The style change is performed so the user knows
+      * the annotator is running (it might take awhile depending on the amount
+      * of text being annotated).
+      */
+    var changeAnnotatorButton = function() {
+
+        if ($('#run-annotator').prop('disabled')) {
+
+            $('#annotator-icon').attr('class', 'fa fa-cog fa-spin');
+            $('#annotator-text').text('Running...');
+
+        } else {
+
+            $('#annotator-icon').attr('class', 'fa fa-play');
+            $('#annotator-text').text('Run Annotator');
+        }
+
+        $('#run-annotator').prop('disabled', function() { 
+            return !$(this).prop('disabled') 
+        });
+    };
 
     $(function(){
         //Initialize dynatree data and functions
@@ -468,11 +493,7 @@
             postData.gs_id = gsID;
 
             // Style changes so the user knows something is happening
-            $('#annotator-icon').attr('class', 'fa fa-cog fa-spin');
-            $('#annotator-text').text('Running...');
-            $('#run-annotator').prop('disabled', function() { 
-                return !$(this).prop('disabled') 
-            });
+            changeAnnotatorButton();
 
             $.ajax({
                 url: '/rerun_annotator.json',
@@ -480,19 +501,11 @@
                 data: postData,
                 success: function(data) {
 
-                    $('#annotator-icon').attr('class', 'fa fa-play');
-                    $('#annotator-text').text('Run Annotator');
-                    $('#run-annotator').prop('disabled', function() { 
-                        return !$(this).prop('disabled') 
-                    });
+                    changeAnnotatorButton();
                 },
                 error: function(request, error, thrownError) {
 
-                    $('#annotator-text').text('Run Annotator');
-                    $('#annotator-icon').attr('class', 'fa fa-play');
-                    $('#run-annotator').prop('disabled', function() { 
-                        return !$(this).prop('disabled') 
-                    });
+                    changeAnnotatorButton();
                 }
             });
         });

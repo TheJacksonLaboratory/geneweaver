@@ -1161,6 +1161,30 @@ def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
 
+def get_ontologies_by_refs(ont_ref_ids):
+    """
+    Returns ont_ids (if they exist) for each of the given ont_ref_ids.
+
+    :param ont_ref_ids: list of the ontology reference IDs
+    :return:            list of ont_ids
+    """
+
+    ont_ref_ids = tuple(ont_ref_ids)
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT *
+            FROM ontology
+            WHERE ont_ref_id IN %s
+            ''', (ont_ref_ids,))
+
+        result = cursor.fetchall()
+
+        if not result:
+            return []
+
+        return map(lambda t: t[0], result)
+
 def does_geneset_have_annotation(gs_id, ont_id):
     """
     Checks to see if a particular ontology term has been annotated to a
