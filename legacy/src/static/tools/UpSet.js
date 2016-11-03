@@ -148,21 +148,38 @@ var upset = function () {
      */
     var makeText = function() {
         bx = 0;
+        by = 8;
+        tx1 = -10;
 
         for (var i = 0; i < data.set_diagrams.length; i++){
             var set = data.set_diagrams[i];
 
             var text = {
-                fill: '#E7ECED',
+                fill: circleFillColours[0],
                 height: 60,
-                width: 18,
+                width: 19,
                 x: bx,
-                y: 0,
-                name: set['name']
+                y: by,
+                name: set['name'],
+                colour: circleFillColours[1],
+                tx: tx1
             }
 
             setText.push(text);
             bx = bx + 20;
+            by = by - 15;
+            tx1 = tx1 + 17;
+
+        }
+    };
+
+    /**
+     * Formats and positions lines between set circles
+     */
+    /*var makeLine = function() {
+
+        for(var i = 0; i < data.intersection_diagrams.length; i++){
+            var set = data.
         }
     };
 
@@ -180,7 +197,7 @@ var upset = function () {
             y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; }));
 
         //Append svg to the upset area
-        svg = d3.select("#upset-set-graph").append("svg")
+        svg = d3.select("#upset").append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
@@ -202,11 +219,10 @@ var upset = function () {
             .enter().append("rect")
             .attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; })
-            .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) * 1.5) + "," + ((yShift + textHeight) - 9) + ")")
+            .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) + yShift) + "," + ((yShift + textHeight) - 9) + ")")
             .attr("height", 18)
             .attr("width", function(d) { return x(d.height); })
-            .style("fill", function(d) { return d.fill; })
-            .text(function(d) { return d.height; })
+            .style("fill", function(d) { return d.fill; });
 
         var x = d3.scaleBand().range([0, (yShift - diagramPadding)]).domain(Setbars.map(function(d) { return d.name; })).padding(0.5),
             y = d3.scaleLinear().range([(yShift - diagramPadding), 0]).domain([0, d3.max(Setbars, function(d) { return d.height})]);
@@ -229,10 +245,20 @@ var upset = function () {
             .enter().append("rect")
             .attr("transform", "translate(-" + xShift + "," + (yShift - xShift) + ") skewX(45)")
             .attr("x", function (d) { return d.x; })
-            .attr("y", function (d) { return d.y; })
             .attr("height", function (d) { return d.height; })
             .attr("width", function (d) { return d.width;})
             .style("fill", function (d) { return d.fill; });
+
+        svg.selectAll("text")
+            .data(setText)
+            .enter().append("text")
+            .attr("transform", "translate(-" + xShift + "," + (yShift - xShift) + ") rotate(45)")
+            .style("font-family", "Calibri", "sans-serif")
+            .style("font-size", ".6em")
+            .style("color", "black")
+            .text(function (d) {return d.name; })
+            .attr("y", function (d) { return d.y - 10;})
+            .attr("x", function (d) { return (d.tx + 15);});
 
         return exports;
     };
