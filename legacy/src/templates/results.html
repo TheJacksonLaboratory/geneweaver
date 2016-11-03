@@ -137,6 +137,8 @@
 								$.redirectPost('/run-phenome-map.html', form);
 							if (data['tool'] === 'Jaccard Similarity')
 								$.redirectPost('/run-jaccard-similarity.html', form);
+                            if (data['tool'] === 'MSET')
+                                $.redirectPost('/run-mset.html', form)
 						});
 					});
 
