@@ -1,0 +1,287 @@
+{% set title="Publication Assignment" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+
+<style>
+
+    a:link {
+        #color: darkgreen;
+    }
+
+    a:hover {
+        #color: green;
+        text-decoration: none;
+    }
+
+    a:visited {
+        text-decoration: none;
+    }
+
+    .panel .panel-header .panel-info .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    img {
+        border-style: none;
+    }
+
+    #help {
+        cursor: pointer;
+        color: #808080;
+    }
+
+    #help-text {
+        color: #808080;
+    }
+
+    .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        /* IE 5-7 */
+        filter: alpha(opacity=40);
+        /* Netscape */
+        -moz-opacity: 0.4;
+        /* Safari 1.x */
+        -khtml-opacity: 0.4;
+        /* Good browsers */
+        opacity: 0.4;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+
+    }
+
+</style>
+
+
+
+{% if not g.user or g.user.user_id == 0 %}
+
+    {% include 'htmlfragments/permissionError.html' %}
+
+{% else %}
+
+    {% block body %}
+
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+            <div class="loader" style="display: none" id="loader"></div>
+
+
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>Publication Assignment</strong>
+                </h3>
+            </div>
+
+            <p>Assign a Publication to a group</p>
+
+
+            <div class="container">
+                <div class="row">
+                    <div class="col-xs-6 col-sm-6">
+                        <label for="pubmed_id">Pubmed ID:</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-8 col-md-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control"
+                                   id="pubmed_id">
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-primary" id="find">
+                                Find Publication
+                            </button>
+                        </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="current_publication" style="padding: 30px"></div>
+
+            <div data-alerts="alerts"
+                 data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid"
+                 data-fade="5000"></div>
+
+            <span style="padding-left: 30px">
+                <button type="button" class="btn btn-primary" id="assign">
+                    Assign To Curation Group
+                </button>
+            </span>
+
+        </div>
+
+        {% include 'modal/assignPublicationToGroup.html' %}
+
+    {% endblock %}
+
+
+
+
+    <script type="text/javascript">
+
+    $(function() {
+
+        var current_pub = null;
+
+        $('#assign').hide();
+
+        function handleError(data) {
+
+            $('.loader').hide();
+
+            if (data.responseJSON && data.responseJSON.message) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+        }
+
+        $('#find').click(function () {
+
+
+            var pmid = $('#pubmed_id').val();
+
+            if (/^\d+$/.test(pmid) != true) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Invalid Pubmed ID",
+                        'priority': 'danger'
+                    }
+                ]);
+                return;
+            }
+
+
+            $('#loader').show();
+
+            $.getJSON('/get_publication_by_pubmed_id/' + pmid +'.json', function (data) {
+
+                var html = "<div>" +
+                           "    <h4>Pubmed ID: " + data.pubmed_id + "</h4>" +
+                           "    <label for='title'><strong>Title:</strong></lable>" +
+                           "    <div id='title' style='padding-left:10px'>" + data.title + "</div>" +
+                           "    <label for='authors'><strong>Authors:</strong></label>" +
+                           "    <div id='authors' style='padding-left:10px'>" + data.authors + "</div>";
+                if (data.month) {
+                    html += "    <label for='month'><strong>Month:</strong></label>" +
+                            "    <div id='month' style='padding-left:10px'>" + data.month + "</div>";
+
+                }
+                if (data.year) {
+                    html +=  "    <label for='year'><strong>Year:</strong></label>" +
+                             "    <div id='year' style='padding-left:10px'>" + data.year + "</div>";
+                }
+
+
+                html += "    <label for='abstract'><strong>Abstract:</strong></label>" +
+                        "    <div id='abstract' style='padding-left:10px'>" + data.abstract + "</div>" +
+                        "</div>";
+
+
+                current_pub = pmid;
+                $('#current_publication').html(html);
+                $('#assign').show();
+                $('#loader').hide();
+            }).fail(handleError);
+        });
+
+        $('#assign').click(function (){
+            $('#pmid').text(current_pub);
+
+            // when we show the modal window, we don't want a group selected.
+            $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+
+            // submit button will be disabled until the user selects a group radio button
+            $('#assignPubConfirm').prop("disabled", true).button("refresh");
+
+            // need to clear out old notes
+            $('#publicationNotes').val("");
+
+            $("#assignPubToGroupModal").modal('show');
+        });
+
+        function handleAssignmentError(data) {
+
+
+            $('#modalLoader').hide();
+
+
+            if (data.responseJSON) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("set-alert-id-modal-alert", {
+                    message: data.responseJSON.message,
+                    priority: "error"
+                });
+            }
+            else {
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Internal Server Error",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+        }
+
+        $('#assignPubConfirm').click(function (){
+
+            $('#modalLoader').show();
+
+            var params = {
+                "notes": $('#publicationNotes').val(),
+                "pubmed_id": current_pub,
+                "group_id": $("input[name=group]:checked").val()
+            };
+
+            // since params["gs_ids"] is a list the server needs to use
+            // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+            $.post("{{ url_for('assign_publication_to_group') }}", params ,function(data) {
+
+                $('#modalLoader').hide();
+                $("#assignPubToGroupModal").modal('hide');
+
+                $(document).trigger("add-alerts", [
+                {
+                    'message': data.message,
+                    'priority': 'success'
+                }
+            ]);
+
+            }, "json").fail(handleAssignmentError);
+
+        });
+
+        $("input:radio[name='group']").on('click', function () {
+            // submit button will be disabled until the user selects a group
+            // radio button
+            $('#assignPubConfirm').prop("disabled", false).button("refresh");
+        });
+
+    });
+
+    </script>
+
+{% endif %}
+
+{% include 'footer.html' %}
