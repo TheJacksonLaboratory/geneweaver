@@ -707,7 +707,7 @@
             });
         });
 
-        function handleError(data) {
+        function handleEmailNotificationError(data) {
 
             // unable to set preferences, put checkbox back the way it was
             $('#email_notifications').prop('checked', !($('#email_notifications').is(':checked'))).checkboxradio("refresh");
@@ -734,7 +734,7 @@
                 'new_state': state
             }, function (data) {
                 console.log('notification preferences updated');
-            }).fail(handleError);
+            }).fail(handleEmailNotificationError);
         });
 
     });
