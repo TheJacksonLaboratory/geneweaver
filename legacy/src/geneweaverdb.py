@@ -2267,16 +2267,17 @@ def get_publication_by_pubmed(pubmed_id, create=False):
                 pub_dict = pubmedsvc.get_pubmed_info(pubmed_id)
                 pub_dict['pub_pubmed'] = pubmed_id
 
-                if 'pub_day' in pub_dict:
-                    # get_pubmed_info may add this to the dict, but it is not
-                    # a column in the database, so the INSERT below will fail
-                    # if we don't remove it
-                    del pub_dict['pub_day']
             except Exception as e:
                 pub_dict = {}
 
             if pub_dict:
                 if create:
+                    if 'pub_day' in pub_dict:
+                        # get_pubmed_info() may add this to the dict, but it is not
+                        # a column in the database, so the INSERT below will fail
+                        # if we don't remove it
+                        del pub_dict['pub_day']
+
                     placeholders = ', '.join(['%s'] * len(pub_dict))
                     columns = ', '.join(pub_dict.keys())
                     values = pub_dict.values()
@@ -2286,17 +2287,19 @@ def get_publication_by_pubmed(pubmed_id, create=False):
                     cursor.connection.commit()
 
                     pub_dict['pub_id'] = cursor.fetchone()[0]
-                else:
-                    # since we didn't add the pub to the db, we don't have an id
-                    # this key is needed to pass the dict to the Publication
-                    # constructor
-                    pub_dict['pub_id'] = None
 
-                # sometimes these are missing (online only articles)
-                if 'pub_volume' not in pub_dict:
-                    pub_dict['pub_volume'] = None
-                if 'pub_pages' not in pub_dict:
-                    pub_dict['pub_pages'] = None
+
+                # sometimes fields are missing (example, online only articles
+                # will not have pages).  We need to make sure the keys at least
+                # exist, or we can't create a Publication object
+                required_keys = ['pub_volume', 'pub_pages', 'pub_author',
+                                 'pub_abstract', 'pub_id', 'pub_year',
+                                 'pub_month']
+
+                for key in required_keys:
+                    if key not in pub_dict:
+                        pub_dict[key] = None
+
 
                 publication = Publication(pub_dict)
 
