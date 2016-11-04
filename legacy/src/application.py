@@ -536,12 +536,10 @@ def rerun_annotator():
 
     ## Convert to ont_ids
     for i in range(len(pub_annos)):
-        print pub_annos[i]
         if pub_annos[i]:
             pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
 
     for i in range(len(desc_annos)):
-        print desc_annos[i]
         if desc_annos[i]:
             desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
 
