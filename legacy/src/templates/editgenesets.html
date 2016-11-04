@@ -488,6 +488,10 @@
             }
         })
 
+        /**
+          * Clicking this button reruns the annotator tool on the geneset's 
+          * description and publication text.
+          */
         $('#run-annotator').on('click', function(event) {
             event.preventDefault();
 
@@ -504,6 +508,8 @@
                 success: function(data) {
 
                     changeAnnotatorButton();
+
+                    $('#tree').dynatree('getTree').reload();
                 },
                 error: function(request, error, thrownError) {
 
@@ -512,6 +518,9 @@
             });
         });
 
+        /**
+          * Should eventually redirect the user to the edit genes page.
+          */
         $('#edit-genes').on('click', function(event) {
             event.preventDefault();
         });

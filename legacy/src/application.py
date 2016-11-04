@@ -497,6 +497,7 @@ def geneset_ready_for_review():
 
     return response
 
+
 @app.route('/rerun_annotator.json', methods=['POST'])
 def rerun_annotator():
     """
@@ -547,7 +548,6 @@ def rerun_annotator():
     assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
     reject_annos = map(lambda a: a.ontology_id, reject_annos)
 
-    ## This isn't working for some reason :(
     geneweaverdb.clear_geneset_ontology(gs_id)
 
     ## There's probably a cleaner way to do this but idk
@@ -574,6 +574,7 @@ def rerun_annotator():
             geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, NCBO Annotator')
     
     return json.dumps({'success': True})
+
 
 @app.route('/update_geneset_annotation.json', methods=['POST'])
 def update_geneset_annotation():
