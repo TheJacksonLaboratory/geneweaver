@@ -12,6 +12,7 @@ import genesetblueprint
 import geneweaverdb
 import notifications
 import curation_assignments
+import pub_assignments
 import error
 import uploadfiles
 import json
@@ -354,7 +355,6 @@ def render_analyze_new_project(pj_name):
     return flask.render_template('analyze.html', active_tools=active_tools)
 
 
-
 @app.route('/curategeneset/edit/<int:gs_id>')
 def render_curategeneset_edit(gs_id):
     return render_editgenesets(gs_id, True)
@@ -397,6 +397,7 @@ def render_editgenesets(gs_id, curation_view=False):
         onts=onts,
         curation_view=curation_view
     )
+
 
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
 def assign_genesets_to_curation_group():
@@ -501,6 +502,7 @@ def assign_curator_to_geneset():
 
     return response
 
+
 @app.route("/geneset_ready_for_review.json", methods=['POST'])
 def geneset_ready_for_review():
     if 'user_id' in flask.session:
@@ -561,6 +563,82 @@ def mark_geneset_reviewed():
         response.status_code = 403
 
     return response
+
+
+@app.route('/publication_assignment')
+def render_assign_publication():
+    my_groups = []
+
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
+    return flask.render_template('publication_assignment.html', myGroups=my_groups)
+
+
+@app.route('/get_publication_by_pubmed_id/<pubmed_id>.json')
+def get_publication_by_pubmed_id(pubmed_id):
+    if 'user_id' in flask.session:
+
+        publication = geneweaverdb.get_publication_by_pubmed(pubmed_id)
+
+        if publication:
+            response = flask.Response(json.dumps(publication.__dict__), 'application/json')
+        else:
+            response = flask.jsonify(message="Publication Not Found")
+            response.status_code = 404
+
+    else:
+        #user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 403
+
+    return response
+
+
+@app.route('/assign_publication_to_group.json', methods=['POST'])
+def assign_publication_to_group():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        notes = request.form.get('notes', '')
+        pubmed_id = request.form.get('pubmed_id')
+        group_id = request.form.get('group_id', type=int)
+
+        if group_id not in geneweaverdb.get_user_groups(user_id):
+            response = flask.jsonify(message="You do not have permissions to assign tasks to this group.")
+            response.status_code = 403
+
+        else:
+            # lookup publication in database, if it doesn't exist in the db yet
+            # this will add it
+            publication = geneweaverdb.get_publication_by_pubmed(pubmed_id, create=True)
+
+            if not publication:
+                # didn't find matching publication in database or querying pubmed
+                response = flask.jsonify(message="Publication Not Found")
+                response.status_code = 404
+
+            else:
+                # publication exists
+                publication_assignment = pub_assignments.get_publication_assignment(publication.pub_id, group_id)
+
+                if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
+                    # is it already an active task for this group?
+                    response = flask.jsonify(message="Publication is already assigned to this group.")
+                    response.status_code = 500
+
+                else:
+                    # everything is good,  do the assignment
+                    pub_assignments.queue_publication(publication.pub_id, group_id, notes)
+                    response = flask.jsonify(message="Publication successfully assigned to group")
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 403
+
+    return response
+
 
 @app.route('/updateGenesetOntologyDB')
 def update_geneset_ontology_db():

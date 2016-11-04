@@ -1,0 +1,67 @@
+<div class="modal fade" id="assignPubToGroupModal">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="assignPubForCuration" name="assignPubForCuration" method="post" action="#" class="form-horizontal">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">Assign Publication To Group</h3>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="loader" style="display: none" id="modalLoader"></div>
+
+                    <div data-alerts="alerts"
+                         data-titles="{'warning': '<em>Warning!</em>'}"
+                         data-ids="modal-alert"
+                         data-fade="5000"></div>
+
+                    <div class="row" style="text-align:center;">
+                        <h4 align="left">Pubmed ID: <span id="pmid"></span></h4>
+                    </div>
+
+
+                    <div class="form-group">
+                    <label><h4>Select a Curation Group: </h4></label>
+                        {% for group in myGroups %}
+                            <label for="{{ group.grp_id }}_radio"
+                                           class="form-check-label" id="label_{{ group.grp_id }}">{{ group.grp_name }}</label>
+                            <input class="form-check-input" type="radio" name="group" value="{{ group.grp_id }}" id="{{ group.grp_id }}_radio">
+                        {% endfor %}
+
+
+                        <!-- not sure if we want to allow assignment of a publication to any public group -->
+                        {% if 0 %}
+                        <label for="public_group_radio" class="form-check-label">Other Public Group</label>
+                        <input class="form-check-input" type="radio" name="group" value="public_group" id="public_group_radio">
+
+                        <div style="padding-left: 30px; padding-right: 30px" id="publicGroupDiv">
+                            <!-- TODO I want to add a filter on this,  the list is pretty big -->
+                            <select class="form-control" id="publicGroupSelect">
+                                {% for public_group in otherGroups %}
+                                    <option value='{{ public_group.grp_id }}'>{{ public_group.grp_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                    </div>
+
+                    <div class="form-group" style="padding: 10px">
+                        <label for="publicationNotes"><h4>Notes:</h4></label>
+                        <textarea class="form-control" rows="5" id="publicationNotes"></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning" id="assignPubConfirm"  >
+							Assign
+						</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+							Cancel
+						</button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -35,10 +35,10 @@ class PubAssignment(object):
     REVIEWED = 4
 
     def __init__(self, row_dict):
-        self.state = row_dict['curation_state']
+        self.state = row_dict['assignment_state']
         self.pub_id = row_dict['pub_id']
         self.assignee = row_dict['assignee']
-        self.reviewer = row_dict['reviewer']
+        self.assigner = row_dict['assigner']
         self.notes = row_dict['notes']
         self.group = row_dict['curation_group']
         self.created = row_dict['created']
@@ -58,7 +58,7 @@ def queue_publication(pub_id, group_id, note):
 
         # JGP - for now delete the object to prevent exception on the INSERT...
         cursor.execute(
-            "DELETE FROM production.pub_assignments WHERE pub_id=%s", (pub_id,))
+            "DELETE FROM production.pub_assignments WHERE pub_id=%s AND curation_group=%s", (pub_id, group_id))
 
         # Add a record to the table
         cursor.execute(

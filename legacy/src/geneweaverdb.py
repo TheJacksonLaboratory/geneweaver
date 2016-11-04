@@ -11,6 +11,7 @@ from flask import session
 import config
 import notifications
 from curation_assignments import CurationAssignment
+import pubmedsvc
 
 app = flask.Flask(__name__)
 
@@ -394,6 +395,7 @@ def get_all_member_groups(usr_id):
 
         return list(dictify_cursor(cursor))
 
+
 def get_other_visible_groups(usr_id):
     """
     get all visible groups that a user is not a member (regular or admin) of
@@ -536,7 +538,6 @@ def remove_user_from_group(group_name, owner_id, usr_email):
         notifications.send_usr_notification(usr_email, "Removed from Group",
                                             "You have been removed from the group {} by {}".format(group_name, owner_name),
                                             True)
-
 
 
 def remove_selected_users_from_group(user_id, user_emails, grp_id):
@@ -2239,6 +2240,67 @@ class Publication:
         self.month = pub_dict['pub_month']
         self.year = pub_dict['pub_year']
         self.pubmed_id = pub_dict['pub_pubmed']
+
+
+def get_publication_by_pubmed(pubmed_id, create=False):
+    """
+    get a Publication for a pubmed id
+    :param pubmed_id: pubmed id
+    :param create: if true, a new database record will be created if the
+     Publication does not exist in the database
+    :return: Publication object for the specified publication
+    """
+    with PooledCursor() as cursor:
+        cursor.execute("SELECT * from publication WHERE pub_pubmed=CAST(%s as VARCHAR)",
+                       (pubmed_id,))
+
+        publications = list(dictify_cursor(cursor))
+
+        publication = None
+
+        if len(publications) >= 1:
+            #TODO what to do about pubmed_ids with multiple records?
+            publication = Publication(publications[0])
+        else:
+            #publication is not in database, need to fetch it
+            try:
+                pub_dict = pubmedsvc.get_pubmed_info(pubmed_id)
+                pub_dict['pub_pubmed'] = pubmed_id
+
+                if 'pub_day' in pub_dict:
+                    # get_pubmed_info may add this to the dict, but it is not
+                    # a column in the database, so the INSERT below will fail
+                    # if we don't remove it
+                    del pub_dict['pub_day']
+            except Exception as e:
+                pub_dict = {}
+
+            if pub_dict:
+                if create:
+                    placeholders = ', '.join(['%s'] * len(pub_dict))
+                    columns = ', '.join(pub_dict.keys())
+                    values = pub_dict.values()
+
+                    sql = '''INSERT INTO publication (%s) VALUES (%s) RETURNING pub_id''' % (columns, placeholders)
+                    cursor.execute(sql, values)
+                    cursor.connection.commit()
+
+                    pub_dict['pub_id'] = cursor.fetchone()[0]
+                else:
+                    # since we didn't add the pub to the db, we don't have an id
+                    # this key is needed to pass the dict to the Publication
+                    # constructor
+                    pub_dict['pub_id'] = None
+
+                # sometimes these are missing (online only articles)
+                if 'pub_volume' not in pub_dict:
+                    pub_dict['pub_volume'] = None
+                if 'pub_pages' not in pub_dict:
+                    pub_dict['pub_pages'] = None
+
+                publication = Publication(pub_dict)
+
+        return publication
 
 
 class Geneset:
