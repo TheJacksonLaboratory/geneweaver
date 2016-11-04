@@ -431,6 +431,43 @@ def assign_genesets_to_curation_group():
     return response
 
 
+@app.route('/assign_genesets_to_curator.json', methods=['POST'])
+def assign_genesets_to_curator():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        user_info = geneweaverdb.get_user(user_id)
+
+        #TODO do we need to sanitize the note?
+        note = request.form.get('note', '')
+        curator = request.form.get('usr_id')
+        gs_ids = request.form.getlist('gs_ids[]', type=int)
+        curator_info = geneweaverdb.get_user(curator)
+        owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
+
+        status = {}
+        for gs_id in gs_ids:
+            assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+            if assignment:
+                if assignment.group in [g['grp_id'] for g in owned_groups]:
+                    curation_assignments.assign_geneset_curator(gs_id, curator, user_id, note)
+                    status[gs_id] = {'success': True}
+                else:
+                    status[gs_id] = {'success': False,
+                                     'message': "You are not an owner of the group and cannot assign a curator"}
+            else:
+                status[gs_id] = {'success': False,
+                                 'message': "Error assigning curator, GeneSet " + str(gs_id) +
+                                            "does not have an active curation record"}
+            response = flask.jsonify(results=status)
+
+    else:
+        #user is not logged in
+        response = flask.jsonify(success=False, message='You do not have permissions to assign these GeneSets to a curator')
+        response.status_code = 403
+
+    return response
+
+
 @app.route("/assigncurator.json", methods=['POST'])
 def assign_curator_to_geneset():
     if 'user_id' in flask.session:
@@ -1714,29 +1751,42 @@ def render_user_genesets():
         otherGroups=other_groups
     )
 
+@app.route('/groupTasks/', defaults={'group_id': None})
 @app.route('/groupTasks/<int:group_id>')
 def render_group_tasks(group_id):
     group = None
-    if group_id and 'user_id' in flask.session:
+    if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         columns = [
             {'name': 'full_name'},
             {'name': 'task_id'},
-            {'name': 'task_name'},
             {'name': 'task_type'},
             {'name': 'assignment_date'},
             {'name': 'task_status'},
             {'name': 'reviewer'}
         ]
         headerCols = ["Assignee Name",
-                      "Task Id",
                       "Task",
                       "Task Type",
                       "Assign Date",
                       "Status",
                       "Reviewer"]
 
-        group = geneweaverdb.get_group_by_id(group_id)
+        groups_member = geneweaverdb.get_all_member_groups(user_id)
+        groups_owner  = geneweaverdb.get_all_owned_groups(user_id)
+
+        if group_id:
+            group = geneweaverdb.get_group_by_id(group_id)
+
+        group_curators = geneweaverdb.get_group_members(group_id)
+        print(group_curators)
+
+        group_owner = False
+        try:
+            if group_id_in_groups(group.grp_id, groups_owner):
+                group_owner = True
+        except TypeError as error:
+            print("TypeError while trying to match group id: {0}".format(error))
     else:
         headerCols, user_id, columns = None, 0, None
 
@@ -1745,9 +1795,23 @@ def render_group_tasks(group_id):
         headerCols=headerCols, 
         user_id=user_id, 
         columns=columns,
-        group=group
+        group=group,
+        group_owner=group_owner,
+        groupCurators=group_curators,
+        groups_member=groups_member,
+        groups_owner=groups_owner
     )
 
+def group_id_in_groups(id, groups):
+    if type(id) != int:
+        raise TypeError("id must be an integer")
+    included = False
+    for group in groups:
+        if not group.has_key('grp_id'):
+            raise TypeError("geneweaverdb.Groups instance has no grp_id value.  Possibly invalid type...")
+        if group['grp_id'] == id:
+            included = True
+    return included
 
 def top_twenty_simgenesets(simgs):
     """
@@ -2455,6 +2519,10 @@ def get_db_genesets_data():
 @app.route('/getServersideGroupTasksdb')
 def get_db_grouptasks_data():
     results = geneweaverdb.get_server_side_grouptasks(request.args)
+    for result in results:
+        if result[2] == "Gene Set":
+            assignment = curation_assignments.get_geneset_curation_assignment(result['task_id'])
+            result['curation_assignment'] = assignment
     return json.dumps(results)
 
 @app.route('/assignmentStatusAsString/<int:status>')
