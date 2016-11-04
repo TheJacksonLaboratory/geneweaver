@@ -248,7 +248,7 @@
               <strong>Include Homology:&nbsp;</strong>{{async_result.IncludeHomology}}<br>
             </td>
             <td>
-              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }}{% else %} guest{% endif %}<br>
+              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }} {{g.user.user_id|e}} {% else %} guest{% endif %}<br>
               <strong>Date:&nbsp;</strong>
                   <script>
                   <!--
@@ -368,9 +368,22 @@
       <div id="addGenesetProjectModal" class="modal">
         <!--Modal Content -->
         <div class="modal-content">
-          <p>Add Geneset to Project</p>
-          <button type="button" class="btn btn-secondary">Add Project to Geneset</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <h3>Add Geneset to Project</h3>
+          <div class="col-md-8">
+            <div data-type="projectList">
+              <h3>Select Project</h3>
+                <select>
+                  <option value="volvo">Volvo</option>
+                  <option value="saab">Saab</option>
+                  <option value="mercedes">Mercedes</option>
+                  <option value="audi">Audi</option>
+                </select> 
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary">Add Project to Geneset</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
 
@@ -626,15 +639,13 @@ $(document).ready(function() {
     infoPane.append("<p>Res ID: " + parser.res_id + "</p>");
     infoPane.append("<p>Species ID: " + parser.sp_id + "</p>");
     infoPane.append("<p>User ID: " + parser.usr_id + "</p>");
-    infoPane.append('<button type="button" id="addGenesetProjectButton" data-toggle="modal" data-target="#addGenesetProjectModal"> Add Geneset to Project </button>');
-  }
+    infoPane.append('<button type="button" class="btn btn-primary" id="addGenesetProjectButton" data-toggle="modal" data-target="#addGenesetProjectModal"> Add Geneset to Project </button>');
+    infoPane.append("<a href=");
+  }  
 
-  $('#addGenesetProjectButton').on('shown.bs.modal', function(){
-    $('#addGenesetProjectModal').focus();
-  })
-
-  $('#addGenesetProjectButton').on('shown.bs.modal', function(){
-    $('#addGenesetProjectModal').focus();
+  /* Add Geneset to Project Modal*/
+  $('#addGenesetProjectButton').button().on("click", function(){
+    $('#addGenesetProjectModal').dialog("addGenesetProjectModal");
   })
 
   $('#system-searchGOI').keyup( function(e){
