@@ -1147,8 +1147,7 @@ def clear_geneset_ontology(gs_id):
             ''',
                 (gs_id,)
         )
-    cursor.connection.commit()
-    return
+        cursor.connection.commit()
 
 
 def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
