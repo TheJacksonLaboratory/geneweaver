@@ -370,15 +370,20 @@
         <div class="modal-content">
           <h3>Add Geneset to Project</h3>
           <div class="col-md-8">
+            {% if g.user.projects %}
             <div data-type="projectList">
               <h3>Select Project</h3>
                 <select>
-                  <option value="volvo">Volvo</option>
-                  <option value="saab">Saab</option>
-                  <option value="mercedes">Mercedes</option>
-                  <option value="audi">Audi</option>
+                  {% for proj in g.user.projects %}
+                    <option value="{{proj.name}}" id="{{proj.project_id}}">
+                      {{proj.name}}
+                    </option>
+                  {% endfor %}
                 </select> 
             </div>
+            {% else %}
+            <div class="col-md-8">You do not have any existing projects!</div>
+            {% endif %}
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary">Add Project to Geneset</button>
