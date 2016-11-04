@@ -542,7 +542,7 @@ def render_assign_publication():
 def get_publication_by_pubmed_id(pubmed_id):
     if 'user_id' in flask.session:
 
-        publication = geneweaverdb.get_publication_by_pubmed(pubmed_id, create=True)
+        publication = geneweaverdb.get_publication_by_pubmed(pubmed_id)
 
         if publication:
             response = flask.Response(json.dumps(publication.__dict__), 'application/json')
@@ -567,29 +567,36 @@ def assign_publication_to_group():
         pubmed_id = request.form.get('pubmed_id')
         group_id = request.form.get('group_id', type=int)
 
-        #Should the UI send the pub_id instead of pubmed id?
-        publication = geneweaverdb.get_publication_by_pubmed(pubmed_id, create=True)
-
-        if not publication:
-            response = flask.jsonify(message="Publication Not Found")
-            response.status_code = 404
-
-        elif group_id not in geneweaverdb.get_user_groups(user_id):
+        if group_id not in geneweaverdb.get_user_groups(user_id):
             response = flask.jsonify(message="You do not have permissions to assign tasks to this group.")
             response.status_code = 403
 
         else:
-            #has the publication already been assigned to this group?
-            publication_assignment = pub_assignments.get_publication_assignment(publication.pub_id, group_id)
-            if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
-                response = flask.jsonify(message="Publication is already assigned to this group.")
-                response.status_code = 500
+            # lookup publication in database, if it doesn't exist in the db yet
+            # this will add it
+            publication = geneweaverdb.get_publication_by_pubmed(pubmed_id, create=True)
+
+            if not publication:
+                # didn't find matching publication in database or querying pubmed
+                response = flask.jsonify(message="Publication Not Found")
+                response.status_code = 404
+
             else:
-                pub_assignments.queue_publication(publication.pub_id, group_id, user_id, notes)
-                response = flask.jsonify(message="Publication successfully assigned to group")
+                # publication exists
+                publication_assignment = pub_assignments.get_publication_assignment(publication.pub_id, group_id)
+
+                if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
+                    # is it already an active task for this group?
+                    response = flask.jsonify(message="Publication is already assigned to this group.")
+                    response.status_code = 500
+
+                else:
+                    # everything is good,  do the assignment
+                    pub_assignments.queue_publication(publication.pub_id, group_id, notes)
+                    response = flask.jsonify(message="Publication successfully assigned to group")
 
     else:
-        #user is not logged in
+        # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
         response.status_code = 403
 

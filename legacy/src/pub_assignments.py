@@ -45,7 +45,7 @@ class PubAssignment(object):
         self.updated = row_dict['updated']
 
 
-def queue_publication(pub_id, group_id, assigner, note):
+def queue_publication(pub_id, group_id, note):
     """
     :param pub_id: publication submitted for review
     :param group_id: group responsible for the curation
@@ -62,8 +62,8 @@ def queue_publication(pub_id, group_id, assigner, note):
 
         # Add a record to the table
         cursor.execute(
-            'INSERT INTO production.pub_assignments (pub_id, curation_group, assignment_state, notes, assigner) VALUES (%s, %s, %s, %s, %s)',
-            (pub_id, group_id, state, note, assigner))
+            'INSERT INTO production.pub_assignments (pub_id, curation_group, assignment_state, notes) VALUES (%s, %s, %s, %s)',
+            (pub_id, group_id, state, note))
         cursor.connection.commit()
 
         # send notification to the group admins

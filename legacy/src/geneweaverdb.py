@@ -11,7 +11,7 @@ from flask import session
 import config
 import notifications
 from curation_assignments import CurationAssignment
-import pubmed
+import pubmedsvc
 
 app = flask.Flask(__name__)
 
@@ -2249,20 +2249,42 @@ def get_publication_by_pubmed(pubmed_id, create=False):
         if len(publications) >= 1:
             #TODO what to do about pubmed_ids with multiple records?
             publication = Publication(publications[0])
-        elif create:
+        else:
             #publication is not in database, need to fetch it
-            pub_dict = pubmed.get_article_from_pubmed(pubmed_id)
+            try:
+                pub_dict = pubmedsvc.get_pubmed_info(pubmed_id)
+                pub_dict['pub_pubmed'] = pubmed_id
+
+                if 'pub_day' in pub_dict:
+                    # get_pubmed_info may add this to the dict, but it is not
+                    # a column in the database, so the INSERT below will fail
+                    # if we don't remove it
+                    del pub_dict['pub_day']
+            except Exception as e:
+                pub_dict = {}
 
             if pub_dict:
-                placeholders = ', '.join(['%s'] * len(pub_dict))
-                columns = ', '.join(pub_dict.keys())
-                values = pub_dict.values()
+                if create:
+                    placeholders = ', '.join(['%s'] * len(pub_dict))
+                    columns = ', '.join(pub_dict.keys())
+                    values = pub_dict.values()
 
-                sql = '''INSERT INTO publication (%s) VALUES (%s) RETURNING pub_id''' % (columns, placeholders)
-                cursor.execute(sql, values)
-                cursor.connection.commit()
+                    sql = '''INSERT INTO publication (%s) VALUES (%s) RETURNING pub_id''' % (columns, placeholders)
+                    cursor.execute(sql, values)
+                    cursor.connection.commit()
 
-                pub_dict['pub_id'] = cursor.fetchone()[0]
+                    pub_dict['pub_id'] = cursor.fetchone()[0]
+                else:
+                    # since we didn't add the pub to the db, we don't have an id
+                    # this key is needed to pass the dict to the Publication
+                    # constructor
+                    pub_dict['pub_id'] = None
+
+                # sometimes these are missing (online only articles)
+                if 'pub_volume' not in pub_dict:
+                    pub_dict['pub_volume'] = None
+                if 'pub_pages' not in pub_dict:
+                    pub_dict['pub_pages'] = None
 
                 publication = Publication(pub_dict)
 
