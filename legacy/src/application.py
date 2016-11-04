@@ -1751,6 +1751,7 @@ def render_user_genesets():
         otherGroups=other_groups
     )
 
+
 @app.route('/groupTasks/', defaults={'group_id': None})
 @app.route('/groupTasks/<int:group_id>')
 def render_group_tasks(group_id):
@@ -1775,9 +1776,18 @@ def render_group_tasks(group_id):
         groups_member = geneweaverdb.get_all_member_groups(user_id)
         groups_owner  = geneweaverdb.get_all_owned_groups(user_id)
 
-        if group_id:
-            group = geneweaverdb.get_group_by_id(group_id)
+        if not group_id:
+            if len(groups_owner) > 0:
+                group_id = groups_owner[0]['grp_id']
+            elif len(groups_member) > 0:
+                group_id = groups_member[0]['grp_id']
+            else:
+                response = flask.jsonify(success=False,
+                                         message='You are not a member of any groups.')
+                response.status_code = 403
+                return response
 
+        group = geneweaverdb.get_group_by_id(group_id)
         group_curators = geneweaverdb.get_group_members(group_id)
 
         group_owner = False
@@ -1800,6 +1810,7 @@ def render_group_tasks(group_id):
         groups_member=groups_member,
         groups_owner=groups_owner
     )
+
 
 def group_id_in_groups(id, groups):
     if type(id) != int:
