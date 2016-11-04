@@ -493,7 +493,7 @@ def assign_curator_to_geneset():
 
         else:
             response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
-            response.status_code = 500
+            response.status_code = 412
 
     else:
         #user is not logged in
@@ -523,7 +523,7 @@ def geneset_ready_for_review():
                 response.status_code = 403
         else:
             response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
-            response.status_code = 500
+            response.status_code = 412
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
@@ -556,7 +556,7 @@ def mark_geneset_reviewed():
                 response.status_code = 403
         else:
             response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
-            response.status_code = 500
+            response.status_code = 412
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
@@ -625,7 +625,7 @@ def assign_publication_to_group():
                 if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
                     # is it already an active task for this group?
                     response = flask.jsonify(message="Publication is already assigned to this group.")
-                    response.status_code = 500
+                    response.status_code = 412
 
                 else:
                     # everything is good,  do the assignment
