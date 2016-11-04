@@ -393,13 +393,13 @@
 
         if ($('#run-annotator').prop('disabled')) {
 
-            $('#annotator-icon').attr('class', 'fa fa-cog fa-spin');
-            $('#annotator-text').text('Running...');
+            $('#annotator-icon').attr('class', 'fa fa-play');
+            $('#annotator-text').text('Run Annotator');
 
         } else {
 
-            $('#annotator-icon').attr('class', 'fa fa-play');
-            $('#annotator-text').text('Run Annotator');
+            $('#annotator-icon').attr('class', 'fa fa-cog fa-spin');
+            $('#annotator-text').text('Running...');
         }
 
         $('#run-annotator').prop('disabled', function() { 
@@ -454,6 +454,8 @@
                         .css('background-color', 'none')
                         .css('font-weight', 'normal');
                 }
+
+                $(nodeSpan).attr('title', node.data.ref);
 			},
 
             // Updates the database based on the ontology terms a user selects.
@@ -662,9 +664,6 @@
                     }
                 });
             };
-
-
-
         });
 
         $("#pubmed_manual_button").click(function() {

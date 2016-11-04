@@ -535,16 +535,19 @@ def rerun_annotator():
 
     ## Convert to ont_ids
     for i in range(len(pub_annos)):
+        print pub_annos[i]
         if pub_annos[i]:
             pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
 
     for i in range(len(desc_annos)):
+        print desc_annos[i]
         if desc_annos[i]:
             desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
 
     assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
     reject_annos = map(lambda a: a.ontology_id, reject_annos)
 
+    ## This isn't working for some reason :(
     geneweaverdb.clear_geneset_ontology(gs_id)
 
     ## There's probably a cleaner way to do this but idk
