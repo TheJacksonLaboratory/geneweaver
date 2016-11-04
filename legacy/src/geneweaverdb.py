@@ -1532,9 +1532,9 @@ def get_server_side_grouptasks(rargs):
         # Sorting
         sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
         sorting_direction = rargs.get('order[0][dir]', type=str)
-        sort_dir = 'ASC NULLS LAST' \
+        sort_dir = 'ASC NULLS FIRST' \
             if sorting_direction == 'asc' \
-            else 'DESC NULLS LAST'
+            else 'DESC NULLS FIRST'
         order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
 
         # Joins all clauses together as a query

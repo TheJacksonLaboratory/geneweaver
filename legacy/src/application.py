@@ -1779,7 +1779,6 @@ def render_group_tasks(group_id):
             group = geneweaverdb.get_group_by_id(group_id)
 
         group_curators = geneweaverdb.get_group_members(group_id)
-        print(group_curators)
 
         group_owner = False
         try:
