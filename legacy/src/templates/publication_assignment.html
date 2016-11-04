@@ -79,15 +79,12 @@
 
             <div class="loader" style="display: none" id="loader"></div>
 
-
-
             <div class="panel panel-default panel-heading bg-gray-light">
                 <h3 class="panel-title"><strong>Publication Assignment</strong>
                 </h3>
             </div>
 
             <p>Assign a Publication to a group</p>
-
 
             <div class="container">
                 <div class="row">
@@ -128,9 +125,6 @@
 
     {% endblock %}
 
-
-
-
     <script type="text/javascript">
 
     $(function() {
@@ -139,8 +133,7 @@
 
         $('#assign').hide();
 
-        function handleError(data) {
-
+        function handlePubLookupError(data) {
             $('.loader').hide();
 
             if (data.responseJSON && data.responseJSON.message) {
@@ -151,11 +144,9 @@
                     }
                 ]);
             }
-
         }
 
         $('#find').click(function () {
-
 
             var pmid = $('#pubmed_id').val();
 
@@ -169,10 +160,11 @@
                 return;
             }
 
-
             $('#loader').show();
 
             $.getJSON('/get_publication_by_pubmed_id/' + pmid +'.json', function (data) {
+
+
 
                 var html = "<div>" +
                            "    <h4>Pubmed ID: " + data.pubmed_id + "</h4>" +
@@ -194,13 +186,12 @@
                 html += "    <label for='abstract'><strong>Abstract:</strong></label>" +
                         "    <div id='abstract' style='padding-left:10px'>" + data.abstract + "</div>" +
                         "</div>";
-
-
+                
                 current_pub = pmid;
                 $('#current_publication').html(html);
                 $('#assign').show();
                 $('#loader').hide();
-            }).fail(handleError);
+            }).fail(handlePubLookupError);
         });
 
         $('#assign').click(function (){
@@ -220,9 +211,7 @@
 
         function handleAssignmentError(data) {
 
-
             $('#modalLoader').hide();
-
 
             if (data.responseJSON) {
                 console.error("something bad happened: " + data.responseJSON.message);
@@ -233,7 +222,6 @@
                 });
             }
             else {
-
                 $(document).trigger("add-alerts", [
                     {
                         'message': "Internal Server Error",
@@ -241,13 +229,10 @@
                     }
                 ]);
             }
-
         }
 
         $('#assignPubConfirm').click(function (){
-
             $('#modalLoader').show();
-
             var params = {
                 "notes": $('#publicationNotes').val(),
                 "pubmed_id": current_pub,
@@ -257,19 +242,16 @@
             // since params["gs_ids"] is a list the server needs to use
             // request.args.getlist('gs_ids') instead of request.args['gs_ids']
             $.post("{{ url_for('assign_publication_to_group') }}", params ,function(data) {
-
                 $('#modalLoader').hide();
                 $("#assignPubToGroupModal").modal('hide');
 
                 $(document).trigger("add-alerts", [
-                {
-                    'message': data.message,
-                    'priority': 'success'
-                }
-            ]);
-
+                    {
+                        'message': data.message,
+                        'priority': 'success'
+                    }
+                ]);
             }, "json").fail(handleAssignmentError);
-
         });
 
         $("input:radio[name='group']").on('click', function () {
