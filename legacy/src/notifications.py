@@ -14,7 +14,7 @@ import geneweaverdb
 
 
 def __strip_html_tags(html):
-    class MLStripper(HTMLParser):
+    class HTMLStripper(HTMLParser):
         def __init__(self):
             self.reset()
             self.fed = []
@@ -25,10 +25,10 @@ def __strip_html_tags(html):
         def get_data(self):
             return ''.join(self.fed)
 
-    # first unescape html entities like $amp; (otherwise these get stripped too
+    # first unescape html entities like $amp; (otherwise these get stripped too)
     html = HTMLParser().unescape(html)
 
-    stripper = MLStripper()
+    stripper = HTMLStripper()
     stripper.feed(html)
     return stripper.get_data()
 
