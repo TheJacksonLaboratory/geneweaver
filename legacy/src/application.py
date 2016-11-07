@@ -215,6 +215,21 @@ def _form_register():
             return user
 
 
+def is_safe_url(url):
+    """
+    Checks to see if the given URL is safe to redirect to by checking the host 
+    name.
+
+    :param url: url being checked
+    :return:    true if the URL is safe, otherwise false
+    """
+
+    host_url = urlparse(request.host_url)
+    other_url = urlparse(url)
+
+    return host_url.netloc == other_url.netloc
+
+
 @app.route('/logout.json', methods=['GET', 'POST'])
 def json_logout():
     _logout()
@@ -223,18 +238,26 @@ def json_logout():
 
 @app.route('/login.json', methods=['POST'])
 def json_login():
-    json_result = dict()
+    json_result = {}
+    reurl = flask.session['last_page'] if 'last_page' in flask.session else ''
     user = _form_login()
+
     if user is None:
         json_result['success'] = False
+
         return flask.redirect(flask.url_for('render_login_error'))
+
     else:
         json_result['success'] = True
         json_result['usr_first_name'] = user.first_name
         json_result['usr_last_name'] = user.last_name
         json_result['usr_email'] = user.email
 
-    # return flask.jsonify(json_result)
+    if reurl and is_safe_url(reurl):
+        flask.session['last_page'] = ''
+
+        return flask.redirect(reurl)
+    
     return flask.redirect('/')
 
 
@@ -1190,6 +1213,14 @@ def update_notification_pref():
 
 @app.route('/login')
 def render_login():
+    ## Save previous page visit so we can redirect the user back here
+    url = urlparse(request.referrer)
+
+    ## But not for login, register, and password reset pages
+    if url.path != '/login' and url.path != '/register' and\
+       url.path != '/reset':
+        flask.session['last_page'] = url.geturl()
+
     return flask.render_template('login.html')
 
 
