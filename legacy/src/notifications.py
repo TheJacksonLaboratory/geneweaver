@@ -5,9 +5,32 @@ import json
 import smtplib
 import sys
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from flask import request
+from HTMLParser import HTMLParser
 
 import config
 import geneweaverdb
+
+
+def __strip_html_tags(html):
+    class MLStripper(HTMLParser):
+        def __init__(self):
+            self.reset()
+            self.fed = []
+
+        def handle_data(self, d):
+            self.fed.append(d)
+
+        def get_data(self):
+            return ''.join(self.fed)
+
+    # first unescape html entities like $amp; (otherwise these get stripped too
+    html = HTMLParser().unescape(html)
+
+    stripper = MLStripper()
+    stripper.feed(html)
+    return stripper.get_data()
 
 
 def send_usr_notification(to, subject, message, to_is_email=False):
@@ -65,10 +88,40 @@ def send_email(to, subject, message):
     smtp_server = config.get('application', 'smtp')
     admin_email = config.get('application', 'admin_email')
 
-    msg = MIMEText(message)
+    # notification message bodies may include URLs.  These are stored
+    # as relative URLs, but with a Python format placeholder {url_prefix} that
+    # can be used to turn them into absolute URLs before sending as email.
+    # get the url_root from the flask request module, we will leave off the
+    # trailing slash,  since the URL in the message will start with a slash
+    url_prefix = request.url_root[:-1]
+    message = message.format(url_prefix=url_prefix)
+
+    msg = MIMEMultipart('alternative')
     msg['From'] = admin_email
     msg['To'] = to
     msg['Subject'] = subject
+
+    # strip out html tags for plain text version
+    # it would be nice to do something different with links rather than just
+    # strip out the tags (replacing the link text with the url would be better)
+    # I expect email clients to support the html version, so this isn't a big
+    # deal
+    text = __strip_html_tags(message)
+
+    html = """\
+    <html>
+        <head></head>
+        <body>
+        {msg}
+        </body>
+    </html>
+    """.format(msg=message)
+
+    part1 = MIMEText(text, 'plain')
+    part2 = MIMEText(html, 'html')
+
+    msg.attach(part1)
+    msg.attach(part2)
 
     try:
         smtp = smtplib.SMTP(smtp_server)
@@ -100,7 +153,18 @@ def get_notifications(usr_id, offset=0, limit=None):
         cursor.execute("SELECT * FROM production.notifications "
                        "WHERE usr_id = %s ORDER BY time_sent DESC "
                        "OFFSET %s LIMIT %s", (usr_id, offset, limit))
-        return list(geneweaverdb.dictify_cursor(cursor))
+
+        # notifications may include a format placeholder for an url_prefix
+        # this is used when sending notifications via email, so that we can
+        # include an absolute url (without storing that url in the database)
+        # when displaying notifications in the application, we can use relative
+        # urls,  so we go through and replace that placeholder with an empty
+        # string before we return them for display in app
+        notifications = []
+        for notification in geneweaverdb.dictify_cursor(cursor):
+            notification['message'] = notification['message'].format(url_prefix="")
+            notifications.append(notification)
+        return notifications
 
 
 def get_unread_count(usr_id):
