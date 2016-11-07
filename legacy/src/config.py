@@ -4,7 +4,7 @@ import os
 ## Just as a reminder: the configuration file (geneweaver.cfg) should NEVER be
 ## included in version control, especially if it has any usernames, passwords,
 ## or API keys.
-CONFIG_PATH = '/svr/geneweaver/website-py/geneweaver.cfg'
+CONFIG_PATH = '/var/www/html/mset/website-py/geneweaver.cfg'
 
 ## Global config object, sholudn't be accessed directly but using the helper
 ## functions found below.
@@ -26,7 +26,7 @@ def createConfig():
         print >> fl, ''
         print >> fl, '[application]'
         print >> fl, 'host = 127.0.0.1'
-        print >> fl, 'results = /svr/geneweaver/website-py/results'
+        print >> fl, 'results = /var/www/html/mset/website-py/results'
         print >> fl, 'secret = ' + os.urandom(32).encode('hex')
         print >> fl, ''
         print >> fl, '[celery]'
