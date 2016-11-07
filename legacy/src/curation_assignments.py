@@ -76,7 +76,7 @@ def get_geneset_url(geneset_id):
     """
     #return flask.url_for('render_curategeneset', gs_id=geneset_id)
     #return '<a href="https://www.google.com/"> CLICK </a>'
-    return '<a href="/curategeneset/' + str(geneset_id) + '"> GS' + str(geneset_id) + '</a>'
+    return '<a href="{url_prefix}/curategeneset/' + str(geneset_id) + '"> GS' + str(geneset_id) + '</a>'
 
 
 def get_geneset_name(geneset_id):
