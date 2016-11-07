@@ -109,8 +109,8 @@
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Group Name" type="button" title="Group Name"
                                                           class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
-                                                          data-grp="{{ grpO.grp_id }}" style="margin: 2px; padding: 0px 2px;">
-                                                          {{ grpO.grp_name }}</span>
+                                                          data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}"
+                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -147,10 +147,10 @@
                                         {% for grpM in groups_member %}
                                             <tr>
                                             <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                          data-original-title="Group Name" type="button" title="Group Name"
-                                                          class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpM.grp_id }}"
-                                                          data-grp="{{ grpM.grp_id }}" style="margin: 2px; padding: 0px 2px;">
-                                                          {{ grpM.grp_name }}</span>
+                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpM.grp_id }}"
+                                                      data-grp="{{ grpM.grp_id }}" data-grp-name="{{ grpM.grp_name }}"
+                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -183,12 +183,11 @@
                 <div class="col-md-9">
                     <div class="panel panel-primary">
                         <div class="page-header">
-                            <h2>{{ group.grp_name }}
-                                {% if group.private %}
-                                    <span class="label label-danger">Private</span>
-                                {% else %}
-                                    <span class="label label-info">Public</span>
-                                {% endif %}
+                            <input hidden id="group_id" value="{{ group.grp_id }}">
+                            <input hidden id="user_id" value="{{ user_id }}">
+                            <h2><label id="group_name">{{ group.grp_name }}</label>
+                                    <label hidden id="group_private" class="label label-danger">Private</label>
+                                    <label hidden id="group_public" class="label label-info">Public</label>
                                 {% if group_owner == true %}
                                     <span type="button" class="btn btn-primary pull-right" id="assignCurator"><i class="fa fa-user pull-right"></i> Assign Curator</span>
                                 {% endif %}
@@ -256,7 +255,11 @@
 
     $(document).ready(function () {
         var group_id = '{{ group.grp_id }}';
-        var private = Boolean('{{ group.private }}');
+        var group_name = '{{  group.grp_name }}';
+        $('#group_id').val(group_id);
+        $('#group_name').text(group_name);
+        setPrivacyDisplay('{{ group.private }}');
+
         var user_id = '{{user_id}}';
         var columns = {{columns | safe}};
         var headerCols = {{headerCols | safe}};
@@ -273,7 +276,12 @@
             "ajax": {
                 'url': "/../getServersideGroupTasksdb",
                 'type': 'GET',
-                "data": {"group_id": group_id, "user_id": user_id}
+                "data": function ( d ) {
+                    return $.extend( {}, d, {
+                        "group_id": $('#group_id').val(),
+                        "user_id":  $('#user_id').val()
+                    });
+                }
             },
             "columns": [
                 { "name": "full_name" },
@@ -354,11 +362,25 @@
 
         });
 
+        function setPrivacyDisplay(private) {
+            if (private === 'True') {
+                $('#group_public').hide();
+                $('#group_private').show();
+            } else {
+                $('#group_private').hide();
+                $('#group_public').show();
+            }
+        }
+
         $('.clickable_viewGroupTasks').on('click', function () {
             var grp_id = ($(this).attr("data-grp"));
-            group_id = grp_id;
-            // TODO:  Change to update in page, not bring up new page
-            //window.location.href = '../groupTasks/' + grp_id;
+            var grp_name = ($(this).attr("data-grp-name"));
+            var privacy = ($(this).attr("data-grp-prv"));
+            setPrivacyDisplay(privacy);
+            $('#group_id').val(grp_id);
+            $('#group_name').text(grp_name);
+            var table = $('#groupTasksViewer').DataTable();
+            table.rows().invalidate().draw(false);
         });
 
         {% if group_owner == true %}
@@ -457,7 +479,7 @@
                     var successful = [];
                     var successfulLabels = [];
                     var failed = [];
-                    
+
                     for (var key in data.results) {
                         if (data.results[key].success) {
                             successfulLabels.push("GS" + key);
