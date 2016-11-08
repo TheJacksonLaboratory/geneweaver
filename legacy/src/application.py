@@ -934,13 +934,33 @@ def get_ont_root_nodes():
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-        result = geneweaverdb.updategeneset(user_id, flask.request.form)
-        data = dict()
-        data.update({"success": result})
-        data.update({'usr_id': user_id})
-        return json.dumps(data)
+
+    user_id = session['user_id'] if session['user_id'] else 0
+    gs_id = request.form['gs_id'] if request.form['gs_id'] else 0
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        return json.dumps({
+            'success': False,
+            'error': 'You must be logged in to make changes to this GeneSet'
+        })
+
+    ## Only admins, curators, and owners can make changes
+    if (not user.is_admin and not user.is_curator) or\
+       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
+        not user_is_assigned_curation(user_id, gs_id)):
+           return json.dumps({
+               'success': False,
+               'error': 'You do not have permission to update this GeneSet'
+           });
+
+    result = geneweaverdb.update_geneset(user_id, flask.request.form)
+    #data = dict()
+
+    #data.update({"success": result})
+    #data.update({'usr_id': user_id})
+
+    return json.dumps(result)
 
 @app.route('/curategenesetgenes/<int:gs_id>')
 def render_curategenesetgenes(gs_id):
