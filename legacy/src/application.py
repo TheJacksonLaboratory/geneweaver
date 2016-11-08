@@ -3059,14 +3059,14 @@ class ToolBooleanAlgebraProjects(restful.Resource):
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
 
 class ToolUpSet(restful.Resource):
-    def get(self, apikey, homology, pairwiseDeletion, genesets):
-        return upsetblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+    def get(self, apikey, homology, genesets, zeros):
+        return upsetblueprint.run_tool_api(apikey, homology, genesets, zeros)
 
 
 class ToolUpSetProjects(restful.Resource):
-    def get(self, apikey, homology, pairwiseDeletion, projects):
+    def get(self, apikey, homology, projects, zeros):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
-        return upsetblueprint.run_tool_api(apikey, homology, pairwiseDeletion, genesets)
+        return upsetblueprint.run_tool_api(apikey, homology, genesets, zeros)
 
 
 class KeywordSearchGuest(restful.Resource):
@@ -3139,9 +3139,9 @@ api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relatio
 api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byprojects/<apikey>/<relation>/<projects>/')
 
 api.add_resource(ToolUpSet,
-                 '/api/tool/upset/<apikey>/<homology>/<pairwiseDeletion>/<genesets>/')
+                 '/api/tool/upset/<apikey>/<homology>/<zeros>/<genesets>/')
 api.add_resource(ToolUpSetProjects,
-                 '/api/tool/upset/byprojects/<apikey>/<homology>/<pairwiseDeletion>/<projects>/')
+                 '/api/tool/upset/byprojects/<apikey>/<homology>/<zeros>/<projects>/')
 
 # ********************************************
 # END API BLOCK
