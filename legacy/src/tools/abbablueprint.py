@@ -26,7 +26,7 @@ def run_tool():
         flask.flash("Warning: You need to have input or/and at least a GeneSet selected!")
         return flask.redirect('analyze')
 
-    params['ABBA_InputGenes'] = form['ABBA_InputGenes']
+    params['ABBA_InputGenes'] = form.getlist("ABBA_InputGenes")
     if 'ABBA_IgnHom' in form:
         params['ABBA_IgnHom'] = form['ABBA_IgnHom']
     if 'ABBA_ShowInter' in form:

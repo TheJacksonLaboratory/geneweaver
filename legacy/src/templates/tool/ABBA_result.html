@@ -138,13 +138,105 @@
     border-radius: 0px
   }
 
+   #ABBA_head{
+     margin-top: 10px;
+     margin-bottom: 5px;
+   }
+
+   .popover-content{
+    min-width: 250px;
+    width: auto;
+    box-shadow: 5px 5px 4px grey;
+    -moz-box-shadow: 5px 5px 4px grey;
+    -webkit-box-shadow: 5px 5px 4px grey;
+   }
 
 </style>
 
 <div class="container">
   <div class="row">
     <div class="col-md-12 title-col">
-      <h1>ABBA Gene-Centered Search Results</h1>
+      <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>
+      <button type="button" class="btn btn-primary pull-right" data-toggle="popover" title="Update Search">Update</button>
+      <div id="update_form_wrapper" style="display: none;">
+        {# Tool params need to be added to the DB for the ABBA tool.
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_InputGenes']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_IgnHom']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_ShowInter']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenes']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenesets']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_Tierset']) }}</div>
+                <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_RestrictSpecies']) }}</div>
+                <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+        #}
+          <div class="form-group">
+              <label>
+                  Input Genes:
+              </label>
+              <textarea rows="2" class="form-control valid" name='ABBA_InputGenes' id="textbox" style=" min-height:30px; max-height:100px; resize:vertical;"></textarea>
+          </div>
+          <div class="form-group">
+              <label>
+                  Ignore Homology
+                  <input type="checkbox" name="ABBA_IgnHom" value="yes">
+              </label>
+          </div>
+          <div class="form-group">
+              <label>
+                  Show Intermediate
+                  <input type="checkbox" name="ABBA_ShowInter" checked="checked" value="yes">
+              </label>
+          </div>
+          <div class="form-group">
+              <label>Minimum Genes:</label>
+              <select name="ABBA_MinGenes"  class="form-control">
+                  <option selected="selected">Auto</option>
+                  {% for i in range(10) %}
+                      <option>{{loop.index0}}</option>
+                  {% endfor %}
+              </select>
+          </div>
+          <div class="form-group">
+              <label>
+                  Minimum GeneSets:
+              </label>
+              <input type=text class="form-control" name='ABBA_MinGenesets'/>
+          </div>
+          <div class="form-group">
+              <label>
+                  Tierset:
+              </label>
+              <select name="ABBA_Tierset"  class="form-control">
+                  <option value="0" selected="selected">All</option>
+                  <option value="4">Curated or Provisional (Tier I-IV)</option>
+                  <option value="3">Curated (Tier I-III)</option>
+                  <option value="2">Pro-curated (Tier I-II)</option>
+                  <option value="1">Public Resource (Tier I)</option>
+                  <option value="-1">Non-Resource (Tier II-V)</option>
+                  <option value="-2">Curated Non-Resource (Tier II-III)</option>
+                  <option value="-10">Private/Group Only (Tier V)</option>
+              </select>
+          </div>
+          <div class="form-group">
+              <label>
+                  Restrict Species:
+              </label>
+              <select name="ABBA_RestrictSpecies"  class="form-control">
+                  <option value="0" selected="selected">None</option>
+                  <option value="1">Mus musculus</option>
+                  <option value="2">Homo sapiens</option>
+                  <option value="3">Rattus norvegicus</option>
+                  <option value="4">Danio rerio</option>
+                  <option value="5">Drosophila melanogaster</option>
+                  <option value="6">Macaca mulatta</option>
+                  <option value="8">Caenorhabditis elegans</option>
+                  <option value="9">Saccharomyces cerevisiae</option>
+                  <option value="10">Gallus gallus</option>
+              </select>
+          </div>
+          <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+      </div>
+
       <table class="table">
         <tbody>
           <tr>
@@ -156,11 +248,11 @@
               <strong>Include Homology:&nbsp;</strong>{{async_result.IncludeHomology}}<br>
             </td>
             <td>
-              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }}{% else %} guest{% endif %}<br>
+              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }} {{g.user.user_id|e}} {% else %} guest{% endif %}<br>
               <strong>Date:&nbsp;</strong>
-                  <script> 
-                  <!-- 
-                  var d = new Date(); 
+                  <script>
+                  <!--
+                  var d = new Date();
                   document.write(d.toLocaleDateString() + " " + d.toLocaleTimeString());
                   //-->
                   </script>
@@ -172,12 +264,13 @@
           </tr>
         </tbody>
       </table>
-
+<!--
       <div class="progress progress-striped">
         <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%;">
           <span>100% Complete</span>
         </div>
       </div>
+-->
     </div>
 
   </div><!-- end row -->
@@ -226,11 +319,9 @@
         {% if async_result.GenesOfInterest %}
         <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
             {% for gene in async_result.GenesOfInterest %}
-            <tr class="result-row" row-type="GOI">
-
+            <tr class="result-row" row-type="GOI" data-id="{{gene[0]}}" data-type="gene">
               <td>{{gene[1]}}<br></td>
               <td>{{gene[2]}}<br></td>
-
             </tr>
             {% endfor %}
           </tbody>
@@ -238,7 +329,8 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header"></h2>
+          <h2 class="extra-info-header">No Gene Selected</h2>
+          <br>
         </div>
       </div>
 
@@ -257,7 +349,7 @@
             {% if async_result.GenesetResults %}
             <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
               {% for geneset in async_result.GenesetResults %}
-              <tr class="result-row" row-type="MG">
+              <tr class="result-row" row-type="MG" data-id="{{geneset[0]}}" data-type="geneset">
                 <td>{{geneset[1]}}<br></td>
                 <td>{{geneset[2]}}</td>
               </tr>
@@ -267,7 +359,36 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header"></h2>
+          <h2 class="extra-info-header">No Geneset Selected</h2>
+          <br>
+        </div>
+      </div>
+
+      <!-- Add Geneset to Project Modal -->
+      <div id="addGenesetProjectModal" class="modal">
+        <!--Modal Content -->
+        <div class="modal-content">
+          <h3>Add Geneset to Project</h3>
+          <div class="col-md-8">
+            {% if g.user.projects %}
+            <div data-type="projectList">
+              <h3>Select Project</h3>
+                <select>
+                  {% for proj in g.user.projects %}
+                    <option value="{{proj.name}}" id="{{proj.project_id}}">
+                      {{proj.name}}
+                    </option>
+                  {% endfor %}
+                </select> 
+            </div>
+            {% else %}
+            <div class="col-md-8">You do not have any existing projects!</div>
+            {% endif %}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary">Add Project to Geneset</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
 
@@ -287,7 +408,7 @@
             {% if async_result.GeneResults %}
             <tbody  class="scroll-tbody" id="ResultGenesTableBody">
               {% for gene in async_result.GeneResults %}
-              <tr class="result-row" row-type="RG">
+              <tr class="result-row" row-type="RG" data-id="{{gene[0]}}" data-type="gene">
                 <td>{{gene[1]}}<br></td>
                 <td>{{gene[2]}}<br></td>
                 <td>{{gene[3]}}</td>
@@ -298,7 +419,8 @@
           </table>
         </div>
         <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header"></h2>
+          <h2 class="extra-info-header">No Gene Selected</h2>
+          <br>
         </div>
       </div>
 
@@ -308,9 +430,31 @@
 
 </div><!-- end container -->
 
+
+
+
 <script type="text/javascript">
 $(document).ready(function() {
 
+
+
+  $('html').on('mouseup', function(e) {
+      if(!$(e.target).closest('.popover').length) {
+          $('.popover').each(function(){
+              $(this.previousSibling).popover('hide');
+          });
+      }
+  });
+
+  $(function () {
+    $('[data-toggle="popover"]').popover({
+      html: true,
+      placement: "bottom",
+      content: function(){
+        return $('#update_form_wrapper').html();
+      }
+    });
+  });
 
   var activeSystemClass = $('.list-group-item.active');
 
@@ -345,7 +489,6 @@ $(document).ready(function() {
     function onClickEvent(e) {
       var bodyID;
       var workingTab = e.target.getAttribute("row-type");
-      console.log(workingTab);
 
       if(workingTab == "GOI"){
         bodyID = '#GenesOfInterestTableBody';
@@ -396,12 +539,119 @@ $(document).ready(function() {
     updateInfoPane($(this));
   });
 
+
   function updateInfoPane(activeRow){
+    if(activeRow == null){
+      return;
+    }
+
     var parentTab = activeRow.parent().closest('.tab-pane');
     var infoPane = parentTab.children('div').last();
     var headerText = activeRow.children('td').first().text();
-    infoPane.children('h2').closest('.extra-info-header').text(headerText);
+    var id = activeRow.data('id')
+    var type = activeRow.data('type')
+    var url;
+
+    infoPane.children('h2').closest('.extra-info-header').text(id);
+
+    var request = new XMLHttpRequest();
+
+    if(type != "gene" && type != "geneset"){
+      infoPane.children('h2').closest('.extra-info-header').text("ERROR PROCESSING REQUEST! Contact an Administrator.");
+      return;
+    }
+
+    if(type == "gene"){
+      url = '/api/get/gene/bygeneid/' + id + '/';
+      request.open("GET", url, false);
+      request.send();
+
+      //infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
+
+      formatExtraInfo(infoPane, "gene", request.responseText, activeRow);
+
+    } else if (type == "geneset") {
+      url = '/api/get/geneset/byid/' + id + '/';
+      request.open("GET", url, false);
+      request.send();
+
+      //infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
+
+      formatExtraInfo(infoPane, "geneset", request.responseText, activeRow);
+    }
+
   }
+
+  function formatExtraInfo(infoPane, infoType, responseText, activeRow){
+    switch(infoType){
+      case "gene": formatGeneInfo(infoPane, responseText, activeRow);
+        break;
+      case "geneset": formatGenesetInfo(infoPane, responseText, activeRow);
+        break;
+      default: infoPane.append("<h2>Error retrieving more info.</h2>");
+    }
+  }
+
+  function formatGeneInfo(infoPane, responseText, activeRow){
+    infoPane.empty();
+    var parser = JSON.parse(responseText)[0][0];
+    var species = activeRow.children('td').last().text();
+    console.log(species);
+
+    infoPane.append("<h2>" + parser.gi_symbol + "</h2>");
+    infoPane.append("<p>Full Name: " + parser.gi_name + "</p>");
+    infoPane.append("<p>Description: " + parser.gi_description + "</p>");
+    infoPane.append("<p>Species: " + species + "</p>");
+    infoPane.append("<p>Type: " + parser.gi_type + "</p>");
+    infoPane.append("<p>Ode Gene ID: " + parser.ode_gene_id + "</p>");
+    infoPane.append("<p>Chromosome: " + parser.gi_chromosome + "</p>");
+    infoPane.append("<p>Date added: " + parser.gi_date + "</p>");
+    infoPane.append("<p>Start: " + parser.gi_start_bp + "</p>");
+    infoPane.append("<p>End: " + parser.gi_end_bp + "</p>");
+    infoPane.append("<p>Strand: " + parser.gi_strand + "</p>");
+  }
+
+  function formatGenesetInfo(infoPane, responseText, activeRow){
+    infoPane.empty();
+    var parser = JSON.parse(responseText)[0][0];
+
+    infoPane.append("<h2>" + parser.gs_abbreviation + "</h2>");
+    infoPane.append("<p>Curator Comments: " + parser._comments_curator + "</p>");
+    infoPane.append("<p>Search Text: " + parser._searchtext + "</p>");
+    infoPane.append("<p>Admin Flag: " + parser.admin_flag + "</p>");
+    infoPane.append("<p>Curration ID: " + parser.cur_id + "</p>");
+    infoPane.append("<p>File ID: " + parser.file_id + "</p>");
+    infoPane.append("<p>Author Comments: " + parser._comments_author + "</p>");
+    infoPane.append("<p>Attribution: " + parser.gs_attribution + "</p>");
+    infoPane.append("<p>Attribution Old: " + parser.gs_attribution_old + "</p>");
+    infoPane.append("<p>Size: " + parser.gs_count + "</p>");
+    infoPane.append("<p>Date Created: " + parser.gs_created + "</p>");
+
+    infoPane.append("<p>Description: " + parser.gs_description + "</p>");
+    infoPane.append("<p>Gene Id Type: " + parser.gs_gene_id_type + "</p>");
+    infoPane.append("<p>Groups: " + parser.gs_groups + "</p>");
+    infoPane.append("<p>Geneset ID: " + parser.gs_id + "</p>");
+    infoPane.append("<p>Is Edgelist: " + parser.gs_is_edgelist + "</p>");
+    infoPane.append("<p>Full Name: " + parser.gs_name + "</p>");
+    infoPane.append("<p>Status: " + parser.gs_status + "</p>");
+    infoPane.append("<p>Threshold: " + parser.gs_threshold + "</p>");
+    infoPane.append("<p>Threshold Type: " + parser.gs_threshold_type + "</p>");
+    infoPane.append("<p>Last Updated: " + parser.gs_updated + "</p>");
+
+    infoPane.append("<p>URI: " + parser.gs_uri + "</p>");
+    infoPane.append("<p>gsv_qual: " + parser.gsv_qual + "</p>");
+    infoPane.append("<p>Publisher ID: " + parser.pub_id + "</p>");
+    infoPane.append("<p>Res ID: " + parser.res_id + "</p>");
+    infoPane.append("<p>Species ID: " + parser.sp_id + "</p>");
+    infoPane.append("<p>User ID: " + parser.usr_id + "</p>");
+    infoPane.append('<button type="button" class="btn btn-primary" id="addGenesetProjectButton" data-toggle="modal" data-target="#addGenesetProjectModal"> Add Geneset to Project </button>');
+    infoPane.append("<a href=");
+  }  
+
+  /* Add Geneset to Project Modal*/
+  $('#addGenesetProjectButton').button().on("click", function(){
+    $('#addGenesetProjectModal').dialog("addGenesetProjectModal");
+  })
 
   $('#system-searchGOI').keyup( function(e){
     search_tab("GOI");
@@ -797,4 +1047,5 @@ function newGeneset(){
 	window.location.href = "/uploadgenesetpre/"+genes.join("_")+".html";
 }
 </script>
+
 {% include 'footer.html' %}

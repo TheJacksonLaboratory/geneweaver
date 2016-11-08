@@ -1147,8 +1147,7 @@ def clear_geneset_ontology(gs_id):
             ''',
                 (gs_id,)
         )
-    cursor.connection.commit()
-    return
+        cursor.connection.commit()
 
 
 def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
@@ -1159,6 +1158,101 @@ def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
             VALUES 
                 (%s, %s, %s);
             ''', (gs_id, ont_id, gso_ref_type))
+        cursor.connection.commit()
+
+def get_ontologies_by_refs(ont_ref_ids):
+    """
+    Returns ont_ids (if they exist) for each of the given ont_ref_ids.
+
+    :param ont_ref_ids: list of the ontology reference IDs
+    :return:            list of ont_ids
+    """
+
+    ont_ref_ids = tuple(ont_ref_ids)
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT *
+            FROM ontology
+            WHERE ont_ref_id IN %s
+            ''', (ont_ref_ids,))
+
+        result = cursor.fetchall()
+
+        if not result:
+            return []
+
+        return map(lambda t: t[0], result)
+
+def does_geneset_have_annotation(gs_id, ont_id):
+    """
+    Checks to see if a particular ontology term has been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID 
+    :param ont_id:  ontology ID for the term being checked
+    :return:        true if the term is annotated to the given geneset,
+                    otherwise false
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT EXISTS(
+                SELECT 1
+                FROM geneset_ontology
+                WHERE gs_id = %s AND
+                      ont_id = %s
+            );
+            ''', (gs_id, ont_id))
+
+        return cursor.fetchone()[0]
+
+def get_geneset_annotation_reference(gs_id, ont_id):
+    """
+    Returns the reference type for an ontology term that's been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID
+    :param ont_id:  ontology term ID
+    :return:        the reference type (a string) if it exists, otherwise None
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT gso_ref_type
+            FROM geneset_ontology
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (gs_id, ont_id))
+
+        result = cursor.fetchone()
+
+        if not result:
+            return None
+
+        return result[0]
+
+def update_geneset_ontology_reference(gs_id, ont_id, ref_type):
+    """
+    Updates the ontology reference type for the given geneset and ontology
+    term.
+
+    :param gs_id:       geneset ID 
+    :param ont_id:      ontology ID for the term being checked
+    :param ref_type:    new reference type
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            UPDATE geneset_ontology
+            SET gso_ref_type = %s
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (ref_type, gs_id, ont_id))
+
         cursor.connection.commit()
 
 def add_project(usr_id, pj_name):
