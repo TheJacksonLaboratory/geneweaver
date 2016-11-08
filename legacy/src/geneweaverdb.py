@@ -1061,29 +1061,9 @@ def update_geneset(usr_id, form):
     pub_pubmed = form.get('pub_pubmed', '').strip()
     pub_id = form.get('pub_id', '').strip()
 
-    """
-    gs_id = int(form["gs_id"].strip()) if form["gs_id"] else None
-    gs_abbreviation = form["gs_abbreviation"].strip() if form["gs_abbreviation"] else None
-    gs_description = form["gs_description"].strip() if form["gs_description"] else None
-    gs_name = form["gs_name"].strip() if form["gs_name"] else None
-    pub_authors = form["pub_authors"].strip() if form["pub_authors"] else None
-    pub_title = form["pub_title"].strip() if form["pub_title"] else None
-    pub_abstract = form["pub_abstract"].strip() if form["pub_abstract"] else None
-    pub_journal = form["pub_journal"].strip() if form["pub_journal"] else None
-    pub_volume = form["pub_volume"].strip() if form["pub_volume"] else None
-    pub_pages = form["pub_pages"].strip() if form["pub_pages"] else None
-    pub_month = form["pub_month"].strip() if form["pub_month"] else None
-    pub_year = form["pub_year"].strip() if form["pub_year"] else None
-    pub_pubmed = form["pub_pubmed"].strip() if form["pub_pubmed"] else None
-    pub_id = form["pmid"].strip() if form["pmid"] else None
-    """
-    # ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
-    # ont_ids = (form["onts"].strip()) if form["onts"] else None
-    pmid = None
-
     ## Should have already been checked but does't hurt to do it again I guess
-    if ((get_user(usr_id).is_admin == 'False' and\
-        get_user(usr_id).is_curator == 'False') or\
+    if ((get_user(usr_id).is_admin == False and\
+        get_user(usr_id).is_curator == False) or\
         (user_is_owner(usr_id, gs_id) != 1) and not 
         user_is_assigned_curation(usr_id, gs_id)):
             return {
@@ -1131,7 +1111,7 @@ def update_geneset(usr_id, form):
     elif not pub_authors and not pub_title and not pub_abstract and\
          not pub_journal and not pub_volume and not pub_pages and\
          not pub_month and not pub_year:
-             pmid = None
+             pub_id = None
 
     # if pubmed id is none and something else is not, then use the pmid to 
     # update the appropriate information
