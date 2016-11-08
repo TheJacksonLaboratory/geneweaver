@@ -580,19 +580,27 @@ def rerun_annotator():
 
     for ont_id in pub_annos[0]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, MI Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Publication, MI Annotator'
+            )
 
     for ont_id in pub_annos[1]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, NCBO Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Publication, NCBO Annotator'
+            )
 
     for ont_id in desc_annos[0]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, MI Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Description, MI Annotator'
+            )
 
     for ont_id in desc_annos[1]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, NCBO Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Description, NCBO Annotator'
+            )
     
     return json.dumps({'success': True})
 
@@ -923,13 +931,6 @@ def get_ont_root_nodes():
         info.append(data)
     return (json.dumps(info))
 
-@app.route('/reannotate', methods=['GET'])
-def reannotate():
-    """
-    This function re-runs the annotator tool on text from geneset and 
-    publication descriptions.
-    """
-    pass
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
