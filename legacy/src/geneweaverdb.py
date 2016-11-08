@@ -1037,15 +1037,25 @@ def cancel_geneset_edit_by_id(rargs):
 
 def update_geneset(usr_id, form):
     """
-    Updates geneset metacontent and publication information. 
-    This function updates both some of the metadata in the geneset table and the publication table. If geneset metadata
-    is not null, it will update everything. If the pub_pubmed is not null, it will insert all publication information if
-    it does not exist. If pub_pubmed is null, and any other pubmed record is populated it will update those records. This
-    function does not check a mismatch between pubmed info and pub_pubmed id. Both are done in an explicit transaction.
-    :param usr_id:
-    :param form:
-    :return: success is 'True' or 'Error Msg'
+    Selectively updates geneset metacontent and publication information. The
+    function determines how to update things in the following order: 
+    If a PMID (pub_pubmed) is provided, all metacontent fields will be 
+    updated. 
+    If a PMID is not provided and all other metacontent fields are blank, all
+    publication information associated with the geneset is removed. 
+    Finally, if any metacontent fields are filled out, all publication
+    metacontent fields are updated and a new publication ID (pub_id) is created
+    depending on whether it already exstis or not.
+
+    :param usr_id:  ID of the user updating the geneset
+    :param form:    form dict containing data from the edit geneset form
+    :return:        an object containing two fields, 'success' and 'error'. If
+                    any error occurs during update 'success' is set to False
+                    and the error message is contained in 'error'. A successful
+                    update results in 'success' being set to True and the 'error'
+                    field missing from the result dict.
     """
+
     gs_id = int(form.get('gs_id', 0))
     gs_abbreviation = form.get('gs_abbreviation', '').strip()
     gs_description = form.get('gs_description', '').strip()
@@ -1077,6 +1087,8 @@ def update_geneset(usr_id, form):
             'error': 'You did not provide a required field'
         }
 
+    ## PMID exists, we insert a new publication entry if it doesn't already
+    ## exist in the publication table
     if pub_pubmed:
         with PooledCursor() as cursor:
             cursor.execute('''
@@ -1107,15 +1119,17 @@ def update_geneset(usr_id, form):
 
             pub_id = cursor.fetchone()[0]
 
-    # if pubmed id is none and everything else is blank, then pub_id = None
+    ## All publication metacontent is missing, any publication info associated
+    ## with this geneset is removed
     elif not pub_authors and not pub_title and not pub_abstract and\
          not pub_journal and not pub_volume and not pub_pages and\
          not pub_month and not pub_year:
              pub_id = None
 
-    # if pubmed id is none and something else is not, then use the pmid to 
-    # update the appropriate information
+    ## Some publication metacontent is filled out, we update all metacontent
+    ## fields
     else:
+        ## A pub_id already exists, we don't need to do any insertions
         if pub_id:
             with PooledCursor() as cursor:
                 cursor.execute('''
@@ -1132,10 +1146,7 @@ def update_geneset(usr_id, form):
 
                 cursor.connection.commit()
 
-            #pmid = pub_id
-
-        # if there is no pmid associated, we need to add it and return the 
-        # pub_id
+        ## No pub_id exists, we need to insert a new publication entry
         else:
             with PooledCursor() as cursor:
                 cursor.execute('''
@@ -1155,16 +1166,6 @@ def update_geneset(usr_id, form):
 
                 pub_id = cursor.fetchone()[0]
 
-            """
-            with PooledCursor() as cursor:
-                cursor.execute('''
-                    SELECT currval(%s);
-                    ''', ('publication_pub_id_seq',)
-                )
-            """
-
-                #pub_id = cursor.fetchone()[0]
-
     # update geneset with changes
     with PooledCursor() as cursor:
         sql = cursor.mogrify('''
@@ -1175,16 +1176,8 @@ def update_geneset(usr_id, form):
             ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_id,)
         )
 
-        # print sql
         cursor.execute(sql)
         cursor.connection.commit()
-
-    # update geneset ontologies
-    # clear_geneset_ontology(gs_id)
-
-    # gso_ref_type = ""
-    # for ont in ont_ids:
-    #	 add_ont_to_geneset(gs_id, ont, gso_ref_type)
 
     return {'success': True}
 
