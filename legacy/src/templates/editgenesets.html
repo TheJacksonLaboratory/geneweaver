@@ -42,7 +42,7 @@
 
     }
 
-    #anotologyInformation, #noAnotologyInformation {
+    #ontologyInformation, #noAnotologyInformation {
         cursor: pointer;
     }
 
@@ -102,7 +102,15 @@
         <div style="margin-left: 1em;">
             <br>
             <p>
-                Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet MetaContent meets the guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
+                Please complete the descriptive information about this GeneSet. 
+                Follow the guidelines outlined in our 
+                <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">
+                    Curation Standards
+                </a>
+                to facilitate acceptance of your public data submission by 
+                GeneWeaver Curators. Following these guidelines for private 
+                data will assist you and your team in interpreting results and 
+                taking advantage of text and ontology analysis tools. 
             </p>
             <br>
             <input type="hidden" name="gs_id" value="{{ geneset.geneset_id }}"/>
@@ -180,7 +188,13 @@
         <div style="margin-left: 1em;">
             <br>
             <p>
-                If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
+                If this GeneSet has been published in a PubMed indexed journal, 
+                just enter the PubMed ID below to automatically fill in the 
+                publication info, otherwise you may manually enter publication 
+                information. Providing this will allow others to discover and 
+                use your data more quickly, provide a means to link here 
+                directly from PubMed, avoid data duplication and streamline 
+                our curation efforts. 
             </p>
 
             <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="3000"></div>
@@ -281,7 +295,7 @@
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h2 class="panel-title">
                 Ontology Annotations
-                <span id="anotologyInformation" tabindex="0" 
+                <span id="ontologyInformation" tabindex="0" 
                       data-trigger="focus">
                     <i class="fa fa-info-circle"></i>
                 </span>
@@ -723,18 +737,28 @@
 
     //Popover that gives Geneset Ontology functionality overview for the user
     //Displayed when ontologies are linked with the geneset
-    $('#anotologyInformation').popover({
-            title: 'GeneSet Ontologies', content: 'Linked GeneSet ontologies are displayed below as the highlighted ' +
-            'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
-            'selection of various GeneSet ontology reference types.  All selected ontologies may be viewed under the ' +
-            'All Reference Types category.  GeneSet-ontology links may be added or removed under any other category'
+    $('#ontologyInformation').popover({
+            title: 'GeneSet Ontologies', 
+            content: 'GeneSet ontology annotations are highlighted below.' +
+            'The drop down menu above the ontology tree allows for the ' +
+            'selection of GeneSet annotation source, e.g. manual or inferred ' +
+            'from text mining. All selected ontology terms may be viewed ' +
+            'under the All Reference Types category. GeneSet ontology ' +
+            'annotations may be added or removed under any other category. ' +
+            'Contact us to suggest additional ontologies that you would ' +
+            'like to use to annotate your GeneSets.'
     });
     //Displayed when NO ontologies are linked with the geneset
     $('#noAnotologyInformation').popover({
-            title: 'GeneSet Ontologies', content: 'Linked GeneSet ontologies are displayed below as the highlighted ' +
-            'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
-            'selection of various GeneSet ontology reference types.  All selected ontologies may be viewed under the ' +
-            'All Reference Types category.  GeneSet-ontology links may be added or removed under any other category'
+            title: 'GeneSet Ontologies', 
+            content: 'GeneSet ontology annotations are highlighted below.' +
+            'The drop down menu above the ontology tree allows for the ' +
+            'selection of GeneSet annotation source, e.g. manual or inferred ' +
+            'from text mining. All selected ontology terms may be viewed ' +
+            'under the All Reference Types category. GeneSet ontology ' +
+            'annotations may be added or removed under any other category. ' +
+            'Contact us to suggest additional ontologies that you would ' +
+            'like to use to annotate your GeneSets.'
     });
 
 </script>
