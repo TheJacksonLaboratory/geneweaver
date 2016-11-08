@@ -361,6 +361,19 @@
     var gsID = {{ geneset.geneset_id | safe }};
 
     /*
+     * Toggles an element's enabled/disabled property.
+     *
+     * arguments
+     *      element: HTML element being enabled/disabled
+     */
+    var toggleElementDisabled = function(element) {
+
+        $(element).prop('disabled', function() { 
+            return !$(this).prop('disabled') 
+        });
+    };
+
+    /*
      * Retrieves the currently selected annotation reference type.
      *
      * returns
@@ -414,9 +427,7 @@
             $('#annotator-text').text('Running...');
         }
 
-        $('#run-annotator').prop('disabled', function() { 
-            return !$(this).prop('disabled') 
-        });
+        toggleElementDisabled('#run-annotator');
     };
 
     $(function(){
@@ -451,7 +462,14 @@
 
 			/**
               * Called during node creation. If a node has the "Manual
-              * Rejection" reference type we alter the style.
+              * Rejection" reference type we alter the style. Every node gets
+              * its reference type added to the span title so it can be viewed
+              * when a user hovers over the node.
+              *
+              * arguments
+              *     node:       the node object being initialized
+              *     nodeSpan:   jQuery object representing the node's span
+              *                 element
               */
             onCreate: function (node, nodeSpan) {
 
@@ -589,49 +607,50 @@
 	document.getElementById("genesetValues").value= genes1;
     };
 
-        $('#upload-geneset-form').submit(function(event) {
-            event.preventDefault();
-            $('#save-updates').prop('disabled',function() { return !$(this).prop('disabled') });
+    $('#upload-geneset-form').submit(function(event) {
+        event.preventDefault();
 
-            var data = $("#upload-geneset-form").serialize();
-            var tree = $("#tree").dynatree("getTree");
-            //May be used later on in order to submit ontology tree information with form.
-            var onts = JSON.stringify(tree.serializeArr());
-            data = data.concat("&onts=", onts);
+        toggleElementDisabled('#save-updates');
 
-            $.ajax({
-                type: "POST",
-                url: "/updategeneset",
-                data: data, //{data: data, onts: onts},
-                //processData: false,
-                //contentType: false,
-                success: function(r)
-                {
-                    var v = JSON.parse(r);
-                    if (v["success"] == 'True') {
-                        var gs_id = {{ geneset.geneset_id }};
-                        {% if curation_view %}
-                            window.location = '/curategenesetgenes/' + gs_id;
-                        {% else %}
-                            window.location = '/editgenesetgenes/' + gs_id;
-                        {% endif %}
-                    }
-                    else {
-                        $("html, body").animate({ scrollTop: 0 }, "slow");
-                        $("#result").html('<div class="alert alert-danger fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
-                    }
-                },
-                error: function(r)
-                {
+        var data = $("#upload-geneset-form").serialize();
+        var tree = $("#tree").dynatree("getTree");
+        //May be used later on in order to submit ontology tree information with form.
+        var onts = JSON.stringify(tree.serializeArr());
+        data = data.concat("&onts=", onts);
+
+        $.ajax({
+            type: "POST",
+            url: "/updategeneset",
+            data: data, //{data: data, onts: onts},
+            //processData: false,
+            //contentType: false,
+            success: function(r)
+            {
+                var v = JSON.parse(r);
+                if (v["success"] == 'True') {
+                    var gs_id = {{ geneset.geneset_id }};
+                    {% if curation_view %}
+                        window.location = '/curategenesetgenes/' + gs_id;
+                    {% else %}
+                        window.location = '/editgenesetgenes/' + gs_id;
+                    {% endif %}
+                }
+                else {
                     $("html, body").animate({ scrollTop: 0 }, "slow");
                     $("#result").html('<div class="alert alert-danger fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
+                            '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
                 }
-            });
+            },
+            error: function(r)
+            {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
+            }
         });
+    });
 
         function createReaderHandler(name) {
             return function(ev) {
