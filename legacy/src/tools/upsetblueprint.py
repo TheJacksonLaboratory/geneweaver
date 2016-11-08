@@ -32,13 +32,18 @@ def run_tool():
 
     # gather the params into a dictionary
     homology_str = 'Homology'
-    params = {homology_str: None}
+    zero_string = 'Zero-sizeIntersections'
+    params = {homology_str: None, zero_string: None}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         params[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = form[tool_param.name]
+        if tool_param.name.endswith('_' + zero_string):
+            params[zero_string] = form[tool_param.name]
     if params[homology_str] != 'Excluded':
         params[homology_str] = 'Included'
+    if params[zero_string] != 'Included':
+        params[zero_string] = 'Excluded'
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -98,7 +103,7 @@ def run_tool():
 
     return response
 
-def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
+def run_tool_api(apikey, homology, genesets, zeros, p_Value):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -111,12 +116,9 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
 
     # gather the params into a dictionary
     homology_str = 'Homology'
-    params = {homology_str: None}
+    zero_string = 'Zero-sizeIntersections'
+    params = {homology_str: None, zero_string: None}
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        if tool_param.name.endswith('_PairwiseDeletion'):
-            params[tool_param.name] = pairwiseDeletion
-            if (params[tool_param.name] != 'Enabled'):
-                params[tool_param.name] = 'Disabled'
         if tool_param.name.endswith('_' + homology_str):
             params[homology_str] = 'Excluded'
             params[tool_param.name] = 'Excluded'
@@ -127,6 +129,12 @@ def run_tool_api(apikey, homology, pairwiseDeletion, genesets, p_Value):
             params[tool_param.name] = p_Value
             if p_Value not in ['1.0', '0.5', '0.10', '0.05', '0.01']:
                 params[tool_param.name] = '1.0'
+        if tool_param.name.endswith('_'+zero_string):
+            params[zero_string] = 'Included'
+            params[tool_param.name] = 'Included'
+            if zeros != 'Included':
+                params[zero_string] = 'Excluded'
+                params[tool_param.name] = 'Excluded'
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
