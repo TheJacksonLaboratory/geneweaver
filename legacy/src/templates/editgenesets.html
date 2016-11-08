@@ -615,39 +615,47 @@
         var data = $("#upload-geneset-form").serialize();
         var tree = $("#tree").dynatree("getTree");
         //May be used later on in order to submit ontology tree information with form.
-        var onts = JSON.stringify(tree.serializeArr());
-        data = data.concat("&onts=", onts);
+        //var onts = JSON.stringify(tree.serializeArr());
+        //data = data.concat("&onts=", onts);
 
         $.ajax({
             type: "POST",
             url: "/updategeneset",
-            data: data, //{data: data, onts: onts},
-            //processData: false,
-            //contentType: false,
-            success: function(r)
-            {
-                var v = JSON.parse(r);
-                if (v['success'] === true) {
-                    var gs_id = {{ geneset.geneset_id }};
+            data: data,
+            success: function(result) {
+
+                result = JSON.parse(result);
+
+                if (result.success === true) {
+
                     {% if curation_view %}
-                        window.location = '/curategenesetgenes/' + gs_id;
+                        window.location = '/curategenesetgenes/' + gsID;
                     {% else %}
-                        window.location = '/editgenesetgenes/' + gs_id;
+                        window.location = '/editgenesetgenes/' + gsID;
                     {% endif %}
-                }
-                else {
+
+                } else {
+                
                     $("html, body").animate({ scrollTop: 0 }, "slow");
-                    $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
+                    $("#result").html(
+                        '<div class="alert alert-danger fade in"> ' +
+                        '<button type="button" class="close" ' + 
+                        'data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>An error occurred while updating GeneSet ' +
+                        'metacontent: ' + result.error + '</div>');
                 }
+
+                toggleElementDisabled('#save-updates');
             },
-            error: function(r)
-            {
+            error: function(result) {
+
                 $("html, body").animate({ scrollTop: 0 }, "slow");
-                $("#result").html('<div class="alert alert-danger fade in"> ' +
-                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                        '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
+                $("#result").html(
+                    '<div class="alert alert-danger fade in"> ' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                    '</button>An unknown error ocurred. Please try again later or submit an error report.</div>');
+
+                toggleElementDisabled('#save-updates');
             }
         });
     });
