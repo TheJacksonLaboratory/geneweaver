@@ -38,8 +38,13 @@
 			<div class="form-group">
                 <label>
                     Input Genes:
-                </label>
-                <textarea rows="2" class="form-control valid" name='ABBA_InputGenes' id="textbox" style=" min-height:30px; max-height:100px; resize:vertical; width:100%;"></textarea>
+                </label>                
+                <!-- Input Genes Form -->
+                <fieldset id="inputGeneField">
+                    <input type="text" id="inputGene" name='ABBA_InputGenes' pattern="[a-zA-Z0-9]+" required/><br>
+                </fieldset>
+                <button name="addGeneBtn" class="btn btn-secondary" id="addGeneBtn" type="button">Add Gene</button>
+
             </div>
 			<div class="form-group">
                 <label>
@@ -47,18 +52,12 @@
                     <input type="checkbox" name="ABBA_IgnHom" value="yes">
                 </label>
             </div>
-			<div class="form-group">
-                <label>
-                    Show Intermediate
-                    <input type="checkbox" name="ABBA_ShowInter" checked="checked" value="yes">
-                </label>
-            </div>
             <div class="form-group">
                 <label>Minimum Genes:</label>
                 <select name="ABBA_MinGenes"  class="form-control">
                     <option selected="selected">Auto</option>
                     {% for i in range(10) %}
-                        <option>{{loop.index0}}</option>
+                        <option>{{loop.index0+1}}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -66,7 +65,14 @@
                 <label style="width:50%;">
                     Minimum GeneSets:
                 </label>
-                <input type=text class="form-control" name='ABBA_MinGenesets' style="width:25%; " />
+                <select name="ABBA_MinGenesets"  class="form-control">
+                    <option selected="selected">Auto</option>
+                    {% for i in range(50) %}
+                        <option>{{loop.index0+1}}</option>
+                    {% endfor %}
+                </select>
+
+                </select>
             </div>
             <div class="form-group">
                 <label style="width:50%;">
@@ -103,6 +109,22 @@
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
+
+
+    <script>
+        $("#addGeneBtn").click(function() {
+            var intId = $("#inputGeneField div").length + 1;
+            var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
+            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" pattern="[a-zA-Z0-9]+" required/>');
+            var removeButton = $('<input type="button" class="remove btn btn-primary btn-sm" value="x" />');
+            removeButton.click(function() {
+                $(this).parent().remove();
+            });
+            fieldWrapper.append(fName);
+            fieldWrapper.append(removeButton);
+            $("#inputGeneField").append(fieldWrapper);
+        });
+    </script>
 
     <script>
         (function ($) {
