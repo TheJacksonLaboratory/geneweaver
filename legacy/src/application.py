@@ -469,6 +469,44 @@ def assign_genesets_to_curator():
     return response
 
 
+@app.route('/assign_publications_to_curator.json', methods=['POST'])
+def assign_publications_to_curator():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        user_info = geneweaverdb.get_user(user_id)
+
+        #TODO do we need to sanitize the note?
+        note = request.form.get('note', '')
+        curator = request.form.get('usr_id')
+        pub_ids = request.form.getlist('pub_ids[]', type=int)
+        group_id = request.form.get('group_id')
+        curator_info = geneweaverdb.get_user(curator)
+        owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
+
+        status = {}
+        for pub_id in pub_ids:
+            assignment = pub_assignments.get_publication_assignment(pub_id, group_id)
+            if assignment:
+                if assignment.group in [g['grp_id'] for g in owned_groups]:
+                    pub_assignments.assign_publication(pub_id, group_id, curator, user_id, note)
+                    status[pub_id] = {'success': True}
+                else:
+                    status[pub_id] = {'success': False,
+                                      'message': "You are not an owner of the group and cannot assign a curator"}
+            else:
+                status[pub_id] = {'success': False,
+                                 'message': "Error assigning curator, Publication " + str(pub_id) +
+                                            "does not have an active curation record"}
+            response = flask.jsonify(results=status)
+
+    else:
+        #user is not logged in
+        response = flask.jsonify(success=False, message='You do not have permissions to assign these Publications to a curator')
+        response.status_code = 403
+
+    return response
+
+
 @app.route("/assigncurator.json", methods=['POST'])
 def assign_curator_to_geneset():
     if 'user_id' in flask.session:
@@ -1839,15 +1877,17 @@ def render_group_tasks(group_id):
         columns = [
             {'name': 'full_name'},
             {'name': 'task_id'},
+            {'name': 'task'},
             {'name': 'task_type'},
-            {'name': 'assignment_date'},
+            {'name': 'updated'},
             {'name': 'task_status'},
             {'name': 'reviewer'}
         ]
         headerCols = ["Assignee Name",
+                      "Task ID",
                       "Task",
                       "Task Type",
-                      "Assign Date",
+                      "Updated",
                       "Status",
                       "Reviewer"]
 
@@ -2607,10 +2647,10 @@ def get_db_genesets_data():
 @app.route('/getServersideGroupTasksdb')
 def get_db_grouptasks_data():
     results = geneweaverdb.get_server_side_grouptasks(request.args)
-    for result in results:
-        if result[2] == "Gene Set":
-            assignment = curation_assignments.get_geneset_curation_assignment(result['task_id'])
-            result['curation_assignment'] = assignment
+    #for result in results:
+        #if result[2] == "GeneSet":
+        #    assignment = curation_assignments.get_geneset_curation_assignment(result['task_id'])
+        #    result['curation_assignment'] = assignment
     return json.dumps(results)
 
 @app.route('/assignmentStatusAsString/<int:status>')
