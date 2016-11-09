@@ -2647,10 +2647,6 @@ def get_db_genesets_data():
 @app.route('/getServersideGroupTasksdb')
 def get_db_grouptasks_data():
     results = geneweaverdb.get_server_side_grouptasks(request.args)
-    #for result in results:
-        #if result[2] == "GeneSet":
-        #    assignment = curation_assignments.get_geneset_curation_assignment(result['task_id'])
-        #    result['curation_assignment'] = assignment
     return json.dumps(results)
 
 @app.route('/assignmentStatusAsString/<int:status>')
