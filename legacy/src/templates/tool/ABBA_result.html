@@ -248,7 +248,7 @@
               <strong>Include Homology:&nbsp;</strong>{{async_result.IncludeHomology}}<br>
             </td>
             <td>
-              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }}{% else %} guest{% endif %}<br>
+              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }} {{g.user.user_id|e}} {% else %} guest{% endif %}<br>
               <strong>Date:&nbsp;</strong>
                   <script>
                   <!--
@@ -361,6 +361,34 @@
         <div data-type="InfoPane" class="col-md-8">
           <h2 class="extra-info-header">No Geneset Selected</h2>
           <br>
+        </div>
+      </div>
+
+      <!-- Add Geneset to Project Modal -->
+      <div id="addGenesetProjectModal" class="modal">
+        <!--Modal Content -->
+        <div class="modal-content">
+          <h3>Add Geneset to Project</h3>
+          <div class="col-md-8">
+            {% if g.user.projects %}
+            <div data-type="projectList">
+              <h3>Select Project</h3>
+                <select>
+                  {% for proj in g.user.projects %}
+                    <option value="{{proj.name}}" id="{{proj.project_id}}">
+                      {{proj.name}}
+                    </option>
+                  {% endfor %}
+                </select> 
+            </div>
+            {% else %}
+            <div class="col-md-8">You do not have any existing projects!</div>
+            {% endif %}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary">Add Project to Geneset</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
 
@@ -538,40 +566,42 @@ $(document).ready(function() {
       request.open("GET", url, false);
       request.send();
 
-      infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
+      //infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
 
-      formatExtraInfo(infoPane, "gene", request.responseText);
+      formatExtraInfo(infoPane, "gene", request.responseText, activeRow);
 
     } else if (type == "geneset") {
       url = '/api/get/geneset/byid/' + id + '/';
       request.open("GET", url, false);
       request.send();
 
-      infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
+      //infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
 
-      formatExtraInfo(infoPane, "geneset", request.responseText);
+      formatExtraInfo(infoPane, "geneset", request.responseText, activeRow);
     }
 
   }
 
-  function formatExtraInfo(infoPane, infoType, responseText){
+  function formatExtraInfo(infoPane, infoType, responseText, activeRow){
     switch(infoType){
-      case "gene": formatGeneInfo(infoPane, responseText);
+      case "gene": formatGeneInfo(infoPane, responseText, activeRow);
         break;
-      case "geneset": formatGenesetInfo(infoPane, responseText);
+      case "geneset": formatGenesetInfo(infoPane, responseText, activeRow);
         break;
       default: infoPane.append("<h2>Error retrieving more info.</h2>");
     }
   }
 
-  function formatGeneInfo(infoPane, responseText){
+  function formatGeneInfo(infoPane, responseText, activeRow){
     infoPane.empty();
     var parser = JSON.parse(responseText)[0][0];
+    var species = activeRow.children('td').last().text();
+    console.log(species);
 
     infoPane.append("<h2>" + parser.gi_symbol + "</h2>");
     infoPane.append("<p>Full Name: " + parser.gi_name + "</p>");
     infoPane.append("<p>Description: " + parser.gi_description + "</p>");
-    infoPane.append("<p>Species ID: " + parser.sp_id + "</p>");
+    infoPane.append("<p>Species: " + species + "</p>");
     infoPane.append("<p>Type: " + parser.gi_type + "</p>");
     infoPane.append("<p>Ode Gene ID: " + parser.ode_gene_id + "</p>");
     infoPane.append("<p>Chromosome: " + parser.gi_chromosome + "</p>");
@@ -579,10 +609,9 @@ $(document).ready(function() {
     infoPane.append("<p>Start: " + parser.gi_start_bp + "</p>");
     infoPane.append("<p>End: " + parser.gi_end_bp + "</p>");
     infoPane.append("<p>Strand: " + parser.gi_strand + "</p>");
-
   }
 
-  function formatGenesetInfo(infoPane, responseText){
+  function formatGenesetInfo(infoPane, responseText, activeRow){
     infoPane.empty();
     var parser = JSON.parse(responseText)[0][0];
 
@@ -615,7 +644,14 @@ $(document).ready(function() {
     infoPane.append("<p>Res ID: " + parser.res_id + "</p>");
     infoPane.append("<p>Species ID: " + parser.sp_id + "</p>");
     infoPane.append("<p>User ID: " + parser.usr_id + "</p>");
-  }
+    infoPane.append('<button type="button" class="btn btn-primary" id="addGenesetProjectButton" data-toggle="modal" data-target="#addGenesetProjectModal"> Add Geneset to Project </button>');
+    infoPane.append("<a href=");
+  }  
+
+  /* Add Geneset to Project Modal*/
+  $('#addGenesetProjectButton').button().on("click", function(){
+    $('#addGenesetProjectModal').dialog("addGenesetProjectModal");
+  })
 
   $('#system-searchGOI').keyup( function(e){
     search_tab("GOI");

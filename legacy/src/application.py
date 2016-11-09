@@ -6,6 +6,7 @@ from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from sys import exc_info
 from urlparse import parse_qs, urlparse
+import annotator
 import config
 import adminviews
 import genesetblueprint
@@ -496,28 +497,147 @@ def geneset_ready_for_review():
 
     return response
 
-@app.route('/updateGenesetOntologyDB')
-def update_geneset_ontology_db():
-    # ##########################################
-    # Updates the geneset by calling a function
-    #	to either add or remove an geneset-
-    #	ontology link.
-    # param: passed in by ajax data (ont_id,
-    #		 gs_id, flag, gso_ref_type)
-    # return: True
-    # ##########################################
 
-    ont_id = request.args['key']
-    gs_id = request.args['gs_id']
-    flag = request.args['flag']
-    gso_ref_type = request.args['universe']
+@app.route('/rerun_annotator.json', methods=['POST'])
+def rerun_annotator():
+    """
+    Reruns the annotator tool for a given geneset and updates its annotations.
+    """
 
-    if (flag == "true"):
-        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
+    publication = request.form['publication']
+    description = request.form['description']
+    gs_id = request.form['gs_id']
+    user_id = session['user_id'] if session['user_id'] else 0
+
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        return json.dumps({
+            'success': False,
+            'error': 'You must be logged in to make changes to this GeneSet'
+        })
+
+    ## Only admins, curators, and owners can make changes
+    if (not user.is_admin and not user.is_curator) or\
+       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
+        not user_is_assigned_curation(user_id, gs_id)):
+           return json.dumps({
+               'success': False,
+               'error': 'You do not have permission to update this GeneSet'
+           });
+
+    pub_annos = annotator.annotate_text(publication, annotator.ONT_IDS)
+    desc_annos = annotator.annotate_text(description, annotator.ONT_IDS)
+    ## These are the only annotations we preserve
+    assoc_annos =\
+        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Association')
+    reject_annos =\
+        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Rejection')
+
+    ## Convert to ont_ids
+    for i in range(len(pub_annos)):
+        if pub_annos[i]:
+            pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
+
+    for i in range(len(desc_annos)):
+        if desc_annos[i]:
+            desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
+
+    assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
+    reject_annos = map(lambda a: a.ontology_id, reject_annos)
+
+    geneweaverdb.clear_geneset_ontology(gs_id)
+
+    ## There's probably a cleaner way to do this but idk
+    for ont_id in assoc_annos:
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Association')
+
+    for ont_id in reject_annos:
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Rejection')
+
+    for ont_id in pub_annos[0]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, MI Annotator')
+
+    for ont_id in pub_annos[1]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, NCBO Annotator')
+
+    for ont_id in desc_annos[0]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, MI Annotator')
+
+    for ont_id in desc_annos[1]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, NCBO Annotator')
+    
+    return json.dumps({'success': True})
+
+
+@app.route('/update_geneset_annotation.json', methods=['POST'])
+def update_geneset_annotation():
+    """
+    Updates an ontology annotation for a geneset. This endpoint should only be
+    called when updating annotations using the tree view on the edit geneset
+    page. If the flag provided in the arguments is true, the ontology term is 
+    annotated to the geneset with the the reference type, "Manual Association".
+    If the flag is false, the term is added (if it is not currently annotated) 
+    but its reference type is set to "Manual Rejection" indicating that it is 
+    an incorrect annotation. This prevents the term from being re-annotated if 
+    an automatic annotation tool is run again.
+    """
+
+    form = request.form
+    user_id = session['user_id'] if session['user_id'] else 0
+    ont_id = form['key'] if form['key'] else 0
+    gs_id = form['gs_id'] if form['gs_id'] else 0
+    flag = form['flag'] if form['flag'] else 'true'
+
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        return json.dumps({
+            'success': False,
+            'error': 'You must be logged in to make changes to this GeneSet'
+        })
+
+    ## This should never happen
+    if not ont_id or not gs_id:
+        return json.dumps({
+            'success': False,
+            'error': 'An unknown error occurred while updating this GeneSet'
+        })
+
+    ## Only admins, curators, and owners can make changes
+    if (not user.is_admin and not user.is_curator) or\
+       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
+        not user_is_assigned_curation(user_id, gs_id)):
+           return json.dumps({
+               'success': False,
+               'error': 'You do not have permission to update this GeneSet'
+           });
+
+    if geneweaverdb.does_geneset_have_annotation(gs_id, ont_id):
+        if flag == 'true':
+            geneweaverdb.update_geneset_ontology_reference(
+                gs_id, ont_id, 'Manual Association'
+            )
+        else:
+            geneweaverdb.update_geneset_ontology_reference(
+                gs_id, ont_id, 'Manual Rejection'
+            )
     else:
-        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
+        if flag == 'true':
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Manual Association'
+            )
 
-    return json.dumps(True)
+        else:
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Manual Rejection'
+            )
+
+    return json.dumps({'success': True})
 
 
 def get_ontology_terms(gsid):
@@ -583,7 +703,6 @@ def init_ont_tree():
                 ontpath.append(node)
 
             ## Add things in reverse order because it makes things easier
-            #for p in ontpath[::-1]:
             for i in range(len(ontpath), 0, -1):
                 i -= 1
 
@@ -594,6 +713,8 @@ def init_ont_tree():
                     ontpath[i]['select'] = True
                     ontpath[i]['expand'] = False
                     ontpath[i]['unselectable'] = False
+                    ontpath[i]['ref'] =\
+                        geneweaverdb.get_geneset_annotation_reference(gs_id, ontid)
 
                 else:
                     ontpath[i]['expand'] = True
@@ -602,37 +723,41 @@ def init_ont_tree():
                 if i == 0:
                     break
 
-            tree = mergeTreePath(tree, ontpath)
+            tree = merge_tree_path(tree, ontpath)
 
-    tree = convertTree(tree)
+    tree = convert_tree(tree)
 
     return json.dumps(tree)
 
-def doesChildExist(child, children):
+def does_child_exist(child, children):
     """
     Given a list of children, checks to see if a child node already exists
     in the given list. Used to prevent duplicates from cropping up in the
     ontology tree.
+
+    :param child:       child node being checked
+    :param children:    list of children to examine
+    :return:            true if the child exists, false otherwise
     """
 
     children = map(lambda c: c['key'], children)
 
     return child['key'] in children
 
-def _convertTree(parent, child):
+def _convert_tree(parent, child):
     """
-    The recursive component to convertTree(). Recursively adds child nodes to
+    The recursive component to convert_tree(). Recursively adds child nodes to
     each parent's list of children. Also checks to see if those children
     already exist in the list; if they do exist, they aren't added.
 
-    :arg dict: parent node
-    :arg dict: child node
-    :ret dict: parent node with newly added children
+    :param parent:  parent node
+    :param child:   child node
+    :return:        parent node with newly converted children
     """
 
     ## This means it's a leaf node as its only key should be 'node'
     if len(child.keys()) <= 1:
-        if not doesChildExist(child['node'], parent['node']['children']):
+        if not does_child_exist(child['node'], parent['node']['children']):
             parent['node']['children'].append(child['node'])
 
         return parent
@@ -642,20 +767,21 @@ def _convertTree(parent, child):
         if ck == 'node':
             continue
 
-        child = _convertTree(child, child[ck])
+        child = _convert_tree(child, child[ck])
 
-        if not doesChildExist(child['node'], parent['node']['children']):
+        if not does_child_exist(child['node'], parent['node']['children']):
             parent['node']['children'].append(child['node'])
 
     return parent
 
-def convertTree(root):
+def convert_tree(root):
     """
-    Converts a tree structure generated by mergeTreePath into the array of
+    Converts a tree structure generated by merge_tree_path into the array of
     nested dicts that can be used by DynaTree on the client side of things.
 
-    :arg dict: the top level (root) node of the tree structure
-    :ret dict: formatted tree (see create_new_child_dict() for relevant fields)
+    :param root:    the top level (root) node of the tree structure
+    :return:        formatted tree (see create_new_child_dict for relevant 
+                    fields)
     """
 
     subtrees = []
@@ -670,23 +796,23 @@ def convertTree(root):
             if child == 'node':
                 continue
 
-            subroot = _convertTree(subroot, subroot[child])
+            subroot = _convert_tree(subroot, subroot[child])
 
         subtrees.append(subroot['node'])
 
     return subtrees
 
-def mergeTreePath(tree, path):
+def merge_tree_path(tree, path):
     """
-    Given a tree and list of ontology nodes, adds the node list to the tree.
-    Uses ont_ids as keys. This is used to merge sections of the ontology
-    tree that may overlap. The list of nodes should be in order i.e. from
-    root -> leaf. In the returned tree, every element except the 'node' key
-    is a child of the previous node.
+    Merges a single path from an ontology tree into an existing tree structure.
+    Used to merge section of an ontology that may overlap. The list of nodes in
+    the path should be in order i.e. from root -> leaf. 
+    In the returned tree, every element except the 'node' key is a child of the 
+    previous node.
 
-    :arg dict: tree structure to add the node path to
-    :arg list: list of ontology nodes
-    :ret dict: tree with newly added nodes
+    :param tree:    tree structure being modified
+    :param path:    list of ontology nodes
+    :return:        tree with newly added nodes
     """
 
     if not path:
@@ -774,6 +900,13 @@ def get_ont_root_nodes():
         info.append(data)
     return (json.dumps(info))
 
+@app.route('/reannotate', methods=['GET'])
+def reannotate():
+    """
+    This function re-runs the annotator tool on text from geneset and 
+    publication descriptions.
+    """
+    pass
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
