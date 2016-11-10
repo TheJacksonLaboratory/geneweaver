@@ -1406,7 +1406,7 @@ def get_server_side_genesets(rargs):
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
                       'cast(gs_count as text)',
-                      'cast(gs_id as text)', 'cast(gs_name as text)']
+                      'cast(gs.gs_id as text)', 'cast(gs_name as text)']
 
     # Paging
     iDisplayStart = rargs.get('start', type=int)
@@ -1496,7 +1496,6 @@ def get_server_side_grouptasks(rargs):
         """
 
         union_select = """
-          UNION
           SELECT uc1.usr_last_name || ', ' || uc1.usr_first_name AS full_name,
                  p.pub_id AS task_id,
                  p.pub_pubmed AS task,
@@ -1529,13 +1528,21 @@ def get_server_side_grouptasks(rargs):
             AND pa.pub_id = p.pub_id
         """ % (group_id)
 
-        source_columns = ['cast(full_name as text)',
-                          'cast(task_id as text)',
-                          'cast(task as text)',
-                          'cast(task_type as text)',
-                          'cast(updated as text)',
-                          'cast(task_status as text)',
-                          'cast(reviewer as text)']
+        search_columns = ['cast(uc.usr_first_name as text)',
+                          'cast(uc.usr_last_name as text)',
+                          'cast(gs.gs_id as text)',
+                          'cast(ca.updated as text)',
+                          'cast(ca.curation_state as text)',
+                          'cast(ur.usr_first_name as text)',
+                          'cast(ur.usr_last_name as text)']
+
+        union_columns  = ['cast(uc1.usr_first_name as text)',
+                          'cast(uc1.usr_last_name as text)',
+                          'cast(p.pub_pubmed as text)',
+                          'cast(pa.updated as text)',
+                          'cast(pa.assignment_state as text)',
+                          'cast(ur1.usr_first_name as text)',
+                          'cast(ur1.usr_last_name as text)']
 
         # Paging
         iDisplayStart = rargs.get('start', type=int)
@@ -1545,14 +1552,30 @@ def get_server_side_grouptasks(rargs):
             else ''
 
         # Searching
-        # search_value = rargs.get('search[value]')
-        # search_clauses = []
-        # if search_value:
-        #     for i in range(len(source_columns)):
-        #         search_clauses.append('''%s LIKE '%%%s%%' ''' % (source_columns[i], search_value))
-        #     search_clause = 'OR '.join(search_clauses)
-        # else:
-        search_clause = ''
+        search_value = rargs.get('search[value]')
+        search_clauses = []
+        union_clauses = []
+
+        if search_value:
+            for i in range(len(search_columns)):
+                search_clauses.append('''%s LIKE '%%%s%%' ''' % (search_columns[i], search_value))
+            for i in range(len(union_columns)):
+                union_clauses.append('''%s LIKE '%%%s%%' ''' % (union_columns[i], search_value))
+            search_clause = 'OR '.join(search_clauses)
+            union_clause = 'OR '.join(union_clauses)
+        else:
+            search_clause = ''
+            union_clause = ''
+
+        if search_clause:
+            search_where_clause = ' AND (%s' % search_clause
+            search_where_clause += ') '
+            union_where_clause = ' AND (%s' % union_clause
+            union_where_clause += ') '
+
+        else:
+            search_where_clause = ''
+            union_where_clause = ''
 
         # Sorting
         sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
@@ -1563,19 +1586,13 @@ def get_server_side_grouptasks(rargs):
         order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
 
         # Joins all clauses together as a query
-        if search_clause:
-            where_clause = ' AND (%s' % search_clause
-            where_clause += ') '
-
-        else:
-            where_clause = ''
-
         sql = ' '.join([select_clause,
                         from_where,
-                        where_clause,
+                        search_where_clause,
+                        " UNION ",
                         union_select,
                         union_where,
-                        where_clause,
+                        union_where_clause,
                         order_clause,
                         limit_clause]) + ';'
 
@@ -1593,11 +1610,11 @@ def get_server_side_grouptasks(rargs):
 
             # Count of all values that satisfy WHERE clause
             iTotalDisplayRecords = iTotalRecords
-            if where_clause:
-                sql = ' '.join([select_clause, from_where, where_clause]) + ';'
+            if search_where_clause:
+                sql = ' '.join([select_clause, from_where, search_where_clause]) + ';'
                 cursor.execute(sql)
                 iTotalDisplayRecords = cursor.rowcount
-                sql = ' '.join([union_select, union_where, where_clause]) + ';'
+                sql = ' '.join([union_select, union_where, union_where_clause]) + ';'
                 cursor.execute(sql)
                 iTotalDisplayRecords += cursor.rowcount
 

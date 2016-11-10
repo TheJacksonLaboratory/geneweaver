@@ -264,9 +264,10 @@
         var user_id = '{{user_id}}';
         var columns = {{columns | safe}};
         var headerCols = {{headerCols | safe}};
+
         var table = $('#groupTasksViewer').dataTable({
             "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
-            "iDisplayLength": 25,
+            "iDisplayLength": 10,
             "bLengthChange": true,
             "tableTools": {
                 "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
@@ -551,8 +552,8 @@
                         "usr_id": selectedCuratorId,
                     };
 
-                    // since params["gs_ids"] is a list the server needs to use
-                    // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+                    // since params["pub_ids"] is a list the server needs to use
+                    // request.args.getlist('pub_ids') instead of request.args['pub_ids']
                     $.post("{{ url_for('assign_publications_to_curator') }}", params, function (data) {
 
                         var failed = [];
