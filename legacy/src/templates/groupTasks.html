@@ -233,7 +233,7 @@
                     <h3 class="modal-title" style="color: #f5f5f5">No Tasks Selected</h3>
                 </div>
                 <div class="modal-body">
-                    <h4>You must select at least one Task (Geneset or Publication).</h4>
+                    <h4>You must select at least one Task (GeneSet or Publication).</h4>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-error" data-dismiss="modal">Close</button>
@@ -242,6 +242,7 @@
         </div>
     </div>
 
+    {% include 'modal/verifyReassignTasks.html' %}
     {% include 'modal/assignTasksForCuration.html' %}
 
 {% endif %}
@@ -286,8 +287,9 @@
             "columns": [
                 { "name": "full_name" },
                 { "name": "task_id" },
+                { "name": "task" },
                 { "name": "task_type" },
-                { "name": "assignment_date" },
+                { "name": "updated" },
                 { "name": "task_status" },
                 { "name": "reviewer" }
             ],
@@ -295,7 +297,7 @@
 
                 {
                     "aTargets": [0],
-                   "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                         var memberName = sData;
                         $(nTd).empty();
                         $(nTd).append(memberName);
@@ -303,24 +305,41 @@
                 },
                 {
                     "aTargets": [1],
+                    "visible": false,
+                    "searchable": false,
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                        var taskID = sData;
+                        var taskId = sData;
                         $(nTd).empty();
-                        // TODO:  Add an if here when we support tasks other than just genesets doing a check on type (oData[2])
-                        $(nTd).append('<a href=\"/curategeneset/' + taskID + '\">' + 'GS' + taskID + '</a>');
+                        $(nTd).append(taskId);
                     }
                 },
                 {
                     "aTargets": [2],
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                        var taskType = sData;
+                        var taskID = oData[1];
+                        var task = sData;
+                        var taskType = oData[3];
                         $(nTd).empty();
-                        // TODO:  Add an if here when we support tasks other than just genesets doing a check on type (oData[3])
-                        $(nTd).append(taskType);
+                        if (taskType === 'GeneSet') {
+                            $(nTd).append('<a href=\"/curategeneset/' + taskID + '\">' + task + '</a>');
+                        } else if (taskType === 'Publication') {
+                            $(nTd).append('<a href=\"viewPubAssignment/' + group_id + '/' + taskID + '/\">' + task + '</a>');
+                        } else {
+                            $(nTd).append(task);
+                        }
+
                     }
                 },
                 {
                     "aTargets": [3],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var taskType = sData;
+                        $(nTd).empty();
+                        $(nTd).append(taskType);
+                    }
+                },
+                {
+                    "aTargets": [4],
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                         var assignDate = sData;
                         $(nTd).empty();
@@ -328,7 +347,7 @@
                     }
                 },
                 {
-                    "aTargets": [4],
+                    "aTargets": [5],
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                         var status = sData;
                         $(nTd).empty();
@@ -351,7 +370,7 @@
                     }
                 },
                 {
-                    "aTargets": [5],
+                    "aTargets": [6],
                     "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                         var reviewer = sData;
                         $(nTd).empty();
@@ -398,52 +417,62 @@
                 else {
 
                     selectedTasks = [];
+                    selectedGeneSets = [];
+                    selectedPublications = [];
 
                     var selectedTaskLabels = [];
                     var tasksWithCurationAssignments = [];
                     for (var k in aselectedTrs) {
-                        selectedTaskLabels.push('GS' + aselectedTrs[k][1]);
+                        selectedTaskLabels.push(aselectedTrs[k][2]);
                         selectedTasks.push(aselectedTrs[k][1]);
+                        if (aselectedTrs[k][3] === 'GeneSet') {
+                            selectedGeneSets.push(aselectedTrs[k][1]);
+                        } else if (aselectedTrs[k][3] === 'Publication') {
+                            selectedPublications.push(aselectedTrs[k][1]);
+                        }
 
                         if (aselectedTrs[k][0]) {
-                            tasksWithCurationAssignments.push('GS' + aselectedTrs[k][1]);
+                            tasksWithCurationAssignments.push(aselectedTrs[k][2]);
                         }
 
                     }
 
                     if (tasksWithCurationAssignments.length) {
-
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "Tasks already have curation assignment: "+ tasksWithCurationAssignments.join(", "),
-                                'priority': 'error'
-                            }
-                        ]);
-
+                        var taskString = tasksWithCurationAssignments.join(", ");
+                        $('#reassignModalLabel').html(taskString);
+                        $('#verifyReassignTasks').modal('show')
+                            .one('click', '#reassignTasks', function() {
+                                processSelections(selectedTaskLabels);
+                        });
                     } else {
-
-                        // get the modal window ready to show.  The user may
-                        // have already assigned some tasks, so this window
-                        // may have been displayed once already and may still have
-                        // the user's selections from last time.  Reset all of the
-                        // selections so it looks like a new window.
-
-                        var taskString = selectedTaskLabels.join(", ");
-                        $('#curationModalLabel').html(taskString);
-
-                        // when we show the modal window, we don't want a group selected.
-                        $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
-
-                        // submit button will be disabled until the user selects a group radio button
-                        $('#assignTasks').prop("disabled", true).button("refresh");
-
-                        // need to clear out old notes
-                        $('#curationNotes').val("");
-
-                        $('#assignTasksForCurationModal').modal('show');
-                    }
+                        processSelections(selectedTaskLabels);
+                     }
                 }
             });
+
+            function processSelections(selectedTaskLabels) {
+                // get the modal window ready to show.  The user may
+                // have already assigned some tasks, so this window
+                // may have been displayed once already and may still have
+                // the user's selections from last time.  Reset all of the
+                // selections so it looks like a new window.
+
+                var taskString = selectedTaskLabels.join(", ");
+                $('#curationModalLabel').html(taskString);
+
+                // when we show the modal window, we don't want a group selected.
+                $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+
+                // submit button will be disabled until the user selects a group radio button
+                $('#assignTasks').prop("disabled", true).button("refresh");
+
+                // need to clear out old notes
+                $('#curationNotes').val("");
+
+                $('#assignTasksForCurationModal').modal('show');
+            }
+
+
 
             // Enable submit button once a member of the radio group in Modal assignTasksForCuration selected
             $("input:radio[name='group']").on('click', function () {
@@ -463,87 +492,108 @@
 
             // Assignment of tasks occurs on click of the assignTasks button in Modal assignTasksForCuration
             $('#assignTasks').on('click', function () {
-
                 var selectedCuratorId = $("input[name=group]:checked").val();
+                if (selectedGeneSets.length > 0) {
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "gs_ids[]": selectedGeneSets,
+                        "usr_id": selectedCuratorId,
+                    };
 
-                var params = {
-                    "note": $('#curationNotes').val(),
-                    "gs_ids[]": selectedTasks,
-                    "usr_id": selectedCuratorId,
-                };
+                    // since params["gs_ids"] is a list the server needs to use
+                    // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+                    $.post("{{ url_for('assign_genesets_to_curator') }}", params, function (data) {
 
-                // since params["gs_ids"] is a list the server needs to use
-                // request.args.getlist('gs_ids') instead of request.args['gs_ids']
-                $.post("{{ url_for('assign_genesets_to_curator') }}", params ,function(data) {
+                        var failed = [];
+                        var successfulLabels = [];
 
-                    var successful = [];
-                    var successfulLabels = [];
-                    var failed = [];
-
-                    for (var key in data.results) {
-                        if (data.results[key].success) {
-                            successfulLabels.push("GS" + key);
-                            successful.push(key);
-                        }
-                        else {
-                            failed.push("GS" + key);
-                        }
-                    }
-
-                    if (failed.length) {
-                        // this shouldn't happen, but lets check for it anyway and display/log an error message...
-                        console.error("Unable to assign these GeneSets for curation: ", failed.join(', '));
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "Unable to assign for curation: " + failed.join(', '),
-                                'priority': 'danger'
+                        for (var key in data.results) {
+                            if (data.results[key].success) {
+                                successfulLabels.push("GS" + key);
                             }
-                        ]);
-                    }
+                            else {
+                                failed.push("GS" + key);
+                            }
+                        }
 
-                    if (successful.length) {
-                        // update table to reflect new curation assignments
+                        if (failed.length) {
+                            // this shouldn't happen, but lets check for it anyway and display/log an error message...
+                            console.error("Unable to assign these GeneSets for curation: ", failed.join(', '));
+                            $(document).trigger("add-alerts", [
+                                {
+                                    'message': "Unable to assign for curation: " + failed.join(', '),
+                                    'priority': 'danger'
+                                }
+                            ]);
+                        }
 
-                        var table = $('#groupTasksViewer').DataTable();
-                        table.rows().invalidate().draw(false);
-
-                        //var rowCount = table.rows().count;
-                        //for (var i = 0; i < rowCount; i++) {
-                        //    var tableRow = table.row(i);
-                        //    if ($.inArray(tableRow[1], successful)) {
-
-                                // update the data for the updated GeneSets
-
-                                // this is the group ID of the group assigned
-                                // responsibility for curating this GeneSet
-                        //        tableRow.data()[11] = selectedGroupId;
-
-                                // this is the string group name, we can obtain it
-                                // from the selected raido button in the modal window
-                                // contained in assignGenesetForCuration.html
-                        //        tableRow.data()[12] = $('#label_' + selectedGroupId).text();
-
-                                // need to invalidate the row so it will get redrawn
-                        //        tableRow.invalidate();
-                        //    }
-
-                        //}
-                       // table.draw();
-
-                        // select all and select none buttons appear to be out of
-                        // sync after redrawing the table, make sure none are selected
-                        TableTools.fnGetInstance('groupTasksViewer').fnSelectNone();
-
-                        $(document).trigger("add-alerts", [
-                            {
+                        if (successfulLabels.length > 0) {
+                            // update table to reflect new curation assignments
+                            var table = $('#groupTasksViewer').DataTable();
+                            table.rows().invalidate().draw(false);
+                            TableTools.fnGetInstance('groupTasksViewer').fnSelectNone();
+                            $(document).trigger("add-alerts", [
+                                {
                                 'message': "GeneSets assigned for curation: " + successfulLabels.join(', '),
                                 'priority': 'success'
+                                }
+                            ]);
+                        }
+
+                    }, "json").fail(handleCurationAssignmentError);
+                }
+
+                if (selectedPublications.length > 0) {
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "pub_ids[]": selectedPublications,
+                        "group_id": group_id,
+                        "usr_id": selectedCuratorId,
+                    };
+
+                    // since params["gs_ids"] is a list the server needs to use
+                    // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+                    $.post("{{ url_for('assign_publications_to_curator') }}", params, function (data) {
+
+                        var failed = [];
+                        var successfulLabels = [];
+
+                        for (var key in data.results) {
+                            if (data.results[key].success) {
+                                successfulLabels.push(key);
                             }
-                        ]);
-                    }
+                            else {
+                                failed.push(key);
+                            }
+                        }
+
+                        if (failed.length) {
+                            // this shouldn't happen, but lets check for it anyway and display/log an error message...
+                            console.error("Unable to assign these Publications for curation: ", failed.join(', '));
+                            $(document).trigger("add-alerts", [
+                                {
+                                    'message': "Unable to assign for curation: " + failed.join(', '),
+                                    'priority': 'danger'
+                                }
+                            ]);
+                        }
+
+                        if (successfulLabels.length > 0) {
+                            // update table to reflect new curation assignments
+                            var table = $('#groupTasksViewer').DataTable();
+                            table.rows().invalidate().draw(false);
+                            TableTools.fnGetInstance('groupTasksViewer').fnSelectNone();
+                            $(document).trigger("add-alerts", [
+                                {
+                                'message': "Publications assigned for curation: " + successfulLabels.join(', '),
+                                'priority': 'success'
+                                }
+                            ]);
+                        }
 
 
-                }, "json").fail(handleCurationAssignmentError);
+                    }, "json").fail(handleCurationAssignmentError);
+                }
 
 
             });

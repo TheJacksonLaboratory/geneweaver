@@ -1,0 +1,27 @@
+{# Modal for verifying reassignment of a task.#}
+
+<div class="modal fade" id="verifyReassignTasks">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-green">
+                <h3 class="modal-title" id="verifyLabel" style="color: #f5f5f5">Reassign Tasks?</h3>
+            </div>
+            <div class="row" style="text-align:center;">
+                <h4>The following Tasks have already been assigned for curation!!</h4>
+            </div>
+
+            <div class="row" style="text-align:center;">
+                <strong>
+                    <span class="rows" id="reassignModalLabel" style="color: #006400;"></span>
+                </strong>
+            </div>
+           <div class="modal-body">
+                <h4>Are you sure that you want to reassign these to another curator?</h4>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="reassignTasks" data-dismiss="modal">Reassign</button>
+            </div>
+        </div>
+    </div>
+</div>

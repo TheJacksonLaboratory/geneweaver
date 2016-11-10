@@ -1484,14 +1484,26 @@ def get_server_side_grouptasks(rargs):
                 'aaData': []
                 }
     if group_id:
-        select_columns = ['full_name', 'task_id', 'task_type', 'assignment_date', 'task_status', 'reviewer']
+        select_columns = ['full_name', 'task_id', 'task', 'task_type', 'updated', 'task_status', 'reviewer']
         select_clause = """
           SELECT uc.usr_last_name || ', ' || uc.usr_first_name AS full_name,
                  gs.gs_id AS task_id,
-                 'Gene Set' AS task_type,
-                 to_char(ca.created, 'YYYY-MM-DD') AS assignment_date,
+                 'GS' || gs.gs_id AS task,
+                 'GeneSet' AS task_type,
+                 to_char(ca.updated, 'YYYY-MM-DD') AS updated,
                  ca.curation_state AS task_status,
                  ur.usr_last_name || ', ' || ur.usr_first_name AS reviewer
+        """
+
+        union_select = """
+          UNION
+          SELECT uc1.usr_last_name || ', ' || uc1.usr_first_name AS full_name,
+                 p.pub_id AS task_id,
+                 p.pub_pubmed AS task,
+                 'Publication' AS task_type,
+                 to_char(pa.updated, 'YYYY-MM-DD') AS updated,
+                 pa.assignment_state AS task_status,
+                 ur1.usr_last_name || ', ' || ur1.usr_first_name AS reviewer
         """
 
         # Separate FROM and WHERE for counting purposes
@@ -1506,10 +1518,22 @@ def get_server_side_grouptasks(rargs):
             AND ca.gs_id = gs.gs_id
         """ % (group_id)
 
+        union_where = """
+          FROM production.grp g1,
+               production.publication p,
+               production.pub_assignments pa
+               LEFT OUTER JOIN production.usr uc1 on pa.assignee = uc1.usr_id
+               LEFT OUTER JOIN production.usr ur1 on pa.assigner = ur1.usr_id
+          WHERE g1.grp_id = %s
+            AND g1.grp_id = pa.curation_group
+            AND pa.pub_id = p.pub_id
+        """ % (group_id)
+
         source_columns = ['cast(full_name as text)',
                           'cast(task_id as text)',
+                          'cast(task as text)',
                           'cast(task_type as text)',
-                          'cast(assignment_date as text)',
+                          'cast(updated as text)',
                           'cast(task_status as text)',
                           'cast(reviewer as text)']
 
@@ -1549,6 +1573,9 @@ def get_server_side_grouptasks(rargs):
         sql = ' '.join([select_clause,
                         from_where,
                         where_clause,
+                        union_select,
+                        union_where,
+                        where_clause,
                         order_clause,
                         limit_clause]) + ';'
 
@@ -1560,6 +1587,9 @@ def get_server_side_grouptasks(rargs):
             count_query = ' '.join(["SELECT COUNT(1)", from_where]) + ';'
             cursor.execute(count_query)
             iTotalRecords = cursor.fetchone()[0]
+            count_query = ' '.join(["SELECT COUNT(1)", union_where]) + ';'
+            cursor.execute(count_query)
+            iTotalRecords += cursor.fetchone()[0]
 
             # Count of all values that satisfy WHERE clause
             iTotalDisplayRecords = iTotalRecords
@@ -1567,6 +1597,9 @@ def get_server_side_grouptasks(rargs):
                 sql = ' '.join([select_clause, from_where, where_clause]) + ';'
                 cursor.execute(sql)
                 iTotalDisplayRecords = cursor.rowcount
+                sql = ' '.join([union_select, union_where, where_clause]) + ';'
+                cursor.execute(sql)
+                iTotalDisplayRecords += cursor.rowcount
 
             response = {'sEcho': sEcho,
                         'iTotalRecords': iTotalRecords,
