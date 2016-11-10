@@ -404,8 +404,7 @@ def get_other_visible_groups(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''SELECT * FROM production.grp WHERE grp_id NOT IN (SELECT grp_id
-               FROM production.usr2grp
-               WHERE usr_id = %s)''', (usr_id,)
+               FROM production.usr2grp WHERE usr_id = %s) AND grp_private = false''', (usr_id,)
         )
 
         return list(dictify_cursor(cursor))
@@ -2302,6 +2301,19 @@ def get_publication_by_pubmed(pubmed_id, create=False):
 
 
                 publication = Publication(pub_dict)
+
+        return publication
+
+
+def get_publication(pub_id):
+    publication = None
+    with PooledCursor() as cursor:
+        cursor.execute("SELECT * from publication WHERE pub_id=%s",
+                       (pub_id,))
+
+        rows = list(dictify_cursor(cursor))
+        if rows:
+            publication = Publication(rows[0])
 
         return publication
 

@@ -469,8 +469,8 @@ def assign_genesets_to_curator():
     return response
 
 
-@app.route("/assigncurator.json", methods=['POST'])
-def assign_curator_to_geneset():
+@app.route("/assign_geneset_to_curator.json", methods=['POST'])
+def assign_geneset_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
@@ -631,6 +631,127 @@ def assign_publication_to_group():
                     # everything is good,  do the assignment
                     pub_assignments.queue_publication(publication.pub_id, group_id, notes)
                     response = flask.jsonify(message="Publication successfully assigned to group")
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 403
+
+    return response
+
+
+@app.route("/assign_publication_to_curator.json", methods=['POST'])
+def assign_publication_to_curator():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        #TODO do we need to sanitize the note?
+        notes = request.form.get('notes', '')
+        pub_id = request.form.get('pub_id', type=int)
+        gid = request.form.get('group_id', type=int)
+        curator = request.form.get('curator', type=int)
+
+        assignment = pub_assignments.get_publication_assignment(pub_id, gid)
+
+        if assignment:
+            owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
+            curator_groups = geneweaverdb.get_all_owned_groups(curator) + geneweaverdb.get_all_member_groups(curator)
+
+            # make sure user has permission to assign this publication, and the
+            # user they are assigning it to actually belongs to the group
+            if assignment.group not in [g['grp_id'] for g in owned_groups]:
+                response = flask.jsonify(message='You do not have permissions to perform this action.')
+                response.status_code = 401
+            elif gid not in [g['grp_id'] for g in curator_groups]:
+                response = flask.jsonify(message='User is not a member of this group.')
+                response.status_code = 412
+            else:
+
+                curator_info = geneweaverdb.get_user(curator)
+
+                pub_assignments.assign_publication(pub_id, gid, curator, user_id, notes)
+
+                response = flask.jsonify(success=True,
+                                         curator_name=curator_info.first_name + " " + curator_info.last_name,
+                                         curator_email=curator_info.email)
+
+
+        else:
+            response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
+            response.status_code = 412
+
+    else:
+        #user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 403
+
+    return response
+
+
+@app.route('/viewPubAssignment/<int:group_id>/<int:pub_id>')
+def render_pub_assignment(group_id, pub_id):
+    publication = None
+    view = None
+    assignment = None
+    curator = None
+    curation_team_members = None
+
+    if 'user_id' in flask.session:
+        uid = flask.session['user_id']
+        assignment = pub_assignments.get_publication_assignment(pub_id, group_id)
+        if assignment:
+
+            publication = geneweaverdb.get_publication(pub_id)
+
+            if uid == assignment.assignee:
+                view = 'assignee'
+            elif uid == assignment.assigner:
+                view = 'assigner'
+            elif group_id in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
+                view = 'group_admin'
+            else:
+                view = 'no_access'
+
+            print view
+
+            if view != 'no_access' and assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
+                curator = geneweaverdb.get_user(assignment.assignee)
+
+            if view == 'assigner' or view == 'group_admin':
+                # needed for rendering the assignment dialog
+                curation_team_members = [geneweaverdb.get_user(uid) for uid in geneweaverdb.get_group_users(assignment.group)]
+        else:
+            # publication assignment not found
+            flask.abort(404)
+
+    print curation_team_members
+
+    return flask.render_template('viewPubAssignment.html', pub=publication,
+                                 view=view, assignment=assignment,
+                                 curator=curator,
+                                 curation_team=curation_team_members)
+
+
+@app.route('/save_pub_note.json', methods=['POST'])
+def save_pub_assignment_note():
+    if 'user_id' in flask.session:
+        uid = flask.session['user_id']
+        gid = request.form.get('group_id', type=int)
+        pub_id = request.form.get('pub_id', type=int)
+
+        # TODO sanitize notes
+        notes = request.form.get('notes')
+
+        assignment = pub_assignments.get_publication_assignment(pub_id, gid)
+        if assignment:
+            # make sure user is authorized (assignee, assigner, group admin)
+            if uid == assignment.assignee or uid == assignment.assigner or int(gid) in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
+                # SAVE notes to DB
+                pub_assignments.update_notes(pub_id, gid, notes)
+                response = flask.jsonify(success=True)
+            else:
+                response = flask.jsonify(message='You do not have permissions to perform this action.')
+                response.status_code = 403
 
     else:
         # user is not logged in

@@ -1,0 +1,232 @@
+{% set title="Publication Assignment" %}
+{% include 'header.html' %}
+
+{% if g.user.user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% elif no_access is defined %}
+    {% include 'htmlfragments/genericPermissionError.html' %}
+{% else %}
+
+    {% if view != 'assignee' %}
+        {% include 'modal/assignPublicationToCurator.html' %}
+    {% endif %}
+
+
+    <div class="panel panel-default">
+        <div class="panel panel-default panel-heading bg-gray-light">
+            <h3 class="panel-title">Publication Curation Assignment</h3>
+        </div>
+
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+        <div class="panel-heading"
+             style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title" style="width:100%">Pubmed ID: {{ pub.pubmed_id }}</h3>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    <div class="row">
+                        <div class="col-xs-12 col-md-9">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <p class="text-right">
+                                        <strong>Title:</strong></p>
+                                </div>
+                                <div class="col-md-10">
+                                    <p><strong>{{ pub.title }}</strong></p>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <p class="text-right">
+                                        <strong>Authors:</strong></p>
+                                </div>
+                                <div class="col-md-10">
+                                    <p>{{ pub.authors }}</p>
+                                </div>
+                            </div>
+                            {% if pub.month %}
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <p class="text-right">
+                                            <strong>Month:</strong></p>
+                                    </div>
+                                    <div class="col-md-10">
+                                        {{ pub.month }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if pub.year %}
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <p class="text-right">
+                                            <strong>Year:</strong></p>
+                                    </div>
+                                    <div class="col-md-10">
+                                        {{ pub.year }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <p class="text-right">
+                                        <strong>Abstract:</strong></p>
+                                </div>
+                                <div class="col-md-10">
+                                    {{ pub.abstract }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xs-6 col-md-3">
+                    <div class="row">
+                        {% if assignment.state == assignment.UNASSIGNED %}
+                            <p><strong>Curator:</strong> <span id="curatorName">Unassigned</span></p>
+                        {% else %}
+                            <p>
+                                <strong>Curator:</strong> <span id="curatorName">{{ curator.first_name }} {{ curator.last_name }}</span>
+                            </p>
+                        {% endif %}
+                        <div class="form-group">
+                            <label for="notes"><h4>Notes:</h4></label>
+                                <textarea class="form-control" rows="10"
+                                          id="notes">{{ assignment.notes }}</textarea>
+
+                            &nbsp;
+                            <button type="button"
+                                    class="btn btn-block btn-primary"
+                                    id="saveNotes">
+                                <i class="fa fa-save pull-left"></i> Save Notes
+                            </button>
+                        </div>
+                        {% if view == 'group_admin' %}
+                            <button type="button"
+                                    class="btn btn-block btn-primary"
+                                    id="assignCurator">
+                                <i class="fa fa-user pull-left"></i> Assign To
+                                Curator
+                            </button>
+                        {% elif view == 'assigner' %}
+                            <button type="button"
+                                    class="btn btn-block btn-primary"
+                                    id="assignCurator">
+                                <i class="fa fa-user pull-left"></i> Reassign
+                            </button>
+
+                        {% elif view == 'assignee' %}
+                            <button type="button"
+                                    class="btn btn-block btn-primary"
+                                    id="newGeneset">
+                                <i class="fa fa-plus pull-left"></i> Create New Geneset
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-heading"
+             style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title" style="width:100%">Genesets Created For This Assignment</h3>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $('#assignCurator').on('click', function () {
+
+                // when we show the modal window, we don't want a group selected.
+                $("input:radio[name='curator']:checked").prop('checked', false).checkboxradio("refresh");
+
+                // submit button will be disabled until the user selects a group radio button
+                $('#assignToCurator').prop("disabled", true).button("refresh");
+                $('#assignPubToCuratorModal').modal('show');
+            });
+
+            $("input:radio[name='curator']").on('click', function () {
+                // submit button will be disabled until the user selects a curator
+                // radio button
+                $('#assignToCurator').prop("disabled", false).button("refresh");
+            });
+
+            function handlePostJsonError(data) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+            $('#assignToCurator').on('click', function (){
+
+                var params = {
+                    "notes": $('#notes').val(),
+                    "pub_id": {{ pub.pub_id }},
+                    "group_id": {{ assignment.group }},
+                    "curator": $('input[name=curator]:checked').val()
+                };
+
+                $.post("{{ url_for('assign_publication_to_curator') }}", params, function (data) {
+
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Publication Assigned",
+                            'priority': 'success'
+                        }
+                    ]);
+
+                    var curatorName  = data.curator_name;
+                    var curatorEmail = data.curator_email;
+
+
+                    // update the modal window to include a warning that
+                    // the GeneSet is now assigned to this curator
+                    var html =      "<strong>" +
+                                    "This publication is currently assigned To " +
+                                    curatorName + "(" + curatorEmail + "). " +
+                                    "Are you sure you want to reassign it?" +
+                                    "</strong>";
+
+                    $('#alreadyAssignedWarning').html(html);
+                    $('#notes').val($('#modalNotes').val());
+                    $('#assignCurator').html("Reassign");
+                    $('#curatorName').html(curatorName);
+                }, 'json').fail(handlePostJsonError);
+
+
+            });
+
+            $('#saveNotes').on('click', function (){
+
+                var params = {
+                    "notes": $('#notes').val(),
+                    "pub_id": {{ pub.pub_id }},
+                    "group_id": {{ assignment.group }},
+                };
+
+                $.post("{{ url_for('save_pub_assignment_note') }}", params, function (data) {
+                    $('#modalNotes').val($('#notes').val());
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Notes Saved",
+                            'priority': 'success'
+                        }
+                    ]);
+                }, 'json').fail(handlePostJsonError);
+
+
+
+
+            });
+        });
+    </script>
+{% endif %}
+
+{% include 'footer.html' %}
