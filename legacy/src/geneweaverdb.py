@@ -1557,10 +1557,8 @@ def get_server_side_grouptasks(rargs):
         union_clauses = []
 
         if search_value:
-            for i in range(len(search_columns)):
-                search_clauses.append('''%s LIKE '%%%s%%' ''' % (search_columns[i], search_value))
-            for i in range(len(union_columns)):
-                union_clauses.append('''%s LIKE '%%%s%%' ''' % (union_columns[i], search_value))
+            search_clauses = ['''%s LIKE '%%%s%%' ''' % (search_columns[i], search_value) for i in range(len(search_columns))]
+            union_clauses = ['''%s LIKE '%%%s%%' ''' % (union_columns[i], search_value) for i in range(len(union_columns))]
             search_clause = 'OR '.join(search_clauses)
             union_clause = 'OR '.join(union_clauses)
         else:
