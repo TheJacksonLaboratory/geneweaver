@@ -87,7 +87,15 @@
 }
 
 .bar:hover {
-  fill: brown;
+  fill: green;
+}
+
+.bar > text{
+    stroke: ghostwhite;
+}
+
+.bar:hover > text{
+    stroke: black;
 }
 
 body {
@@ -123,12 +131,11 @@ body {
 
 </style>
 <script>
-    var showHideBox=function(targetId,checkedNow){
-        var setTo="block";
-        if(checkedNow){
-            setTo="none";
-        }
-        document.getElementById(targetId).setAttribute("display",setTo);
+    var line=true;
+    var graph=true;
+    var smooth=true;
+    var showHideBox=function(){
+        graphBar(graph,line,smooth);
     };
 </script>
 <!--note to future developers: this was done as a group project in undergrad, where we are not taught website development
@@ -137,40 +144,54 @@ as on the previous page, but to get it to work, things that experienced web deve
 
 the checkboxes are supposed to toggle which graphs show up
 fix the code to be maintainable and consistent with the rest of the website code if you can-->
-<table>
-    <tr>
-        <td>
-            <div class="ui-checkbox">
-<label for="lineGraphCheckbox" class="ui-btn ui-corner-all ui-btn-inherit ui-btn-icon-left ui-checkbox-on"></label>
-<input type="checkbox" onclick="showHideBox('lineGraph',this.checked)" id="lineGraphCheckbox" checked="true">
-
-            </div>
-        </td>
-        <td>
-            <strong>Line Graph</strong>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <div class="ui-checkbox">
-
-<label for="barGraphCheckbox" class="ui-btn ui-corner-all ui-btn-inherit ui-btn-icon-left ui-checkbox-on"></label>
-<input type="checkbox" onclick="showHideBox('barGraph',this.checked)" id="barGraphCheckbox" checked="true">
-            </div>
-        </td>
-        <td>
-            <strong>Bar Graph</strong>
-        </td>
-    </tr>
 </table>
+<table>
+    <tbody><tr>
+        <td>
+            <div class="ui-checkbox">
 
-<div>
+<div class="ui-checkbox"><label for="lineGraphCheckbox" class="ui-btn ui-corner-all ui-checkbox-on ui-btn-inherit ui-btn-icon-left"></label>
+    <input type="checkbox" onclick="line=this.checked; showHideBox()" id="lineGraphCheckbox" checked="true"></div>
+
+            </div>
+        </td>
+        <td>
+            <strong>Best Fit Line</strong>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div class="ui-checkbox">
+
+
+<div class="ui-checkbox"><label for="barGraphCheckbox" class="ui-btn ui-corner-all ui-checkbox-on ui-btn-inherit ui-btn-icon-left"></label>
+    <input type="checkbox" onclick="graph=this.checked; showHideBox()" id="barGraphCheckbox" checked="true"></div>
+            </div>
+        </td>
+        <td>
+            <strong>Histogram Boxes</strong>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div class="ui-checkbox">
+
+
+<div class="ui-checkbox"><label for="smoothGraphCheckbox" class="ui-btn ui-corner-all ui-checkbox-on ui-btn-inherit ui-btn-icon-left"></label>
+    <input type="checkbox" onclick="smooth=this.checked; showHideBox()"
+    id="smoothGraphCheckbox" checked="true"></div>
+            </div>
+        </td>
+        <td>
+            <strong>Interpolate Best Fit Line</strong>
+        </td>
+    </tr>
+</tbody></table>
+
+<div id="graphDiv">
 <svg id="barGraph" width="960" height="500"></svg>
 </div>
-<div>
-<svg id="lineGraph" width="960" height="500" fill-opacity="0.0" style="position:absolute; top:0; margin-top: 110px"></svg>
-</div>
-<script src="//d3js.org/d3.v4.0.0-alpha.4.min.js"></script>
+<script src="/static/d3/d3.js" charset="utf-8"></script>
 <script>
 
 
@@ -181,101 +202,102 @@ var data = d3.range({{ async_result.datafile['data'][0]['densityPointCount']}}).
     console.log(value);
     return value;
 });
-var graphBar=function(){
-    var svg = d3.select("#barGraph"),
-    margin = {top: 20, right: 20, bottom: 30, left: 40},
-    width = +svg.attr("width") - margin.left - margin.right,
-    height = +svg.attr("height") - margin.top - margin.bottom;
 
+var margin = {top: 20, right: 20, bottom: 70, left: 40},
+    width = +d3.select("#barGraph").attr("width") - margin.left - margin.right,
+    height = +d3.select("#barGraph").attr("height") - margin.top - margin.bottom;
 
-    var x = d3.scaleBand().rangeRound([0, width]).padding(0.1), y = d3.scaleLinear().rangeRound([height, 0]);
+var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
 
-    var g = svg.append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+var y = d3.scale.linear().range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .ticks(10);
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .ticks(10,"%");
+
 
   x.domain(data.map(function(d) { return d.intersectSize; }));
   y.domain([0, d3.max(data, function(d) { return d.frequency; })]);
 
-  g.append("g")
-      .attr("class", "axis axis--x")
-      .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(x));
+var svg=d3.select("#barGraph").attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
 
-  g.append("g")
-      .attr("class", "axis axis--y")
-      .call(d3.axisLeft(y).ticks(10, "%"))
+var graphBar=function(drawBars,drawLine,smooth){
+
+    svg.selectAll("*").remove();
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", ".2em")
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
     .append("text")
       .attr("transform", "rotate(-90)")
       .attr("y", 6)
-      .attr("dy", "0.71em")
-      .attr("text-anchor", "end")
-      .text("Frequency");
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("frequency");
 
-  g.selectAll(".bar")
-    .data(data)
-    .enter().append("rect")
-      .attr("class", "bar")
+  if(drawBars){
+      var bars=svg.selectAll(".bar")
+          .data(data)
+        .enter().append("g")
+          .attr("class", "bar");
+
+    bars.append("rect")
+          .attr("x", function(d) { return x(d.intersectSize); })
+          .attr("width", x.rangeBand())
+          .attr("y", function(d) { return y(d.frequency); })
+          .attr("height", function(d) { return height - y(d.frequency); });
+    bars.append("text").text(function(d){return ""+d.frequency})
       .attr("x", function(d) { return x(d.intersectSize); })
       .attr("y", function(d) { return y(d.frequency); })
-      .attr("width", x.bandwidth())
-      .attr("height", function(d) { return height - y(d.frequency); });
+      .attr("dx", ".5em")
+      .attr("dy", "-1em")
+
+  }
+
+
+  var line=d3.svg.line()
+      .x(function(d){ return x(d.intersectSize)+(x.rangeBand()/2);})
+      .y(function(d){ return y(d.frequency);})
+  if(smooth){
+    line.interpolate("basis")
+  }
+  if(drawLine){
+    svg.append("g").append("path")
+        .attr("d",line(data))
+        .style("fill","none")
+        .style("stroke","black")
+        .style("stroke-width","4-px");
+  }
+
 };
-var graphLine=function() {
-    var svg = d3.select("#lineGraph"),
-            margin = {top: 20, right: 20, bottom: 30, left: 40},
-            width = +svg.attr("width") - margin.left - margin.right,
-            height = +svg.attr("height") - margin.top - margin.bottom;
-    g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-
-    var x = d3.scaleLinear().rangeRound([0, width]),
-            y = d3.scaleLinear().rangeRound([height, 0]);
-
-    var line = d3.line()
-            .x(function (d) {
-                return x(d.intersectSize);
-            })
-            .y(function (d) {
-                return y(d.frequency);
-            });
-
-    var g = svg.append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-    x.domain([0, {{ async_result.datafile['data'][0]['densityPointCount']}}]);
-    y.domain([0, 1]);
-
-    g.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x));
-
-    g.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y))
-            .append("text")
-            .attr("fill", "#000")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", "0.71em")
-            .attr("text-anchor", "end")
-            .text("Frequency");
-
-    g.append("path")
-            .datum(data)
-            .attr("class", "line")
-            .attr("d", line)
-};
-graphBar();
-
-graphLine();
+graphBar(true,true,true);
 
 </script>
 
 
-<h3>p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
+<p>p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
 {{ async_result.datafile['data'][0]['numSamples'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} generated from background<br/>
 {{ async_result.datafile['data'][0]['intersectGreaterCount'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} contained at least as many matches to database as the actual expression results.<br/>
-{{ async_result.datafile['data'][0]['inTopAndIntersectCount'] }} matches to database found in microarray results</h3>
+{{ async_result.datafile['data'][0]['inTopAndIntersectCount'] }} matches to
+database found in microarray results</p>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
@@ -286,8 +308,9 @@ graphLine();
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="panel panel-info" >
-        <div class="panel-heading bg-green" style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion" href="#msetCollapse"style="color:#FFFFFF; width:100%;">
+        <div  style="border-radius:4px;">
+			<a data-toggle="collapse" data-parent="#accordion"
+                href="#msetCollapse"style="color:#000000; width:100%;">
 				<div class="panel-title" style="width:100%;">
 					Tool Options
 					<span class="caret"></span>
@@ -328,8 +351,9 @@ graphLine();
 </form>
 
 <div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+	<div  style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion"
+                            href="#viz-options"style="color:#000000; width:100%;">
 			<div class="panel-title" style="width:100%;">
 				Visualization Options
 				<span class="caret"></span>
@@ -365,8 +389,9 @@ graphLine();
 </div>
 
 <div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
+	<div  style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion"
+            href="#sim-matrix"style="color:#000000; width:100%;">
 			<div class="panel-title" style="width:100%;">
 				Similarity Matrix
 				<span class="caret"></span>

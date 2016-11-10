@@ -5,7 +5,7 @@ int main(int argc, char** argv){
         cerr<<"expected <num samples> <topFile path> <background filepath> <number of interestFiles> <set-of-intrest filepath>"<<endl; //TODO: change to log file
         exit(1);
     }
-    //*    //string
+    /*    //string
     MSET<string> msetFinder;//main logic is in this mset class, which is templated incase requirements change
     /*/   //numeric
     MSET<int> msetFinder;

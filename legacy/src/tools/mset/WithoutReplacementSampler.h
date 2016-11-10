@@ -4,7 +4,6 @@
 #include <ctime>
 #include <random>
 #include <iostream>
-template<typename T>
 /*
  * this class holds the state of the rng and the function to use it to sample 
  * into a given vector
@@ -12,6 +11,7 @@ template<typename T>
  * unfortunately, since each successive sample changes the state of the rng,
  * they cant be pulled in parrallel if the probability is to match the R implementation
  */
+template<typename T>
 class WithoutReplacementSampler{
     public:
         WithoutReplacementSampler(){
@@ -31,10 +31,22 @@ class WithoutReplacementSampler{
     //this is currently sampling with replacement, but doing so is an order of magnitude
     //faster than without, and didn't seem to affect the probabilities in a significant way
     void sample(std::vector<T>& sampleInto){
+        /*//with replacement
         for(unsigned long i=0;i<sampleInto.size();i++){
             unsigned long pull=ndxs(gen);
             sampleInto[i]=(*fromVector)[pull];
         }
+        /*///without replacement
+        for(unsigned long i=0;i<sampleInto.size();i++){
+            unsigned long pull=std::uniform_int_distribution<unsigned long>{0,sampleInto.size()-i}(gen);
+            sampleInto[i]=(*fromVector)[pull];
+            //swap pulled element and the element at 1 more than the sample out
+            //of range
+            T temp=(*fromVector)[pull];
+            (*fromVector)[pull]=(*fromVector)[fromVector->size()-i];
+            (*fromVector)[fromVector->size()-i]=temp;
+        }
+        //*/
     }
     private:
         std::random_device rd;
