@@ -662,12 +662,18 @@
 			var gsData = 'Genes dervied from the GeneSet: ' + 
                          '{{ geneset.name | safe | trim }}';
             var species = '{{ geneset.sp_id | safe }}';
-            var geneType = '{{ geneset.gene_id_type | safe }}';
+            var geneType = {{ geneset.gene_id_type | safe }};
 
             // GS Description
             gsData += '?' + gsData;
             gsData += '?' + species;
-            gsData += '?' + geneType;
+
+            // Negative types indicate a symbolic gene representation while
+            // positive types are expression platforms
+            if (geneType < 0)
+                gsData += '?' + 'gene_' + (geneType * -1);
+            else
+                gsData += '?' + 'ma_' + geneType;
 
 			// Gene names and scores
 			checkedArray.forEach(function (entry) {
@@ -678,7 +684,10 @@
 				gsData += $.trim($(entry).children('.gene-value').text());
 			});
 
-            var uploadUrl = window.location.origin + '/uploadgeneset/' + gsData;
+            // 'gsdata?' is needed otherwise the first section of the data
+            // string is eaten by something (js?)
+            var uploadUrl = window.location.origin + '/uploadgeneset/' + 
+                            'gsdata?' + gsData;
 
             window.open(uploadUrl, '_blank');
             
