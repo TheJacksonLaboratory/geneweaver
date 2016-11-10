@@ -293,10 +293,11 @@ graphBar(true,true,true);
 </script>
 
 
-<h3>p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
+<p>p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
 {{ async_result.datafile['data'][0]['numSamples'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} generated from background<br/>
 {{ async_result.datafile['data'][0]['intersectGreaterCount'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} contained at least as many matches to database as the actual expression results.<br/>
-{{ async_result.datafile['data'][0]['inTopAndIntersectCount'] }} matches to database found in microarray results</h3>
+{{ async_result.datafile['data'][0]['inTopAndIntersectCount'] }} matches to
+database found in microarray results</p>
 
 <script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
@@ -307,8 +308,9 @@ graphBar(true,true,true);
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="panel panel-info" >
-        <div class="panel-heading bg-green" style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion" href="#msetCollapse"style="color:#FFFFFF; width:100%;">
+        <div  style="border-radius:4px;">
+			<a data-toggle="collapse" data-parent="#accordion"
+                href="#msetCollapse"style="color:#000000; width:100%;">
 				<div class="panel-title" style="width:100%;">
 					Tool Options
 					<span class="caret"></span>
@@ -349,8 +351,9 @@ graphBar(true,true,true);
 </form>
 
 <div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+	<div  style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion"
+                            href="#viz-options"style="color:#000000; width:100%;">
 			<div class="panel-title" style="width:100%;">
 				Visualization Options
 				<span class="caret"></span>
@@ -386,8 +389,9 @@ graphBar(true,true,true);
 </div>
 
 <div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
+	<div  style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion"
+            href="#sim-matrix"style="color:#000000; width:100%;">
 			<div class="panel-title" style="width:100%;">
 				Similarity Matrix
 				<span class="caret"></span>

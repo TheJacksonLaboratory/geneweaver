@@ -4,7 +4,6 @@
 #include <ctime>
 #include <random>
 #include <iostream>
-template<typename T>
 /*
  * this class holds the state of the rng and the function to use it to sample 
  * into a given vector
@@ -12,6 +11,7 @@ template<typename T>
  * unfortunately, since each successive sample changes the state of the rng,
  * they cant be pulled in parrallel if the probability is to match the R implementation
  */
+template<typename T>
 class WithoutReplacementSampler{
     public:
         WithoutReplacementSampler(){
@@ -42,7 +42,7 @@ class WithoutReplacementSampler{
             sampleInto[i]=(*fromVector)[pull];
             //swap pulled element and the element at 1 more than the sample out
             //of range
-            unsigned long temp=(*fromVector)[pull];
+            T temp=(*fromVector)[pull];
             (*fromVector)[pull]=(*fromVector)[fromVector->size()-i];
             (*fromVector)[fromVector->size()-i]=temp;
         }

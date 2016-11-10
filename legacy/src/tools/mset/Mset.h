@@ -163,6 +163,8 @@ public:
         //do all the instersections
         long resizeCountsTo=0;
         for(long i=0;i<numSamples;i++){
+            //ref() explicitly tells the compiler that a variable is pass by reference,
+            //which is needed if this is used in a multithreaded way later on
             calculateIntersections(
                     isectFinderPtr,countsPtr,samples[i],
                     ref(numGreater),checklength,ref(resizeCountsTo));
@@ -219,6 +221,7 @@ public:
             jsonOutput<<endl;
         }
         jsonOutput<<tb<<"]"<<endl;
+        jsonOutput<<tb<<"\"interestToBackgroundSizeRatio\": "<<double(setOfInterest.size())/double(background.size())<<endl;
         jsonOutput<<"}";
 
         return jsonOutput.str();
