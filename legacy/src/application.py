@@ -738,7 +738,6 @@ def render_pub_assignment(group_id, pub_id):
         uid = flask.session['user_id']
         assignment = pub_assignments.get_publication_assignment(pub_id, group_id)
         if assignment:
-
             publication = geneweaverdb.get_publication(pub_id)
 
             if uid == assignment.assignee:
@@ -750,8 +749,6 @@ def render_pub_assignment(group_id, pub_id):
             else:
                 view = 'no_access'
 
-            print view
-
             if view != 'no_access' and assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
                 curator = geneweaverdb.get_user(assignment.assignee)
 
@@ -761,8 +758,6 @@ def render_pub_assignment(group_id, pub_id):
         else:
             # publication assignment not found
             flask.abort(404)
-
-    print curation_team_members
 
     return flask.render_template('viewPubAssignment.html', pub=publication,
                                  view=view, assignment=assignment,
