@@ -536,7 +536,7 @@
                         "curator": selectedUserId,
                     };
 
-                    $.post("{{ url_for('assign_curator_to_geneset') }}", params ,function(data) {
+                    $.post("{{ url_for('assign_geneset_to_curator') }}", params ,function(data) {
 
                         var curatorName  = data.curator_name;
                         var curatorEmail = data.curator_email;
@@ -545,7 +545,7 @@
                         // update the modal window to include a warning that
                         // the GeneSet is now assigned to this curator
                         var html =      "<strong>" +
-                                        "This Geneset is Currently Assigned To " +
+                                        "This Geneset is currently assigned To " +
                                         curatorName + "(" + curatorEmail + "). " +
                                         "Are you sure you want to reassign it?" +
                                         "</strong>";

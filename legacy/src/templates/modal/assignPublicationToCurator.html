@@ -1,24 +1,17 @@
-<div class="modal fade" id="assignGenesetToCuratorModal">
+<div class="modal fade" id="assignPubToCuratorModal">
     <div class="modal-dialog">
         <div class="modal-content" style="overflow: auto">
-            <form id="assignGenesetToCurator" name="assignGenesetToCurator" method="post" action="#" class="form-horizontal">
+            <form name="assignPubToCurator" method="post" action="#" class="form-horizontal">
                 <div class="modal-header bg-green">
-                    <h3 class="modal-title" style="color: #f5f5f5">Assign Geneset For Curation</h3>
+                    <h3 class="modal-title" style="color: #f5f5f5">Assign Publication</h3>
                 </div>
 
                 <div class="modal-body">
-                    <div class="row" id="curationAssignmentError"></div>
+                    <div class="row" id="assignmentError"></div>
 
                     <div class="row" style="text-align:center;">
-						<h4><span id="assignToCuratorLabel">Assigning the following GeneSet for curation:</span></h4>
+						<h4>{{ pub.pubmed_id }}</h4>
                     </div>
-
-                    <div class="row" style="text-align:center;">
-                        <strong>
-							<span class="rows" id="curationAssignmentLabel" style="color: #006400;"></span>
-						</strong>
-					</div>
-
 
                     <div class="form-group" >
                         <label for="userSelection"><h4>Select User: </h4></label>
@@ -29,15 +22,15 @@
                     </div>
 
                     <div class="form-group" style="padding: 10px">
-                        <label for="curationNotes"><h4>Notes:</h4></label>
-                        <textarea class="form-control" rows="10" id="modalCurationNotes" >{{ curation_assignment.notes }}</textarea>
+                        <label for="modalNotes"><h4>Notes:</h4></label>
+                        <textarea class="form-control" rows="10" id="modalNotes" >{{ assignment.notes }}</textarea>
                     </div>
 
                     <div class="row" id="alreadyAssignedWarning" style="padding: 15px; text-align: center">
-                        {% if curation_assignment.curator != -1 %}
+                        {% if assignment.state != assignment.UNASSIGNED and curator is defined %}
                             <strong>
-                                This Geneset is currently assigned To
-                                {{ curator_info.first_name }} {{ curator_info.last_name }} ({{ curator_info.email }}).
+                                This Publication is currently assigned To
+                                {{ curator.first_name }} {{ curator.last_name }} ({{ curator.email }}).
                                 Are you sure you want to reassign it?
                             </strong>
                         {% endif %}
