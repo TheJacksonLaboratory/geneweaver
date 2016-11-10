@@ -2287,7 +2287,6 @@ def get_publication_by_pubmed(pubmed_id, create=False):
 
                     pub_dict['pub_id'] = cursor.fetchone()[0]
 
-
                 # sometimes fields are missing (example, online only articles
                 # will not have pages).  We need to make sure the keys at least
                 # exist, or we can't create a Publication object
@@ -2299,24 +2298,18 @@ def get_publication_by_pubmed(pubmed_id, create=False):
                     if key not in pub_dict:
                         pub_dict[key] = None
 
-
                 publication = Publication(pub_dict)
 
         return publication
 
 
 def get_publication(pub_id):
-    publication = None
     with PooledCursor() as cursor:
         cursor.execute("SELECT * from publication WHERE pub_id=%s",
                        (pub_id,))
 
         rows = list(dictify_cursor(cursor))
-        if rows:
-            publication = Publication(rows[0])
-
-        return publication
-
+        return Publication(rows[0]) if rows else None
 
 class Geneset:
     def __init__(self, gs_dict):
