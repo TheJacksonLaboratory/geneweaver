@@ -46,15 +46,16 @@ class PubAssignment(object):
 
     @property
     def state_as_string(self):
-        if self.state == PubAssignment.UNASSIGNED:
-            return "Unassigned"
-        elif self.state == PubAssignment.ASSIGNED:
-            return "Assigned"
-        elif self.state == PubAssignment.READY_FOR_TEAM_REVIEW:
-            return "Under Review"
-        elif self.state == PubAssignment.REVIEWED:
-            return "Complete"
-        else:
+        state_dict = {
+            PubAssignment.UNASSIGNED: "Unassigned",
+            PubAssignment.ASSIGNED: "Assigned",
+            PubAssignment.READY_FOR_TEAM_REVIEW: "Under Review",
+            PubAssignment.REVIEWED: "Complete"
+        }
+
+        try:
+            return state_dict[self.state]
+        except KeyError:
             return "Unknown"
 
 
