@@ -148,3 +148,48 @@ var getSpeciesColors = function(species) {
     return mapping;
 }
 
+var makeOntologyTags = function(onts) {
+
+    var colors = [
+        '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc', 
+        '#e5d8bd', '#fddaec', '#f2f2f2'
+    ];
+
+    var borders = [
+        '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966', 
+        '#7f7257', '#977486', '#8C8C8C'
+    ];
+
+    // Remove duplicate ontology IDs since we're getting a list of all
+    // annotations
+    onts = function(a) {
+        var seen = {};
+    
+        return a.filter(function(elem) {
+            return seen.hasOwnProperty(elem.ontdb_id) ? false : (seen[elem.ontdb_id] = true);
+        });
+    }(onts);
+
+    for (var i = 0; i < onts.length; i++) {
+
+        var ontid = onts[i].ontdb_id;
+        var name = onts[i].dbname;
+
+        $('.ont-' + ontid).css('background-color', colors[ontid]);
+        $('.ont-' + ontid).css('border', '1px solid');
+        $('.ont-' + ontid).css('border-color', borders[ontid]);
+
+        var $key = $('<div>', {
+            class: 'ontology-tag', 
+            text: name
+        });
+
+        $key.css('background-color', colors[ontid]);
+        $key.css('border', '1px solid');
+        $key.css('border-color', borders[ontid]);
+        $key.css('font-weight', 'bold');
+
+        $('#ont-key').append($key);
+    }
+};
+

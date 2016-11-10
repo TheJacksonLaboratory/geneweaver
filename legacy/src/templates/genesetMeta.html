@@ -1,4 +1,15 @@
 {# MetaContent About Genesets on GeneSet View Page #}
+<style>
+    .ontology-tag {
+
+        border-radius:5px;
+        display:inline-block;
+        font-size: 12px;
+        padding: 5px 6px 5px 6px;
+        margin-bottom:5px;
+        margin-right:5px;
+    }
+</style>
 
 <div class="panel-body">
     <div class="row">
@@ -154,6 +165,18 @@
 						page to change ontology annotations.
                     </div>
                 </div>
+                <div id="ont-key">
+                </div>
+                <br />
+                {% for ont in ontology %}
+                    <div class="ont-{{ont.ontdb_id}} ontology-tag">
+                            <span style="color:#000">
+                                <strong>{{ ont.name }}</strong>
+                            </span>
+                            ({{ ont.reference_id }})
+                    </div>
+                {% endfor %}
+                {#
                 <div class="row">
                         <ul style="list-style-type:disc; margin-left: 2em;">
                             {% for ont in ontology %}
@@ -171,6 +194,7 @@
                             {% endfor %}
                         </ul>
                 </div>
+                #}
             </div>
 
             <script>

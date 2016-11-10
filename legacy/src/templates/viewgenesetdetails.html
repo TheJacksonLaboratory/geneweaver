@@ -300,6 +300,9 @@
             {% else %}
                 makeSpeciesTags();
             {% endif %}
+
+            //makeOntologyTags({{ ontology | map(attribute='ontdb_id') | list }});
+            makeOntologyTags({{ ontology | tojson | safe }});
         });
 
         $("[name='g_id[]']").bootstrapSwitch();
