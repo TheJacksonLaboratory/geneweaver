@@ -44,6 +44,20 @@ class PubAssignment(object):
         self.created = row_dict['created']
         self.updated = row_dict['updated']
 
+    @property
+    def state_as_string(self):
+        state_dict = {
+            PubAssignment.UNASSIGNED: "Unassigned",
+            PubAssignment.ASSIGNED: "Assigned",
+            PubAssignment.READY_FOR_TEAM_REVIEW: "Under Review",
+            PubAssignment.REVIEWED: "Complete"
+        }
+
+        try:
+            return state_dict[self.state]
+        except KeyError:
+            return "Unknown"
+
 
 def queue_publication(pub_id, group_id, note):
     """
@@ -71,7 +85,6 @@ def queue_publication(pub_id, group_id, note):
         # JGP - replace this with a meaningful reference
         message = 'production.publication.pub_id: <i>' + str(pub_id) + '</i><br>' + note
         notifications.send_group_admin_notification(group_id, subject, message)
-    return
 
 
 def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
@@ -97,7 +110,6 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
     # JGP - replace this with a meaningful reference
     message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
-    return
 
 
 def assignment_complete(pub_id, group_id, note):
@@ -130,7 +142,6 @@ def assignment_complete(pub_id, group_id, note):
     # JGP - replace this with a meaningful reference
     message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
-    return
 
 
 def review_accepted(pub_id, group_id, note):
@@ -164,8 +175,6 @@ def review_accepted(pub_id, group_id, note):
     message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
-    return
-
 
 def review_rejected(pub_id, group_id, note):
     """
@@ -198,7 +207,13 @@ def review_rejected(pub_id, group_id, note):
     message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
-    return
+
+def update_notes(pub_id, group_id, notes):
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute(
+            "UPDATE production.pub_assignments SET notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
+            (notes, pub_id, group_id))
+        cursor.connection.commit()
 
 
 def get_publication_assignment(pub_id, group_id):

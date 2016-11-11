@@ -148,7 +148,7 @@
 
         $('#find').click(function () {
 
-            var pmid = $('#pubmed_id').val();
+            var pmid = $('#pubmed_id').val().trim();
 
             if (/^\d+$/.test(pmid) != true) {
                 $(document).trigger("add-alerts", [
