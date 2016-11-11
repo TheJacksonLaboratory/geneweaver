@@ -59,6 +59,17 @@ class PubAssignment(object):
             return "Unknown"
 
 
+def get_pub_assignment_url(pub_id, group_id):
+    """
+    returns a URL to view a publication assignment. the publication id and
+    group id together uniquely identify the assignment
+    :param pub_id: publication id
+    :param group_id: group id
+    :return:
+    """
+    return '<a href="{url_prefix}/curategeneset/' + group_id + '/' + pub_id + '">' + pub_id + '</a>'
+
+
 def queue_publication(pub_id, group_id, note):
     """
     :param pub_id: publication submitted for review
@@ -83,7 +94,7 @@ def queue_publication(pub_id, group_id, note):
         # send notification to the group admins
         subject = 'Publication Queued for Review'
         # JGP - replace this with a meaningful reference
-        message = 'production.publication.pub_id: <i>' + str(pub_id) + '</i><br>' + note
+        message = 'production.publication.pub_id: <i>' + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
         notifications.send_group_admin_notification(group_id, subject, message)
 
 
@@ -108,7 +119,7 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
     # Send notification to curator
     subject = "Publication Assigned To You For Review"
     # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
@@ -140,7 +151,7 @@ def assignment_complete(pub_id, group_id, note):
     # Send notification to assigner
     subject = 'Publication Assignment Complete'
     # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
@@ -172,7 +183,7 @@ def review_accepted(pub_id, group_id, note):
     # Send notification to curator
     subject = 'Publication Assignment Accepted'
     # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
@@ -204,7 +215,7 @@ def review_rejected(pub_id, group_id, note):
     # Send notification to curator
     subject = 'Publication Assignment Rejected'
     # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
