@@ -427,7 +427,7 @@ def assign_genesets_to_curation_group():
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to assign this GeneSet for curation')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -464,7 +464,7 @@ def assign_genesets_to_curator():
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to assign these GeneSets to a curator')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -502,7 +502,7 @@ def assign_publications_to_curator():
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to assign these Publications to a curator')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -536,7 +536,7 @@ def assign_geneset_to_curator():
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to assign this GeneSet for curation')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -565,7 +565,7 @@ def geneset_ready_for_review():
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -598,7 +598,7 @@ def mark_geneset_reviewed():
     else:
         #user is not logged in
         response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -628,7 +628,7 @@ def get_publication_by_pubmed_id(pubmed_id):
     else:
         #user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -673,7 +673,7 @@ def assign_publication_to_group():
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -704,24 +704,21 @@ def assign_publication_to_curator():
                 response = flask.jsonify(message='User is not a member of this group.')
                 response.status_code = 412
             else:
-
                 curator_info = geneweaverdb.get_user(curator)
-
                 pub_assignments.assign_publication(pub_id, gid, curator, user_id, notes)
 
                 response = flask.jsonify(success=True,
                                          curator_name=curator_info.first_name + " " + curator_info.last_name,
                                          curator_email=curator_info.email)
 
-
         else:
             response = flask.jsonify(success=False, message="Error assigning curator, GeneSet does not have an active curation record")
             response.status_code = 412
 
     else:
-        #user is not logged in
+        # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
@@ -789,7 +786,7 @@ def save_pub_assignment_note():
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
-        response.status_code = 403
+        response.status_code = 401
 
     return response
 
