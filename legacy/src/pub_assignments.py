@@ -25,6 +25,8 @@
 from __future__ import print_function
 import geneweaverdb
 import notifications
+import uploadfiles
+import curation_assignments
 
 
 class PubAssignment(object):
@@ -35,6 +37,7 @@ class PubAssignment(object):
     REVIEWED = 4
 
     def __init__(self, row_dict):
+        self.id = row_dict['id']
         self.state = row_dict['assignment_state']
         self.pub_id = row_dict['pub_id']
         self.assignee = row_dict['assignee']
@@ -67,7 +70,7 @@ def get_pub_assignment_url(pub_id, group_id):
     :param group_id: group id
     :return:
     """
-    return '<a href="{url_prefix}/curategeneset/' + group_id + '/' + pub_id + '">' + pub_id + '</a>'
+    return '<a href="{url_prefix}/curategeneset/' + str(group_id) + '/' + str(pub_id) + '">' + str(pub_id) + '</a>'
 
 
 def queue_publication(pub_id, group_id, note):
@@ -228,7 +231,6 @@ def update_notes(pub_id, group_id, notes):
 
 
 def get_publication_assignment(pub_id, group_id):
-
     with geneweaverdb.PooledCursor() as cursor:
 
         cursor.execute("SELECT * FROM production.pub_assignments WHERE pub_id=%s AND curation_group=%s", (pub_id, group_id))
@@ -238,6 +240,69 @@ def get_publication_assignment(pub_id, group_id):
             return PubAssignment(assignments[0])
         else:
             return None
+
+def get_publication_assignment_by_id(id):
+     with geneweaverdb.PooledCursor() as cursor:
+
+        cursor.execute("SELECT * FROM production.pub_assignments WHERE id=%s", (id,))
+
+        assignments = list(geneweaverdb.dictify_cursor(cursor))
+        return PubAssignment(assignments[0]) if len(assignments) == 1 else None
+
+
+def create_geneset_stub_for_publication(id, name, label, description, species_id):
+    """
+    create a stub geneset for this publication.  a stub geneset is a record
+    that only has the basic information filled out.  These are created on the
+    publication assignment view through a modal window.  These generate new
+    geneset curation assignments for the publication curator. They will finish
+    filling out the geneset through the geneset curation workflow.
+
+    :param id: ID of the publication assignment for which this geneset is being created
+    :param name: name of new geneset
+    :param label: figure label for new geneset
+    :param description: description of geneset
+    :return: ID of new geneset
+    """
+
+    geneset_id = None
+    assignment = get_publication_assignment_by_id(id)
+
+    if assignment:
+        gs_id = None
+
+        # default geneset as 'Private'
+        gs_groups = '-1'
+        cur_id = 5
+
+        # right now, this can be set in the curation view.  should we
+        # set this in the stub?
+        gene_identifier = 0
+
+        with geneweaverdb.PooledCursor() as cursor:
+            file_id = uploadfiles.insert_new_contents_to_file("")
+            cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
+                              gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
+                              VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
+                           (assignment.assignee, file_id, name, label, assignment.pub_id, cur_id,
+                            description, species_id, 0, gs_groups, gene_identifier,
+                            'delayed',))
+            geneset_id = cursor.fetchone()[0]
+            cursor.connection.commit()
+
+        if geneset_id:
+            curation_assignments.submit_geneset_for_curation(geneset_id, assignment.group, "", False)
+            curation_assignments.assign_geneset_curator(geneset_id, assignment.assignee, assignment.assigner, "")
+            insert_gs_to_pub_assignment(geneset_id, id)
+
+    return geneset_id
+
+
+def insert_gs_to_pub_assignment(gs_id, pub_assign_id):
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id, pub_assign_id)
+                          VALUES (%s, %s)''', (gs_id, pub_assign_id))
+        cursor.connection.commit()
 
 
 #

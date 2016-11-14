@@ -9,6 +9,8 @@
 
     {% if view != 'assignee' %}
         {% include 'modal/assignPublicationToCurator.html' %}
+    {% else %}
+        {% include 'modal/addGenesetStub.html' %}
     {% endif %}
 
 
@@ -131,6 +133,9 @@
              style="border-bottom-width: thick; border-bottom-color: #006400;">
                 <h3 class="panel-title" style="width:100%">Genesets Created For This Assignment</h3>
         </div>
+        <div class="panel-body" id="geneset_panel">
+
+        </div>
     </div>
 
     <script>
@@ -138,7 +143,7 @@
             $('#assignCurator').on('click', function () {
 
                 // when we show the modal window, we don't want a group selected.
-                $("input:radio[name='curator']:checked").prop('checked', false).checkboxradio("refresh");
+                $("input:radio[name='curator']:checked").prop('checked', false).checkboxradio('refresh');
 
                 // submit button will be disabled until the user selects a group radio button
                 $('#assignToCurator').prop("disabled", true).button("refresh");
@@ -148,7 +153,7 @@
             $("input:radio[name='curator']").on('click', function () {
                 // submit button will be disabled until the user selects a curator
                 // radio button
-                $('#assignToCurator').prop("disabled", false).button("refresh");
+                $('#assignToCurator').prop('disabled', false).button('refresh');
             });
 
             function handlePostJsonError(data) {
@@ -162,7 +167,7 @@
                 ]);
             }
 
-            $('#assignToCurator').on('click', function (){
+            $('#assignToCurator').on('click', function() {
 
                 var params = {
                     "notes": $('#notes').val(),
@@ -202,7 +207,7 @@
 
             });
 
-            $('#saveNotes').on('click', function (){
+            $('#saveNotes').on('click', function() {
 
                 var params = {
                     "notes": $('#notes').val(),
@@ -220,9 +225,40 @@
                         }
                     ]);
                 }, 'json').fail(handlePostJsonError);
+            });
+
+            $('#newGeneset').on('click', function() {
+                $('#stubSubmit').attr('disabled', true).button('refresh');
+                $('#sp_id').val([]);
+                $('#name').val("");
+                $('#figureLabel').val("");
+                $('#addStubModal').modal('show');
+            });
 
 
+            $('#name, #figureLabel, #description, #sp_id').change(validate_form);
 
+            function validate_form () {
+                if ($('#sp_id').val() && $('#name').val().length && $('#figureLabel').val().length && $('#description').val().length) {
+                    $('#stubSubmit').attr('disabled', false).button('refresh');
+                }
+                else {
+                    $('#stubSubmit').attr('disabled', true).button('refresh');
+                }
+            }
+
+            $('#stubSubmit').on('click', function () {
+                var params = {
+                    pub_assign_id: {{ assignment.id }},
+                    gs_name: $('#name').val(),
+                    gs_label: $('#figureLabel').val(),
+                    gs_description: $('#description').val(),
+                    species_id: $('#sp_id').val()
+                };
+
+                $.post("{{ url_for('create_geneset_stub') }}", params, function (data) {
+                    $('#geneset_panel').append('<p><a href="/curategeneset/' + data.gs_id + '">GS' + data.gs_id + '</a>')
+                }, 'json').fail(handlePostJsonError);
 
             });
         });

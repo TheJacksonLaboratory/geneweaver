@@ -730,6 +730,7 @@ def render_pub_assignment(group_id, pub_id):
     assignment = None
     curator = None
     curation_team_members = None
+    species = None
 
     if 'user_id' in flask.session:
         uid = flask.session['user_id']
@@ -739,6 +740,8 @@ def render_pub_assignment(group_id, pub_id):
 
             if uid == assignment.assignee:
                 view = 'assignee'
+                species = geneweaverdb.get_all_species()
+
             elif uid == assignment.assigner:
                 view = 'assigner'
             elif group_id in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
@@ -758,7 +761,7 @@ def render_pub_assignment(group_id, pub_id):
 
     return flask.render_template('viewPubAssignment.html', pub=publication,
                                  view=view, assignment=assignment,
-                                 curator=curator,
+                                 curator=curator, species=species,
                                  curation_team=curation_team_members)
 
 
@@ -782,6 +785,36 @@ def save_pub_assignment_note():
             else:
                 response = flask.jsonify(message='You do not have permissions to perform this action.')
                 response.status_code = 403
+        else:
+            response = flask.jsonify(message='Assignment not found.')
+            response.status_code = 404
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route('/create_geneset_stub.json', methods=['POST'])
+def create_geneset_stub():
+    if 'user_id' in flask.session:
+        uid = flask.session['user_id']
+        gs_name = request.form.get('gs_name')
+        gs_label = request.form.get('gs_label')
+        gs_description = request.form.get('gs_description')
+        pub_assign_id = request.form.get('pub_assign_id', type=int)
+        species_id = request.form.get('species_id', type=int)
+
+        assignment = pub_assignments.get_publication_assignment_by_id(pub_assign_id)
+
+        if assignment.state != assignment.ASSIGNED and assignment.assignee != uid:
+            response = flask.jsonify(message='You do not have permissions to perform this action.')
+            response.status_code = 403
+        else:
+            gs_id = pub_assignments.create_geneset_stub_for_publication(pub_assign_id, gs_name, gs_label, gs_description, species_id)
+            response = flask.jsonify(gs_id=gs_id)
 
     else:
         # user is not logged in
