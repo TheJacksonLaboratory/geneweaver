@@ -10,7 +10,7 @@ var speciesToColorZoomout ={"Mus musculus":"rgba(17,91,127,0.5)","Homo sapiens":
 var speciesToColorZoomin = {"Mus musculus":"rgb(17,91,127)","Homo sapiens":"rgb(160,168,228)","Rattus norvegicus":"rgb(79,91,182)","Danio rerio":"rgb(29,42,138)","Drosophila melanogaster":"rgb(151,230,186)","Macaca mulatta":"rgb(65,188,118)","Caenorhabditis elegans":"rgb(13,143,70)","Saccharomyces cerevisiae":"rgb(255,215,168)","Gallus gallus":"rgb(255,178,88)","Canis familiaris":"rgb(201,116,18)"};
 
 // Define properties for svg
-var svg = d3.select("svg"),
+var svg = d3.select("#clustersInCirclesSVG"),
     margin = 20,
     diameter = +svg.attr("width"),
     g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
@@ -33,7 +33,6 @@ function parse(cluster, geneToSpecies) {
         var obj = {};
         obj.name = "Cluster" + i;
         obj.children = e.map(function(gene){
-            console.log(geneToSpecies[gene]);
             var geneObj = {};
             geneObj.name = gene;
             geneObj.size = 1;
@@ -102,17 +101,17 @@ function draw(root) {
       .on("click", function() { zoom(root); });
 
     //set legend
-    svg.append("g")
-      .attr("class", "legendOrdinal")
-      .attr("transform", "translate(20,20)");
-
-    var legendOrdinal = d3.legendColor()
-      .shape("path", d3.symbol().type(d3.symbolCircle).size(500)())
-      .shapePadding(10)
-      .scale(ordinal);
-
-    svg.select(".legendOrdinal")
-      .call(legendOrdinal);
+    // svg.append("g")
+    //   .attr("class", "legendOrdinal")
+    //   .attr("transform", "translate(20,20)");
+    //
+    // var legendOrdinal = d3.legendColor()
+    //   .shape("path", d3.symbol().type(d3.symbolCircle).size(500)())
+    //   .shapePadding(10)
+    //   .scale(ordinal);
+    //
+    // svg.select(".legendOrdinal")
+    //   .call(legendOrdinal);
 
   //zoom function
   zoomTo([root.x, root.y, root.r * 2 + margin]);
@@ -120,7 +119,7 @@ function draw(root) {
   function zoom(d) {
     var focus0 = focus; focus = d;
 
-    var transition = d3.transition()
+    var transition = svg.transition()
         .duration(d3.event.altKey ? 7500 : 750)
         .tween("zoom", function(d) {
           var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
@@ -144,3 +143,134 @@ function draw(root) {
   }
 };
 
+var svg2 = d3.select("#clustersInWiresSVG"),
+    width = +svg2.attr("width"),
+    height = +svg2.attr("height");
+var color1 = d3.scaleOrdinal(d3.schemeCategory20);
+
+var simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().distance(10).strength(0.5))
+    .force("charge", d3.forceManyBody())
+    .force("center", d3.forceCenter(width / 2, height / 2));
+
+d3.json("/static/tools/miserables.json", function(graph) {
+
+  var nodes = graph.nodes,
+      nodeById = d3.map(nodes, function(d) { return d.id; }),
+      links = graph.links,
+      bilinks = [];
+
+  links.forEach(function(link) {
+    var s = link.source = nodeById.get(link.source),
+        t = link.target = nodeById.get(link.target),
+        i = {}; // intermediate node
+    nodes.push(i);
+    links.push({source: s, target: i}, {source: i, target: t});
+    bilinks.push([s, i, t]);
+  });
+
+  var link = svg2.selectAll(".link")
+    .data(bilinks)
+    .enter().append("path")
+      .attr("class", "link");
+
+  var node = svg2.selectAll(".node")
+    .data(nodes.filter(function(d) { return d.id; }))
+    .enter()
+      .append("circle","text")
+      .attr("class", "node")
+      .attr("r", 10)
+      .attr("fill", function(d) { return color1(d.group); })
+      // .attr("fill", "black")
+      .text(function(d) { return d.id; })
+      .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));
+
+
+
+  simulation
+      .nodes(nodes)
+      .on("tick", ticked);
+
+  simulation.force("link")
+      .links(links);
+
+  function ticked() {
+    link.attr("d", positionLink);
+    node.attr("transform", positionNode);
+  }
+});
+
+function positionLink(d) {
+  return "M" + d[0].x + "," + d[0].y
+       + "S" + d[1].x + "," + d[1].y
+       + " " + d[2].x + "," + d[2].y;
+}
+
+function positionNode(d) {
+  return "translate(" + d.x + "," + d.y + ")";
+}
+
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x, d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x, d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null, d.fy = null;
+}
+
+//draw legend
+var svg3 = d3.select("#speciesLegend");
+function drawLegend() {
+
+    var key = svg3.append('g');
+
+    Object.keys(speciesToColorZoomout).forEach(function(name, i){
+        if(i < 5) {
+            key.append('circle')
+                .attr('cx', 15)
+                .attr('x', 15)
+                .attr('cy', 28 * i + 20)
+                .attr('y', 28 * i + 20)
+                .attr('r', 10)
+                .style('fill-opacity', 0.90)
+                .style('shape-rendering', 'geometricPrecision')
+                .style('stroke', '#000')
+                .style('stroke-width', '2px')
+                .style('fill', speciesToColorZoomout[name]);
+
+            key.append('text')
+                .attr('x', 33)
+                .attr('y', 29 * i + 24)
+                .text('= ' + name);
+        }
+        else {
+            key.append('circle')
+                .attr('cx', 300)
+                .attr('x', 300)
+                .attr('cy', 28 * (i - 5) + 20)
+                .attr('y', 28 * (i - 5) + 20)
+                .attr('r', 10)
+                .style('fill-opacity', 0.90)
+                .style('shape-rendering', 'geometricPrecision')
+                .style('stroke', '#000')
+                .style('stroke-width', '2px')
+                .style('fill', speciesToColorZoomout[name]);
+
+            key.append('text')
+                .attr('x', 318)
+                .attr('y', 29 * (i - 5) + 24)
+                .text('= ' + name);
+        }
+
+    });
+
+};

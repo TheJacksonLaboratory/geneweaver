@@ -3,7 +3,18 @@
 {% import 'macros.html' as macros %}
 
 <style>
+#legend {
+    text-align: right;
+}
+.nav.nav-tabs>li>a {
+    background-color: rgba(0, 100, 0, 0.4);
+    color: #121212;
+}
 
+.link {
+  fill: none;
+  stroke: #bbb;
+}
 .node{
   cursor: pointer;
 }
@@ -14,9 +25,8 @@
 }
 
 .label {
-  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-anchor: middle;
-  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
 }
 
 .label,
@@ -90,11 +100,27 @@ td, th {
 </form>
 
 <div style="text-align: center;">
-    {% if async_result.resClusters | length != 0 %}
-        <svg width="800" height="800"></svg>
-    {% endif %}
-</div>
 
+    <ul class="nav nav-tabs" role="tablist">
+      <li role="presentation" class="active"><a href="#clustersInCircles" role="tab" data-toggle="tab">Circles</a></li>
+      <li role="presentation"><a href="#clustersInWires" role="tab" data-toggle="tab">Wires</a></li>
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content">
+      <div role="tabpanel" class="tab-pane active" id="clustersInCircles">
+          {% if async_result.resClusters | length != 0 %}
+            <svg id="clustersInCirclesSVG" width="800" height="800"></svg>
+          {% endif %}
+          <div id="legend">
+            <svg height="300" width="800" id="speciesLegend"></svg>
+          </div>
+      </div>
+      <div role="tabpanel" class="tab-pane" id="clustersInWires">
+          <svg id="clustersInWiresSVG" width="800" height="800"></svg>
+      </div>
+    </div>
+</div>
 <div id="resultTable">
     <table class="table" >
         <tr>
@@ -121,7 +147,7 @@ td, th {
     {% if async_result.resClusters | length != 0 %}
         draw(parse({{ async_result.resClustersStr|safe }}, {{ async_result.species_map|safe }}));
     {% endif %}
-
+    drawLegend();
     function download() {
         var doc = new jsPDF();
 
