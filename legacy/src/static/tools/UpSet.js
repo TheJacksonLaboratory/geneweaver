@@ -30,12 +30,15 @@ var upset = function () {
         diagramPadding = 0.5,
         // Bar data for each intersection bar
         Intersectionbars = [],
+        BackgroundRow = [],
         //Circle data for each intersection circle
         IntersectionCircles = [],
+        BackgroundColumn = [],
         //Bar data for each set size bar
         setBars = [],
         // Individual set text lines
         setText = [],
+        setLine = [],
         // Padding (in pixels) between each individual diagram
         diagramPadding = 20,
         // Y-axis/X-axis labels for the bar chart
@@ -92,15 +95,27 @@ var upset = function () {
             set = data.set_diagrams[j];
 
             var rect = {
-                fill: barFillColours[0],
+                fill: circleFillColours[1],
                 height: set['size'],
                 width: 18,
                 x: bx,
                 desc: set['desc1'],
-                name: set['name1']
+                name: set['name1'],
+                type: set['set_id']
+            };
+
+            var background = {
+                type: '' + set['set_id'],
+                x: bx - 9,
+                y: -9,
+                width: 19,
+                height: (30 * data.intersection_diagrams.length),
+                fill: "#006400",
+                opacity: 0
             };
 
             setBars.push(rect);
+            BackgroundColumn.push(background);
             bx = bx + 20;
         }
     };
@@ -110,18 +125,50 @@ var upset = function () {
      */
     var makeCircles = function () {
 
+        //Circle variables
         var vcx = 0,
             vcy = 0,
-            vfill = circleFillColours[0];
+            vfill = circleFillColours[0],
+            vquery = false;
+        var first = null,
+            last = null,
+            lx1 = null,
+            lx2 = null;
 
         var genesets = data.genesets;
         for (var y = 0; y < data.intersection_diagrams.length; y++){
+
+            var background = {
+                type: 'row'+y,
+                y: vcy - 9,
+                x: vcx - 9,
+                width: chartWidth,
+                height: 20,
+                fill: "#006400",
+                opacity: 0
+            };
+
+            BackgroundRow.push(background);
+
             for ( var x = 0; x < data.genesets.length; x++){
 
                 var intersect = data.intersection_diagrams[y];
                 for (var i = 0; i < intersect.sets.length; i++){
-                    if (genesets.indexOf("GS" + intersect.sets[i]) === x){
+                    //Is this circle-set part of the intersection
+                    if (genesets.indexOf("GS" + intersect.sets[i]) === x) {
                         vfill = circleFillColours[1];
+                        vquery = true;
+
+                        if(first === null && last === null){
+                            first = x;
+                            last = x;
+                            lx1 = vcx;
+                            lx2 = vcx;
+                        }
+                        else if(x > last){
+                            last = x;
+                            lx2 = vcx;
+                        }
                     }
                 }
 
@@ -129,14 +176,31 @@ var upset = function () {
                     cx: vcx,
                     cy: vcy,
                     r: 9,
-                    fill: vfill
+                    fill: vfill,
+                    query: vquery
                 };
 
                 IntersectionCircles.push(circle);
                 vfill = circleFillColours[0];
                 vcx = vcx + 20;
+                vquery = false;
 
             }
+
+            var line = {
+                x1: lx1,
+                y1: vcy,
+                x2: lx2,
+                y2: vcy,
+                height: 3,
+                fill: circleFillColours[1]
+            };
+
+            setLine.push(line);
+            first = null;
+            last = null;
+            lx1 = null;
+            lx2 = null;
 
             vcy = vcy + 30;
             vcx = 0;
@@ -165,8 +229,9 @@ var upset = function () {
                 y: by,
                 name: set['name'],
                 colour: circleFillColours[1],
-                tx: tx1
-            }
+                tx: tx1,
+                type: set['set_id']
+            };
 
             setText.push(text);
             bx = bx + 20;
@@ -206,6 +271,32 @@ var upset = function () {
             .attr("r", function(d) { return d.r; })
             .style("fill", function(d) { return d.fill; });
 
+        svg.selectAll("line")
+            .data(setLine)
+            .enter().append("line")
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
+            .attr("x1", function(d) { return d.x1; })
+            .attr("y1", function(d) { return d.y1; })
+            .attr("x2", function(d) { return d.x2; })
+            .attr("y2", function(d) { return d.y2; })
+            .style("stroke", function(d) { return d.fill; })
+            .style("stroke-width", "3px");
+
+        //Adding background highlight
+        svg.selectAll("bar")
+            .data(BackgroundRow)
+            .enter().append("rect")
+            .attr("class", function(d) { return d.type; })
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
+            .attr("x", function(d) { return d.x; } )
+            .attr("y", function(d) { return d.y; })
+            .attr("height", function(d) { return d.height; })
+            .attr("width", function(d) { return d.width; })
+            .style("fill", function(d) {return d.fill;})
+            .style("fill-opacity", 0)
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
+
         //Adding Axis
         svg.append("g")
             .attr("class", "axis")
@@ -236,27 +327,32 @@ var upset = function () {
         svg.selectAll("bar")
             .data(setBars)
             .enter().append("rect")
+            .attr("class", function(d) { return d.type; })
             .attr("transform", "translate(-" + xShift + ",0)")
-            .attr("class", "bar")
             .attr("width", function (d) {return d.width; })
             .attr("x", function (d) { return d.x; })
             .attr("y", function(d) { return y(d.height); })
             .attr("height", function (d) { return (yShift - diagramPadding) - y(d.height); })
-            .style("fill", function (d) { return d.fill; });
+            .style("fill", function (d) { return d.fill; })
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
 
         //adding the set names to the diagram
-        svg.selectAll("bar")
+        var names = svg.selectAll("bar")
             .data(setText)
-            .enter().append("rect")
+            .enter();
+
+        names.append("rect")
+            .attr("class", function(d) { return d.type; })
             .attr("transform", "translate(-" + xShift + "," + (yShift - xShift) + ") skewX(45)")
             .attr("x", function (d) { return d.x; })
             .attr("height", function (d) { return d.height; })
             .attr("width", function (d) { return d.width;})
-            .style("fill", function (d) { return d.fill; });
+            .style("fill", function (d) { return d.fill; })
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
 
-        svg.selectAll("text")
-            .data(setText)
-            .enter().append("text")
+        names.append("text")
             .attr("transform", "translate(-" + xShift + "," + (yShift - xShift) + ") rotate(45)")
             .style("font-family", "Calibri", "sans-serif")
             .style("font-size", ".6em")
@@ -264,6 +360,36 @@ var upset = function () {
             .text(function (d) {return d.name; })
             .attr("y", function (d) { return d.y - 10;})
             .attr("x", function (d) { return (d.tx + 15);});
+
+        //Adding background highlight
+       svg.selectAll("bar")
+            .data(BackgroundColumn)
+            .enter().append("rect")
+            .attr("class", function(d) { return d.type; })
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; })
+            .attr("height", function(d) { return d.height; })
+            .attr("width", function(d) { return d.width; })
+            .style("fill", function(d) { return d.fill; })
+            .style("fill-opacity", 0)
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
+
+        function mouseover(clase){
+            svg.selectAll("." + this.getAttribute("class"))
+                .style("fill", "#006400")
+                .style("fill-opacity", 0.3);
+        }
+        function mouseout(clase){
+            svg.selectAll("." + this.getAttribute("class"))
+                .style("fill", function (d) {
+                    return d.fill;
+                })
+                .style("fill-opacity", function (d) {
+                    return d.opacity;
+                });
+        }
 
         return exports;
     };
