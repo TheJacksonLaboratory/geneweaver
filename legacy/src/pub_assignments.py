@@ -305,6 +305,17 @@ def insert_gs_to_pub_assignment(gs_id, pub_assign_id):
         cursor.connection.commit()
 
 
+def get_genesets_for_assignment(pub_assign_id):
+    gs_ids = []
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute("SELECT gs_id FROM production.gs_to_pub_assignment WHERE pub_assign_id=%s ORDER BY gs_id ASC", (pub_assign_id,))
+
+        for row in geneweaverdb.dictify_cursor(cursor):
+            gs_ids.append(row['gs_id'])
+
+    return gs_ids
+
+
 #
 # Start of TEST program
 #

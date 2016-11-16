@@ -731,6 +731,7 @@ def render_pub_assignment(group_id, pub_id):
     curator = None
     curation_team_members = None
     species = None
+    gs_ids = []
 
     if 'user_id' in flask.session:
         uid = flask.session['user_id']
@@ -749,8 +750,10 @@ def render_pub_assignment(group_id, pub_id):
             else:
                 view = 'no_access'
 
-            if view != 'no_access' and assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
-                curator = geneweaverdb.get_user(assignment.assignee)
+            if view != 'no_access':
+                gs_ids = pub_assignments.get_genesets_for_assignment(assignment.id)
+                if assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
+                    curator = geneweaverdb.get_user(assignment.assignee)
 
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
@@ -762,7 +765,8 @@ def render_pub_assignment(group_id, pub_id):
     return flask.render_template('viewPubAssignment.html', pub=publication,
                                  view=view, assignment=assignment,
                                  curator=curator, species=species,
-                                 curation_team=curation_team_members)
+                                 curation_team=curation_team_members,
+                                 genesets=gs_ids)
 
 
 @app.route('/save_pub_note.json', methods=['POST'])
