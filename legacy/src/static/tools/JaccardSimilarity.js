@@ -119,7 +119,17 @@ var jaccardSimilarity = function() {
                     cx: venn[vcx] + (venn.column * diagramPadding),
                     cy: venn[vcy] + (venn.row * diagramPadding),
                     r: venn[vr],
-                    fill: (venn.gsids[0] == venn.gsids[1]) ? fillColors[3] : fillColors[j],
+                    fill: function() {
+
+                        if (venn.gsids[0] == venn.gsids[1])
+                            return fillColors[3];
+                        else if (j === 1 && venn['emphasis1'] == 'True')
+                            return fillColors[0];
+                        else if (j === 2 && venn['emphasis2'] == 'True')
+                            return fillColors[0];
+                        else
+                            return fillColors[j];
+                    }(),
                     column: venn.column,
                     row: venn.row,
                     title: venn['title1'],
