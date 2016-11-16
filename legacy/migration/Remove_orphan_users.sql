@@ -16,4 +16,5 @@ SELECT u.usr_id FROM production.usr u
     AND p.usr_id is NULL
     AND r.usr_id is NULL
     AND x.usr_id is NULL
-    AND s.usr_id is NULL);
+    AND s.usr_id is NULL
+    AND u.usr_last_seen <= now() - interval '1 year');
