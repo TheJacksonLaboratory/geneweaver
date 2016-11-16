@@ -70,7 +70,7 @@ def get_pub_assignment_url(pub_id, group_id):
     :param group_id: group id
     :return:
     """
-    return '<a href="{url_prefix}/curategeneset/' + str(group_id) + '/' + str(pub_id) + '">' + str(pub_id) + '</a>'
+    return '<a href="{url_prefix}/viewPubAssignment/' + str(group_id) + '/' + str(pub_id) + '">' + str(pub_id) + '</a>'
 
 
 def queue_publication(pub_id, group_id, note):
@@ -96,7 +96,6 @@ def queue_publication(pub_id, group_id, note):
 
         # send notification to the group admins
         subject = 'Publication Queued for Review'
-        # JGP - replace this with a meaningful reference
         message = 'production.publication.pub_id: <i>' + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
         notifications.send_group_admin_notification(group_id, subject, message)
 
@@ -121,7 +120,6 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
 
     # Send notification to curator
     subject = "Publication Assigned To You For Review"
-    # JGP - replace this with a meaningful reference
     message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
@@ -153,7 +151,6 @@ def assignment_complete(pub_id, group_id, note):
 
     # Send notification to assigner
     subject = 'Publication Assignment Complete'
-    # JGP - replace this with a meaningful reference
     message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
@@ -185,7 +182,6 @@ def review_accepted(pub_id, group_id, note):
 
     # Send notification to curator
     subject = 'Publication Assignment Accepted'
-    # JGP - replace this with a meaningful reference
     message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
@@ -217,7 +213,6 @@ def review_rejected(pub_id, group_id, note):
 
     # Send notification to curator
     subject = 'Publication Assignment Rejected'
-    # JGP - replace this with a meaningful reference
     message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
@@ -241,24 +236,31 @@ def get_publication_assignment(pub_id, group_id):
         else:
             return None
 
-def get_publication_assignment_by_id(id):
-     with geneweaverdb.PooledCursor() as cursor:
 
-        cursor.execute("SELECT * FROM production.pub_assignments WHERE id=%s", (id,))
-
+def get_publication_assignment_by_id(pub_assign_id):
+    """
+    get a PubAssignment object from the database given a pub_assignment id
+    :param pub_assign_id: id of Publication Assignment we want to retrive from
+          the database
+    :return: PubAssignment object
+    """
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute("SELECT * FROM production.pub_assignments WHERE id=%s", (pub_assign_id,))
         assignments = list(geneweaverdb.dictify_cursor(cursor))
+
         return PubAssignment(assignments[0]) if len(assignments) == 1 else None
 
 
-def create_geneset_stub_for_publication(id, name, label, description, species_id):
+def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
+                                        species_id):
     """
     create a stub geneset for this publication.  a stub geneset is a record
-    that only has the basic information filled out.  These are created on the
-    publication assignment view through a modal window.  These generate new
-    geneset curation assignments for the publication curator. They will finish
+    that only has the basic information filled out.  This will generate a new
+    geneset curation assignment for the publication curator. They will finish
     filling out the geneset through the geneset curation workflow.
 
-    :param id: ID of the publication assignment for which this geneset is being created
+    :param pub_assign_id: ID of the publication assignment for which this
+        geneset is being created
     :param name: name of new geneset
     :param label: figure label for new geneset
     :param description: description of geneset
@@ -266,13 +268,14 @@ def create_geneset_stub_for_publication(id, name, label, description, species_id
     """
 
     geneset_id = None
-    assignment = get_publication_assignment_by_id(id)
+    assignment = get_publication_assignment_by_id(pub_assign_id)
 
     if assignment:
-        gs_id = None
 
         # default geneset as 'Private'
+        # group id -1 signifies private
         gs_groups = '-1'
+        #set initial curation level to 5 (private)
         cur_id = 5
 
         # right now, this can be set in the curation view.  should we
@@ -284,8 +287,10 @@ def create_geneset_stub_for_publication(id, name, label, description, species_id
             cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
                               gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
                               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
-                           (assignment.assignee, file_id, name, label, assignment.pub_id, cur_id,
-                            description, species_id, 0, gs_groups, gene_identifier,
+                           (assignment.assignee, file_id, name, label,
+                            assignment.pub_id, cur_id,
+                            description, species_id, 0, gs_groups,
+                            gene_identifier,
                             'delayed',))
             geneset_id = cursor.fetchone()[0]
             cursor.connection.commit()
