@@ -244,11 +244,6 @@
     </div>
 
 
-
-
-    <body onload='myFunction("{{ gidts }}")'>
-
-
 {% endif %}
 
 <script>
@@ -277,16 +272,7 @@
     $('#clickableIdentifier').popover({
        title: 'Warning', content: 'Changing id type will effect latest saved changes only.'
     });
-
-    function myFunction(genes) {
-        genes1 = genes.split("_");
-        genes1 = genes1.join("\t1\n");
-        genes1 = genes1.concat("\t1");
-        if (document.getElementById("genesetValues")) {
-            document.getElementById("genesetValues").value = genes1;
-        }
-    }
-
+    
     $(document).ready(function () {
 
         //triggered when modal is about to be shown
