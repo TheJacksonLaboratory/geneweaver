@@ -215,6 +215,21 @@ def _form_register():
             return user
 
 
+def is_safe_url(url):
+    """
+    Checks to see if the given URL is safe to redirect to by checking the host 
+    name.
+
+    :param url: url being checked
+    :return:    true if the URL is safe, otherwise false
+    """
+
+    host_url = urlparse(request.host_url)
+    other_url = urlparse(url)
+
+    return host_url.netloc == other_url.netloc
+
+
 @app.route('/logout.json', methods=['GET', 'POST'])
 def json_logout():
     _logout()
@@ -223,18 +238,26 @@ def json_logout():
 
 @app.route('/login.json', methods=['POST'])
 def json_login():
-    json_result = dict()
+    json_result = {}
+    reurl = flask.session['last_page'] if 'last_page' in flask.session else ''
     user = _form_login()
+
     if user is None:
         json_result['success'] = False
+
         return flask.redirect(flask.url_for('render_login_error'))
+
     else:
         json_result['success'] = True
         json_result['usr_first_name'] = user.first_name
         json_result['usr_last_name'] = user.last_name
         json_result['usr_email'] = user.email
 
-    # return flask.jsonify(json_result)
+    if reurl and is_safe_url(reurl):
+        flask.session['last_page'] = ''
+
+        return flask.redirect(reurl)
+    
     return flask.redirect('/')
 
 
@@ -557,19 +580,27 @@ def rerun_annotator():
 
     for ont_id in pub_annos[0]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, MI Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Publication, MI Annotator'
+            )
 
     for ont_id in pub_annos[1]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Publication, NCBO Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Publication, NCBO Annotator'
+            )
 
     for ont_id in desc_annos[0]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, MI Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Description, MI Annotator'
+            )
 
     for ont_id in desc_annos[1]:
         if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Description, NCBO Annotator')
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Description, NCBO Annotator'
+            )
     
     return json.dumps({'success': True})
 
@@ -900,23 +931,36 @@ def get_ont_root_nodes():
         info.append(data)
     return (json.dumps(info))
 
-@app.route('/reannotate', methods=['GET'])
-def reannotate():
-    """
-    This function re-runs the annotator tool on text from geneset and 
-    publication descriptions.
-    """
-    pass
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-        result = geneweaverdb.updategeneset(user_id, flask.request.form)
-        data = dict()
-        data.update({"success": result})
-        data.update({'usr_id': user_id})
-        return json.dumps(data)
+
+    user_id = session['user_id'] if session['user_id'] else 0
+    gs_id = request.form['gs_id'] if request.form['gs_id'] else 0
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        return json.dumps({
+            'success': False,
+            'error': 'You must be logged in to make changes to this GeneSet'
+        })
+
+    ## Only admins, curators, and owners can make changes
+    if (not user.is_admin and not user.is_curator) or\
+       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
+        not user_is_assigned_curation(user_id, gs_id)):
+           return json.dumps({
+               'success': False,
+               'error': 'You do not have permission to update this GeneSet'
+           });
+
+    result = geneweaverdb.update_geneset(user_id, flask.request.form)
+    #data = dict()
+
+    #data.update({"success": result})
+    #data.update({'usr_id': user_id})
+
+    return json.dumps(result)
 
 @app.route('/curategenesetgenes/<int:gs_id>')
 def render_curategenesetgenes(gs_id):
@@ -1190,6 +1234,14 @@ def update_notification_pref():
 
 @app.route('/login')
 def render_login():
+    ## Save previous page visit so we can redirect the user back here
+    url = urlparse(request.referrer)
+
+    ## But not for login, register, and password reset pages
+    if url.path != '/login' and url.path != '/register' and\
+       url.path != '/reset':
+        flask.session['last_page'] = url.geturl()
+
     return flask.render_template('login.html')
 
 

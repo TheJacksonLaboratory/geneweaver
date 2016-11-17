@@ -22,6 +22,10 @@
         cursor: pointer;
     }
 
+    .popover {
+        text-transform: none;
+    }
+
     .loader {
         /* IE 8 */
         -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
@@ -635,40 +639,59 @@
     });
 
 
+    /*
+     * Extracts geneset metacontent and a user selected subset of the gene 
+     * list to create a new geneset. 
+     */
 	$('#addNewGeneset').on('click', function () {
 
 		var checkedArray = [];
-		$("input:checkbox[name='gsoptions[]']:checked").each(function(){
-			//console.log($(this));
-			checkedArray.push($(this).val());
+
+        // Grabs rows in the gene list that a user has selected
+		$("input:checkbox[name='gsoptions[]']:checked").each( function() {
+			checkedArray.push($(this).parents('.gene-list-row'));
 		});
 
-		if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
+		if (typeof checkedArray != "undefined" && 
+            checkedArray != null && 
+            checkedArray.length > 0) {
 
-			{# Assign the needed async_results variables #}
-			var numGS = 0;
 			// Genesets with newlines cause js to shit the bed and get stuck
 			// in an infinite loading loop. Any variable replaced by jinja
 			// should be safe'd and trimmed.
-			var getStr = 'Genes dervied from the GeneSet: {{ geneset.name | safe | trim }}';
-			getStr += '?' + getStr;
+			var gsData = 'Genes dervied from the GeneSet: ' + 
+                         '{{ geneset.name | safe | trim }}';
+            var species = '{{ geneset.sp_id | safe }}';
+            var geneType = {{ geneset.gene_id_type | safe }};
 
-			// add in all the checked boxes gene names
+            // GS Description
+            gsData += '?' + gsData;
+            gsData += '?' + species;
+
+            // Negative types indicate a symbolic gene representation while
+            // positive types are expression platforms
+            if (geneType < 0)
+                gsData += '?' + 'gene_' + (geneType * -1);
+            else
+                gsData += '?' + 'ma_' + geneType;
+
+			// Gene names and scores
 			checkedArray.forEach(function (entry) {
 
-				getStr += "?";
-				getStr += entry;
-				getStr += "?";
-				getStr += '1';
-
+				gsData += "?";
+				gsData += $.trim($(entry).children('#defaultSymbol').text());
+				gsData += "?";
+				gsData += $.trim($(entry).children('.gene-value').text());
 			});
 
-			// Load the new page with the extra url bit
-			setTimeout(function(){
-                window.location = "/uploadgeneset/" + getStr;
-			}, 1000);
-		}
-		else{
+            // 'gsdata?' is needed otherwise the first section of the data
+            // string is eaten by something (js?)
+            var uploadUrl = window.location.origin + '/uploadgeneset/' + 
+                            'gsdata?' + gsData;
+
+            window.open(uploadUrl, '_blank');
+            
+		} else {
 			window.alert("No genes selected.")
 		}
 	});
