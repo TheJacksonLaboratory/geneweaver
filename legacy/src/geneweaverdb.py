@@ -2639,7 +2639,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT geneset.*, curation_assignments.curation_group
+            SELECT geneset.*, curation_assignments.curation_group, publication.*
             FROM geneset
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
