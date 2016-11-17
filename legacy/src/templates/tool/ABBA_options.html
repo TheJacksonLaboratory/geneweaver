@@ -88,24 +88,37 @@
                     <option value="-2">Curated Non-Resource (Tier II-III)</option>
                     <option value="-10">Private/Group Only (Tier V)</option>
                 </select>
-            </div>
+            </div>   
+
+                <!-- Restrict Species Options-->
             <div class="form-group">
                 <label>
                     Restrict Species:
                 </label>
-                <select name="ABBA_RestrictSpecies"  class="form-control">
-                    <option value="0" selected="selected">None</option>
-                    <option value="1">Mus musculus</option>
-                    <option value="2">Homo sapiens</option>
-                    <option value="3">Rattus norvegicus</option>
-                    <option value="4">Danio rerio</option>
-                    <option value="5">Drosophila melanogaster</option>
-                    <option value="6">Macaca mulatta</option>
-                    <option value="8">Caenorhabditis elegans</option>
-                    <option value="9">Saccharomyces cerevisiae</option>
-                    <option value="10">Gallus gallus</option>
-                </select>
+                <label class="radio-inline">
+                    <input type="radio" name="ABBA_RestrictOption" value="0" onclick="hideSelectSpecies();" checked="checked"> None<br>
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="ABBA_RestrictOption" value="1" onclick="showSelectSpecies();"> Restrict<br>
+                </label>
+
             </div>
+            
+            <div class="form-group" id="select-species" style="display: none;">
+                <label>
+                    Select Species:
+                </label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="1"/>Mus musculus</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="2"/>Homo sapiens</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="3"/>Rattus norvegicus</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="4"/>Danio rerio</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="5"/>Drosophila melanogaster</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="6"/>Macaca mulatta</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="8"/>Caenorhabditis elegans</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="9"/>Saccharomyces cerevisiae</label>
+                <label><input name="ABBA_RestrictSpecies" type="checkbox" value="10"/>Gallus Gallus</label>
+            </div>
+
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
@@ -124,7 +137,17 @@
             fieldWrapper.append(removeButton);
             $("#inputGeneField").append(fieldWrapper);
         });
+
+        /* Select Restricted Species */
+        function hideSelectSpecies() {
+            document.getElementById("select-species").style.display = "none";
+        }
+
+        function showSelectSpecies() {
+            document.getElementById("select-species").style.display = "block";
+        }
     </script>
+
 
     <script>
         (function ($) {
