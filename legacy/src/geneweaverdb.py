@@ -824,9 +824,6 @@ def get_attributed_genesets(atid=None, abbrev=None):
         return cursor.fetchone()
 
 
-
-
-
 def resolve_feature_id(sp_id, feature_id):
     """
     For the given species and feature IDs get the corresponding ODE gene ID (which
