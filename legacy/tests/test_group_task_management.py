@@ -6,6 +6,7 @@ class TestGroupTaskManagement(unittest.TestCase):
     user_id = None
     group_id = None
     group_name = None
+    geneset_id = None
     email = "Testing.VonUser@name.me"
     first = "Testing"
     last = "Von User"
@@ -54,9 +55,16 @@ class TestGroupTaskManagement(unittest.TestCase):
                     (self.group_id,)
                 )
                 cursor.connection.commit()
+            if self.geneset_id:
+                with geneweaverdb.PooledCursor() as cursor:
+                    cursor.execute(
+                        '''DELETE FROM production.geneset WHERE gs_id=%s;''', (self.geneset_id,)
+                    )
+                    cursor.connection.commit()
+
             with geneweaverdb.PooledCursor() as cursor:
                 cursor.execute(
-                    '''DELETE FROM usr WHERE usr_id=%s;''', (self.user_id,)
+                    '''DELETE FROM production.usr WHERE usr_id=%s;''', (self.user_id,)
                 )
                 cursor.connection.commit()
 
@@ -64,6 +72,25 @@ class TestGroupTaskManagement(unittest.TestCase):
         group = geneweaverdb.get_group_by_id(self.group_id)
         self.assertEqual(group.grp_name, self.group_name)
 
+    def test_get_server_side_grouptasks(self):
+        """
+        Test service for fetching tasks associated with a given group id
+        :return:
+        """
+        # First create some tasks
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation,
+                              gs_description, gs_count, gs_gene_id_type, gs_created, gs_status)
+                              VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
+                           (self.user_id, 0, 'Testing Users Test GeneSet', 'TUTGS',
+                            'A GeneSet for Testing Users Testing Purposes', 0, 0,
+                            'normal',))
+            gs_id = cursor.fetchone()[0]
+            cursor.connection.commit()
+            print 'Inserted gs_id: ' + str(gs_id)
+            self.geneset_id = gs_id
+
+        self.assertEqual(False, True)
 
 if __name__ == '__main__':
     unittest.main()
