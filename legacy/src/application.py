@@ -2022,6 +2022,10 @@ def render_user_genesets():
 @app.route('/groupTasks/<int:group_id>')
 def render_group_tasks(group_id):
     group = None
+    group_owner = False
+    group_curators = []
+    groups_member = []
+    groups_owner = []
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         columns = [
@@ -2058,7 +2062,6 @@ def render_group_tasks(group_id):
         group = geneweaverdb.get_group_by_id(group_id)
         group_curators = geneweaverdb.get_group_members(group_id)
 
-        group_owner = False
         try:
             if group_id_in_groups(group.grp_id, groups_owner):
                 group_owner = True
