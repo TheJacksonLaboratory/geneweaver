@@ -37,8 +37,10 @@ def run_tool():
         params['ABBA_MinGenesets'] = form['ABBA_MinGenesets']
     if 'ABBA_Tierset' in form:
         params['ABBA_Tierset'] = form['ABBA_Tierset']
+    if 'ABBA_RestrictOption' in form:
+        params['ABBA_RestrictOption'] = form['ABBA_RestrictOption']    
     if 'ABBA_RestrictSpecies' in form:
-        params['ABBA_RestrictSpecies'] = form['ABBA_RestrictSpecies']
+        params['ABBA_RestrictSpecies'] = form.getlist('ABBA_RestrictSpecies')
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
