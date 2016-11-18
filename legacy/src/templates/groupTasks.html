@@ -254,8 +254,12 @@
         $("[data-toggle='tooltip']").tooltip();
     });
     var group_id;
+    var groupCurators;
+    var group_owner;
     $(document).ready(function () {
         group_id = '{{ group.grp_id }}';
+        groupCurators = '{{ groupCurators }}';
+        group_owner = '{{ group_owner }}';
         var group_name = '{{  group.grp_name }}';
         $('#group_id').val(group_id);
         $('#group_name').text(group_name);
@@ -382,6 +386,7 @@
 
         });
 
+        // When a group is selected, this will set the associated private/public display value
         function setPrivacyDisplay(private) {
             if (private === 'True') {
                 $('#group_public').hide();
@@ -392,15 +397,11 @@
             }
         }
 
+        // When a new group is selected in the side bar, this will reload
+        // the main panel to reflect the new group
         $('.clickable_viewGroupTasks').on('click', function () {
             group_id = ($(this).attr("data-grp"));
-            var grp_name = ($(this).attr("data-grp-name"));
-            var privacy = ($(this).attr("data-grp-prv"));
-            setPrivacyDisplay(privacy);
-            $('#group_id').val(group_id);
-            $('#group_name').text(grp_name);
-            var table = $('#groupTasksViewer').DataTable();
-            table.rows().invalidate().draw(false);
+            window.location.href = '../groupTasks/' + group_id;
         });
 
         {% if group_owner == true %}
