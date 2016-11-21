@@ -321,7 +321,10 @@ database found in microarray results</p>
             <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
                 <div class="row">
                     <div class="col-md-4">
-                        {{ macros.tool_param_radio(tool.params['MSET_Homology']) }}
+                        {{ macros.tool_param_select(tool.params['MSET_Background']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_checkbox_mset(tool.params['MSET_Species']) }}
                     </div>
                     <div class="col-md-4">
                         {{ macros.tool_param_select(tool.params['MSET_NumberofSamples']) }}
