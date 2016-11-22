@@ -260,7 +260,7 @@ def annotate_text(text, onts):
     ## Prevent annotation duplicates
     ncbo_onts = list(set(ncbo_onts) - set(mi_onts))
 
-    return (mi_onts, ncbo_onts)
+    return [mi_onts, ncbo_onts]
 
 def insert_annotations(dbcur, gsid, desc, abstract):
     """
