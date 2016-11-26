@@ -21,10 +21,21 @@ def run_tool():
     selected_geneset_ids = tc.selected_geneset_ids(form)
 
     params = {}
+
+    # pull out the selected geneset IDs
+    selected_geneset_ids = tc.selected_geneset_ids(form)
+    # Used only when rerunning the tool from the results page
+    if 'genesets' in form:
+        add_genesets = form['genesets'].split(' ')
+        edited_add_genesets = [gs[2:] for gs in add_genesets]
+        selected_geneset_ids = selected_geneset_ids + edited_add_genesets
+
     if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1:
         # TODO add nice error message about missing genesets
         flask.flash("Warning: You need to have input or/and at least a GeneSet selected!")
         return flask.redirect('analyze')
+
+
 
     params['ABBA_InputGenes'] = form.getlist("ABBA_InputGenes")
     if 'ABBA_IgnHom' in form:

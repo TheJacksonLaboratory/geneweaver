@@ -1,6 +1,7 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
+{% import 'htmlfragments/projectsList.html' as projectList %}
 
 <style>
 
@@ -241,14 +242,14 @@
         <tbody>
           <tr>
             <td>
-              <strong>Curation Tiers:</strong>&nbsp;{{async_result.SelectedTierset}}<br>
-              <strong>Minimum Genes:&nbsp;</strong>{{async_result.MinGenes}}<br>
-              <strong>Restricted to Species:&nbsp;</strong>{{async_result.RestrictSpecies}}<br>
-              <strong>Minimum Genesets:&nbsp;</strong>{{async_result.MinGenesets}}<br>
               <strong>Include Homology:&nbsp;</strong>{{async_result.IncludeHomology}}<br>
+              <strong>Minimum Genes:&nbsp;</strong>{{async_result.MinGenes}}<br>
+              <strong>Minimum Genesets:&nbsp;</strong>{{async_result.MinGenesets}}<br>
+              <strong>Curation Tiers:</strong>&nbsp;{{async_result.SelectedTierset}}<br>
+              <strong>Restricted to Species:&nbsp;</strong>{{async_result.RestrictSpecies}}<br>
             </td>
             <td>
-              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }} {{g.user.user_id|e}} {% else %} guest{% endif %}<br>
+              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }} {% else %} guest{% endif %}<br>
               <strong>Date:&nbsp;</strong>
                   <script>
                   <!--
@@ -368,25 +369,22 @@
       <div id="addGenesetProjectModal" class="modal">
         <!--Modal Content -->
         <div class="modal-content">
-          <h3>Add Geneset to Project</h3>
-          <div class="col-md-8">
+          <h3>Add Geneset to Project - {{ gs_name }}</h3>
+          <div class="row">
             {% if g.user.projects %}
-            <div data-type="projectList">
-              <h3>Select Project</h3>
-                <select>
-                  {% for proj in g.user.projects %}
-                    <option value="{{proj.name}}" id="{{proj.project_id}}">
-                      {{proj.name}}
-                    </option>
-                  {% endfor %}
-                </select> 
+            <div class="col-md-8">
+              <form class="select-project">
+                {% for proj in g.user.projects %}
+                  <input type="checkbox" name="project" value="{{ proj.project_id }}"> {{ proj.name }} <br>
+                {% endfor %}
+              <form>
             </div>
             {% else %}
             <div class="col-md-8">You do not have any existing projects!</div>
             {% endif %}
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary">Add Project to Geneset</button>
+          <div class="row modal-footer">
+            <button type="button" class="btn btn-primary" id="gsSubmitBtn">Add Project to Geneset</button>
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
           </div>
         </div>
@@ -397,7 +395,7 @@
           <input class="form-control result-search-input" id="system-searchRG" data-type="RG" name="q" placeholder="Search..." required>
           <table class="table table-striped table-list-search no-margin">
             <thead>
-              <tr>
+              <tr> 
                 <th row-type="RG" class="headrow">Gene<br></th>
                 <th row-type="RG" class="headrow">Species<br></th>
                 <th row-type="RG" class="headrow">Genesets<br></th>
@@ -651,7 +649,45 @@ $(document).ready(function() {
   /* Add Geneset to Project Modal*/
   $('#addGenesetProjectButton').button().on("click", function(){
     $('#addGenesetProjectModal').dialog("addGenesetProjectModal");
-  })
+  });
+ 
+  /* Add Geneset to Project */
+  $('#gsSubmitBtn').button().on("click", function(){
+
+    var checked = [];
+    $("input[name='project']:checked").each(function () {
+      checked.push(parseInt($(this).val()));
+      console.log($(this).val());
+    });
+      
+    console.log("checked: " + checked);
+    
+
+    if ($.isEmptyObject(checked)) {
+      console.log("No GS Selected");
+      alert("You must select atleast one geneset.");
+    }
+    else {
+      console.log("Add GS");
+        /*
+        $.ajax({
+            type: "GET",
+            url: "../addGenesetsToProjects",
+            data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
+            success: function (data) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Genesets Successfully Added to Selected Projects.",
+                        'priority': 'success'
+                    }
+                ]);
+                window.location.reload();
+            }
+        });
+        */
+    }
+
+  });
 
   $('#system-searchGOI').keyup( function(e){
     search_tab("GOI");
