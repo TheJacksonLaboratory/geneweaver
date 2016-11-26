@@ -38,10 +38,10 @@
 			<div class="form-group">
                 <label>
                     Input Genes:
-                </label>                
+                </label>
                 <!-- Input Genes Form -->
                 <fieldset id="inputGeneField">
-                    <input type="text" id="inputGene" name='ABBA_InputGenes' pattern="[a-zA-Z0-9]+" required/><br>
+                    <input type="text" id="inputGene" name='ABBA_InputGenes' pattern="[a-zA-Z0-9]+"/><br>
                 </fieldset>
                 <button name="addGeneBtn" class="btn btn-secondary" id="addGeneBtn" type="button">Add Gene</button>
 
@@ -54,11 +54,9 @@
             </div>
             <div class="form-group">
                 <label>Minimum Genes:</label>
-                <select name="ABBA_MinGenes"  class="form-control">
+                <select id="genes-select" name="ABBA_MinGenes"  class="form-control">
                     <option selected="selected">Auto</option>
-                    {% for i in range(10) %}
-                        <option>{{loop.index0+1}}</option>
-                    {% endfor %}
+                    <option>1</option>
                 </select>
             </div>
             <div class="form-group">
@@ -89,7 +87,6 @@
                     <option value="-10">Private/Group Only (Tier V)</option>
                 </select>
             </div>   
-
                 <!-- Restrict Species Options-->
             <div class="form-group">
                 <label>
@@ -101,7 +98,6 @@
                 <label class="radio-inline">
                     <input type="radio" name="ABBA_RestrictOption" value="1" onclick="showSelectSpecies();"> Restrict<br>
                 </label>
-
             </div>
             
             <div class="form-group" id="select-species" style="display: none;">
@@ -123,20 +119,35 @@
 		</div>
 	</div>
 
-
     <script>
         $("#addGeneBtn").click(function() {
             var intId = $("#inputGeneField div").length + 1;
             var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
-            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" pattern="[a-zA-Z0-9]+" required/>');
+            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" pattern="[a-zA-Z0-9]+"/>');
             var removeButton = $('<input type="button" class="remove btn btn-primary btn-sm" value="x" />');
             removeButton.click(function() {
                 $(this).parent().remove();
+                min_genes_dec(); //Update min_genes option list
             });
             fieldWrapper.append(fName);
             fieldWrapper.append(removeButton);
             $("#inputGeneField").append(fieldWrapper);
+            min_genes_inc(); //Update min_genes option list
         });
+
+        /* Dynamically populate min genes list */
+        function min_genes_inc() {
+            var cnt = document.getElementById("genes-select").length;
+            var option = document.createElement("option");
+            option.text = cnt;
+            option.value = cnt;
+            document.getElementById("genes-select").appendChild(option);
+        }
+
+        function min_genes_dec() {
+            var cnt = document.getElementById("genes-select").length - 1;
+            document.getElementById("genes-select").options[cnt].remove();
+        }
 
         /* Select Restricted Species */
         function hideSelectSpecies() {
