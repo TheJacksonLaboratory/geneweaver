@@ -39,10 +39,9 @@
                 <label>
                     Input Genes:
                 </label>
+                <br>
                 <!-- Input Genes Form -->
-                <fieldset id="inputGeneField">
-                    <input type="text" id="inputGene" name='ABBA_InputGenes' pattern="[a-zA-Z0-9]+"/><br>
-                </fieldset>
+                <fieldset id="inputGeneField"></fieldset> 
                 <button name="addGeneBtn" class="btn btn-secondary" id="addGeneBtn" type="button">Add Gene</button>
 
             </div>
@@ -56,7 +55,6 @@
                 <label>Minimum Genes:</label>
                 <select id="genes-select" name="ABBA_MinGenes"  class="form-control">
                     <option selected="selected">Auto</option>
-                    <option>1</option>
                 </select>
             </div>
             <div class="form-group">
@@ -123,7 +121,7 @@
         $("#addGeneBtn").click(function() {
             var intId = $("#inputGeneField div").length + 1;
             var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
-            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" pattern="[a-zA-Z0-9]+"/>');
+            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" pattern="[a-zA-Z0-9]+" required/>');
             var removeButton = $('<input type="button" class="remove btn btn-primary btn-sm" value="x" />');
             removeButton.click(function() {
                 $(this).parent().remove();
