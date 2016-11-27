@@ -144,6 +144,9 @@
 
         function min_genes_dec() {
             var cnt = document.getElementById("genes-select").length - 1;
+            if(document.getElementById("genes-select").selectedIndex == cnt){
+                document.getElementById("genes-select").selectedIndex=cnt-1;
+            }
             document.getElementById("genes-select").options[cnt].remove();
         }
 
