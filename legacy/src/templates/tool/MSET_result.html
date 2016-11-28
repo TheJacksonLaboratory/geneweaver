@@ -1,6 +1,7 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
+<script type="text/javascript" src="/static/js/downloadSvg.js" charset="utf-8"></script>
 <style>
 
 .tick{
@@ -208,16 +209,8 @@ fix the code to be maintainable and consistent with the rest of the website code
 <svg id="barGraph" width="660" height="500"></svg>
             </td></tr></table>
 </div>
-<script src="https://rawgit.com/krunkosaurus/simg/master/src/simg.js"></script>
 <script src="/static/d3/d3.js" charset="utf-8"></script>
 <script>
-    function download() {
-        //var doc = new Simg($('#graphDiv'));
-        var doc = new Simg($('#barGraph')[0]);
-
-        //doc.replace();
-        doc.download();
-    }
     var baseSize=1;
     var radius=baseSize*Math.pow(
         {{async_result.datafile['data'][0]['interestToBackgroundSizeRatio']}},
@@ -446,8 +439,16 @@ database found in microarray results</p>
                         <button class="btn btn-primary"
                                 type='submit'
                                 value='run'
-                                onclick='download();'>
+                                onclick="download($('#barGraph')[0],null,false);">
                             Download As SVG
+                        </button>
+                    </div>
+                    <div class="col-md-8">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick="download($('#barGraph')[0],null,true);">
+                            Download As PNG
                         </button>
                     </div>
                 </div>
