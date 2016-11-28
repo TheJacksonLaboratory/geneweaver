@@ -3,6 +3,9 @@
 {% import 'macros.html' as macros %}
 <style>
 
+.tick{
+    font-size: 13.5px
+}
 .key > * {
     margin: 5px;
     display: inline-block;
@@ -130,6 +133,11 @@ body {
   pointer-events: none;}
 
 </style>
+<div class="page-header">
+    <h1>{{ title }}
+        {{ runhash }} </h1>
+</div>
+
 <script>
     var line=true;
     var graph=true;
@@ -189,10 +197,86 @@ fix the code to be maintainable and consistent with the rest of the website code
 </tbody></table>
 
 <div id="graphDiv">
-<svg id="barGraph" width="960" height="500"></svg>
+    <table><tr><td>
+                <svg id="sizeCircle" width="300" height="500" ></svg>
+            </td>
+            <!--super kludgy-->
+            <td style="color: white">
+                space
+            </td>
+            <td>
+<svg id="barGraph" width="660" height="500"></svg>
+            </td></tr></table>
 </div>
+<script src="https://rawgit.com/krunkosaurus/simg/master/src/simg.js"></script>
 <script src="/static/d3/d3.js" charset="utf-8"></script>
 <script>
+    function download() {
+        //var doc = new Simg($('#graphDiv'));
+        var doc = new Simg($('#barGraph')[0]);
+
+        //doc.replace();
+        doc.download();
+    }
+    var baseSize=1;
+    var radius=baseSize*Math.pow(
+        {{async_result.datafile['data'][0]['interestToBackgroundSizeRatio']}},
+        .5
+    );
+    var baseFromCorner=1-radius;//baseSize/3;
+    var circleGraph=d3.select("#sizeCircle")
+        .style("display","block")
+        .style("margin","auto")
+        .attr("viewBox","-1 -1 2 2");
+
+    circleGraph.append("circle")
+        .attr("r",baseSize)
+        .attr("fill","steelblue");
+
+    circleGraph.append("circle")
+        .attr("cy",baseFromCorner)
+        .attr("r",radius)
+        .attr("fill","blue")
+        .attr("transform","rotate(30)");
+
+    circleGraph.append("text")
+        .style("font-size",".136px")
+        .attr("dx","-7em")
+        .attr("dy","-10.12em")
+        .text("Size Comparison");
+
+    var legend=circleGraph.append("g")
+        .style("stroke-width",".01px");
+
+    legend.append("rect")
+	    .attr("x", "-.1em")
+	    .attr("y", ".121em")
+	    .attr("width", "1")
+	    .attr("height", ".14")
+        .style("fill","blue")
+        .style("stroke-width","1px")
+    legend.append("text")
+	    .attr("dy", "13.1em")
+	    .attr("dx", "-6.5em")
+        .style("stroke","ghostwhite")
+        .style("font-size",".1px")
+        .text("Interest");
+
+
+    legend.append("rect")
+	    .attr("y", ".121em")
+	    .attr("width", "1")
+	    .attr("height", ".14")
+        .style("fill","steelblue")
+        .style("stroke-width","1px")
+    legend.append("text")
+	    .attr("dy", "13.1em")
+	    .attr("dx", "2em")
+        .style("stroke","ghostwhite")
+        .style("font-size",".1px")
+        .text("Background");
+</script>
+<script>//frequency graph
 
 
 var data = d3.range({{ async_result.datafile['data'][0]['densityPointCount']}}).map(function(i) {
@@ -203,7 +287,7 @@ var data = d3.range({{ async_result.datafile['data'][0]['densityPointCount']}}).
     return value;
 });
 
-var margin = {top: 20, right: 20, bottom: 70, left: 40},
+var margin = {top: 100, right: 20, bottom: 70, left: 40},
     width = +d3.select("#barGraph").attr("width") - margin.left - margin.right,
     height = +d3.select("#barGraph").attr("height") - margin.top - margin.bottom;
 
@@ -228,12 +312,18 @@ var yAxis = d3.svg.axis()
 var svg=d3.select("#barGraph").attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
-    .attr("transform", 
+    .attr("transform",
           "translate(" + margin.left + "," + margin.top + ")");
 
 var graphBar=function(drawBars,drawLine,smooth){
 
     svg.selectAll("*").remove();
+    svg.append("text")
+        .attr("dy","-3em")
+        .style("text-anchor","start")
+        .style("alignment-baseline","middle")
+        .style("font-size","20")
+        .text("Frequency Graph");
 
   svg.append("g")
       .attr("class", "x axis")
@@ -242,6 +332,7 @@ var graphBar=function(drawBars,drawLine,smooth){
     .selectAll("text")
       .style("text-anchor", "end")
       .attr("dx", ".2em")
+      .attr("dy", ".7em")
 
   svg.append("g")
       .attr("class", "y axis")
@@ -293,35 +384,42 @@ graphBar(true,true,true);
 </script>
 
 
-<p>p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
+<p style="font-size: 16px">p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
 {{ async_result.datafile['data'][0]['numSamples'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} generated from background<br/>
 {{ async_result.datafile['data'][0]['intersectGreaterCount'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} contained at least as many matches to database as the actual expression results.<br/>
 {{ async_result.datafile['data'][0]['inTopAndIntersectCount'] }} matches to
 database found in microarray results</p>
-
-<script src="/static/d3/d3.min.js" charset="utf-8"></script>
-
-<div class="page-header">
-    <h1>{{ title }}
-        {{ runhash }} </h1>
+<hr/>
+<h2 style="font-size:16px">Genes in both Top Genes and Set of Interest</h2>
+<div style="overflow-y:scroll; height: 400px; font-size: 16px">
+    <table>
+        {%for gene in async_result.datafile['data'][0]['inTopAndInterest'] %}
+            <tr>
+                <td>
+                    <!--add python code to get name for each gene id here-->
+                    {{gene}}
+                </td>
+            </tr>
+        {%endfor%}
+    </table>
 </div>
+<hr/>
+<script src="/static/d3/d3.min.js" charset="utf-8"></script>
 
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="panel panel-info" >
         <div  style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion"
-                href="#msetCollapse"style="color:#000000; width:100%;">
 				<div class="panel-title" style="width:100%;">
 					Tool Options
-					<span class="caret"></span>
 				</div>
-			</a>
         </div>
-        <div id="msetCollapse" class="panel-collapse collapse" style="">
             <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
                 <div class="row">
                     <div class="col-md-4">
-                        {{ macros.tool_param_radio(tool.params['MSET_Homology']) }}
+                        {{ macros.tool_param_select(tool.params['MSET_Background']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_checkbox_mset(tool.params['MSET_Species']) }}
                     </div>
                     <div class="col-md-4">
                         {{ macros.tool_param_select(tool.params['MSET_NumberofSamples']) }}
@@ -344,70 +442,15 @@ database found in microarray results</p>
                             Re-Run Tool
                         </button>
                     </div>
+                    <div class="col-md-8">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='download();'>
+                            Download As SVG
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
     </div>
 </form>
-
-<div class="panel panel-info" >
-	<div  style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion"
-                            href="#viz-options"style="color:#000000; width:100%;">
-			<div class="panel-title" style="width:100%;">
-				Visualization Options
-				<span class="caret"></span>
-			</div>
-		</a>
-	</div>
-	<div id="viz-options" class="panel-collapse collapse" style="">
-		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
-            <div class="row">
-				<div class="col-md-2">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Download as...
-                            <span class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="download-image" id="dl-pdf">PDF</a></li>
-                            <li><a class="download-image" id="dl-png">PNG</a></li>
-                            <li><a class="download-image" id="dl-svg">SVG</a></li>
-                        </ul>
-                    </div>
-				</div>
-
-				<div class="col-md-2">
-                    <button type="button" value="Update" id="zoomButton" class="btn btn-primary">
-                        Reset Zoom
-                    </button>
-                </div>
-            </div>
-
-		</div>
-	</div>
-</div>
-
-<div class="panel panel-info" >
-	<div  style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion"
-            href="#sim-matrix"style="color:#000000; width:100%;">
-			<div class="panel-title" style="width:100%;">
-				Similarity Matrix
-				<span class="caret"></span>
-			</div>
-		</a>
-	</div>
-	<div id="sim-matrix" class="panel-collapse collapse" style="">
-		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px; border-radius:5px; border:1px solid #006400; text-align:center;">
-            <div id="matrix" align="center">
-            </div>
-            <br />
-            <button align="center" type="button" class="btn btn-block btn-warning" id="addToProject" style="width:270px">
-                <i class="fa fa-folder-o pull-left"></i>
-                Add GeneSet(s) to Project
-            </button>
-		</div>
-	</div>
-</div>
-

@@ -3836,6 +3836,16 @@ def get_pjname_by_pj_id(pj_id):
 
     return cursor.fetchall()
 
+def get_parameters_for_tool(tp_name):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            select tp_options from odestatic.tool_param where tp_name = %s;
+            ''', (tp_name,)
+        )
+
+    return cursor.fetchall()
+
 def get_species_name_by_sp_id(sp_id):
     with PooledCursor() as cursor:
         cursor.execute(

@@ -31,20 +31,20 @@ class WithoutReplacementSampler{
     //this is currently sampling with replacement, but doing so is an order of magnitude
     //faster than without, and didn't seem to affect the probabilities in a significant way
     void sample(std::vector<T>& sampleInto){
-        /*//with replacement
+        //*//with replacement
         for(unsigned long i=0;i<sampleInto.size();i++){
             unsigned long pull=ndxs(gen);
             sampleInto[i]=(*fromVector)[pull];
         }
         /*///without replacement
         for(unsigned long i=0;i<sampleInto.size();i++){
-            unsigned long pull=std::uniform_int_distribution<unsigned long>{0,sampleInto.size()-i}(gen);
+            unsigned long pull=std::uniform_int_distribution<unsigned long>{0,sampleInto.size()-i-1}(gen);
             sampleInto[i]=(*fromVector)[pull];
             //swap pulled element and the element at 1 more than the sample out
             //of range
             T temp=(*fromVector)[pull];
-            (*fromVector)[pull]=(*fromVector)[fromVector->size()-i];
-            (*fromVector)[fromVector->size()-i]=temp;
+            (*fromVector)[pull]=(*fromVector)[fromVector->size()-i-1];
+            (*fromVector)[fromVector->size()-i-1]=temp;
         }
         //*/
     }

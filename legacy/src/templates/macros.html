@@ -83,6 +83,26 @@
     </div>
 {% endmacro %}
 
+
+{% macro tool_param_checkbox_mset(tool_param) %}
+    <div class="form-group">
+        <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-8">
+            {% for opt in tool_param.options %}
+                <label class="checkbox-inline">
+                    <input
+                        type="checkbox"
+                        name="{{ tool_param.name|e }}"
+                        id="{{ tool_param.name|e }}_{{ loop.index }}"
+                        value = "{{ opt|e }}"
+                        {% if opt|e in tool_param.default %}  checked{% endif %}>
+                        {{ opt|e }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
 {% macro tool_param_textbox(tool_param) %}
     <div class="form-group">
         <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>

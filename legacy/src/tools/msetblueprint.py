@@ -21,6 +21,7 @@ def run_tool():
     # TODO need to check for read permissions on genesets
 
     form = flask.request.form
+
     # sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
     # sys.stderr.write(str(form['MSET_Background'])+"\n")
     # sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
@@ -28,9 +29,18 @@ def run_tool():
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
     selected_project_ids = tc.selected_project_ids(form)
+    #species_params = form['MSET_Species']
+    sp_params = gwdb.get_parameters_for_tool('MSET_Species')
+    sp_params = sp_params[0][0]
+    species_checked = flask.request.form.getlist('MSET_Species')
 
     sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
-    sys.stderr.write(str(selected_project_ids)+"\n")
+    #sys.stderr.write(str(form['MSET_Background']))
+    #sys.stderr.write(str(form)+'\n\n')
+    #sys.stderr.write(str(species_params)+'\n')
+    sys.stderr.write(str(species_checked) + '\n')
+    #sys.stderr.write(str(sp_params) +'\n')
+    #sys.stderr.write(str(selected_project_ids)+"\n")
     # sys.stderr.write(str(selected_geneset_ids) + "\n")
     sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
     # Used only when rerunning the tool from the results page
@@ -39,14 +49,27 @@ def run_tool():
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
-    if len(selected_project_ids) < 3:
-        flask.flash("Warning: You need at least 3 projects!")
+    if len(selected_project_ids) < 2:
+        flask.flash("Warning: You need at least 2 projects!")
         return flask.redirect('analyze')
 
+    sp_params_array = eval(str(sp_params))
+    #for name in sp_params_array:
+    #    sys.stderr.write(str(name) + '\n')
 
-    background = form['MSET_Background']
+    for name in species_checked:
+        sys.stderr.write(str(name) + '\n')
+
+    #if species_checked[0] == sp_params_array[0]:
+        #sys.stderr.write("success?")
+    #else:
+        #sys.stderr.write("Checked: " + str(species_checked[0]) + " Against: " + str(sp_params_array[0]) + '\n')
+
+    if not species_checked:
+        flask.flash("Warning: You need at least 1 species selected!")
+        return flask.redirect('analyze')
+
     topgenes = form['MSET_TopGenes']
-    bgId = -1
     tgId = -1
 
     for pj_id in selected_project_ids:
@@ -57,16 +80,10 @@ def run_tool():
             # sys.stderr.write(str(name[0]))
             # if background == str(row[names):
               #  sys.stderr.write("We found the background!\n")
-        if background == pjName:
-            bgId = pj_id
-            # sys.stderr.write(str(name[0]))
-        elif topgenes == pjName:
+        if topgenes == pjName:
             tgId = pj_id
 
-    if bgId < 0:
-        flask.flash("Warning: The background name you entered does not match any project selected!")
-        return flask.redirect('analyze')
-    elif tgId < 0:
+    if tgId < 0:
         flask.flash("Warning: The top genes name you entered does not match any project selected!")
         return flask.redirect('analyze')
 
@@ -121,25 +138,28 @@ def run_tool():
     gs_dict["species_info"] = species_info
     gs_dict["species_map"] = species_map
     gs_dict["project_ids"] = selected_project_ids
-    gs_dict["bgId"] = bgId
     gs_dict["tgId"] = tgId
+    gs_dict["sp_params"] = species_checked
 
     # gather the params into a dictionary
-    homology_str = 'Homology'
-    params = {homology_str: None}
+    bg_str = 'Background'
+    sp_str = 'Species'
+    samp_str = 'NumberofSamples'
+    params = {bg_str: None, samp_str: None, sp_str: None}
     # samples_str = 'MSET_NumberOfSamples'
     # samples = 0
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         params[tool_param.name] = form[tool_param.name]
         sys.stderr.write(str(tool_param.name) + "\n")
-        if tool_param.name.endswith('_' + homology_str):
-            params[homology_str] = form[tool_param.name]
+        if tool_param.name.endswith('_' + bg_str):
+            params[bg_str] = form[tool_param.name]
+        elif tool_param.name.endswith('_' + sp_str):
+            params[sp_str] = form[tool_param.name]
+        elif tool_param.name.endswith('_' + samp_str):
+            params[samp_str] = form[tool_param.name]
 
     #sys.stderr.write(str(form['MSET_NumberofSamples']) + "\n")
     #sys.stderr.write(str(samples[samples_str]) + "\n")
-    if params[homology_str] != 'Excluded':
-        params[homology_str] = 'Included'
-
     # not sure if I need this
     for project_id in gs_dict["gene_symbols"]:
         species = gs_dict["species_info"][project_id]
@@ -168,7 +188,6 @@ def run_tool():
     # for row in emphgenes:
     #    emphgeneids.append(str(row['ode_gene_id']))
     # params['EmphasisGenes'] = emphgeneids
-
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
@@ -189,18 +208,22 @@ def run_tool():
             'gs_dict': gs_dict,
         },
         task_id=task_id)
-
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
-    response = flask.make_response(tc.render_tool_pending(async_result, tool))
+    sys.stderr.write("Begin error\n")
+    try:
+        response = flask.make_response(tc.render_tool_pending(async_result, tool))
+    except Exception as e:
+        sys.stderr.write(str(e))
+    sys.stderr.write("End error\n")
     response.status_code = 303
     response.headers['location'] = new_location
 
     return response
 
 #@mset_blueprint.route('/api/tool/MSET.html', methods=['GET'])
-def run_tool_api(apikey, homology, p_Value, genesets):
+def run_tool_api(apikey, background, species, samples, genesets):
     # TODO need to check for read permissions on genesets
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -212,18 +235,30 @@ def run_tool_api(apikey, homology, p_Value, genesets):
         raise Exception('there must be at least three genesets selected to run this tool')
 
     # gather the params into a dictionary
-    homology_str = 'Homology'
-    params = {homology_str: None}
+    bg_str = 'Background'
+    sp_str = 'Species'
+    samp_str = 'NumberofSamples'
+    params = {bg_str: None, samp_str: None, sp_str: None}
+    bg_params = ["CTD", "NIF", "ABA", "GWAS", "DRG", "GO", "MP", "HP", "MESH", "KEGG", "MSigDB", "PC", "OMIM",
+                 "GTex", "Entrez", "Ensembl Gene", "Ensembl Protein", "Ensembl Transcript", "Unigene",
+                 "Gene Symbol", "Unannotated", "MGI", "HGNC", "RGD", "ZFIN", "FlyBase", "Wormbase", "SGD",
+                 "miRBase", "CGNC"]
+    sp_params = ["Mus musculus", "Homo sapiens", "Rattus norvegicus", "Danio rerio", "Drosophila melanogaster",
+                 "Macaca mulatta", "Caenorhabditis elegans", "Saccharomyces cerevisiae", "Gallus gallus",
+                 "Canis familiaris"]
+    samp_params = ['100', '1000', '5000', '10000']
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
-        if tool_param.name.endswith('_' + homology_str):
-            params[homology_str] = 'Excluded'
-            params[tool_param.name] = 'Excluded'
-            if homology != 'Excluded':
-                params[homology_str] = 'Included'
-                params[tool_param.name] = 'Included'
-        if tool_param.name.endswith('_' + 'NumberofSamples'):
-            params[tool_param.name] = p_Value
-            if p_Value not in ['100', '1000', '5000', '10000']:
+        if tool_param.name.endswith('_' + bg_str):
+            params[tool_param.name] = background
+            if background not in bg_params:
+                params[tool_param.name] = 'CTD'
+            if tool_param.name.endswith('_' + sp_str):
+                params[tool_param.name] = species
+            if species not in sp_params:
+                params[tool_param.name] = 'Mus musculus'
+        if tool_param.name.endswith('_' + samp_str):
+            params[tool_param.name] = samples
+            if samples not in samp_params:
                 params[tool_param.name] = '100'
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
