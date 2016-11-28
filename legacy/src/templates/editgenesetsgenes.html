@@ -375,7 +375,6 @@
                     data: {"altSpecies": val, "user_id": {{ user_id }}, "gs_id": {{ geneset.geneset_id }} },
                     success: function (data) {
                         var v = JSON.parse(data);
-                        console.log(v);
                         if (v["error"] == 'None') {
                             //$('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
                             $("#result").html('<div class="alert alert-success fade in"> ' +
