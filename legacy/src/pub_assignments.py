@@ -298,7 +298,7 @@ def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
         if geneset_id:
             curation_assignments.submit_geneset_for_curation(geneset_id, assignment.group, "", False)
             curation_assignments.assign_geneset_curator(geneset_id, assignment.assignee, assignment.assigner, "")
-            insert_gs_to_pub_assignment(geneset_id, id)
+            insert_gs_to_pub_assignment(geneset_id, pub_assign_id)
 
     return geneset_id
 
