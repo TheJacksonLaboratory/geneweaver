@@ -34,15 +34,15 @@ def run_tool():
     sp_params = sp_params[0][0]
     species_checked = flask.request.form.getlist('MSET_Species')
 
-    #sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
+    sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
     #sys.stderr.write(str(form['MSET_Background']))
     #sys.stderr.write(str(form)+'\n\n')
     #sys.stderr.write(str(species_params)+'\n')
-    #sys.stderr.write(str(species_checked) + '\n')
+    sys.stderr.write(str(species_checked) + '\n')
     #sys.stderr.write(str(sp_params) +'\n')
     #sys.stderr.write(str(selected_project_ids)+"\n")
     # sys.stderr.write(str(selected_geneset_ids) + "\n")
-    #sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
+    sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
@@ -54,7 +54,10 @@ def run_tool():
         return flask.redirect('analyze')
 
     sp_params_array = eval(str(sp_params))
-    for name in sp_params_array:
+    #for name in sp_params_array:
+    #    sys.stderr.write(str(name) + '\n')
+
+    for name in species_checked:
         sys.stderr.write(str(name) + '\n')
 
     #if species_checked[0] == sp_params_array[0]:
@@ -136,7 +139,7 @@ def run_tool():
     gs_dict["species_map"] = species_map
     gs_dict["project_ids"] = selected_project_ids
     gs_dict["tgId"] = tgId
-    gs_dict["sp_params"] = sp_params_array
+    gs_dict["sp_params"] = species_checked
 
     # gather the params into a dictionary
     bg_str = 'Background'

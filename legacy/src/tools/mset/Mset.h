@@ -57,7 +57,9 @@ private:
     }
 
 public:
-    string run(int numSamples,string topFile, string backgroundFile,string interestFile){
+    string run(int numSamples,string topFile, vector<string> backgroundFiles,string interestFile){
+        string errorMsg="Warning! empty background selected, samples can't be generated";
+        bool success=false;
         set<T> setOfInterest;
         set<T> top;
         vector<T> background;
@@ -78,15 +80,17 @@ public:
             setOfInterest.insert(input);
         }
 
-        readLists.clear();
-        readLists.close();
-        readLists.open(backgroundFile);
-        if(!readLists){
-            cerr<<"unable to open "<<backgroundFile<<endl;
-            exit(1);
-        }
-        while(readLists>>input){
-            background.push_back(input);
+        for(unsigned int i=0;i<backgroundFiles.size();i++){
+            readLists.clear();
+            readLists.close();
+            readLists.open(backgroundFiles[i]);
+            if(!readLists.is_open()){
+                cerr<<"unable to open "<<backgroundFiles[i]<<endl;
+                exit(1);
+            }
+            while(readLists>>input){
+                background.push_back(input);
+            }
         }
 
         readLists.clear();
@@ -112,6 +116,14 @@ public:
         //the length of the intersect with the top set and the intrest set to
         //compare to the simulations
         long checklength=isectFinder.getIntersectionSizeWith(top);
+
+        if(background.size()>0){
+            success=true;
+            errorMsg="";
+        }else{
+            numSamples=-1;
+        }
+
 
         ////generate and store all of the samples we will use////
         vector<vector<T>* > samples;
@@ -191,6 +203,14 @@ public:
         string tb="    ";
         jsonOutput<<"{"<<endl;
         jsonOutput<<tb<<"\"name\": \""<<interestFile<<"\","<<endl;
+        jsonOutput<<tb<<"\"success\": \"";
+        if(success){
+            jsonOutput<<"true";
+        }else{
+            jsonOutput<<"false";
+        }
+        jsonOutput<<"\","<<endl;
+        jsonOutput<<tb<<"\"errorMsg\": \""<<errorMsg<<"\","<<endl;
 
         //matches to database found in microarray results
         jsonOutput<<tb<<"\"inTopAndInterestCount\": "<<checklength<<","<<endl;
@@ -220,8 +240,15 @@ public:
             }
             jsonOutput<<endl;
         }
-        jsonOutput<<tb<<"]"<<endl;
-        jsonOutput<<tb<<"\"interestToBackgroundSizeRatio\": "<<double(setOfInterest.size())/double(background.size())<<endl;
+        jsonOutput<<tb<<"],"<<endl;
+        jsonOutput<<tb<<"\"interestToBackgroundSizeRatio\": ";
+        if(numSamples!=-1){
+            jsonOutput<<double(setOfInterest.size())/double(background.size());
+        }
+        else{
+            jsonOutput<<"-1";
+        }
+        jsonOutput<<endl;
         jsonOutput<<"}";
 
         return jsonOutput.str();
