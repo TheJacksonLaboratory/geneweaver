@@ -5,6 +5,8 @@ import uuid
 import geneweaverdb as gwdb
 import toolcommon as tc
 import sys
+import os
+
 from decimal import Decimal
 from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 
@@ -51,6 +53,19 @@ def run_tool():
 
     if len(selected_project_ids) < 2:
         flask.flash("Warning: You need at least 2 projects!")
+        return flask.redirect('analyze')
+
+    BGFILE_DIR = "/svr/geneweaver/tools/TOOLBOX/mset/backgroundFiles/" + form["MSET_Background"]
+
+    size_of_files = 0
+    for sp_name in species_checked:
+        bgFile = BGFILE_DIR + str(sp_name) + 'BG.txt'
+        bgFile = bgFile.replace(" ", "")
+        sys.stderr.write(str(bgFile) + '\n')
+        size_of_files += os.stat(bgFile).st_size
+
+    if(size_of_files == 0):
+        flask.flash("Warning: The background and species combination you have chosen is empty!\nPlease choose a different combination.")
         return flask.redirect('analyze')
 
     sp_params_array = eval(str(sp_params))
