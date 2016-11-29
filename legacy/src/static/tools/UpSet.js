@@ -31,6 +31,10 @@ var upset = function () {
         // Bar data for each intersection bar
         Intersectionbars = [],
         BackgroundRow = [],
+        //Bar data for each jaccard value
+        JaccardBars = [],
+        //Bar data for each entropy value
+        EntropyBars = [],
         //Circle data for each intersection circle
         IntersectionCircles = [],
         BackgroundColumn = [],
@@ -251,7 +255,7 @@ var upset = function () {
         makeBars();
         makeText();
 
-        var x = d3.scaleLinear().range([0, chartHeight]).domain([0, d3.max(Intersectionbars, function(d) { return d.height})]),
+        var x = d3.scaleLinear().range([0, (chartHeight/4)]).domain([0, d3.max(Intersectionbars, function(d) { return d.height})]),
             y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; }));
 
         //Append svg to the upset area
@@ -297,11 +301,24 @@ var upset = function () {
             .on("mouseover", mouseover)
             .on("mouseout", mouseout);
 
+        //Draw intersection graph
+
         //Adding Axis
         svg.append("g")
             .attr("class", "axis")
             .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) + yShift) + "," + ((yShift + textHeight) - 10) + ")")
             .call(d3.axisTop(x));
+
+        var label = svg.append("rect")
+            .attr("width", (chartHeight / 4))
+            .attr("height", 20)
+            .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) + yShift) + "," + (yShift) + ")")
+            .style("fill", "#C0C0C0");
+
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) + yShift) + ",80)")
+            .call(d3.axisBottom(x));
 
         //Adding the intersect size diagrams
         svg.selectAll("bar")
@@ -313,6 +330,8 @@ var upset = function () {
             .attr("height", 18)
             .attr("width", function(d) { return x(d.height); })
             .style("fill", function(d) { return d.fill; });
+
+        //Draw jaccard graph
 
         var x = d3.scaleBand().range([0, (yShift - diagramPadding)]).domain(setBars.map(function(d) { return d.name; })).padding(0.5),
             y = d3.scaleLinear().range([(yShift - diagramPadding), 0]).domain([0, d3.max(setBars, function(d) { return d.height})]);
