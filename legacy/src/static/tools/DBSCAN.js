@@ -5,20 +5,15 @@
 
 // Define colors for different species
 // When zooming in, color becomes solid
-
 var speciesToColorZoomout ={"Mus musculus":"rgba(17,91,127,0.5)","Homo sapiens":"rgba(160,168,228,0.5)","Rattus norvegicus":"rgba(79,91,182,0.5)","Danio rerio":"rgba(29,42,138,0.5)","Drosophila melanogaster":"rgba(151,230,186,0.5)","Macaca mulatta":"rgba(65,188,118,0.5)","Caenorhabditis elegans":"rgba(13,143,70,0.5)","Saccharomyces cerevisiae":"rgba(255,215,168,0.5)","Gallus gallus":"rgba(255,178,88,0.5)","Canis familiaris":"rgba(201,116,18,0.5)"};
 var speciesToColorZoomin = {"Mus musculus":"rgb(17,91,127)","Homo sapiens":"rgb(160,168,228)","Rattus norvegicus":"rgb(79,91,182)","Danio rerio":"rgb(29,42,138)","Drosophila melanogaster":"rgb(151,230,186)","Macaca mulatta":"rgb(65,188,118)","Caenorhabditis elegans":"rgb(13,143,70)","Saccharomyces cerevisiae":"rgb(255,215,168)","Gallus gallus":"rgb(255,178,88)","Canis familiaris":"rgb(201,116,18)"};
+var geneToCluster = {};
 
-// Define properties for svg
+// Define properties for svg used by clustersInCirclesSVG
 var svg = d3.select("#clustersInCirclesSVG"),
     margin = 20,
     diameter = +svg.attr("width"),
     g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
-
-//define domain and colors for legend
-var ordinal = d3.scaleOrdinal()
-  .domain(Object.keys(speciesToColorZoomin))
-  .range(Object.keys(speciesToColorZoomin).map(function(e){return speciesToColorZoomin[e]}));
 
 var pack = d3.pack()
     .size([diameter - margin, diameter - margin])
@@ -33,6 +28,7 @@ function parse(cluster, geneToSpecies) {
         var obj = {};
         obj.name = "Cluster" + i;
         obj.children = e.map(function(gene){
+            geneToCluster[gene] = i;
             var geneObj = {};
             geneObj.name = gene;
             geneObj.size = 1;
@@ -44,9 +40,28 @@ function parse(cluster, geneToSpecies) {
     });
     return clusters;
 }
-
+//parse the json to a node-link format
+//used for the second versio of visualization
+//TODO if gene is not in any of the clusters
+function parse2(edges, genes) {
+    var graph = {};
+    graph.nodes = genes.map(function(gene){
+        var node = {};
+        node.id = gene;
+        node.group = geneToCluster[gene];
+        return node;
+    });
+    graph.links = edges.map(function(edge){
+        var link = {};
+        link.source = edge[0];
+        link.target = edge[1];
+        link.value = 1;
+        return link;
+    });
+    return graph;
+}
 //Main function to draw svg
-function draw(root) {
+function drawClusters(root) {
   //get the root
   root = d3.hierarchy(root)
       .sum(function(d) { return d.size; })
@@ -100,19 +115,6 @@ function draw(root) {
       .style("background", "white")
       .on("click", function() { zoom(root); });
 
-    //set legend
-    // svg.append("g")
-    //   .attr("class", "legendOrdinal")
-    //   .attr("transform", "translate(20,20)");
-    //
-    // var legendOrdinal = d3.legendColor()
-    //   .shape("path", d3.symbol().type(d3.symbolCircle).size(500)())
-    //   .shapePadding(10)
-    //   .scale(ordinal);
-    //
-    // svg.select(".legendOrdinal")
-    //   .call(legendOrdinal);
-
   //zoom function
   zoomTo([root.x, root.y, root.r * 2 + margin]);
 
@@ -142,10 +144,11 @@ function draw(root) {
     circle.attr("r", function(d) { return d.r * k; });
   }
 };
-
+//draw second version of visualization
 var svg2 = d3.select("#clustersInWiresSVG"),
     width = +svg2.attr("width"),
     height = +svg2.attr("height");
+
 var color1 = d3.scaleOrdinal(d3.schemeCategory20);
 
 var simulation = d3.forceSimulation()
@@ -153,7 +156,13 @@ var simulation = d3.forceSimulation()
     .force("charge", d3.forceManyBody())
     .force("center", d3.forceCenter(width / 2, height / 2));
 
-d3.json("/static/tools/miserables.json", function(graph) {
+function drawConnections(graph) {
+
+  var tooltip = d3.select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden");
 
   var nodes = graph.nodes,
       nodeById = d3.map(nodes, function(d) { return d.id; }),
@@ -177,18 +186,22 @@ d3.json("/static/tools/miserables.json", function(graph) {
   var node = svg2.selectAll(".node")
     .data(nodes.filter(function(d) { return d.id; }))
     .enter()
-      .append("circle","text")
+      .append("circle")
       .attr("class", "node")
-      .attr("r", 10)
+      .attr("r", 8)
       .attr("fill", function(d) { return color1(d.group); })
-      // .attr("fill", "black")
-      .text(function(d) { return d.id; })
+      .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.id);})
+      .on("mousemove", function(){return tooltip.style("top",
+    (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+      .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
       .call(d3.drag()
           .on("start", dragstarted)
           .on("drag", dragged)
           .on("end", dragended));
 
-
+  node.append("text")
+      .attr("dx", 1)
+      .attr("dy", ".35em");
 
   simulation
       .nodes(nodes)
@@ -201,7 +214,7 @@ d3.json("/static/tools/miserables.json", function(graph) {
     link.attr("d", positionLink);
     node.attr("transform", positionNode);
   }
-});
+}
 
 function positionLink(d) {
   return "M" + d[0].x + "," + d[0].y

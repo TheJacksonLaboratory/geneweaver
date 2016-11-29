@@ -3,8 +3,9 @@ import flask
 import json
 import uuid
 import geneweaverdb as gwdb
-import toolcommon as tc
 import sys
+import itertools
+import toolcommon as tc
 TOOL_CLASSNAME = 'DBSCAN'
 dbscan_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
@@ -35,16 +36,23 @@ def run_tool():
 
     # retrieve gene symbols
     gene_symbols = {}
-
+    # gene_symbols_set = set()
     for gs_id in selected_geneset_ids:
         raw = gwdb.get_genesymbols_by_gs_id(gs_id)
         symbol_list = []
 
         for sym in raw:
             symbol_list.append(sym[0])
-
+            # gene_symbols_set.add(sym[0])
         gene_symbols[gs_id] = symbol_list
 
+    # gene_symbols_set = list(gene_symbols_set)
+    edges = list()
+    for gs_id in selected_geneset_ids:
+        for connection in itertools.combinations(gene_symbols[gs_id], 2):
+            edges.append(connection)
+            # adjacencyList[gene_symbols_set.index(connection[0])][gene_symbols_set.index(connection[1])] = 1
+            # sys.stderr.write(str(connection) + '\n')
     # retrieve gs names and abbreviations
     gene_set_names = {}
     gene_set_abbreviations = {}
@@ -62,7 +70,7 @@ def run_tool():
     gs_dict["gene_set_abbr"] = gene_set_abbreviations
     gs_dict["species_info"] = species_info
     gs_dict["species_map"] = species_map
-
+    gs_dict["edges"] = edges
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
