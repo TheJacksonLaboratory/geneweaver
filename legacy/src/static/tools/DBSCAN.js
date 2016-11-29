@@ -8,7 +8,7 @@
 var speciesToColorZoomout ={"Mus musculus":"rgba(17,91,127,0.5)","Homo sapiens":"rgba(160,168,228,0.5)","Rattus norvegicus":"rgba(79,91,182,0.5)","Danio rerio":"rgba(29,42,138,0.5)","Drosophila melanogaster":"rgba(151,230,186,0.5)","Macaca mulatta":"rgba(65,188,118,0.5)","Caenorhabditis elegans":"rgba(13,143,70,0.5)","Saccharomyces cerevisiae":"rgba(255,215,168,0.5)","Gallus gallus":"rgba(255,178,88,0.5)","Canis familiaris":"rgba(201,116,18,0.5)"};
 var speciesToColorZoomin = {"Mus musculus":"rgb(17,91,127)","Homo sapiens":"rgb(160,168,228)","Rattus norvegicus":"rgb(79,91,182)","Danio rerio":"rgb(29,42,138)","Drosophila melanogaster":"rgb(151,230,186)","Macaca mulatta":"rgb(65,188,118)","Caenorhabditis elegans":"rgb(13,143,70)","Saccharomyces cerevisiae":"rgb(255,215,168)","Gallus gallus":"rgb(255,178,88)","Canis familiaris":"rgb(201,116,18)"};
 var geneToCluster = {};
-
+var numClusters;
 // Define properties for svg used by clustersInCirclesSVG
 var svg = d3.select("#clustersInCirclesSVG"),
     margin = 20,
@@ -25,6 +25,7 @@ function parse(cluster, geneToSpecies) {
     var clusters = {};
     clusters.name = "Clusters";
     clusters.children = cluster.map(function(e, i){
+        numClusters = i;
         var obj = {};
         obj.name = "Cluster" + i;
         obj.children = e.map(function(gene){
@@ -189,7 +190,10 @@ function drawConnections(graph) {
       .append("circle")
       .attr("class", "node")
       .attr("r", 8)
-      .attr("fill", function(d) { return color1(d.group); })
+      .attr("fill", function(d) {
+          if(d.group === undefined)
+              return "grey";
+          return color1(d.group); })
       .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.id);})
       .on("mousemove", function(){return tooltip.style("top",
     (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
@@ -242,8 +246,7 @@ function dragended(d) {
 
 //draw legend
 var svg3 = d3.select("#speciesLegend");
-function drawLegend() {
-
+function drawLegendCircles() {
     var key = svg3.append('g');
 
     Object.keys(speciesToColorZoomout).forEach(function(name, i){
@@ -286,4 +289,47 @@ function drawLegend() {
 
     });
 
-};
+}
+var svg4 = d3.select("#clusterLegend");
+function drawLegendWires() {
+    var key = svg4.append('g');
+    var i;
+    for(i = 0; i < numClusters + 1; i++) {
+        key.append('circle')
+            .attr('cx', 15)
+            .attr('x', 15)
+            .attr('cy', 28 * i + 20)
+            .attr('y', 28 * i + 20)
+            .attr('r', 10)
+            .style('fill-opacity', 0.90)
+            .style('shape-rendering', 'geometricPrecision')
+            .style('stroke', '#000')
+            .style('stroke-width', '2px')
+            .style('fill', color1(i));
+
+        key.append('text')
+            .attr('x', 33)
+            .attr('y', 29 * i + 24)
+            .text('= Cluster' + i);
+
+    }
+    //noise
+    key.append('circle')
+            .attr('cx', 15)
+            .attr('x', 15)
+            .attr('cy', 28 * (numClusters + 1) + 20)
+            .attr('y', 28 * (numClusters + 1) + 20)
+            .attr('r', 10)
+            .style('fill-opacity', 0.90)
+            .style('shape-rendering', 'geometricPrecision')
+            .style('stroke', '#000')
+            .style('stroke-width', '2px')
+            .style('fill', "grey");
+
+    key.append('text')
+            .attr('x', 33)
+            .attr('y', 29 * (numClusters + 1) + 24)
+            .text('= Noise');
+}
+
+

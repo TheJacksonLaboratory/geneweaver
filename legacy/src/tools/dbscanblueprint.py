@@ -48,11 +48,17 @@ def run_tool():
 
     # gene_symbols_set = list(gene_symbols_set)
     edges = list()
+    threshold = 0
+    counter = 0
     for gs_id in selected_geneset_ids:
+        countConnections = 0
         for connection in itertools.combinations(gene_symbols[gs_id], 2):
             edges.append(connection)
-            # adjacencyList[gene_symbols_set.index(connection[0])][gene_symbols_set.index(connection[1])] = 1
-            # sys.stderr.write(str(connection) + '\n')
+            countConnections += 1
+        if countConnections > counter:
+            counter = countConnections
+    if counter > 150:
+        threshold = 1
     # retrieve gs names and abbreviations
     gene_set_names = {}
     gene_set_abbreviations = {}
@@ -71,6 +77,7 @@ def run_tool():
     gs_dict["species_info"] = species_info
     gs_dict["species_map"] = species_map
     gs_dict["edges"] = edges
+    gs_dict["threshold"] = threshold
     # gather the params into a dictionary
     homology_str = 'Homology'
     params = {homology_str: None}
