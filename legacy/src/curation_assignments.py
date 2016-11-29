@@ -100,7 +100,7 @@ def get_geneset_name(geneset_id):
     return geneset_name
 
 
-def submit_geneset_for_curation(geneset_id, group_id, note):
+def submit_geneset_for_curation(geneset_id, group_id, note, notify=True):
     """
     :param geneset_id: geneset submitted for curation
     :param group_id: group responsible for the curation
@@ -121,10 +121,11 @@ def submit_geneset_for_curation(geneset_id, group_id, note):
             (geneset_id, group_id, 1, note))
         cursor.connection.commit()
 
-        # send notification to the group admins
-        subject = 'New Geneset Awaiting Curation'
-        message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
-        notifications.send_group_admin_notification(group_id, subject, message)
+        if notify:
+            # send notification to the group admins
+            subject = 'New Geneset Awaiting Curation'
+            message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
+            notifications.send_group_admin_notification(group_id, subject, message)
     return
 
 
