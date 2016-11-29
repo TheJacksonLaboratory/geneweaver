@@ -87,7 +87,12 @@
     fill: none;
 }
 
- div.tooltip {
+.frame {
+    height: 1100px;
+    margin:0 auto;
+}
+
+div.tooltip {
   position: absolute;
   text-align: center;
   width: 300px;
@@ -95,11 +100,12 @@
   padding: 2px;
   font: 10px sans-serif;
   background: ghostwhite;
-  pointer-events: none;}
-
+  pointer-events: none;
+}
 </style>
-
 <script src="/static/d3/d3.v4.js" charset="utf-8"></script>
+<script src="/static/js/jquery-1.4.4.min.js"></script>
+<script src="/static/js/jquery.layout.js"></script>
 
 <div class="page-header">
     <h1>{{ title }}
@@ -191,7 +197,9 @@
 <br>
 
 <!-- Div(UpSet), where all the bar chart D3 is appended to in the JavaScript below -->
-<div id="upset">
+<div class="frame">
+    <div id="upset" class="ui-layout-center"></div>
+    <div id="paneEast" class="ui-layout-east"></div>
 </div>
 
 <!-- Opacity slider that allows users to change the opacity of the circles based on meeting the p-value threshold on the slider -->
@@ -206,6 +214,12 @@
 <br>
 
 <script src="/static/tools/UpSet.js" charset="utf-8"></script>
+<script>
+
+    $(document).ready(function () {
+        $('div.frame').layout({ applyDefaultStyles: true });
+    });
+</script>
 <script type="text/javascript">
 
 $(document).ready(function() {
