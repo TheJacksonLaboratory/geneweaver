@@ -75,10 +75,12 @@ var upset = function () {
             by = 0;
 
         //Makes bars for the intersection size bar diagram
+        //Makes bars for the entropy bar diagram
+        //Makes bars for the jaccard bar diagram
         for (var i = 0; i < data.intersection_diagrams.length; i++) {
             var set = data.intersection_diagrams[i];
 
-            var bar = {
+            var intersectBar = {
                 fill: barFillColours[0],
                 height: set['intersection'],
                 desc: set['desc1'],
@@ -88,7 +90,16 @@ var upset = function () {
                 textFill: '#000000'
             };
 
-            Intersectionbars.push(bar);
+            var entropybar = {
+                fill: barFillColours[0],
+                height: set['set_entropy'],
+                name: set['name1'],
+                x: bx,
+                y: by
+            };
+
+            Intersectionbars.push(intersectBar);
+            EntropyBars.push(entropybar);
             by = by + 30;
         }
 
@@ -259,7 +270,7 @@ var upset = function () {
             y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; }));
 
         //Append svg to the upset area
-        svg = d3.select("#upset").append("svg")
+        svg = d3.select("#upset-graph").append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
@@ -301,6 +312,7 @@ var upset = function () {
             .on("mouseover", mouseover)
             .on("mouseout", mouseout);
 
+
         //Draw intersection graph
 
         //Adding Axis
@@ -331,7 +343,41 @@ var upset = function () {
             .attr("width", function(d) { return x(d.height); })
             .style("fill", function(d) { return d.fill; });
 
-        //Draw jaccard graph
+
+         //Draw entropy
+        var x = d3.scaleLinear().range([0, (chartHeight/4)]).domain([0, d3.max(EntropyBars, function(d) { return d.height})]),
+            y = d3.scaleBand().range([0, chartWidth]).domain(EntropyBars.map(function(d) { return d.name; }));
+
+        //Adding Axis
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + "," + ((yShift + textHeight) - 10) + ")")
+            .call(d3.axisTop(x));
+
+        label = svg.append("rect")
+            .attr("width", (chartHeight / 4))
+            .attr("height", 20)
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + "," + (yShift ) + ")")
+            .style("fill", "#C0C0C0");
+
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + ",80)")
+            .call(d3.axisBottom(x));
+
+        //Adding the entropy diagrams
+        svg.selectAll("bar")
+            .data(EntropyBars)
+            .enter().append("rect")
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; })
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + "," + ((yShift + textHeight) - 9) + ")")
+            .attr("height", 18)
+            .attr("width", function(d) { return x(d.height); })
+            .style("fill", function(d) { return d.fill; });
+
+
+        //Draw set graph
 
         var x = d3.scaleBand().range([0, (yShift - diagramPadding)]).domain(setBars.map(function(d) { return d.name; })).padding(0.5),
             y = d3.scaleLinear().range([(yShift - diagramPadding), 0]).domain([0, d3.max(setBars, function(d) { return d.height})]);
