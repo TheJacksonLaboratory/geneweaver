@@ -106,6 +106,8 @@ body {
     font: 10px sans-serif;
 }
 
+.top-buffer { margin-top:20px; }
+
 .axis path,
 .axis line {
     fill: none;
@@ -471,15 +473,77 @@ database found in microarray results</p>
             <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
                 <div class="row">
                     <div class="col-md-4">
-                        {{ macros.tool_param_select(tool.params['MSET_Background']) }}
+                        <label style="width:50%;">
+                            MSET Top Genes:
+                        </label>
+                        <input type=text class="form-control" name='MSET_TopGenes' style="width:25%; " />
                     </div>
                     <div class="col-md-4">
-                        {{ macros.tool_param_checkbox_mset(tool.params['MSET_Species']) }}
+                        <label style="width:50%;">
+                            MSET Interest Genes:
+                        </label>
+                        <input type=text class="form-control" name='MSET_InterestGenes' style="width:25%; " />
+                    </div>
+                </div>
+                <div class="row top-buffer">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['MSET_Background']) }}
                     </div>
                     <div class="col-md-4">
                         {{ macros.tool_param_select(tool.params['MSET_NumberofSamples']) }}
                     </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_checkbox_mset(tool.params['MSET_Species']) }}
+                    </div>
+                    <div class="col-md-4">
+                        <label style="width:50%;">
+                            Projects:
+                        </label>
+                        <div id="geneset-count" class="h5"></div>
+                            <!-- TODO make the table sortable, show more gene details -->
+                            <table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
+                                <tbody>
 
+                                {% for proj in g.user.projects %}
+                                    <tr>
+                                        {# checkbox #}
+                                        <td width="18">
+                                            <div class="ui-checkbox proj-checkbox">
+                                                <label for="proj-{{ proj.project_id }}-allcheck">
+                                                    <input type="checkbox" data-project="{{ proj.project_id }}"
+                                                           data-project-name="{{ proj.name }}"
+                                                           name="project_{{ proj.project_id }}"
+                                                           id="proj-{{ proj.project_id }}-allcheck"/>
+                                                </label>
+                                            </div>
+                                        </td>
+                                        {# Project Name #}
+                                        <td>
+                                            <span data-prod="{{proj.project_id }}" class="toggler" style="cursor:pointer;">
+                                                <strong>{{ proj.name }}</strong>
+                                                {% if proj.star == 't' %}
+                                                    <span class="closedstar"></span>
+                                                {% endif %}
+                                            </span>
+                                        </td>
+
+                                    </tr>
+
+                                    <tr class="gsid{{ proj.project_id }}" id="genesets-{{ proj.project_id }}"
+                                        style="display: none;">
+                                        <td colspan="9">
+                                            <table id="project-body-{{ proj.project_id }}"
+                                                   class="table table-hover">
+                                            </table>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col-md-4">
@@ -501,3 +565,12 @@ database found in microarray results</p>
             </div>
     </div>
 </form>
+
+
+{% include 'modal/addGenesetsToProjects.html' %}
+
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
+
+<!-- Includes the footer for the page -->
+{% include 'footer.html' %}
