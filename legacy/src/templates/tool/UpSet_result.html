@@ -131,9 +131,6 @@ div.tooltip {
                     <div class="col-md-4">
                         {{ macros.tool_param_radio(tool.params['UpSet_Zero-sizeIntersections']) }}
                     </div>
-                    <div class="col-md-4">
-                        {{ macros.tool_param_select(tool.params['UpSet_p-Value']) }}
-                    </div>
                 </div>
                 <div class="row">
                     <div class="col-md-4">
@@ -202,12 +199,7 @@ div.tooltip {
     <div id="paneEast" class="ui-layout-east"></div>
 </div>
 
-<!-- Opacity slider that allows users to change the opacity of the circles based on meeting the p-value threshold on the slider -->
-    <label for="nOpacity">
-        <h2 id="pthresh">P-Value Threshold (0.01 increments):
-      <label  style="font-weight: bold" id="nOpacity-value">…</label></h2>
-    </label>
-  <!-- Specifies the slider's range, min, max and step values -->
+<!-- Specifies the slider's range, min, max and step values -->
  <input type="range" min="0" max="1" step = "0.01" id="nOpacity">
 </p>
 <br>
