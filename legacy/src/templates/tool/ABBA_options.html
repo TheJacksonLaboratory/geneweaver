@@ -121,7 +121,7 @@
         $("#addGeneBtn").click(function() {
             var intId = $("#inputGeneField div").length + 1;
             var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
-            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" pattern="[a-zA-Z0-9]+" required/>');
+            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" required/>');
             var removeButton = $('<input type="button" class="remove btn btn-primary btn-sm" value="x" />');
             removeButton.click(function() {
                 $(this).parent().remove();
