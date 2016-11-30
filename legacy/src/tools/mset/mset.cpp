@@ -83,11 +83,7 @@ int main(int argc, char** argv){
 
 
 
-    //*    //string
-    MSET<string> msetFinder;//main logic is in this mset class, which is templated incase requirements change
-    /*/   //numeric
-    MSET<int> msetFinder;
-    //*/
+    MSET msetFinder;//main logic is in this mset class
     cout<<"{\"data\":["<<endl;//the cpp just puts the json objects into an array
     cout<<msetFinder.run(numSamples,topGenePath,backgroundFiles,interestFiles[0]);//run function outputs a json object of the results of the mset run
     for(unsigned int i=1;i<interestFiles.size();i++){
