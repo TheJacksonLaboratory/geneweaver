@@ -1035,96 +1035,151 @@ def cancel_geneset_edit_by_id(rargs):
             return gs_id
 
 
-def updategeneset(usr_id, form):
-    '''
-    This function updates both some of the metadata in the geneset table and the publication table. If geneset metadata
-    is not null, it will update everything. If the pub_pubmed is not null, it will insert all publication information if
-    it does not exist. If pub_pubmed is null, and any other pubmed record is populated it will update those records. This
-    function does not check a mismatch between pubmed info and pub_pubmed id. Both are done in an explicit transaction.
-    :param usr_id:
-    :param form:
-    :return: success is 'True' or 'Error Msg'
-    '''
-    gs_id = int((form["gs_id"]).strip()) if form["gs_id"] else None
-    gs_abbreviation = (form["gs_abbreviation"]).strip() if form["gs_abbreviation"] else None
-    gs_description = (form["gs_description"]).strip() if form["gs_description"] else None
-    gs_name = (form["gs_name"]).strip() if form["gs_name"] else None
-    pub_authors = (form["pub_authors"]).strip() if form["pub_authors"] else None
-    pub_title = (form["pub_title"]).strip() if form["pub_title"] else None
-    pub_abstract = (form["pub_abstract"]).strip() if form["pub_abstract"] else None
-    pub_journal = (form["pub_journal"]).strip() if form["pub_journal"] else None
-    pub_volume = (form["pub_volume"]).strip() if form["pub_volume"] else None
-    pub_pages = (form["pub_pages"]).strip() if form["pub_pages"] else None
-    pub_month = (form["pub_month"]).strip() if form["pub_month"] else None
-    pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
-    pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
-    pub_id = (form["pmid"]).strip() if form["pmid"] else None
-    # ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
-    # ont_ids = (form["onts"].strip()) if form["onts"] else None
-    pmid = None
-    if ((get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or
-            (user_is_owner(usr_id, gs_id) != 1) and not user_is_assigned_curation(usr_id, gs_id)):
-        return 'You do not have permission to update this GeneSet'
-    if gs_abbreviation is None or gs_description is None or gs_name is None:
-        return 'Required Field is not provided'
-    # if a pubmed id is submitted, insert into the db if it does not exist. Then return the pub_id.
-    if pub_pubmed is not None:
+def update_geneset(usr_id, form):
+    """
+    Selectively updates geneset metacontent and publication information. The
+    function determines how to update things in the following order: 
+    If a PMID (pub_pubmed) is provided, all metacontent fields will be 
+    updated. 
+    If a PMID is not provided and all other metacontent fields are blank, all
+    publication information associated with the geneset is removed. 
+    Finally, if any metacontent fields are filled out, all publication
+    metacontent fields are updated and a new publication ID (pub_id) is created
+    depending on whether it already exstis or not.
+
+    :param usr_id:  ID of the user updating the geneset
+    :param form:    form dict containing data from the edit geneset form
+    :return:        an object containing two fields, 'success' and 'error'. If
+                    any error occurs during update 'success' is set to False
+                    and the error message is contained in 'error'. A successful
+                    update results in 'success' being set to True and the 'error'
+                    field missing from the result dict.
+    """
+
+    gs_id = int(form.get('gs_id', 0))
+    gs_abbreviation = form.get('gs_abbreviation', '').strip()
+    gs_description = form.get('gs_description', '').strip()
+    gs_name = form.get('gs_name', '').strip()
+    pub_authors = form.get('pub_authors', '').strip()
+    pub_title = form.get('pub_title', '').strip()
+    pub_abstract = form.get('pub_abstract', '').strip()
+    pub_journal = form.get('pub_journal', '').strip()
+    pub_volume = form.get('pub_volume', '').strip()
+    pub_pages = form.get('pub_pages', '').strip()
+    pub_month = form.get('pub_month', '').strip()
+    pub_year = form.get('pub_year', '').strip()
+    pub_pubmed = form.get('pub_pubmed', '').strip()
+    pub_id = form.get('pub_id', '').strip()
+
+    ## Should have already been checked but does't hurt to do it again I guess
+    if ((get_user(usr_id).is_admin == False and\
+        get_user(usr_id).is_curator == False) or\
+        (user_is_owner(usr_id, gs_id) != 1) and not 
+        user_is_assigned_curation(usr_id, gs_id)):
+            return {
+                'success': False,
+                'error': 'You do not have permission to update this GeneSet'
+            }
+
+    if not gs_abbreviation or not gs_description or not gs_name:
+        return {
+            'success': False,
+            'error': 'You did not provide a required field'
+        }
+
+    ## PMID exists, we insert a new publication entry if it doesn't already
+    ## exist in the publication table
+    if pub_pubmed:
         with PooledCursor() as cursor:
-            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal,
-									pub_volume, pub_pages, pub_month, pub_year, pub_pubmed)
-									SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
-									WHERE NOT EXISTS
-									(SELECT 1 FROM publication WHERE pub_pubmed=%s)''', (pub_authors, pub_title,
-                                                                                         pub_abstract, pub_journal,
-                                                                                         pub_volume, pub_pages,
-                                                                                         pub_month, pub_year,
-                                                                                         pub_pubmed, pub_pubmed,))
+            cursor.execute('''
+                INSERT INTO publication (
+                    pub_authors, pub_title, pub_abstract, pub_journal, 
+                    pub_volume, pub_pages, pub_month, pub_year, pub_pubmed
+                )
+				SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
+				WHERE NOT EXISTS (
+                    SELECT 1 
+                    FROM publication 
+                    WHERE pub_pubmed = %s
+                );
+                ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
+                      pub_volume, pub_pages, pub_month, pub_year, pub_pubmed, 
+                      pub_pubmed)
+            )
+
             cursor.connection.commit()
+
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pub_pubmed,))
-            pmid = cursor.fetchone()[0]
+            cursor.execute('''
+                SELECT pub_id 
+                FROM publication 
+                WHERE pub_pubmed = %s;
+                ''', (pub_pubmed,)
+            )
 
-    # if pubmed id is none and everything else is blank, then pub_id = None
-    elif pub_authors is None and pub_title is None and pub_abstract is None and pub_journal is None and pub_volume is None and pub_pages is None and pub_month is None and pub_year is None:
-        pmid = None
+            pub_id = cursor.fetchone()[0]
 
-    # if pubmed id is none and something else is not, then use the pmid to update the appropriate information
+    ## All publication metacontent is missing, any publication info associated
+    ## with this geneset is removed
+    elif not pub_authors and not pub_title and not pub_abstract and\
+         not pub_journal and not pub_volume and not pub_pages and\
+         not pub_month and not pub_year:
+             pub_id = None
+
+    ## Some publication metacontent is filled out, we update all metacontent
+    ## fields
     else:
-        if pub_id is not None:
+        ## A pub_id already exists, we don't need to do any insertions
+        if pub_id:
             with PooledCursor() as cursor:
-                cursor.execute('''UPDATE publication SET pub_title=%s, pub_abstract=%s, pub_journal=%s, pub_volume=%s,
-								  pub_pages=%s, pub_month=%s, pub_year=%s, pub_pubmed=%s FROM geneset WHERE publication.pub_id=geneset.pub_id AND
-								  geneset.gs_id=%s''',
-                               (pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month,
-                                pub_year, pub_pubmed, gs_id,))
+                cursor.execute('''
+                    UPDATE publication 
+                    SET pub_title = %s, pub_abstract = %s, pub_journal = %s, 
+                        pub_volume = %s, pub_pages = %s, pub_month = %s, 
+                        pub_year = %s, pub_pubmed = %s 
+                    FROM geneset 
+                    WHERE publication.pub_id = geneset.pub_id AND
+						  geneset.gs_id = %s;
+                    ''', (pub_title, pub_abstract, pub_journal, pub_volume, 
+                          pub_pages, pub_month, pub_year, pub_pubmed, gs_id,)
+                )
+
                 cursor.connection.commit()
-            pmid = pub_id
-        # if there is no pmid associated, we need to add it and return the pub_id
+
+        ## No pub_id exists, we need to insert a new publication entry
         else:
             with PooledCursor() as cursor:
-                cursor.execute(
-                        '''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                        (
-                        pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
+                cursor.execute('''
+                    INSERT INTO publication (
+                        pub_authors, pub_title, pub_abstract, pub_journal, 
+                        pub_volume, pub_pages, pub_month, pub_year
+                    ) 
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s
+                    ) 
+                    RETURNING pub_id;
+                    ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
+                          pub_volume, pub_pages, pub_month, pub_year)
+                )
+
                 cursor.connection.commit()
-            with PooledCursor() as cursor:
-                cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
-                pmid = cursor.fetchone()[0]
+
+                pub_id = cursor.fetchone()[0]
+
     # update geneset with changes
     with PooledCursor() as cursor:
-        sql = cursor.mogrify('''UPDATE geneset SET pub_id=%s, gs_name=(%s), gs_abbreviation=(%s), gs_description=(%s)
-								WHERE gs_id=%s''', (pmid, gs_name, gs_abbreviation, gs_description, gs_id,))
-        # print sql
+        sql = cursor.mogrify('''
+            UPDATE geneset 
+            SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
+                gs_description = (%s)
+			WHERE gs_id = %s;
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_id,)
+        )
+
         cursor.execute(sql)
         cursor.connection.commit()
-    # update geneset ontologies
-    # clear_geneset_ontology(gs_id)
 
-    # gso_ref_type = ""
-    # for ont in ont_ids:
-    #	 add_ont_to_geneset(gs_id, ont, gso_ref_type)
-
-    return 'True'
+    return {'success': True}
 
 
 def byteify(input):
