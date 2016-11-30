@@ -51,8 +51,8 @@ def run_tool():
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
-    if len(selected_project_ids) < 2:
-        flask.flash("Warning: You need at least 2 projects!")
+    if len(selected_project_ids) != 2:
+        flask.flash("Warning: You need only 2 projects!")
         return flask.redirect('analyze')
 
     BGFILE_DIR = "/svr/geneweaver/tools/TOOLBOX/mset/backgroundFiles/" + form["MSET_Background"]
@@ -85,7 +85,9 @@ def run_tool():
         return flask.redirect('analyze')
 
     topgenes = form['MSET_TopGenes']
+    intgenes = form['MSET_InterestGenes']
     tgId = -1
+    intId = -1
 
     for pj_id in selected_project_ids:
         names = gwdb.get_pjname_by_pj_id(pj_id)
@@ -95,11 +97,16 @@ def run_tool():
             # sys.stderr.write(str(name[0]))
             # if background == str(row[names):
               #  sys.stderr.write("We found the background!\n")
-        if topgenes == pjName:
-            tgId = pj_id
+            if topgenes == pjName:
+                tgId = pj_id
+            if intgenes == pjName:
+                intId = pj_id
 
     if tgId < 0:
         flask.flash("Warning: The top genes name you entered does not match any project selected!")
+        return flask.redirect('analyze')
+    if intId < 0:
+        flask.flash("Warning: The interest genes name you entered does not match any project selected!")
         return flask.redirect('analyze')
 
     # if len(selected_project_ids) < 3:
@@ -121,6 +128,7 @@ def run_tool():
         symbol_list = []
 
         for sym in raw:
+            #sys.stderr.write(str(sym) + '\n')
             symbol_list.append(sym[0])
 
         # if pj_id == bgId:
