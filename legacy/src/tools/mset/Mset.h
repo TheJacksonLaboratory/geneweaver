@@ -76,7 +76,7 @@ public:
             exit(1);
         }
         T input;
-        while(readLists>>input){
+        while(getline(readLists,input)){
             setOfInterest.insert(input);
         }
 
@@ -88,7 +88,7 @@ public:
                 cerr<<"unable to open "<<backgroundFiles[i]<<endl;
                 exit(1);
             }
-            while(readLists>>input){
+            while(getline(readLists,input)){
                 background.push_back(input);
             }
         }
@@ -100,7 +100,7 @@ public:
             cerr<<"unable to open "<<topFile<<endl;
             exit(1);
         }
-        while(readLists>>input){
+        while(getline(readLists,input)){
             top.insert(input);
         }
         readLists.clear();
