@@ -27,6 +27,7 @@ import geneweaverdb
 import notifications
 import uploadfiles
 import curation_assignments
+import annotator
 
 
 class PubAssignment(object):
@@ -105,6 +106,7 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
     :param pub_id: publication submitted for review
     :param group_id: publication to be curated
     :param assignee_id: id of user assigned task
+    :param assigner_id: id of group admin assigning this publication
     :param note: message that will be sent to the assignee
     :return:
     """
@@ -126,8 +128,9 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
 
 def assignment_complete(pub_id, group_id, note):
     """
-    :param geneset_id: geneset being curated
-    :param note: message that will be sent to the assigned curator
+    :param pub_id: publication
+    :param group_id: group id of assignment
+    :param note: notes to be stored in the database and sent to the assigner
     :return:
     """
 
@@ -158,7 +161,8 @@ def assignment_complete(pub_id, group_id, note):
 def review_accepted(pub_id, group_id, note):
     """
     :param pub_id: publication being reviewed
-    :param note: message that will be sent to the assigned reviewer
+    :param group_id: group doing the assignment
+    :param note: notes to be stored in the database and sent to the curator
     :return:
     """
 
@@ -189,7 +193,8 @@ def review_accepted(pub_id, group_id, note):
 def review_rejected(pub_id, group_id, note):
     """
     :param pub_id: geneset being curated
-    :param note: message that will be sent to the assigned reviewer
+    :param group_id: group doing the assignment
+    :param note: notes to be stored in the database and sent to the curator
     :return:
     """
 
@@ -296,17 +301,29 @@ def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
             cursor.connection.commit()
 
         if geneset_id:
-            curation_assignments.submit_geneset_for_curation(geneset_id, assignment.group, "", False)
-            curation_assignments.assign_geneset_curator(geneset_id, assignment.assignee, assignment.assigner, "")
+            curation_assignments.submit_geneset_for_curation(geneset_id,
+                                                             assignment.group,
+                                                             "", False)
+            curation_assignments.assign_geneset_curator(geneset_id,
+                                                        assignment.assignee,
+                                                        assignment.assigner, "")
             insert_gs_to_pub_assignment(geneset_id, pub_assign_id)
+
+            # run the annotator for the geneset (on geneset description and the
+            # publication
+            gs = geneweaverdb.get_geneset(geneset_id, assignment.assignee)
+            publication = geneweaverdb.get_publication(assignment.pub_id)
+            annotator.insert_annotations(cursor, geneset_id, gs.description,
+                                         publication.abstract)
 
     return geneset_id
 
 
 def insert_gs_to_pub_assignment(gs_id, pub_assign_id):
     with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id, pub_assign_id)
-                          VALUES (%s, %s)''', (gs_id, pub_assign_id))
+        cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id,
+                          pub_assign_id) VALUES (%s, %s)''',
+                       (gs_id, pub_assign_id))
         cursor.connection.commit()
 
 
