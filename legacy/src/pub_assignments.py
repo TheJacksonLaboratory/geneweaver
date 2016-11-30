@@ -336,34 +336,3 @@ def get_genesets_for_assignment(pub_assign_id):
             gs_ids.append(row['gs_id'])
 
     return gs_ids
-
-
-#
-# Start of TEST program
-#
-def main():
-    print("pub_assignments testing...")
-    pub_id=1500
-    group_id=136
-    assignee=8446948
-    assigner=8446948
-
-    print("Queuing publication for review...")
-    queue_publication(pub_id, group_id, "This publication should be reviewed for useful content for our group...")
-
-    print("Assigning publication task...")
-    assign_publication(pub_id, group_id, assignee, assigner, "Please review this publication for genesets.")
-
-    print("Assignment Complete...")
-    assignment_complete(pub_id, group_id, "Hey - I'm done with the assignment")
-
-    print("Assignment rejected")
-    review_rejected(pub_id, group_id, "Not quiet good enough.  Try again, please.")
-
-    print("Assignment Reworked...")
-    assignment_complete(pub_id, group_id, "Hey - Is this better?")
-
-    print("Assignment Passed team review...")
-    review_accepted(pub_id, group_id, "Nice work...")
-
-if __name__ == "__main__": main()
