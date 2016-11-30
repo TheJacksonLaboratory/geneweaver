@@ -95,7 +95,7 @@
 }
 
 .bar > text{
-    stroke: ghostwhite;
+    stroke: grey;
 }
 
 .bar:hover > text{
@@ -198,16 +198,78 @@ fix the code to be maintainable and consistent with the rest of the website code
 </tbody></table>
 
 <div id="graphDiv">
-    <table><tr><td>
+    <table><tr
+                    onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group');
+                    $('#barGraphButton')[0].setAttribute('class','btn-group');"
+            ><td>
                 <svg id="sizeCircle" width="300" height="500" ></svg>
             </td>
-            <!--super kludgy-->
-            <td style="color: white">
-                space
-            </td>
-            <td>
-<svg id="barGraph" width="660" height="500"></svg>
-            </td></tr></table>
+            <td style="padding-left:50px">
+                <svg id="barGraph" width="660" height="500"></svg>
+            </td></tr>
+    
+            <tr>
+                <td style="text-align: center">
+                    <div class="btn-group"
+                        onmouseover="this.setAttribute('class','btn-group open');"
+                        id="sizeGraphButton"
+                    >
+                        <button type="button" class="btn btn-primary 
+                            dropdown-toggle" data-toggle="dropdown" 
+                            aria-haspopup="true" aria-expanded="false"
+                        >
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <script>
+                            var sizeGraph=$('#sizeCircle')[0];
+                        </script>
+                        <ul class="dropdown-menu"
+                            onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group');"
+                        >
+                            <li onclick="download(sizeGraph,null,true);">
+                                <a class="download-image" id="dl-png">PNG</a></li>
+                            <li onclick="download(sizeGraph,null,false);">
+                                <a class="download-image" id="dl-svg" >SVG</a>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+                <td style="text-align: center">
+                    <div style="padding-left:60px">
+                    <div class="btn-group" 
+                        onmouseover="this.setAttribute('class','btn-group open');"
+                        id="barGraphButton"
+                    >
+                        <button type="button" class="btn btn-primary
+                            dropdown-toggle" data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false"
+                        >
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <script>
+                            var barGraph=$('#barGraph')[0];
+                        </script>
+                        <ul class="dropdown-menu"
+                            onmouseout="$('#barGraphButton')[0].setAttribute('class','btn-group');"
+                        >
+                            <li onclick="download(barGraph,null,true);">
+                                <a class="download-image" id="dl-png2">PNG</a></li>
+                            <li onclick="download(barGraph,null,false);">
+                                <a class="download-image" id="dl-svg2" >SVG</a>
+                            </li>
+                        </ul>
+                    </div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="padding-top: -20px">
+                    <hr/>
+                </td>
+            </tr>
+    </table>
 </div>
 <script src="/static/d3/d3.js" charset="utf-8"></script>
 <script>
@@ -242,8 +304,8 @@ fix the code to be maintainable and consistent with the rest of the website code
         .style("stroke-width",".01px");
 
     legend.append("rect")
-	    .attr("x", "-.1em")
-	    .attr("y", ".121em")
+	    .attr("x", "-1px")
+	    .attr("y", "1.21px")
 	    .attr("width", "1")
 	    .attr("height", ".14")
         .style("fill","blue")
@@ -257,7 +319,7 @@ fix the code to be maintainable and consistent with the rest of the website code
 
 
     legend.append("rect")
-	    .attr("y", ".121em")
+	    .attr("y", "1.21px")
 	    .attr("width", "1")
 	    .attr("height", ".14")
         .style("fill","steelblue")
@@ -433,22 +495,6 @@ database found in microarray results</p>
                                 value='run'
                                 onclick='this.form.action="{{ url_for('MSET.run_tool') }}";'>
                             Re-Run Tool
-                        </button>
-                    </div>
-                    <div class="col-md-8">
-                        <button class="btn btn-primary"
-                                type='submit'
-                                value='run'
-                                onclick="download($('#barGraph')[0],null,false);">
-                            Download As SVG
-                        </button>
-                    </div>
-                    <div class="col-md-8">
-                        <button class="btn btn-primary"
-                                type='submit'
-                                value='run'
-                                onclick="download($('#barGraph')[0],null,true);">
-                            Download As PNG
                         </button>
                     </div>
                 </div>
