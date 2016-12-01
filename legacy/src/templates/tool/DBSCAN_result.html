@@ -1,6 +1,7 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
+<script type="text/javascript" src="/static/js/downloadSvg.js" charset="utf-8"></script>
 
 <style>
 #legend {
@@ -10,6 +11,15 @@
     background-color: rgba(0, 100, 0, 0.4);
     color: #121212;
 }
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+    #clickableHomology {
+        cursor: pointer;
+    }
 
 .link {
   fill: none;
@@ -18,32 +28,39 @@
 .node{
   cursor: pointer;
 }
+    #clickablePriority {
+        cursor: pointer;
+    }
+    .node{
+      cursor: pointer;
+    }
 
-.node:hover {
-  stroke: #000;
-  stroke-width: 1.5px;
-}
+    .node:hover {
+      stroke: #000;
+      stroke-width: 1.5px;
+    }
 
 .label {
   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-anchor: middle;
 }
 
-.label,
-.node--root,
-.node--leaf {
-  cursor: pointer;
-}
+    .label,
+    .node--root,
+    .node--leaf {
+      cursor: pointer;
+    }
 
-td, th {
-  padding-left: 10px;
-}
-#resultTable {
-    padding-top: 20px;
-}
+    td, th {
+      padding-left: 10px;
+    }
+    #resultTable {
+        padding-top: 20px;
+    }
 
 </style>
 <script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.11.0/d3-legend.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.debug.js"></script>
 
 <div class="page-header">
@@ -97,6 +114,7 @@ td, th {
     </div>
 </form>
 
+
 <div style="text-align: center;">
 
     <ul class="nav nav-tabs" role="tablist">
@@ -129,26 +147,414 @@ td, th {
       </div>
     </div>
 </div>
-<div id="resultTable">
-    <table class="table" >
-        <tr>
-            <td>epsilon: {{ async_result.parameters['DBSCAN_epsilon']|safe }}</td>
-            <td>minPts: {{ async_result.parameters['DBSCAN_minPts']|safe }}</td>
-        </tr>
-    </table>
-    {% if async_result.resClusters | length == 0 %}
-        <p>No cluster(s) found!</p>
-        <p>Maybe you need a different epsilon/minPts?</p>
-    {% else %}
-        Result clusters: {{ macros.parse_cluster(async_result.resClusters) }}
-    {% endif %}
+
+{#<!--Header-->#}
+{#<div class="panel panel-default">#}
+{#    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">#}
+{#        <h3 class="panel-title">Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;#}
+{#                                epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;#}
+{#                                minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}#}
+{#        </h3>#}
+{#    </div>#}
+{#    <div class="panel-body" style="padding-top:10px;">#}
+{#        <div class="row">#}
+{#            <div class="col-xs-12 col-md-9">#}
+{#                <div class="row">#}
+{#                </div>#}
+{#            </div>#}
+{#            <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">#}
+{#                {% if g.user is defined %}#}
+{#					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">#}
+{#						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet#}
+{#					</button>#}
+{#                {% endif %}#}
+{#            </div>#}
+{#        </div>#}
+{#    </div>#}
+{#</div>#}
+{##}
+{#<!--Clusters-->#}
+{#{%  for cluster in async_result.resClusters %}#}
+{#    <div class="panel panel-default">#}
+{#        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">#}
+{#            <h3 class="panel-title">Cluster {{ loop.index0 }}</h3>#}
+{#        </div>#}
+{#    </div>#}
+{#{% endfor %}#}
+
+<!-- Download: Doesn't work yet -->
+{#<div id="download">#}
+{#    <table>#}
+{#            <tr onmouseout="$('#downloadButton')[0].setAttribute('class','btn-group');">#}
+{#                <td><svg id="sizeCircles" width="800" height="800" ></svg></td>#}
+{#            </tr>#}
+{#            <tr>#}
+{#                <td style="text-align: center">#}
+{#                    <div class="btn-group" onmouseover="this.setAttribute('class','btn-group open');" id="downloadButton" >#}
+{#                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"#}
+{#                            aria-haspopup="true" aria-expanded="false">#}
+{#                            Download as...#}
+{#                            <span class="caret"></span>#}
+{#                        </button>#}
+{#                        <script>#}
+{#                            var sizeGraph=$('#sizeCircles')[0];#}
+{#                        </script>#}
+{#                        <ul class="dropdown-menu" onmouseout="$('#downloadButton')[0].setAttribute('class','btn-group');"#}
+{#                        >#}
+{#                            <li onclick="download(sizeGraph,null,true);">#}
+{#                                <a class="download-image" id="dl-png">PNG</a></li>#}
+{#                            <li onclick="download(sizeGraph,null,false);">#}
+{#                                <a class="download-image" id="dl-svg" >SVG</a>#}
+{#                            </li>#}
+{#                        </ul>#}
+{#                    </div>#}
+{#                </td>#}
+{#        </tr>#}
+{#    </table>#}
+{#</div>#}
+
+{%  if genes >= 200 %}
+<!-- Short Table -->
+<div class="panel panel-default">
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">
+            Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;
+                                epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;
+                                minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}
+        </h3>
+    </div>
+    <div class="panel-body" style="padding-top:10px;">
+        <div class="row">
+            <div class="col-xs-12 col-md-9">
+                <div class="row">
+                </div>
+            </div>
+            <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
+                {% if g.user is defined %}
+                    <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+                        <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% for cluster in async_result.resClusters %}
+
+        <div class="panel-title" style="padding-top: 10px;"> Cluster {{ loop.index0 }} </div>
+        <table class="table table-hover" style="border-collapse: collapse;">
+            <tbody>
+            <tr>
+                <th>Gene Symbol</th>
+
+                <th>Linkout</th>
+
+                <th></th>
+
+                {% if cluster|length > 1 %}
+                <th>Gene Symbol</th>
+
+                <th>Linkout</th>
+
+                <th></th>
+                {% endif %}
+
+                {%  if cluster|length > 2 %}
+                <th>Gene Symbol</th>
+
+                <th>Linkout</th>
+
+                <th></th>
+                {% endif %}
+
+            </tr>
+            <div class="cluster-group" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                {%  for this_gene in cluster %}
+                    {% if loop.index0 % 3 == 0 %}
+                    <div class = "gene-list-row">
+                    <tr>
+                    {% endif %}
+
+                    <td id="defaultSymbol" class="gene=symbol" style="border-left:1px solid #93aeca;">
+                        <strong>
+                            <a href="/search/?searchbar={{ this_gene }}&pagination_page=1&searchGenes=yes">
+                                {{ this_gene }}
+                            </a>
+                        </strong>
+                    </td>
+
+                    <td>
+                        {% set gene=this_gene %}
+                        {% include 'linkouts.html' %}
+                    </td>
+
+                    <td style="border-right:1px solid #93aeca;">
+                        <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                            <label for="addGeneset{{ this_gene }}" style="margin: -6px; padding-right: 0;">
+                                <input type="checkbox" name="gsoptions[]"
+                                                   id="addGeneset{{ this_gene }}"
+                                                   value="{{ this_gene }}"/>
+                                </label>
+                            </div>
+                        </td>
+
+                    {%  if loop.index0 % 3 == 2 or loop.last %}
+                    </tr></div>
+                    {% endif %}
+                {%  endfor %}
+            </div>
+            </tbody>
+        </table>
+
+    {% endfor %}
+
 </div>
 
-<div class="btn-group">
-    <button type="button" class="btn btn-primary dropdown-toggle" aria-haspopup="true" aria-expanded="false" onclick="download()">
-        Download
-    </button>
+{%  else %}
+
+<!-- Long Table -->
+<div class="panel panel-default">
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;
+                                epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;
+                                minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}
+        </h3>
+    </div>
+    <div class="panel-body" style="padding-top:10px;">
+        <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    <div class="row">
+                    </div>
+                </div>
+                <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
+					{% if g.user is defined %}
+					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+					</button>
+					{% endif %}
+{#                    <button type="button" class="btn btn-block btn-warning" id="exportData">#}
+{#		                <i class="fa fa-download pull-left"></i> Export Results#}
+{#	                </button>#}
+                </div>
+        </div>
+
+    {%  for cluster in async_result.resClusters %}
+
+        <div class="panel-title">Cluster {{ loop.index0 }}</div>
+        <div class="row">
+            <table class="table table-hover">
+                <tbody>
+                <tr>
+                    <th>Gene Symbol</th>
+
+                    <th>Homology
+                        <span id="clickableHomology" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
+                    </th>
+
+                    <th>Priority
+                        <span id="clickablePriority" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
+                    </th>
+
+                    <th>Linkout</th>
+
+                    <th>Emphasis</th>
+
+                    <th></th>
+
+                </tr>
+                <div id="maybe">
+                    <div class="cluster-group" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                    {% for this_gene in cluster  %}
+                        <tr class="gene-list-row">
+                            <!-- Default Symbol -- going to stick with GeneSymbol because it's the symbol used in the clustering -->
+                            <td id="defaultSymbol" class="gene=symbol">
+                                <strong>
+                                    <a href="/search/?searchbar={{ this_gene }}&pagination_page=1&searchGenes=yes">
+                                        {{ this_gene }}
+                                    </a>
+                                </strong>
+                            </td>
+                            <!-- Homology -->
+                            <td>
+{#                                     Make boxes for homology blocks#}
+{#                                     see application.py for the list of species and colors#}
+                                    {% for i in range(1,12) %}
+{#                                         skip elements that are empty#}
+                                        {% if tt[(i-1)] != 'empty' %}
+                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
+                                                  title="{{ tt[(i-1)] }}">
+                                            {% set exists = ['1'] %}
+                                            {% for h in gene_info[this_gene].homology|sort %}
+                                                {% if h == i %}
+                                                    <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
+                                                    {% if exists.append('1') %}{% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if exists|length == 1 %}
+                                                <div class="geneBox"></div>
+                                            {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                            </td>
+                        <!-- Priority -->
+                            <td>
+                                <div class="progress">
+                                        <div class="progress-bar progress-bar-success progress-bar-striped"
+                                             data-aria-valuetransitiongoal="{{ '%.0f' % gene_info[this_gene].gene_rank|float}}"
+                                             aria-valuenow="{{ '%.0f' % gene_info[this_gene].gene_rank|float }}"
+                                             style="width: {{ '%.0f' % gene_info[this_gene].gene_rank|float }}%;">
+                                            {{ '%.0f' % gene_info[this_gene].gene_rank|float }}
+                                        </div>
+                                    </div>
+                            </td>
+                        <!-- Linkout -->
+                            <td>
+                                {% set gene=this_gene %}
+                                {% include 'linkouts.html' %}
+                            </td>
+                        <!-- Emphasis -->
+                            <td nowrap>
+                                    <input type="checkbox" name="g_id[]" id="{{ gene_info[this_gene].ode_id }}"
+                                           onchange="emphasize('{{ gene_info[this_gene].ode_id }}');"
+                                           class="switch" data-size="mini"
+                                           style="padding: 0px; vertical-align: middle;">
+
+                                </td>
+                        <!-- Select Box -->
+                            <td>
+                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                    <label for="addGeneset{{ this_gene }}"
+                                               style="margin: -6px; padding-right: 0;">
+                                        <input type="checkbox" name="gsoptions[]"
+                                                   id="addGeneset{{ this_gene }}"
+                                                   value="{{ this_gene }}"/>
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+                    </div>
+                </div>
+                </tbody>
+                    </table>
+    </div>
+
+    {% endfor %}
+
 </div>
+
+{% endif %}
+
+{% for gene in emphgeneids %}
+        <script>
+            document.getElementById("{{gene}}").checked = true;
+        </script>
+{% endfor %}
+
+<div id="target"></div>
+
+
+{#Script for adding genes to geneset?#}
+<script type="text/javascript">
+    $("[name='g_id[]']").bootstrapSwitch();
+    $('#clickableHomology').popover({
+                title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
+                'within GeneWeaver. Mouseover the boxes to reveal species names.'
+        });
+
+        $('#clickablePriority').popover({
+                title: 'Percentile Priority Rank', content: 'All genes within GeneWeaver are ranked according to global ' +
+                'graph centrality. A full description can be found <a href="http://www.geneweaver.org/wiki">here</a>.',
+                html: 'true'
+        });
+    $('#exportData').on('click', function (e) {
+
+    });
+
+    {#  TO DO -- edit these so that they call with ode_gene_id instead of ode_ref_id #}
+    function emphasize(id) {
+            if (document.getElementById(id).checked) {
+                $.get("/emphasize/" + id + ".html", function (data, status) {
+                });
+            }
+            else {
+                $.get("/deemphasize/" + id + ".html", function (data, status) {
+                });
+            }
+        }
+
+{#    $('#exportData').on('click', function (e) {#}
+{#				var exports = '';#}
+{#				var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>'#}
+{##}
+{#                $('.table').each(function(){#}
+{#                    var cluster = "Cluster " + {{ loop.index1 - async_result. }} + ": " + '%0A';#}
+{#                    exports += cluster;#}
+{#                    $('.gene-list-row').each(function(){#}
+{#					var symbol = $(this).children('.gene-symbol').text();#}
+{#					var value = "1";#}
+{##}
+{#					symbol = $.trim(symbol);#}
+{#					value = $.trim(value);#}
+{##}
+{#					// Tabs and newlines#}
+{#					exports += symbol + '%09' + value + '%0A';#}
+{#				    });#}
+{#                });#}
+{##}
+{##}
+{#				exportURL += exports;#}
+{##}
+{#				window.open(exportURL);#}
+{#            });#}
+
+    $('#addNewGeneset').on('click', function () {
+	//function blah() {
+
+		var checkedArray = [];
+		$("input:checkbox[name='gsoptions[]']:checked").each(function(){
+			//console.log($(this));
+			checkedArray.push($(this).val());
+		});
+
+		if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
+
+			{# Assign the needed async_results variables #}
+			var numGS = 0;
+			// Genesets with newlines cause js to shit the bed and get stuck
+			// in an infinite loading loop. Any variable replaced by jinja
+			// should be safe'd and trimmed.
+			var getStr = 'Enter a geneset name here';
+			getStr += '?' + getStr;
+
+			// add in all the checked boxes gene names
+			checkedArray.forEach(function (entry) {
+
+				getStr += "?";
+				getStr += entry;
+				getStr += "?";
+				getStr += '1';
+
+			});
+
+			// Load the new page with the extra url bit
+			setTimeout(function(){
+                window.location = "/uploadgeneset/" + getStr;
+			}, 1000);
+		}
+		else{
+			window.alert("No genes selected.")
+		}
+	});
+</script>
+
+{#<div class="btn-group">#}
+{#    <button type="button" class="btn btn-primary dropdown-toggle" aria-haspopup="true" aria-expanded="false" onclick="download()">#}
+{#        Download#}
+{#    </button>#}
+{#</div>#}
 
 <script src="/static/tools/DBSCAN.js" charset="utf-8"></script>
 <script charset="utf-8">

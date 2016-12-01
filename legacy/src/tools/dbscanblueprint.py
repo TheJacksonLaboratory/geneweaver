@@ -9,6 +9,13 @@ import toolcommon as tc
 TOOL_CLASSNAME = 'DBSCAN'
 dbscan_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 
+HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6']
+SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
+                 'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
+                 'Canis familiaris']
+placeholder_homology = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11]
+
 
 @dbscan_blueprint.route('/run-dbscan.html', methods=['POST'])
 def run_tool():
@@ -227,6 +234,15 @@ def view_result(task_id):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
+        emphgenes = {}
+        emphgeneids = []
+        user_info = gwdb.get_user(user_id)
+        emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+        # for row in emphgenes:
+        #     emphgeneids.append(str(row['ode_gene_id']))
+
+
+
     else:
         flask.flash('Please log in to view your results')
 
@@ -239,10 +255,51 @@ def view_result(task_id):
         data = async_result.result
         json.dumps(data, indent=4)
         # results are ready. render the page for the user
+
+        gene_info = {}
+        gs_ids = []
+        test = json.loads(async_result.result)
+
+        genes = len(test['decode'].keys())
+
+        if genes < 200:
+            for row in emphgenes:
+                emphgeneids.append(str(row['ode_gene_id']))
+
+            parameters = test['parameters']
+            gs_dict = parameters["gs_dict"]
+            for gs_id in gs_dict["gene_symbols"]:
+                for gene in gs_dict["gene_symbols"][gs_id]:
+                    gene_info[gene] = {}
+            for gs_id in gs_dict["gene_symbols"]:
+                geneset = gwdb.get_geneset(gs_id, user_id)
+                for gene_value in geneset.geneset_values:
+                    if gene_value.source_list[0] not in gene_info.keys():
+                        gene_info[gene_value.source_list[0]] = {}
+                    gene_info[gene_value.source_list[0]]['gene_rank'] = gene_value.gene_rank
+                    # sys.stderr.write("gene_info["+str(gene_value.source_list[0])+"][gene_rank] = "+str(gene_value.gene_rank)+"\n")
+                    gene_info[gene_value.source_list[0]]['homology'] = gene_value.hom
+                    # sys.stderr.write("gene_info["+str(gene_value.source_list[0])+"][homology] = "+str(gene_value.hom)+"\n")
+                    gene_info[gene_value.source_list[0]]['ode_id'] = gene_value.ode_gene_id
+
+            for gene in gene_info:
+                if 'gene_rank' not in gene_info[gene].keys():
+                    gene_info[gene]['gene_rank'] = 0
+                if 'homology' not in gene_info[gene].keys():
+                    gene_info[gene]['homology'] = []
+        else:
+            for row in emphgenes:
+                emphgeneids.append(str(row['ode_ref_id']))
+
+        # for gene in gene_info:
+        #     sys.stderr.write("["+gene+"][gene_rank] = "+str(gene_info[gene]['gene_rank'])+"\n")
+
         return flask.render_template(
             'tool/DBSCAN_result.html',
-            data=data,
-            async_result=json.loads(async_result.result),
+            data=data, genes=genes,
+            async_result=json.loads(async_result.result), gene_info=gene_info,
+            emphgeneids=emphgeneids, colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
+            placeholder_homology=placeholder_homology,
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending
