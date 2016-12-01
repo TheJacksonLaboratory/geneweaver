@@ -74,10 +74,14 @@
                             <div class="row">
                                 <div class="col-md-2">
                                     <p class="text-right">
-                                        <strong>Abstract:</strong></p>
+                                        <strong>Abstract:</strong>
+                                    </p>
                                 </div>
                                 <div class="col-md-10">
-                                    {{ pub.abstract }}
+                                    <!-- no idea why I need to pad the bottom of
+                                         this,  but the following row (URL) was
+                                         squished up against the abstract -->
+                                    <div style="padding-bottom: 10px">{{ pub.abstract }}</div>
                                 </div>
                             </div>
                             {% if pub.pubmed_id %}
