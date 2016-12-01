@@ -87,9 +87,44 @@
     fill: none;
 }
 
-.frame {
-    height: 1100px;
-}
+.sidenav {
+        height: 100%;
+        width: 0;
+        position: relative;
+        z-index: 1;
+        top: 0;
+        left: 0;
+        background-color: black;
+        overflow-x: hidden;
+        padding-top: 1000px;
+        transition: 0.3s;
+        opacity: 0.3;
+        float: left;
+        margin: 10px;
+    }
+
+    .sidenav a:hover, .offcanvas a:focus{
+        color: #f1f1f1;
+    }
+
+    .sidenav .closebtn {
+        position: absolute;
+        top: 0;
+        right: 25px;
+        font-size: 36px;
+        margin-left: 50px;
+    }
+
+    #upset-graph {
+        transition: margin-left .5s;
+        padding: 20px;
+        overflow: auto;
+    }
+
+    @media screen and (max-height: 450px){
+        .sidenav {padding-top: 15px;}
+        .sidenav a {font-size: 18px;}
+    }
 
 div.tooltip {
   position: absolute;
@@ -193,9 +228,14 @@ div.tooltip {
 <br>
 
 <!-- Div(UpSet), where all the bar chart D3 is appended to in the JavaScript below -->
-<div class="frame">
-    <div id="upset-graph" class="ui-layout-center"></div>
-    <div id="upset-genes" class="ui-layout-east"></div>
+<div id="container">
+    <div id="upset-genes" class="sidenav">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    </div>
+
+    <span onclick="openNav()"><p style="color:darkgreen;"><strong>CLICK HERE TO VIEW GENES</strong></p></span>
+    <div id="upset-graph">
+    </div>
 </div>
 
 <!-- Specifies the slider's range, min, max and step values -->
@@ -205,13 +245,17 @@ div.tooltip {
 <br>
 
 <script src="/static/tools/UpSet.js" charset="utf-8"></script>
-<script>
-
-    $(document).ready(function () {
-        $('div.frame').layout({ applyDefaultStyles: true });
-    });
-</script>
 <script type="text/javascript">
+
+    function openNav() {
+        document.getElementById("upset-genes").style.width = "500px";
+        document.getElementById("upset-graph").style.marginLeft = "500px";
+    }
+
+    function closeNav() {
+        document.getElementById("upset-genes").style.width = "0";
+        document.getElementById("upset-graph").style.marginLeft = "0";
+    }
 
 $(document).ready(function() {
 

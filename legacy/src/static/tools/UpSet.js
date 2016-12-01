@@ -72,7 +72,8 @@ var upset = function () {
      */
     var makeBars = function () {
         var bx = 0,
-            by = 0;
+            by = 0,
+            jaccard = 0;
 
         //Makes bars for the intersection size bar diagram
         //Makes bars for the entropy bar diagram
@@ -81,6 +82,7 @@ var upset = function () {
             var set = data.intersection_diagrams[i];
 
             var intersectBar = {
+                type: 'row'+i,
                 fill: barFillColours[0],
                 height: set['intersection'],
                 desc: set['desc1'],
@@ -91,6 +93,7 @@ var upset = function () {
             };
 
             var entropybar = {
+                type: 'row'+i,
                 fill: barFillColours[0],
                 height: set['set_entropy'],
                 name: set['name1'],
@@ -98,9 +101,34 @@ var upset = function () {
                 y: by
             };
 
+            if(set['len'] === 2)
+                jaccard = set['jaccard_score'];
+
+            var jbar = {
+                type: 'row'+i,
+                fill: barFillColours[0],
+                height: jaccard,
+                name: set['name1'],
+                x: bx,
+                y: by
+            };
+
+            var background = {
+                type: 'row'+i,
+                y: by - 9,
+                x: bx - 9,
+                width: chartWidth,
+                height: 20,
+                fill: "#006400",
+                opacity: 0
+            };
+
+            BackgroundRow.push(background);
             Intersectionbars.push(intersectBar);
             EntropyBars.push(entropybar);
+            JaccardBars.push(jbar);
             by = by + 30;
+            jaccard = 0;
         }
 
         //Make bars for the set size bar diagram
@@ -116,7 +144,8 @@ var upset = function () {
                 x: bx,
                 desc: set['desc1'],
                 name: set['name1'],
-                type: set['set_id']
+                type: set['set_id'],
+                genelist: new Array(set.genes)
             };
 
             var background = {
@@ -144,7 +173,8 @@ var upset = function () {
         var vcx = 0,
             vcy = 0,
             vfill = circleFillColours[0],
-            vquery = false;
+            vquery = false,
+            lastx = 0;
         var first = null,
             last = null,
             lx1 = null,
@@ -152,18 +182,6 @@ var upset = function () {
 
         var genesets = data.genesets;
         for (var y = 0; y < data.intersection_diagrams.length; y++){
-
-            var background = {
-                type: 'row'+y,
-                y: vcy - 9,
-                x: vcx - 9,
-                width: chartWidth,
-                height: 20,
-                fill: "#006400",
-                opacity: 0
-            };
-
-            BackgroundRow.push(background);
 
             for ( var x = 0; x < data.genesets.length; x++){
 
@@ -199,7 +217,6 @@ var upset = function () {
                 vfill = circleFillColours[0];
                 vcx = vcx + 20;
                 vquery = false;
-
             }
 
             var line = {
@@ -218,10 +235,14 @@ var upset = function () {
             lx2 = null;
 
             vcy = vcy + 30;
+            lastx = vcx;
             vcx = 0;
             if(vcy > height){
                 height = height + 100;
             }
+        }
+        if(lastx > 100){
+            width = width + 150;
         }
     };
 
@@ -336,12 +357,16 @@ var upset = function () {
         svg.selectAll("bar")
             .data(Intersectionbars)
             .enter().append("rect")
+            .attr("class", function(d) { return d.type; })
             .attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; })
             .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) + yShift) + "," + ((yShift + textHeight) - 9) + ")")
             .attr("height", 18)
             .attr("width", function(d) { return x(d.height); })
-            .style("fill", function(d) { return d.fill; });
+            .style("fill", function(d) { return d.fill; })
+            .style("fill-opacity", 1)
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
 
 
          //Draw entropy
@@ -369,13 +394,53 @@ var upset = function () {
         svg.selectAll("bar")
             .data(EntropyBars)
             .enter().append("rect")
+            .attr("class", function(d) { return d.type; })
             .attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; })
             .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + "," + ((yShift + textHeight) - 9) + ")")
             .attr("height", 18)
             .attr("width", function(d) { return x(d.height); })
-            .style("fill", function(d) { return d.fill; });
+            .style("fill", function(d) { return d.fill; })
+            .style("fill-opacity", 1)
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
 
+
+        //Draw jaccard
+        var x = d3.scaleLinear().range([0, (chartHeight/3)]).domain([0, d3.max(JaccardBars, function(d) { return d.height})]),
+            y = d3.scaleBand().range([0, chartWidth]).domain(JaccardBars.map(function(d) { return d.name; }));
+
+        //Adding Axis
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + "," + ((yShift + textHeight) - 10) + ")")
+            .call(d3.axisTop(x));
+
+        label = svg.append("rect")
+            .attr("width", (chartHeight / 3))
+            .attr("height", 20)
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + "," + (yShift ) + ")")
+            .style("fill", "#C0C0C0");
+
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + ",80)")
+            .call(d3.axisBottom(x));
+
+        //Adding the jaccard diagrams
+        svg.selectAll("bar")
+            .data(JaccardBars)
+            .enter().append("rect")
+            .attr("class", function(d) { return d.type; })
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; })
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + "," + ((yShift + textHeight) - 9) + ")")
+            .attr("height", 18)
+            .attr("width", function(d) { return x(d.height); })
+            .style("fill", function(d) { return d.fill; })
+            .style("fill-opacity", 1)
+            .on("mouseover", mouseover)
+            .on("mouseout", mouseout);
 
         //Draw set graph
 
@@ -400,7 +465,13 @@ var upset = function () {
             .attr("height", function (d) { return (yShift - diagramPadding) - y(d.height); })
             .style("fill", function (d) { return d.fill; })
             .on("mouseover", mouseover)
-            .on("mouseout", mouseout);
+            .on("mouseout", mouseout)
+            .on("click", function(d){
+                d3.select("#upset-genes").selectAll("p")
+                    .data(d.genelist)
+                    .enter().append("p")
+                    .text(function (g) { return g;});
+            });
 
         //adding the set names to the diagram
         var names = svg.selectAll("bar")
@@ -444,7 +515,9 @@ var upset = function () {
         function mouseover(clase){
             svg.selectAll("." + this.getAttribute("class"))
                 .style("fill", "#006400")
-                .style("fill-opacity", 0.3);
+                .style("fill-opacity", function (d) {
+                    return (this.getAttribute("fill-opacity") + 0.3);
+                });
         }
         function mouseout(clase){
             svg.selectAll("." + this.getAttribute("class"))
