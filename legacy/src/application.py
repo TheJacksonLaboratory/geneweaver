@@ -483,7 +483,7 @@ def assign_publications_to_curator():
 
         status = {}
         for pub_id in pub_ids:
-            assignment = pub_assignments.get_publication_assignment_by_pubmed(pub_id, group_id)
+            assignment = pub_assignments.get_publication_assignment_by_pub_id(pub_id, group_id)
             if assignment:
                 if assignment.group in [g['grp_id'] for g in owned_groups]:
                     pub_assignments.assign_publication(assignment.id, curator, user_id, note)
@@ -656,7 +656,7 @@ def assign_publication_to_group():
 
             else:
                 # check to see if publication is already assigned to the group
-                publication_assignment = pub_assignments.get_publication_assignment_by_pubmed(publication.pub_id, group_id)
+                publication_assignment = pub_assignments.get_publication_assignment_by_pub_id(publication.pub_id, group_id)
 
                 if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
                     # is it already an active task for this group?

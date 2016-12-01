@@ -210,7 +210,7 @@ def get_publication_assignment(pub_assignment_id):
         return PubAssignment(assignments[0]) if len(assignments) == 1 else None
 
 
-def get_publication_assignment_by_pubmed(pub_id, group_id):
+def get_publication_assignment_by_pub_id(pub_id, group_id):
     with geneweaverdb.PooledCursor() as cursor:
 
         cursor.execute("SELECT * FROM production.pub_assignments WHERE pub_id=%s AND curation_group=%s", (pub_id, group_id))
