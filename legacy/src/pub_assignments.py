@@ -27,6 +27,7 @@ import geneweaverdb
 import notifications
 import uploadfiles
 import curation_assignments
+import annotator
 
 
 class PubAssignment(object):
@@ -105,7 +106,7 @@ def assign_publication(pub_assignment_id, assignee_id, assigner_id, note):
     """
     :param pub_assignment_id: id of assignment record
     :param assignee_id: id of user assigned task
-    :param assigner_id: id of group admin assigning publication
+    :param assigner_id: id of group admin assigning this publication
     :param note: message that will be sent to the assignee
     :return:
     """
@@ -128,7 +129,7 @@ def assign_publication(pub_assignment_id, assignee_id, assigner_id, note):
 def assignment_complete(pub_assignment_id, note):
     """
     :param pub_assignment_id: id of publication assignment
-    :param note: message that will be sent to the assigned curator
+    :param note: notes to be stored in the database and sent to the assigner
     :return:
     """
 
@@ -151,6 +152,7 @@ def review_accepted(pub_assignment_id, note):
     """
     :param pub_assignment_id: id of assignment being reviewed
     :param note: message that will be sent to the assigned reviewer
+    :param note: notes to be stored in the database and sent to the curator
     :return:
     """
 
@@ -172,7 +174,7 @@ def review_accepted(pub_assignment_id, note):
 def review_rejected(pub_assignment_id, note):
     """
     :param pub_assignment_id: id of assignment being reviewed
-    :param note: message that will be sent to the assigned reviewer
+    :param note: notes to be stored in the database and sent to the curator
     :return:
     """
 
@@ -262,17 +264,29 @@ def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
             cursor.connection.commit()
 
         if geneset_id:
-            curation_assignments.submit_geneset_for_curation(geneset_id, assignment.group, "", False)
-            curation_assignments.assign_geneset_curator(geneset_id, assignment.assignee, assignment.assigner, "")
+            curation_assignments.submit_geneset_for_curation(geneset_id,
+                                                             assignment.group,
+                                                             "", False)
+            curation_assignments.assign_geneset_curator(geneset_id,
+                                                        assignment.assignee,
+                                                        assignment.assigner, "")
             insert_gs_to_pub_assignment(geneset_id, pub_assign_id)
+
+            # run the annotator for the geneset (on geneset description and the
+            # publication
+            gs = geneweaverdb.get_geneset(geneset_id, assignment.assignee)
+            publication = geneweaverdb.get_publication(assignment.pub_id)
+            annotator.insert_annotations(cursor, geneset_id, gs.description,
+                                         publication.abstract)
 
     return geneset_id
 
 
 def insert_gs_to_pub_assignment(gs_id, pub_assign_id):
     with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id, pub_assign_id)
-                          VALUES (%s, %s)''', (gs_id, pub_assign_id))
+        cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id,
+                          pub_assign_id) VALUES (%s, %s)''',
+                       (gs_id, pub_assign_id))
         cursor.connection.commit()
 
 
@@ -285,34 +299,3 @@ def get_genesets_for_assignment(pub_assign_id):
             gs_ids.append(row['gs_id'])
 
     return gs_ids
-
-
-#
-# Start of TEST program
-#
-def main():
-    print("pub_assignments testing...")
-    pub_id=1500
-    group_id=136
-    assignee=8446948
-    assigner=8446948
-
-    print("Queuing publication for review...")
-    queue_publication(pub_id, group_id, "This publication should be reviewed for useful content for our group...")
-
-    print("Assigning publication task...")
-    assign_publication(pub_id, group_id, assignee, assigner, "Please review this publication for genesets.")
-
-    print("Assignment Complete...")
-    assignment_complete(pub_id, group_id, "Hey - I'm done with the assignment")
-
-    print("Assignment rejected")
-    review_rejected(pub_id, group_id, "Not quiet good enough.  Try again, please.")
-
-    print("Assignment Reworked...")
-    assignment_complete(pub_id, group_id, "Hey - Is this better?")
-
-    print("Assignment Passed team review...")
-    review_accepted(pub_id, group_id, "Nice work...")
-
-if __name__ == "__main__": main()
