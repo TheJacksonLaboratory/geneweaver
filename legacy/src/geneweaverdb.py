@@ -1496,7 +1496,7 @@ def get_server_side_grouptasks(rargs):
 
         union_select = """
           SELECT uc1.usr_last_name || ', ' || uc1.usr_first_name AS full_name,
-                 p.pub_id AS task_id,
+                 pa.id AS task_id,
                  p.pub_pubmed AS task,
                  'Publication' AS task_type,
                  to_char(pa.updated, 'YYYY-MM-DD') AS updated,
@@ -2379,6 +2379,7 @@ class Geneset:
         if self.pub_id is not None:
             try:
                 self.publication = Publication(gs_dict)
+                print self.publication.abstract
             except KeyError:
                 self.publication = None
         else:
