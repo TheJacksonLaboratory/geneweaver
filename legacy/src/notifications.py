@@ -112,10 +112,11 @@ def send_email(to, subject, message):
     <html>
         <head></head>
         <body>
+        <p><strong>{subject}:</strong></p>
         {msg}
         </body>
     </html>
-    """.format(msg=message)
+    """.format(msg=message, subject=subject)
 
     part1 = MIMEText(text, 'plain')
     part2 = MIMEText(html, 'html')
