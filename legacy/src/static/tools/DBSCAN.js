@@ -28,6 +28,10 @@ function parse(cluster, geneToSpecies) {
         numClusters = i;
         var obj = {};
         obj.name = "Cluster" + i;
+        if(e.length > 30)
+            obj.showTooltip = 1;
+        else
+            obj.showTooltip = 0;
         obj.children = e.map(function(gene){
             geneToCluster[gene] = i;
             var geneObj = {};
@@ -63,6 +67,13 @@ function parse2(edges, genes) {
 }
 //Main function to draw svg
 function drawClusters(root) {
+  var tooltip = d3.select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden");
+
+
   //get the root
   root = d3.hierarchy(root)
       .sum(function(d) { return d.size; })
@@ -77,6 +88,7 @@ function drawClusters(root) {
     .data(nodes)
     .enter().append("circle")
       .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+      .attr("id", function(d){ return "node-"+d.data.name; })
       .style("fill", function(d) {
           //set color for the largest circle(root)
           if(!d.parent)
@@ -85,6 +97,16 @@ function drawClusters(root) {
           //at gene layer, when the focus is root, it is at zoom out mode, otherwise zoom in mode
           return d.children ? "#64A5C4" : focus === root ? d.data.colorZoomout : d.data.colorZoomin; })
       //set onClick function to the circle, which is the zoom function
+      .on("mouseover", function(d){
+          if (focus !== root) {
+              if(!d.children && d.parent.data.showTooltip === 1)
+                return tooltip.style("visibility", "visible").text(d.data.name);
+          }
+        }
+      )
+      .on("mousemove", function(){return tooltip.style("top",
+    (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+      .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
       .on("click", function(d) {
           if (focus !== d)
               if(!d.children)
@@ -108,7 +130,11 @@ function drawClusters(root) {
               location.href = url;
               d3.event.stopPropagation();  }})
       .text(function(d) {
-          return d.data.name; });
+          if(d.children)
+            return d.data.name;
+          if(d.parent.data.showTooltip === 0)
+           return d.data.name;
+      });
 
   var node = g.selectAll("circle,text");
 
