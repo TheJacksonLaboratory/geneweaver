@@ -503,7 +503,8 @@ database found in microarray results</p>
                         </label>
                         <div id="geneset-count" class="h5"></div>
                             <!-- TODO make the table sortable, show more gene details -->
-                            <table class="table table-hover" id="allGenesets" cellpadding="0" cellspacing="0">
+                            <!--Tried to deal with users that had large project files by using a scroll for overflow, but it did not work-->
+                            <table class="table table-hover" style="overflow-y:scroll; height: 20px" id="allGenesets" cellpadding="0" cellspacing="0">
                                 <tbody>
 
                                 {% for proj in g.user.projects %}
