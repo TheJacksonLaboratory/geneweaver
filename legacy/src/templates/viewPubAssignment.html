@@ -173,8 +173,7 @@
 
                 var params = {
                     "notes": $('#notes').val(),
-                    "pub_id": {{ pub.pub_id }},
-                    "group_id": {{ assignment.group }},
+                    "assignment_id": {{ assignment.id }},
                     "curator": $('input[name=curator]:checked').val()
                 };
 
@@ -213,8 +212,7 @@
 
                 var params = {
                     "notes": $('#notes').val(),
-                    "pub_id": {{ pub.pub_id }},
-                    "group_id": {{ assignment.group }},
+                     "assignment_id": {{ assignment.id }}
                 };
 
                 $.post("{{ url_for('save_pub_assignment_note') }}", params, function (data) {
