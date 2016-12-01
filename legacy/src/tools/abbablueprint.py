@@ -24,12 +24,17 @@ def run_tool():
 
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
+
+             
+
+
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
 
+    
     if ('ABBA_InputGenes' not in form or not form['ABBA_InputGenes']) and len(selected_geneset_ids) < 1:
         # TODO add nice error message about missing genesets
         flask.flash("Warning: You need to have input or/and at least a GeneSet selected!")
@@ -37,7 +42,12 @@ def run_tool():
 
 
 
-    params['ABBA_InputGenes'] = form.getlist("ABBA_InputGenes")
+    params['ABBA_InputGenes'] = (form.getlist("ABBA_InputGenes")) # Store genes from input genes form
+    if (len(selected_geneset_ids) > 0) : # Store Genes from selected project genesets
+        for gsid in selected_geneset_ids :
+            gs = gwdb.get_genes_by_geneset_id(gsid)
+            for g in gs :
+                params['ABBA_InputGenes'].append(g[0]['ode_ref_id'])
     if 'ABBA_IgnHom' in form:
         params['ABBA_IgnHom'] = form['ABBA_IgnHom']
     if 'ABBA_ShowInter' in form:
@@ -52,6 +62,7 @@ def run_tool():
         params['ABBA_RestrictOption'] = form['ABBA_RestrictOption']    
     if 'ABBA_RestrictSpecies' in form:
         params['ABBA_RestrictSpecies'] = form.getlist('ABBA_RestrictSpecies')
+
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
