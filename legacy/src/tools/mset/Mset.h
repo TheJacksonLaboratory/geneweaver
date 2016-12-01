@@ -18,18 +18,17 @@ mutex numLock;
  * it is global here to be able to pass it to the threads which run this on
  * many samples in parallel
  */
-template<typename T>
-void uniquify(vector<T>* sample,long size){
+void uniquify(vector<string>* sample,long size){
         unique(*sample);
         sample->resize(size);
 }
 
-template<typename T>
 class MSET{
 
 private:
-    void calculateIntersections(IntersectSizeFinder<T>* isectFinder, vector<int>* counts,
-            vector<T>* sampledSet, long& numGreater,long checklength,long& maxIsectSize){
+
+    void calculateIntersections(IntersectSizeFinder<string>* isectFinder, vector<int>* counts,
+            vector<string>* sampledSet, long& numGreater,long checklength,long& maxIsectSize){
         //uniquify(sampledSet,topSize);
 
 
@@ -57,12 +56,23 @@ private:
     }
 
 public:
+    void toUpper(string& input){
+        for(unsigned int i=0;i<input.size();i++){
+            int curr=int(input[i]);
+            if(int('a')<=curr&&(int('z')+1)>curr){
+                curr-=(int('a')-int('A'));
+                input[i]=char(curr);
+            }
+        }
+        input.erase(input.size()-1,1);
+    }
     string run(int numSamples,string topFile, vector<string> backgroundFiles,string interestFile){
+        stringstream readUpperCaseBuffer;
         string errorMsg="Warning! empty background selected, samples can't be generated";
         bool success=false;
-        set<T> setOfInterest;
-        set<T> top;
-        vector<T> background;
+        set<string> setOfInterest;
+        set<string> top;
+        vector<string> background;
 
         int countsArraySize=1000;
         vector<int> counts(countsArraySize);//assume intersect length wont exceed 1000
@@ -75,8 +85,9 @@ public:
             cerr<<"unable to open "<<interestFile<<endl;
             exit(1);
         }
-        T input;
+        string input;
         while(getline(readLists,input)){
+            toUpper(input);
             setOfInterest.insert(input);
         }
 
@@ -89,6 +100,7 @@ public:
                 exit(1);
             }
             while(getline(readLists,input)){
+                toUpper(input);
                 background.push_back(input);
             }
         }
@@ -101,6 +113,7 @@ public:
             exit(1);
         }
         while(getline(readLists,input)){
+            toUpper(input);
             top.insert(input);
         }
         readLists.clear();
@@ -108,10 +121,10 @@ public:
 
         //////initialize the utility classes//////
 
-        WithoutReplacementSampler<T> sampler;
+        WithoutReplacementSampler<string> sampler;
         sampler.setSource(&background);
 
-        IntersectSizeFinder<T> isectFinder(setOfInterest.begin(),setOfInterest.end());
+        IntersectSizeFinder<string> isectFinder(setOfInterest.begin(),setOfInterest.end());
 
         //the length of the intersect with the top set and the intrest set to
         //compare to the simulations
@@ -126,9 +139,9 @@ public:
 
 
         ////generate and store all of the samples we will use////
-        vector<vector<T>* > samples;
+        vector<vector<string>* > samples;
         for(int i=0;i<numSamples;i++){
-            samples.push_back(new vector<T>(top.size()*2));//don't know why times two but it is in the publication
+            samples.push_back(new vector<string>(top.size()*2));//don't know why times two but it is in the publication
             sampler.sample(*samples[i]);//sample samples[i].size elements from background into samples[i] without replacement
         }
 
@@ -138,7 +151,7 @@ public:
         const int maxConcurentThreads=1000;
         thread threads[maxConcurentThreads];
 
-        IntersectSizeFinder<T>* isectFinderPtr=&isectFinder;
+        IntersectSizeFinder<string>* isectFinderPtr=&isectFinder;
         vector<int>* countsPtr=&counts;
 
         long numberOfCycles=numSamples/maxConcurentThreads;
@@ -155,7 +168,7 @@ public:
                     isectFinderPtr,countsPtr,samples[id],
                     ref(numGreater),checklength,ref(resizeCountsTo));
                 */
-                threads[j]=thread(uniquify<T>,samples[id],top.size());
+                threads[j]=thread(uniquify,samples[id],top.size());
                 id++;
             }
             for(long j=0;j<maxConcurentThreads;j++){
@@ -165,7 +178,7 @@ public:
 
         //take care of the remaining samples
         for(long j=0;j<remainder;j++){
-            threads[j]=thread(uniquify<T>,samples[id],top.size());
+            threads[j]=thread(uniquify,samples[id],top.size());
             id++;
         }
         for(long j=0;j<remainder;j++){
@@ -215,7 +228,7 @@ public:
         //matches to database found in microarray results
         jsonOutput<<tb<<"\"inTopAndInterestCount\": "<<checklength<<","<<endl;
         jsonOutput<<tb<<"\"inTopAndInterest\": ["<<endl;
-        vector<T> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
+        vector<string> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
         for(unsigned int i=0;i<matches.size();i++){
             jsonOutput<<tb<<tb<<"\""<<matches[i]<<"\"";
             if(i!=(matches.size()-1)){
