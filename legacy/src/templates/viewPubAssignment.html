@@ -74,12 +74,28 @@
                             <div class="row">
                                 <div class="col-md-2">
                                     <p class="text-right">
-                                        <strong>Abstract:</strong></p>
+                                        <strong>Abstract:</strong>
+                                    </p>
                                 </div>
                                 <div class="col-md-10">
-                                    {{ pub.abstract }}
+                                    <!-- no idea why I need to pad the bottom of
+                                         this,  but the following row (URL) was
+                                         squished up against the abstract -->
+                                    <div style="padding-bottom: 10px">{{ pub.abstract }}</div>
                                 </div>
                             </div>
+                            {% if pub.pubmed_id %}
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <p class="text-right">
+                                            <strong>URL:</strong>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-10">
+                                        <a href="http://www.ncbi.nlm.nih.gov/pubmed/{{ pub.pubmed_id }}">PUBMED: {{ pub.pubmed_id }}</a>
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -173,8 +189,7 @@
 
                 var params = {
                     "notes": $('#notes').val(),
-                    "pub_id": {{ pub.pub_id }},
-                    "group_id": {{ assignment.group }},
+                    "assignment_id": {{ assignment.id }},
                     "curator": $('input[name=curator]:checked').val()
                 };
 
@@ -213,8 +228,7 @@
 
                 var params = {
                     "notes": $('#notes').val(),
-                    "pub_id": {{ pub.pub_id }},
-                    "group_id": {{ assignment.group }},
+                     "assignment_id": {{ assignment.id }}
                 };
 
                 $.post("{{ url_for('save_pub_assignment_note') }}", params, function (data) {

@@ -63,7 +63,7 @@ class PubAssignment(object):
             return "Unknown"
 
 
-def get_pub_assignment_url(pub_id, group_id):
+def get_pub_assignment_url(pub_assignment_id):
     """
     returns a URL to view a publication assignment. the publication id and
     group id together uniquely identify the assignment
@@ -71,7 +71,7 @@ def get_pub_assignment_url(pub_id, group_id):
     :param group_id: group id
     :return:
     """
-    return '<a href="{url_prefix}/viewPubAssignment/' + str(group_id) + '/' + str(pub_id) + '">' + str(pub_id) + '</a>'
+    return '<a href="{url_prefix}/viewPubAssignment/' + str(pub_assignment_id) + '">' + str(pub_assignment_id) + '</a>'
 
 
 def queue_publication(pub_id, group_id, note):
@@ -91,20 +91,20 @@ def queue_publication(pub_id, group_id, note):
 
         # Add a record to the table
         cursor.execute(
-            'INSERT INTO production.pub_assignments (pub_id, curation_group, assignment_state, notes) VALUES (%s, %s, %s, %s)',
+            'INSERT INTO production.pub_assignments (pub_id, curation_group, assignment_state, notes) VALUES (%s, %s, %s, %s) RETURNING id',
             (pub_id, group_id, state, note))
         cursor.connection.commit()
+        assignment_id = cursor.fetchone()[0]
 
         # send notification to the group admins
         subject = 'Publication Queued for Review'
-        message = 'production.publication.pub_id: <i>' + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
+        message = 'View Assignment: <i>' + get_pub_assignment_url(assignment_id) + '</i><br>' + note
         notifications.send_group_admin_notification(group_id, subject, message)
 
 
-def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
+def assign_publication(pub_assignment_id, assignee_id, assigner_id, note):
     """
-    :param pub_id: publication submitted for review
-    :param group_id: publication to be curated
+    :param pub_assignment_id: id of assignment record
     :param assignee_id: id of user assigned task
     :param assigner_id: id of group admin assigning this publication
     :param note: message that will be sent to the assignee
@@ -115,21 +115,20 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
-            'UPDATE production.pub_assignments SET assignee=%s, assigner=%s, assignment_state=%s, notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s',
-            (assignee_id, assigner_id, state, note, pub_id, group_id)
+            'UPDATE production.pub_assignments SET assignee=%s, assigner=%s, assignment_state=%s, notes=%s, updated=now() WHERE id=%s',
+            (assignee_id, assigner_id, state, note, pub_assignment_id)
         )
         cursor.connection.commit()
 
     # Send notification to curator
     subject = "Publication Assigned To You For Review"
-    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
+    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
-def assignment_complete(pub_id, group_id, note):
+def assignment_complete(pub_assignment_id, note):
     """
-    :param pub_id: publication
-    :param group_id: group id of assignment
+    :param pub_assignment_id: id of publication assignment
     :param note: notes to be stored in the database and sent to the assigner
     :return:
     """
@@ -138,30 +137,21 @@ def assignment_complete(pub_id, group_id, note):
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
-            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
-            (state, note, pub_id, group_id))
+            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assigner",
+            (state, note, pub_assignment_id))
         cursor.connection.commit()
-
-        cursor.execute(
-            '''
-            SELECT assigner
-            FROM production.pub_assignments
-            WHERE pub_id=%s AND curation_group=%s
-            ''',
-            (pub_id, group_id)
-        )
         assignee_id = cursor.fetchone()[0]
 
     # Send notification to assigner
     subject = 'Publication Assignment Complete'
-    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
+    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
-def review_accepted(pub_id, group_id, note):
+def review_accepted(pub_assignment_id, note):
     """
-    :param pub_id: publication being reviewed
-    :param group_id: group doing the assignment
+    :param pub_assignment_id: id of assignment being reviewed
+    :param note: message that will be sent to the assigned reviewer
     :param note: notes to be stored in the database and sent to the curator
     :return:
     """
@@ -170,30 +160,20 @@ def review_accepted(pub_id, group_id, note):
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
-            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
-            (state, note, pub_id, group_id))
+            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assignee",
+            (state, note, pub_assignment_id))
         cursor.connection.commit()
-
-        cursor.execute(
-            '''
-            SELECT assignee
-            FROM production.pub_assignments
-            WHERE pub_id=%s AND curation_group=%s
-            ''',
-            (pub_id, group_id)
-        )
         assignee_id = cursor.fetchone()[0]
 
     # Send notification to curator
     subject = 'Publication Assignment Accepted'
-    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
+    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
-def review_rejected(pub_id, group_id, note):
+def review_rejected(pub_assignment_id, note):
     """
-    :param pub_id: geneset being curated
-    :param group_id: group doing the assignment
+    :param pub_assignment_id: id of assignment being reviewed
     :param note: notes to be stored in the database and sent to the curator
     :return:
     """
@@ -202,57 +182,40 @@ def review_rejected(pub_id, group_id, note):
 
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
-            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
-            (state, note, pub_id, group_id))
+            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assignee",
+            (state, note, pub_assignment_id))
         cursor.connection.commit()
-
-        cursor.execute(
-            '''
-            SELECT assignee
-            FROM production.pub_assignments
-            WHERE pub_id=%s AND curation_group=%s
-            ''',
-            (pub_id, group_id)
-        )
         assignee_id = cursor.fetchone()[0]
 
     # Send notification to curator
     subject = 'Publication Assignment Rejected'
-    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
+    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
 
-def update_notes(pub_id, group_id, notes):
+def update_notes(pub_assignment_id, notes):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
-            "UPDATE production.pub_assignments SET notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
-            (notes, pub_id, group_id))
+            "UPDATE production.pub_assignments SET notes=%s, updated=now() WHERE id=%s",
+            (notes, pub_assignment_id))
         cursor.connection.commit()
 
 
-def get_publication_assignment(pub_id, group_id):
+def get_publication_assignment(pub_assignment_id):
+    with geneweaverdb.PooledCursor() as cursor:
+
+        cursor.execute("SELECT * FROM production.pub_assignments WHERE id=%s", (pub_assignment_id,))
+
+        assignments = list(geneweaverdb.dictify_cursor(cursor))
+        return PubAssignment(assignments[0]) if len(assignments) == 1 else None
+
+
+def get_publication_assignment_by_pub_id(pub_id, group_id):
     with geneweaverdb.PooledCursor() as cursor:
 
         cursor.execute("SELECT * FROM production.pub_assignments WHERE pub_id=%s AND curation_group=%s", (pub_id, group_id))
 
         assignments = list(geneweaverdb.dictify_cursor(cursor))
-        if len(assignments) == 1:
-            return PubAssignment(assignments[0])
-        else:
-            return None
-
-
-def get_publication_assignment_by_id(pub_assign_id):
-    """
-    get a PubAssignment object from the database given a pub_assignment id
-    :param pub_assign_id: id of Publication Assignment we want to retrive from
-          the database
-    :return: PubAssignment object
-    """
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute("SELECT * FROM production.pub_assignments WHERE id=%s", (pub_assign_id,))
-        assignments = list(geneweaverdb.dictify_cursor(cursor))
-
         return PubAssignment(assignments[0]) if len(assignments) == 1 else None
 
 
@@ -273,7 +236,7 @@ def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
     """
 
     geneset_id = None
-    assignment = get_publication_assignment_by_id(pub_assign_id)
+    assignment = get_publication_assignment(pub_assign_id)
 
     if assignment:
 
