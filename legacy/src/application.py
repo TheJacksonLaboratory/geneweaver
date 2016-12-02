@@ -1392,6 +1392,9 @@ def create_geneset_meta():
 def render_viewgeneset(gs_id):
     return render_viewgeneset_main(gs_id)
 
+@app.route('/viewgenesetdetails/<int:gs_id>/meta', methods=['GET', 'POST'])
+def render_viewgeneset_meta(gs_id):
+    return render_viewgeneset_main(gs_id, genelist_view='FALSE')
 
 @app.route('/curategeneset/<int:gs_id>', methods=['GET', 'POST'])
 def render_curategeneset(gs_id):
@@ -1442,7 +1445,7 @@ def render_curategeneset(gs_id):
     return render_viewgeneset_main(gs_id, False)
 
 
-def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None):
+def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None, genelist_view='True'):
     # get values for sorting result columns
     # i'm saving these to a session variable
     # probably not the correct format
@@ -1460,6 +1463,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
 
     print flask.request.method
 
+    genelist = genelist_view
 
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
@@ -1548,7 +1552,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                                  species=species, curation_view=curation_view,
                                  curation_team=curation_team,
                                  curation_assignment=curation_assignment,
-                                 curator_info=curator_info)
+                                 curator_info=curator_info, genelist_view=genelist_view)
 
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])

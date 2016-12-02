@@ -3,6 +3,7 @@
 {% import 'macros.html' as macros %}
 {% import 'htmlfragments/projectsList.html' as projectList %}
 
+
 <style>
 
 
@@ -162,22 +163,15 @@
       <div id="update_form_wrapper" style="display: none;">
         
           <div class="panel-body">
-          {# Tool params need to be added to the DB for the ABBA tool.
-                  <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_InputGenes']) }}</div>
-                  <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_IgnHom']) }}</div>
-                  <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_ShowInter']) }}</div>
-                  <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenes']) }}</div>
-                  <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenesets']) }}</div>
-                  <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_Tierset']) }}</div>
-                  <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_RestrictSpecies']) }}</div>
-                  <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
-          #}
             <div class="form-group">
                       <label>
                           Input Genes:
                       </label>
                       <br>
                       <!-- Input Genes Form -->
+                      {% for gene in async_result.GenesOfInterest %}
+                        <input type="text" class="fieldname" name="ABBA_InputGenes" value="{{gene[1]}}" hidden/>
+                      {% endfor %}
                       <fieldset id="inputGeneField"></fieldset> 
                       <button name="addGeneBtn" class="btn btn-secondary" id="addGeneBtn" type="button">Add Gene</button>
 
@@ -381,29 +375,7 @@
       </div>
 
       <!-- Add Geneset to Project Modal -->
-      <div id="addGenesetProjectModal" class="modal">
-        <!--Modal Content -->
-        <div class="modal-content">
-          <h3>Add Geneset to Project - {{ gs_name }}</h3>
-          <div class="row">
-            {% if g.user.projects %}
-            <div class="col-md-8">
-              <form class="select-project">
-                {% for proj in g.user.projects %}
-                  <input type="checkbox" name="project" value="{{ proj.project_id }}"> {{ proj.name }} <br>
-                {% endfor %}
-              <form>
-            </div>
-            {% else %}
-            <div class="col-md-8">You do not have any existing projects!</div>
-            {% endif %}
-          </div>
-          <div class="row modal-footer">
-            <button type="button" class="btn btn-primary" id="gsSubmitBtn">Add Project to Geneset</button>
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          </div>
-        </div>
-      </div>
+      {% include 'modal/addGenesetsToProjects.html' %}
 
       <div role="tabpanel" class="tab-pane" id="ResultGenes">
         <div class="col-md-4 table-col">
@@ -449,7 +421,17 @@
 <script type="text/javascript">
 $(document).ready(function() {
 
-
+  var table = $('#mygenesetsViewer').dataTable({
+    //"columns": columns,
+    "aoColumnDefs": [
+        {
+            "aTargets": [1],
+            "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append(makeSpeciesTag(sData));
+            }
+        }
+  ]});
 
   $('html').on('mouseup', function(e) {
       if(!$(e.target).closest('.popover').length) {
@@ -561,9 +543,12 @@ $(document).ready(function() {
     var parentTab = activeRow.parent().closest('.tab-pane');
     var infoPane = parentTab.children('div').last();
     var headerText = activeRow.children('td').first().text();
+    var user_id = '{{ g.user.usr_id }}';
     var id = activeRow.data('id')
     var type = activeRow.data('type')
     var url;
+
+    infoPane.empty(); //Clear the info pane HTML
 
     infoPane.children('h2').closest('.extra-info-header').text(id);
 
@@ -584,15 +569,79 @@ $(document).ready(function() {
       formatExtraInfo(infoPane, "gene", request.responseText, activeRow);
 
     } else if (type == "geneset") {
-      url = '/api/get/geneset/byid/' + id + '/';
-      request.open("GET", url, false);
-      request.send();
+      var url = '/viewgenesetdetails/' + id + '/meta';
+      console.log(url);
+      $.ajax({
+        url: url,
+        type: 'GET',
+        success: function(data) {
+          var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
+          html += $(data).find('#curIDBoxes').html();
+          html += "</a>"
+          html += $(data).find('#geneset-meta').html();
 
-      //infoPane.children('h2').closest('.extra-info-header').text(request.responseText); //Test Print
+          html += '<br><button type="button" class="btn btn-block btn-warning" id="addToProject" style="width: 30%">';
+          html += '<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project';
+          html += '</button>';
 
-      formatExtraInfo(infoPane, "geneset", request.responseText, activeRow);
+          
+
+          infoPane.append(html);
+                /* Add Geneset to Project Modal */
+          $('#addToProject').click(function (e) {
+            console.log("CLICK!");
+            var geneset = 'GS' + id;
+            $('#addToProjectModal').find('.modal-title').html('Add GeneSet to Project(s)');
+            $("#myModalValue").val(geneset);
+            $("#modal-label").html(geneset);
+            $('#addToProjectModal').modal('show');
+          });
+
+
+           // The 'add to selected projects' button on the modal
+          $('#addGenesetsToProjects').on('click', function (e) {
+              var checked = [];
+
+              $("input[name='options[]']:checked").each(function () {
+                  checked.push(parseInt($(this).val()));
+              });
+
+              var option = JSON.stringify(checked);
+              var g = $('#myModalValue').val();
+              if ($('#newProjName').val().length > 0) {
+                  var npn = $('#newProjName').val();
+              }
+
+              if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
+                  $("#result").html('<div class="alert alert-danger fade in"> ' +
+                          '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                          '</button>No Projects Were Selected</div>');
+              } else {
+                  $.ajax({
+                      type: "GET",
+                      url: "../addGenesetsToProjects",
+                      data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
+                      success: function (data) {
+                          $("#result").html('<div class="alert alert-success fade in"> ' +
+                                  '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                  '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
+                      }
+                  });
+              }
+
+          });
+
+          // The button for this is found on the addGenesetsToProjects modal
+          $('#addNewProject').on('click', function () {
+            $('#reveal-if-active').toggle();
+          });
+          
+        },
+        error: function(data) {
+          alert("FAIL");
+        }
+      });
     }
-
   }
 
   function formatExtraInfo(infoPane, infoType, responseText, activeRow){
@@ -623,87 +672,7 @@ $(document).ready(function() {
     infoPane.append("<p>End: " + parser.gi_end_bp + "</p>");
     infoPane.append("<p>Strand: " + parser.gi_strand + "</p>");
   }
-
-  function formatGenesetInfo(infoPane, responseText, activeRow){
-    infoPane.empty();
-    var parser = JSON.parse(responseText)[0][0];
-
-    infoPane.append("<h2>" + parser.gs_abbreviation + "</h2>");
-    infoPane.append("<p>Curator Comments: " + parser._comments_curator + "</p>");
-    infoPane.append("<p>Search Text: " + parser._searchtext + "</p>");
-    infoPane.append("<p>Admin Flag: " + parser.admin_flag + "</p>");
-    infoPane.append("<p>Curration ID: " + parser.cur_id + "</p>");
-    infoPane.append("<p>File ID: " + parser.file_id + "</p>");
-    infoPane.append("<p>Author Comments: " + parser._comments_author + "</p>");
-    infoPane.append("<p>Attribution: " + parser.gs_attribution + "</p>");
-    infoPane.append("<p>Attribution Old: " + parser.gs_attribution_old + "</p>");
-    infoPane.append("<p>Size: " + parser.gs_count + "</p>");
-    infoPane.append("<p>Date Created: " + parser.gs_created + "</p>");
-
-    infoPane.append("<p>Description: " + parser.gs_description + "</p>");
-    infoPane.append("<p>Gene Id Type: " + parser.gs_gene_id_type + "</p>");
-    infoPane.append("<p>Groups: " + parser.gs_groups + "</p>");
-    infoPane.append("<p>Geneset ID: " + parser.gs_id + "</p>");
-    infoPane.append("<p>Is Edgelist: " + parser.gs_is_edgelist + "</p>");
-    infoPane.append("<p>Full Name: " + parser.gs_name + "</p>");
-    infoPane.append("<p>Status: " + parser.gs_status + "</p>");
-    infoPane.append("<p>Threshold: " + parser.gs_threshold + "</p>");
-    infoPane.append("<p>Threshold Type: " + parser.gs_threshold_type + "</p>");
-    infoPane.append("<p>Last Updated: " + parser.gs_updated + "</p>");
-
-    infoPane.append("<p>URI: " + parser.gs_uri + "</p>");
-    infoPane.append("<p>gsv_qual: " + parser.gsv_qual + "</p>");
-    infoPane.append("<p>Publisher ID: " + parser.pub_id + "</p>");
-    infoPane.append("<p>Res ID: " + parser.res_id + "</p>");
-    infoPane.append("<p>Species ID: " + parser.sp_id + "</p>");
-    infoPane.append("<p>User ID: " + parser.usr_id + "</p>");
-    infoPane.append('<button type="button" class="btn btn-primary" id="addGenesetProjectButton" data-toggle="modal" data-target="#addGenesetProjectModal"> Add Geneset to Project </button>');
-    infoPane.append("<a href=");
-  }  
-
-  /* Add Geneset to Project Modal*/
-  $('#addGenesetProjectButton').button().on("click", function(){
-    $('#addGenesetProjectModal').dialog("addGenesetProjectModal");
-  });
  
-  /* Add Geneset to Project */
-  $('#gsSubmitBtn').button().on("click", function(){
-
-    var checked = [];
-    $("input[name='project']:checked").each(function () {
-      checked.push(parseInt($(this).val()));
-      console.log($(this).val());
-    });
-      
-    console.log("checked: " + checked);
-    
-
-    if ($.isEmptyObject(checked)) {
-      console.log("No GS Selected");
-      alert("You must select atleast one geneset.");
-    }
-    else {
-      console.log("Add GS");
-        /*
-        $.ajax({
-            type: "GET",
-            url: "../addGenesetsToProjects",
-            data: {"user_id": {{ g.user.user_id }}, "npn": npn, "gs_id": g, "option": option},
-            success: function (data) {
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': "Genesets Successfully Added to Selected Projects.",
-                        'priority': 'success'
-                    }
-                ]);
-                window.location.reload();
-            }
-        });
-        */
-    }
-
-  });
-
   $('#system-searchGOI').keyup( function(e){
     search_tab("GOI");
   });
