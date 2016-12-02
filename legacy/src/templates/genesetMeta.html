@@ -3,131 +3,133 @@
 <div class="panel-body">
     <div class="row">
         <div class="col-xs-12 col-md-9">
-            <div class="row">
-                <div class="col-md-2">
-                    <p class="text-right"><strong>DESCRIPTION:</strong></p>
+            <div id="geneset-meta">
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>DESCRIPTION:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        <p>{{ geneset.description }}</p>
+                    </div>
                 </div>
-                <div class="col-md-10">
-                    <p>{{ geneset.description }}</p>
+
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>LABEL:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        <p>{{ geneset.abbreviation }}</p>
+                    </div>
                 </div>
+
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>DATE ADDED:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        {{ geneset.creation_date }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>SPECIES:</strong></p>
+                    </div>
+                    <div id="sp-tag" class="col-md-10">
+                        <span class="sp-tag-{{geneset.sp_id}}"></span>
+                    </div>
+                </div>
+
+                {% if geneset.uri %}
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>URI:</strong></p>
+                        </div>
+                        <div class="col-md-10">
+                            {% if geneset.uri %}
+                                <a href="{{ geneset.uri }}">{{ geneset.uri }}</a>
+                            {% else %}
+                                None
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if geneset.publication %}
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>AUTHORS:</strong></p>
+                        </div>
+                        <div class="col-md-10">
+                            {% if geneset.publication.authors %}
+                                {{ geneset.publication.authors }}
+                            {% else %}
+                                None
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>TITLE:</strong></p>
+                        </div>
+
+                        <div class="col-md-10">
+                            {% if geneset.publication.title %}
+                                <i>{{ geneset.publication.title }}</i>
+                            {% else %}
+                                None
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>JOURNAL:</strong></p>
+                        </div>
+
+                        <div class="col-md-10">
+                            {% if geneset.publication.journal %}
+                                <u>{{ geneset.publication.journal }}</u>
+                                {{ geneset.publication.month }} {{ geneset.publication.year }},
+                                Vol {{ geneset.publication.volume }}, pp. {{ geneset.publication.pages }}
+                            {% else %}
+                                None
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-2">
+                            <p class="text-right"><strong>ABSTRACT:</strong></p>
+                        </div>
+                        <div class="col-md-10">
+                            {% if geneset.publication.abstract %}
+                                {{ geneset.publication.abstract }}
+                            {% else %}
+                                None
+                            {% endif %}
+                            {% if geneset.publication.pubmed_id %}
+                                <a href="http://www.ncbi.nlm.nih.gov/pubmed/{{ geneset.publication.pubmed_id }}">
+                                    <b>PUBMED: {{ geneset.publication.pubmed_id }}</b>
+                                </a>
+
+                                <br>
+                                <!-- TODO link this with a search for this pubmed ID -->
+                                <a href="../findPublications/{{ geneset.geneset_id }}">Find other GeneSets from this publication <i class="fa fa-search"></i></a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                {% else %}
+
+                    <div class="row">
+                        <div class="alert bg-gray-light">No publication information is associated with this GeneSet.</div>
+                    </div>
+
+
+                {% endif %}
             </div>
-
-            <div class="row">
-                <div class="col-md-2">
-                    <p class="text-right"><strong>LABEL:</strong></p>
-                </div>
-                <div class="col-md-10">
-                    <p>{{ geneset.abbreviation }}</p>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-2">
-                    <p class="text-right"><strong>DATE ADDED:</strong></p>
-                </div>
-                <div class="col-md-10">
-                    {{ geneset.creation_date }}
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-2">
-                    <p class="text-right"><strong>SPECIES:</strong></p>
-                </div>
-                <div id="sp-tag" class="col-md-10">
-                    <span class="sp-tag-{{geneset.sp_id}}"></span>
-                </div>
-            </div>
-
-            {% if geneset.uri %}
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>URI:</strong></p>
-                    </div>
-                    <div class="col-md-10">
-                        {% if geneset.uri %}
-                            <a href="{{ geneset.uri }}">{{ geneset.uri }}</a>
-                        {% else %}
-                            None
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
-
-            {% if geneset.publication %}
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>AUTHORS:</strong></p>
-                    </div>
-                    <div class="col-md-10">
-                        {% if geneset.publication.authors %}
-                            {{ geneset.publication.authors }}
-                        {% else %}
-                            None
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>TITLE:</strong></p>
-                    </div>
-
-                    <div class="col-md-10">
-                        {% if geneset.publication.title %}
-                            <i>{{ geneset.publication.title }}</i>
-                        {% else %}
-                            None
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>JOURNAL:</strong></p>
-                    </div>
-
-                    <div class="col-md-10">
-                        {% if geneset.publication.journal %}
-                            <u>{{ geneset.publication.journal }}</u>
-                            {{ geneset.publication.month }} {{ geneset.publication.year }},
-                            Vol {{ geneset.publication.volume }}, pp. {{ geneset.publication.pages }}
-                        {% else %}
-                            None
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>ABSTRACT:</strong></p>
-                    </div>
-                    <div class="col-md-10">
-                        {% if geneset.publication.abstract %}
-                            {{ geneset.publication.abstract }}
-                        {% else %}
-                            None
-                        {% endif %}
-                        {% if geneset.publication.pubmed_id %}
-                            <a href="http://www.ncbi.nlm.nih.gov/pubmed/{{ geneset.publication.pubmed_id }}">
-                                <b>PUBMED: {{ geneset.publication.pubmed_id }}</b>
-                            </a>
-
-                            <br>
-                            <!-- TODO link this with a search for this pubmed ID -->
-                            <a href="../findPublications/{{ geneset.geneset_id }}">Find other GeneSets from this publication <i class="fa fa-search"></i></a>
-                        {% endif %}
-                    </div>
-                </div>
-
-            {% else %}
-
-                <div class="row">
-                    <div class="alert bg-gray-light">No publication information is associated with this GeneSet.</div>
-                </div>
-
-
-            {% endif %}
 
             {# Annotation Information #}
             <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -184,3 +186,4 @@
                 });
             </script>
         </div>
+
