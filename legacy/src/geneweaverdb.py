@@ -3761,6 +3761,25 @@ def get_geneset_by_project_id(apikey, projectid):
                     ) row; ''', (projectid, user))
     return cursor.fetchall()
 
+def get_geneset_by_project_id(projectid):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                ''' SELECT gs_id
+                        FROM production.project2geneset
+                        WHERE pj_id = %s;
+                ''', (projectid,))
+    return cursor.fetchall()
+
+def get_user_by_project_id(projectid):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            select usr_id from production.project where pj_id = %s;
+            ''', (projectid,)
+        )
+
+    return cursor.fetchall()
+
 
 def get_gene_database_by_id(apikey, gdb_id):
     user = get_user_id_by_apikey(apikey)

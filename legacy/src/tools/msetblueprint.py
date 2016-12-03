@@ -36,15 +36,15 @@ def run_tool():
     sp_params = sp_params[0][0]
     species_checked = flask.request.form.getlist('MSET_Species')
 
-    sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
+    #sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
     #sys.stderr.write(str(form['MSET_Background']))
     #sys.stderr.write(str(form)+'\n\n')
     #sys.stderr.write(str(species_params)+'\n')
-    sys.stderr.write(str(species_checked) + '\n')
+    #sys.stderr.write(str(species_checked) + '\n')
     #sys.stderr.write(str(sp_params) +'\n')
     #sys.stderr.write(str(selected_project_ids)+"\n")
     # sys.stderr.write(str(selected_geneset_ids) + "\n")
-    sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
+    #sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
@@ -156,13 +156,91 @@ def run_tool():
         species_info[pj_id] = gwdb.get_species_name_by_sp_id(raw[0][2])
 
     gs_dict["gene_symbols"] = gene_symbols
-    gs_dict["gene_set_names"] = gene_set_names
-    gs_dict["gene_set_abbr"] = gene_set_abbreviations
-    gs_dict["species_info"] = species_info
-    gs_dict["species_map"] = species_map
+    #gs_dict["gene_set_names"] = gene_set_names
+    #gs_dict["gene_set_abbr"] = gene_set_abbreviations
+    #gs_dict["species_info"] = species_info
+    #gs_dict["species_map"] = species_map
     gs_dict["project_ids"] = selected_project_ids
     gs_dict["tgId"] = tgId
     gs_dict["sp_params"] = species_checked
+
+    user_id = (gwdb.get_user_by_project_id(tgId))[0][0]
+
+    tg_geneset_ids = gwdb.get_geneset_by_project_id(tgId)
+    #int_geneset_ids = gwdb.get_geneset_by_project_id(intId)
+    sys.stderr.write(str(tgId) + ': ' + str(tg_geneset_ids) + '\n')
+    #sys.stderr.write(str(intId) + ': ' + str(int_geneset_ids) + '\n')
+    ##intersect_gs_ids = set(tg_geneset_ids).intersection(int_geneset_ids)
+    ##sys.stderr.write(str(intersect_gs_ids) + '\n')
+
+    #gs_result = {}
+    gs_ode_ids = []
+    source_list = {}
+    gdb = {}
+    ode_ref = {}
+    hom = {}
+    val = {}
+    gene_rank = {}
+
+    num_genes = 0
+
+    for gs_id in tg_geneset_ids:
+        geneset = gwdb.get_geneset(gs_id, user_id)
+        ##sys.stderr.write(str(geneset) + '\n')
+        ##sys.stderr.write(str(geneset.geneset_values) + '\n')
+
+        for g in geneset.geneset_values:
+            if g.source_list[0] in gene_symbols[intId]:
+                #new_result = []
+                #sys.stderr.write('Start trying to figure this out:\n')
+                id = g.ode_gene_id
+                sys.stderr.write('Source_list: ' + str(g.source_list[0]) + '\n')
+                #new_result.append(g.source_list[0])
+                source_list[id] = g.source_list
+                sys.stderr.write('gdb_id: ' + str(g.gdb_id) + '\n')
+                #new_result.append(g.gdb_id)
+                gdb[id] = g.gdb_id
+                sys.stderr.write('ode_ref: ' + str(g.ode_ref) + '\n')
+                #new_result.append(g.ode_ref)
+                ode_ref[id] = g.ode_ref
+                sys.stderr.write('Homology: ' + str(g.hom) + '\n')
+                #new_result.append(g.hom)
+                hom[id] = g.hom
+                sys.stderr.write('Value: ' + str(g.value) + '\n')
+                #new_result.append(g.value)
+                val[id] = float(g.value)
+                sys.stderr.write('Gene rank: ' + str(g.gene_rank) + '\n')
+                #new_result.append(g.gene_rank)
+                gene_rank[id] = g.gene_rank
+                sys.stderr.write('ode_gene_id: ' + str(g.ode_gene_id) + '\n')
+                gs_ode_ids.append(str(g.ode_gene_id))
+                num_genes += 1
+                #gs_result.append(new_result)
+                #sys.stderr.write('Stop trying to figure this out')
+
+    HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
+                           '#D93459', '#5E228B', '#698FC6']
+
+    SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
+                     'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
+                     'Canis familiaris']
+
+    gs_dict["source_list"] = source_list
+    gs_dict["gdb_id"] = gdb
+    gs_dict["ode_ref"] = ode_ref
+    gs_dict["homology"] = hom
+    gs_dict["value"] = val
+    gs_dict["gene_rank"] = gene_rank
+    gs_dict["num_genes"] = num_genes
+    gs_dict["hom_colors"] = HOMOLOGY_BOX_COLORS
+    gs_dict["spec_names"] = SPECIES_NAMES
+
+    gs_dict["ode_gene_ids"] = gs_ode_ids
+
+    #sys.stderr.write(str(gs_result) + '\n')
+    ##gs_dict["geneset"] = geneset
+
+    #gs_dict["results"] = gs_result
 
     # gather the params into a dictionary
     bg_str = 'Background'
@@ -173,7 +251,6 @@ def run_tool():
     # samples = 0
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         params[tool_param.name] = form[tool_param.name]
-        sys.stderr.write(str(tool_param.name) + "\n")
         if tool_param.name.endswith('_' + bg_str):
             params[bg_str] = form[tool_param.name]
         elif tool_param.name.endswith('_' + sp_str):
@@ -184,11 +261,11 @@ def run_tool():
     #sys.stderr.write(str(form['MSET_NumberofSamples']) + "\n")
     #sys.stderr.write(str(samples[samples_str]) + "\n")
     # not sure if I need this
-    for project_id in gs_dict["gene_symbols"]:
-        species = gs_dict["species_info"][project_id]
-        for pj_id in gs_dict["gene_symbols"][project_id]:
-            if pj_id not in gs_dict["species_map"]:
-                gs_dict["species_map"][pj_id] = species
+    #for project_id in gs_dict["gene_symbols"]:
+    #    species = gs_dict["species_info"][project_id]
+    #    for pj_id in gs_dict["gene_symbols"][project_id]:
+    #        if pj_id not in gs_dict["species_map"]:
+    #            gs_dict["species_map"][pj_id] = species
 
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
 
@@ -234,12 +311,10 @@ def run_tool():
     # render the status page and perform a 303 redirect to the
     # URL that uniquely identifies this run
     new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
-    sys.stderr.write("Begin error\n")
     try:
         response = flask.make_response(tc.render_tool_pending(async_result, tool))
     except Exception as e:
         sys.stderr.write(str(e))
-    sys.stderr.write("End error\n")
     response.status_code = 303
     response.headers['location'] = new_location
 
