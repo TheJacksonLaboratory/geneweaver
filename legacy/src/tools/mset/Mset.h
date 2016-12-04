@@ -64,7 +64,9 @@ public:
                 input[i]=char(curr);
             }
         }
-        input.erase(input.size()-1,1);
+        if(input[input.size()-1]=='\n'){
+            input.erase(input.size()-1,1);
+        }
     }
     string run(int numSamples,string topFile, vector<string> backgroundFiles,string interestFile){
         stringstream readUpperCaseBuffer;
