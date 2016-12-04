@@ -1,25 +1,28 @@
 {% set title=tool.name + " Results" %}
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
-<script type="text/javascript" src="/static/js/downloadSvg.js" charset="utf-8"></script>
 
 <style>
 #legend {
     text-align: right;
 }
+.btn-success {
+    background-color: rgb(0, 93, 0);
+    border-color: rgb(0, 93, 0);
+}
 .nav.nav-tabs>li>a {
     background-color: rgba(0, 100, 0, 0.4);
     color: #121212;
 }
-    .geneBox {
-        padding: 7px;
-        display: inline-block;
-        border: 1px solid #000;
-        vertical-align: middle;
-    }
-    #clickableHomology {
-        cursor: pointer;
-    }
+.geneBox {
+    padding: 7px;
+    display: inline-block;
+    border: 1px solid #000;
+    vertical-align: middle;
+}
+#clickableHomology {
+    cursor: pointer;
+}
 
 .link {
   fill: none;
@@ -28,41 +31,38 @@
 .node{
   cursor: pointer;
 }
-    #clickablePriority {
-        cursor: pointer;
-    }
-    .node{
-      cursor: pointer;
-    }
+#clickablePriority {
+    cursor: pointer;
+}
+.node{
+    cursor: pointer;
+}
 
-    .node:hover {
-      stroke: #000;
-      stroke-width: 1.5px;
-    }
+.node:hover {
+    stroke: #000;
+    stroke-width: 1.5px;
+}
 
 .label {
   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-anchor: middle;
 }
+.label,
+.node--root,
+.node--leaf {
+    cursor: pointer;
+}
 
-    .label,
-    .node--root,
-    .node--leaf {
-      cursor: pointer;
-    }
+td, th {
+    padding-left: 10px;
+}
 
-    td, th {
-      padding-left: 10px;
-    }
-    #resultTable {
-        padding-top: 20px;
-    }
 
 </style>
 <script src="https://d3js.org/d3.v4.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.11.0/d3-legend.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.debug.js"></script>
-
+{#<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.11.0/d3-legend.js"></script>#}
+{#<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.debug.js"></script>#}
+<script type="text/javascript" src="/static/js/downloadSvg.js" charset="utf-8"></script>
 <div class="page-header">
     <h1>{{ title }}
         {{ runhash }} </h1>
@@ -115,7 +115,7 @@
 </form>
 
 
-<div style="text-align: center;">
+<div>
 
     <ul class="nav nav-tabs" role="tablist">
       <li role="presentation" class="active"><a href="#clustersInCircles" role="tab" data-toggle="tab">Circles</a></li>
@@ -124,11 +124,31 @@
 
     <!-- Tab panes -->
     <div class="tab-content">
+
       <div role="tabpanel" class="tab-pane active" id="clustersInCircles">
           {% if async_result.resClusters | length != 0 %}
-            <svg id="clustersInCirclesSVG" width="800" height="800"></svg>
+            <div style="text-align: center;"><svg id="clustersInCirclesSVG" width="800" height="800"></svg></div>
             <div id="legend">
                 <svg height="200" width="800" id="speciesLegend"></svg>
+            </div>
+            <div class="btn-group" role="group">
+                <button
+                  id="btnGroupDrop"
+                  type="button"
+                  class="btn btn-success btn-secondary dropdown-toggle"
+                  data-toggle="dropdown"
+                  aria-haspopup="true"
+                  aria-expanded="false">
+                    Download
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <script>
+                        var clustersInCirclesSVG = $('#clustersInCirclesSVG')[0];
+                    </script>
+                    <li onclick="download(clustersInCirclesSVG,null,false)"><a href="#">As SVG</a></li>
+                    <li onclick="download(clustersInCirclesSVG,null,true)"><a href="#">As PNG</a></li>
+                </ul>
             </div>
           {% endif %}
       </div>
@@ -139,6 +159,25 @@
                 <div id="legend2">
                     <svg height="300" width="800" id="clusterLegend"></svg>
                 </div>
+                  <div class="btn-group" role="group">
+                <button
+                  id="btnGroupDrop"
+                  type="button"
+                  class="btn btn-success btn-secondary dropdown-toggle"
+                  data-toggle="dropdown"
+                  aria-haspopup="true"
+                  aria-expanded="false">
+                    Download
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <script>
+                        var clustersInWiresSVG = $('#clustersInWiresSVG')[0];
+                    </script>
+                    <li onclick="download(clustersInWiresSVG,null,false)"><a href="#">As SVG</a></li>
+                    <li onclick="download(clustersInWiresSVG,null,true)"><a href="#">As PNG</a></li>
+                </ul>
+            </div>
               {% else %}
                   <svg id="clustersInWiresSVG" width="1" height="1"></svg>
                 <p>Unable to rendering: Number of connections is over threshold</p>
@@ -556,6 +595,7 @@
 {#    </button>#}
 {#</div>#}
 
+
 <script src="/static/tools/DBSCAN.js" charset="utf-8"></script>
 <script charset="utf-8">
     {% if async_result.resClusters | length != 0 %}
@@ -567,15 +607,15 @@
         {% endif %}
     {% endif %}
 
-    function download() {
-        var doc = new jsPDF();
-
-        doc.fromHTML($('#resultTable').get(0), 15, 15, {
-	    'width': 170,
-        });
-
-        doc.save('dbscan.pdf')
-    }
+{#    function download() {#}
+{#        var doc = new jsPDF();#}
+{##}
+{#        doc.fromHTML($('#resultTable').get(0), 15, 15, {#}
+{#	    'width': 170,#}
+{#        });#}
+{##}
+{#        doc.save('dbscan.pdf')#}
+{#    }#}
 
 </script>
 

@@ -42,7 +42,7 @@ function download(item,styleTweak,asPng) {
     }
 
     var itemCopy=item.cloneNode(true);
-    var fileName="chart";
+    var fileName="Result";
     var styleDOM=document.createElement('style');
     styleDOM.setAttribute('type','text/css');
     styleDOM.innerHTML=style;
