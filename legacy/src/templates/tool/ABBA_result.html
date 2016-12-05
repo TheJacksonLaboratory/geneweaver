@@ -161,7 +161,7 @@
       <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>
       <button type="button" class="btn btn-primary pull-right" data-toggle="popover" title="Update Search">Update</button>
       <div id="update_form_wrapper" style="display: none;">
-        
+          {#
           <div class="panel-body">
             <div class="form-group">
                       <label>
@@ -175,20 +175,20 @@
                       <fieldset id="inputGeneField"></fieldset> 
                       <button name="addGeneBtn" class="btn btn-secondary" id="addGeneBtn" type="button">Add Gene</button>
 
-                  </div>
+            </div>
             <div class="form-group">
                       <label>
                           Ignore Homology
                           <input type="checkbox" name="ABBA_IgnHom" value="yes">
                       </label>
-                  </div>
-                  <div class="form-group">
+            </div>
+            <div class="form-group">
                       <label>Minimum Genes:</label>
                       <select id="genes-select" name="ABBA_MinGenes"  class="form-control">
                           <option selected="selected">Auto</option>
                       </select>
-                  </div>
-                  <div class="form-group">
+            </div>
+            <div class="form-group">
                       <label style="width:50%;">
                           Minimum GeneSets:
                       </label>
@@ -243,7 +243,9 @@
                   </div>
 
             <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
-          </div>
+          </div> #}
+
+          {% include 'tool/ABBA_options.html' %}
         
       </div>
 
@@ -329,7 +331,7 @@
         {% if async_result.GenesOfInterest %}
         <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
             {% for gene in async_result.GenesOfInterest %}
-            <tr class="result-row" row-type="GOI" data-id="{{gene[0]}}" data-sp_id="{{gene[3]}}" data-type="gene">
+            <tr class="result-row" row-type="GOI" data-id="{{gene[0]}}" data-type="gene">
               <td>{{gene[1]}}<br></td>
               <td>{{gene[2]}}<br></td>
             </tr>
@@ -393,7 +395,7 @@
             {% if async_result.GeneResults %}
             <tbody  class="scroll-tbody" id="ResultGenesTableBody">
               {% for gene in async_result.GeneResults %}
-              <tr class="result-row" row-type="RG" data-id="{{gene[0]}}" data-sp_id="{{gene[4]}}" data-type="gene">
+              <tr class="result-row" row-type="RG" data-id="{{gene[0]}}" data-type="gene">
                 <td>{{gene[1]}}<br></td>
                 <td>{{gene[2]}}<br></td>
                 <td>{{gene[3]}}</td>
@@ -577,14 +579,27 @@ $(document).ready(function() {
     var url = "/search/?searchbar="+ parser.gi_symbol +"&pagination_page=1&searchGenes=yes";
 
     var html = '<a target="_blank" href="' + url + '">'
-    html += "<h3 class='panel-title' style='width:100%;'>G" + parser.ode_gene_id + " &bull; " + parser.gi_symbol + " : " + parser.gi_name + "</h2></a>";
+    html += "<h3 class='panel-title' style='width:100%;'>G" + parser.ode_gene_id + " &bull; " + parser.gi_symbol;
+    if(parser.gi_name) html +=  " : " + parser.gi_name;
+    html += "</h2></a>";
+
+    // Assession
+    html += '<div class="row">';
+    html +=   '<div class="col-md-2"><p class="text-right">'
+    html +=     '<strong>ACCESSION:</strong>'
+    html +=   '<p></div>';
+    html += '    <div class="col-md-10">'; 
+    html += parser.gi_accession;
+    html += '  </div>';
+    html += '</div>';
+
 
     // Description
     html += '<div class="row">';
     html +=   '<div class="col-md-2"><p class="text-right">'
     html +=     '<strong>DESCRIPTION:</strong>'
     html +=   '<p></div>';
-    html +=   '<div class="col-md-8"><p>'; 
+    html +=   '<div class="col-md-10"><p>'; 
         if(parser.gi_description) html += parser.gi_description;
         else html += "No Description Available";
     html +=   '</p></div>';
@@ -595,17 +610,17 @@ $(document).ready(function() {
     html +=   '<div class="col-md-2"><p class="text-right">'
     html +=     '<strong>SPECIES:</strong>'
     html +=   '<p></div>';
-    html += '    <div class="col-md-8">'; 
+    html += '    <div class="col-md-10">'; 
     html += makeSpeciesTag(parser.sp_id);
     html += '  </div>';
     html += '</div>';
 
-    // Species Tag
+    // Date Added
     html += '<div class="row">';
     html +=   '<div class="col-md-2"><p class="text-right">'
     html +=     '<strong>DATE ADDED:</strong>'
     html +=   '<p></div>';
-    html += '    <div class="col-md-8">'; 
+    html += '    <div class="col-md-10">'; 
     html += parser.gi_date.split(' ')[0];
     html += '  </div>';
     html += '</div>';
@@ -615,8 +630,52 @@ $(document).ready(function() {
     html +=   '<div class="col-md-2"><p class="text-right">'
     html +=     '<strong>TYPE:</strong>'
     html +=   '<p></div>';
-    html += '    <div class="col-md-8">'; 
+    html += '    <div class="col-md-10">'; 
     html += parser.gi_type;
+    html += '  </div>';
+    html += '</div>';
+
+    // Chromosome
+    html += '<div class="row">';
+    html +=   '<div class="col-md-2"><p class="text-right">'
+    html +=     '<strong>CHROMOSOME:</strong>'
+    html +=   '<p></div>';
+    html += '    <div class="col-md-10">'; 
+      if(parser.gi_chromosome) html += parser.gi_chromosome;
+      else html += "N/A";
+    html += '  </div>';
+    html += '</div>';
+
+    // Strand
+    html += '<div class="row">';
+    html +=   '<div class="col-md-2"><p class="text-right">'
+    html +=     '<strong>STRAND:</strong>'
+    html +=   '<p></div>';
+    html += '    <div class="col-md-10">'; 
+      if(parser.gi_strand) html += parser.gi_strand;
+      else html += "N/A";
+    html += '  </div>';
+    html += '</div>';
+
+    // Start BP
+    html += '<div class="row">';
+    html +=   '<div class="col-md-2"><p class="text-right">'
+    html +=     '<strong>START BASE PAIR:</strong>'
+    html +=   '<p></div>';
+    html += '    <div class="col-md-10">'; 
+      if(parser.gi_start_bp) html += parser.gi_start_bp;
+      else html += "N/A";
+    html += '  </div>';
+    html += '</div>';
+
+    // End BP
+    html += '<div class="row">';
+    html +=   '<div class="col-md-2"><p class="text-right">'
+    html +=     '<strong>END BASE PAIR:</strong>'
+    html +=   '<p></div>';
+    html += '    <div class="col-md-10">'; 
+      if(parser.gi_end_bp) html += parser.gi_end_bp;
+      else html += "N/A";
     html += '  </div>';
     html += '</div>';
 
@@ -1203,5 +1262,7 @@ function newGeneset(){
 	window.location.href = "/uploadgenesetpre/"+genes.join("_")+".html";
 }
 </script>
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+
 
 {% include 'footer.html' %}
