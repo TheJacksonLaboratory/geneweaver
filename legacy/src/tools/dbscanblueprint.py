@@ -117,6 +117,21 @@ def run_tool():
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
+
+    # check if parameters are blank, set to a default
+    if params['DBSCAN_minPts'] == '':
+        params['DBSCAN_minPts'] = "1".decode('unicode-escape')
+    if params['DBSCAN_epsilon'] == '':
+        params['DBSCAN_epsilon'] = "1".decode('unicode-escape')
+
+    # genes = 0
+    # for set in gs_dict["gene_symbols"]:
+    #     for gene in gs_dict["gene_symbols"][set]:
+    #         genes += 1
+
+    # if genes <= params['DBSCAN_minPts']:
+
+
     gwdb.insert_result(
         user_id,
         task_id,
@@ -258,45 +273,50 @@ def view_result(task_id):
 
         gene_info = {}
         gs_ids = []
+        genes = 0
         test = json.loads(async_result.result)
 
-        genes = len(test['decode'].keys())
+        sys.stderr.write("#####################"+str(test['ran'])+"\n")
 
-        if genes < 200:
-            for row in emphgenes:
-                emphgeneids.append(str(row['ode_gene_id']))
+        if test['ran'] == 1 and 'resClusters' in test:
+            genes = len(test['decode'].keys())
 
-            parameters = test['parameters']
-            gs_dict = parameters["gs_dict"]
-            for gs_id in gs_dict["gene_symbols"]:
-                for gene in gs_dict["gene_symbols"][gs_id]:
-                    gene_info[gene] = {}
-            for gs_id in gs_dict["gene_symbols"]:
-                geneset = gwdb.get_geneset(gs_id, user_id)
-                for gene_value in geneset.geneset_values:
-                    if gene_value.source_list[0] not in gene_info.keys():
-                        gene_info[gene_value.source_list[0]] = {}
-                    gene_info[gene_value.source_list[0]]['gene_rank'] = gene_value.gene_rank
-                    # sys.stderr.write("gene_info["+str(gene_value.source_list[0])+"][gene_rank] = "+str(gene_value.gene_rank)+"\n")
-                    gene_info[gene_value.source_list[0]]['homology'] = gene_value.hom
-                    # sys.stderr.write("gene_info["+str(gene_value.source_list[0])+"][homology] = "+str(gene_value.hom)+"\n")
-                    gene_info[gene_value.source_list[0]]['ode_id'] = gene_value.ode_gene_id
+            if genes < 200:
+                for row in emphgenes:
+                    emphgeneids.append(str(row['ode_gene_id']))
 
-            for gene in gene_info:
-                if 'gene_rank' not in gene_info[gene].keys():
-                    gene_info[gene]['gene_rank'] = 0
-                if 'homology' not in gene_info[gene].keys():
-                    gene_info[gene]['homology'] = []
-        else:
-            for row in emphgenes:
-                emphgeneids.append(str(row['ode_ref_id']))
+                parameters = test['parameters']
+                gs_dict = parameters["gs_dict"]
+                for gs_id in gs_dict["gene_symbols"]:
+                    for gene in gs_dict["gene_symbols"][gs_id]:
+                        gene_info[gene] = {}
+                for gs_id in gs_dict["gene_symbols"]:
+                    geneset = gwdb.get_geneset(gs_id, user_id)
+                    for gene_value in geneset.geneset_values:
+                        if gene_value.source_list[0] not in gene_info.keys():
+                            gene_info[gene_value.source_list[0]] = {}
+                        gene_info[gene_value.source_list[0]]['gene_rank'] = gene_value.gene_rank
+                        # sys.stderr.write("gene_info["+str(gene_value.source_list[0])+"][gene_rank] = "+str(gene_value.gene_rank)+"\n")
+                        gene_info[gene_value.source_list[0]]['homology'] = gene_value.hom
+                        # sys.stderr.write("gene_info["+str(gene_value.source_list[0])+"][homology] = "+str(gene_value.hom)+"\n")
+                        gene_info[gene_value.source_list[0]]['ode_id'] = gene_value.ode_gene_id
+
+                for gene in gene_info:
+                    if 'gene_rank' not in gene_info[gene].keys():
+                        gene_info[gene]['gene_rank'] = 0
+                    if 'homology' not in gene_info[gene].keys():
+                        gene_info[gene]['homology'] = []
+            else:
+                for row in emphgenes:
+                    emphgeneids.append(str(row['ode_ref_id']))
+
 
         # for gene in gene_info:
         #     sys.stderr.write("["+gene+"][gene_rank] = "+str(gene_info[gene]['gene_rank'])+"\n")
 
         return flask.render_template(
             'tool/DBSCAN_result.html',
-            data=data, genes=genes,
+            data=data, genes=genes, ran=test['ran'],
             async_result=json.loads(async_result.result), gene_info=gene_info,
             emphgeneids=emphgeneids, colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
             placeholder_homology=placeholder_homology,

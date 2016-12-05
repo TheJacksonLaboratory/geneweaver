@@ -65,8 +65,7 @@ td, th {
     <h1>{{ title }}
         {{ runhash }} </h1>
 </div>
-<p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
-
+<!--re-run panel-->
 <form id="todo-id" class="form-horizontal" role="form" method="post">
     <div class="panel panel-info" >
         <div class="panel-heading bg-green" style="border-radius:4px;">
@@ -92,6 +91,7 @@ td, th {
                 </div>
                 <div class="row">
                     <div class="col-md-4">
+                        <!--set the default gene_ids-->
                         <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
                     </div>
                     <div class="col-md-8">
@@ -112,383 +112,341 @@ td, th {
     </div>
 </form>
 
+{% if ran == 1 and async_result.resClusters %}
+    <div>
 
-<div>
+        <ul class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active"><a href="#clustersInCircles" role="tab" data-toggle="tab">Circles</a></li>
+          <li role="presentation"><a href="#clustersInWires" role="tab" data-toggle="tab">Wires</a></li>
+        </ul>
 
-    <ul class="nav nav-tabs" role="tablist">
-      <li role="presentation" class="active"><a href="#clustersInCircles" role="tab" data-toggle="tab">Circles</a></li>
-      <li role="presentation"><a href="#clustersInWires" role="tab" data-toggle="tab">Wires</a></li>
-    </ul>
+        <!-- Tab panes -->
+        <div class="tab-content">
 
-    <!-- Tab panes -->
-    <div class="tab-content">
-
-      <div role="tabpanel" class="tab-pane active" id="clustersInCircles">
-          {% if async_result.resClusters | length != 0 %}
-            <div style="text-align: center;"><svg id="clustersInCirclesSVG" width="800" height="800"></svg></div>
-            <div id="legend">
-                <svg height="200" width="800" id="speciesLegend"></svg>
-            </div>
-            <div class="btn-group" role="group">
-                <button
-                  id="btnGroupDrop"
-                  type="button"
-                  class="btn btn-success btn-secondary dropdown-toggle"
-                  data-toggle="dropdown"
-                  aria-haspopup="true"
-                  aria-expanded="false">
-                    Download
-                    <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
-                    <script>
-                        var clustersInCirclesSVG = $('#clustersInCirclesSVG')[0];
-                    </script>
-                    <li onclick="download(clustersInCirclesSVG,null,false,'Clusters')"><a href="#">As SVG</a></li>
-                    <li onclick="download(clustersInCirclesSVG,null,true,'Clusters')"><a href="#">As PNG</a></li>
-                </ul>
-            </div>
-          {% endif %}
-      </div>
-      <div role="tabpanel" class="tab-pane" id="clustersInWires">
-          {% if async_result.resClusters | length != 0 %}
-              {% if async_result.threshold == 0 %}
-                <svg id="clustersInWiresSVG" width="800" height="800"></svg>
-                <div id="legend2">
-                    <svg height="300" width="800" id="clusterLegend"></svg>
+          <div role="tabpanel" class="tab-pane active" id="clustersInCircles">
+              {% if async_result.resClusters | length != 0 %}
+                <div style="text-align: center;"><svg id="clustersInCirclesSVG" width="800" height="800"></svg></div>
+                <div id="legend">
+                    <svg height="200" width="800" id="speciesLegend"></svg>
                 </div>
-                  <div class="btn-group" role="group">
-                <button
-                  id="btnGroupDrop"
-                  type="button"
-                  class="btn btn-success btn-secondary dropdown-toggle"
-                  data-toggle="dropdown"
-                  aria-haspopup="true"
-                  aria-expanded="false">
-                    Download
-                    <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
-                    <script>
-                        var clustersInWiresSVG = $('#clustersInWiresSVG')[0];
-                    </script>
-                    <li onclick="download(clustersInWiresSVG,null,false,'Wires')"><a href="#">As SVG</a></li>
-                    <li onclick="download(clustersInWiresSVG,null,true,'Wires')"><a href="#">As PNG</a></li>
-                </ul>
-            </div>
-              {% else %}
-                  <svg id="clustersInWiresSVG" width="1" height="1"></svg>
-                <p>Unable to rendering: Number of connections is over threshold</p>
-              {% endif %}
-          {% endif %}
-      </div>
-    </div>
-</div>
-
-{#<!--Header-->#}
-{#<div class="panel panel-default">#}
-{#    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">#}
-{#        <h3 class="panel-title">Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;#}
-{#                                epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;#}
-{#                                minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}#}
-{#        </h3>#}
-{#    </div>#}
-{#    <div class="panel-body" style="padding-top:10px;">#}
-{#        <div class="row">#}
-{#            <div class="col-xs-12 col-md-9">#}
-{#                <div class="row">#}
-{#                </div>#}
-{#            </div>#}
-{#            <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">#}
-{#                {% if g.user is defined %}#}
-{#					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">#}
-{#						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet#}
-{#					</button>#}
-{#                {% endif %}#}
-{#            </div>#}
-{#        </div>#}
-{#    </div>#}
-{#</div>#}
-{##}
-{#<!--Clusters-->#}
-{#{%  for cluster in async_result.resClusters %}#}
-{#    <div class="panel panel-default">#}
-{#        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">#}
-{#            <h3 class="panel-title">Cluster {{ loop.index0 }}</h3>#}
-{#        </div>#}
-{#    </div>#}
-{#{% endfor %}#}
-
-<!-- Download: Doesn't work yet -->
-{#<div id="download">#}
-{#    <table>#}
-{#            <tr onmouseout="$('#downloadButton')[0].setAttribute('class','btn-group');">#}
-{#                <td><svg id="sizeCircles" width="800" height="800" ></svg></td>#}
-{#            </tr>#}
-{#            <tr>#}
-{#                <td style="text-align: center">#}
-{#                    <div class="btn-group" onmouseover="this.setAttribute('class','btn-group open');" id="downloadButton" >#}
-{#                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"#}
-{#                            aria-haspopup="true" aria-expanded="false">#}
-{#                            Download as...#}
-{#                            <span class="caret"></span>#}
-{#                        </button>#}
-{#                        <script>#}
-{#                            var sizeGraph=$('#sizeCircles')[0];#}
-{#                        </script>#}
-{#                        <ul class="dropdown-menu" onmouseout="$('#downloadButton')[0].setAttribute('class','btn-group');"#}
-{#                        >#}
-{#                            <li onclick="download(sizeGraph,null,true);">#}
-{#                                <a class="download-image" id="dl-png">PNG</a></li>#}
-{#                            <li onclick="download(sizeGraph,null,false);">#}
-{#                                <a class="download-image" id="dl-svg" >SVG</a>#}
-{#                            </li>#}
-{#                        </ul>#}
-{#                    </div>#}
-{#                </td>#}
-{#        </tr>#}
-{#    </table>#}
-{#</div>#}
-
-{%  if genes >= 200 %}
-<!-- Short Table -->
-<div class="panel panel-default">
-    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h3 class="panel-title">
-            Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;
-                                epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;
-                                minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}
-        </h3>
-    </div>
-    <div class="panel-body" style="padding-top:10px;">
-        <div class="row">
-            <div class="col-xs-12 col-md-9">
-                <div class="row">
-                </div>
-            </div>
-            <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
-                {% if g.user is defined %}
-                    <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
-                        <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                <div class="btn-group" role="group">
+                    <button
+                      id="btnGroupDrop"
+                      type="button"
+                      class="btn btn-success btn-secondary dropdown-toggle"
+                      data-toggle="dropdown"
+                      aria-haspopup="true"
+                      aria-expanded="false">
+                        Download
+                        <span class="caret"></span>
                     </button>
-                {% endif %}
-            </div>
+                    <ul class="dropdown-menu">
+                        <script>
+                            var clustersInCirclesSVG = $('#clustersInCirclesSVG')[0];
+                        </script>
+                        <li onclick="download(clustersInCirclesSVG,null,false,'Clusters')"><a href="#">As SVG</a></li>
+                        <li onclick="download(clustersInCirclesSVG,null,true,'Clusters')"><a href="#">As PNG</a></li>
+                    </ul>
+                </div>
+              {% endif %}
+          </div>
+          <div role="tabpanel" class="tab-pane" id="clustersInWires">
+              {% if async_result.resClusters | length != 0 %}
+                  {% if async_result.threshold == 0 %}
+                    <svg id="clustersInWiresSVG" width="800" height="800"></svg>
+                    <div id="legend2">
+                        <svg height="300" width="800" id="clusterLegend"></svg>
+                    </div>
+                      <div class="btn-group" role="group">
+                      <!--download button group-->
+                    <button
+                      id="btnGroupDrop"
+                      type="button"
+                      class="btn btn-success btn-secondary dropdown-toggle"
+                      data-toggle="dropdown"
+                      aria-haspopup="true"
+                      aria-expanded="false">
+                        Download
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <script>
+                            var clustersInWiresSVG = $('#clustersInWiresSVG')[0];
+                        </script>
+                        <li onclick="download(clustersInWiresSVG,null,false,'Wires')"><a href="#">As SVG</a></li>
+                        <li onclick="download(clustersInWiresSVG,null,true,'Wires')"><a href="#">As PNG</a></li>
+                    </ul>
+                </div>
+                  {% else %}
+                      <svg id="clustersInWiresSVG" width="1" height="1"></svg>
+                    <p>Unable to render: Number of connections is over threshold</p>
+                  {% endif %}
+              {% endif %}
+          </div>
         </div>
     </div>
 
-    {% for cluster in async_result.resClusters %}
-
-        <div class="panel-title" style="padding-top: 10px;"> Cluster {{ loop.index0 }} </div>
-        <table class="table table-hover" style="border-collapse: collapse;">
-            <tbody>
-            <tr>
-                <th>Gene Symbol</th>
-
-                <th>Linkout</th>
-
-                <th></th>
-
-                {% if cluster|length > 1 %}
-                <th>Gene Symbol</th>
-
-                <th>Linkout</th>
-
-                <th></th>
-                {% endif %}
-
-                {%  if cluster|length > 2 %}
-                <th>Gene Symbol</th>
-
-                <th>Linkout</th>
-
-                <th></th>
-                {% endif %}
-
-            </tr>
-            <div class="cluster-group" style="border-bottom-width: thick; border-bottom-color: #006400;">
-                {%  for this_gene in cluster %}
-                    {% if loop.index0 % 3 == 0 %}
-                    <div class = "gene-list-row">
-                    <tr>
-                    {% endif %}
-
-                    <td id="defaultSymbol" class="gene=symbol" style="border-left:1px solid #93aeca;">
-                        <strong>
-                            <a href="/search/?searchbar={{ this_gene }}&pagination_page=1&searchGenes=yes">
-                                {{ this_gene }}
-                            </a>
-                        </strong>
-                    </td>
-
-                    <td>
-                        {% set gene=this_gene %}
-                        {% include 'linkouts.html' %}
-                    </td>
-
-                    <td style="border-right:1px solid #93aeca;">
-                        <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                            <label for="addGeneset{{ this_gene }}" style="margin: -6px; padding-right: 0;">
-                                <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ this_gene }}"
-                                                   value="{{ this_gene }}"/>
-                                </label>
-                            </div>
-                        </td>
-
-                    {%  if loop.index0 % 3 == 2 or loop.last %}
-                    </tr></div>
-                    {% endif %}
-                {%  endfor %}
-            </div>
-            </tbody>
-        </table>
-
-    {% endfor %}
-
-</div>
-
-{%  else %}
-
-<!-- Long Table -->
-<div class="panel panel-default">
-    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h3 class="panel-title">Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;
-                                epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;
-                                minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}
-        </h3>
-    </div>
-    <div class="panel-body" style="padding-top:10px;">
-        <div class="row">
+    {%  if genes >= 200 %}
+    <!-- Short Table -->
+    <div class="panel panel-default">
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title">
+                Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;
+                                    epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;
+                                    minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}
+            </h3>
+        </div>
+        <div class="panel-body" style="padding-top:10px;">
+            <div class="row">
                 <div class="col-xs-12 col-md-9">
                     <div class="row">
                     </div>
                 </div>
                 <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
-					{% if g.user is defined %}
-					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
-						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
-					</button>
-					{% endif %}
-{#                    <button type="button" class="btn btn-block btn-warning" id="exportData">#}
-{#		                <i class="fa fa-download pull-left"></i> Export Results#}
-{#	                </button>#}
+                    {% if g.user is defined %}
+                        <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+                            <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                        </button>
+                    {% endif %}
                 </div>
+            </div>
         </div>
 
-    {%  for cluster in async_result.resClusters %}
+        {% for cluster in async_result.resClusters %}
 
-        <div class="panel-title">Cluster {{ loop.index0 }}</div>
-        <div class="row">
-            <table class="table table-hover">
+            <div class="panel-title" style="padding-top: 10px;"> Cluster {{ loop.index0 }} </div>
+            <table class="table table-hover" style="border-collapse: collapse;">
                 <tbody>
                 <tr>
                     <th>Gene Symbol</th>
 
-                    <th>Homology
-                        <span id="clickableHomology" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
-                    </th>
-
-                    <th>Priority
-                        <span id="clickablePriority" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
-                    </th>
-
                     <th>Linkout</th>
-
-                    <th>Emphasis</th>
 
                     <th></th>
 
-                </tr>
-                <div id="maybe">
-                    <div class="cluster-group" style="border-bottom-width: thick; border-bottom-color: #006400;">
-                    {% for this_gene in cluster  %}
-                        <tr class="gene-list-row">
-                            <!-- Default Symbol -- going to stick with GeneSymbol because it's the symbol used in the clustering -->
-                            <td id="defaultSymbol" class="gene=symbol">
-                                <strong>
-                                    <a href="/search/?searchbar={{ this_gene }}&pagination_page=1&searchGenes=yes">
-                                        {{ this_gene }}
-                                    </a>
-                                </strong>
-                            </td>
-                            <!-- Homology -->
-                            <td>
-{#                                     Make boxes for homology blocks#}
-{#                                     see application.py for the list of species and colors#}
-                                    {% for i in range(1,12) %}
-{#                                         skip elements that are empty#}
-                                        {% if tt[(i-1)] != 'empty' %}
-                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
-                                                  title="{{ tt[(i-1)] }}">
-                                            {% set exists = ['1'] %}
-                                            {% for h in gene_info[this_gene].homology|sort %}
-                                                {% if h == i %}
-                                                    <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
-                                                    {% if exists.append('1') %}{% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                            {% if exists|length == 1 %}
-                                                <div class="geneBox"></div>
-                                            {% endif %}
-                                            </span>
-                                        {% endif %}
-                                    {% endfor %}
-                            </td>
-                        <!-- Priority -->
-                            <td>
-                                <div class="progress">
-                                        <div class="progress-bar progress-bar-success progress-bar-striped"
-                                             data-aria-valuetransitiongoal="{{ '%.0f' % gene_info[this_gene].gene_rank|float}}"
-                                             aria-valuenow="{{ '%.0f' % gene_info[this_gene].gene_rank|float }}"
-                                             style="width: {{ '%.0f' % gene_info[this_gene].gene_rank|float }}%;">
-                                            {{ '%.0f' % gene_info[this_gene].gene_rank|float }}
-                                        </div>
-                                    </div>
-                            </td>
-                        <!-- Linkout -->
-                            <td>
-                                {% set gene=this_gene %}
-                                {% include 'linkouts.html' %}
-                            </td>
-                        <!-- Emphasis -->
-                            <td nowrap>
-                                    <input type="checkbox" name="g_id[]" id="{{ gene_info[this_gene].ode_id }}"
-                                           onchange="emphasize('{{ gene_info[this_gene].ode_id }}');"
-                                           class="switch" data-size="mini"
-                                           style="padding: 0px; vertical-align: middle;">
+                    {% if cluster|length > 1 %}
+                    <th>Gene Symbol</th>
 
-                                </td>
-                        <!-- Select Box -->
-                            <td>
-                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                    <label for="addGeneset{{ this_gene }}"
-                                               style="margin: -6px; padding-right: 0;">
-                                        <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ this_gene }}"
-                                                   value="{{ this_gene }}"/>
+                    <th>Linkout</th>
+
+                    <th></th>
+                    {% endif %}
+
+                    {%  if cluster|length > 2 %}
+                    <th>Gene Symbol</th>
+
+                    <th>Linkout</th>
+
+                    <th></th>
+                    {% endif %}
+
+                </tr>
+                <div class="cluster-group" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                    {%  for this_gene in cluster %}
+                        {% if loop.index0 % 3 == 0 %}
+                        <div class = "gene-list-row">
+                        <tr>
+                        {% endif %}
+
+                        <td id="defaultSymbol" class="gene=symbol" style="border-left:1px solid #93aeca;">
+                            <strong>
+                                <a href="/search/?searchbar={{ this_gene }}&pagination_page=1&searchGenes=yes">
+                                    {{ this_gene }}
+                                </a>
+                            </strong>
+                        </td>
+
+                        <td>
+                            {% set gene=this_gene %}
+                            {% include 'linkouts.html' %}
+                        </td>
+
+                        <td style="border-right:1px solid #93aeca;">
+                            <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                <label for="addGeneset{{ this_gene }}" style="margin: -6px; padding-right: 0;">
+                                    <input type="checkbox" name="gsoptions[]"
+                                                       id="addGeneset{{ this_gene }}"
+                                                       value="{{ this_gene }}"/>
                                     </label>
                                 </div>
                             </td>
-                        </tr>
 
-                    {% endfor %}
-                    </div>
+                        {%  if loop.index0 % 3 == 2 or loop.last %}
+                        </tr></div>
+                        {% endif %}
+                    {%  endfor %}
                 </div>
                 </tbody>
-                    </table>
+            </table>
+
+        {% endfor %}
+
     </div>
 
+    {%  else %}
+
+    <!-- Long Table -->
+    <div class="panel panel-default">
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title">Cluster List &bull; {{ async_result.resClusters | length }} Cluster(s) &nbsp; &nbsp;  &nbsp; &nbsp;
+                                    epsilon {{ async_result.parameters['DBSCAN_epsilon']|safe }} &nbsp;
+                                    minPts {{ async_result.parameters['DBSCAN_minPts']|safe }}
+            </h3>
+        </div>
+        <div class="panel-body" style="padding-top:10px;">
+            <div class="row">
+                    <div class="col-xs-12 col-md-9">
+                        <div class="row">
+                        </div>
+                    </div>
+                    <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
+                        {% if g.user is defined %}
+                        <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+                            <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                        </button>
+                        {% endif %}
+                    </div>
+            </div>
+
+        {%  for cluster in async_result.resClusters %}
+
+            <div class="panel-title">Cluster {{ loop.index0 }}</div>
+            <div class="row">
+                <table class="table table-hover">
+                    <tbody>
+                    <tr>
+                        <th>Gene Symbol</th>
+
+                        <th>Homology
+                            <span id="clickableHomology" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
+                        </th>
+
+                        <th>Priority
+                            <span id="clickablePriority" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
+                        </th>
+
+                        <th>Linkout</th>
+
+                        <th>Emphasis</th>
+
+                        <th></th>
+
+                    </tr>
+                    <div id="maybe">
+                        <div class="cluster-group" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                        {% for this_gene in cluster  %}
+                            <tr class="gene-list-row">
+                                <!-- Default Symbol -- going to stick with GeneSymbol because it's the symbol used in the clustering -->
+                                <td id="defaultSymbol" class="gene=symbol">
+                                    <strong>
+                                        <a href="/search/?searchbar={{ this_gene }}&pagination_page=1&searchGenes=yes">
+                                            {{ this_gene }}
+                                        </a>
+                                    </strong>
+                                </td>
+                                <!-- Homology -->
+                                <td>
+    {#                                     Make boxes for homology blocks#}
+    {#                                     see application.py for the list of species and colors#}
+                                        {% for i in range(1,12) %}
+    {#                                         skip elements that are empty#}
+                                            {% if tt[(i-1)] != 'empty' %}
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
+                                                      title="{{ tt[(i-1)] }}">
+                                                {% set exists = ['1'] %}
+                                                {% for h in gene_info[this_gene].homology|sort %}
+                                                    {% if h == i %}
+                                                        <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
+                                                        {% if exists.append('1') %}{% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {% if exists|length == 1 %}
+                                                    <div class="geneBox"></div>
+                                                {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                </td>
+                            <!-- Priority -->
+                                <td>
+                                    <div class="progress">
+                                            <div class="progress-bar progress-bar-success progress-bar-striped"
+                                                 data-aria-valuetransitiongoal="{{ '%.0f' % gene_info[this_gene].gene_rank|float}}"
+                                                 aria-valuenow="{{ '%.0f' % gene_info[this_gene].gene_rank|float }}"
+                                                 style="width: {{ '%.0f' % gene_info[this_gene].gene_rank|float }}%;">
+                                                {{ '%.0f' % gene_info[this_gene].gene_rank|float }}
+                                            </div>
+                                        </div>
+                                </td>
+                            <!-- Linkout -->
+                                <td>
+                                    {% set gene=this_gene %}
+                                    {% include 'linkouts.html' %}
+                                </td>
+                            <!-- Emphasis -->
+                                <td nowrap>
+                                        <input type="checkbox" name="g_id[]" id="{{ gene_info[this_gene].ode_id }}"
+                                               onchange="emphasize('{{ gene_info[this_gene].ode_id }}');"
+                                               class="switch" data-size="mini"
+                                               style="padding: 0px; vertical-align: middle;">
+
+                                    </td>
+                            <!-- Select Box -->
+                                <td>
+                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                        <label for="addGeneset{{ this_gene }}"
+                                                   style="margin: -6px; padding-right: 0;">
+                                            <input type="checkbox" name="gsoptions[]"
+                                                       id="addGeneset{{ this_gene }}"
+                                                       value="{{ this_gene }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+                        </div>
+                    </div>
+                    </tbody>
+                        </table>
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    {% endif %}
+
+    {% for gene in emphgeneids %}
+            <script>
+                document.getElementById("{{gene}}").checked = true;
+            </script>
     {% endfor %}
-
-</div>
-
+{% else %}
+    <div class="panel panel-default">
+        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <h3 class="panel-title" style="width:80%;">
+                {%  if ran == 0 %}
+                    Your minPts parameter was larger than the number of genes you passed in. <br>
+                    This makes no clusters possible.  Try running with a lower number.
+                {%  else %}
+                    No clusters returned.  Try running again with different minPts and/or epsilon.
+                {% endif %}
+            </h3>
+        </div>
+        <div class="panel-body" style="padding-top:10px;">
+            <div class="row">
+                <div class="col-xs-12 col-md-9">
+                    <div class="row">
+                    </div>
+                </div>
+                <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
+                </div>
+            </div>
+        </div>
+    </div>
 {% endif %}
 
-{% for gene in emphgeneids %}
-        <script>
-            document.getElementById("{{gene}}").checked = true;
-        </script>
-{% endfor %}
 
 <div id="target"></div>
 
@@ -521,31 +479,6 @@ td, th {
                 });
             }
         }
-
-{#    $('#exportData').on('click', function (e) {#}
-{#				var exports = '';#}
-{#				var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>'#}
-{##}
-{#                $('.table').each(function(){#}
-{#                    var cluster = "Cluster " + {{ loop.index1 - async_result. }} + ": " + '%0A';#}
-{#                    exports += cluster;#}
-{#                    $('.gene-list-row').each(function(){#}
-{#					var symbol = $(this).children('.gene-symbol').text();#}
-{#					var value = "1";#}
-{##}
-{#					symbol = $.trim(symbol);#}
-{#					value = $.trim(value);#}
-{##}
-{#					// Tabs and newlines#}
-{#					exports += symbol + '%09' + value + '%0A';#}
-{#				    });#}
-{#                });#}
-{##}
-{##}
-{#				exportURL += exports;#}
-{##}
-{#				window.open(exportURL);#}
-{#            });#}
 
     $('#addNewGeneset').on('click', function () {
 	//function blah() {
@@ -587,13 +520,6 @@ td, th {
 	});
 </script>
 
-{#<div class="btn-group">#}
-{#    <button type="button" class="btn btn-primary dropdown-toggle" aria-haspopup="true" aria-expanded="false" onclick="download()">#}
-{#        Download#}
-{#    </button>#}
-{#</div>#}
-
-
 <script src="/static/tools/DBSCAN.js" charset="utf-8"></script>
 <script charset="utf-8">
     {% if async_result.resClusters | length != 0 %}
@@ -604,16 +530,6 @@ td, th {
             drawLegendWires();
         {% endif %}
     {% endif %}
-
-{#    function download() {#}
-{#        var doc = new jsPDF();#}
-{##}
-{#        doc.fromHTML($('#resultTable').get(0), 15, 15, {#}
-{#	    'width': 170,#}
-{#        });#}
-{##}
-{#        doc.save('dbscan.pdf')#}
-{#    }#}
 
 </script>
 
