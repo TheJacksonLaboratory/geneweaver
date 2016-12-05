@@ -344,25 +344,29 @@ def view_result(task_id):
         async_result = json.loads(async_result.result)
         # results are ready. render the page for the user
 
-        tgId = async_result["gs_dict"]["tgId"]
-        intId = async_result["gs_dict"]["intId"]
-        num_genes = async_result["gs_dict"]["num_genes"]
 
         ignore = 0
         geneset = []
-        if num_genes > 200:
+        try:
+            tgId = async_result["gs_dict"]["tgId"]
+            intId = async_result["gs_dict"]["intId"]
+            num_genes = async_result["gs_dict"]["num_genes"]
+
+            if num_genes > 300:
+                ignore = 1
+                geneset = gwdb.get_geneset_values_for_mset_small(tgId, intId)
+                #sys.stderr.write(str(geneset) + '\n')
+            else:
+                sys.stderr.write("\n**************\n" + tgId + '\n')
+                sys.stderr.write(intId + "\n")
+
+                geneset = gwdb.get_genes_for_mset(tgId, intId)
+                sys.stderr.write(str(geneset) + '\n')
+                #sys.stderr.write(str(geneset[0]) + '\n')
+                #sys.stderr.write(str(geneset.geneset_values[0].source_list[0]) + '\n')
+        except Exception as e:
+            sys.stderr.write(e.message() + '\n')
             ignore = 1
-            geneset = gwdb.get_geneset_values_for_mset_small(tgId, intId)
-            #sys.stderr.write(str(geneset) + '\n')
-        else:
-            sys.stderr.write("\n**************\n" + tgId + '\n')
-            sys.stderr.write(intId + "\n")
-
-            geneset = gwdb.get_genes_for_mset(tgId, intId)
-            sys.stderr.write(str(geneset) + '\n')
-            #sys.stderr.write(str(geneset[0]) + '\n')
-            #sys.stderr.write(str(geneset.geneset_values[0].source_list[0]) + '\n')
-
 
 
         sys.stderr.write('Finished getting gene info\n')
