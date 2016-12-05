@@ -121,6 +121,10 @@ def view_result(task_id):
     emphgeneids = []
     user_id = flask.session.get('user_id')
     emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+
+    species = gwdb.get_all_species().items()
+
+
     for row in emphgenes:
         emphgeneids.append(int(row['ode_gene_id']))
     if async_result.state in states.PROPAGATE_STATES:
@@ -131,7 +135,7 @@ def view_result(task_id):
         return flask.render_template(
             'tool/ABBA_result.html',
             async_result=json.loads(async_result.result),
-            tool=tool, emphgeneids=emphgeneids)
+            tool=tool, emphgeneids=emphgeneids, species=species)
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)
