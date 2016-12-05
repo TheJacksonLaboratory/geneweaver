@@ -10,7 +10,8 @@
 /**
  * UpSet module. For drawing the bar chart.
  */
-var upset = function () {
+var upset;
+upset = function () {
 
     var exports = {},
         // SVG object
@@ -73,7 +74,7 @@ var upset = function () {
     var makeBars = function () {
         var bx = 0,
             by = 0,
-            jaccard = 0;
+            jaccard1 = 0;
 
         //Makes bars for the intersection size bar diagram
         //Makes bars for the entropy bar diagram
@@ -91,8 +92,23 @@ var upset = function () {
                 intersectgenes[z].push(line[2]);
             }
 
+            if (set['len'] === 2)
+                jaccard1 = set['jaccard_score'];
+
+            var jbar = {
+                type: 'row' + i,
+                fill: barFillColours[2],
+                height: jaccard1,
+                name: set['name1'],
+                x: bx,
+                y: by,
+                genes: intersectgenes,
+                desc: set['desc1'],
+                entropy: set['set_entropy']
+            };
+
             var intersectBar = {
-                type: 'row'+i,
+                type: 'row' + i,
                 fill: barFillColours[0],
                 height: set['intersection'],
                 desc: set['desc1'],
@@ -100,40 +116,36 @@ var upset = function () {
                 x: bx,
                 y: by,
                 textFill: '#000000',
-                genes: intersectgenes
+                genes: intersectgenes,
+                entropy: set['set_entropy'],
+                jaccard: jaccard1
             };
 
             var entropybar = {
-                type: 'row'+i,
+                type: 'row' + i,
                 fill: barFillColours[1],
                 height: set['set_entropy'],
                 name: set['name1'],
                 x: bx,
                 y: by,
-                genes: intersectgenes
-            };
-
-            if(set['len'] === 2)
-                jaccard = set['jaccard_score'];
-
-            var jbar = {
-                type: 'row'+i,
-                fill: barFillColours[2],
-                height: jaccard,
-                name: set['name1'],
-                x: bx,
-                y: by,
-                genes: intersectgenes
+                genes: intersectgenes,
+                jaccard: jaccard1,
+                desc: set['desc1']
             };
 
             var background = {
-                type: 'row'+i,
+                type: 'row' + i,
                 y: by - 9,
                 x: bx - 9,
                 width: chartWidth,
                 height: 20,
                 fill: "#006400",
-                opacity: 0
+                opacity: 0,
+                jaccard: jaccard1,
+                desc: set['desc1'],
+                name: set['name1'],
+                entropy: set['set_entropy'],
+                genes: intersectgenes
             };
 
             BackgroundRow.push(background);
@@ -141,13 +153,13 @@ var upset = function () {
             EntropyBars.push(entropybar);
             JaccardBars.push(jbar);
             by = by + 30;
-            jaccard = 0;
+            jaccard1 = 0;
         }
 
         //Make bars for the set size bar diagram
         bx = 0;
 
-        for (var j = 0; j < data.set_diagrams.length; j++){
+        for (var j = 0; j < data.set_diagrams.length; j++) {
             set = data.set_diagrams[j];
 
             var setgenes = [];
@@ -172,7 +184,8 @@ var upset = function () {
                 width: 19,
                 height: (30 * data.intersection_diagrams.length),
                 fill: "#006400",
-                opacity: 0
+                opacity: 0,
+                genelist: setgenes
             };
 
             setBars.push(rect);
@@ -198,24 +211,24 @@ var upset = function () {
             lx2 = null;
 
         var genesets = data.genesets;
-        for (var y = 0; y < data.intersection_diagrams.length; y++){
+        for (var y = 0; y < data.intersection_diagrams.length; y++) {
 
-            for ( var x = 0; x < data.genesets.length; x++){
+            for (var x = 0; x < data.genesets.length; x++) {
 
                 var intersect = data.intersection_diagrams[y];
-                for (var i = 0; i < intersect.sets.length; i++){
+                for (var i = 0; i < intersect.sets.length; i++) {
                     //Is this circle-set part of the intersection
                     if (genesets.indexOf("GS" + intersect.sets[i]) === x) {
                         vfill = circleFillColours[1];
                         vquery = true;
 
-                        if(first === null && last === null){
+                        if (first === null && last === null) {
                             first = x;
                             last = x;
                             lx1 = vcx;
                             lx2 = vcx;
                         }
-                        else if(x > last){
+                        else if (x > last) {
                             last = x;
                             lx2 = vcx;
                         }
@@ -254,11 +267,11 @@ var upset = function () {
             vcy = vcy + 30;
             lastx = vcx;
             vcx = 0;
-            if(vcy > height){
+            if (vcy > height) {
                 height = height + 100;
             }
         }
-        if(lastx > 100){
+        if (lastx > 100) {
             width = width + 150;
         }
     };
@@ -266,12 +279,12 @@ var upset = function () {
     /**
      * Formats and positions text elements for each individual geneset
      */
-    var makeText = function() {
+    var makeText = function () {
         bx = 0;
         by = 8;
         tx1 = -10;
 
-        for (var i = 0; i < data.set_diagrams.length; i++){
+        for (var i = 0; i < data.set_diagrams.length; i++) {
             var set = data.set_diagrams[i];
 
             var text = {
@@ -306,8 +319,8 @@ var upset = function () {
 
         function tabulateSet(data, columns) {
             var table = d3.select("#upset-genes").append("table"),
-                    thead = table.append("thead"),
-                    tbody = table.append("tbody");
+                thead = table.append("thead"),
+                tbody = table.append("tbody");
 
             //Appending header row
             thead.append("tr")
@@ -315,7 +328,9 @@ var upset = function () {
                 .data(columns)
                 .enter()
                 .append("th")
-                .text(function(column) {return column;})
+                .text(function (column) {
+                    return column;
+                })
                 .style("fill", "white");
 
             // create a row for each object in the data
@@ -323,48 +338,58 @@ var upset = function () {
                 .data(data)
                 .enter()
                 .append("tr")
-                .text(function(d) { return d;});
+                .text(function (d) {
+                    return d;
+                });
 
             //create a cell in each row for each column
             var cells = rows.selectAll("td")
                 .data(function (row) {
-                    return columns.map(function(column) {
+                    return columns.map(function (column) {
                         return {column: column, value: row[column]};
                     });
                 })
                 .enter()
                 .append("td")
                 .attr("style", "font-family: Courier")
-                .html(function(d) {return d.value; });
+                .html(function (d) {
+                    return d.value;
+                });
 
             return table;
         }
 
         function tabluateIntersect(data, columns) {
             var genesTable = d3.select("#upset-genes").append("table"),
-                    thead = genesTable.append("thead"),
-                    tbody = genesTable.append("tbody");
+                thead = genesTable.append("thead"),
+                tbody = genesTable.append("tbody");
 
-                thead.append("tr")
-                    .selectAll("th")
-                    .data(columns)
-                    .enter().append("th")
-                    .text(function(column) { return column;});
+            thead.append("tr")
+                .selectAll("th")
+                .data(columns)
+                .enter().append("th")
+                .text(function (column) {
+                    return column;
+                });
 
 
-                var rows = tbody.selectAll("tr").data(data).enter().append("tr");
-                rows.selectAll("td")
-                    .data(function (d) {
-                        return d;
-                    })
-                    .enter().append("td")
-                    .text(function (d) {
-                        return d;
-                    });
+            var rows = tbody.selectAll("tr").data(data).enter().append("tr");
+            rows.selectAll("td")
+                .data(function (d) {
+                    return d;
+                })
+                .enter().append("td")
+                .text(function (d) {
+                    return d;
+                });
         }
 
-        var x = d3.scaleLinear().range([0, (chartHeight/4)]).domain([0, d3.max(Intersectionbars, function(d) { return d.height})]),
-            y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function(d) { return d.name; }));
+        var x = d3.scaleLinear().range([0, (chartHeight / 4)]).domain([0, d3.max(Intersectionbars, function (d) {
+                return d.height
+            })]),
+            y = d3.scaleBand().range([0, chartWidth]).domain(Intersectionbars.map(function (d) {
+                return d.name;
+            }));
 
         //Append svg to the upset area
         svg = d3.select("#upset-graph").append("svg")
@@ -377,37 +402,79 @@ var upset = function () {
         svg.selectAll("circle")
             .data(IntersectionCircles)
             .enter().append("circle")
-            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
-            .attr("cx", function(d) { return d.cx; })
-            .attr("cy", function(d) { return d.cy; })
-            .attr("r", function(d) { return d.r; })
-            .style("fill", function(d) { return d.fill; });
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) + "," + (yShift + textHeight) + ")")
+            .attr("cx", function (d) {
+                return d.cx;
+            })
+            .attr("cy", function (d) {
+                return d.cy;
+            })
+            .attr("r", function (d) {
+                return d.r;
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            });
 
         svg.selectAll("line")
             .data(setLine)
             .enter().append("line")
-            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
-            .attr("x1", function(d) { return d.x1; })
-            .attr("y1", function(d) { return d.y1; })
-            .attr("x2", function(d) { return d.x2; })
-            .attr("y2", function(d) { return d.y2; })
-            .style("stroke", function(d) { return d.fill; })
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) + "," + (yShift + textHeight) + ")")
+            .attr("x1", function (d) {
+                return d.x1;
+            })
+            .attr("y1", function (d) {
+                return d.y1;
+            })
+            .attr("x2", function (d) {
+                return d.x2;
+            })
+            .attr("y2", function (d) {
+                return d.y2;
+            })
+            .style("stroke", function (d) {
+                return d.fill;
+            })
             .style("stroke-width", "3px");
 
         //Adding background highlight
         svg.selectAll("bar")
             .data(BackgroundRow)
             .enter().append("rect")
-            .attr("class", function(d) { return d.type; })
-            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
-            .attr("x", function(d) { return d.x; } )
-            .attr("y", function(d) { return d.y; })
-            .attr("height", function(d) { return d.height; })
-            .attr("width", function(d) { return d.width; })
-            .style("fill", function(d) {return d.fill;})
+            .attr("class", function (d) {
+                return d.type;
+            })
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) + "," + (yShift + textHeight) + ")")
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return d.y;
+            })
+            .attr("height", function (d) {
+                return d.height;
+            })
+            .attr("width", function (d) {
+                return d.width;
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            })
             .style("fill-opacity", 0)
             .on("mouseover", mouseover)
-            .on("mouseout", mouseout);
+            .on("mouseout", mouseout)
+            .on("click", function (d) {
+                d3.selectAll("table").remove();
+
+                var infoTable = tabulateSet([d.name], ["Gene Set"]);
+                infoTable = tabulateSet([d.desc], ["Set Size"]);
+                infoTable = tabulateSet([d.entropy], ["Set Entropy"]);
+                if (d.jaccard === 0)
+                    infoTable = tabulateSet(["N/A"], ["Jaccard Value"]);
+                else
+                    infoTable = tabulateSet([d.jaccard], ["Jaccard Value"]);
+                var genesTable = tabluateIntersect(d.genes, ["Genes", "Species", "Entropy"]);
+            });
 
 
         //Draw intersection graph
@@ -441,39 +508,61 @@ var upset = function () {
         svg.selectAll("bar")
             .data(Intersectionbars)
             .enter().append("rect")
-            .attr("class", function(d) { return d.type; })
-            .attr("x", function(d) { return d.x; })
-            .attr("y", function(d) { return d.y; })
+            .attr("class", function (d) {
+                return d.type;
+            })
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return d.y;
+            })
             .attr("transform", "translate(" + ((xShift * data.set_diagrams.length) + yShift) + "," + ((yShift + textHeight) - 9) + ")")
             .attr("height", 18)
-            .attr("width", function(d) { return x(d.height); })
-            .style("fill", function(d) { return d.fill; })
+            .attr("width", function (d) {
+                return x(d.height);
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            })
             .style("fill-opacity", 1)
             .on("mouseover", mouseover)
             .on("mouseout", mouseout)
-            .on("click", function(d){
+            .on("click", function (d) {
                 d3.selectAll("table").remove();
+
+                var infoTable = tabulateSet([d.name], ["Gene Set"]);
+                infoTable = tabulateSet([d.desc], ["Set Size"]);
+                infoTable = tabulateSet([d.entropy], ["Set Entropy"]);
+                if (d.jaccard === 0)
+                    infoTable = tabulateSet(["N/A"], ["Jaccard Value"]);
+                else
+                    infoTable = tabulateSet([d.jaccard], ["Jaccard Value"]);
                 var genesTable = tabluateIntersect(d.genes, ["Genes", "Species", "Entropy"]);
-                });
+            });
 
 
-         //Draw entropy
-        var x = d3.scaleLinear().range([0, (chartHeight/4)]).domain([0, d3.max(EntropyBars, function(d) { return d.height})]),
-            y = d3.scaleBand().range([0, chartWidth]).domain(EntropyBars.map(function(d) { return d.name; }));
+        //Draw entropy
+        var x = d3.scaleLinear().range([0, (chartHeight / 4)]).domain([0, d3.max(EntropyBars, function (d) {
+                return d.height
+            })]),
+            y = d3.scaleBand().range([0, chartWidth]).domain(EntropyBars.map(function (d) {
+                return d.name;
+            }));
 
         //Adding Axis
         svg.append("g")
             .attr("class", "axis")
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + "," + ((yShift + textHeight) - 10) + ")")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight / 4) + yShift)) + "," + ((yShift + textHeight) - 10) + ")")
             .call(d3.axisTop(x));
 
         label = svg.append("rect")
             .attr("width", (chartHeight / 4))
             .attr("height", 20)
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + "," + (yShift ) + ")")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight / 4) + yShift)) + "," + (yShift ) + ")")
             .style("fill", "#C0C0C0");
         var label = svg.append("text")
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + ", " + (yShift) + ")")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight / 4) + yShift)) + ", " + (yShift) + ")")
             .attr("x", 30)
             .attr("y", 18)
             .text("Entropy")
@@ -483,46 +572,67 @@ var upset = function () {
 
         svg.append("g")
             .attr("class", "axis")
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + ",80)")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight / 4) + yShift)) + ",80)")
             .call(d3.axisBottom(x));
 
         //Adding the entropy diagrams
         svg.selectAll("bar")
             .data(EntropyBars)
             .enter().append("rect")
-            .attr("class", function(d) { return d.type; })
-            .attr("x", function(d) { return d.x; })
-            .attr("y", function(d) { return d.y; })
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight/4) + yShift)) + "," + ((yShift + textHeight) - 9) + ")")
+            .attr("class", function (d) {
+                return d.type;
+            })
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return d.y;
+            })
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + ((chartHeight / 4) + yShift)) + "," + ((yShift + textHeight) - 9) + ")")
             .attr("height", 18)
-            .attr("width", function(d) { return x(d.height); })
-            .style("fill", function(d) { return d.fill; })
+            .attr("width", function (d) {
+                return x(d.height);
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            })
             .style("fill-opacity", 1)
             .on("mouseover", mouseover)
             .on("mouseout", mouseout)
-            .on("click", function(d){
+            .on("click", function (d) {
                 d3.selectAll("table").remove();
+                var infoTable = tabulateSet([d.name], ["Gene Set"]);
+                infoTable = tabulateSet([d.desc], ["Set Size"]);
+                infoTable = tabulateSet([d.height], ["Set Entropy"]);
+                if (d.jaccard === 0)
+                    infoTable = tabulateSet(["N/A"], ["Jaccard Value"]);
+                else
+                    infoTable = tabulateSet([d.jaccard], ["Jaccard Value"]);
                 var genesTable = tabluateIntersect(d.genes, ["Genes", "Species", "Entropy"]);
-                });
+            });
 
 
         //Draw jaccard
-        var x = d3.scaleLinear().range([0, (chartHeight/3)]).domain([0, d3.max(JaccardBars, function(d) { return d.height})]),
-            y = d3.scaleBand().range([0, chartWidth]).domain(JaccardBars.map(function(d) { return d.name; }));
+        var x = d3.scaleLinear().range([0, (chartHeight / 3)]).domain([0, d3.max(JaccardBars, function (d) {
+                return d.height
+            })]),
+            y = d3.scaleBand().range([0, chartWidth]).domain(JaccardBars.map(function (d) {
+                return d.name;
+            }));
 
         //Adding Axis
         svg.append("g")
             .attr("class", "axis")
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + "," + ((yShift + textHeight) - 10) + ")")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight / 4) + yShift) * 2)) + "," + ((yShift + textHeight) - 10) + ")")
             .call(d3.axisTop(x));
 
         label = svg.append("rect")
             .attr("width", (chartHeight / 3))
             .attr("height", 20)
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + "," + (yShift ) + ")")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight / 4) + yShift) * 2)) + "," + (yShift ) + ")")
             .style("fill", "#C0C0C0");
         var label = svg.append("text")
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + ", " + (yShift) + ")")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight / 4) + yShift) * 2)) + ", " + (yShift) + ")")
             .attr("x", 30)
             .attr("y", 18)
             .text("Jaccard")
@@ -532,32 +642,53 @@ var upset = function () {
 
         svg.append("g")
             .attr("class", "axis")
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + ",80)")
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight / 4) + yShift) * 2)) + ",80)")
             .call(d3.axisBottom(x));
 
         //Adding the jaccard diagrams
         svg.selectAll("bar")
             .data(JaccardBars)
             .enter().append("rect")
-            .attr("class", function(d) { return d.type; })
-            .attr("x", function(d) { return d.x; })
-            .attr("y", function(d) { return d.y; })
-            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight/4) + yShift) * 2)) + "," + ((yShift + textHeight) - 9) + ")")
+            .attr("class", function (d) {
+                return d.type;
+            })
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return d.y;
+            })
+            .attr("transform", "translate(" + (((xShift * data.set_diagrams.length) + yShift) + (((chartHeight / 4) + yShift) * 2)) + "," + ((yShift + textHeight) - 9) + ")")
             .attr("height", 18)
-            .attr("width", function(d) { return x(d.height); })
-            .style("fill", function(d) { return d.fill; })
+            .attr("width", function (d) {
+                return x(d.height);
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            })
             .style("fill-opacity", 1)
             .on("mouseover", mouseover)
             .on("mouseout", mouseout)
-            .on("click", function(d){
+            .on("click", function (d) {
                 d3.selectAll("table").remove();
+                var infoTable = tabulateSet([d.name], ["Gene Set"]);
+                infoTable = tabulateSet([d.desc], ["Set Size"]);
+                infoTable = tabulateSet([d.entropy], ["Set Entropy"]);
+                if (d.jaccard === 0)
+                    infoTable = tabulateSet(["N/A"], ["Jaccard Value"]);
+                else
+                    infoTable = tabulateSet([d.height], ["Jaccard Value"]);
                 var genesTable = tabluateIntersect(d.genes, ["Genes", "Species", "Entropy"]);
-                });
+            });
 
         //Draw set graph
 
-        var x = d3.scaleBand().range([0, (yShift - diagramPadding)]).domain(setBars.map(function(d) { return d.name; })).padding(0.5),
-            y = d3.scaleLinear().range([(yShift - diagramPadding), 0]).domain([0, d3.max(setBars, function(d) { return d.height})]);
+        var x = d3.scaleBand().range([0, (yShift - diagramPadding)]).domain(setBars.map(function (d) {
+                return d.name;
+            })).padding(0.5),
+            y = d3.scaleLinear().range([(yShift - diagramPadding), 0]).domain([0, d3.max(setBars, function (d) {
+                return d.height
+            })]);
 
         //Adding Axis
         svg.append("g")
@@ -569,16 +700,28 @@ var upset = function () {
         svg.selectAll("bar")
             .data(setBars)
             .enter().append("rect")
-            .attr("class", function(d) { return d.type; })
+            .attr("class", function (d) {
+                return d.type;
+            })
             .attr("transform", "translate(-" + xShift + ",0)")
-            .attr("width", function (d) {return d.width; })
-            .attr("x", function (d) { return d.x; })
-            .attr("y", function(d) { return y(d.height); })
-            .attr("height", function (d) { return (yShift - diagramPadding) - y(d.height); })
-            .style("fill", function (d) { return d.fill; })
+            .attr("width", function (d) {
+                return d.width;
+            })
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return y(d.height);
+            })
+            .attr("height", function (d) {
+                return (yShift - diagramPadding) - y(d.height);
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            })
             .on("mouseover", mouseover)
             .on("mouseout", mouseout)
-            .on("click", function(d){
+            .on("click", function (d) {
                 d3.selectAll("table").remove();
                 genesTable = tabulateSet(d.genelist, ["Genes"]);
             });
@@ -589,12 +732,22 @@ var upset = function () {
             .enter();
 
         names.append("rect")
-            .attr("class", function(d) { return d.type; })
+            .attr("class", function (d) {
+                return d.type;
+            })
             .attr("transform", "translate(-" + xShift + "," + (yShift - xShift) + ") skewX(45)")
-            .attr("x", function (d) { return d.x; })
-            .attr("height", function (d) { return d.height; })
-            .attr("width", function (d) { return d.width;})
-            .style("fill", function (d) { return d.fill; })
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("height", function (d) {
+                return d.height;
+            })
+            .attr("width", function (d) {
+                return d.width;
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            })
             .on("mouseover", mouseover)
             .on("mouseout", mouseout);
 
@@ -603,33 +756,56 @@ var upset = function () {
             .style("font-family", "Calibri", "sans-serif")
             .style("font-size", ".6em")
             .style("color", "black")
-            .text(function (d) {return d.name; })
-            .attr("y", function (d) { return d.y - 10;})
-            .attr("x", function (d) { return (d.tx + 15);});
+            .text(function (d) {
+                return d.name;
+            })
+            .attr("y", function (d) {
+                return d.y - 10;
+            })
+            .attr("x", function (d) {
+                return (d.tx + 15);
+            });
 
         //Adding background highlight
-       svg.selectAll("bar")
+        svg.selectAll("bar")
             .data(BackgroundColumn)
             .enter().append("rect")
-            .attr("class", function(d) { return d.type; })
-            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) +"," + (yShift + textHeight) + ")")
-            .attr("x", function(d) { return d.x; })
-            .attr("y", function(d) { return d.y; })
-            .attr("height", function(d) { return d.height; })
-            .attr("width", function(d) { return d.width; })
-            .style("fill", function(d) { return d.fill; })
+            .attr("class", function (d) {
+                return d.type;
+            })
+            .attr("transform", "translate(" + (yShift - (2.5 * xShift)) + "," + (yShift + textHeight) + ")")
+            .attr("x", function (d) {
+                return d.x;
+            })
+            .attr("y", function (d) {
+                return d.y;
+            })
+            .attr("height", function (d) {
+                return d.height;
+            })
+            .attr("width", function (d) {
+                return d.width;
+            })
+            .style("fill", function (d) {
+                return d.fill;
+            })
             .style("fill-opacity", 0)
             .on("mouseover", mouseover)
-            .on("mouseout", mouseout);
+            .on("mouseout", mouseout)
+            .on("click", function (d) {
+                d3.selectAll("table").remove();
+                genesTable = tabulateSet(d.genelist, ["Genes"]);
+            });
 
-        function mouseover(clase){
+        function mouseover(clase) {
             svg.selectAll("." + this.getAttribute("class"))
                 .style("fill", "#006400")
                 .style("fill-opacity", function (d) {
                     return (this.getAttribute("fill-opacity") + 0.3);
                 });
         }
-        function mouseout(clase){
+
+        function mouseout(clase) {
             svg.selectAll("." + this.getAttribute("class"))
                 .style("fill", function (d) {
                     return d.fill;
@@ -646,37 +822,37 @@ var upset = function () {
      * Setters/getters
      */
     exports.data = function (_) {
-        if(!arguments.length) return data;
+        if (!arguments.length) return data;
         data = _;
         return exports;
     };
 
     exports.diagramPadding = function (_) {
-        if(!arguments.length) return diagramPadding;
+        if (!arguments.length) return diagramPadding;
         diagramPadding = +_;
         return exports;
     };
 
-    exports.height = function(_) {
+    exports.height = function (_) {
         if (!arguments.length) return height;
         height = +_;
         return exports;
     };
 
-    exports.width = function(_) {
+    exports.width = function (_) {
         if (!arguments.length) return width;
         width = +_;
         return exports;
     };
 
-    exports.xShift = function(_) {
+    exports.xShift = function (_) {
         if (!arguments.length) return xShift;
         xShift = +_;
         return exports;
     };
 
 
-    exports.yShift = function(_) {
+    exports.yShift = function (_) {
         if (!arguments.length) return yShift;
         yShift = +_;
         return exports;
