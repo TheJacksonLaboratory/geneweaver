@@ -33,7 +33,7 @@ function getItemStyles(item){
 //  }
 //
 //asPng: a bool specifying if it should be a png or an svg
-function download(item,styleTweak,asPng) {
+function download(item,styleTweak,asPng,filename) {
     //alert("take a screenshot you lazy good-for-nothing");
 
     var style=getItemStyles(item);
@@ -42,7 +42,7 @@ function download(item,styleTweak,asPng) {
     }
 
     var itemCopy=item.cloneNode(true);
-    var fileName="Result";
+    var fileName=filename;
     var styleDOM=document.createElement('style');
     styleDOM.setAttribute('type','text/css');
     styleDOM.innerHTML=style;

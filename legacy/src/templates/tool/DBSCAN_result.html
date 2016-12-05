@@ -60,9 +60,7 @@ td, th {
 
 </style>
 <script src="https://d3js.org/d3.v4.min.js"></script>
-{#<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.11.0/d3-legend.js"></script>#}
-{#<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.debug.js"></script>#}
-<script type="text/javascript" src="/static/js/downloadSvg.js" charset="utf-8"></script>
+<script type="text/javascript" src="/static/js/dbscan_download.js" charset="utf-8"></script>
 <div class="page-header">
     <h1>{{ title }}
         {{ runhash }} </h1>
@@ -146,8 +144,8 @@ td, th {
                     <script>
                         var clustersInCirclesSVG = $('#clustersInCirclesSVG')[0];
                     </script>
-                    <li onclick="download(clustersInCirclesSVG,null,false)"><a href="#">As SVG</a></li>
-                    <li onclick="download(clustersInCirclesSVG,null,true)"><a href="#">As PNG</a></li>
+                    <li onclick="download(clustersInCirclesSVG,null,false,'Clusters')"><a href="#">As SVG</a></li>
+                    <li onclick="download(clustersInCirclesSVG,null,true,'Clusters')"><a href="#">As PNG</a></li>
                 </ul>
             </div>
           {% endif %}
@@ -174,8 +172,8 @@ td, th {
                     <script>
                         var clustersInWiresSVG = $('#clustersInWiresSVG')[0];
                     </script>
-                    <li onclick="download(clustersInWiresSVG,null,false)"><a href="#">As SVG</a></li>
-                    <li onclick="download(clustersInWiresSVG,null,true)"><a href="#">As PNG</a></li>
+                    <li onclick="download(clustersInWiresSVG,null,false,'Wires')"><a href="#">As SVG</a></li>
+                    <li onclick="download(clustersInWiresSVG,null,true,'Wires')"><a href="#">As PNG</a></li>
                 </ul>
             </div>
               {% else %}
