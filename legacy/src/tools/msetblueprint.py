@@ -12,6 +12,12 @@ from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
 
 TOOL_CLASSNAME = 'MSET'
 mset_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6']
+
+SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
+                 'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
+                 'Canis familiaris']
 
 
 # class result():
@@ -162,80 +168,8 @@ def run_tool():
     #gs_dict["species_map"] = species_map
     gs_dict["project_ids"] = selected_project_ids
     gs_dict["tgId"] = tgId
+    gs_dict["intId"] = intId
     gs_dict["sp_params"] = species_checked
-
-    user_id = (gwdb.get_user_by_project_id(tgId))[0][0]
-
-    tg_geneset_ids = gwdb.get_geneset_by_project_id(tgId)
-    #int_geneset_ids = gwdb.get_geneset_by_project_id(intId)
-    sys.stderr.write(str(tgId) + ': ' + str(tg_geneset_ids) + '\n')
-    #sys.stderr.write(str(intId) + ': ' + str(int_geneset_ids) + '\n')
-    ##intersect_gs_ids = set(tg_geneset_ids).intersection(int_geneset_ids)
-    ##sys.stderr.write(str(intersect_gs_ids) + '\n')
-
-    #gs_result = {}
-    gs_ode_ids = []
-    source_list = {}
-    gdb = {}
-    ode_ref = {}
-    hom = {}
-    val = {}
-    gene_rank = {}
-
-    num_genes = 0
-
-    for gs_id in tg_geneset_ids:
-        geneset = gwdb.get_geneset(gs_id, user_id)
-        ##sys.stderr.write(str(geneset) + '\n')
-        ##sys.stderr.write(str(geneset.geneset_values) + '\n')
-
-        for g in geneset.geneset_values:
-            if g.source_list[0] in gene_symbols[intId]:
-                #new_result = []
-                #sys.stderr.write('Start trying to figure this out:\n')
-                id = g.ode_gene_id
-                sys.stderr.write('Source_list: ' + str(g.source_list[0]) + '\n')
-                #new_result.append(g.source_list[0])
-                source_list[id] = g.source_list
-                sys.stderr.write('gdb_id: ' + str(g.gdb_id) + '\n')
-                #new_result.append(g.gdb_id)
-                gdb[id] = g.gdb_id
-                sys.stderr.write('ode_ref: ' + str(g.ode_ref) + '\n')
-                #new_result.append(g.ode_ref)
-                ode_ref[id] = g.ode_ref
-                sys.stderr.write('Homology: ' + str(g.hom) + '\n')
-                #new_result.append(g.hom)
-                hom[id] = g.hom
-                sys.stderr.write('Value: ' + str(g.value) + '\n')
-                #new_result.append(g.value)
-                val[id] = float(g.value)
-                sys.stderr.write('Gene rank: ' + str(g.gene_rank) + '\n')
-                #new_result.append(g.gene_rank)
-                gene_rank[id] = g.gene_rank
-                sys.stderr.write('ode_gene_id: ' + str(g.ode_gene_id) + '\n')
-                gs_ode_ids.append(str(g.ode_gene_id))
-                num_genes += 1
-                #gs_result.append(new_result)
-                #sys.stderr.write('Stop trying to figure this out')
-
-    HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
-                           '#D93459', '#5E228B', '#698FC6']
-
-    SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
-                     'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
-                     'Canis familiaris']
-
-    gs_dict["source_list"] = source_list
-    gs_dict["gdb_id"] = gdb
-    gs_dict["ode_ref"] = ode_ref
-    gs_dict["homology"] = hom
-    gs_dict["value"] = val
-    gs_dict["gene_rank"] = gene_rank
-    gs_dict["num_genes"] = num_genes
-    gs_dict["hom_colors"] = HOMOLOGY_BOX_COLORS
-    gs_dict["spec_names"] = SPECIES_NAMES
-
-    gs_dict["ode_gene_ids"] = gs_ode_ids
 
     #sys.stderr.write(str(gs_result) + '\n')
     ##gs_dict["geneset"] = geneset
@@ -405,11 +339,26 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         data = async_result.result
         json.dumps(data, indent=4)
+        async_result = json.loads(async_result.result)
         # results are ready. render the page for the user
+
+        tgId = async_result["gs_dict"]["tgId"]
+        intId = async_result["gs_dict"]["intId"]
+
+        sys.stderr.write("\n**************\n" + tgId + '\n')
+        sys.stderr.write(intId + "\n")
+
+        geneset = gwdb.get_genes_for_mset(tgId, intId)
+        sys.stderr.write(str(geneset) + '\n')
+        #sys.stderr.write(str(geneset[0]) + '\n')
+        sys.stderr.write(str(geneset.geneset_values) + '\n')
+
+
         return flask.render_template(
             'tool/MSET_result.html',
             data=data,
-            async_result=json.loads(async_result.result),
+            async_result=async_result, geneset=geneset,
+            colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending

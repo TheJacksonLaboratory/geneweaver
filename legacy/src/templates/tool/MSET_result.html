@@ -581,30 +581,41 @@ database found in microarray results</p>
                         <th>&nbsp;</th>
                     </tr>
 
-                        {%for i in async_result.gs_dict['ode_gene_ids'] %}
+                     {% for geneset_value in geneset.geneset_values %}
                             <tr class="gene-list-row">
                                 <td id="defaultSymbol">
                                     <strong>
-                                        <a href="/search/?searchbar={{ async_result.gs_dict['source_list'][i][0] }}&pagination_page=1&searchGenes=yes">
-                                            {{ async_result.gs_dict['source_list'][i][0] }}
+                                        <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
+                                            {{ geneset_value.source_list[0] }}
                                         </a>
                                     </strong>
                                 </td>
-                                <td id="altSymbol" class="gene-symbol" ode-gene-id="{{ i }}">
-                                    <strong>
-                                        {{ async_result.gs_dict['ode_ref'][i] }}
-                                    </strong>
+                                <td id="altSymbol" class="gene-symbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
+                                    {# If the alternate ID type the user selected doesn't match the one belonging
+                                       to the geneset_value, it means no alternate type exists for that gene and a
+                                       default was used instead. #}
+                                    {% if geneset_value.gdb_id == alt_gdb_id %}
+                                            <strong>
+                                                {{ geneset_value.ode_ref }}
+                                            </strong>
+                                    {% else %}
+                                        <strong>
+                                            None
+                                        </strong>
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    {% for j in range(1,12) %}
+                                    {# Make boxes for homology blocks #}
+                                    {# see application.py for the list of species and colors #}
+                                    {% for i in range(1,12) %}
                                         {# skip elements that are empty #}
-                                        {% if async_result.gs_dict['spec_names'][j - 1] != 'empty' %}
-                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ async_result.gs_dict['spec_names'][(j-1)] }}"
-                                                  title="{{ async_result.gs_dict['spec_names'][(j-1)] }}">
+                                        {% if tt[(i-1)] != 'empty' %}
+                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
+                                                  title="{{ tt[(i-1)] }}">
                                             {% set exists = ['1'] %}
-                                            {% for h in async_result.gs_dict['homology'][i]|sort %}
-                                                {% if h == j %}
-                                                    <div class="geneBox" style="background-color: {{ async_result.gs_dict['hom_colors'][j - 1] }};"></div>
+                                            {% for h in geneset_value.hom|sort %}
+                                                {% if h == i %}
+                                                    <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
                                                     {% if exists.append('1') %}{% endif %}
                                                 {% endif %}
                                             {% endfor %}
@@ -617,44 +628,45 @@ database found in microarray results</p>
                                 </td>
                                 <td class="gene-value">
                                     <strong>
-                                        {{ '%0.4f' % async_result.gs_dict['value'][i]|float }}
+                                        {{ '%0.4f' % geneset_value.value|float }}
                                     </strong>
                                 </td>
                                 <td>
                                     <div class="progress">
                                         <div class="progress-bar progress-bar-success progress-bar-striped"
-                                             data-aria-valuetransitiongoal="{{ '%.0f' % async_result.gs_dict['gene_rank'][i]|float }}"
-                                             aria-valuenow="{{ '%.0f' % async_result.gs_dict['gene_rank'][i]|float }}"
-                                             style="width: {{ '%.0f' % async_result.gs_dict['gene_rank'][i]|float }}%;">
-                                            {{ '%.0f' % async_result.gs_dict['gene_rank'][i]|float }}
+                                             data-aria-valuetransitiongoal="{{ '%.0f' % geneset_value.gene_rank|float }}"
+                                             aria-valuenow="{{ '%.0f' % geneset_value.gene_rank|float }}"
+                                             style="width: {{ '%.0f' % geneset_value.gene_rank|float }}%;">
+                                            {{ '%.0f' % geneset_value.gene_rank|float }}
                                         </div>
                                     </div>
                                 </td>
                                 <td>
                                     <!-- TODO Insert outside links here -->
-                                    {% set gene=async_result.gs_dict['source_list'][i][0] %}
+                                    {% set gene=geneset_value.source_list[0] %}
                                     {% include 'linkouts.html' %}
                                 </td>
 
                                 <td nowrap>
-                                    <input type="checkbox" name="g_id[]" id="{{ i }}"
-                                           onchange="emphasize('{{ i }}');"
+                                    <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
+                                           onchange="emphasize('{{ geneset_value.ode_gene_id }}');"
                                            class="switch" data-size="mini"
                                            style="padding: 0px; vertical-align: middle;">
 
                                 </td>
                                 <td>
                                     <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                        <label for="addGeneset{{ async_result.gs_dict['source_list'][i][0] }}"
+                                        <label for="addGeneset{{ geneset_value.source_list[0] }}"
                                                style="margin: -6px; padding-right: 0;">
                                             <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ async_result.gs_dict['source_list'][i][0] }}"
-                                                   value="{{ async_result.gs_dict['source_list'][i][0] }}"/>
+                                                   id="addGeneset{{ geneset_value.source_list[0] }}"
+                                                   value="{{ geneset_value.source_list[0] }}"/>
                                         </label>
                                     </div>
                                 </td>
                             </tr>
-                        {% endfor %}
+
+                    {% endfor %}
                 	</tbody>
             	</table>
         	</div>
