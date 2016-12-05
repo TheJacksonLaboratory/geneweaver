@@ -88,18 +88,16 @@
 }
 
 .sidenav {
-        height: 10px;
+        height: 1000px;
         width: 0;
-        position: relative;
+        position: absolute;
         z-index: 1;
-        top: 0;
+        top: 340px;
         left: 0;
-        background-color: ghostwhite;
-        overflow-x: auto;
-        padding-top: 1000px;
-        transition: 0.3s;
-        float: left;
-        margin: 10px;
+        background-color: whitesmoke;
+        overflow-x: hidden;
+        padding-top: 60px;
+        transition: 0.5s;
     }
 
     .sidenav a:hover, .offcanvas a:focus{
@@ -235,7 +233,6 @@ div.tooltip {
 
 		</div>
 	</div>
-</div>
 
 <br>
 
@@ -249,6 +246,7 @@ div.tooltip {
     <span onclick="openNav()"><p style="color:darkgreen;"><strong>CLICK HERE TO VIEW GENES</strong></p></span>
     <div id="upset-graph">
     </div>
+</div>
 </div>
 
 <!-- Specifies the slider's range, min, max and step values -->
@@ -276,7 +274,7 @@ $(document).ready(function() {
     var us = upset()
         .data(d)
         .draw();
-        ;
+
 
     // The "Add GeneSets to Project" button
     $('#addToProject').on('click', function (e) {
@@ -386,7 +384,7 @@ $(document).ready(function() {
                 height = 900 - margin.top - margin.bottom;
 
         html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
-               html + '</svg>'
+               html + '</svg>';
 
         $.post(dlurl, {svg: html, filetype: filetype}).done(function (data) {
 
