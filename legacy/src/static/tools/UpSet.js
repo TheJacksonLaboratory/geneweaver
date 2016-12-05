@@ -172,7 +172,7 @@ upset = function () {
                 width: 18,
                 x: bx,
                 desc: set['desc1'],
-                name: set['name1'],
+                name: set['name'],
                 type: set['set_id'],
                 genelist: setgenes
             };
@@ -185,7 +185,9 @@ upset = function () {
                 height: (30 * data.intersection_diagrams.length),
                 fill: "#006400",
                 opacity: 0,
-                genelist: setgenes
+                genelist: setgenes,
+                desc: set['desc1'],
+                name: set['name']
             };
 
             setBars.push(rect);
@@ -723,6 +725,9 @@ upset = function () {
             .on("mouseout", mouseout)
             .on("click", function (d) {
                 d3.selectAll("table").remove();
+
+                var infoTable = tabulateSet([d.name], ["Gene Set"]);
+                infoTable = tabulateSet([d.desc], ["Set Size"]);
                 genesTable = tabulateSet(d.genelist, ["Genes"]);
             });
 
@@ -794,6 +799,8 @@ upset = function () {
             .on("mouseout", mouseout)
             .on("click", function (d) {
                 d3.selectAll("table").remove();
+                var infoTable = tabulateSet([d.name], ["Gene Set"]);
+                infoTable = tabulateSet([d.desc], ["Set Size"]);
                 genesTable = tabulateSet(d.genelist, ["Genes"]);
             });
 
