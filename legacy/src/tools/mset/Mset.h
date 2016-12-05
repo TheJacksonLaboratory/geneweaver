@@ -72,9 +72,9 @@ public:
         stringstream readUpperCaseBuffer;
         string errorMsg="Warning! empty background selected, samples can't be generated";
         bool success=false;
-        set<string> setOfInterest;
-        set<string> top;
-        vector<string> background;
+        set<string>* setOfInterest=new set<string>;
+        set<string>* top=new set<string>;
+        vector<string>* background=new vector<string>;
 
         int countsArraySize=1000;
         vector<int> counts(countsArraySize);//assume intersect length wont exceed 1000
@@ -90,7 +90,7 @@ public:
         string input;
         while(getline(readLists,input)){
             toUpper(input);
-            setOfInterest.insert(input);
+            setOfInterest->insert(input);
         }
 
         for(unsigned int i=0;i<backgroundFiles.size();i++){
@@ -103,7 +103,7 @@ public:
             }
             while(getline(readLists,input)){
                 toUpper(input);
-                background.push_back(input);
+                background->push_back(input);
             }
         }
 
@@ -116,7 +116,7 @@ public:
         }
         while(getline(readLists,input)){
             toUpper(input);
-            top.insert(input);
+            top->insert(input);
         }
         readLists.clear();
         readLists.close();
@@ -124,15 +124,17 @@ public:
         //////initialize the utility classes//////
 
         WithoutReplacementSampler<string> sampler;
-        sampler.setSource(&background);
+        sampler.setSource(background);
 
-        IntersectSizeFinder<string> isectFinder(setOfInterest.begin(),setOfInterest.end());
+        IntersectSizeFinder<string> isectFinder(setOfInterest->begin(),setOfInterest->end());
+        int setOfInterestSize=setOfInterest->size();
+        delete setOfInterest;
 
         //the length of the intersect with the top set and the intrest set to
         //compare to the simulations
-        long checklength=isectFinder.getIntersectionSizeWith(top);
+        long checklength=isectFinder.getIntersectionSizeWith(*top);
 
-        if(background.size()>0){
+        if(background->size()>0){
             success=true;
             errorMsg="";
         }else{
@@ -143,7 +145,7 @@ public:
         ////generate and store all of the samples we will use////
         vector<vector<string>* > samples;
         for(int i=0;i<numSamples;i++){
-            samples.push_back(new vector<string>(top.size()*2));//don't know why times two but it is in the publication
+            samples.push_back(new vector<string>(top->size()*2));//don't know why times two but it is in the publication
             sampler.sample(*samples[i]);//sample samples[i].size elements from background into samples[i] without replacement
         }
 
@@ -159,18 +161,13 @@ public:
         long numberOfCycles=numSamples/maxConcurentThreads;
         long remainder=numSamples%maxConcurentThreads;
         long id=0;
-        /*for number of times maxConcurentThreads goes in evenly into num samples,
-         * spawn maxConcurentThreads threads running uniquify and wait for them to finish
-         */
+        //*
+        //for number of times maxConcurentThreads goes in evenly into num samples,
+         //spawn maxConcurentThreads threads running uniquify and wait for them to finish
+         
         for(long i=0;i<numberOfCycles;i++){
             for(long j=0;j<maxConcurentThreads;j++){
-                /*
-                threads[j]=thread(
-                    calculateIntersections,
-                    isectFinderPtr,countsPtr,samples[id],
-                    ref(numGreater),checklength,ref(resizeCountsTo));
-                */
-                threads[j]=thread(uniquify,samples[id],top.size());
+                threads[j]=thread(uniquify,samples[id],top->size());
                 id++;
             }
             for(long j=0;j<maxConcurentThreads;j++){
@@ -180,21 +177,20 @@ public:
 
         //take care of the remaining samples
         for(long j=0;j<remainder;j++){
-            threads[j]=thread(uniquify,samples[id],top.size());
+            threads[j]=thread(uniquify,samples[id],top->size());
             id++;
         }
         for(long j=0;j<remainder;j++){
             threads[j].join();
         }
+        //*/
 
         //do all the instersections
         long resizeCountsTo=0;
         for(long i=0;i<numSamples;i++){
-            //ref() explicitly tells the compiler that a variable is pass by reference,
-            //which is needed if this is used in a multithreaded way later on
             calculateIntersections(
                     isectFinderPtr,countsPtr,samples[i],
-                    ref(numGreater),checklength,ref(resizeCountsTo));
+                    numGreater,checklength,resizeCountsTo);
         }
 
         //crop all the 0 elements at the end out of the probability density data
@@ -230,7 +226,7 @@ public:
         //matches to database found in microarray results
         jsonOutput<<tb<<"\"inTopAndInterestCount\": "<<checklength<<","<<endl;
         jsonOutput<<tb<<"\"inTopAndInterest\": ["<<endl;
-        vector<string> matches=isectFinder.getIntersectionWith(top.begin(),top.end());
+        vector<string> matches=isectFinder.getIntersectionWith(top->begin(),top->end());
         for(unsigned int i=0;i<matches.size();i++){
             jsonOutput<<tb<<tb<<"\""<<matches[i]<<"\"";
             if(i!=(matches.size()-1)){
@@ -244,7 +240,7 @@ public:
         //to database as actual expression results.
         jsonOutput<<tb<<"\"numSamples\": "<<numSamples<<","<<endl;
         jsonOutput<<tb<<"\"intersectGreaterCount\": "<<numGreater<<","<<endl;
-        jsonOutput<<tb<<"\"sampleLength\": "<<top.size()<<","<<endl;//length of each sample
+        jsonOutput<<tb<<"\"sampleLength\": "<<top->size()<<","<<endl;//length of each sample
         jsonOutput<<tb<<"\"pValue\": "<<pvalue<<","<<endl;
         jsonOutput<<tb<<"\"densityPointCount\": "<<counts.size()<<","<<endl;//length of density array
         jsonOutput<<tb<<"\"density\": ["<<endl;//density array
@@ -258,13 +254,16 @@ public:
         jsonOutput<<tb<<"],"<<endl;
         jsonOutput<<tb<<"\"interestToBackgroundSizeRatio\": ";
         if(numSamples!=-1){
-            jsonOutput<<double(setOfInterest.size())/double(background.size());
+            jsonOutput<<double(setOfInterestSize)/double(background->size());
         }
         else{
             jsonOutput<<"-1";
         }
         jsonOutput<<endl;
         jsonOutput<<"}";
+
+        delete top;
+        delete background;
 
         return jsonOutput.str();
 
