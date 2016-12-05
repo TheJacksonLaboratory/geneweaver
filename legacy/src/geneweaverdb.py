@@ -2111,6 +2111,7 @@ class MSETGeneset:
         self.name = gs_dict['pj_name']
         self.description = gs_dict['pj_notes']
         self.creation_date = gs_dict['pj_created']
+        #self.num_genes = gs_dict['num_genes']
 
         # declare value caches for instance properties
         self.__geneset_values = None
@@ -3021,6 +3022,37 @@ def get_geneset_values_for_mset(pj_tg_id, pj_int_id):
                   END''' + s, (pj_tg_id, pj_int_id, pj_tg_id, ode_ref))
 
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+def get_geneset_values_for_mset_small(pj_tg_id, pj_int_id):
+    """
+    This geneset value query has been augmented to return a list of sp_ids that can be used
+    on the geneset information page.
+    Also, augmented to add a session call for sorting
+    :param geneset_id:
+    :returns to geneset class.
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT unnest(gsv_source_list)
+					FROM geneset_value
+					WHERE gs_id IN (SELECT gs_id
+					FROM production.geneset
+					WHERE gs_id IN
+						(SELECT gs_id
+						FROM production.project2geneset
+						WHERE pj_id = %s))
+			INTERSECT
+			SELECT unnest(gsv_source_list)
+				    FROM geneset_value
+					WHERE gs_id IN (SELECT gs_id
+					FROM production.geneset
+					WHERE gs_id IN
+						(SELECT gs_id
+						FROM production.project2geneset
+						WHERE pj_id = %s))''', (pj_tg_id, pj_int_id))
+
+        return cursor.fetchall()
 
 def get_geneset_values(geneset_id):
     """

@@ -357,7 +357,9 @@ fix the code to be maintainable and consistent with the rest of the website code
     legend.append("text")
 	    .attr("dy", "13.1em")
 	    .attr("dx", "-6.5em")
-        .style("stroke","ghostwhite")
+        .style("stroke","white")
+            .style("stroke-width","0.001px")
+            .style("fill","white")
         .style("font-size",".1px")
         .text("Interest");
 
@@ -371,7 +373,9 @@ fix the code to be maintainable and consistent with the rest of the website code
     legend.append("text")
 	    .attr("dy", "13.1em")
 	    .attr("dx", "2em")
-        .style("stroke","ghostwhite")
+        .style("stroke","white")
+            .style("stroke-width","0.001px")
+            .style("fill","white")
         .style("font-size",".1px")
         .text("Background");
 </script>
@@ -507,7 +511,8 @@ database found in microarray results</p>
                 </div>
             </div>
 
-            <div class="row">
+        {% if ignore == 0 %}
+            <div class="row" >
                 <!-- TODO make the table sortable, show more gene details -->
                 <table class="table table-hover">
                     <tbody>
@@ -670,6 +675,56 @@ database found in microarray results</p>
                 	</tbody>
             	</table>
         	</div>
+            {% else %}
+
+                            <div class="row">
+                <!-- TODO make the table sortable, show more gene details -->
+                <table class="table table-hover">
+                    <tbody>
+                    <tr>
+                        <th>Default</th>
+                        <th>LinkOuts</th>
+                        <th>Emphasis</th>
+                        <th>&nbsp;</th>
+                    </tr>
+
+                     {% for geneset_value in geneset %}
+                            <tr class="gene-list-row">
+                                <td id="defaultSymbol">
+                                    <strong>
+                                        <a href="/search/?searchbar={{ geneset_value[0] }}&pagination_page=1&searchGenes=yes">
+                                            {{ geneset_value[0] }}
+                                        </a>
+                                    </strong>
+                                </td>
+                                <td class="gene-value">
+                                    <strong>
+                                        {{ '%0.4f' % 1|float }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    <!-- TODO Insert outside links here -->
+                                    {% set gene=geneset_value[0] %}
+                                    {% include 'linkouts.html' %}
+                                </td>
+                                <td>
+                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                        <label for="addGeneset{{ geneset_value[0] }}"
+                                               style="margin: -6px; padding-right: 0;">
+                                            <input type="checkbox" name="gsoptions[]"
+                                                   id="addGeneset{{ geneset_value[0] }}"
+                                                   value="{{ geneset_value[0] }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                    {% endfor %}
+                	</tbody>
+            	</table>
+        	</div>
+
+            {% endif %}
     	</div>
 	</div>
 

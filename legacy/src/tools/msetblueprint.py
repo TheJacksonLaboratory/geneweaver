@@ -171,6 +171,8 @@ def run_tool():
     gs_dict["intId"] = intId
     gs_dict["sp_params"] = species_checked
 
+    sys.stderr.write("\n*****************\nFinished with main blueprint code part\n")
+
     #sys.stderr.write(str(gs_result) + '\n')
     ##gs_dict["geneset"] = geneset
 
@@ -344,21 +346,31 @@ def view_result(task_id):
 
         tgId = async_result["gs_dict"]["tgId"]
         intId = async_result["gs_dict"]["intId"]
+        num_genes = async_result["gs_dict"]["num_genes"]
 
-        sys.stderr.write("\n**************\n" + tgId + '\n')
-        sys.stderr.write(intId + "\n")
+        ignore = 0
+        geneset = []
+        if num_genes > 200:
+            ignore = 1
+            geneset = gwdb.get_geneset_values_for_mset_small(tgId, intId)
+            #sys.stderr.write(str(geneset) + '\n')
+        else:
+            sys.stderr.write("\n**************\n" + tgId + '\n')
+            sys.stderr.write(intId + "\n")
 
-        geneset = gwdb.get_genes_for_mset(tgId, intId)
-        sys.stderr.write(str(geneset) + '\n')
-        #sys.stderr.write(str(geneset[0]) + '\n')
-        sys.stderr.write(str(geneset.geneset_values) + '\n')
+            geneset = gwdb.get_genes_for_mset(tgId, intId)
+            sys.stderr.write(str(geneset) + '\n')
+            #sys.stderr.write(str(geneset[0]) + '\n')
+            #sys.stderr.write(str(geneset.geneset_values[0].source_list[0]) + '\n')
 
 
+
+        sys.stderr.write('Finished getting gene info\n')
         return flask.render_template(
             'tool/MSET_result.html',
             data=data,
             async_result=async_result, geneset=geneset,
-            colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
+            colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES, ignore=ignore,
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:
         # render a page telling their results are pending

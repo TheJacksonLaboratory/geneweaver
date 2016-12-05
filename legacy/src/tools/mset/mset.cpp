@@ -81,7 +81,7 @@ int main(int argc, char** argv){
         exit(UNEXPECTED_END);
     }
 
-
+    ofstream cout("output.json");
 
     MSET msetFinder;//main logic is in this mset class
     cout<<"{\"data\":["<<endl;//the cpp just puts the json objects into an array
@@ -91,5 +91,6 @@ int main(int argc, char** argv){
     }
     cout<<endl;
     cout<<"]}"<<endl;
+    cout.close();
     return 0;
 }
