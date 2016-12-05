@@ -244,12 +244,16 @@ public:
         jsonOutput<<tb<<"\"pValue\": "<<pvalue<<","<<endl;
         jsonOutput<<tb<<"\"densityPointCount\": "<<counts.size()<<","<<endl;//length of density array
         jsonOutput<<tb<<"\"density\": ["<<endl;//density array
-        for(unsigned int i=0;i<counts.size();i++){
-            jsonOutput<<tb<<tb<<double(counts[i])/double(numSamples);
-            if(i!=(counts.size()-1)){
-                jsonOutput<<",";
+        if(counts.size()==1){
+            jsonOutput<<tb<<tb<<"1"<<endl;
+        }else{
+            for(unsigned int i=0;i<counts.size();i++){
+                jsonOutput<<tb<<tb<<double(counts[i])/double(numSamples);
+                if(i!=(counts.size()-1)){
+                    jsonOutput<<",";
+                }
+                jsonOutput<<endl;
             }
-            jsonOutput<<endl;
         }
         jsonOutput<<tb<<"],"<<endl;
         jsonOutput<<tb<<"\"interestToBackgroundSizeRatio\": ";
