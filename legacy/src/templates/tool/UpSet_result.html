@@ -161,7 +161,7 @@ div.tooltip {
         <div class="panel-heading bg-green" style="border-radius:4px;">
 			<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
 				<div class="panel-title" style="width:100%;">
-					Tool Options
+					UpSet Tool Options
 					<span class="caret"></span>
 				</div>
 			</a>
@@ -190,6 +190,51 @@ div.tooltip {
                                 value='run'
                                 onclick='this.form.action="{{ url_for('UpSet.run_tool') }}";'>
                             Re-Run Tool
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<form target="_blank" class="form-horizontal" role="form" method="post">
+    <div class="panel panel-info" >
+        <div class="panel-heading bg-green" style="border-radius:4px;">
+			<a data-toggle="collapse" data-parent="#accordion" href="#jaccCollapse"style="color:#FFFFFF; width:100%;">
+				<div class="panel-title" style="width:100%;">
+					Jaccard Options
+					<span class="caret"></span>
+				</div>
+			</a>
+        </div>
+        <div id="jaccCollapse" class="panel-collapse collapse" style="">
+            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                    <div class="col-md-8">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
+                            Run Jaccard Tool
                         </button>
                     </div>
                 </div>
