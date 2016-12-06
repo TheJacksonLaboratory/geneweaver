@@ -93,7 +93,7 @@
         position: absolute;
         z-index: 1;
         top: 340px;
-        left: 20px;
+        left: 0;
         background-color: whitesmoke;
         overflow-x: hidden;
         padding-top: 60px;
@@ -280,8 +280,7 @@ div.tooltip {
 	</div>
 
 <br>
-
-<!-- Div(UpSet), where all the bar chart D3 is appended to in the JavaScript below -->
+    <!-- Div(UpSet), where all the bar chart D3 is appended to in the JavaScript below -->
 <div id="container">
     <div id="upset-genes" class="sidenav">
         <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
@@ -294,24 +293,32 @@ div.tooltip {
 </div>
 </div>
 
-<!-- Specifies the slider's range, min, max and step values -->
- <input type="range" min="0" max="1" step = "0.01" id="nOpacity">
-</p>
 <br>
 <br>
 
 <script src="/static/tools/UpSet.js" charset="utf-8"></script>
 <script type="text/javascript">
 
+    window.onresize = function () {
+        var width = $(window).width();
+        closeNav();
+    };
+
     function openNav() {
+        var w = window.innerWidth;
+
         document.getElementById("upset-genes").style.width = "600px";
-        //document.getElementById("upset-graph").style.marginLeft = "500px";
+        if(w > 2300)
+            document.getElementById("upset-graph").style.marginLeft = "0";
+        else
+            document.getElementById("upset-graph").style.marginLeft = "" + (600 - ((w - $("#container").width())/2)) + "px";
     }
 
     function closeNav() {
         document.getElementById("upset-genes").style.width = "0";
-        //document.getElementById("upset-graph").style.marginLeft = "0";
+        document.getElementById("upset-graph").style.marginLeft = "0";
     }
+
 
 $(document).ready(function() {
 
@@ -319,7 +326,6 @@ $(document).ready(function() {
     var us = upset()
         .data(d)
         .draw();
-
 
     // The "Add GeneSets to Project" button
     $('#addToProject').on('click', function (e) {
