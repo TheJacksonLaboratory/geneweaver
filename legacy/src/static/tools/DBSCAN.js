@@ -21,6 +21,8 @@ var pack = d3.pack()
 
 //Parse the cluster to a format which d3 code can accept
 //Basiclly root - cluster layer - gene layer(leaf)
+//In cluster layer, the object has name, showTooltip, children as keys
+//In gene layer, the leaf node/object has name, size, colorZoomin, colorZoomout as keys
 function parse(cluster, geneToSpecies) {
     var clusters = {};
     clusters.name = "Clusters";
@@ -45,9 +47,16 @@ function parse(cluster, geneToSpecies) {
     });
     return clusters;
 }
-//parse the json to a node-link format
-//used for the second versio of visualization
-//TODO if gene is not in any of the clusters
+/*
+* Parse the json to a nodes-links format
+* used for the second version of visualization
+*
+* Nodes has id, group as keys
+*   id is the name of gene, and group define the color of the node
+* Links has source, target, value as key
+*   value is all set to 1 in this project to make the length of wire easier
+* */
+
 function parse2(edges, genes) {
     var graph = {};
     graph.nodes = genes.map(function(gene){
@@ -65,7 +74,8 @@ function parse2(edges, genes) {
     });
     return graph;
 }
-//Main function to draw svg
+
+//Main function to draw circle version of visualiztion
 function drawClusters(root) {
   var tooltip = d3.select("body")
         .append("div")
@@ -80,6 +90,7 @@ function drawClusters(root) {
       .sort(function(a, b) { return b.value - a.value; });
 
   //set focus, will be used for zooming function
+  //whenever run zoomin/zoomout function, focus will be change
   var focus = root,
       nodes = pack(root).descendants(),
       view;
@@ -92,6 +103,7 @@ function drawClusters(root) {
       .style("fill", function(d) {
           //set color for the largest circle(root)
           if(!d.parent)
+              //set background color for cluster layer
               return "#96C7DF";
           //if d has children, then d is cluster layer, else d is in gene layer.
           //at gene layer, when the focus is root, it is at zoom out mode, otherwise zoom in mode
@@ -99,6 +111,7 @@ function drawClusters(root) {
       //set onClick function to the circle, which is the zoom function
       .on("mouseover", function(d){
           if (focus !== root) {
+              //check threshold to decided whether show text or tooltip
               if(!d.children && d.parent.data.showTooltip === 1)
                 return tooltip.style("visibility", "visible").text(d.data.name);
           }
@@ -126,6 +139,7 @@ function drawClusters(root) {
       .on("click", function(d) {
           //make the gene clickable--url will redirect to a search gene page
           if(!d.children) {
+              //make the gene name clickable -- redirect to the gene_detail page
               var url = "/search/?searchbar=" + d.data.name + "&pagination_page=1&searchGenes=yes";
               location.href = url;
               d3.event.stopPropagation();  }})
@@ -220,6 +234,7 @@ function drawConnections(graph) {
           if(d.group === undefined)
               return "grey";
           return color1(d.group); })
+      //Enable mouseover to see the name of gene
       .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.id);})
       .on("mousemove", function(){return tooltip.style("top",
     (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
@@ -270,12 +285,13 @@ function dragended(d) {
   d.fx = null, d.fy = null;
 }
 
-//draw legend
+//draw legend for species
 var svg3 = d3.select("#speciesLegend");
 function drawLegendCircles() {
     var key = svg3.append('g');
 
     Object.keys(speciesToColorZoomout).forEach(function(name, i){
+        //put the legend in two columns
         if(i < 5) {
             key.append('circle')
                 .attr('cx', 15)
@@ -316,6 +332,7 @@ function drawLegendCircles() {
     });
 
 }
+//draw lengend for clusters
 var svg4 = d3.select("#clusterLegend");
 function drawLegendWires() {
     var key = svg4.append('g');
