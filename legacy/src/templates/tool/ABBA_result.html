@@ -163,10 +163,16 @@
       <button type="button" id="updateBtn" class="btn btn-primary pull-right"title="Update Search">Update</button>
       <div id="update_form_wrapper" style="display: none;">
           <form target="_blank" id="todo-id" class="form-horizontal" role="form" method="post">
+            {% if async_result.GenesOfInterestCount %}
+              {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
+            {% else %}
+              {% set genesOfInterestCnt=0 %}
+            {% endif %}
             {% for gene in async_result.InputGenes %}
-          	<input type="text" class="fieldname" name="ABBA_InputGenes" value="{{gene}}" hidden/>
+          	<input type="text" id="genesOfInterestInputHidden" class="fieldname" name="ABBA_InputGenes" value="{{gene}}" data-count="{{genesOfInterestCnt}}" hidden/>
           	{% endfor %}
             <div class="panel-body">
+
               <br>
 
         			<div class="form-group">
@@ -383,7 +389,7 @@
               <tr class="result-row" row-type="RG" data-id="{{gene[0]}}" data-type="gene">
                 <td>{{gene[1]}}<br></td>
                 <td>{{gene[2]}}<br></td>
-                <td>{{gene[3]}}</td>
+                <td>{{gene[4]}}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -406,6 +412,7 @@
 
 <script type="text/javascript">
 $(document).ready(function() {
+
   $('#updateBtn').click(function(){
     $('#update_form_wrapper').toggle();
   });
@@ -885,6 +892,11 @@ $(document).ready(function() {
 
 <!-- Update Button Script -->
 <script>
+    var goiCount = $("#genesOfInterestInputHidden").data('count');
+    for(var i=0; i<goiCount; i++){
+      min_genes_inc();  
+    }
+
     $("#addGeneBtn").click(function() {
         var intId = $("#inputGeneField div").length + 1;
         var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
