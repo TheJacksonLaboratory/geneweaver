@@ -770,7 +770,6 @@
         });
 
         $('#annotation_pref').change(function () {
-            console.log("FOO");
             var usr = {{ g.user.user_id }};
             $.getJSON("{{ url_for('set_annotator') }}", {
                 'user_id': usr,
