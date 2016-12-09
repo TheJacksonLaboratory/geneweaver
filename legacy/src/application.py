@@ -31,6 +31,7 @@ import cairosvg
 import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
+import bleach
 
 
 app = flask.Flask(__name__)
@@ -405,8 +406,7 @@ def assign_genesets_to_curation_group():
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        #TODO do we need to sanitize the note?
-        note = request.form.get('note', '')
+        note = bleach.clean(request.form.get('note', ''))
         grp_id = request.form.get('grp_id')
 
         gs_ids = request.form.getlist('gs_ids[]', type=int)
@@ -438,8 +438,7 @@ def assign_genesets_to_curator():
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        #TODO do we need to sanitize the note?
-        note = request.form.get('note', '')
+        note = bleach.clean(request.form.get('note', ''))
         curator = request.form.get('usr_id')
         gs_ids = request.form.getlist('gs_ids[]', type=int)
         curator_info = geneweaverdb.get_user(curator)
@@ -474,8 +473,7 @@ def assign_publications_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        note = request.form.get('note', '')
+        note = bleach.clean(request.form.get('note', ''))
         curator = request.form.get('usr_id')
         pub_ids = request.form.getlist('pub_ids[]', type=int)
         group_id = request.form.get('group_id')
@@ -510,8 +508,7 @@ def assign_geneset_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('note', '')
+        notes = bleach.clean(request.form.get('note', ''))
         gs_id = request.form.get('gs_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -544,8 +541,7 @@ def geneset_ready_for_review():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('note', '')
+        notes = bleach.clean(request.form.get('note', ''))
         gs_id = request.form.get('gs_id', type=int)
 
         assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
@@ -573,8 +569,7 @@ def mark_geneset_reviewed():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('note', '')
+        notes = bleach.clean(request.form.get('note', ''))
         gs_id = request.form.get('gs_id', type=int)
         review_ok = request.form.get('review_ok') in ['true', '1']
 
@@ -636,7 +631,7 @@ def assign_publication_to_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = request.form.get('notes', '')
+        notes = bleach.clean(request.form.get('note', ''))
         pubmed_id = request.form.get('pubmed_id')
         group_id = request.form.get('group_id', type=int)
 
@@ -681,8 +676,7 @@ def assign_publication_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('notes', '')
+        notes = bleach.clean(request.form.get('note', ''))
         pub_assignment_id = request.form.get('assignment_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -772,8 +766,7 @@ def save_pub_assignment_note():
         uid = flask.session['user_id']
         pub_assignment_id = request.form.get('assignment_id', type=int)
 
-        # TODO sanitize notes
-        notes = request.form.get('notes')
+        notes = bleach.clean(request.form.get('note', ''))
 
         assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
         if assignment:
