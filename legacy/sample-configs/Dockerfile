@@ -1,52 +1,45 @@
-FROM centos:7
+FROM python:2.7
 
 MAINTAINER Alexander Berger <alexander.berger@jax.org>
 
-ENV SPHINX_VERSION=2.2.9-release RE2_VERSION=2015-11-01 \
-    SPHINX_INDEX_DIR=/var/idx/sphinx \
-    SPHINX_LOG_DIR=/var/log/sphinx \
-    SPHINX_LIB_DIR=/var/lib/sphinx \
-    SPHINX_RUN_DIR=/var/run/sphinx \
-    SPHINX_DIZ_DIR=/var/diz/sphinx
+ENV SRV_DIR=/srv/geneweaver/website-py/src \
+    CONFIG_DIR=/srv/geneweaver/website-py/sample-configs/docker-configs \
+    NGINX_VERSION=1.9.11-1~jessie \
+    PYTHONPATH=$PYTHONPATH:/srv/geneweaver/website-py/src
 
-RUN groupadd -r rabbitmq && useradd -r -d /var/lib/rabbitmq -m -g rabbitmq rabbitmq
-RUN curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | /bin/sh
+COPY website-py/sample-configs/docker-configs ${CONFIG_DIR}
 
-RUN rpm -Uvh https://packages.erlang-solutions.com/erlang-solutions-1.0-1.noarch.rpm
-          
-RUN yum update && yum install -y \
-	autoconf automake libtool gcc-c++ -y -q \
-	boost \
-	boost-devel \
-	cairo \
-	cairo-devel \
-	erlang \
-	git \
-	graphviz \
-	initscripts \
-	libffi \
-	libffi-devel \
-	libmysqlclient.so.18 \
-	libpqxx \
-	libpqxx-devel \
-	make \
-	mysql-devel \
-	postgresql-server \
-	postgresql-devel \
-	postgresql-libs \
-	python2 \
-	sphinx \
-	unixODBC \
-	wget tar -y -q
+RUN pip install --upgrade pip \
+ && pip install uwsgi \
+ && wget http://geneweaver.org/sphinxapi.tar.gz && pip install sphinxapi.tar.gz \
+ && pip install -r ${CONFIG_DIR}/requirements.txt 
 
-WORKDIR /var/lib/pgsql
+RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62 \
+ && echo "deb http://nginx.org/packages/mainline/debian/ jessie nginx" >> /etc/apt/sources.list \
+ && apt-get update \
+ && apt-get install -y ca-certificates \
+		       nginx=${NGINX_VERSION} \
+		       gettext-base \
+		       mysql-client \
+		       unixodbc \
+		       libpq5 \
+		       graphviz \
+		       supervisor \
+ && rm -rf /var/lib/apt/lists/* 
 
-RUN mkdir -p /var/lib/pgsql/restore
-RUN mkdir -p /var/lib/pgsql/data
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+ && ln -sf /dev/stderr /var/log/nginx/error.log \
+ && echo "daemon off;" >> /etc/nginx/nginx.conf \
+ && rm /etc/nginx/conf.d/default.conf \
+ && mv ${CONFIG_DIR}/nginx.conf /etc/nginx/conf.d/ \
+ && mv ${CONFIG_DIR}/gw-uwsgi.ini /srv/geneweaver \
+ && mv ${CONFIG_DIR}/geneweaver.cfg /srv/geneweaver \
+ && mkdir -p /etc/uwsgi/ && mv ${CONFIG_DIR}/uwsgi.ini /etc/uwsgi \
+ && mv ${CONFIG_DIR}/supervisord.conf /etc/supervisord.conf
 
-COPY DB/Restore/ode-db3-schema-2016-07-26.custom /var/lib/pgsql/restore/
-COPY DB/Restore/ode-db3-data-2016-07-26.custom /var/lib/pgsql/restore/
+WORKDIR ${SRV_DIR}
 
-RUN su - postgres -c "initdb -D /var/lib/pgsql/data; pg_ctl -D /var/lib/pgsql/data -l logfile start; /bin/sleep 5; createuser -s odeadmin; createdb geneweaver;"
-RUN su - postgres -c "pg_restore --no-owner -Fc /var/lib/pgsql/restore/ode-db3-schema-2016-07-26.custom | psql -U postgres -d geneweaver;"
-RUN su - postgres -c "pg_restore --no-owner -a -d geneweaver -Fc --disable-triggers -j6 -S postgres -U postgres /var/lib/pgsql/restore/ode-db3-data-2016-07-26.custom"
+EXPOSE 80 443 5000
+
+#CMD ["/bin/bash"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
