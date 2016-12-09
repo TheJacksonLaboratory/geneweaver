@@ -2380,7 +2380,6 @@ class Geneset:
         if self.pub_id is not None:
             try:
                 self.publication = Publication(gs_dict)
-                print self.publication.abstract
             except KeyError:
                 self.publication = None
         else:
