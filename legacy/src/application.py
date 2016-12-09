@@ -1358,11 +1358,14 @@ def render_accountsettings():
 
     prefs = json.loads(user.prefs)
     email_pref = prefs.get('email_notification', 0)
+    annotation_pref = prefs.get('annotator', 'monarch')
 
 
     return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
                                  groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail,
-                                 groupAdmins=groupAdmins, emailNotifications=email_pref)
+                                 groupAdmins=groupAdmins,
+                                 emailNotifications=email_pref,
+                                 annotation_pref=annotation_pref)
 
 
 @app.route('/update_notification_pref.json', methods=['GET'])
@@ -1380,6 +1383,21 @@ def update_notification_pref():
 
     return response
 
+
+@app.route('/set_annotator.json')
+def set_annotator():
+    user_id = int(flask.request.args['user_id'])
+    if 'user_id' in flask.session and user_id == flask.session.get('user_id'):
+        result = geneweaverdb.update_annotation_pref(user_id, flask.request.args['annotator'])
+        response = flask.jsonify(**result)
+        if 'error' in result:
+            response.status_code = 500
+
+    else:
+        response = flask.jsonify(error='Unable to set email notification preference: permission error')
+        response.status_code = 403
+
+    return response
 
 @app.route('/login')
 def render_login():

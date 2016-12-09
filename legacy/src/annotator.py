@@ -23,6 +23,14 @@ MONARCH_URL = 'http://scigraph-ontology.monarchinitiative.org/scigraph'
 ## in Monarch's source code. If it changes, you might have to look there.
 MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
 
+__ANNOTATORS = [
+    {'display_name': 'ncbo',
+     'description': 'National Center for Biomedical Ontology Annotator'},
+    {'display_name': 'monarch',
+     'description': 'Monarch initiative text annotation service'}
+]
+
+
 def fetch_ncbo_annotations(text, ncboids):
     """
     Given a chunk of text and a set of NCBO ontology IDs, this function will
@@ -76,6 +84,7 @@ def fetch_ncbo_annotations(text, ncboids):
 
     return json.loads(res)
 
+
 def get_ncbo_link(link):
     """
     Since NCBO enjoys testing the sanity of it's users, (almost) every member
@@ -109,6 +118,7 @@ def get_ncbo_link(link):
         return None
 
     return json.loads(res)
+
 
 def parse_ncbo_annotations(annots):
     """
@@ -194,6 +204,7 @@ def fetch_monarch_annotations(text):
 
     return json.loads(res)
 
+
 def parse_monarch_annotations(annots):
     """
     Given a list of annotation objects retrieved from MI, this function
@@ -217,6 +228,7 @@ def parse_monarch_annotations(annots):
 
     return ontids
 
+
 def filter_monarch_annotations(annots, onts):
     """
     Filters out any annotations that don't belong in the specified ontologies.
@@ -235,7 +247,8 @@ def filter_monarch_annotations(annots, onts):
 
     return pure
 
-def annotate_text(text, onts):
+
+def annotate_text(text, onts, ncbo=False, monarch=True):
     """
     Annotates a chunk of text to various ontologies using the NCBO and MI
     annotation services.
@@ -245,11 +258,19 @@ def annotate_text(text, onts):
     :ret list: annotation IDs
     """
 
-    ncbo_onts = fetch_ncbo_annotations(text, onts)
-    ncbo_onts = parse_ncbo_annotations(ncbo_onts)
-    mi_onts = fetch_monarch_annotations(text)
-    mi_onts = parse_monarch_annotations(mi_onts)
-    mi_onts = filter_monarch_annotations(mi_onts, onts)
+    if ncbo:
+        ncbo_onts = fetch_ncbo_annotations(text, onts)
+        ncbo_onts = parse_ncbo_annotations(ncbo_onts)
+    else:
+        ncbo_onts = []
+
+    if monarch:
+        mi_onts = fetch_monarch_annotations(text)
+        mi_onts = parse_monarch_annotations(mi_onts)
+        mi_onts = filter_monarch_annotations(mi_onts, onts)
+    else:
+        mi_onts = []
+
 
     ## Monarch initiative returns MESH annotations as MESH:D1234, while
     ## NCBO and the GW DB just use the unique ID (D1234).
@@ -262,7 +283,8 @@ def annotate_text(text, onts):
 
     return (mi_onts, ncbo_onts)
 
-def insert_annotations(dbcur, gsid, desc, abstract):
+
+def insert_annotations(dbcur, gsid, desc, abstract, ncbo=False, monarch=True):
     """
 
     :arg obj:
@@ -286,7 +308,7 @@ def insert_annotations(dbcur, gsid, desc, abstract):
 
         ## ONT_IDS should eventually be changed to a DB call that retrieves a
         ## list of available ontologies instead of hardcoded values
-        (mi_annos, ncbo_annos) = annotate_text(text, ONT_IDS)
+        (mi_annos, ncbo_annos) = annotate_text(text, ONT_IDS, ncbo=ncbo, monarch=monarch)
 
         ## SQL taken from the curation_server to insert new annotations
         ## Should eventually be moved into geneweaverdb
@@ -307,11 +329,12 @@ def insert_annotations(dbcur, gsid, desc, abstract):
         dbcur.execute(black_sql, (gsid,))
         blacklisted = [str(x[0]) for x in dbcur]
 
-        mi_data = (gsid, refsrc, '{'+','.join(mi_annos)+'}', '{'+','.join(blacklisted)+'}')
-        ncbo_data = (gsid, refsrc, '{'+','.join(ncbo_annos)+'}', '{'+','.join(blacklisted)+'}')
-
-        dbcur.execute(mi_sql, mi_data)
-        dbcur.execute(ncbo_sql, ncbo_data)
+        if monarch:
+            mi_data = (gsid, refsrc, '{'+','.join(mi_annos)+'}', '{'+','.join(blacklisted)+'}')
+            dbcur.execute(mi_sql, mi_data)
+        if ncbo:
+            ncbo_data = (gsid, refsrc, '{'+','.join(ncbo_annos)+'}', '{'+','.join(blacklisted)+'}')
+            dbcur.execute(ncbo_sql, ncbo_data)
         dbcur.connection.commit()
 
     ## SQL taken from the curation_server
