@@ -23,12 +23,7 @@ MONARCH_URL = 'http://scigraph-ontology.monarchinitiative.org/scigraph'
 ## in Monarch's source code. If it changes, you might have to look there.
 MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
 
-__ANNOTATORS = [
-    {'display_name': 'ncbo',
-     'description': 'National Center for Biomedical Ontology Annotator'},
-    {'display_name': 'monarch',
-     'description': 'Monarch initiative text annotation service'}
-]
+ANNOTATORS = ['monarch', 'ncbo', 'both']
 
 
 def fetch_ncbo_annotations(text, ncboids):

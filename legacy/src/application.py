@@ -1360,9 +1360,10 @@ def render_accountsettings():
     email_pref = prefs.get('email_notification', 0)
     annotation_pref = prefs.get('annotator', 'monarch')
 
-
-    return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
-                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail,
+    return flask.render_template('accountsettings.html', user=user,
+                                 groupsMemberOf=groupsMemberOf,
+                                 groupsOwnerOf=groupsOwnerOf,
+                                 groupsEmail=groupsEmail,
                                  groupAdmins=groupAdmins,
                                  emailNotifications=email_pref,
                                  annotation_pref=annotation_pref)

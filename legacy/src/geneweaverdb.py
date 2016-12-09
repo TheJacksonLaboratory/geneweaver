@@ -12,6 +12,7 @@ import config
 import notifications
 from curation_assignments import CurationAssignment
 import pubmedsvc
+import annotator as ann
 
 app = flask.Flask(__name__)
 
@@ -2624,6 +2625,8 @@ def update_notification_pref(user_id, state):
 
 
 def update_annotation_pref(user_id, annotator):
+    if annotator not in ann.ANNOTATORS:
+        return {'error': "invalid annotator: '{}' must be one of {}".format(annotator, ", ".join(ann.ANNOTATORS))}
     with PooledCursor() as cursor:
         cursor.execute(
                 '''select usr_prefs FROM usr WHERE usr_id=%s''', (user_id,)

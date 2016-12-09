@@ -243,16 +243,16 @@ def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
         user = geneweaverdb.get_user(assignment.assignee)
         user_prefs = json.loads(user.prefs)
 
+        # get the user's annotator preference.  if there isn't one in their user
+        # preferences, default to the monarch annotator. if set, valid values
+        # are 'ncbo', 'monarch', 'both'
         annotator = user_prefs.get('annotator', 'monarch')
-        if annotator == 'both':
-            ncbo = True
-            monarch = True
-        elif annotator == 'ncbo':
-            ncbo = True
+        ncbo = True
+        monarch = True
+        if annotator == 'ncbo':
             monarch = False
-        else:
+        elif annotator == 'monarch':
             ncbo = False
-            monarch = True
 
         # default geneset as 'Private'
         # group id -1 signifies private

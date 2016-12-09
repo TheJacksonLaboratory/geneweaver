@@ -760,7 +760,12 @@
                 'user_id': usr,
                 'new_state': state
             }, function (data) {
-                console.log('notification preferences updated');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Email notification preference updated.",
+                        'priority': 'success'
+                    }
+                ]);
             }).fail(handleEmailNotificationError);
         });
 
@@ -771,8 +776,15 @@
                 'user_id': usr,
                 'annotator': $('#annotation_pref').val(),
             }, function (data) {
-                console.log('annotation preferences updated');
                 annotation_pref = $('#annotation_pref').val();
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Annotator preference updated.",
+                        'priority': 'success'
+                    }
+                ]);
+
             }).fail(handleAnnotatorError);
         });
 
