@@ -4,18 +4,20 @@ MAINTAINER Alexander Berger <alexander.berger@jax.org>
 
 ENV SRV_DIR=/srv/geneweaver/website-py/src \
     CONFIG_DIR=/srv/geneweaver/website-py/sample-configs/docker-configs \
+    GW_SPHINX_URL=http://geneweaver.org/sphinxapi.tar.gz
     NGINX_VERSION=1.9.11-1~jessie \
-    PYTHONPATH=$PYTHONPATH:/srv/geneweaver/website-py/src
+    NGINX_SOURCE_LINE="deb http://nginx.org/packages/mainline/debian/ jessie nginx"
+    PYTHONPATH=$PYTHONPATH:/srv/geneweaver/website-py/src \
 
 COPY website-py/sample-configs/docker-configs ${CONFIG_DIR}
 
 RUN pip install --upgrade pip \
  && pip install uwsgi \
- && wget http://geneweaver.org/sphinxapi.tar.gz && pip install sphinxapi.tar.gz \
+ && wget ${GW_SPHINX_URL}  && pip install sphinxapi.tar.gz \
  && pip install -r ${CONFIG_DIR}/requirements.txt 
 
 RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62 \
- && echo "deb http://nginx.org/packages/mainline/debian/ jessie nginx" >> /etc/apt/sources.list \
+ && echo ${NGINX_SOURCE_LINE} >> /etc/apt/sources.list \
  && apt-get update \
  && apt-get install -y ca-certificates \
 		       nginx=${NGINX_VERSION} \
@@ -41,5 +43,4 @@ WORKDIR ${SRV_DIR}
 
 EXPOSE 80 443 5000
 
-#CMD ["/bin/bash"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
