@@ -12,6 +12,7 @@ import config
 import notifications
 from curation_assignments import CurationAssignment
 import pubmedsvc
+import annotator as ann
 
 app = flask.Flask(__name__)
 
@@ -2379,7 +2380,6 @@ class Geneset:
         if self.pub_id is not None:
             try:
                 self.publication = Publication(gs_dict)
-                print self.publication.abstract
             except KeyError:
                 self.publication = None
         else:
@@ -2621,6 +2621,26 @@ def update_notification_pref(user_id, state):
             return {'success': True}
 
     return {'error': 'unable to update user notification email preference'}
+
+
+def update_annotation_pref(user_id, annotator):
+    if annotator not in ann.ANNOTATORS:
+        return {'error': "invalid annotator: '{}' must be one of {}".format(annotator, ", ".join(ann.ANNOTATORS))}
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''select usr_prefs FROM usr WHERE usr_id=%s''', (user_id,)
+        )
+        results = cursor.fetchall()
+        if len(results) == 1:
+            preferences = json.loads(results[0][0])
+            preferences['annotator'] = annotator
+            cursor.execute(
+                '''UPDATE usr SET usr_prefs=%s WHERE usr_id=%s''', (json.dumps(preferences), user_id)
+            )
+            cursor.connection.commit()
+            return {'success': True}
+
+    return {'error': 'unable to update user annotation'}
 
 
 def get_geneset(geneset_id, user_id=None, temp=None):

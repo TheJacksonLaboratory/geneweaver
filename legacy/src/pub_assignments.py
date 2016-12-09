@@ -27,7 +27,8 @@ import geneweaverdb
 import notifications
 import uploadfiles
 import curation_assignments
-import annotator
+import annotator as ann
+import json
 
 
 class PubAssignment(object):
@@ -239,11 +240,24 @@ def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
     assignment = get_publication_assignment(pub_assign_id)
 
     if assignment:
+        user = geneweaverdb.get_user(assignment.assignee)
+        user_prefs = json.loads(user.prefs)
+
+        # get the user's annotator preference.  if there isn't one in their user
+        # preferences, default to the monarch annotator. if set, valid values
+        # are 'ncbo', 'monarch', 'both'
+        annotator = user_prefs.get('annotator', 'monarch')
+        ncbo = True
+        monarch = True
+        if annotator == 'ncbo':
+            monarch = False
+        elif annotator == 'monarch':
+            ncbo = False
 
         # default geneset as 'Private'
         # group id -1 signifies private
         gs_groups = '-1'
-        #set initial curation level to 5 (private)
+        # set initial curation level to 5 (private)
         cur_id = 5
 
         # right now, this can be set in the curation view.  should we
@@ -276,8 +290,9 @@ def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
             # publication
             gs = geneweaverdb.get_geneset(geneset_id, assignment.assignee)
             publication = geneweaverdb.get_publication(assignment.pub_id)
-            annotator.insert_annotations(cursor, geneset_id, gs.description,
-                                         publication.abstract)
+            ann.insert_annotations(cursor, geneset_id, gs.description,
+                                   publication.abstract, ncbo=ncbo,
+                                   monarch=monarch)
 
     return geneset_id
 
