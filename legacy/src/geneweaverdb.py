@@ -2260,12 +2260,18 @@ def get_group_by_id(group_id):
 
 
 class Groups:
+    """
+    This class has a specific purpose for conveying user privleges on a given group
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
 
 class Group:
+    """
+    This class is intended to represent a group and whether it's private or public
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
