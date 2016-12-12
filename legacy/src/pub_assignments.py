@@ -1,10 +1,11 @@
 #
-# The following SQL fragment defines the schema for the "curation_assignments" table.
+# The following SQL fragment defines the schema for the "pub_assignments" table.
 #
 # -- Table: production.pub_assignments
 #
 # -- DROP TABLE production.pub_assignments;
 # -- SELECT * from production.pub_assignments
+#
 #
 # CREATE TABLE production.pub_assignments
 # (

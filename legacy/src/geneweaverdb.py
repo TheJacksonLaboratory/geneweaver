@@ -825,9 +825,6 @@ def get_attributed_genesets(atid=None, abbrev=None):
         return cursor.fetchone()
 
 
-
-
-
 def resolve_feature_id(sp_id, feature_id):
     """
     For the given species and feature IDs get the corresponding ODE gene ID (which
@@ -2260,16 +2257,22 @@ def get_group_by_id(group_id):
         cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
                           WHERE g.grp_id=%s''', (group_id,))
         groups = [Group(row_dict) for row_dict in dictify_cursor(cursor)]
-    return groups[0]
+    return None if len(groups) == 0 else groups[0]
 
 
 class Groups:
+    """
+    This class has a specific purpose for conveying user privleges on a given group
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
 
 class Group:
+    """
+    This class is intended to represent a group and whether it's private or public
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
