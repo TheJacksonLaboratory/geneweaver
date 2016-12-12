@@ -38,8 +38,13 @@ def login():
     cur.execute('''SELECT u.usr_id,u.usr_email,g.grp_name,g.grp_id
        FROM production.usr u,production.grp g,production.usr2grp x
       WHERE usr_email=%s AND usr_password=%s AND u.usr_id=x.usr_id
-        AND g.grp_id=x.grp_id AND x.u2g_status=2 AND u2g_privileges=1;''',
+        AND g.grp_id=x.grp_id AND u2g_privileges=1;''',
         (user_email,hashlib.md5(passwd).hexdigest()))
+    #cur.execute('''SELECT u.usr_id,u.usr_email,g.grp_name,g.grp_id
+    #   FROM production.usr u,production.grp g,production.usr2grp x
+    #  WHERE usr_email=%s AND usr_password=%s AND u.usr_id=x.usr_id
+    #    AND g.grp_id=x.grp_id AND x.u2g_status=2 AND u2g_privileges=1;''',
+    #    (user_email,hashlib.md5(passwd).hexdigest()))
 
     if 'user_id' in session:
       del session['user_id']
