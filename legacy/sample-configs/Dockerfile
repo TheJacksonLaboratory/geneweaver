@@ -4,12 +4,12 @@ MAINTAINER Alexander Berger <alexander.berger@jax.org>
 
 ENV SRV_DIR=/srv/geneweaver/website-py/src \
     CONFIG_DIR=/srv/geneweaver/website-py/sample-configs/docker-configs \
-    GW_SPHINX_URL=http://geneweaver.org/sphinxapi.tar.gz
+    GW_SPHINX_URL=http://geneweaver.org/sphinxapi.tar.gz \
     NGINX_VERSION=1.9.11-1~jessie \
-    NGINX_SOURCE_LINE="deb http://nginx.org/packages/mainline/debian/ jessie nginx"
-    PYTHONPATH=$PYTHONPATH:/srv/geneweaver/website-py/src \
+    NGINX_SOURCE_LINE="deb http://nginx.org/packages/mainline/debian/ jessie nginx" \
+    PYTHONPATH=$PYTHONPATH:/srv/geneweaver/website-py/src
 
-COPY website-py/sample-configs/docker-configs ${CONFIG_DIR}
+COPY sample-configs/docker-configs ${CONFIG_DIR}
 
 RUN pip install --upgrade pip \
  && pip install uwsgi \
