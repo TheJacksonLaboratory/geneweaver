@@ -11,6 +11,7 @@ from urlparse import parse_qs, urlparse
 from flask import session
 import batch
 import annotator as ann
+import json
 
 
 def create_temp_geneset():
@@ -174,9 +175,25 @@ def create_new_geneset(args):
           'values': gs_values,
           'gs_threshold': 1}
 
+
+    # need to get user's preference for annotation tool
+    user = get_user(user_id)
+    user_prefs = json.loads(user.prefs)
+
+    # get the user's annotator preference.  if there isn't one in their user
+    # preferences, default to the monarch annotator
+    annotator = user_prefs.get('annotator', 'monarch')
+    ncbo = True
+    monarch = True
+    if annotator == 'ncbo':
+        monarch = False
+    elif annotator == 'monarch':
+        ncbo = False
+
     with PooledCursor() as cursor:
         ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
-                               pubDict['pub_abstract'])
+                               pubDict['pub_abstract'], ncbo=ncbo,
+                               monarch=monarch)
     ## TODO
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count

@@ -1,0 +1,62 @@
+<div class="modal fade" id="addGeneratorToGroupModal">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="addGeneratorForGroup" name="addGeneratorForGroup" method="post" action="#" class="form-horizontal">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">Create New Publication Generator</h3>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="loader" style="display: none" id="modalLoader"></div>
+
+                    <div data-alerts="alerts"
+                         data-titles="{'warning': '<em>Warning!</em>'}"
+                         data-ids="modal-alert"
+                         data-fade="5000"></div>
+
+                    <form>
+                    <fieldset>
+                        <div class="form-group row">
+                            <label for="generatorName" class="col-sm-2 col-form-label">Generator Name:</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" id="generatorName" placeholder="Addiction studies">
+                                <p class="help-block"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="generatorQuery" class="col-sm-2 col-form-label">PubMed Query:</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" id="generatorQuery" placeholder="addiction[MeSH Terms]">
+                                <p class="help-block">A <a href="http://www.ncbi.nlm.nih.gov/pubmed/advanced" target="_blank">PubMed search string</a> - field modifiers supported.</p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="genGroups" class="col-sm-2 col-form-label">Curation Group:</label>
+                            <div class="col-sm-10">
+                                <select class="input-xlarge" id="genGroups" name="genGroups">
+                                    <option value="">- select a group -</option>
+                                    {% for group in myGroups %}
+								        <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
+							        {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning" id="addGeneratorConfirm"  >
+                            Create
+                        </button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                            Cancel
+                        </button>
+                    </div>
+
+                    </form>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
