@@ -82,7 +82,7 @@
             <p>
 
             <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+                <h2 class="panel-title"><strong>{{ title }}</strong></h2>
             </div>
 
             <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
@@ -92,7 +92,7 @@
                 <div class="col-md-3">
                     <div class="panel panel-primary">
                         <div class="page-header">
-                            <h2>Visible Groups</h2>
+                            <h3>Visible Groups</h3>
                         </div>
 
                         <div class="panel-body">
@@ -185,13 +185,13 @@
                         <div class="page-header">
                             <input hidden id="group_id" value="{{ group.grp_id }}">
                             <input hidden id="user_id" value="{{ user_id }}">
-                            <h2><label id="group_name">{{ group.grp_name }}</label>
+                            <h3><label id="group_name">{{ group.grp_name }}</label>
                                     <label hidden id="group_private" class="label label-danger">Private</label>
                                     <label hidden id="group_public" class="label label-info">Public</label>
                                 {% if group_owner == true %}
                                     <span type="button" class="btn btn-primary pull-right" id="assignCurator"><i class="fa fa-user pull-right"></i> Assign Curator</span>
                                 {% endif %}
-                            </h2>
+                            </h3>
                         </div>
 
                         <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
