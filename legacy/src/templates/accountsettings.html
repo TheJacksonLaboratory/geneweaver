@@ -122,7 +122,7 @@
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Message" type="button" title="Message Members"
                                                       style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable" id="message_{{ grpO.grp_id }}"
+                                                <span class="clickable_message" id="message_{{ grpO.grp_id }}"
                                                       data-grp="{{ grpO.grp_id }}"><i class="fa fa-envelope"></i>
                                                 </span></span>
                                                 &nbsp;
@@ -595,6 +595,16 @@
                     }
                 }
             })
+        });
+
+        $('.clickable_message').on('click', function() {
+
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#groupName_" + grp_id).val(grp_name);
+            $("#user_id_" + grp_id).val({{ user.user_id }});
+            $("#message_grp_id_" + grp_id).val(grp_id);
+            $('#messageModal_' + $(this).attr("data-grp")).modal('show');
         });
 
 
