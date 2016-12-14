@@ -10,6 +10,7 @@ import flask
 from flask import session
 import config
 import notifications
+from curation_assignments import CurationAssignment
 
 app = flask.Flask(__name__)
 
@@ -325,11 +326,29 @@ def get_all_members_of_group(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT u2g.grp_id, u.usr_email FROM usr2grp u2g, usr u WHERE u2g.grp_id IN
-            (SELECT grp_id FROM usr2grp WHERE usr_id=%s) AND u.usr_id=u2g.usr_id''', (usr_id,)
+            SELECT u2g.grp_id, u.usr_email, u.usr_id FROM usr2grp u2g, usr u WHERE u2g.grp_id IN
+            (SELECT grp_id FROM usr2grp WHERE usr_id=%s) AND u.usr_id=u2g.usr_id ORDER BY u.usr_email''', (usr_id,)
         )
     usr_emails = list(dictify_cursor(cursor))
     return usr_emails if len(usr_emails) > 0 else None
+
+
+def get_group_admins(grp_id):
+    """
+    get all of the admins (aka owners) for a specified group id
+    :param grp_id: group id
+    :return: list of ordered dictionaries,
+             each dictionary has keys 'usr_email', 'usr_id'. These are the email
+             and usr_ids for each group admin
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT usr_email, usr_id  FROM usr WHERE usr_id IN
+            (SELECT usr_id FROM usr2grp WHERE u2g_privileges=1 AND grp_id=%s) ORDER BY usr_email''', (grp_id,)
+        )
+    admin_emails = list(dictify_cursor(cursor))
+    return admin_emails if len(admin_emails) > 0 else []
 
 
 def get_all_owned_groups(usr_id):
@@ -355,6 +374,20 @@ def get_all_member_groups(usr_id):
                 '''SELECT * FROM production.grp WHERE grp_id in (SELECT grp_id
                FROM production.usr2grp
                WHERE usr_id = %s and (u2g_privileges = 0 or u2g_privileges IS NULL))''', (usr_id,)
+        )
+
+        return list(dictify_cursor(cursor))
+
+def get_other_visible_groups(usr_id):
+    """
+    get all visible groups that a user is not a member (regular or admin) of
+    basically returns all public groups a user is NOT a member of
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''SELECT * FROM production.grp WHERE grp_id NOT IN (SELECT grp_id
+               FROM production.usr2grp
+               WHERE usr_id = %s)''', (usr_id,)
         )
 
         return list(dictify_cursor(cursor))
@@ -428,6 +461,7 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
         if cursor.rowcount == 0:
             return {'error': 'No User'}
         else:
+            email_from_db = list(dictify_cursor(cursor))[0]['usr_email']
             cursor.execute(
                     '''
                 INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
@@ -444,7 +478,15 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
             cursor.connection.commit()
             # return the primary ID for the insert that we just performed
             # grp_id = cursor.fetchone()[0]
-            notifications.send_usr_notification()
+
+            #send user a notification that they have been added to the group
+
+            group_name = get_group_name(group_id)
+            owner = get_user(owner_id)
+            owner_name = owner.first_name + " " + owner.last_name
+            notifications.send_usr_notification(email_from_db, "Added to Group",
+                                                "You have been added to the group {} by {}".format(group_name, owner_name),
+                                                True)
             return {'error': 'None'}
 
 
@@ -470,12 +512,25 @@ def remove_user_from_group(group_name, owner_id, usr_email):
                 (group_name, owner_id, group_name, usr_email, usr_email,)
         )
         cursor.connection.commit()
-    # return the primary ID for the insert that we just performed
-    return
+
+        #send notification
+
+        owner = get_user(owner_id)
+        owner_name = owner.first_name + " " + owner.last_name
+        notifications.send_usr_notification(usr_email, "Removed from Group",
+                                            "You have been removed from the group {} by {}".format(group_name, owner_name),
+                                            True)
+
 
 
 def remove_selected_users_from_group(user_id, user_emails, grp_id):
     user_email = user_emails.split(',')
+
+    # group name/owner names are used for notifications
+    group_name = get_group_name(grp_id)
+    owner = get_user(user_id)
+    owner_name = owner.first_name + " " + owner.last_name
+
     for e in user_email:
         with PooledCursor() as cursor:
             cursor.execute(
@@ -487,9 +542,91 @@ def remove_selected_users_from_group(user_id, user_emails, grp_id):
                     (grp_id, e, grp_id, user_id,))
             cursor.connection.commit()
             print cursor.statusmessage
-            # return the primary ID for the insert that we just performed
+
+            # if we deleted a user from the group send that user a notification
+            if cursor.rowcount:
+                notifications.send_usr_notification(e, "Removed from Group",
+                                                    "You have been removed from the group {} by {}".format(group_name, owner_name),
+                                                    True)
+
     return {'error': 'None'}
 
+
+def update_group_admins(admin_id, user_ids, grp_id):
+    """
+
+    :param admin_id: ID of the admin making the request
+    :param user_ids: list of user ids to set as administrators
+    :param grp_id: group id that we are updating
+    :return:
+    """
+    admins = get_group_admins(grp_id)
+
+    # get_group_admins gives us a list of OrderedDics with keys usr_id and usr_
+    # email we want to convert it to a list of just usr_ids
+    admin_uids = []
+    for a in admins:
+        admin_uids.append(a['usr_id'])
+
+    # make sure submitting user has appropriate permissions
+    # application has already made sure admin_id == flask.session['user_id']
+    if int(admin_id) not in admin_uids:
+        return {'error': 'You do not have permission to modify this group'}
+
+    # group name/owner names are used for notifications
+    admin = get_user(admin_id)
+    group_name = get_group_name(grp_id)
+    admin_name = admin.first_name + " " + admin.last_name
+
+    for uid in user_ids:
+        if uid in admin_uids:
+            # don't need to update, but remove from our list of current admins
+            # anyone still left in current_admins at the end will get removed
+            # as a group administrator
+            admin_uids.remove(uid)
+        else:
+            with PooledCursor() as cursor:
+                cursor.execute(
+                        '''
+                    UPDATE production.usr2grp SET u2g_privileges=1
+                    WHERE grp_id=%s AND usr_id=%s
+                    ''',
+                        (grp_id, uid)
+                )
+                cursor.connection.commit()
+                # send notification that user has been promoted to admin
+                if cursor.rowcount:
+                    notifications.send_usr_notification(uid, "Promoted to Group Admin",
+                                                        "You have been promoted to admin of the group {} by {}".format(group_name, admin_name))
+
+    # do we have anyone left in current_admins?  if so, they were not passed in
+    # as part of the list of new admins,  so we need to remove their admin
+    # permissions. They are not being removed from the group, just demoted.
+
+    # This can be improved.  We do need to keep track of who loses admin privs
+    # so that we can notify them.  That is why we don't just clear everyone's
+    # admin privileges first, and then set the permissions for the new list
+    # of admins.
+
+    # iterate over everyone that was an admin but is not in the new list
+    # remove their admin privs and send them a notification
+    for uid in admin_uids:
+        with PooledCursor() as cursor:
+            cursor.execute(
+                    '''
+                UPDATE production.usr2grp SET u2g_privileges=0
+                WHERE grp_id=%s AND usr_id=%s
+                ''',
+                    (grp_id, uid)
+            )
+            cursor.connection.commit()
+            #send notification that user has been demoted from admin
+            if cursor.rowcount:
+                notifications.send_usr_notification(uid, "Admin Privileges Revoked",
+                                                    "Your admin privileges of the group {} have been removed by {}. "
+                                                    "You now have standard group membership.".format(group_name, admin_name))
+
+    return {'success': True}
 
 # switches group active field between false and true, and true and false
 def toggle_group_active(group_id, user_id):
@@ -836,6 +973,15 @@ def user_is_owner(usr_id, gs_id):
         return cursor.fetchone()[0]
 
 
+def user_is_assigned_curation(usr_id, gs_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT COUNT(gs_id) FROM curation_assignments WHERE curator=%s AND gs_id=%s AND curation_state=%s''', (usr_id, gs_id, CurationAssignment.ASSIGNED))
+
+        if cursor.fetchone()[0] == 0:
+            return False
+        return True
+
+
 def edit_geneset_id_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
     gene_id = rargs.get('id', type=str)
@@ -889,96 +1035,151 @@ def cancel_geneset_edit_by_id(rargs):
             return gs_id
 
 
-def updategeneset(usr_id, form):
-    '''
-    This function updates both some of the metadata in the geneset table and the publication table. If geneset metadata
-    is not null, it will update everything. If the pub_pubmed is not null, it will insert all publication information if
-    it does not exist. If pub_pubmed is null, and any other pubmed record is populated it will update those records. This
-    function does not check a mismatch between pubmed info and pub_pubmed id. Both are done in an explicit transaction.
-    :param usr_id:
-    :param form:
-    :return: success is 'True' or 'Error Msg'
-    '''
-    gs_id = int((form["gs_id"]).strip()) if form["gs_id"] else None
-    gs_abbreviation = (form["gs_abbreviation"]).strip() if form["gs_abbreviation"] else None
-    gs_description = (form["gs_description"]).strip() if form["gs_description"] else None
-    gs_name = (form["gs_name"]).strip() if form["gs_name"] else None
-    pub_authors = (form["pub_authors"]).strip() if form["pub_authors"] else None
-    pub_title = (form["pub_title"]).strip() if form["pub_title"] else None
-    pub_abstract = (form["pub_abstract"]).strip() if form["pub_abstract"] else None
-    pub_journal = (form["pub_journal"]).strip() if form["pub_journal"] else None
-    pub_volume = (form["pub_volume"]).strip() if form["pub_volume"] else None
-    pub_pages = (form["pub_pages"]).strip() if form["pub_pages"] else None
-    pub_month = (form["pub_month"]).strip() if form["pub_month"] else None
-    pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
-    pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
-    pub_id = (form["pmid"]).strip() if form["pmid"] else None
-    # ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
-    # ont_ids = (form["onts"].strip()) if form["onts"] else None
-    pmid = None
-    if (get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or user_is_owner(usr_id,
-                                                                                                          gs_id) != 1:
-        return 'You do not have permission to update this GeneSet'
-    if gs_abbreviation is None or gs_description is None or gs_name is None:
-        return 'Required Field is not provided'
-    # if a pubmed id is submitted, insert into the db if it does not exist. Then return the pub_id.
-    if pub_pubmed is not None:
+def update_geneset(usr_id, form):
+    """
+    Selectively updates geneset metacontent and publication information. The
+    function determines how to update things in the following order: 
+    If a PMID (pub_pubmed) is provided, all metacontent fields will be 
+    updated. 
+    If a PMID is not provided and all other metacontent fields are blank, all
+    publication information associated with the geneset is removed. 
+    Finally, if any metacontent fields are filled out, all publication
+    metacontent fields are updated and a new publication ID (pub_id) is created
+    depending on whether it already exstis or not.
+
+    :param usr_id:  ID of the user updating the geneset
+    :param form:    form dict containing data from the edit geneset form
+    :return:        an object containing two fields, 'success' and 'error'. If
+                    any error occurs during update 'success' is set to False
+                    and the error message is contained in 'error'. A successful
+                    update results in 'success' being set to True and the 'error'
+                    field missing from the result dict.
+    """
+
+    gs_id = int(form.get('gs_id', 0))
+    gs_abbreviation = form.get('gs_abbreviation', '').strip()
+    gs_description = form.get('gs_description', '').strip()
+    gs_name = form.get('gs_name', '').strip()
+    pub_authors = form.get('pub_authors', '').strip()
+    pub_title = form.get('pub_title', '').strip()
+    pub_abstract = form.get('pub_abstract', '').strip()
+    pub_journal = form.get('pub_journal', '').strip()
+    pub_volume = form.get('pub_volume', '').strip()
+    pub_pages = form.get('pub_pages', '').strip()
+    pub_month = form.get('pub_month', '').strip()
+    pub_year = form.get('pub_year', '').strip()
+    pub_pubmed = form.get('pub_pubmed', '').strip()
+    pub_id = form.get('pub_id', '').strip()
+
+    ## Should have already been checked but does't hurt to do it again I guess
+    if ((get_user(usr_id).is_admin == False and\
+        get_user(usr_id).is_curator == False) or\
+        (user_is_owner(usr_id, gs_id) != 1) and not 
+        user_is_assigned_curation(usr_id, gs_id)):
+            return {
+                'success': False,
+                'error': 'You do not have permission to update this GeneSet'
+            }
+
+    if not gs_abbreviation or not gs_description or not gs_name:
+        return {
+            'success': False,
+            'error': 'You did not provide a required field'
+        }
+
+    ## PMID exists, we insert a new publication entry if it doesn't already
+    ## exist in the publication table
+    if pub_pubmed:
         with PooledCursor() as cursor:
-            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal,
-									pub_volume, pub_pages, pub_month, pub_year, pub_pubmed)
-									SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
-									WHERE NOT EXISTS
-									(SELECT 1 FROM publication WHERE pub_pubmed=%s)''', (pub_authors, pub_title,
-                                                                                         pub_abstract, pub_journal,
-                                                                                         pub_volume, pub_pages,
-                                                                                         pub_month, pub_year,
-                                                                                         pub_pubmed, pub_pubmed,))
+            cursor.execute('''
+                INSERT INTO publication (
+                    pub_authors, pub_title, pub_abstract, pub_journal, 
+                    pub_volume, pub_pages, pub_month, pub_year, pub_pubmed
+                )
+				SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
+				WHERE NOT EXISTS (
+                    SELECT 1 
+                    FROM publication 
+                    WHERE pub_pubmed = %s
+                );
+                ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
+                      pub_volume, pub_pages, pub_month, pub_year, pub_pubmed, 
+                      pub_pubmed)
+            )
+
             cursor.connection.commit()
+
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pub_pubmed,))
-            pmid = cursor.fetchone()[0]
+            cursor.execute('''
+                SELECT pub_id 
+                FROM publication 
+                WHERE pub_pubmed = %s;
+                ''', (pub_pubmed,)
+            )
 
-    # if pubmed id is none and everything else is blank, then pub_id = None
-    elif pub_authors is None and pub_title is None and pub_abstract is None and pub_journal is None and pub_volume is None and pub_pages is None and pub_month is None and pub_year is None:
-        pmid = None
+            pub_id = cursor.fetchone()[0]
 
-    # if pubmed id is none and something else is not, then use the pmid to update the appropriate information
+    ## All publication metacontent is missing, any publication info associated
+    ## with this geneset is removed
+    elif not pub_authors and not pub_title and not pub_abstract and\
+         not pub_journal and not pub_volume and not pub_pages and\
+         not pub_month and not pub_year:
+             pub_id = None
+
+    ## Some publication metacontent is filled out, we update all metacontent
+    ## fields
     else:
-        if pub_id is not None:
+        ## A pub_id already exists, we don't need to do any insertions
+        if pub_id:
             with PooledCursor() as cursor:
-                cursor.execute('''UPDATE publication SET pub_title=%s, pub_abstract=%s, pub_journal=%s, pub_volume=%s,
-								  pub_pages=%s, pub_month=%s, pub_year=%s, pub_pubmed=%s FROM geneset WHERE publication.pub_id=geneset.pub_id AND
-								  geneset.gs_id=%s''',
-                               (pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month,
-                                pub_year, pub_pubmed, gs_id,))
+                cursor.execute('''
+                    UPDATE publication 
+                    SET pub_title = %s, pub_abstract = %s, pub_journal = %s, 
+                        pub_volume = %s, pub_pages = %s, pub_month = %s, 
+                        pub_year = %s, pub_pubmed = %s 
+                    FROM geneset 
+                    WHERE publication.pub_id = geneset.pub_id AND
+						  geneset.gs_id = %s;
+                    ''', (pub_title, pub_abstract, pub_journal, pub_volume, 
+                          pub_pages, pub_month, pub_year, pub_pubmed, gs_id,)
+                )
+
                 cursor.connection.commit()
-            pmid = pub_id
-        # if there is no pmid associated, we need to add it and return the pub_id
+
+        ## No pub_id exists, we need to insert a new publication entry
         else:
             with PooledCursor() as cursor:
-                cursor.execute(
-                        '''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                        (
-                        pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
+                cursor.execute('''
+                    INSERT INTO publication (
+                        pub_authors, pub_title, pub_abstract, pub_journal, 
+                        pub_volume, pub_pages, pub_month, pub_year
+                    ) 
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s
+                    ) 
+                    RETURNING pub_id;
+                    ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
+                          pub_volume, pub_pages, pub_month, pub_year)
+                )
+
                 cursor.connection.commit()
-            with PooledCursor() as cursor:
-                cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
-                pmid = cursor.fetchone()[0]
+
+                pub_id = cursor.fetchone()[0]
+
     # update geneset with changes
     with PooledCursor() as cursor:
-        sql = cursor.mogrify('''UPDATE geneset SET pub_id=%s, gs_name=(%s), gs_abbreviation=(%s), gs_description=(%s)
-								WHERE gs_id=%s''', (pmid, gs_name, gs_abbreviation, gs_description, gs_id,))
-        # print sql
+        sql = cursor.mogrify('''
+            UPDATE geneset 
+            SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
+                gs_description = (%s)
+			WHERE gs_id = %s;
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_id,)
+        )
+
         cursor.execute(sql)
         cursor.connection.commit()
-    # update geneset ontologies
-    # clear_geneset_ontology(gs_id)
 
-    # gso_ref_type = ""
-    # for ont in ont_ids:
-    #	 add_ont_to_geneset(gs_id, ont, gso_ref_type)
-
-    return 'True'
+    return {'success': True}
 
 
 def byteify(input):
@@ -1001,20 +1202,113 @@ def clear_geneset_ontology(gs_id):
             ''',
                 (gs_id,)
         )
-    cursor.connection.commit()
-    return
+        cursor.connection.commit()
 
 
 def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
-    print(gs_id, ", ", ont_id)
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''INSERT INTO geneset_ontology
-            (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, %s);
+        cursor.execute('''
+            INSERT INTO geneset_ontology
+                (gs_id, ont_id, gso_ref_type) 
+            VALUES 
+                (%s, %s, %s);
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
-    return  # cursor.fetchone()
 
+def get_ontologies_by_refs(ont_ref_ids):
+    """
+    Returns ont_ids (if they exist) for each of the given ont_ref_ids.
+
+    :param ont_ref_ids: list of the ontology reference IDs
+    :return:            list of ont_ids
+    """
+
+    ont_ref_ids = tuple(ont_ref_ids)
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT *
+            FROM ontology
+            WHERE ont_ref_id IN %s
+            ''', (ont_ref_ids,))
+
+        result = cursor.fetchall()
+
+        if not result:
+            return []
+
+        return map(lambda t: t[0], result)
+
+def does_geneset_have_annotation(gs_id, ont_id):
+    """
+    Checks to see if a particular ontology term has been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID 
+    :param ont_id:  ontology ID for the term being checked
+    :return:        true if the term is annotated to the given geneset,
+                    otherwise false
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT EXISTS(
+                SELECT 1
+                FROM geneset_ontology
+                WHERE gs_id = %s AND
+                      ont_id = %s
+            );
+            ''', (gs_id, ont_id))
+
+        return cursor.fetchone()[0]
+
+def get_geneset_annotation_reference(gs_id, ont_id):
+    """
+    Returns the reference type for an ontology term that's been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID
+    :param ont_id:  ontology term ID
+    :return:        the reference type (a string) if it exists, otherwise None
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT gso_ref_type
+            FROM geneset_ontology
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (gs_id, ont_id))
+
+        result = cursor.fetchone()
+
+        if not result:
+            return None
+
+        return result[0]
+
+def update_geneset_ontology_reference(gs_id, ont_id, ref_type):
+    """
+    Updates the ontology reference type for the given geneset and ontology
+    term.
+
+    :param gs_id:       geneset ID 
+    :param ont_id:      ontology ID for the term being checked
+    :param ref_type:    new reference type
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            UPDATE geneset_ontology
+            SET gso_ref_type = %s
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (ref_type, gs_id, ont_id))
+
+        cursor.connection.commit()
 
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
@@ -1174,11 +1468,11 @@ def remove_genesets_from_multiple_projects(rargs):
 
 def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''
+        cursor.execute('''
             DELETE FROM geneset_ontology
-            WHERE gs_id=%s AND ont_id=%s AND gso_ref_type=%s
-            ''', (gs_id, ont_id, gso_ref_type)
+            WHERE gs_id = %s AND 
+                  ont_id = %s
+            ''', (gs_id, ont_id)
         )
         cursor.connection.commit()
         return
@@ -1222,7 +1516,7 @@ def update_threshold_values(rargs):
     max = rargs.get('max', type=float)
     gs_id = rargs.get('gs_id', type=int)
     if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id,
-                                                                                                           gs_id) != 0:
+                                                                                                           gs_id) != 0 or user_is_assigned_curation(user_id, gs_id):
         minmax = str(min) + ',' + str(max)
         with PooledCursor() as cursor:
             cursor.execute('''UPDATE geneset SET gs_threshold_type=5, gs_threshold=%s WHERE gs_id=%s''',
@@ -1235,8 +1529,11 @@ def get_server_side_genesets(rargs):
     user_id = rargs.get('user_id', type=int)
 
     select_columns = ['', 'sp_id', 'cur_id', 'gs_attribution', 'gs_count', 'gs_id', 'gs_name']
-    select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, gs_id, gs_name, gs_abbreviation, gs_description,
-					to_char(gs_created, '%s'), to_char(gs_updated, '%s') FROM geneset WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
+    select_clause = """SELECT gs_status, sp_id, cur_id, gs_attribution, gs_count, GS.gs_id, gs_name, gs_abbreviation, gs_description,
+					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
+					LEFT OUTER JOIN curation_assignments CA ON CA.gs_id = GS.gs_id
+					LEFT OUTER JOIN grp G ON G.grp_id = CA.curation_group
+					WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
                       'cast(gs_count as text)',
@@ -1972,10 +2269,9 @@ class Geneset:
         self.name = gs_dict['gs_name']
         self.abbreviation = gs_dict['gs_abbreviation']
         self.pub_id = gs_dict['pub_id']
-        #print self.pub_id
         if self.pub_id is not None:
             try:
-                self.publication = Publication(gs_dict)
+                self.publication = get_all_publications(self.geneset_id)
             except KeyError:
                 self.publication = None
         else:
@@ -2201,6 +2497,24 @@ def change_password(user_id, new_password):
     return
 
 
+def update_notification_pref(user_id, state):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''select usr_prefs FROM usr WHERE usr_id=%s''', (user_id,)
+        )
+        results = cursor.fetchall()
+        if len(results) == 1:
+            preferences = json.loads(results[0][0])
+            preferences['email_notification'] = state
+            cursor.execute(
+                '''UPDATE usr SET usr_prefs=%s WHERE usr_id=%s''', (json.dumps(preferences), user_id)
+            )
+            cursor.connection.commit()
+            return {'success': True}
+
+    return {'error': 'unable to update user notification email preference'}
+
+
 def get_geneset(geneset_id, user_id=None, temp=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user
@@ -2218,9 +2532,11 @@ def get_geneset(geneset_id, user_id=None, temp=None):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT *
-            FROM geneset LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
-            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            SELECT geneset.*, curation_assignments.curation_group
+            FROM geneset
+            LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
+            LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
+            WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
                 {
                     'geneset_id': geneset_id,
@@ -2754,7 +3070,7 @@ def get_geneset_values(geneset_id):
         elif session['sort'] == 'symbol':
             s = ' ORDER BY gsv.gsv_source_list ' + d
         elif session['sort'] == 'alt':
-            s = ' ORDER BY g.ode_ref ' + d
+            s = ' ORDER BY g.ode_ref_id ' + d
 
     ode_ref = '1'
     if 'extsrc' in session:

@@ -50,6 +50,33 @@
 
 {% else %}
 
+	{% if geneset.status == 'delayed' %}
+		<div class="alert alert-warning fade in" style="text-align:center">
+			<button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+				&times;
+			</button>
+			<strong>
+				<u>
+					This GeneSet requires your approval.
+				</u>
+			</strong>
+			<br />
+			<br />
+			<p>
+				<strong>
+				Please ensure all the GeneSet MetaContent on this page is correct.
+				<br />
+				If any information is incorrect make the appropriate changes.
+				Once you are finished, scroll to the bottom of the page and click
+				the "Save Updates" button. This GeneSet will only be available for
+				analysis and searching (if it is public) after updates are
+				saved.
+				</strong>
+			</p>
+		</div>
+
+	{% endif %}
+
     <div class="loader"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
@@ -57,10 +84,10 @@
     </div>
 
 
-    {# Geneset Metadata #}
+    {# Geneset MetaContent #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
         <h2 class="panel-title">
-            GeneSet Metadata &bull; GS{{ geneset.geneset_id }}
+            GeneSet MetaContent &bull; GS{{ geneset.geneset_id }}
         </h2>
     </div>
 
@@ -71,7 +98,7 @@
     <div class="col-xs-6 col-md-3">
 
         <button type="button" class="btn btn-block btn-warning" id="editGeneset">
-            <i class="fa fa-edit pull-left"></i> Edit MetaData
+            <i class="fa fa-edit pull-left"></i> Edit MetaContent
         </button>
         <button type="button" class="btn btn-block btn-warning" id="viewGenesetDetails">
             <i class="fa fa-eye pull-left"></i> GeneSet Details
@@ -89,7 +116,7 @@
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
         <h3 class="panel-title">
             Gene List &bull; {{ geneset.geneset_values|length }} Genes
-			<span id="clickableGenes" data-trigger="hover"><i class="fa fa-info-circle"></i></span>
+			<span id="clickableGenes" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span>
         </h3>
     </div>
 
@@ -483,12 +510,20 @@
 
         $('#editGeneset').on('click', function (e) {
                 var gsid = {{ geneset.geneset_id }};
-                window.location.href = '../editgeneset/'+gsid;
+                {% if curation_view %}
+                   window.location.href = '/curategeneset/edit/'+gsid;
+                {% else %}
+                    window.location.href = '../editgeneset/'+gsid;
+                {% endif %}
         });
 
         $('#viewGenesetDetails').on('click', function (e) {
                 var gsid = {{ geneset.geneset_id }};
-                window.location.href = '../viewgenesetdetails/'+gsid;
+                {% if curation_view %}
+                    window.location.href = '/curategeneset/'+gsid;
+                {% else %}
+                    window.location.href = '../viewgenesetdetails/'+gsid;
+                {% endif %}
         });
 
         $('#cancelEdit1').on('click', function (e) {
@@ -509,7 +544,11 @@
                 url: "/cancelEditByID",
                 data: {"gsid": {{ geneset.geneset_id }}, "user_id": {{ user_id }}},
                 success: function (data) {
-                    window.location.href = '../viewgenesetdetails/'+{{ geneset.geneset_id }};
+                    {% if curation_view %}
+                        window.location.href = '/curategeneset/'+{{ geneset.geneset_id }};
+                    {% else %}
+                        window.location.href = '../viewgenesetdetails/'+{{ geneset.geneset_id }};
+                    {% endif %}
                 }
             });
         });

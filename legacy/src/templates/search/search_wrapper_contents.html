@@ -143,6 +143,11 @@
                     <table id="results" class="table table-hover">
                         <tbody>
                         <tr>
+                            <th align="center" style="text-align:center;">
+                                <nobr>
+                                    <i id="geneset" class="fa fa-check"></i>
+                                </nobr>
+                            </th>
                             <th>
                                 <nobr>
                                     <a id="tier" href="#">
@@ -187,13 +192,6 @@
                                     </a>
                                 </nobr>
                             </th>
-                            <th>
-                                <nobr>
-                                    <a id="search-select" href="#">
-                                        <i id="geneset" class="fa"></i>
-                                    </a>
-                                </nobr>
-                            </th>
                         </tr>
                         {% for gs in genesets %}
                             <!--<tr>-->
@@ -215,7 +213,29 @@
 {% include 'modal/addGenesetsToProjects.html' %}
 {% include 'modal/showGenericMessage.html' %}
 
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 <script type="text/javascript">
+
+	/**
+	  * Although attribution and species tags are part of the
+	  * viewGenesetSummaryPartial template, we generate the tags out here in
+	  * the wrapper section otherwise this bit of javascript will be injected
+	  * into every single search result (50 per page).
+	  */
+    $(document).ready(function () {
+
+		{% if attribs %}
+			makeAttributionTags({{ attribs | tojson | safe }});
+		{% else %}
+			makeAttributionTags();
+		{% endif %}
+
+		{% if species %}
+			makeSpeciesTags({{ species | tojson | safe }});
+		{% else %}
+			makeSpeciesTags();
+		{% endif %}
+	});
 
     //var user_id = {{ user_id }};
     // gs_ids in the results that are checked and ready to add to a project
@@ -247,6 +267,15 @@
         }
     });
 
+    // When a user is adding genesets to a new project, this allows them 
+    // to hit enter to execute that addition without the page throwing
+    // an http error
+    $(document).on('keypress', function(e) {
+        // 13 == ENTER
+        if (e.keyCode && e.keyCode === 13 && $('#addToProjectModal').is(':visible'))
+            e.preventDefault();
+    });
+
     // The right side button 'Add GeneSet(s) to Project'
     $('#addToProject').on('click', function (e) {
 
@@ -269,10 +298,11 @@
 
             var gstr = genesets.map(function(s){ return 'GS' + s; }).join(', ');
 
-            $('#addToProjectModal').find('.modal-title')
-                    .html('Add Selected to Project(s)');
-            $('#addToProjectModal').find('h4')
-                    .html('Add ' + gstr + ' to the following project(s):');
+            //$('#addToProjectModal').find('.modal-title')
+            //        .html('Add Selected to Project(s)');
+           // $('#addToProjectModal').find('h4')
+           //         .html('Add ' + gstr + ' to the following project(s):');
+            $('#modal-label').html(gstr);
             $("#myModalValue").val(genesets.join(','));
             $('#addToProjectModal').modal('show');
         }
@@ -316,7 +346,5 @@
     // click handler
     $('#addNewProject').on('click', function () {
         $('#reveal-if-active').toggle();
-        //$('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-        //        '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
     });
 </script>
