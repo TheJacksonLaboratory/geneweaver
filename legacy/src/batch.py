@@ -56,7 +56,7 @@ class TheDB():
 
         try:
             self.conn = psycopg2.connect(cs)
-        except:
+        except:  
             print '[!] Oh noes, failed to connect to the db.'
             print ''
             exit()

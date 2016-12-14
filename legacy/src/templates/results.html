@@ -139,6 +139,8 @@
 								$.redirectPost('/run-jaccard-similarity.html', form);
                             if (data['tool'] === 'DBSCAN')
 								$.redirectPost('/run-dbscan.html', form);
+                            if (data['tool'] === 'MSET')
+                                $.redirectPost('/run-mset.html', form)
 						});
 					});
 
