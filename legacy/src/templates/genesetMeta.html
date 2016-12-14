@@ -1,135 +1,132 @@
-{# MetaContent About Genesets on GeneSet View Page #}
+{# MetaData About Genesets on GeneSet View Page #}
 
 <div class="panel-body">
     <div class="row">
         <div class="col-xs-12 col-md-9">
-            <div id="geneset-meta">
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>DESCRIPTION:</strong></p>
-                    </div>
-                    <div class="col-md-10">
-                        <p>{{ geneset.description }}</p>
-                    </div>
+            <div class="row">
+                <div class="col-md-2">
+                    <p class="text-right"><strong>DESCRIPTION:</strong></p>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>LABEL:</strong></p>
-                    </div>
-                    <div class="col-md-10">
-                        <p>{{ geneset.abbreviation }}</p>
-                    </div>
+                <div class="col-md-10">
+                    <p>{{ geneset.description }}</p>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>DATE ADDED:</strong></p>
-                    </div>
-                    <div class="col-md-10">
-                        {{ geneset.creation_date }}
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-2">
-                        <p class="text-right"><strong>SPECIES:</strong></p>
-                    </div>
-                    <div id="sp-tag" class="col-md-10">
-                        <span class="sp-tag-{{geneset.sp_id}}"></span>
-                    </div>
-                </div>
-
-                {% if geneset.uri %}
-                    <div class="row">
-                        <div class="col-md-2">
-                            <p class="text-right"><strong>URI:</strong></p>
-                        </div>
-                        <div class="col-md-10">
-                            {% if geneset.uri %}
-                                <a href="{{ geneset.uri }}">{{ geneset.uri }}</a>
-                            {% else %}
-                                None
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if geneset.publication %}
-                    <div class="row">
-                        <div class="col-md-2">
-                            <p class="text-right"><strong>AUTHORS:</strong></p>
-                        </div>
-                        <div class="col-md-10">
-                            {% if geneset.publication.authors %}
-                                {{ geneset.publication.authors }}
-                            {% else %}
-                                None
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-2">
-                            <p class="text-right"><strong>TITLE:</strong></p>
-                        </div>
-
-                        <div class="col-md-10">
-                            {% if geneset.publication.title %}
-                                <i>{{ geneset.publication.title }}</i>
-                            {% else %}
-                                None
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-2">
-                            <p class="text-right"><strong>JOURNAL:</strong></p>
-                        </div>
-
-                        <div class="col-md-10">
-                            {% if geneset.publication.journal %}
-                                <u>{{ geneset.publication.journal }}</u>
-                                {{ geneset.publication.month }} {{ geneset.publication.year }},
-                                Vol {{ geneset.publication.volume }}, pp. {{ geneset.publication.pages }}
-                            {% else %}
-                                None
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-2">
-                            <p class="text-right"><strong>ABSTRACT:</strong></p>
-                        </div>
-                        <div class="col-md-10">
-                            {% if geneset.publication.abstract %}
-                                {{ geneset.publication.abstract }}
-                            {% else %}
-                                None
-                            {% endif %}
-                            {% if geneset.publication.pubmed_id %}
-                                <a href="http://www.ncbi.nlm.nih.gov/pubmed/{{ geneset.publication.pubmed_id }}">
-                                    <b>PUBMED: {{ geneset.publication.pubmed_id }}</b>
-                                </a>
-
-                                <br>
-                                <!-- TODO link this with a search for this pubmed ID -->
-                                <a href="../findPublications/{{ geneset.geneset_id }}">Find other GeneSets from this publication <i class="fa fa-search"></i></a>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                {% else %}
-
-                    <div class="row">
-                        <div class="alert bg-gray-light">No publication information is associated with this GeneSet.</div>
-                    </div>
-
-
-                {% endif %}
             </div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    <p class="text-right"><strong>LABEL:</strong></p>
+                </div>
+                <div class="col-md-10">
+                    <p>{{ geneset.abbreviation }}</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    <p class="text-right"><strong>DATE ADDED:</strong></p>
+                </div>
+                <div class="col-md-10">
+                    {{ geneset.creation_date }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    <p class="text-right"><strong>SPECIES:</strong></p>
+                </div>
+                <div id="sp-tag" class="col-md-10">
+                </div>
+            </div>
+
+            {% if geneset.uri %}
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>URI:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        {% if geneset.uri %}
+                            <a href="{{ geneset.uri }}">{{ geneset.uri }}</a>
+                        {% else %}
+                            None
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if geneset.publication %}
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>AUTHORS:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        {% if geneset.publication.authors %}
+                            {{ geneset.publication.authors }}
+                        {% else %}
+                            None
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>TITLE:</strong></p>
+                    </div>
+
+                    <div class="col-md-10">
+                        {% if geneset.publication.title %}
+                            <i>{{ geneset.publication.title }}</i>
+                        {% else %}
+                            None
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>JOURNAL:</strong></p>
+                    </div>
+
+                    <div class="col-md-10">
+                        {% if geneset.publication.journal %}
+                            <u>{{ geneset.publication.journal }}</u>
+                            {{ geneset.publication.month }} {{ geneset.publication.year }},
+                            Vol {{ geneset.publication.volume }}, pp. {{ geneset.publication.pages }}
+                        {% else %}
+                            None
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-2">
+                        <p class="text-right"><strong>ABSTRACT:</strong></p>
+                    </div>
+                    <div class="col-md-10">
+                        {% if geneset.publication.abstract %}
+                            {{ geneset.publication.abstract }}
+                        {% else %}
+                            None
+                        {% endif %}
+                        {% if geneset.publication.pubmed_id %}
+                            <a href="http://www.ncbi.nlm.nih.gov/pubmed/{{ geneset.publication.pubmed_id }}">
+                                <b>PUBMED: {{ geneset.publication.pubmed_id }}</b>
+                            </a>
+
+                            <br>
+                            <!-- TODO link this with a search for this pubmed ID -->
+                            <a href="../findPublications/{{ geneset.geneset_id }}">Find other GeneSets from this publication <i class="fa fa-search"></i></a>
+                        {% endif %}
+                    </div>
+                </div>
+
+            {% else %}
+
+                <div class="row">
+                    <div class="alert bg-gray-light">No publication information is associated with this GeneSet.</div>
+                </div>
+
+
+            {% endif %}
 
             {# Annotation Information #}
             <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -146,16 +143,14 @@
                             <span id="genesetOntologyInfo" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
                     </div>
                 </div>
-                <div class="row">
-                    <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
-                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-                        Go to the
-						<a href="/editgeneset/{{geneset.geneset_id}}">
-							Edit MetaContent 
-						</a>
-						page to change ontology annotations.
+                {% if curation_view is not defined or (curation_view == 'curator' and curation_assignment.state == curation_assignment.ASSIGNED) %}
+                    <div class="row">
+                        <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                            Go to the "Edit MetaData" page to change ontology annotations.
+                        </div>
                     </div>
-                </div>
+                {% endif %}
                 <div class="row">
                         <ul style="list-style-type:disc; margin-left: 2em;">
                             {% for ont in ontology %}
@@ -177,13 +172,44 @@
 
             <script>
 
+                // Dynamically generates a colored species tag using an sp_id/sp_name
+                // association list from the DB. The function normalizes sp_id just in
+                // case species have been removed and gaps exist between IDs. The original
+                // colors for GW's first six species are still used, the rest are based off
+                // ColorBrewer scale combinations.
+                $(function() {
+
+                    var spid = {{ geneset.sp_id }};
+                    // The alist returned by the server should already be sorted
+                    var splist = {{ species|tojson|safe }};
+                    var spname = '';
+                    // Extra element padding since sp_ids are not zero indexed
+                    var colors = ['', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1', '#f4dfff',
+                        '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'];
+                    var borders = ['', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a', '#b4d1fb',
+                        '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'];
+
+                    for (var i = 0; i < splist.length; i++) {
+                        if (spid === splist[i][0]) {
+                            spid = i;
+                            spname = splist[i][1];
+
+                            break;
+                        }
+                    }
+
+                    var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+                            '; border:1px solid ' + borders[spid] + '">' +
+                            spname + '</span>';
+
+                    $('#sp-tag').html(tag);
+                });
                 //Popover that gives Geneset Ontology functionality overview for the user
                 //Displayed when ontologies are linked with the geneset
                 $('#genesetOntologyInfo').popover({
                         title: 'GeneSet Ontologies', content: 'Ontologies linked to the current GeneSet are ' +
                         'shown below as the highlighted nodes within the ontology databases. Only available to edit ' +
-                        'on the "Edit MetaContent" page.'
+                        'on the "Edit MetaData" page.'
                 });
             </script>
         </div>
-
