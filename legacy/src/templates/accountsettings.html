@@ -323,6 +323,15 @@
                                 <input type="checkbox" name="email_notifications" id="email_notifications" {% if emailNotifications %}checked{% endif %}>
                             </label>
                         </div>
+                        <div class="row">
+                            <label for="annotation_pref"><h4>Text Annotator</h4>
+                                <select class="form-control" id="annotation_pref">
+                                    <option value='monarch'>Monarch</option>
+                                    <option value='ncbo'>NCBO</option>
+                                    <option value='both'>Both</option>
+                                </select>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -369,8 +378,11 @@
     $(document).ready(function () {
 
         var groupAdmins = {{ groupAdmins | tojson }};
+        var annotation_pref = '{{ annotation_pref }}';
 
         $("#password_2").keyup(validate);
+
+        $('#annotation_pref').val(annotation_pref);
 
         $(function () {
             $("[data-toggle='tooltip']").tooltip();
@@ -536,7 +548,6 @@
             var grp_id = ($(this).attr("data-grp"));
             window.location.href = '../groupTasks/' + grp_id;
         });
-
 
 
         $('.clickable_addUsr').on('click', function () {
@@ -731,6 +742,22 @@
 
         }
 
+        function handleAnnotatorError(data) {
+
+            // unable to set preferences, reset dropdown
+            $('#annotation_pref').val(annotation_pref);
+
+            if (data.responseJSON.error) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.error,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+        }
+
         $('#email_notifications').change(function () {
             var state = 0;
             var usr = {{ g.user.user_id }};
@@ -741,8 +768,31 @@
                 'user_id': usr,
                 'new_state': state
             }, function (data) {
-                console.log('notification preferences updated');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Email notification preference updated.",
+                        'priority': 'success'
+                    }
+                ]);
             }).fail(handleEmailNotificationError);
+        });
+
+        $('#annotation_pref').change(function () {
+            var usr = {{ g.user.user_id }};
+            $.getJSON("{{ url_for('set_annotator') }}", {
+                'user_id': usr,
+                'annotator': $('#annotation_pref').val(),
+            }, function (data) {
+                annotation_pref = $('#annotation_pref').val();
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Annotator preference updated.",
+                        'priority': 'success'
+                    }
+                ]);
+
+            }).fail(handleAnnotatorError);
         });
 
     });

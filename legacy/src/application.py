@@ -13,6 +13,7 @@ import geneweaverdb
 import notifications
 import curation_assignments
 import pub_assignments
+import publication_generator
 import error
 import uploadfiles
 import json
@@ -31,6 +32,7 @@ import cairosvg
 import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
+import bleach
 
 
 app = flask.Flask(__name__)
@@ -405,8 +407,7 @@ def assign_genesets_to_curation_group():
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        #TODO do we need to sanitize the note?
-        note = request.form.get('note', '')
+        note = bleach.clean(request.form.get('note', ''))
         grp_id = request.form.get('grp_id')
 
         gs_ids = request.form.getlist('gs_ids[]', type=int)
@@ -438,8 +439,7 @@ def assign_genesets_to_curator():
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        #TODO do we need to sanitize the note?
-        note = request.form.get('note', '')
+        note = bleach.clean(request.form.get('note', ''))
         curator = request.form.get('usr_id')
         gs_ids = request.form.getlist('gs_ids[]', type=int)
         curator_info = geneweaverdb.get_user(curator)
@@ -474,8 +474,7 @@ def assign_publications_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        note = request.form.get('note', '')
+        note = bleach.clean(request.form.get('note', ''))
         curator = request.form.get('usr_id')
         pub_ids = request.form.getlist('pub_ids[]', type=int)
         group_id = request.form.get('group_id')
@@ -510,8 +509,7 @@ def assign_geneset_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('note', '')
+        notes = bleach.clean(request.form.get('note', ''))
         gs_id = request.form.get('gs_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -544,8 +542,7 @@ def geneset_ready_for_review():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('note', '')
+        notes = bleach.clean(request.form.get('note', ''))
         gs_id = request.form.get('gs_id', type=int)
 
         assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
@@ -573,8 +570,7 @@ def mark_geneset_reviewed():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('note', '')
+        notes = bleach.clean(request.form.get('note', ''))
         gs_id = request.form.get('gs_id', type=int)
         review_ok = request.form.get('review_ok') in ['true', '1']
 
@@ -608,7 +604,97 @@ def render_assign_publication():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
-    return flask.render_template('publication_assignment.html', myGroups=my_groups)
+
+        generators = publication_generator.list_generators(user_id, [str(group['grp_id']) for group in my_groups])
+
+    return flask.render_template('publication_assignment.html',
+                                 myGroups=my_groups,
+                                 myGenerators=generators)
+
+
+@app.route('/generators')
+def list_generators():
+    if 'user_id' in flask.session:
+        # TODO:  Implement a version to be called when refreshing, not just at page load
+        #  return a list of generators
+        response = []
+    return response
+
+
+@app.route('/add_generator', methods=['POST'])
+def add_generator():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        generator_name = request.form.get('name', '')
+        generator_querystring = request.form.get('querystring', '')
+        group_id = request.form.get('group_id', type=int)
+
+        if not generator_name or not generator_querystring:
+            response = flask.jsonify(success=False, message='You must provide a generator name and query string.')
+            response.status_code = 412
+
+        generator_dict = {
+            'name': generator_name,
+            'querystring': generator_querystring,
+            'grp_id': group_id,
+            'usr_id': user_id
+        }
+        generator = publication_generator.PublicationGenerator(**generator_dict)
+
+        if not generator:
+            # couldn't create a generator
+            response = flask.jsonify(message="Generator not created")
+            response.status_code = 500
+        else:
+            # generator created
+            response = flask.jsonify(message="Generator successfully added to group")
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route('/delete_generator/<int:generator_id>/<int:usr_id>/')
+def delete_generator(generator_id, usr_id):
+    if 'user_id' in flask.session:
+        flask_user = flask.session['user_id']
+        if not (flask_user == usr_id):
+            # user owning generator not current user
+            response = flask.jsonify(message='You cannot delete a generator belonging to another user.')
+            response.status_code = 412
+
+        else:
+            generator = publication_generator.PublicationGenerator.get_generator_by_id(generator_id)
+            if generator:
+                row_count = publication_generator.delete_generator(generator)
+                if row_count > 0:
+                    # generator deleted
+                    response = flask.jsonify(message="Generator successfully deleted")
+                else:
+                    # couldn't delete a generator
+                    response = flask.jsonify(message="Generator not deleted")
+                    response.status_code = 500
+            else:
+                response = flask.jsonify(message="No generator for that id " + str(generator_id))
+                response.status_code = 412
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route('/run_generator/<int:generator_id>')
+def run_generator(generator_id):
+    pubmed_entries = []
+    if 'user_id' in flask.session:
+        generator = publication_generator.PublicationGenerator.get_generator_by_id(generator_id)
+        pubmed_entries = generator.run()
+    return json.dumps(pubmed_entries)
 
 
 @app.route('/get_publication_by_pubmed_id/<pubmed_id>.json')
@@ -636,7 +722,7 @@ def assign_publication_to_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = request.form.get('notes', '')
+        notes = bleach.clean(request.form.get('note', ''))
         pubmed_id = request.form.get('pubmed_id')
         group_id = request.form.get('group_id', type=int)
 
@@ -681,8 +767,7 @@ def assign_publication_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        #TODO do we need to sanitize the note?
-        notes = request.form.get('notes', '')
+        notes = bleach.clean(request.form.get('note', ''))
         pub_assignment_id = request.form.get('assignment_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -772,8 +857,7 @@ def save_pub_assignment_note():
         uid = flask.session['user_id']
         pub_assignment_id = request.form.get('assignment_id', type=int)
 
-        # TODO sanitize notes
-        notes = request.form.get('notes')
+        notes = bleach.clean(request.form.get('note', ''))
 
         assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
         if assignment:
@@ -1358,11 +1442,15 @@ def render_accountsettings():
 
     prefs = json.loads(user.prefs)
     email_pref = prefs.get('email_notification', 0)
+    annotation_pref = prefs.get('annotator', 'monarch')
 
-
-    return flask.render_template('accountsettings.html', user=user, groupsMemberOf=groupsMemberOf,
-                                 groupsOwnerOf=groupsOwnerOf, groupsEmail=groupsEmail,
-                                 groupAdmins=groupAdmins, emailNotifications=email_pref)
+    return flask.render_template('accountsettings.html', user=user,
+                                 groupsMemberOf=groupsMemberOf,
+                                 groupsOwnerOf=groupsOwnerOf,
+                                 groupsEmail=groupsEmail,
+                                 groupAdmins=groupAdmins,
+                                 emailNotifications=email_pref,
+                                 annotation_pref=annotation_pref)
 
 
 @app.route('/update_notification_pref.json', methods=['GET'])
@@ -1380,6 +1468,21 @@ def update_notification_pref():
 
     return response
 
+
+@app.route('/set_annotator.json')
+def set_annotator():
+    user_id = int(flask.request.args['user_id'])
+    if 'user_id' in flask.session and user_id == flask.session.get('user_id'):
+        result = geneweaverdb.update_annotation_pref(user_id, flask.request.args['annotator'])
+        response = flask.jsonify(**result)
+        if 'error' in result:
+            response.status_code = 500
+
+    else:
+        response = flask.jsonify(error='Unable to set email notification preference: permission error')
+        response.status_code = 403
+
+    return response
 
 @app.route('/login')
 def render_login():

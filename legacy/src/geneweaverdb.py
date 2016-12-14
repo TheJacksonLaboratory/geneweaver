@@ -12,6 +12,7 @@ import config
 import notifications
 from curation_assignments import CurationAssignment
 import pubmedsvc
+import annotator as ann
 
 app = flask.Flask(__name__)
 
@@ -822,9 +823,6 @@ def get_attributed_genesets(atid=None, abbrev=None):
         #    counts['at_abbrev'] = abbrev
 
         return cursor.fetchone()
-
-
-
 
 
 def resolve_feature_id(sp_id, feature_id):
@@ -2259,16 +2257,22 @@ def get_group_by_id(group_id):
         cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
                           WHERE g.grp_id=%s''', (group_id,))
         groups = [Group(row_dict) for row_dict in dictify_cursor(cursor)]
-    return groups[0]
+    return None if len(groups) == 0 else groups[0]
 
 
 class Groups:
+    """
+    This class has a specific purpose for conveying user privleges on a given group
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
 
 class Group:
+    """
+    This class is intended to represent a group and whether it's private or public
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
@@ -2379,7 +2383,6 @@ class Geneset:
         if self.pub_id is not None:
             try:
                 self.publication = Publication(gs_dict)
-                print self.publication.abstract
             except KeyError:
                 self.publication = None
         else:
@@ -2621,6 +2624,26 @@ def update_notification_pref(user_id, state):
             return {'success': True}
 
     return {'error': 'unable to update user notification email preference'}
+
+
+def update_annotation_pref(user_id, annotator):
+    if annotator not in ann.ANNOTATORS:
+        return {'error': "invalid annotator: '{}' must be one of {}".format(annotator, ", ".join(ann.ANNOTATORS))}
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''select usr_prefs FROM usr WHERE usr_id=%s''', (user_id,)
+        )
+        results = cursor.fetchall()
+        if len(results) == 1:
+            preferences = json.loads(results[0][0])
+            preferences['annotator'] = annotator
+            cursor.execute(
+                '''UPDATE usr SET usr_prefs=%s WHERE usr_id=%s''', (json.dumps(preferences), user_id)
+            )
+            cursor.connection.commit()
+            return {'success': True}
+
+    return {'error': 'unable to update user annotation'}
 
 
 def get_geneset(geneset_id, user_id=None, temp=None):

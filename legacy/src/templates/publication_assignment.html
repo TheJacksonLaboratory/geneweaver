@@ -62,6 +62,10 @@
 
     }
 
+    .clickable, .clickable_delete, .clickable_runGenerator, .clickable_addGenerator {
+        cursor: pointer;
+    }
+
 </style>
 
 
@@ -74,58 +78,180 @@
 
     {% block body %}
 
-
         <div id="maindiv" xmlns="http://www.w3.org/1999/html">
-
             <div class="loader" style="display: none" id="loader"></div>
 
             <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>Publication Assignment</strong>
-                </h3>
+                <h3 class="panel-title"><strong>Search/Assign Publications</strong></h3>
             </div>
 
-            <p>Assign a Publication to a group</p>
-
             <div class="container">
-                <div class="row">
-                    <div class="col-xs-6 col-sm-6">
-                        <label for="pubmed_id">Pubmed ID:</label>
+            <!--div class="panel-group" id="accordion"-->
+                <div class="panel panel-default">
+                    <div class="panel-heading panel-underline">
+                        <h4 class="page-header">
+                            <a class="accordion-toggle" data-toggle="collapse" href="#collapseOne">
+                                <span class="glyphicon glyphicon-plus"></span>
+                                <strong>Single Publication Assignment</strong>
+                            </a>
+                        </h4>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-xs-8 col-md-4">
-                        <div class="input-group">
-                            <input type="text" class="form-control"
-                                   id="pubmed_id">
-                        <span class="input-group-btn">
-                            <button type="button" class="btn btn-primary" id="find">
-                                Find Publication
-                            </button>
-                        </span>
+                    <div id="collapseOne" class="panel-collapse collapse ">
+                        <div class="panel-body in">
+                            <p>Assign a Publication to a group</p>
+
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col-xs-6 col-sm-6">
+                                        <label for="pubmed_id">Pubmed ID:</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-8 col-md-4">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control"
+                                                   id="pubmed_id">
+                                        <span class="input-group-btn">
+                                            <button type="button" class="btn btn-primary" id="find">
+                                                Find Publication
+                                            </button>
+                                        </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="current_publication" style="padding: 30px"></div>
+
+                            <div data-alerts="alerts"
+                                 data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid"
+                                 data-fade="5000"></div>
+
+                            <span style="padding-left: 30px">
+                                <button type="button" class="btn btn-primary" id="assign">
+                                    Assign To Curation Group
+                                </button>
+                            </span>
                         </div>
                     </div>
                 </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading panel-underline">
+                        <h4 class="page-header">
+                            <a class="accordion-toggle" data-toggle="collapse" href="#collapseTwo">
+                                <span class="glyphicon glyphicon-minus"></span>
+                                Publication Generators
+                            </a>
+                            <button type="button" class="btn btn-primary pull-right" id="addGenerator">
+                                    <i class="fa fa-cog pull-right"></i>Add Generator
+                            </button>
+                            <!--span type="button" class="btn btn-primary pull-right" id="addGenerator" class="clickable_addGenerator">
+                                <i class="fa fa-cog pull-right"></i>
+                                Add Generator
+                            </span-->
+                        </h4>
+                    </div>
+                    <div id="collapseTwo" class="panel-collapse collapse in">
+                        <div class="panel-body">
+                            <div class="row" id="generatorTable">
+                                {% if myGenerators | length > 0 %}
+                                    <table class="table table-striped">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>PubMed Search</th>
+                                            <th>For Group</th>
+                                            <th>Last Run</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        {% for gen in myGenerators %}
+                                            <tr>
+                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Generator Name" title="Generator Name"
+                                                          style="margin: 2px; padding: 0px 2px;">{{ gen.name }}</span>
+                                                </td>
+                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Pubmed Query String" title="Pubmed Query String"
+                                                          style="margin: 2px; padding: 0px 2px;"><a href="https://www.ncbi.nlm.nih.gov/pubmed?term={{ gen.querystring }}">{{ gen.querystring }}</a>
+                                                    </span>
+                                                </td>
+                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="For Group" title="For Group"
+                                                          style="margin: 2px; padding: 0px 2px;">{{ gen.grp_name }}</span>
+                                                </td>
+                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Last Run" title="Last Run"
+                                                          style="margin: 2px; padding: 0px 2px;">{{ gen.last_update }}</span>
+                                                </td>
+                                                <td>
+                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Run Generator" type="button" title="Run Generator"
+                                                          class="clickable_runGenerator" id="runGenerator_{{ gen.stubgenid }}"
+                                                          data-gen="{{ gen.stubgenid }}" data-gen-name="{{ gen.name }}"
+                                                          data-grp-name="{{ gen.grp_name }}" style="margin: 2px; padding: 0px 2px;">
+                                                        <i class="fa fa-refresh"></i>
+                                                    </span>
+                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Delete" type="button" title="Delete Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                        <span class="clickable_delete" id="deleteGeneratorModal_{{ gen.stubgenid }}"
+                                                              data-gen="{{ gen.stubgenid }}" data-gen-name="{{ gen.name }}"
+                                                              style="margin: 2px; padding: 0px 2px;">
+                                                            <i class="fa fa-trash-o"></i>
+                                                        </span>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </table>
+
+                                {% else %}
+
+                                    <div class="alert alert-warning">You do not have any generators.</div>
+
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading panel-underline">
+                        <h4 class="page-header">
+                            <a class="accordion-toggle" data-toggle="collapse" href="#collapseThree">
+                                <span class="glyphicon glyphicon-plus"></span>
+                                Generated Publication Listing
+                            </a>
+                         </h4>
+                    </div>
+                    <div id="collapseThree" class="panel-collapse collapse">
+                      <div class="panel-body">
+                        Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                      </div>
+                    </div>
+                </div>
             </div>
-
-            <div id="current_publication" style="padding: 30px"></div>
-
-            <div data-alerts="alerts"
-                 data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid"
-                 data-fade="5000"></div>
-
-            <span style="padding-left: 30px">
-                <button type="button" class="btn btn-primary" id="assign">
-                    Assign To Curation Group
-                </button>
-            </span>
-
+            </div>
         </div>
 
         {% include 'modal/assignPublicationToGroup.html' %}
+        {% include 'modal/addGeneratorToGroup.html' %}
+        {% include 'modal/deleteGenerator.html' %}
 
     {% endblock %}
 
     <script type="text/javascript">
+
+    {#  provide accordian funtionality #}
+    $('.collapse')
+        .on('shown.bs.collapse',
+            function() {
+                $(this).parent().find(".glyphicon-plus").removeClass("glyphicon-plus").addClass("glyphicon-minus");
+            })
+        .on('hidden.bs.collapse',
+            function(){
+                $(this).parent().find(".glyphicon-minus").removeClass("glyphicon-minus").addClass("glyphicon-plus");
+            }
+        );
 
     $(function() {
 
@@ -260,7 +386,86 @@
             $('#assignPubConfirm').prop("disabled", false).button("refresh");
         });
 
+        $('#addGenerator').click(function (){
+            // when we show the modal window, we don't want a group selected.
+            $("#genGroups option").prop("selected", false);
+
+            // need to clear out old fields
+            $('#generatorName').val("");
+            $('#generatorQuery').val("");
+
+            // submit button will be disabled until the user selects a group radio button
+            $('#addGeneratorConfirm').prop("disabled", true).button("refresh");
+
+            $("#addGeneratorToGroupModal").modal('show');
+        });
+
+        $('#addGeneratorConfirm').click(function (){
+            $('#modalLoader').show();
+            var params = {
+                "name": $('#generatorName').val(),
+                "querystring": $('#generatorQuery').val(),
+                "group_id": $("#genGroups").val()
+            };
+
+            $.post("{{ url_for('add_generator') }}", params ,function(data) {
+                $('#modalLoader').hide();
+                $("#addGeneratorToGroupModal").modal('hide');
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.message,
+                        'priority': 'success'
+                    }
+                ]);
+                window.location.reload(true);
+            }, "json").fail(handleAssignmentError);
+        });
+
+        $("#genGroups").change( function () {
+            // submit button will be disabled until the user selects a group
+            // selection
+            $('#addGeneratorConfirm').prop("disabled", false).button("refresh");
+        });
+
+        $('.clickable_delete').on('click', function () {
+            var stubgenid = ($(this).attr("data-gen"));
+            var gen_name = ($(this).attr("data-gen-name"));
+            $("#delGeneratorModalLabel").html(gen_name);
+            $("#user_id_delgen").val({{ g.user.user_id }});
+            $("#stubgenid_delgen").val(stubgenid);
+            $('#delGeneratorModal').modal('show');
+        });
+
+        $('.deleteGeneratorFromUser').on('click', function () {
+            var stubgenID = $("#stubgenid_delgen").val();
+            var userID = $("#user_id_delgen").val();
+            $.ajax({
+                type: "GET",
+                url: "/delete_generator/" + stubgenID + "/" + userID + "/",
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                            {
+                                'message': "Generator Successfully Deleted.",
+                                'priority': 'success'
+                            }
+                        ]);
+                    window.location.reload(true);
+
+                },
+                error: function (jqXHR, textStatus, errorThrown ) {
+
+                    $(document).trigger("add-alerts", [{
+                        'message': "An Error (" + jqXHR + ") occurred while deleting generator " + stubgenID + ". " + textStatus,
+                        'priority': 'danger'
+                    }]);
+                }
+            });
+        });
+
+
     });
+
 
     </script>
 
