@@ -58,6 +58,12 @@ def get_pubmed_info(pub_med_id):
 
                 pubmed_info['pub_authors'] = authors
 
+        # make sure some required fields are here
+        # I've found some pubmed ids don't have this information
+        if 'pub_volume' not in pubmed_info:
+            pubmed_info['pub_volume'] = None
+        if 'pub_pages' not in pubmed_info:
+            pubmed_info['pub_pages'] = None
         return pubmed_info
     else:
         raise Exception('unexpected response status code from pubmed service: {0}'.format(resp.status_code))

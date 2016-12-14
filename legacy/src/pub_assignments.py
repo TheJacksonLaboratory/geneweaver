@@ -25,6 +25,8 @@
 from __future__ import print_function
 import geneweaverdb
 import notifications
+import uploadfiles
+import curation_assignments
 
 
 class PubAssignment(object):
@@ -35,14 +37,40 @@ class PubAssignment(object):
     REVIEWED = 4
 
     def __init__(self, row_dict):
-        self.state = row_dict['curation_state']
+        self.id = row_dict['id']
+        self.state = row_dict['assignment_state']
         self.pub_id = row_dict['pub_id']
         self.assignee = row_dict['assignee']
-        self.reviewer = row_dict['reviewer']
+        self.assigner = row_dict['assigner']
         self.notes = row_dict['notes']
         self.group = row_dict['curation_group']
         self.created = row_dict['created']
         self.updated = row_dict['updated']
+
+    @property
+    def state_as_string(self):
+        state_dict = {
+            PubAssignment.UNASSIGNED: "Unassigned",
+            PubAssignment.ASSIGNED: "Assigned",
+            PubAssignment.READY_FOR_TEAM_REVIEW: "Under Review",
+            PubAssignment.REVIEWED: "Complete"
+        }
+
+        try:
+            return state_dict[self.state]
+        except KeyError:
+            return "Unknown"
+
+
+def get_pub_assignment_url(pub_id, group_id):
+    """
+    returns a URL to view a publication assignment. the publication id and
+    group id together uniquely identify the assignment
+    :param pub_id: publication id
+    :param group_id: group id
+    :return:
+    """
+    return '<a href="{url_prefix}/viewPubAssignment/' + str(group_id) + '/' + str(pub_id) + '">' + str(pub_id) + '</a>'
 
 
 def queue_publication(pub_id, group_id, note):
@@ -58,7 +86,7 @@ def queue_publication(pub_id, group_id, note):
 
         # JGP - for now delete the object to prevent exception on the INSERT...
         cursor.execute(
-            "DELETE FROM production.pub_assignments WHERE pub_id=%s", (pub_id,))
+            "DELETE FROM production.pub_assignments WHERE pub_id=%s AND curation_group=%s", (pub_id, group_id))
 
         # Add a record to the table
         cursor.execute(
@@ -68,10 +96,8 @@ def queue_publication(pub_id, group_id, note):
 
         # send notification to the group admins
         subject = 'Publication Queued for Review'
-        # JGP - replace this with a meaningful reference
-        message = 'production.publication.pub_id: <i>' + str(pub_id) + '</i><br>' + note
+        message = 'production.publication.pub_id: <i>' + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
         notifications.send_group_admin_notification(group_id, subject, message)
-    return
 
 
 def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
@@ -94,10 +120,8 @@ def assign_publication(pub_id, group_id, assignee_id, assigner_id, note):
 
     # Send notification to curator
     subject = "Publication Assigned To You For Review"
-    # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
-    return
 
 
 def assignment_complete(pub_id, group_id, note):
@@ -127,10 +151,8 @@ def assignment_complete(pub_id, group_id, note):
 
     # Send notification to assigner
     subject = 'Publication Assignment Complete'
-    # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
-    return
 
 
 def review_accepted(pub_id, group_id, note):
@@ -160,11 +182,8 @@ def review_accepted(pub_id, group_id, note):
 
     # Send notification to curator
     subject = 'Publication Assignment Accepted'
-    # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
-
-    return
 
 
 def review_rejected(pub_id, group_id, note):
@@ -194,15 +213,19 @@ def review_rejected(pub_id, group_id, note):
 
     # Send notification to curator
     subject = 'Publication Assignment Rejected'
-    # JGP - replace this with a meaningful reference
-    message = "production.publication.pub_id: <i>" + str(pub_id) + '</i><br>' + note
+    message = "production.publication.pub_id: <i>" + get_pub_assignment_url(pub_id, group_id) + '</i><br>' + note
     notifications.send_usr_notification(assignee_id, subject, message)
 
-    return
+
+def update_notes(pub_id, group_id, notes):
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute(
+            "UPDATE production.pub_assignments SET notes=%s, updated=now() WHERE pub_id=%s AND curation_group=%s",
+            (notes, pub_id, group_id))
+        cursor.connection.commit()
 
 
 def get_publication_assignment(pub_id, group_id):
-
     with geneweaverdb.PooledCursor() as cursor:
 
         cursor.execute("SELECT * FROM production.pub_assignments WHERE pub_id=%s AND curation_group=%s", (pub_id, group_id))
@@ -212,6 +235,90 @@ def get_publication_assignment(pub_id, group_id):
             return PubAssignment(assignments[0])
         else:
             return None
+
+
+def get_publication_assignment_by_id(pub_assign_id):
+    """
+    get a PubAssignment object from the database given a pub_assignment id
+    :param pub_assign_id: id of Publication Assignment we want to retrive from
+          the database
+    :return: PubAssignment object
+    """
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute("SELECT * FROM production.pub_assignments WHERE id=%s", (pub_assign_id,))
+        assignments = list(geneweaverdb.dictify_cursor(cursor))
+
+        return PubAssignment(assignments[0]) if len(assignments) == 1 else None
+
+
+def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
+                                        species_id):
+    """
+    create a stub geneset for this publication.  a stub geneset is a record
+    that only has the basic information filled out.  This will generate a new
+    geneset curation assignment for the publication curator. They will finish
+    filling out the geneset through the geneset curation workflow.
+
+    :param pub_assign_id: ID of the publication assignment for which this
+        geneset is being created
+    :param name: name of new geneset
+    :param label: figure label for new geneset
+    :param description: description of geneset
+    :return: ID of new geneset
+    """
+
+    geneset_id = None
+    assignment = get_publication_assignment_by_id(pub_assign_id)
+
+    if assignment:
+
+        # default geneset as 'Private'
+        # group id -1 signifies private
+        gs_groups = '-1'
+        #set initial curation level to 5 (private)
+        cur_id = 5
+
+        # right now, this can be set in the curation view.  should we
+        # set this in the stub?
+        gene_identifier = 0
+
+        with geneweaverdb.PooledCursor() as cursor:
+            file_id = uploadfiles.insert_new_contents_to_file("")
+            cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
+                              gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
+                              VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
+                           (assignment.assignee, file_id, name, label,
+                            assignment.pub_id, cur_id,
+                            description, species_id, 0, gs_groups,
+                            gene_identifier,
+                            'delayed',))
+            geneset_id = cursor.fetchone()[0]
+            cursor.connection.commit()
+
+        if geneset_id:
+            curation_assignments.submit_geneset_for_curation(geneset_id, assignment.group, "", False)
+            curation_assignments.assign_geneset_curator(geneset_id, assignment.assignee, assignment.assigner, "")
+            insert_gs_to_pub_assignment(geneset_id, pub_assign_id)
+
+    return geneset_id
+
+
+def insert_gs_to_pub_assignment(gs_id, pub_assign_id):
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id, pub_assign_id)
+                          VALUES (%s, %s)''', (gs_id, pub_assign_id))
+        cursor.connection.commit()
+
+
+def get_genesets_for_assignment(pub_assign_id):
+    gs_ids = []
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute("SELECT gs_id FROM production.gs_to_pub_assignment WHERE pub_assign_id=%s ORDER BY gs_id ASC", (pub_assign_id,))
+
+        for row in geneweaverdb.dictify_cursor(cursor):
+            gs_ids.append(row['gs_id'])
+
+    return gs_ids
 
 
 #
