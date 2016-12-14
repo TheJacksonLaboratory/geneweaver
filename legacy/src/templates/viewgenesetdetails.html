@@ -560,7 +560,16 @@
                 ]);
             }
 
-            {% if curation_view == 'curation_leader' and (curation_assignment.state == 1 or curation_assignment.state == 2) %}
+            {% if curation_view == 'reviewer' %}
+                $("input:radio[name='review']:checked").prop('checked', false).checkboxradio("refresh");
+            {% endif %}
+
+            {% if curation_view in ['curation_leader', 'reviewer'] %}
+
+                // this block contains functions only required for the
+                // curation_leader or reviewer views. don't bother including
+                // them in the final page otherwise
+
                 $('#assignCurator').on('click', function () {
 
                     // when we show the modal window, we don't want a group selected.
@@ -577,39 +586,95 @@
                     $('#assignToCurator').prop("disabled", false).button("refresh");
                 });
 
+                $("input:radio[name='review']").on('click', function () {
+                        // button will be disabled until the user selects a review
+                        // decision
+                        $('#reviewed').prop("disabled", false).button("refresh");
+                    });
 
                 $('#assignToCurator').on('click', function () {
 
                     var selectedUserId = $('input[name=curator]:checked').val();
 
                     var params = {
-                        "note": $('#curationNotes').val(),
+                        "note": $('#modalCurationNotes').val(),
                         "gs_id": {{geneset.geneset_id}},
                         "curator": selectedUserId,
                     };
 
-                    console.log(selectedUserId);
-                    console.log(params);
-
-                    $.post("{{ url_for('assign_curator_to_geneset') }}", params ,function(data) {
+                    $.post("{{ url_for('assign_geneset_to_curator') }}", params ,function(data) {
 
                         var curatorName  = data.curator_name;
                         var curatorEmail = data.curator_email;
 
+
+                        // update the modal window to include a warning that
+                        // the GeneSet is now assigned to this curator
                         var html =      "<strong>" +
-                                        "This Geneset is Currently Assigned To " +
+                                        "This Geneset is currently assigned To " +
                                         curatorName + "(" + curatorEmail + "). " +
                                         "Are you sure you want to reassign it?" +
                                         "</strong>";
 
 
                         $('#alreadyAssignedWarning').html(html);
+                        $('#curationNotes').val($('#modalCurationNotes').val());
+
+
+                        {% if curation_view == 'reviewer' %}
+                            // reassigning a GeneSet that was ready for review
+                            // that puts the state back to 'assigned'
+
+                            // if we were in the review view we need to remove the
+                            // form controls specific to the review process. This
+                            // basically turns the view back to the curation_leader
+                            // view
+                            $('#review_div').hide();
+
+                            // also make the curation notes read only because in
+                            // this view they can only be changed by clicking on the
+                            // "Reassign Curator" button
+                            $('#curationNotes').prop('readonly', true);
+
+
+                        {% endif %}
 
                     }, "json").fail(handleError);
 
                 });
 
-            {% elif curation_view == 'curator' and curation_assignment.state == 2  %}
+                $('#reviewed').on('click', function () {
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "gs_id": {{geneset.geneset_id}},
+                        "review_ok": false
+                    };
+
+                    var buttonTxt = "Rejected";
+
+                    if ($("input[name='review']:checked").val() == 'accept') {
+                        params.review_ok = true;
+                        buttonTxt = "Approved";
+                    }
+
+
+                    $.post("{{ url_for('mark_geneset_reviewed') }}", params, function(data) {
+
+                        $('#reviewed').html(buttonTxt);
+                        $('#reviewed').prop('disabled', true).button('refresh');
+                        $('#review_div').remove();
+                        $('#assignCurator').remove();
+
+                    }, 'json').fail(handleError);
+
+                });
+
+            {% elif curation_view == 'curator' %}
+
+                // this block contains functions only required for the
+                // curator view. don't bother including them in the
+                // final page otherwise
+
                 $('#readyForReview').on('click', function() {
 
                     var params = {
@@ -618,14 +683,16 @@
                     };
 
                     $.post("{{ url_for('geneset_ready_for_review') }}", params ,function(data) {
-                        $('#readyForReview').prop("disabled", true).button("refresh");
-                        $('#readyForReview').html('Pending Review');
+                        $('#readyForReview').html('<i class="fa fa-check pull-left"></i>Pending Review');
+                        $('#readyForReview').prop('disabled', true).button('refresh');
+                        $('#curationNotes').prop('readonly', true);
                         $('#setThreshold').remove();
                         $('#editGeneset').remove();
                         $('#editGenesetGenes').remove();
 
-                    }, "json").fail(handleError);
+                    }, 'json').fail(handleError);
                 });
+
             {% endif %}
 
 		    console.log('done loading?');
@@ -708,7 +775,9 @@
 
 {% include 'modal/deleteGeneset.html' %}
 
-{% if curation_view == 'curation_leader' %}
+{% if curation_view == 'curation_leader' or curation_view == 'reviewer' %}
+    <!-- only used by the curation_leader or reviewer view, don't
+         bother including otherwise -->
     {% include 'modal/assignGenesetToCurator.html' %}
 {% endif  %}
 

@@ -1,23 +1,23 @@
-<div class="modal fade" id="assignGenesetForCurationModal">
+<div class="modal fade" id="assignPubToGroupModal">
     <div class="modal-dialog">
         <div class="modal-content" style="overflow: auto">
-            <form id="assignGenesetForCuration" name="assignGenesetForCuration" method="post" action="#" class="form-horizontal">
+            <form id="assignPubForCuration" name="assignPubForCuration" method="post" action="#" class="form-horizontal">
                 <div class="modal-header bg-green">
-                    <h3 class="modal-title" style="color: #f5f5f5">Assign Geneset For Curation</h3>
+                    <h3 class="modal-title" style="color: #f5f5f5">Assign Publication To Group</h3>
                 </div>
 
                 <div class="modal-body">
-                    <div class="row" id="curationModalError"></div>
+
+                    <div class="loader" style="display: none" id="modalLoader"></div>
+
+                    <div data-alerts="alerts"
+                         data-titles="{'warning': '<em>Warning!</em>'}"
+                         data-ids="modal-alert"
+                         data-fade="5000"></div>
 
                     <div class="row" style="text-align:center;">
-						<h4>The following GeneSets will be assigned for curation:</h4>
+                        <h4 align="left">Pubmed ID: <span id="pmid"></span></h4>
                     </div>
-
-                    <div class="row" style="text-align:center;">
-                        <strong>
-							<span class="rows" id="curationModalLabel" style="color: #006400;"></span>
-						</strong>
-					</div>
 
 
                     <div class="form-group">
@@ -28,6 +28,9 @@
                             <input class="form-check-input" type="radio" name="group" value="{{ group.grp_id }}" id="{{ group.grp_id }}_radio">
                         {% endfor %}
 
+
+                        <!-- not sure if we want to allow assignment of a publication to any public group -->
+                        {% if 0 %}
                         <label for="public_group_radio" class="form-check-label">Other Public Group</label>
                         <input class="form-check-input" type="radio" name="group" value="public_group" id="public_group_radio">
 
@@ -39,20 +42,21 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        {% endif %}
 
                     </div>
 
                     <div class="form-group" style="padding: 10px">
-                        <label for="curationNotes"><h4>Notes:</h4></label>
-                        <textarea class="form-control" rows="5" id="curationNotes"></textarea>
+                        <label for="publicationNotes"><h4>Notes:</h4></label>
+                        <textarea class="form-control" rows="5" id="publicationNotes"></textarea>
                     </div>
 
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-warning" id="assignGenesets" data-dismiss="modal" >
-							Assign For Curation
+                        <button type="button" class="btn btn-warning" id="assignPubConfirm"  >
+							Assign
 						</button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">
-							Close
+							Cancel
 						</button>
                     </div>
 

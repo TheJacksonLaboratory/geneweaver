@@ -11,7 +11,7 @@ run on other distributions with minimal changes.
 
 To begin, you'll need the following application dependencies:
 
-    $ sudo yum install boost boost-devel cairo cairo-devel git graphviz libffi libffi-devel postgresql-server postgresql-devel python2 rabbitmq-server sphinx
+    $ sudo yum install boost boost-devel cairo cairo-devel git graphviz libffi libffi-devel libpqxx libpqxx-devel postgresql-server postgresql-devel python2 rabbitmq-server sphinx
 
 Ensure that the following applications meet these version requirements:
 
@@ -256,6 +256,21 @@ These tools can be compiled using the "master" makefile located in TOOLBOX.
 
 	$ cd tools/TOOLBOX && make && cd ../..
 
+#### Compiling the Distribution Generator
+
+The distribution generator tool is written in C++ and used to generate a null distribution with which we can use to assess the significance of a jaccard similarity result. It is located in the `tools/cpp_tools` directory. This tool requires two dependencies, `libpqxx` and `libpqxx-devel` which should have been installed earlier. 
+
+This tool will generate a connection to the database and requires you to set the proper connection info. If you have been following this guide, the only connection parameter you should have to change is the database host address. This must be changed in the following files: `distribution_generator.cpp`, `drone.cpp`, and `fileGenerator.cpp`. `fileGenerator.cpp` contains two separate lines where the host address must be changed.
+
+To change all the necessary lines in a single sitting, run the following command in the tools directory:
+
+    $ cd tools
+    $ find . -name "*.cpp" -exec sed -i "s/129.62.148.19/DATABASE_IP/g" '{}' \;
+
+Then compile the distribution generator:
+
+    $ cd cpp_tools && make
+
 ### Running the Application
 
 GeneWeaver should now be ready to run. Start the tools application from the
@@ -332,4 +347,3 @@ directories. After editing, you can start the supervisor:
 To manage your applications use:
 
 	$ sudo supervisorctl -c /srv/geneweaver/supervisord.conf
-
