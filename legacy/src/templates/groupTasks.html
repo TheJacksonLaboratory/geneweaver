@@ -1,0 +1,606 @@
+{% set title="Curation Task Management" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+    td.details-control:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    tr.shown td.details-control:before {
+        content: "\f068";
+    }
+
+    .datatablerowhighlight {
+        background-color: #ECFFB3;
+    }
+
+    .row_selected {
+        background-color: #000000;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
+        a:hover {
+        text-decoration: none;
+    }
+
+    #clickableGroupCreate {
+        cursor: pointer;
+    }
+
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks {
+        cursor: pointer;
+    }
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .page-header2 {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .panel .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+        border: #006400;
+    }
+
+    .row {
+        border: none;
+    }
+
+    table th {
+        color: #006400;
+        border-top: 5px solid #006400;
+    }
+
+</style>
+
+
+{% if user_id == 0 %}
+    {% include 'htmlfragments/permissionError.html' %}
+{% else %}
+
+
+    {% block body %}
+
+        <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+
+            <p>
+
+            <div class="panel panel-default panel-heading bg-gray-light">
+                <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+            </div>
+
+            <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
+
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="panel panel-primary">
+                        <div class="page-header">
+                            <h2>Visible Groups</h2>
+                        </div>
+
+                        <div class="panel-body">
+
+                            <div class="row" id="groups">
+                                <div class="page-header2">
+                                    <h4>Administrator</h4>
+                                </div>
+                                {% if groups_owner | length > 0 %}
+                                    <table class="table table-striped">
+
+                                        {% for grpO in groups_owner %}
+                                            <tr>
+                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Group Name" type="button" title="Group Name"
+                                                          class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
+                                                          data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}"
+                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name }}</span>
+                                                </td>
+                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Privacy" type="button" title="Privacy Status"
+                                                          style="margin: 2px; padding: 0px 2px;">
+                                                        {% if grpO.grp_private %}
+                                                            <span class="label label-danger">Private</span>
+                                                        {% else %}
+                                                            <span class="label label-info">Public</span>
+                                                        {% endif %}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </table>
+
+                                {% else %}
+
+                                    <div class="alert alert-warning">You do not own any groups.</div>
+
+                                {% endif %}
+
+                            </div>
+
+                            <br/>
+                            <hr>
+                            <div class="row">
+                                <div class="page-header2">
+                                    <h4>Member</h4>
+                                </div>
+
+                                {% if groups_member | length > 0 %}
+
+                                    <table class="table table-striped">
+                                        {% for grpM in groups_member %}
+                                            <tr>
+                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpM.grp_id }}"
+                                                      data-grp="{{ grpM.grp_id }}" data-grp-name="{{ grpM.grp_name }}"
+                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name }}</span>
+                                                </td>
+                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Privacy" type="button" title="Privacy Status"
+                                                          style="margin: 2px; padding: 0px 2px;">
+                                                        {% if grpM.grp_private %}
+                                                            <span class="label label-danger">Private</span>
+                                                        {% else %}
+                                                            <span class="label label-info">Public</span>
+                                                        {% endif %}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </table>
+
+                                {% else %}
+
+                                    <div class="row">
+                                        <div class="alert alert-warning">You do not belong to any groups.</div>
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="col-md-9">
+                    <div class="panel panel-primary">
+                        <div class="page-header">
+                            <input hidden id="group_id" value="{{ group.grp_id }}">
+                            <input hidden id="user_id" value="{{ user_id }}">
+                            <h2><label id="group_name">{{ group.grp_name }}</label>
+                                    <label hidden id="group_private" class="label label-danger">Private</label>
+                                    <label hidden id="group_public" class="label label-info">Public</label>
+                                {% if group_owner == true %}
+                                    <span type="button" class="btn btn-primary pull-right" id="assignCurator"><i class="fa fa-user pull-right"></i> Assign Curator</span>
+                                {% endif %}
+                            </h2>
+                        </div>
+
+                        <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
+
+                            <table id="groupTasksViewer"
+                                   class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
+
+                                <thead>
+                                    <tr>
+                                        {% for col in headerCols %}
+                                            <th style="text-align: left">{{ col.capitalize() }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        {% for col in headerCols %}
+                                            <th style="text-align: left">{{ col.capitalize() }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    {% endblock %}
+
+    {#  Provides a warning if no tasks are selected. #}
+
+    <div class="modal fade" id="myAlert">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">No Tasks Selected</h3>
+                </div>
+                <div class="modal-body">
+                    <h4>You must select at least one Task (GeneSet or Publication).</h4>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-error" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'modal/verifyReassignTasks.html' %}
+    {% include 'modal/assignTasksForCuration.html' %}
+
+{% endif %}
+
+{% include 'footer.html' %}
+
+<script>
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+    var group_id;
+    var groupCurators;
+    var group_owner;
+    $(document).ready(function () {
+        group_id = '{{ group.grp_id }}';
+        groupCurators = '{{ groupCurators }}';
+        group_owner = '{{ group_owner }}';
+        var group_name = '{{  group.grp_name }}';
+        $('#group_id').val(group_id);
+        $('#group_name').text(group_name);
+        setPrivacyDisplay('{{ group.private }}');
+
+        var user_id = '{{user_id}}';
+        var columns = {{columns | safe}};
+        var headerCols = {{headerCols | safe}};
+
+        var table = $('#groupTasksViewer').dataTable({
+            "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+            "iDisplayLength": 10,
+            "bLengthChange": true,
+            "tableTools": {
+                "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                "sRowSelect": "multi"
+            },
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                'url': "/../getServersideGroupTasksdb",
+                'type': 'GET',
+                "data": function ( d ) {
+                    return $.extend( {}, d, {
+                        "group_id": $('#group_id').val(),
+                        "user_id":  $('#user_id').val()
+                    });
+                }
+            },
+            "columns": [
+                { "name": "full_name" },
+                { "name": "task_id" },
+                { "name": "task" },
+                { "name": "task_type" },
+                { "name": "updated" },
+                { "name": "task_status" },
+                { "name": "reviewer" }
+            ],
+            "aoColumnDefs": [
+
+                {
+                    "aTargets": [0],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var memberName = sData;
+                        $(nTd).empty();
+                        $(nTd).append(memberName);
+                    }
+                },
+                {
+                    "aTargets": [1],
+                    "visible": false,
+                    "searchable": false,
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var taskId = sData;
+                        $(nTd).empty();
+                        $(nTd).append(taskId);
+                    }
+                },
+                {
+                    "aTargets": [2],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var taskID = oData[1];
+                        var task = sData;
+                        var taskType = oData[3];
+                        $(nTd).empty();
+                        if (taskType === 'GeneSet') {
+                            $(nTd).append('<a href=\"/curategeneset/' + taskID + '\">' + task + '</a>');
+                        } else if (taskType === 'Publication') {
+                            $(nTd).append('<a href=\"/viewPubAssignment/' + group_id + '/' + taskID + '/\">' + task + '</a>');
+                        } else {
+                            $(nTd).append(task);
+                        }
+
+                    }
+                },
+                {
+                    "aTargets": [3],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var taskType = sData;
+                        $(nTd).empty();
+                        $(nTd).append(taskType);
+                    }
+                },
+                {
+                    "aTargets": [4],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var assignDate = sData;
+                        $(nTd).empty();
+                        $(nTd).append(assignDate);
+                    }
+                },
+                {
+                    "aTargets": [5],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var status = sData;
+                        $(nTd).empty();
+                        // TODO:  Replace this with a mechanism that uses url: "../assignmentStatusAsString/" + status,
+                        // and caching (probably done through another function)
+                        switch (status) {
+                            case 1:
+                                $(nTd).append('Unassigned');
+                                break;
+                            case 2:
+                                $(nTd).append('Assigned');
+                                break;
+                            case 3:
+                                $(nTd).append('Ready for team review');
+                                break;
+                            case 4:
+                                $(nTd).append('Reviewed');
+                                break;
+                        }
+                    }
+                },
+                {
+                    "aTargets": [6],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var reviewer = sData;
+                        $(nTd).empty();
+                        $(nTd).append(reviewer);
+                    }
+                }
+            ]
+
+        });
+
+        // When a group is selected, this will set the associated private/public display value
+        function setPrivacyDisplay(private) {
+            if (private === 'True') {
+                $('#group_public').hide();
+                $('#group_private').show();
+            } else {
+                $('#group_private').hide();
+                $('#group_public').show();
+            }
+        }
+
+        // When a new group is selected in the side bar, this will reload
+        // the main panel to reflect the new group
+        $('.clickable_viewGroupTasks').on('click', function () {
+            group_id = ($(this).attr("data-grp"));
+            window.location.href = '../groupTasks/' + group_id;
+        });
+
+        {% if group_owner == true %}
+
+            // this function handles the click event on the "assignCurator" button
+            // it takes the selected genesets updates the modal window with those
+            // selections and displays it.  It also makes sure the group selection
+            // is cleared on the modal.
+            $('#assignCurator').on('click', function () {
+                var aselectedTrs = TableTools.fnGetInstance('groupTasksViewer').fnGetSelectedData();
+                if (aselectedTrs == 0) {
+                    // let the user know they need to select at least on geneset
+                    $("#myAlert").modal('show');
+                }
+                else {
+
+                    selectedTasks = [];
+                    selectedGeneSets = [];
+                    selectedPublications = [];
+
+                    var selectedTaskLabels = [];
+                    var tasksWithCurationAssignments = [];
+                    for (var k in aselectedTrs) {
+                        selectedTaskLabels.push(aselectedTrs[k][2]);
+                        selectedTasks.push(aselectedTrs[k][1]);
+                        if (aselectedTrs[k][3] === 'GeneSet') {
+                            selectedGeneSets.push(aselectedTrs[k][1]);
+                        } else if (aselectedTrs[k][3] === 'Publication') {
+                            selectedPublications.push(aselectedTrs[k][1]);
+                        }
+
+                        if (aselectedTrs[k][0]) {
+                            tasksWithCurationAssignments.push(aselectedTrs[k][2]);
+                        }
+
+                    }
+
+                    if (tasksWithCurationAssignments.length) {
+                        var taskString = tasksWithCurationAssignments.join(", ");
+                        $('#reassignModalLabel').html(taskString);
+                        $('#verifyReassignTasks').modal('show')
+                            .one('click', '#reassignTasks', function() {
+                                processSelections(selectedTaskLabels);
+                        });
+                    } else {
+                        processSelections(selectedTaskLabels);
+                     }
+                }
+            });
+
+            function processSelections(selectedTaskLabels) {
+                // get the modal window ready to show.  The user may
+                // have already assigned some tasks, so this window
+                // may have been displayed once already and may still have
+                // the user's selections from last time.  Reset all of the
+                // selections so it looks like a new window.
+
+                var taskString = selectedTaskLabels.join(", ");
+                $('#curationModalLabel').html(taskString);
+
+                // when we show the modal window, we don't want a group selected.
+                $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+
+                // submit button will be disabled until the user selects a group radio button
+                $('#assignTasks').prop("disabled", true).button("refresh");
+
+                // need to clear out old notes
+                $('#curationNotes').val("");
+
+                $('#assignTasksForCurationModal').modal('show');
+            }
+
+
+
+            // Enable submit button once a member of the radio group in Modal assignTasksForCuration selected
+            $("input:radio[name='group']").on('click', function () {
+                $('#assignTasks').prop("disabled", false).button("refresh");
+            });
+
+            function handleCurationAssignmentError(data) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+            // Assignment of tasks occurs on click of the assignTasks button in Modal assignTasksForCuration
+            $('#assignTasks').on('click', function () {
+                var selectedCuratorId = $("input[name=group]:checked").val();
+                if (selectedGeneSets.length > 0) {
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "gs_ids[]": selectedGeneSets,
+                        "usr_id": selectedCuratorId,
+                    };
+
+                    // since params["gs_ids"] is a list the server needs to use
+                    // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+                    $.post("{{ url_for('assign_genesets_to_curator') }}", params, function (data) {
+
+                        var failed = [];
+                        var successfulLabels = [];
+
+                        for (var key in data.results) {
+                            if (data.results[key].success) {
+                                successfulLabels.push("GS" + key);
+                            }
+                            else {
+                                failed.push("GS" + key);
+                            }
+                        }
+
+                        if (failed.length) {
+                            // this shouldn't happen, but lets check for it anyway and display/log an error message...
+                            console.error("Unable to assign these GeneSets for curation: ", failed.join(', '));
+                            $(document).trigger("add-alerts", [
+                                {
+                                    'message': "Unable to assign for curation: " + failed.join(', '),
+                                    'priority': 'danger'
+                                }
+                            ]);
+                        }
+
+                        if (successfulLabels.length > 0) {
+                            // update table to reflect new curation assignments
+                            var table = $('#groupTasksViewer').DataTable();
+                            table.rows().invalidate().draw(false);
+                            TableTools.fnGetInstance('groupTasksViewer').fnSelectNone();
+                            $(document).trigger("add-alerts", [
+                                {
+                                'message': "GeneSets assigned for curation: " + successfulLabels.join(', '),
+                                'priority': 'success'
+                                }
+                            ]);
+                        }
+
+                    }, "json").fail(handleCurationAssignmentError);
+                }
+
+                if (selectedPublications.length > 0) {
+                    var params = {
+                        "note": $('#curationNotes').val(),
+                        "pub_ids[]": selectedPublications,
+                        "group_id": group_id,
+                        "usr_id": selectedCuratorId,
+                    };
+
+                    // since params["pub_ids"] is a list the server needs to use
+                    // request.args.getlist('pub_ids') instead of request.args['pub_ids']
+                    $.post("{{ url_for('assign_publications_to_curator') }}", params, function (data) {
+
+                        var failed = [];
+                        var successfulLabels = [];
+
+                        for (var key in data.results) {
+                            if (data.results[key].success) {
+                                successfulLabels.push(key);
+                            }
+                            else {
+                                failed.push(key);
+                            }
+                        }
+
+                        if (failed.length) {
+                            // this shouldn't happen, but lets check for it anyway and display/log an error message...
+                            console.error("Unable to assign these Publications for curation: ", failed.join(', '));
+                            $(document).trigger("add-alerts", [
+                                {
+                                    'message': "Unable to assign for curation: " + failed.join(', '),
+                                    'priority': 'danger'
+                                }
+                            ]);
+                        }
+
+                        if (successfulLabels.length > 0) {
+                            // update table to reflect new curation assignments
+                            var table = $('#groupTasksViewer').DataTable();
+                            table.rows().invalidate().draw(false);
+                            TableTools.fnGetInstance('groupTasksViewer').fnSelectNone();
+                            $(document).trigger("add-alerts", [
+                                {
+                                'message': "Publications assigned for curation: " + successfulLabels.join(', '),
+                                'priority': 'success'
+                                }
+                            ]);
+                        }
+
+
+                    }, "json").fail(handleCurationAssignmentError);
+                }
+
+
+            });
+
+        {% endif %}
+    });
+
+</script>

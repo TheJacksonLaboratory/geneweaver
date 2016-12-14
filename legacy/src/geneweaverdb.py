@@ -11,6 +11,7 @@ from flask import session
 import config
 import notifications
 from curation_assignments import CurationAssignment
+import pubmedsvc
 
 app = flask.Flask(__name__)
 
@@ -332,6 +333,22 @@ def get_all_members_of_group(usr_id):
     usr_emails = list(dictify_cursor(cursor))
     return usr_emails if len(usr_emails) > 0 else None
 
+def get_group_members(grp_id):
+    """
+    return a list of dictionaries of all members for a given group
+    :param grp_id:
+    :return: list
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT u.usr_id, u.usr_first_name, u.usr_last_name, u.usr_email FROM usr2grp u2g, usr u WHERE u2g.grp_id=%s
+            AND u.usr_id=u2g.usr_id ORDER BY u.usr_last_name, u.usr_first_name, u.usr_email''', (grp_id,)
+        )
+    members = list(dictify_cursor(cursor))
+    return members if len(members) > 0 else None
+
+
 
 def get_group_admins(grp_id):
     """
@@ -378,6 +395,7 @@ def get_all_member_groups(usr_id):
 
         return list(dictify_cursor(cursor))
 
+
 def get_other_visible_groups(usr_id):
     """
     get all visible groups that a user is not a member (regular or admin) of
@@ -386,8 +404,7 @@ def get_other_visible_groups(usr_id):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''SELECT * FROM production.grp WHERE grp_id NOT IN (SELECT grp_id
-               FROM production.usr2grp
-               WHERE usr_id = %s)''', (usr_id,)
+               FROM production.usr2grp WHERE usr_id = %s) AND grp_private = false''', (usr_id,)
         )
 
         return list(dictify_cursor(cursor))
@@ -520,7 +537,6 @@ def remove_user_from_group(group_name, owner_id, usr_email):
         notifications.send_usr_notification(usr_email, "Removed from Group",
                                             "You have been removed from the group {} by {}".format(group_name, owner_name),
                                             True)
-
 
 
 def remove_selected_users_from_group(user_id, user_emails, grp_id):
@@ -1537,7 +1553,7 @@ def get_server_side_genesets(rargs):
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
                       'cast(gs_count as text)',
-                      'cast(gs_id as text)', 'cast(gs_name as text)']
+                      'cast(gs.gs_id as text)', 'cast(gs_name as text)']
 
     # Paging
     iDisplayStart = rargs.get('start', type=int)
@@ -1604,6 +1620,156 @@ def get_server_side_genesets(rargs):
                     }
 
         return response
+
+
+def get_server_side_grouptasks(rargs):
+    group_id = rargs.get('group_id', type=int)
+    sEcho = rargs.get('sEcho', type=int)
+    response = {'sEcho': sEcho,
+                'iTotalRecords': 0,
+                'iTotalDisplayRecords': 0,
+                'aaData': []
+                }
+    if group_id:
+        select_columns = ['full_name', 'task_id', 'task', 'task_type', 'updated', 'task_status', 'reviewer']
+        select_clause = """
+          SELECT uc.usr_last_name || ', ' || uc.usr_first_name AS full_name,
+                 gs.gs_id AS task_id,
+                 'GS' || gs.gs_id AS task,
+                 'GeneSet' AS task_type,
+                 to_char(ca.updated, 'YYYY-MM-DD') AS updated,
+                 ca.curation_state AS task_status,
+                 ur.usr_last_name || ', ' || ur.usr_first_name AS reviewer
+        """
+
+        union_select = """
+          SELECT uc1.usr_last_name || ', ' || uc1.usr_first_name AS full_name,
+                 p.pub_id AS task_id,
+                 p.pub_pubmed AS task,
+                 'Publication' AS task_type,
+                 to_char(pa.updated, 'YYYY-MM-DD') AS updated,
+                 pa.assignment_state AS task_status,
+                 ur1.usr_last_name || ', ' || ur1.usr_first_name AS reviewer
+        """
+
+        # Separate FROM and WHERE for counting purposes
+        from_where = """
+          FROM production.grp g,
+               production.geneset gs,
+               production.curation_assignments ca
+               LEFT OUTER JOIN production.usr uc on ca.curator = uc.usr_id
+               LEFT OUTER JOIN production.usr ur on ca.reviewer = ur.usr_id
+          WHERE g.grp_id = %s
+            AND g.grp_id = ca.curation_group
+            AND ca.gs_id = gs.gs_id
+        """ % (group_id)
+
+        union_where = """
+          FROM production.grp g1,
+               production.publication p,
+               production.pub_assignments pa
+               LEFT OUTER JOIN production.usr uc1 on pa.assignee = uc1.usr_id
+               LEFT OUTER JOIN production.usr ur1 on pa.assigner = ur1.usr_id
+          WHERE g1.grp_id = %s
+            AND g1.grp_id = pa.curation_group
+            AND pa.pub_id = p.pub_id
+        """ % (group_id)
+
+        search_columns = ['cast(uc.usr_first_name as text)',
+                          'cast(uc.usr_last_name as text)',
+                          'cast(gs.gs_id as text)',
+                          'cast(ca.updated as text)',
+                          'cast(ca.curation_state as text)',
+                          'cast(ur.usr_first_name as text)',
+                          'cast(ur.usr_last_name as text)']
+
+        union_columns  = ['cast(uc1.usr_first_name as text)',
+                          'cast(uc1.usr_last_name as text)',
+                          'cast(p.pub_pubmed as text)',
+                          'cast(pa.updated as text)',
+                          'cast(pa.assignment_state as text)',
+                          'cast(ur1.usr_first_name as text)',
+                          'cast(ur1.usr_last_name as text)']
+
+        # Paging
+        iDisplayStart = rargs.get('start', type=int)
+        iDisplayLength = rargs.get('length', type=int)
+        limit_clause = 'LIMIT %d OFFSET %d' % (iDisplayLength, iDisplayStart) \
+            if (iDisplayStart is not None and iDisplayLength != -1) \
+            else ''
+
+        # Searching
+        search_value = rargs.get('search[value]')
+        search_clauses = []
+        union_clauses = []
+
+        if search_value:
+            search_clauses = ['''%s LIKE '%%%s%%' ''' % (search_columns[i], search_value) for i in range(len(search_columns))]
+            union_clauses = ['''%s LIKE '%%%s%%' ''' % (union_columns[i], search_value) for i in range(len(union_columns))]
+            search_clause = 'OR '.join(search_clauses)
+            union_clause = 'OR '.join(union_clauses)
+        else:
+            search_clause = ''
+            union_clause = ''
+
+        if search_clause:
+            search_where_clause = ' AND (%s' % search_clause
+            search_where_clause += ') '
+            union_where_clause = ' AND (%s' % union_clause
+            union_where_clause += ') '
+
+        else:
+            search_where_clause = ''
+            union_where_clause = ''
+
+        # Sorting
+        sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
+        sorting_direction = rargs.get('order[0][dir]', type=str)
+        sort_dir = 'ASC NULLS FIRST' \
+            if sorting_direction == 'asc' \
+            else 'DESC NULLS FIRST'
+        order_clause = 'ORDER BY %s %s' % (sorting_col, sort_dir) if sorting_col else ''
+
+        # Joins all clauses together as a query
+        sql = ' '.join([select_clause,
+                        from_where,
+                        search_where_clause,
+                        " UNION ",
+                        union_select,
+                        union_where,
+                        union_where_clause,
+                        order_clause,
+                        limit_clause]) + ';'
+
+        with PooledCursor() as cursor:
+            cursor.execute(sql)
+            things = cursor.fetchall()
+
+            # Count of all values in table
+            count_query = ' '.join(["SELECT COUNT(1)", from_where]) + ';'
+            cursor.execute(count_query)
+            iTotalRecords = cursor.fetchone()[0]
+            count_query = ' '.join(["SELECT COUNT(1)", union_where]) + ';'
+            cursor.execute(count_query)
+            iTotalRecords += cursor.fetchone()[0]
+
+            # Count of all values that satisfy WHERE clause
+            iTotalDisplayRecords = iTotalRecords
+            if search_where_clause:
+                sql = ' '.join([select_clause, from_where, search_where_clause]) + ';'
+                cursor.execute(sql)
+                iTotalDisplayRecords = cursor.rowcount
+                sql = ' '.join([union_select, union_where, union_where_clause]) + ';'
+                cursor.execute(sql)
+                iTotalDisplayRecords += cursor.rowcount
+
+            response = {'sEcho': sEcho,
+                        'iTotalRecords': iTotalRecords,
+                        'iTotalDisplayRecords': iTotalDisplayRecords,
+                        'aaData': things
+                        }
+
+    return response
 
 
 def get_server_side_results(rargs):
@@ -2231,12 +2397,30 @@ def get_groups_owned_by_user(user_id):
                           WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
     return [Groups(row_dict) for row_dict in dictify_cursor(cursor)]
 
+def get_group_by_id(group_id):
+    """
+    Returns a Group by its ID
+    :param group_id:   Identifier for the group in question
+    :return: A group object for given ID
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
+                          WHERE g.grp_id=%s''', (group_id,))
+        groups = [Group(row_dict) for row_dict in dictify_cursor(cursor)]
+    return groups[0]
+
 
 class Groups:
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
+
+class Group:
+    def __init__(self, grp_dict):
+        self.grp_id = grp_dict['grp_id']
+        self.grp_name = grp_dict['grp_name']
+        self.private = grp_dict['private']
 
 
 class Publication:
@@ -2252,6 +2436,76 @@ class Publication:
         self.year = pub_dict['pub_year']
         self.pubmed_id = pub_dict['pub_pubmed']
 
+
+def get_publication_by_pubmed(pubmed_id, create=False):
+    """
+    get a Publication for a pubmed id
+    :param pubmed_id: pubmed id
+    :param create: if true, a new database record will be created if the
+     Publication does not exist in the database
+    :return: Publication object for the specified publication
+    """
+    with PooledCursor() as cursor:
+        cursor.execute("SELECT * from publication WHERE pub_pubmed=CAST(%s as VARCHAR)",
+                       (pubmed_id,))
+
+        publications = list(dictify_cursor(cursor))
+
+        publication = None
+
+        if len(publications) >= 1:
+            #TODO what to do about pubmed_ids with multiple records?
+            publication = Publication(publications[0])
+        else:
+            #publication is not in database, need to fetch it
+            try:
+                pub_dict = pubmedsvc.get_pubmed_info(pubmed_id)
+                pub_dict['pub_pubmed'] = pubmed_id
+
+            except Exception as e:
+                pub_dict = {}
+
+            if pub_dict:
+                if create:
+                    if 'pub_day' in pub_dict:
+                        # get_pubmed_info() may add this to the dict, but it is not
+                        # a column in the database, so the INSERT below will fail
+                        # if we don't remove it
+                        del pub_dict['pub_day']
+
+                    placeholders = ', '.join(['%s'] * len(pub_dict))
+                    columns = ', '.join(pub_dict.keys())
+                    values = pub_dict.values()
+
+                    sql = '''INSERT INTO publication (%s) VALUES (%s) RETURNING pub_id''' % (columns, placeholders)
+                    cursor.execute(sql, values)
+                    cursor.connection.commit()
+
+                    pub_dict['pub_id'] = cursor.fetchone()[0]
+
+                # sometimes fields are missing (example, online only articles
+                # will not have pages).  We need to make sure the keys at least
+                # exist, or we can't create a Publication object
+                required_keys = ['pub_volume', 'pub_pages', 'pub_author',
+                                 'pub_abstract', 'pub_id', 'pub_year',
+                                 'pub_month']
+
+                for key in required_keys:
+                    if key not in pub_dict:
+                        pub_dict[key] = None
+
+                publication = Publication(pub_dict)
+
+        return publication
+
+
+def get_publication(pub_id):
+    with PooledCursor() as cursor:
+        cursor.execute("SELECT * from publication WHERE pub_id=%s",
+                       (pub_id,))
+
+        rows = list(dictify_cursor(cursor))
+        return Publication(rows[0]) if rows else None
 
 class Geneset:
     def __init__(self, gs_dict):
@@ -2532,7 +2786,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT geneset.*, curation_assignments.curation_group
+            SELECT geneset.*, curation_assignments.curation_group, publication.*
             FROM geneset
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id

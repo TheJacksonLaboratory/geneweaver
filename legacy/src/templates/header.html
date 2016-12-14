@@ -241,6 +241,15 @@ messages = array of messages
                 </ul>
             </li>
             <li class="dropdown">
+                <a href="/groupTasks" class="dropdown-toggle" data-hover="dropdown">Curation <span
+                        class="caret"></span></a>
+                <ul class="dropdown-menu" role="menu">
+                    <li><a href="/groupTasks">Manage Curation Tasks</a></li>
+                    <li><a href="/myTasks">My Tasks</a></li>
+                    <li><a href="/publication_assignment">Search/Assign Publications</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
                 <a href="{{ url_for('render_analyze')|safe }}" class="dropdown-toggle" data-hover="dropdown">Analyze
                     GeneSets<span class="caret"></span></a>
                 <ul class="dropdown-menu" role="menu">
