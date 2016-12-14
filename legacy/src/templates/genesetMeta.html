@@ -1,4 +1,4 @@
-{# MetaContent About Genesets on GeneSet View Page #}
+{# MetaData About Genesets on GeneSet View Page #}
 
 <div class="panel-body">
     <div class="row">
@@ -143,16 +143,14 @@
                             <span id="genesetOntologyInfo" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
                     </div>
                 </div>
-                <div class="row">
-                    <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
-                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-                        Go to the
-						<a href="/editgeneset/{{geneset.geneset_id}}">
-							Edit MetaContent 
-						</a>
-						page to change ontology annotations.
+                {% if curation_view is not defined or (curation_view == 'curator' and curation_assignment.state == curation_assignment.ASSIGNED) %}
+                    <div class="row">
+                        <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                            Go to the "Edit MetaData" page to change ontology annotations.
+                        </div>
                     </div>
-                </div>
+                {% endif %}
                 <div class="row">
                         <ul style="list-style-type:disc; margin-left: 2em;">
                             {% for ont in ontology %}
@@ -211,7 +209,7 @@
                 $('#genesetOntologyInfo').popover({
                         title: 'GeneSet Ontologies', content: 'Ontologies linked to the current GeneSet are ' +
                         'shown below as the highlighted nodes within the ontology databases. Only available to edit ' +
-                        'on the "Edit MetaContent" page.'
+                        'on the "Edit MetaData" page.'
                 });
             </script>
         </div>

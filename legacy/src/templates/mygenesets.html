@@ -516,6 +516,12 @@
 
                 } else {
 
+                    // get the modal window ready to show.  The user may
+                    // have already assigned some genesets, so this window
+                    // may have been displayed once already and may still have
+                    // the user's selections from last time.  Reset all of the
+                    // selections so it looks like a new window.
+
                     var geneSetString = selectedGeneSetLabels.join(", ");
                     $('#curationModalLabel').html(geneSetString);
 
@@ -525,9 +531,15 @@
                     // submit button will be disabled until the user selects a group radio button
                     $('#assignGenesets').prop("disabled", true).button("refresh");
 
-                    // clear out the notes field too
-                    $('#curationNotes').val("");
+                    // hide/disable/unselect the public group selection drop
+                    // down unless the user selects the "Public Group" radio
+                    $('#publicGroupSelect').prop("disabled", true);
+                    $('#publicGroupSelect').val([]);
+                    $('#publicGroupDiv').hide();
 
+                    // need to clear out old notes
+                    $('#curationNotes').val("");
+                    
                     $('#assignGenesetForCurationModal').modal('show');
                 }
             }
@@ -535,9 +547,35 @@
 
         $("input:radio[name='group']").on('click', function () {
             // submit button will be disabled until the user selects a group
-            // radio button
-            $('#assignGenesets').prop("disabled", false).button("refresh");
+            // radio button, if they selected the public_group option we don't
+            // want to enable the button until they've made a group selection in
+            // the drop down
+            if (this.value != 'public_group' || $('#publicGroupSelect').val() != null) {
+                $('#assignGenesets').prop("disabled", false).button("refresh");
+            }
+            else {
+                 $('#assignGenesets').prop("disabled", true).button("refresh");
+            }
         });
+
+        $("input:radio[name='group']").change(function () {
+            if (this.value == 'public_group'){
+                $('#publicGroupSelect').prop("disabled", false);
+                $('#publicGroupDiv').show();
+            }
+            else {
+                $('#publicGroupSelect').prop("disabled", true);
+                $('#publicGroupDiv').hide();
+            }
+
+        });
+
+        $('#publicGroupSelect').change(function () {
+            if ($('#assignGenesets').prop("disabled") && $('#publicGroupSelect').val() != null ) {
+                $('#assignGenesets').prop("disabled", false).button("refresh");
+            }
+        });
+
 
         function handleCurationAssignmentError(data) {
             console.error("something bad happened: " + data.responseJSON.message);
@@ -553,6 +591,10 @@
         $('#assignGenesets').on('click', function () {
 
             var selectedGroupId = $("input[name=group]:checked").val();
+
+            if (selectedGroupId == 'public_group') {
+                selectedGroupId = $('#publicGroupSelect').val();
+            }
 
             var params = {
                 "note": $('#curationNotes').val(),
