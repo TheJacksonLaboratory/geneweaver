@@ -607,6 +607,26 @@
             $('#messageModal_' + $(this).attr("data-grp")).modal('show');
         });
 
+	$('.messageGroup').on('click', function() {
+           pararams = {
+                "form_id": $(this).attr("data-modal-id");
+                "group_id": $("#message_grp_id_"  + formID).val();
+                "user_id": $("#message_user_id_" + formID).val();
+                "subject": $("#message_subject_" + formID).val();
+                "message": $("#message_content_" + formID).val();
+            };
+
+            $.post("{{ url_for('message_group') }}", params ,function(data) {
+		$('#messageModal_' + $(this).attr("data-grp")).modal('hide');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.message,
+                        'priority': 'success'
+                    }
+                ]);
+            }, "json").fail(handleAssignmentError);
+	});
+
 
         $('.clickable_edit').on('click', function () {
             var grp_name = ($(this).attr("data-grp-name"));
