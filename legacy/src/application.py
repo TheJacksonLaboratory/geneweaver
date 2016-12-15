@@ -3364,8 +3364,8 @@ def message_group_json():
                 response.status_code = 400
 
         else:
-            response = flask.jsonify(success=False,
-                    message='You must be an admin to message group members.' response.status_code = 401)
+            response = flask.jsonify(success=False, message='You must be an admin to message group members.') 
+            response.status_code = 401
 
     else:
         # user is not logged in
