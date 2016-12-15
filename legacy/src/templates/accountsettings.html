@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks {
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks, .clickable_message {
         cursor: pointer;
     }
 
@@ -607,16 +607,17 @@
             $('#messageModal_' + $(this).attr("data-grp")).modal('show');
         });
 
-	$('.messageGroup').on('click', function() {
-           pararams = {
-                "form_id": $(this).attr("data-modal-id");
-                "group_id": $("#message_grp_id_"  + formID).val();
-                "user_id": $("#message_user_id_" + formID).val();
-                "subject": $("#message_subject_" + formID).val();
-                "message": $("#message_content_" + formID).val();
+	$('.messageGroupSend').on('click', function() {
+            var formID = $(this).attr("data-modal-id");
+            params = {
+                "form_id": formID,
+                "group_id": $("#message_grp_id_"  + formID).val(),
+                "user_id": $("#message_user_id_" + formID).val(),
+                "subject": $("#message_subject_" + formID).val(),
+                "message": $("#message_content_" + formID).val()
             };
 
-            $.post("{{ url_for('message_group') }}", params ,function(data) {
+            $.post("{{ url_for('message_group_json') }}", params ,function(data) {
 		$('#messageModal_' + $(this).attr("data-grp")).modal('hide');
                 $(document).trigger("add-alerts", [
                     {
@@ -627,6 +628,27 @@
             }, "json").fail(handleAssignmentError);
 	});
 
+       function handleAssignmentError(data) {
+
+            $('#modalLoader').hide();
+
+            if (data.responseJSON) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("set-alert-id-modal-alert", {
+                    message: data.responseJSON.message,
+                    priority: "error"
+                });
+            }
+            else {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Internal Server Error",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+        }
 
         $('.clickable_edit').on('click', function () {
             var grp_name = ($(this).attr("data-grp-name"));

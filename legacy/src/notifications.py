@@ -97,7 +97,7 @@ def send_group_notification(group_id, subject, message):
     """
 
     for user in geneweaverdb.get_group_users(group_id):
-        send_usr_notification(user['usr_id'], subject, message)
+        send_usr_notification(user, subject, message)
 
 
 def send_all_users_notification(subject, message):

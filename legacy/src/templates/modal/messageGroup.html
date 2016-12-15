@@ -5,15 +5,15 @@
         <div class="modal-content">
             <form id="messageForm_{{ grpO.grp_id }}" name="messageGroupByID" method="post" action="#" class="form-horizontal">
                 <div class="modal-header bg-green">
-                    <h3 class="modal-title" style="color: #f5f5f5" id="messageLabel">Message to All Members of {{grp0.grp_name}}</h3>
+                    <h3 class="modal-title" style="color: #f5f5f5" id="messageLabel">Message to All Members of {{ grpO.grp_name }}</h3>
                 </div>
                 <div class="modal-body">
                     <div class="row">
 			<div class="input-group">
-				  <input type="text" class="form-control" id="messageSubject" placeholder="Subject" aria-describedby="basic-addon1">
+				  <input type="text" class="form-control" id="message_subject_{{ grpO.grp_id }}" placeholder="Subject" aria-describedby="basic-addon1">
 			</div>
 			<div class="input group">
-				  <textarea class="form-control" id="messageText" placeholder="Say something" rows="12" style="min-width: 100%"></textarea>
+				  <textarea class="form-control" id="message_content_{{ grpO.grp_id }}" placeholder="Say something" rows="12" style="min-width: 100%"></textarea>
 			</div>
                     </div>
                 </div>
@@ -21,8 +21,8 @@
                 <input type="hidden" name="grp_id" id="message_grp_id_{{ grpO.grp_id }}"/>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Abandon Message</button>
-                    <button type="button" class="btn btn-warning messageGroupName"
-                            data-dismiss="modal" data-modal-id={{ grpO.grp_id }} id="messageGroupName">Send Message</button>
+                    <button type="button" class="btn btn-warning messageGroupSend"
+                            data-dismiss="modal" data-modal-id={{ grpO.grp_id }} id="messageGroupSend">Send Message</button>
                 </div>
             </form>
         </div>

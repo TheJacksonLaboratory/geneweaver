@@ -3346,17 +3346,20 @@ def get_unread_notification_count_json():
         return json.dumps({'error': 'You must be logged in'})
 
 
-@app.route('/message_group.json')
+@app.route('/message_group.json', methods=['POST'])
 def message_group_json():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-        group_id = request.form.get('group_id')
+        group_id = int(request.form.get('group_id', '-1'))
+	print type(group_id)
+	print [type(g.grp_id) for g in geneweaverdb.get_groups_owned_by_user(user_id)]
+	print int(group_id) in [g.grp_id for g in geneweaverdb.get_groups_owned_by_user(user_id)]
 
-        if group_id in geneweaverdb.get_groups_owned_by_user(user_id):
+        if group_id in [g.grp_id for g in geneweaverdb.get_groups_owned_by_user(user_id)]:
             try:
                 subject = bleach.clean(request.form['subject'])
                 message = bleach.clean(request.form['message'])
-                notifications.send_group_notification(subject, message)
+                notifications.send_group_notification(group_id, subject, message)
                 response = flask.jsonify(success=True)
 
             except KeyError:
@@ -3364,7 +3367,7 @@ def message_group_json():
                 response.status_code = 400
 
         else:
-            response = flask.jsonify(success=False, message='You must be an admin to message group members.') 
+            response = flask.jsonify(success=False, message='You must be a group ownder to message group members.') 
             response.status_code = 401
 
     else:
@@ -3375,7 +3378,7 @@ def message_group_json():
     return response
 
 
-@app.route('/message_all.json')
+@app.route('/message_all.json', methods=['POST'])
 def message_all_json():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
