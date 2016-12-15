@@ -103,7 +103,7 @@ def send_group_notification(group_id, subject, message):
 def send_all_users_notification(subject, message):
     """
 
-    send a notification to each memeber for a group. users will recieve email
+    send a notification to all gw users. users will recieve email
     in addition to in-app notification if they have enabled that option
 
     :param group_id: group id of the group we need to send an admin notification
