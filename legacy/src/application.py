@@ -3336,6 +3336,7 @@ def get_notifications_json():
     else:
         return json.dumps({'error': 'You must be logged in'})
 
+
 @app.route('/unread_notification_count.json')
 def get_unread_notification_count_json():
     if 'user_id' in flask.session:
@@ -3343,6 +3344,59 @@ def get_unread_notification_count_json():
         return json.dumps({'unread_notifications': count})
     else:
         return json.dumps({'error': 'You must be logged in'})
+
+
+@app.route('/message_group.json')
+def message_group_json():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+	group_id = request.form.get('group_id')
+
+	if group_id in geneweaverdb.get_groups_owned_by_user(user_id):
+	    try:
+                subject = bleach.clean(request.form['subject'])
+                message = bleach.clean(request.form['message'])
+                notifications.send_group_notification(subject, message) 
+                response = flask.jsonify(success=True)
+            except KeyError:
+                response = flask.jsonify(success=False, message="Can't send message. You must provide both a subject and a message.")
+                response.status_code = 400
+        else:
+            response = flask.jsonify(success=False, message='You must be an admin to message group members.')
+            response.status_code = 401
+
+    else:
+        #user is not logged in
+        response = flask.jsonify(success=False, message='Please log in before sending a message.')
+        response.status_code = 401
+
+    return response
+
+@app.route('/message_all.json')
+def message_all_json():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+	if geneweaverdb.get_user(user_id).is_admin:
+	    try:
+                subject = bleach.clean(request.form['subject'])
+                message = bleach.clean(request.form['message'])
+                notifications.send_all_users_notification(subject, message) 
+                response = flask.jsonify(success=True)
+            except KeyError:
+                response = flask.jsonify(success=False, message="Can't send message. You must provide both a subject and a message.")
+                response.status_code = 400
+
+        else:
+            response = flask.jsonify(success=False, message='You must be an admin to message all users.')
+            response.status_code = 401
+
+    else:
+        #user is not logged in
+        response = flask.jsonify(success=False, message='Please log in before sending a message.')
+        response.status_code = 401
+
+    return response
 
 
 # ********************************************
