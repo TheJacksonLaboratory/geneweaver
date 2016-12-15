@@ -2880,6 +2880,23 @@ def get_group_users(grp_id):
         usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
         return usr_ids
 
+def get_all_users():
+    """
+    Gets a list of all users
+    :param usr_id:	the user ID
+    :return:		The list of groups that the user belongs to
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT usr_id
+            FROM usr;
+            '''
+        )
+        usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
+        return usr_ids
+
 
 def get_geneset_brief(geneset_id, user_id=None):
     """
