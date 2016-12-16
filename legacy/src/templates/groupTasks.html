@@ -30,7 +30,7 @@
         cursor: pointer;
     }
 
-        a:hover {
+    a:hover {
         text-decoration: none;
     }
 
@@ -463,7 +463,7 @@
                 $('#curationModalLabel').html(taskString);
 
                 // when we show the modal window, we don't want a group selected.
-                $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+                $("#selectCurator option").prop("selected", false);
 
                 // submit button will be disabled until the user selects a group radio button
                 $('#assignTasks').prop("disabled", true).button("refresh");
@@ -475,9 +475,10 @@
             }
 
 
-
-            // Enable submit button once a member of the radio group in Modal assignTasksForCuration selected
-            $("input:radio[name='group']").on('click', function () {
+            // Enable submit button once a curator selected
+            $("#selectCurator").change( function () {
+                // submit button will be disabled until the user selects a group
+                // selection
                 $('#assignTasks').prop("disabled", false).button("refresh");
             });
 
@@ -494,7 +495,7 @@
 
             // Assignment of tasks occurs on click of the assignTasks button in Modal assignTasksForCuration
             $('#assignTasks').on('click', function () {
-                var selectedCuratorId = $("input[name=group]:checked").val();
+                var selectedCuratorId = $("#selectCurator").val()
                 if (selectedGeneSets.length > 0) {
                     var params = {
                         "note": $('#curationNotes').val(),
@@ -548,13 +549,13 @@
                 if (selectedPublications.length > 0) {
                     var params = {
                         "note": $('#curationNotes').val(),
-                        "pub_ids[]": selectedPublications,
+                        "pub_assign_ids[]": selectedPublications,
                         "group_id": group_id,
                         "usr_id": selectedCuratorId,
                     };
 
-                    // since params["pub_ids"] is a list the server needs to use
-                    // request.args.getlist('pub_ids') instead of request.args['pub_ids']
+                    // since params["pub_assign_ids"] is a list the server needs to use
+                    // request.args.getlist('pub_assign_ids') instead of request.args['pub_assign_ids']
                     $.post("{{ url_for('assign_publications_to_curator') }}", params, function (data) {
 
                         var failed = [];
