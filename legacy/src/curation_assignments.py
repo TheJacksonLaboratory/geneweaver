@@ -57,6 +57,17 @@ class CurationAssignment(object):
         self.created = row_dict['created']
         self.updated = row_dict['updated']
 
+    @staticmethod
+    def status_to_string(status):
+        if (status == CurationAssignment.UNASSIGNED):
+            return "Unassigned"
+        elif (status == CurationAssignment.ASSIGNED):
+            return "Assigned"
+        elif (status == CurationAssignment.READY_FOR_TEAM_REVIEW):
+            return "Ready for team review"
+        elif (status == CurationAssignment.REVIEWED):
+            return "Reviewed"
+
 
 def get_geneset_url(geneset_id):
     """
@@ -65,7 +76,7 @@ def get_geneset_url(geneset_id):
     """
     #return flask.url_for('render_curategeneset', gs_id=geneset_id)
     #return '<a href="https://www.google.com/"> CLICK </a>'
-    return '<a href="/curategeneset/' + str(geneset_id) + '"> GS' + str(geneset_id) + '</a>'
+    return '<a href="{url_prefix}/curategeneset/' + str(geneset_id) + '"> GS' + str(geneset_id) + '</a>'
 
 
 def get_geneset_name(geneset_id):
@@ -89,7 +100,7 @@ def get_geneset_name(geneset_id):
     return geneset_name
 
 
-def submit_geneset_for_curation(geneset_id, group_id, note):
+def submit_geneset_for_curation(geneset_id, group_id, note, notify=True):
     """
     :param geneset_id: geneset submitted for curation
     :param group_id: group responsible for the curation
@@ -110,10 +121,11 @@ def submit_geneset_for_curation(geneset_id, group_id, note):
             (geneset_id, group_id, 1, note))
         cursor.connection.commit()
 
-        # send notification to the group admins
-        subject = 'New Geneset Awaiting Curation'
-        message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
-        notifications.send_group_admin_notification(group_id, subject, message)
+        if notify:
+            # send notification to the group admins
+            subject = 'New Geneset Awaiting Curation'
+            message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
+            notifications.send_group_admin_notification(group_id, subject, message)
     return
 
 
