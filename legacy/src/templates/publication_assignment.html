@@ -4,6 +4,20 @@
 
 
 <style>
+    td.details-control:before {
+        position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
+    }
+
+    tr.shown td.details-control:before {
+        content: "\f068";
+    }
 
     a:link {
         #color: darkgreen;
@@ -18,9 +32,22 @@
         text-decoration: none;
     }
 
+    .datatablerowhighlight {
+        background-color: #ECFFB3;
+    }
+
+    .row_selected {
+        background-color: #000000;
+    }
+
+    #clickableFontAwesome {
+        cursor: pointer;
+    }
+
     .panel .panel-header .panel-info .panel-heading {
         background-color: #F0F0F0;
         color: #F0F0F0;
+        border: #006400;
     }
 
     .page-header {
@@ -62,9 +89,30 @@
 
     }
 
-    .clickable, .clickable_delete, .clickable_runGenerator, .clickable_addGenerator {
+    .clickable, .clickable_delete, .clickable_runGenerator {
         cursor: pointer;
     }
+
+    table th {
+        color: #006400;
+        border-top: 5px solid #006400;
+    }
+
+    .pub-title {
+        color:#000;
+        font-weight: bold;
+        font-size:12px;>
+    }
+    .pub-subdued {
+        color:#777;
+        font-style: italic;
+        font-size:10px;>
+    }
+    .pub-normal {
+        color:#000;
+        font-size:12px;>
+    }
+
 
 </style>
 
@@ -86,12 +134,11 @@
             </div>
 
             <div class="container">
-            <!--div class="panel-group" id="accordion"-->
-                <div class="panel panel-default">
-                    <div class="panel-heading panel-underline">
+                <div class="panel">
+                    <div class="panel-heading">
                         <h4 class="page-header">
                             <a class="accordion-toggle" data-toggle="collapse" href="#collapseOne">
-                                <span class="glyphicon glyphicon-plus"></span>
+                                <span class="fa fa-plus"></span>
                                 <strong>Single Publication Assignment</strong>
                             </a>
                         </h4>
@@ -135,24 +182,26 @@
                         </div>
                     </div>
                 </div>
-                <div class="panel panel-default">
-                    <div class="panel-heading panel-underline">
+                <div class="panel">
+                    <div class="panel-heading">
                         <h4 class="page-header">
                             <a class="accordion-toggle" data-toggle="collapse" href="#collapseTwo">
-                                <span class="glyphicon glyphicon-minus"></span>
+                                <span class="fa fa-minus"></span>
                                 Publication Generators
                             </a>
-                            <button type="button" class="btn btn-primary pull-right" id="addGenerator">
-                                    <i class="fa fa-cog pull-right"></i>Add Generator
-                            </button>
-                            <!--span type="button" class="btn btn-primary pull-right" id="addGenerator" class="clickable_addGenerator">
-                                <i class="fa fa-cog pull-right"></i>
-                                Add Generator
-                            </span-->
                         </h4>
                     </div>
                     <div id="collapseTwo" class="panel-collapse collapse in">
                         <div class="panel-body">
+                            <div data-alerts="alerts"
+                                 data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid"
+                                 data-fade="5000"></div>
+
+                            <div class="row" style='padding-bottom:10px'>
+                                <button type="button" class="btn btn-primary pull-right" id="addGenerator">
+                                    <i class="fa fa-cog pull-right"></i>Add Generator
+                                </button>
+                            </div>
                             <div class="row" id="generatorTable">
                                 {% if myGenerators | length > 0 %}
                                     <table class="table table-striped">
@@ -178,7 +227,7 @@
                                                           data-original-title="For Group" title="For Group"
                                                           style="margin: 2px; padding: 0px 2px;">{{ gen.grp_name }}</span>
                                                 </td>
-                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                <td nowrap><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Last Run" title="Last Run"
                                                           style="margin: 2px; padding: 0px 2px;">{{ gen.last_update }}</span>
                                                 </td>
@@ -187,7 +236,7 @@
                                                           data-original-title="Run Generator" type="button" title="Run Generator"
                                                           class="clickable_runGenerator" id="runGenerator_{{ gen.stubgenid }}"
                                                           data-gen="{{ gen.stubgenid }}" data-gen-name="{{ gen.name }}"
-                                                          data-grp-name="{{ gen.grp_name }}" style="margin: 2px; padding: 0px 2px;">
+                                                          data-grp-id="{{ gen.grp_id }}" style="margin: 2px; padding: 0px 2px;">
                                                         <i class="fa fa-refresh"></i>
                                                     </span>
                                                     <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
@@ -214,44 +263,97 @@
                         </div>
                     </div>
                 </div>
-                <div class="panel panel-default">
-                    <div class="panel-heading panel-underline">
+                <div class="panel">
+                    <div class="panel-heading">
                         <h4 class="page-header">
                             <a class="accordion-toggle" data-toggle="collapse" href="#collapseThree">
-                                <span class="glyphicon glyphicon-plus"></span>
+                                <span class="fa fa-plus"></span>
                                 Generated Publication Listing
                             </a>
                          </h4>
                     </div>
                     <div id="collapseThree" class="panel-collapse collapse">
-                      <div class="panel-body">
-                        Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-                      </div>
+                        <div class="panel-body">
+                            <div data-alerts="alerts"
+                                 data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid"
+                                 data-fade="5000"></div>
+                            <input hidden id="generator_id" value="">
+                            <div class="col-md-12" style='padding-bottom:10px'>
+                                <button type="button" class="btn btn-primary" id="assignCurationGroup">
+                                    <i class="fa fa-folder-o pull-left"></i> Assign to Curation Group
+                                </button>
+                            </div>
+                            <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
+                                <table id="publications" class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
+                                    <thead>
+                                        <tr>
+                                            <th>&nbsp;</th>
+                                            <th>PubMed</th>
+                                            <th>Title</th>
+                                            <th>Authors</th>
+                                            <th>&nbsp;</th>
+                                       </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             </div>
         </div>
 
+        {#  Provides a warning if no publications are selected. #}
+
+        <div class="modal fade" id="myAlert">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-green">
+                        <h3 class="modal-title" style="color: #f5f5f5">No Publications Selected</h3>
+                    </div>
+                    <div class="modal-body">
+                        <h4>You must select at least one Publication.</h4>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-error" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# this modal is for the singleton assignment #}
         {% include 'modal/assignPublicationToGroup.html' %}
         {% include 'modal/addGeneratorToGroup.html' %}
         {% include 'modal/deleteGenerator.html' %}
+        {# this modal is for the multi pub assignment #}
+        {% include 'modal/assignPublicationsToGroup.html' %}
 
     {% endblock %}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/ellipsis.js') }}"></script>
 
     <script type="text/javascript">
-
-    {#  provide accordian funtionality #}
+    {#  provide accordion funtionality #}
     $('.collapse')
         .on('shown.bs.collapse',
             function() {
-                $(this).parent().find(".glyphicon-plus").removeClass("glyphicon-plus").addClass("glyphicon-minus");
+                $(this).parent().find(".fa-plus").removeClass("fa-plus").addClass("fa-minus");
             })
         .on('hidden.bs.collapse',
             function(){
-                $(this).parent().find(".glyphicon-minus").removeClass("glyphicon-minus").addClass("glyphicon-plus");
+                $(this).parent().find(".fa-minus").removeClass("fa-minus").addClass("fa-plus");
             }
         );
+
+    {# Loading spinner because some search filters/options take a few seconds #}
+    jQuery.ajaxSetup({
+        beforeSend: function() {
+            $('#loader').show();
+        },
+        complete: function(){
+            $('#loader').hide();
+        },
+        success: function() {}
+    });
 
     $(function() {
 
@@ -290,8 +392,6 @@
 
             $.getJSON('/get_publication_by_pubmed_id/' + pmid +'.json', function (data) {
 
-
-
                 var html = "<div>" +
                            "    <h4>Pubmed ID: " + data.pubmed_id + "</h4>" +
                            "    <label for='title'><strong>Title:</strong></lable>" +
@@ -324,7 +424,10 @@
             $('#pmid').text(current_pub);
 
             // when we show the modal window, we don't want a group selected.
-            $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+            //$("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+            //$("input:radio[name='group']:checked").prop('checked', false);
+            // when we show the modal window, we don't want a group selected.
+            $("#selectGroup option").prop("selected", false);
 
             // submit button will be disabled until the user selects a group radio button
             $('#assignPubConfirm').prop("disabled", true).button("refresh");
@@ -362,7 +465,7 @@
             var params = {
                 "notes": $('#publicationNotes').val(),
                 "pubmed_id": current_pub,
-                "group_id": $("input[name=group]:checked").val()
+                "group_id": $("#selectGroup").val()
             };
 
             // since params["gs_ids"] is a list the server needs to use
@@ -380,12 +483,22 @@
             }, "json").fail(handleAssignmentError);
         });
 
-        $("input:radio[name='group']").on('click', function () {
+        {#
+            Enable submit button in the assign publication modal when a group has been selected
+        #}
+        $("#selectGroup").change( function () {
             // submit button will be disabled until the user selects a group
-            // radio button
+            // selection
             $('#assignPubConfirm').prop("disabled", false).button("refresh");
         });
 
+
+        {#  Functions to support publication generators #}
+
+        {#
+            Add a new Generator
+            Uses a Modal imported above to collect the name, querystring and group associated with generator
+        #}
         $('#addGenerator').click(function (){
             // when we show the modal window, we don't want a group selected.
             $("#genGroups option").prop("selected", false);
@@ -400,6 +513,9 @@
             $("#addGeneratorToGroupModal").modal('show');
         });
 
+        {#
+            Function called by the confirm button in the add generator modal
+        #}
         $('#addGeneratorConfirm').click(function (){
             $('#modalLoader').show();
             var params = {
@@ -422,12 +538,19 @@
             }, "json").fail(handleAssignmentError);
         });
 
+        {#
+            Function confirm button in the add generator modal when a group has been selected
+        #}
         $("#genGroups").change( function () {
             // submit button will be disabled until the user selects a group
             // selection
             $('#addGeneratorConfirm').prop("disabled", false).button("refresh");
         });
 
+        {#
+            Activate a delete action on a generator
+            Will use the Delete generator modal (imported above) to get confirmation
+        #}
         $('.clickable_delete').on('click', function () {
             var stubgenid = ($(this).attr("data-gen"));
             var gen_name = ($(this).attr("data-gen-name"));
@@ -437,6 +560,10 @@
             $('#delGeneratorModal').modal('show');
         });
 
+        {#
+            Function called by the confirm button in the delete generator modal
+            This will cause the actual delete to happen
+        #}
         $('.deleteGeneratorFromUser').on('click', function () {
             var stubgenID = $("#stubgenid_delgen").val();
             var userID = $("#user_id_delgen").val();
@@ -463,8 +590,364 @@
             });
         });
 
+        {#
+            Function will cause a generator to be run.
+            Results will be sent to the createPublicationTable function
+        #}
+        $('.clickable_runGenerator').on('click', function () {
+            var stubgenid = ($(this).attr("data-gen"));
+            var gen_name = ($(this).attr("data-gen-name"));
+            $('#generator_id').val(stubgenid);
+            $('#collapseTwo').collapse('hide');
+            $('#collapseThree').collapse('show');
+            var publicationList = [];
+            $.ajax({
+                type: "GET",
+                url: "/run_generator/" + stubgenid,
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function(i, row) {
+                        var publication = new Publication(
+                                row['pmid'],
+                                row['title'],
+                                row['authors'],
+                                row['pub_assigns'],
+                                row['abstract'],
+                                row['journal'],
+                                row['volume'],
+                                row['pages'],
+                                row['month'],
+                                row['year'],
+                                row['link_to_fulltext']
+                        );
+                        publicationList.push(publication);
+                    });
+                    createPublicationTable(publicationList);
+                    $(document).trigger("add-alerts", [{
+                        'message': "Generator Successfully Run.",
+                        'priority': 'success'
+                    }]);
+                },
+                error: function (jqXHR, textStatus, errorThrown ) {
+                    $(document).trigger("add-alerts", [{
+                        'message': "An Error (" + jqXHR + ") occurred while running generator " + gen_name + ". " + textStatus,
+                        'priority': 'danger'}]);
+                }
+            });
 
+        });
+
+        {#
+            Javascript object to house the attributes of a publication
+        #}
+        function Publication ( pubmed, title, authors, assigned, abstract, journal,
+                               volume, pages, month, year, link_to_fulltext) {
+            this.pubmed = pubmed;
+            this.title = title;
+            this.authors = authors;
+            this.assigned = assigned;
+            this.abstract = abstract;
+            this.journal = journal;
+            this.volume = volume;
+            this.pages = pages;
+            this.month = month;
+            this.year = year;
+            this.linkToFulltext = link_to_fulltext;
+        };
+
+        {#
+            Function create and populate the publications table
+        #}
+        function createPublicationTable(data) {
+            if ( $.fn.dataTable.isDataTable('#publications')) {
+                table = $('#publications').DataTable();
+                table.destroy();
+            }
+            table = $('#publications').DataTable({
+                "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+                "iDisplayLength": 10,
+                "bLengthChange": true,
+                "processing": true,
+                "tableTools": {
+                    "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                    "sRowSelect": "multi",
+                    'aButtons': [ 'select_all', 'select_none' ]
+                },
+                "data": data,
+                "columns": [
+                    {
+                        "className": 'details-control',
+                        "orderable": false,
+                        "data": null,
+                        "defaultContent": ''
+                    },
+                    {
+                        "data": "pubmed",
+                        "width": "10%"
+                    },
+                    {
+                        "data": "title",
+                        "width": "50%"
+                    },
+                    {
+                        "data": "authors",
+                        "width": "30%"
+                    },
+                    {
+                        "data": "assigned",
+                        "defaultContent": '',
+                        "width": "5%"
+                    }
+                ],
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [0],
+                        "bSortable": false
+                    },
+                    {
+                        "aTargets": [1],
+                        "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                            $(nTd).empty();
+                            $(nTd).append('<p><a href=\"https://www.ncbi.nlm.nih.gov/pubmed/' + sData + '\" target=\"_blank\">' + sData + '</a></p>');
+                        }
+                    },
+                    {
+                        "aTargets": [2],
+                        "render": $.fn.dataTable.render.ellipsis(65),
+                        "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                            var title = sData;
+                            $(nTd).empty();
+                            $(nTd).append(title);
+                        }
+                    },
+                    {
+                        "aTargets": [3],
+                        "render": $.fn.dataTable.render.ellipsis(40),
+                        "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                            var authors = sData;
+                            $(nTd).empty();
+                            $(nTd).append(authors);
+                        }
+                    },
+                    {
+                        "aTargets": [4],
+                        "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                            /* show the publication has been assigned for curation */
+                            var curation_icon = $('<span class="pointer" data-placement="top" \
+                                                data-toggle="tooltip" data-rel="tooltip" data-original-title="Curation" \
+                                                title="Assigned For Curation to: ' + sData + '" style="margin: 2px; padding: 0px 2px;"> \
+                                                <i class="fa fa-eye"></i></span>');
+
+                            $(nTd).empty();
+                            // sData is the curation group. If this is not null,
+                            // then the publication has been assigned to a group for
+                            // curation
+                            if (sData) {
+                                curation_icon.tooltip();
+                                $(nTd).append(curation_icon);
+                            }
+                        }
+                    }
+                ]
+            } );
+        }
+
+
+        {#  Methods for processing Publication Listing actions #}
+
+        // TODO:  Add event listener for opening and closing details
+        $('#publications').on('click', 'td.details-control', function() {
+            var tr = $(this).closest('tr');
+            //var T = table.fnGetData(tr);
+            //var row = $(this).parents(tr);
+            var row = table.row( tr );
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                row.child( formatPublication(row.data())).show();
+                tr.addClass('shown');
+            }
+            {#
+            if (tr.hasClass('shown')) {
+
+                tr.next().hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                var newRow = $(formatPublication(T)).animate({
+                    height: "100px",
+                    opacity: 0.75
+                }, 500);
+                tr.after(newRow);
+                tr.addClass('shown');
+            }
+             #}
+
+        });
+
+        {#
+            this function handles the click event on the "assignCurator" button
+            it takes the selected genesets updates the modal window with those
+            selections and displays it.  It also makes sure the group selection
+            is cleared on the modal.
+        #}
+        $('#assignCurationGroup').on('click', function () {
+            var aselectedTrs = TableTools.fnGetInstance('publications').fnGetSelectedData();
+            if (aselectedTrs == 0) {
+                // let the user know they need to select at least on geneset
+                $("#myAlert").modal('show');
+            }
+            else {
+                selectedPublications = [];
+                for (var k in aselectedTrs) {
+                    selectedPublications.push(aselectedTrs[k].pubmed);
+                }
+                processSelections(selectedPublications);
+            }
+        });
+
+        function processSelections(selectedPublications) {
+            // get the modal window ready to show.  The user may
+            // have already assigned some publications, so this window
+            // may have been displayed once already and may still have
+            // the user's selections from last time.  Reset all of the
+            // selections so it looks like a new window.
+
+            var publicationString = selectedPublications.join(", ");
+            $('#publicationsModalLabel').html(publicationString);
+
+            // when we show the modal window, we don't want a group selected.
+            $("#selectPubGroup option").prop("selected", false);
+
+            // submit button will be disabled until the user selects a group radio button
+            $('#assignPublicationsConfirm').prop("disabled", true).button("refresh");
+
+            // need to clear out old notes
+            $('#publicationsNotes').val("");
+
+            $('#assignPublicationsToGroupModal').modal('show');
+        }
+
+        {# Method called by assignPublicationsToGroupModal to do actual group assignments #}
+        $('#assignPublicationsConfirm').click(function (){
+            $('#modalLoader').show();
+            var params = {
+                "notes": $('#publicationsNotes').val(),
+                "pubmed_ids[]": selectedPublications,
+                "group_id": $("#selectPubGroup").val()
+            };
+
+            var group_name = $("#selectPubGroup option:selected").text();
+            console.log(group_name);
+            // since params["pubmed_ids"] is a list the server needs to use
+            // request.args.getlist('pubmed_ids') instead of request.args['pubmed_ids']
+            $.post("{{ url_for('assign_publications_to_group') }}", params ,function(data) {
+                $('#modalLoader').hide();
+                $("#assignPublicationsToGroupModal").modal('hide');
+
+                var failed = [];
+                var successfulLabels = [];
+
+                for (var key in data.results) {
+                    if (data.results[key].success) {
+                        successfulLabels.push(key);
+                    }
+                    else {
+                        failed.push({"name": key, "message": data.results[key].message});
+                    }
+                }
+
+                if (failed.length) {
+                    var msgHtml = '<div style="padding-left=10px">';
+                    var msgStr = "";
+                    failed.forEach( function(obj) {
+                        msgStr += obj.name + ":" +  obj.message + "; ";
+                        msgHtml += obj.name + ":" +  obj.message + "<br>";
+                    });
+                    msgHtml += "</div>";
+                    console.error("Unable to assign publication(s) for curation: ", msgStr);
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Unable to assign publication(s) for curation: <br>" + msgHtml,
+                            'priority': 'danger'
+                        }
+                    ]);
+                }
+
+                if (successfulLabels.length > 0) {
+                    // TODO:  Update table to mark as assigned... This is a work in progress, but committing to start review process
+                    // update table to reflect new curation assignments
+                    var aselectedTrs = TableTools.fnGetInstance('publications').fnGetSelectedData();
+
+                    for (var k in aselectedTrs) {
+
+                        if (successfulLabels. indexOf(aselectedTrs[k].pubmed) > -1) {
+                            if (aselectedTrs[k].assigned) {
+                                aselectedTrs[k].assigned += ", " + group_name;
+                            }
+                            else {
+                                aselectedTrs[k].assigned = group_name;
+                            }
+                        }
+                    }
+
+                    TableTools.fnGetInstance('publications').fnSelectNone();
+                    TableTools.fnGetInstance('publications').fnDraw();
+                    $(document).trigger("add-alerts", [
+                        {
+                        'message': "Publications assigned to group: " + successfulLabels.join(', '),
+                        'priority': 'success'
+                        }
+                    ]);
+                }
+
+
+            }, "json").fail(handleAssignmentError);
+        });
+
+        {#
+            Enable submit button in the assign publications modal when a group has been selected
+        #}
+        $("#selectPubGroup").change( function () {
+            // submit button will be disabled until the user selects a group
+            // selection
+            $('#assignPublicationsConfirm').prop("disabled", false).button("refresh");
+        });
+
+        {#
+            TODO: implement functionality for format the expanded publication in the table.
+        #}
+        function formatPublication(d) {
+            // `d` is the original data object for the row
+
+            var html = '<tr><td colspan=5><table class="table">' +
+                    '<tr><td class="pub-title">' + d.title + '</td></tr>';
+            if (d.authors) {
+                html += '<tr><td class="pub-subdued">' + d.authors + '</td></tr>';
+            }
+            html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>' +
+                    '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            if (d.assigned) {
+                html += '<tr><td><div class="pub-title">Assigned to Curation Groups:</div> <div class="pub-normal">' + d.assigned + '</div></td></tr>';
+            }
+            if (d.abstract) {
+                html += '<tr><td class="pub-normal">' + d.abstract + '</td></tr>';
+            }
+
+            // close up the table
+            html = html + '</table></td></tr>';
+
+
+            return html;
+        }
     });
+
+
+
 
 
     </script>
