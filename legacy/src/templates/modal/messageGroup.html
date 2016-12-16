@@ -9,10 +9,12 @@
                 </div>
                 <div class="modal-body">
                     <div class="row">
-			<div class="input-group">
-				  <input type="text" class="form-control" id="message_subject_{{ grpO.grp_id }}" placeholder="Subject" aria-describedby="basic-addon1">
+			<div class="form-group">
+				  <label for="message_subject_{{ grpO.grp_id }}">Subject</label>
+				  <input type="text" class="form-control" id="message_subject_{{ grpO.grp_id }}" placeholder="Subject" style="min-width: 100%">
 			</div>
-			<div class="input group">
+			<div class="form-group">
+				  <label for="message_content_{{ grpO.grp_id }}">Message</label>
 				  <textarea class="form-control" id="message_content_{{ grpO.grp_id }}" placeholder="Say something" rows="12" style="min-width: 100%"></textarea>
 			</div>
                     </div>
