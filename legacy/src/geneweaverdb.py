@@ -2841,7 +2841,7 @@ def get_user_groups(usr_id):
     """
     Gets a list of groups that the user belongs to
     :param usr_id:	the user ID
-    :return:		The list of groups that the user belongs to
+    :return:		The list of group ids that the user belongs to
     """
 
     with PooledCursor() as cursor:
@@ -2862,8 +2862,8 @@ def get_user_groups(usr_id):
 def get_group_users(grp_id):
     """
     Gets a list of users in a group
-    :param usr_id:	the user ID
-    :return:		The list of groups that the user belongs to
+    :param grp_id:	the group ID
+    :return:		The list of user ids that the belong to a group
     """
 
     with PooledCursor() as cursor:
@@ -2876,6 +2876,22 @@ def get_group_users(grp_id):
                 {
                     'grp_id': grp_id,
                 }
+        )
+        usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
+        return usr_ids
+
+def get_all_users():
+    """
+    Gets a list of all users
+    :return:		The list of user ids for every user in the database
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT usr_id
+            FROM usr;
+            '''
         )
         usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
         return usr_ids

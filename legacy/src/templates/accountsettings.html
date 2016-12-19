@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks {
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks, .clickable_message {
         cursor: pointer;
     }
 
@@ -120,6 +120,13 @@
                                                 </span></span>
                                                 &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Message" type="button" title="Message Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_message" id="message_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-envelope"></i>
+                                                </span></span>
+                                                &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Edit" type="button" title="Edit Group"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
@@ -151,6 +158,7 @@
                                         </tr>
                                         {% include 'modal/deleteGroup.html' %}
                                         {% include 'modal/editGroupName.html' %}
+                                        {% include 'modal/messageGroup.html' %}
                                         {% include 'modal/addUserToGroup.html' %}
                                         {% include 'modal/deleteGroupUsers.html' %}
                                         {% include 'modal/setGroupAdmins.html' %}
@@ -589,6 +597,58 @@
             })
         });
 
+        $('.clickable_message').on('click', function() {
+
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#groupName_" + grp_id).val(grp_name);
+            $("#user_id_" + grp_id).val({{ user.user_id }});
+            $("#message_grp_id_" + grp_id).val(grp_id);
+            $('#messageModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+	$('.messageGroupSend').on('click', function() {
+            var formID = $(this).attr("data-modal-id");
+            params = {
+                "form_id": formID,
+                "group_id": $("#message_grp_id_"  + formID).val(),
+                "user_id": $("#message_user_id_" + formID).val(),
+                "subject": $("#message_subject_" + formID).val(),
+                "message": $("#message_content_" + formID).val()
+            };
+
+            $.post("{{ url_for('message_group_json') }}", params ,function(data) {
+		$('#messageModal_' + $(this).attr("data-grp")).modal('hide');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.message,
+                        'priority': 'success'
+                    }
+                ]);
+            }, "json").fail(handleAssignmentError);
+	});
+
+       function handleAssignmentError(data) {
+
+            $('#modalLoader').hide();
+
+            if (data.responseJSON) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("set-alert-id-modal-alert", {
+                    message: data.responseJSON.message,
+                    priority: "error"
+                });
+            }
+            else {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Internal Server Error",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+        }
 
         $('.clickable_edit').on('click', function () {
             var grp_name = ($(this).attr("data-grp-name"));
