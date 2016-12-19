@@ -3351,9 +3351,6 @@ def message_group_json():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         group_id = int(request.form.get('group_id', '-1'))
-	print type(group_id)
-	print [type(g.grp_id) for g in geneweaverdb.get_groups_owned_by_user(user_id)]
-	print int(group_id) in [g.grp_id for g in geneweaverdb.get_groups_owned_by_user(user_id)]
 
         if group_id in [g.grp_id for g in geneweaverdb.get_groups_owned_by_user(user_id)]:
             try:
@@ -3367,7 +3364,7 @@ def message_group_json():
                 response.status_code = 400
 
         else:
-            response = flask.jsonify(success=False, message='You must be a group ownder to message group members.') 
+            response = flask.jsonify(success=False, message='You must be a group owner to message group members.') 
             response.status_code = 401
 
     else:

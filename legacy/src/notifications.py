@@ -86,7 +86,6 @@ def send_group_admin_notification(group_id, subject, message):
 
 def send_group_notification(group_id, subject, message):
     """
-
     send a notification to each memeber for a group. users will recieve email
     in addition to in-app notification if they have enabled that option
 
