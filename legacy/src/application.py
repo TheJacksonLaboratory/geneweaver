@@ -473,27 +473,20 @@ def assign_genesets_to_curator():
 def assign_publications_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-
-        note = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''))
         curator = request.form.get('usr_id')
-        pub_ids = request.form.getlist('pub_ids[]', type=int)
+        pub_assign_ids = request.form.getlist('pub_assign_ids[]', type=int)
         group_id = request.form.get('group_id')
         owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
 
         status = {}
-        for pub_id in pub_ids:
-            assignment = pub_assignments.get_publication_assignment_by_pub_id(pub_id, group_id)
-            if assignment:
-                if assignment.group in [g['grp_id'] for g in owned_groups]:
-                    pub_assignments.assign_publication(assignment.id, curator, user_id, note)
-                    status[pub_id] = {'success': True}
-                else:
-                    status[pub_id] = {'success': False,
-                                      'message': "You are not an owner of the group and cannot assign a curator"}
+        for pub_assign_id in pub_assign_ids:
+            if int(group_id) in [g['grp_id'] for g in owned_groups]:
+                pub_assignments.assign_publication(pub_assign_id, curator, user_id, notes)
+                status[pub_assign_id] = {'success': True}
             else:
-                status[pub_id] = {'success': False,
-                                 'message': "Error assigning curator, Publication " + str(pub_id) +
-                                            "does not have an active curation record"}
+                status[pub_assign_id] = {'success': False,
+                                         'message': "You are not an owner of the group and cannot assign a curator"}
             response = flask.jsonify(results=status)
 
     else:
@@ -600,7 +593,7 @@ def mark_geneset_reviewed():
 @app.route('/publication_assignment')
 def render_assign_publication():
     my_groups = []
-
+    generators = []
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
@@ -693,8 +686,10 @@ def run_generator(generator_id):
     pubmed_entries = []
     if 'user_id' in flask.session:
         generator = publication_generator.PublicationGenerator.get_generator_by_id(generator_id)
-        pubmed_entries = generator.run()
-    return json.dumps(pubmed_entries)
+        results = generator.run()
+        return json.dumps(results)
+    else:
+        return json.dumps({'error': 'You do not have permission to run this generator'})
 
 
 @app.route('/get_publication_by_pubmed_id/<pubmed_id>.json')
@@ -753,6 +748,60 @@ def assign_publication_to_group():
                     # everything is good,  do the assignment
                     pub_assignments.queue_publication(publication.pub_id, group_id, notes)
                     response = flask.jsonify(message="Publication successfully assigned to group")
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route('/assign_publications_to_group.json', methods=['POST'])
+def assign_publications_to_group():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        notes = bleach.clean(request.form.get('notes', ''))
+        pubmed_ids = request.form.getlist('pubmed_ids[]', type=str)
+        group_id = request.form.get('group_id', type=int)
+
+        if group_id not in geneweaverdb.get_user_groups(user_id):
+            response = flask.jsonify(message="You do not have permissions to assign tasks to this group.")
+            response.status_code = 403
+
+        else:
+            status = {}
+            for pubmed_id in pubmed_ids:
+                # lookup publication in database, if it doesn't exist in the db yet
+                # this will add it
+                publication = geneweaverdb.get_publication_by_pubmed(pubmed_id, create=True)
+
+                if not publication:
+                    # didn't find matching publication in database or querying pubmed
+                    status[pubmed_id] = {
+                        'success': False,
+                        'message': "Publication Not Found."
+                    }
+
+                else:
+                    # check to see if publication is already assigned to the group
+                    publication_assignment = pub_assignments.get_publication_assignment_by_pub_id(publication.pub_id, group_id)
+                    if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
+                        # is it already an active task for this group?
+                        status[pubmed_id] = {
+                            'success': False,
+                            'message': "Publication is already assigned to this group."
+                        }
+
+                    else:
+                        # everything is good,  do the assignment
+                        pub_assignments.queue_publication(publication.pub_id, group_id, notes)
+                        status[pubmed_id] = {
+                            'success': True,
+                            'message': "Publication successfully assigned to group"
+                        }
+            response = flask.jsonify(results=status)
 
     else:
         # user is not logged in

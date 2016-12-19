@@ -100,6 +100,8 @@ class PublicationGenerator(object):
         :return: Returns a list of pubmed entries as GeneratedPublication instances. If the publication already exists
                  in GeneWeaver the GeneratedPublication will also contain the associated PubAssignment
         """
+        import time
+        start = time.time()
         response = urllib2.urlopen(PUBMED_SEARCH_URL % (urllib.quote(self.querystring),)).read()
         query_key = re.search('<QueryKey>([0-9]*)</QueryKey>', response).group(1)
         web_env = re.search('<WebEnv>([^<]*)</WebEnv>', response).group(1)
@@ -108,14 +110,16 @@ class PublicationGenerator(object):
         # PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s'
         response = urllib2.urlopen(PUBMED_DATA_URL % (query_key, web_env)).read()
 
+        new_time = time.time()
+        print("Time querying Pubmed")
+        print (new_time - start)
         # Update the generator has having been run
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute(
                 'UPDATE gwcuration.stubgenerators SET last_update=NOW() WHERE stubgenid=%s;',
                 (self.stubgenid,))
             cursor.connection.commit()
-
-        return _process_pubmed_response(self, response)
+        return _process_pubmed_response(response)
 
 
 class GeneratedPublication(object):
@@ -166,10 +170,11 @@ def list_generators(user_id, groups):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT DISTINCT stubgenid, sg.name as name, querystring, last_update, g.grp_id as grp_id, grp_name
+            SELECT DISTINCT stubgenid, sg.name as name, querystring, to_char(last_update, 'YYYY-MM-DD') as last_update, g.grp_id as grp_id, grp_name
             FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
             ON sg.grp_id = g.grp_id
             WHERE usr_id=%s OR sg.grp_id=ANY(%s)
+            ORDER BY sg.name, grp_name
             ''',
             (str(user_id), '{' + ','.join(groups) + '}')
         )
@@ -216,7 +221,16 @@ def _process_pubmed_response(response):
               in which case they are persisted as a publication entry and a pub_assignment entry in the database.
     """
     pubmed_results = []
+    import time
+    start = time.time()
+    last = start
+    total_parse = 0
+    total_db = 0
+    total_append = 0
+    count = 0
     for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
+        ++count
+        last = time.time()
         article_ids = {}
         abstract = ''
         fulltext_link = None
@@ -239,11 +253,11 @@ def _process_pubmed_response(response):
 
         author_matches = re.finditer('<Author [^>]*>(.*?)</Author>', article, re.S)
         authors = []
-        for match in author_matches:
+        for author_match in author_matches:
             name = ''
             try:
-                name = re.search('<LastName>([^<]*)</LastName>', match.group(1), re.S).group(1).strip()
-                name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', match.group(1), re.S).group(1).strip()
+                name = re.search('<LastName>([^<]*)</LastName>', author_match.group(1), re.S).group(1).strip()
+                name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', author_match.group(1), re.S).group(1).strip()
             except:
                 pass
             authors.append(name)
@@ -255,30 +269,49 @@ def _process_pubmed_response(response):
         pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
         pm = pubdate.group(2).strip()
         if pm in TO_MONTH_NAME:
-            pub_month = TO_MONTH_NAME[pm]
+            pm = TO_MONTH_NAME[pm]
         pub_year = pubdate.group(1).strip()
 
+        new_time = time.time()
+        total_parse += new_time - last
+        last = new_time
         pub_assigns = []
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute('''
-                SELECT p.pub_id as pub_id, group_id
-                FROM production.pub_assignment pa, production.publication p
+                SELECT p.pub_id as pub_id, curation_group as grp_id, g.grp_name as grp_name
+                FROM production.pub_assignments pa, production.publication p, production.grp g
                 WHERE pa.pub_id = p.pub_id
-                AND p.pubmed = %s
+                AND p.pub_pubmed = %s
+                AND pa.curation_group = g.grp_id
+                ORDER BY p.pub_pubmed
               ''', (pmid,))
             for row in cursor:
-                pub_assignments.get_publication_assignment(row[0], row[1])
-
+                pub_assigns.append(row[2])
+        new_time = time.time()
+        total_db += new_time - last
+        last = new_time
         pubmed_results.append({
             'pmid': pmid,
             'authors': authors,
             'title': article_title,
             'abstract': abstract,
             'journal': journal,
-            'month': pub_month,
+            'month': pm,
             'year': pub_year,
             'link_to_fulltext': fulltext_link,
-            'pub_assigns': pub_assigns
+            'pub_assigns': ", ".join(pub_assigns)
         })
+        new_time = time.time()
+        total_append += new_time - last
+        last = new_time
 
+    print(pubmed_results)
+    print("Total elapsed time")
+    print (last - start)
+    print("Total time parsing")
+    print(total_parse)
+    print("Total time in db")
+    print(total_db)
+    print("Total time appending")
+    print(total_append)
     return pubmed_results

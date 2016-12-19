@@ -2282,7 +2282,7 @@ class Group:
 class Publication:
     def __init__(self, pub_dict):
         self.pub_id = pub_dict['pub_id']
-        self.authors = pub_dict['pub_authors']
+        self.authors = pub_dict['pub_authors'] if 'pub_authors' in pub_dict else ""
         self.title = pub_dict['pub_title']
         self.abstract = pub_dict['pub_abstract']
         self.journal = pub_dict['pub_journal']
