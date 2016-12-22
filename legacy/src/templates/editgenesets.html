@@ -337,20 +337,7 @@
             },
 
             //Performs lazy ajax call to update the database when an ontology is selected or unselected
-            onSelect: function (flag, node) {
-                $.ajax({
-                    url: "/updateGenesetOntologyDB",
-                    data: {
-                        key: node.data.key,
-                        flag: flag,
-                        universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML,
-                        gs_id: $(location).attr("href").split('/').pop()
-                    },
-                    success: function(data){
-
-                    }
-                })
-            }
+            onSelect: termSelectionHandler
         })
     });
 
@@ -571,6 +558,58 @@
             'All Reference Types category.  GeneSet-ontology links may be added or removed under any other category'
     });
 
+    // Handles dynatree term selection
+    function termSelectionHandler(flag, node) {
+        $.ajax({
+                    url: "/updateGenesetOntologyDB",
+                    data: {
+                        key: node.data.key,
+                        flag: flag,
+                        universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML,
+                        gs_id: $(location).attr("href").split('/').pop()
+                    },
+                    success: function(data){
+
+                    }
+                })
+
+        var tree = $("#tree").dynatree("getTree"); // tree
+        var rootNode = $("#tree").dynatree("getRoot"); // root
+        var indexNode = node;
+
+        // Term selected
+        if (flag) {
+
+            // Select parent terms
+            while (rootNode != indexNode) {
+                indexNode.select(true);
+                indexNode = indexNode.getParent();
+            }
+
+        // Term deselected
+        } else {
+
+            // Deselect all descendant terms
+            recursiveDeselect(indexNode);
+        }
+    }
+
+    // Deselects all descending nodes
+    function recursiveDeselect(node) {
+        // Get all descendants
+        var descendant = node.getChildren();
+
+        // Return when descendant is leaf
+        if (descendant == null) {
+            return
+        }
+
+        // Deselect each descendant of the current node, recurse
+        for (let i = 0; i < descendant.length; i++) {
+            descendant[i].select(false);
+            recursiveDeselect(descendant[i])
+        }
+    }
 </script>
 
 
