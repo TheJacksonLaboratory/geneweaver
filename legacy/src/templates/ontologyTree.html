@@ -41,18 +41,6 @@
 
     // Handles dynatree term selection
     function termSelectionHandler(flag, node) {
-        $.ajax({
-             url: "/updateGenesetOntologyDB",
-             data: {
-                 key: node.data.key,
-                 flag: flag,
-                 universe: "All Reference Types",
-                 gs_id: $(location).attr("href").split('/').pop()
-                 },
-             success: function(data){
-         }
-         });
-
         var tree = $("#tree").dynatree("getTree"); // tree
         var rootNode = $("#tree").dynatree("getRoot"); // root
         var indexNode = node;
@@ -72,6 +60,18 @@
             // Deselect all descendant terms
             recursiveDeselect(indexNode);
         }
+
+        $.ajax({
+             url: "/updateGenesetOntologyDB",
+             data: {
+                 key: node.data.key,
+                 flag: flag,
+                 universe: "All Reference Types",
+                 gs_id: $(location).attr("href").split('/').pop()
+                 },
+             success: function(data){
+         }
+         });
     }
 
     // Deselects all descending nodes
