@@ -4,6 +4,7 @@ from flask.ext.admin.base import MenuLink
 from flask.ext import restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
+from urllib2 import HTTPError
 from sys import exc_info
 from urlparse import parse_qs, urlparse
 import config
@@ -686,7 +687,11 @@ def run_generator(generator_id):
     pubmed_entries = []
     if 'user_id' in flask.session:
         generator = publication_generator.PublicationGenerator.get_generator_by_id(generator_id)
-        results = generator.run()
+        try:
+            results = generator.run()
+        except HTTPError:
+            print("HTTPError trying to run generator {}".format(generator.name))
+            return json.dumps({'error': 'Problem communicating with PubMed, please try again later...'})
         return json.dumps(results)
     else:
         return json.dumps({'error': 'You do not have permission to run this generator'})
