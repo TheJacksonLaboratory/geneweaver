@@ -287,6 +287,23 @@
                         </div>
                     </form>
                 </div>
+		{% if user.is_admin %}
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Message All Users</h2>
+                    </div>
+                    <form method="post" action="{{ url_for('generate_api_key') }}">
+                        <div class="panel-body">
+                            <div class="col-xs-7">
+                                Use this feature to send a notification to every geneweaver user in the database.
+                            </div>
+                            <button id="message_all_users" class="btn btn-success btn-transparent pull-right clickable_message">
+                                <i class="fa fa-envelope"></i> Message All Users
+                            </button>
+                        </div>
+                    </form>
+                </div>
+		{% endif %}
             </div>
             <div class="col-md-6">
                 <div class="panel panel-primary">
@@ -612,6 +629,26 @@
             params = {
                 "form_id": formID,
                 "group_id": $("#message_grp_id_"  + formID).val(),
+                "user_id": $("#message_user_id_" + formID).val(),
+                "subject": $("#message_subject_" + formID).val(),
+                "message": $("#message_content_" + formID).val()
+            };
+
+            $.post("{{ url_for('message_group_json') }}", params ,function(data) {
+		$('#messageModal_' + $(this).attr("data-grp")).modal('hide');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.message,
+                        'priority': 'success'
+                    }
+                ]);
+            }, "json").fail(handleAssignmentError);
+	});
+
+	$('.messageAllSend').on('click', function() {
+            var formID = $(this).attr("data-modal-id");
+            params = {
+                "form_id": formID,
                 "user_id": $("#message_user_id_" + formID).val(),
                 "subject": $("#message_subject_" + formID).val(),
                 "message": $("#message_content_" + formID).val()
