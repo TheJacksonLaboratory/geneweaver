@@ -635,7 +635,7 @@
             if (data.responseJSON) {
                 console.error("something bad happened: " + data.responseJSON.message);
 
-                $(document).trigger("set-alert-id-modal-alert", {
+                $(document).trigger("add-alerts", {
                     message: data.responseJSON.message,
                     priority: "error"
                 });
