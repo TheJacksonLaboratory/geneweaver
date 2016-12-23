@@ -104,7 +104,15 @@
                                                       style="margin: 2px; padding: 0px 2px;">
                                                     {{ grpO.grp_created }}
                                             </td>
-                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                            <td>
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Add" type="button" title="Add Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-user-plus"></i></span>
+                                                </span>
+
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Delete" type="button" title="Delete Group"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_delete" id="deleteGroupModal_{{ grpO.grp_id }}"
@@ -132,14 +140,6 @@
                                                 <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
                                                       data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
                                                             <i class="fa fa-pencil"></i></span></span>
-                                                &nbsp;
-                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Add" type="button" title="Add Members"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-plus"></i></span>
-                                                </span>
-
                                                  &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Admins" type="button" title="Set Group Admins"

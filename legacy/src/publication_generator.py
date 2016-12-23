@@ -99,6 +99,7 @@ class PublicationGenerator(object):
 
         :return: Returns a list of pubmed entries as GeneratedPublication instances. If the publication already exists
                  in GeneWeaver the GeneratedPublication will also contain the associated PubAssignment
+        :raised: If there are communication problems with PubMed an urllib2.HTTPError will be allowed to pass through
         """
         import time
         start = time.time()
@@ -108,7 +109,12 @@ class PublicationGenerator(object):
 
         # TODO: batch download these instead of all-at-once (10k max)
         # PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s'
-        response = urllib2.urlopen(PUBMED_DATA_URL % (query_key, web_env)).read()
+        # Allow HTTPError from communication problems with PubMed to get propogated up
+        try:
+            response = urllib2.urlopen(PUBMED_DATA_URL % (query_key, web_env)).read()
+        except urllib2.HTTPError as e:
+            print("Problem communicating with PubMed. {}".format(e.message))
+            raise e
 
         new_time = time.time()
         print("Time querying Pubmed")
@@ -305,7 +311,6 @@ def _process_pubmed_response(response):
         total_append += new_time - last
         last = new_time
 
-    print(pubmed_results)
     print("Total elapsed time")
     print (last - start)
     print("Total time parsing")

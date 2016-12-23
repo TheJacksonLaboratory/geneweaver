@@ -606,6 +606,15 @@
                 url: "/run_generator/" + stubgenid,
                 dataType: 'json',
                 success: function (data) {
+                    if ("error" in data) {
+                        console.error("Problem with running generator " + data.error);
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': data.error,
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
                     $.each(data, function(i, row) {
                         var publication = new Publication(
                                 row['pmid'],
