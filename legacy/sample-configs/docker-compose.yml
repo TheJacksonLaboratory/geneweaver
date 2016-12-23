@@ -4,6 +4,7 @@ services:
     build: 
       context: ../../website-py
       dockerfile: sample-configs/Dockerfile
+    image: geneweaver:latest
     ports: 
      - "80:80"
      - "443:443"
@@ -12,6 +13,11 @@ services:
     depends_on:
      - sphinx
      - rabbitmq
+     - postgres
+    restart: unless-stopped
+    container_name: geneweaver-web
+    links:
+     - postgres
   sphinx:
     image: leodido/sphinxsearch:2.2.9
     ports: 
@@ -20,6 +26,10 @@ services:
     volumes:
      - /opt/compsci/geneweaver/sphinx-config:/usr/local/etc
     command: indexall.sh
+    restart: unless-stopped
+    container_name: geneweaver-sphinx
+    links:
+     - postgres
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -28,3 +38,11 @@ services:
      - RABBITMQ_ERLANG_COOKIE='7gH3cB9vtK4j'
      - RABBITMQ_DEFAULT_USER=DenimWeft
      - RABBITMQ_DEFAULT_PASS=AosLeb3QC4PU9uxHz7z8Ga98
+    restart: unless-stopped
+    container_name: geneweaver-rabbitmq
+  postgres:
+    image: postgres:9.6
+    volumes_from:
+     - container:gwdb-ext:rw
+    container_name: geneweaver-postgres
+
