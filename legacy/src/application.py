@@ -3410,7 +3410,7 @@ def message_group_json():
             try:
                 subject = bleach.clean(request.form['subject'])
                 message = bleach.clean(request.form['message'])
-		if len(subject) < 1 or len(message) < 1:
+                if len(subject) < 1 or len(message) < 1:
                     raise KeyError
 
                 notifications.send_group_notification(group_id, subject, message)
