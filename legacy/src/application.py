@@ -3410,8 +3410,11 @@ def message_group_json():
             try:
                 subject = bleach.clean(request.form['subject'])
                 message = bleach.clean(request.form['message'])
+                if len(subject) < 1 or len(message) < 1:
+                    raise KeyError
+
                 notifications.send_group_notification(group_id, subject, message)
-                response = flask.jsonify(success=True)
+                response = flask.jsonify(success=True, message="Message sent.")
 
             except KeyError:
                 response = flask.jsonify(success=False, message="Can't send message. You must provide both a subject and a message.")
