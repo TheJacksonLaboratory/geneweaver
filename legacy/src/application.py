@@ -889,8 +889,12 @@ def get_ontology_terms(gsid):
 
     ## Format ontologies for display, only send the min. requirements
     for ont in onts:
-        o = {'reference_id': ont.reference_id, 'name': ont.name,
-             'dbname': ontdbdict[ont.ontdb_id].name}
+        o = {
+            'reference_id': ont.reference_id, 
+            'name': ont.name,
+            'dbname': ontdbdict[ont.ontdb_id].name,
+            'ontdb_id': ont.ontdb_id
+        }
 
         ontret.append(o)
 
