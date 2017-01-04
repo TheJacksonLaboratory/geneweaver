@@ -1243,7 +1243,7 @@ def get_ontologies_by_refs(ont_ref_ids):
 
     with PooledCursor() as cursor:
         cursor.execute('''
-            SELECT *
+            SELECT ont_id
             FROM ontology
             WHERE ont_ref_id IN %s
             ''', (ont_ref_ids,))

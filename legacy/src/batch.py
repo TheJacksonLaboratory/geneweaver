@@ -34,7 +34,7 @@ import random
 import re
 import urllib2 as url2
 import config
-#import geneweaverdb
+import geneweaverdb
 
 #### TheDB
 ##
@@ -560,7 +560,7 @@ def parseScoreType(s):
 ##
 ##
 def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
-                usr=0, cur_id=5):
+                usr=0, cur_id=5, annotations=None):
     """
     Given a shitload of arguments, this function returns a dictionary
     representation of a single geneset. Each key is a different column found
@@ -597,6 +597,7 @@ def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
     gs['gs_gene_id_type'] = int(gtype)
     gs['usr_id'] = int(usr)
     gs['values'] = vals  # Not a column in the geneset table; processed later
+    gs['annotations'] = annotations # Not a column in the geneset table, etc.
 
     ## Other fields we can fill out
     gs['gs_count'] = len(vals)
@@ -687,6 +688,7 @@ def parseBatchFile(lns, usr=0, cur=5):
     stype = ''  # score type (gs_threshold_type)
     thresh = '0.05'  # threshold value for scores
     spec = ''  # species name
+    onts = []   # ontology annotations
     cerr = ''  # critical errors discovered during parsing
     ncerr = []  # non-critical errors discovered during parsing
     errors = [] # critical errors discovered during parsing
@@ -868,6 +870,10 @@ def parseBatchFile(lns, usr=0, cur=5):
         elif (lns[i][:2].lower() == 'p ') and (len(lns[i].split('\t')) == 1):
             #pub = eatWhiteSpace(ln[1:])
             pub = eatWhiteSpace(lns[i][1:])
+
+        ## Lines beginning with '~ ' are ontology annotations (OPTIONAL)
+        elif (lns[i][:2] == '~ ') and (len(lns[i].split('\t')) == 1):
+            onts.append(eatWhiteSpace(lns[i][1:]))
 
         ## Lines beginning with 'A' are groups, default is private (OPTIONAL)
         #elif ln[:2].lower() == 'a ' and (len(ln.split('\t')) == 1):
@@ -1077,8 +1083,8 @@ def buGenesetValues(gs):
             continue
 
         ## Check for duplicate ode_gene_ids, otherwise postgres bitches
-        if not dups[sym2ode[tup[0].lower()]]:
-            dups[sym2ode[tup[0].lower()]] = tup[0]
+        if not dups[sym2ode[tup[0].lower()][1]]:
+            dups[sym2ode[tup[0].lower()][1]] = tup[0]
 
         else:
             err = ('Error! Seems that %s is a duplicate of %s. %s was not '
@@ -1087,6 +1093,8 @@ def buGenesetValues(gs):
             noncrit.append(err)
             continue
 
+        #print sym2ode[tup[0].lower()][1]
+        #print dups
         ## Remember to lower that shit, forgot earlier :(
         db.insertGenesetValue(gs['gs_id'], sym2ode[tup[0].lower()][1], tup[1],
                               sym2ode[tup[0].lower()][0], gs['gs_threshold'])
@@ -1155,6 +1163,15 @@ def buGenesets(fp, usr_id=0, cur_id=5):
         # Non-critical errors discovered during geneset_value creation
         if gsverr[1]:
             noncrits.extend(gsverr[1])
+
+        ## Add ontology annotations provided they exist
+        if gs['annotations']:
+            ont_ids = geneweaverdb.get_ontologies_by_refs(gs['annotations'])
+
+            for ont_id in ont_ids:
+                geneweaverdb.add_ont_to_geneset(
+                    gs['gs_id'], ont_id, 'Manual Association'
+                )
 
     db.commit()
 
