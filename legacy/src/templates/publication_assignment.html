@@ -851,7 +851,6 @@
             };
 
             var group_name = $("#selectPubGroup option:selected").text();
-            console.log(group_name);
             // since params["pubmed_ids"] is a list the server needs to use
             // request.args.getlist('pubmed_ids') instead of request.args['pubmed_ids']
             $.post("{{ url_for('assign_publications_to_group') }}", params ,function(data) {
@@ -903,9 +902,9 @@
                             }
                         }
                     }
-
+                    var table = $('#publications').DataTable();
+                            table.rows().invalidate().draw(false);
                     TableTools.fnGetInstance('publications').fnSelectNone();
-                    TableTools.fnGetInstance('publications').fnDraw();
                     $(document).trigger("add-alerts", [
                         {
                         'message': "Publications assigned to group: " + successfulLabels.join(', '),
