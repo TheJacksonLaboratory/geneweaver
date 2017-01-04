@@ -6,7 +6,6 @@ from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from sys import exc_info
 from urlparse import parse_qs, urlparse
-import annotator
 import config
 import adminviews
 import genesetblueprint
@@ -24,7 +23,7 @@ import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
+    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint, msetblueprint, upsetblueprint
 import sphinxapi
 import search
 import math
@@ -44,6 +43,8 @@ app.register_blueprint(jaccardclusteringblueprint.jaccardclustering_blueprint)
 app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
+app.register_blueprint(msetblueprint.mset_blueprint)
+app.register_blueprint(upsetblueprint.upset_blueprint)
 
 # *************************************
 
@@ -91,13 +92,14 @@ admin.add_view(
 admin.add_view(
     adminviews.Add(name='News Item', endpoint='newNewsItem', category='Add'))
 
-admin.add_link(MenuLink(name='My Account', url='/accountsettings'))
+admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
+
 
 class ListConverter(BaseConverter):
     """
     A class for handling a custom URL converter. Allows lists to be used as
     routing variables. Currently only used for viewing geneset overlap for >2
-    genesets. 
+    genesets.
     This should probably be put in a separate file.
     """
 
@@ -112,16 +114,16 @@ class ListConverter(BaseConverter):
         returns
             a list of strings
         """
-        
+
         return value.split('+')
 
     def to_url(self, values):
         """
         Converts a list of values to a string. The exact opposite of the
-        to_python function. 
+        to_python function.
 
         arguments
-            values: a list of values being converted 
+            values: a list of values being converted
 
         returns
             a string
@@ -201,6 +203,20 @@ def _form_login():
     return user
 
 
+def send_mail(to, subject, body):
+    # print to, subject, body
+    sendmail_location = "/usr/bin/mail"  # sendmail location
+    p = os.popen("%s -t" % sendmail_location, "w")
+    p.write("From: NoReply@geneweaver.org\n")
+    p.write("To: %s\n" % to)
+    p.write("Subject: %s\n" % subject)
+    p.write("\n")  # blank line separating headers from body
+    p.write(body)
+    status = p.close()
+    if status != 0:
+        print "Sendmail exit status", status
+
+
 def _form_register():
     user = None
     _logout()
@@ -216,21 +232,6 @@ def _form_register():
             return user
 
 
-def is_safe_url(url):
-    """
-    Checks to see if the given URL is safe to redirect to by checking the host 
-    name.
-
-    :param url: url being checked
-    :return:    true if the URL is safe, otherwise false
-    """
-
-    host_url = urlparse(request.host_url)
-    other_url = urlparse(url)
-
-    return host_url.netloc == other_url.netloc
-
-
 @app.route('/logout.json', methods=['GET', 'POST'])
 def json_logout():
     _logout()
@@ -239,26 +240,18 @@ def json_logout():
 
 @app.route('/login.json', methods=['POST'])
 def json_login():
-    json_result = {}
-    reurl = flask.session['last_page'] if 'last_page' in flask.session else ''
+    json_result = dict()
     user = _form_login()
-
     if user is None:
         json_result['success'] = False
-
         return flask.redirect(flask.url_for('render_login_error'))
-
     else:
         json_result['success'] = True
         json_result['usr_first_name'] = user.first_name
         json_result['usr_last_name'] = user.last_name
         json_result['usr_email'] = user.email
 
-    if reurl and is_safe_url(reurl):
-        flask.session['last_page'] = ''
-
-        return flask.redirect(reurl)
-    
+    # return flask.jsonify(json_result)
     return flask.redirect('/')
 
 
@@ -282,18 +275,14 @@ def render_analyze():
         else:
             grp2proj[p.group].append(p)
 
-
         grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
 
-    ## Dynamically generated species tags
-    species = geneweaverdb.get_all_species().items()
-
     return flask.render_template(
-        'analyze.html', 
+        'analyze.html',
         active_tools=active_tools,
-        grp2proj=grp2proj,
-        species=species
+        grp2proj=grp2proj
     )
+
 
 @app.route('/analyzeshared')
 def render_analyze_shared():
@@ -312,10 +301,8 @@ def render_analyze_shared():
             else:
                 grp2proj[p.group].append(p)
 
-
             grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
-            #sorted(flask.g.user.shared_projects, key=lambda x: x.group_id)
-
+            # sorted(flask.g.user.shared_projects, key=lambda x: x.group_id)
 
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze_shared.html', active_tools=active_tools, grp2proj=grp2proj)
@@ -375,7 +362,7 @@ def render_shareprojects():
 
 @app.route('/analyze_new_project/<string:pj_name>.html')
 def render_analyze_new_project(pj_name):
-    #print 'dbg analyze proj'
+    # print 'dbg analyze proj'
     args = flask.request.args
     active_tools = geneweaverdb.get_active_tools()
     user = geneweaverdb.get_user(flask.session.get('user_id'))
@@ -425,7 +412,6 @@ def render_editgenesets(gs_id, curation_view=False):
         onts=onts,
         curation_view=curation_view
     )
-
 
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
 def assign_genesets_to_curation_group():
@@ -872,154 +858,12 @@ def update_geneset_ontology_db():
     flag = request.args['flag']
     gso_ref_type = request.args['universe']
 
-@app.route('/rerun_annotator.json', methods=['POST'])
-def rerun_annotator():
-    """
-    Reruns the annotator tool for a given geneset and updates its annotations.
-    """
-
-    publication = request.form['publication']
-    description = request.form['description']
-    gs_id = request.form['gs_id']
-    user_id = session['user_id'] if session['user_id'] else 0
-
-    user = geneweaverdb.get_user(user_id)
-
-    if not user:
-        return json.dumps({
-            'success': False,
-            'error': 'You must be logged in to make changes to this GeneSet'
-        })
-
-    ## Only admins, curators, and owners can make changes
-    if (not user.is_admin and not user.is_curator) or\
-       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
-        not user_is_assigned_curation(user_id, gs_id)):
-           return json.dumps({
-               'success': False,
-               'error': 'You do not have permission to update this GeneSet'
-           });
-
-    pub_annos = annotator.annotate_text(publication, annotator.ONT_IDS)
-    desc_annos = annotator.annotate_text(description, annotator.ONT_IDS)
-    ## These are the only annotations we preserve
-    assoc_annos =\
-        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Association')
-    reject_annos =\
-        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Rejection')
-
-    ## Convert to ont_ids
-    for i in range(len(pub_annos)):
-        if pub_annos[i]:
-            pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
-
-    for i in range(len(desc_annos)):
-        if desc_annos[i]:
-            desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
-
-    assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
-    reject_annos = map(lambda a: a.ontology_id, reject_annos)
-
-    geneweaverdb.clear_geneset_ontology(gs_id)
-
-    ## There's probably a cleaner way to do this but idk
-    for ont_id in assoc_annos:
-        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Association')
-
-    for ont_id in reject_annos:
-        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Rejection')
-
-    for ont_id in pub_annos[0]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Publication, MI Annotator'
-            )
-
-    for ont_id in pub_annos[1]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Publication, NCBO Annotator'
-            )
-
-    for ont_id in desc_annos[0]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Description, MI Annotator'
-            )
-
-    for ont_id in desc_annos[1]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Description, NCBO Annotator'
-            )
-    
-    return json.dumps({'success': True})
-
-
-@app.route('/update_geneset_annotation.json', methods=['POST'])
-def update_geneset_annotation():
-    """
-    Updates an ontology annotation for a geneset. This endpoint should only be
-    called when updating annotations using the tree view on the edit geneset
-    page. If the flag provided in the arguments is true, the ontology term is 
-    annotated to the geneset with the the reference type, "Manual Association".
-    If the flag is false, the term is added (if it is not currently annotated) 
-    but its reference type is set to "Manual Rejection" indicating that it is 
-    an incorrect annotation. This prevents the term from being re-annotated if 
-    an automatic annotation tool is run again.
-    """
-
-    form = request.form
-    user_id = session['user_id'] if session['user_id'] else 0
-    ont_id = form['key'] if form['key'] else 0
-    gs_id = form['gs_id'] if form['gs_id'] else 0
-    flag = form['flag'] if form['flag'] else 'true'
-
-    user = geneweaverdb.get_user(user_id)
-
-    if not user:
-        return json.dumps({
-            'success': False,
-            'error': 'You must be logged in to make changes to this GeneSet'
-        })
-
-    ## This should never happen
-    if not ont_id or not gs_id:
-        return json.dumps({
-            'success': False,
-            'error': 'An unknown error occurred while updating this GeneSet'
-        })
-
-    ## Only admins, curators, and owners can make changes
-    if (not user.is_admin and not user.is_curator) or\
-       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
-        not user_is_assigned_curation(user_id, gs_id)):
-           return json.dumps({
-               'success': False,
-               'error': 'You do not have permission to update this GeneSet'
-           });
-
-    if geneweaverdb.does_geneset_have_annotation(gs_id, ont_id):
-        if flag == 'true':
-            geneweaverdb.update_geneset_ontology_reference(
-                gs_id, ont_id, 'Manual Association'
-            )
-        else:
-            geneweaverdb.update_geneset_ontology_reference(
-                gs_id, ont_id, 'Manual Rejection'
-            )
+    if (flag == "true"):
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
     else:
-        if flag == 'true':
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Manual Association'
-            )
+        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
 
-        else:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Manual Rejection'
-            )
-
-    return json.dumps({'success': True})
+    return json.dumps(True)
 
 
 def get_ontology_terms(gsid):
@@ -1045,22 +889,19 @@ def get_ontology_terms(gsid):
 
     ## Format ontologies for display, only send the min. requirements
     for ont in onts:
-        o = {
-            'ontdb_id': ont.ontdb_id,
-            'reference_id': ont.reference_id, 
-            'name': ont.name,
-            'dbname': ontdbdict[ont.ontdb_id].name 
-        }
+        o = {'reference_id': ont.reference_id, 'name': ont.name,
+             'dbname': ontdbdict[ont.ontdb_id].name}
 
         ontret.append(o)
 
     return ontret
 
+
 @app.route('/initOntTree')
 def init_ont_tree():
     parentdict = {}
     gs_id = request.args['gs_id']
-    gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
+    gso_ref_type = request.args['universe']  # Usually 'All Reference Types'
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
 
     for ont in onts:
@@ -1089,6 +930,7 @@ def init_ont_tree():
                 ontpath.append(node)
 
             ## Add things in reverse order because it makes things easier
+            # for p in ontpath[::-1]:
             for i in range(len(ontpath), 0, -1):
                 i -= 1
 
@@ -1098,52 +940,46 @@ def init_ont_tree():
                     ontpath[i]['isFolder'] = False
                     ontpath[i]['select'] = True
                     ontpath[i]['expand'] = False
-                    ontpath[i]['unselectable'] = False
-                    ontpath[i]['ref'] =\
-                        geneweaverdb.get_geneset_annotation_reference(gs_id, ontid)
 
                 else:
                     ontpath[i]['expand'] = True
-                    ontpath[i]['unselectable'] = False
 
                 if i == 0:
                     break
 
-            tree = merge_tree_path(tree, ontpath)
+            tree = mergeTreePath(tree, ontpath)
 
-    tree = convert_tree(tree)
+    tree = convertTree(tree)
 
     return json.dumps(tree)
 
-def does_child_exist(child, children):
+
+def doesChildExist(child, children):
     """
     Given a list of children, checks to see if a child node already exists
     in the given list. Used to prevent duplicates from cropping up in the
     ontology tree.
-
-    :param child:       child node being checked
-    :param children:    list of children to examine
-    :return:            true if the child exists, false otherwise
     """
 
     children = map(lambda c: c['key'], children)
 
     return child['key'] in children
 
-def _convert_tree(parent, child):
+
+def _convertTree(parent, child):
     """
-    The recursive component to convert_tree(). Recursively adds child nodes to
+    The recursive component to convertTree(). Recursively adds child nodes to
     each parent's list of children. Also checks to see if those children
     already exist in the list; if they do exist, they aren't added.
 
-    :param parent:  parent node
-    :param child:   child node
-    :return:        parent node with newly converted children
+    :arg dict: parent node
+    :arg dict: child node
+    :ret dict: parent node with newly added children
     """
 
     ## This means it's a leaf node as its only key should be 'node'
     if len(child.keys()) <= 1:
-        if not does_child_exist(child['node'], parent['node']['children']):
+        if not doesChildExist(child['node'], parent['node']['children']):
             parent['node']['children'].append(child['node'])
 
         return parent
@@ -1153,16 +989,17 @@ def _convert_tree(parent, child):
         if ck == 'node':
             continue
 
-        child = _convert_tree(child, child[ck])
+        child = _convertTree(child, child[ck])
 
-        if not does_child_exist(child['node'], parent['node']['children']):
+        if not doesChildExist(child['node'], parent['node']['children']):
             parent['node']['children'].append(child['node'])
 
     return parent
 
-def convert_tree(root):
+
+def convertTree(root):
     """
-    Converts a tree structure generated by merge_tree_path into the array of
+    Converts a tree structure generated by mergeTreePath into the array of
     nested dicts that can be used by DynaTree on the client side of things.
 
     :param root:    the top level (root) node of the tree structure
@@ -1182,13 +1019,14 @@ def convert_tree(root):
             if child == 'node':
                 continue
 
-            subroot = _convert_tree(subroot, subroot[child])
+            subroot = _convertTree(subroot, subroot[child])
 
         subtrees.append(subroot['node'])
 
     return subtrees
 
-def merge_tree_path(tree, path):
+
+def mergeTreePath(tree, path):
     """
     Merges a single path from an ontology tree into an existing tree structure.
     Used to merge section of an ontology that may overlap. The list of nodes in
@@ -1196,9 +1034,9 @@ def merge_tree_path(tree, path):
     In the returned tree, every element except the 'node' key is a child of the 
     previous node.
 
-    :param tree:    tree structure being modified
-    :param path:    list of ontology nodes
-    :return:        tree with newly added nodes
+    :arg dict: tree structure to add the node path to
+    :arg list: list of ontology nodes
+    :ret dict: tree with newly added nodes
     """
 
     if not path:
@@ -1217,6 +1055,7 @@ def merge_tree_path(tree, path):
 
     return tree
 
+
 def create_new_child_dict(ontology_node, grt):
     new_child_dict = dict()
     new_child_dict["title"] = ontology_node.name
@@ -1224,7 +1063,7 @@ def create_new_child_dict(ontology_node, grt):
     new_child_dict["key"] = ontology_node.ontology_id
     new_child_dict["db"] = False
     new_child_dict["children"] = []
-    #new_child_dict["children"] = set()
+    # new_child_dict["children"] = set()
     if grt == "All Reference Types":
         new_child_dict["unselectable"] = True
     if ontology_node.children == 0:
@@ -1289,33 +1128,13 @@ def get_ont_root_nodes():
 
 @app.route('/updategeneset', methods=['POST'])
 def update_geneset():
-
-    user_id = session['user_id'] if session['user_id'] else 0
-    gs_id = request.form['gs_id'] if request.form['gs_id'] else 0
-    user = geneweaverdb.get_user(user_id)
-
-    if not user:
-        return json.dumps({
-            'success': False,
-            'error': 'You must be logged in to make changes to this GeneSet'
-        })
-
-    ## Only admins, curators, and owners can make changes
-    if (not user.is_admin and not user.is_curator) or\
-       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
-        not user_is_assigned_curation(user_id, gs_id)):
-           return json.dumps({
-               'success': False,
-               'error': 'You do not have permission to update this GeneSet'
-           });
-
-    result = geneweaverdb.update_geneset(user_id, flask.request.form)
-    #data = dict()
-
-    #data.update({"success": result})
-    #data.update({'usr_id': user_id})
-
-    return json.dumps(result)
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        result = geneweaverdb.updategeneset(user_id, flask.request.form)
+        data = dict()
+        data.update({"success": result})
+        data.update({'usr_id': user_id})
+        return json.dumps(data)
 
 @app.route('/curategenesetgenes/<int:gs_id>')
 def render_curategenesetgenes(gs_id):
@@ -1384,14 +1203,14 @@ def render_editgeneset_genes(gs_id, curation_view=False):
         symbol2ode = None
 
     return flask.render_template(
-        'editgenesetsgenes.html', 
-        geneset=geneset, 
-        user_id=user_id, 
+        'editgenesetsgenes.html',
+        geneset=geneset,
+        user_id=user_id,
         species=species,
-        gidts=gidts, 
-        pidts=pidts, 
-        view=view, 
-        meta=meta, 
+        gidts=gidts,
+        pidts=pidts,
+        view=view,
+        meta=meta,
         ontology=ontology,
         id_map=symbol2ode,
         curation_view=curation_view
@@ -1477,12 +1296,12 @@ def update_project_groups():
         proj_id = request.args['proj_id']
 
         if json.loads(request.args['groups']) != '':
-            groups = (json.loads(request.args['groups'])) 
-        else: 
+            groups = (json.loads(request.args['groups']))
+        else:
             groups = '-1'
 
-        if geneweaverdb.get_user(user_id).is_admin != 'False' or\
-           geneweaverdb.user_is_project_owner(user_id, proj_id):
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or \
+                geneweaverdb.user_is_project_owner(user_id, proj_id):
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
@@ -1589,14 +1408,6 @@ def update_notification_pref():
 
 @app.route('/login')
 def render_login():
-    ## Save previous page visit so we can redirect the user back here
-    url = urlparse(request.referrer)
-
-    ## But not for login, register, and password reset pages
-    if url.path != '/login' and url.path != '/register' and\
-       url.path != '/reset':
-        flask.session['last_page'] = url.geturl()
-
     return flask.render_template('login.html')
 
 
@@ -1608,6 +1419,7 @@ def render_login_error():
 @app.route('/resetpassword.html')
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
+
 
 @app.route('/downloadResult', methods=['POST'])
 def download_result():
@@ -1628,7 +1440,7 @@ def download_result():
     dpi = 600
 
     if 'oldver' in form:
-        with open(os.path.join(resultpath, form['oldver']), 'r') as fl:
+        with open(os.path.join(resultpath, oldver), 'r') as fl:
             svg = fl.read()
 
         dpi = 300
@@ -1652,6 +1464,7 @@ def download_result():
         imgout = svgout
 
     return imgout.getvalue().encode('base64')
+
 
 @app.route('/viewStoredResults', methods=['GET'])
 def viewStoredResults_by_runhash():
@@ -1704,9 +1517,22 @@ def viewStoredResults_by_runhash():
             task_id=runhash
         )
 
+    elif results['res_tool'] == 'MSET':
+        return flask.url_for(
+            msetblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
+    elif results['res_tool'] == 'UpSet':
+        return flask.url_for(
+            upsetblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
     else:
         ## Something bad has happened
         return ''
+
 
 @app.route('/reruntool.json', methods=['POST', 'GET'])
 def rerun_tool():
@@ -1903,7 +1729,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                                  curation_assignment=curation_assignment,
                                  curator_info=curator_info)
 
-
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
 def render_viewgenesetoverlap(gs_ids):
     """
@@ -1995,12 +1820,12 @@ def render_viewgenesetoverlap(gs_ids):
 
     ## Sort by the # of genes in the intersection
     intersects = sorted(intersects, key=lambda i: i['intersect_count'],
-            reverse=True)
+                        reverse=True)
 
     if user_id != 0:
-        if user_info.is_admin or\
-           user_info.is_curator:
-            view = 'True' 
+        if user_info.is_admin or \
+                user_info.is_curator:
+            view = 'True'
 
         else:
             view = None
@@ -2079,22 +1904,22 @@ def render_viewgenesetoverlap(gs_ids):
 
 
     ## TODO: fix emphasis genes
-    #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    # emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
-    #for row in emphgenes:
+    # for row in emphgenes:
     #    emphgeneids.append(str(row['ode_gene_id']))
 
     ## variables to hole if a geneset has an emphasis gene
-    #inGeneset1 = False
-    #inGeneset2 = False
+    # inGeneset1 = False
+    # inGeneset2 = False
 
     ## Check to see if an emphasis gene is in one of the genesets
-    #for gene in emphgeneids:
+    # for gene in emphgeneids:
     #    inGeneset1 = geneweaverdb.check_emphasis(gs_id, gene)
     #    if inGeneset1 == True:
     #        break
 
-    #for gene in emphgeneids:
+    # for gene in emphgeneids:
     #    inGeneset2 = geneweaverdb.check_emphasis(gs_id1, gene)
     #    if inGeneset2 == True:
     #        break
@@ -2282,8 +2107,8 @@ def render_group_tasks(group_id):
 
     return flask.render_template(
         'groupTasks.html',
-        headerCols=headerCols, 
-        user_id=user_id, 
+        headerCols=headerCols,
+        user_id=user_id,
         columns=columns,
         group=group,
         group_owner=group_owner,
@@ -2383,7 +2208,8 @@ def render_sim_genesets(gs_id, grp_by):
     # This is the bit for the bar chart
     i = 1
     for k in simgs:
-        d3BarChart.append({'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': k.abbreviation.encode('utf-8')})
+        d3BarChart.append(
+            {'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': k.abbreviation.encode('utf-8')})
         i += 1
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
@@ -2396,13 +2222,13 @@ def render_sim_genesets(gs_id, grp_by):
         species.append([sp_id, sp_name])
 
     return flask.render_template(
-        'similargenesets.html', 
-        geneset=geneset, 
-        user_id=user_id, 
-        gs_id=gs_id, 
+        'similargenesets.html',
+        geneset=geneset,
+        user_id=user_id,
+        gs_id=gs_id,
         simgs=simgs,
-        d3Data=d3Data, 
-        max=max, 
+        d3Data=d3Data,
+        max=max,
         d3BarChart=d3BarChart,
         species=species
     )
@@ -2615,6 +2441,7 @@ def deemphasize(rm_gene):
     user_id = flask.session['user_id']
     return str(geneweaverdb.delete_usr2gene_by_user_and_gene(user_id, rm_gene))
 
+
 @app.route('/search/')
 def render_searchFromHome():
     """
@@ -2664,10 +2491,10 @@ def render_searchFromHome():
 
     # Perform a search
     search_values = search.keyword_paginated_search(
-        terms, 
+        terms,
         pagination_page,
         search_fields,
-        default_filters, 
+        default_filters,
         sortby
     )
 
@@ -2677,7 +2504,7 @@ def render_searchFromHome():
 
     if (search_values['STATUS'] == 'NO MATCHES'):
         return flask.render_template('search.html', paginationValues=None,
-                noResults=True)
+                                     noResults=True)
 
     ## Used to dynamically generate species tags
     species = geneweaverdb.get_all_species()
@@ -3033,6 +2860,7 @@ def date_handler(obj):
 def render_manage():
     return flask.render_template('mygenesets.html')
 
+
 # This function should be deprecated
 @app.route('/share_projects.html')
 def render_share_projects():
@@ -3254,6 +3082,7 @@ def render_funding():
 def render_datasharing():
     return flask.render_template('datasharing.html')
 
+
 @app.route('/datasources')
 def render_datasources():
     attribs = geneweaverdb.get_all_attributions()
@@ -3261,10 +3090,11 @@ def render_datasources():
     attcounts = {}
     for at_id, at_abbrev in attribs.items():
         attlist.append(at_abbrev)
-        #attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
+        # attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
         attcounts[at_abbrev] = geneweaverdb.get_attributed_genesets(at_id, at_abbrev)
 
     return flask.render_template('datasources.html', attributions=attlist, attcounts=attcounts)
+
 
 @app.route('/privacy')
 def render_privacy():
@@ -3325,12 +3155,14 @@ def generate_api_key():
     geneweaverdb.generate_api_key(flask.session.get('user_id'))
     return flask.redirect('accountsettings')
 
+
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
     news_array = geneweaverdb.get_news()
     stats = geneweaverdb.get_stats()
     return flask.render_template('index.html', news_array=news_array, stats=stats)
+
 
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
@@ -3390,6 +3222,7 @@ def json_register_successful():
     flask.g.user = user
 
     return render_home()
+
 
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def add_geneset_to_project(project_id, geneset_id):
@@ -3680,6 +3513,27 @@ class ToolBooleanAlgebraProjects(restful.Resource):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
 
+class ToolUpSet(restful.Resource):
+    def get(self, apikey, homology, genesets, zeros):
+        return upsetblueprint.run_tool_api(apikey, homology, genesets, zeros)
+
+
+class ToolUpSetProjects(restful.Resource):
+    def get(self, apikey, homology, projects, zeros):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return upsetblueprint.run_tool_api(apikey, homology, genesets, zeros)
+
+
+class ToolMSET(restful.Resource):
+    def get(self, apikey, homology, numberOfSamples, genesets):
+        return msetblueprint.run_tool_api(apikey, homology, numberOfSamples, genesets)
+
+
+class ToolMSETProjects(restful.Resource):
+    def get(self, apikey, homology, numberOfSamples, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return msetblueprint.run_tool_api(apikey, homology, numberOfSamples, genesets)
+
 
 class KeywordSearchGuest(restful.Resource):
     def get(self, apikey, search_term):
@@ -3749,6 +3603,15 @@ api.add_resource(ToolPhenomeMapProjects,
 
 api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relation>/<genesets>/')
 api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byprojects/<apikey>/<relation>/<projects>/')
+
+api.add_resource(ToolMSET, '/api/tool/mset/<apikey>/<homology>/<method>/<genesets>/')
+api.add_resource(ToolMSETProjects,
+                 '/api/tool/mset/byprojects/<apikey>/<homology>/<method>/<projects>/')
+
+api.add_resource(ToolUpSet,
+                 '/api/tool/upset/<apikey>/<homology>/<zeros>/<genesets>/')
+api.add_resource(ToolUpSetProjects,
+                 '/api/tool/upset/byprojects/<apikey>/<homology>/<zeros>/<projects>/')
 
 # ********************************************
 # END API BLOCK

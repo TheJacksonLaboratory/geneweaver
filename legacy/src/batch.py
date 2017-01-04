@@ -52,11 +52,11 @@ class TheDB():
         host = config.get('db', 'host')
         port = config.getInt('db', 'port')
 
-        cs = "host='%s' dbname='%s' user='%s' password='%s'" % (host, db, user, password)
+        cs = "host='%s' dbname='%s' user='%s' password='%s' port='%s'" % (host, db, user, password, port)
 
         try:
             self.conn = psycopg2.connect(cs)
-        except:
+        except:  
             print '[!] Oh noes, failed to connect to the db.'
             print ''
             exit()

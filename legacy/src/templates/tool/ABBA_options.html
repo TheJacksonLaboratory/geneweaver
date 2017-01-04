@@ -5,16 +5,15 @@
 		<div class="" style="width:100%; display:table">
 			<div style="width:100%; display:table-row">
 				<div style="height:100%; display:table-cell;">
-					<button type="submit" {{ macros.tool_run_click(tool) }} 
+					<button type="submit" {{ macros.tool_run_click(tool) }}
 						style="background:transparent; margin:0; padding:0; border:none !important;">
 					<img  src="/static/images/GW2-abba.png" width=50 height=50 style="margin-top:5px">
 					</button>
 				</div>
 				<div style="padding-left:5px; display:table-cell; vertical-align:middle;">
-					<a class="tool-link" data-toggle="collapse"
-						data-parent="#accordion" href="#abbaCollapse" style="color:black;">
+					<a class="tool-link" data-toggle="collapse" data-parent="#accordion" href="#abbaCollapse" style="color:black;">
 						<u class="tool-title">ABBA Gene Search</u>
-						<span id="pm-caret" class="fa fa-caret-left"></span>
+						<span id="abba-caret" class="fa fa-caret-left"></span>
 					<span class="tool-description">
 						Find genes most closely associated with your gene(s) of
 						interest.
@@ -26,84 +25,129 @@
 	</div>
 	<div id="abbaCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
-		{# Tool params need to be added to the DB for the ABBA tool.
-            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_InputGenes']) }}</div>
-            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_IgnHom']) }}</div>
-            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_ShowInter']) }}</div>
-            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenes']) }}</div>
-            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_MinGenesets']) }}</div>
-            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_Tierset']) }}</div>
-            <div class="form-group">{{ macros.tool_param_select(tool.params['ABBA_RestrictSpecies']) }}</div>
-            <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
-		#}
 			<div class="form-group">
                 <label>
                     Input Genes:
                 </label>
-                <textarea rows="2" class="form-control valid" name='ABBA_InputGenes' id="textbox" style=" min-height:30px; max-height:100px; resize:vertical; width:100%;"></textarea>
+                <br>
+                <!-- Input Genes Form -->
+                <fieldset id="inputGeneField"></fieldset>
+                <button name="addGeneBtn" class="btn btn-secondary" id="addGeneBtn" type="button">Add Gene</button>
+
             </div>
 			<div class="form-group">
                 <label>
                     Ignore Homology
                     <input type="checkbox" name="ABBA_IgnHom" value="yes">
                 </label>
-            </div>
-			<div class="form-group">
-                <label>
-                    Show Intermediate
-                    <input type="checkbox" name="ABBA_ShowInter" checked="checked" value="yes">
-                </label>
-            </div>
-            <div class="form-group">
-                <label>Minimum Genes:</label>
-                <select name="ABBA_MinGenes"  class="form-control">
-                    <option selected="selected">Auto</option>
-                    {% for i in range(10) %}
-                        <option>{{loop.index0}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label style="width:50%;">
-                    Minimum GeneSets:
-                </label>
-                <input type=text class="form-control" name='ABBA_MinGenesets' style="width:25%; " />
-            </div>
-            <div class="form-group">
-                <label style="width:50%;">
-                    Tierset:
-                </label>
-                <select name="ABBA_Tierset"  class="form-control">
-                    <option value="0" selected="selected">All</option>
-                    <option value="4">Curated or Provisional (Tier I-IV)</option>
-                    <option value="3">Curated (Tier I-III)</option>
-                    <option value="2">Pro-curated (Tier I-II)</option>
-                    <option value="1">Public Resource (Tier I)</option>
-                    <option value="-1">Non-Resource (Tier II-V)</option>
-                    <option value="-2">Curated Non-Resource (Tier II-III)</option>
-                    <option value="-10">Private/Group Only (Tier V)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>
-                    Restrict Species:
-                </label>
-                <select name="ABBA_RestrictSpecies"  class="form-control">
-                    <option value="0" selected="selected">None</option>
-                    <option value="1">Mus musculus</option>
-                    <option value="2">Homo sapiens</option>
-                    <option value="3">Rattus norvegicus</option>
-                    <option value="4">Danio rerio</option>
-                    <option value="5">Drosophila melanogaster</option>
-                    <option value="6">Macaca mulatta</option>
-                    <option value="8">Caenorhabditis elegans</option>
-                    <option value="9">Saccharomyces cerevisiae</option>
-                    <option value="10">Gallus gallus</option>
-                </select>
-            </div>
+      </div>
+      <div class="form-group">
+          <label>Minimum Genes:</label>
+          <select id="genes-select" name="ABBA_MinGenes"  class="form-control">
+              <option selected="selected">Auto</option>
+          </select>
+      </div>
+      <div class="form-group">
+          <label style="width:50%;">
+              Minimum GeneSets:
+          </label>
+          <select name="ABBA_MinGenesets"  class="form-control">
+              <option selected="selected">Auto</option>
+              {% for i in range(50) %}
+                  <option>{{loop.index0+1}}</option>
+              {% endfor %}
+          </select>
+      </div>
+      <div class="form-group">
+          <label style="width:50%;">
+              Tierset:
+          </label>
+          <select name="ABBA_Tierset"  class="form-control">
+              <option value="0" selected="selected">All</option>
+              <option value="4">Curated or Provisional (Tier I-IV)</option>
+              <option value="3">Curated (Tier I-III)</option>
+              <option value="2">Pro-curated (Tier I-II)</option>
+              <option value="1">Public Resource (Tier I)</option>
+              <option value="-1">Non-Resource (Tier II-V)</option>
+              <option value="-2">Curated Non-Resource (Tier II-III)</option>
+              <option value="-10">Private/Group Only (Tier V)</option>
+          </select>
+      </div>
+          <!-- Restrict Species Options-->
+      <div class="form-group">
+          <label>
+              Restrict Species:
+          </label>
+          <label class="radio-inline">
+              <input type="radio" name="ABBA_RestrictOption" value="0" onclick="hideSelectSpecies();" checked="checked"> None<br>
+          </label>
+          <label class="radio-inline">
+              <input type="radio" name="ABBA_RestrictOption" value="1" onclick="showSelectSpecies();"> Restrict<br>
+          </label>
+      </div>
+
+      <div class="form-group" id="select-species" style="display: none;">
+          <label>
+              Select Species:
+          </label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="1"/>Mus musculus</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="2"/>Homo sapiens</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="3"/>Rattus norvegicus</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="4"/>Danio rerio</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="5"/>Drosophila melanogaster</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="6"/>Macaca mulatta</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="8"/>Caenorhabditis elegans</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="9"/>Saccharomyces cerevisiae</label>
+          <label><input name="ABBA_RestrictSpecies" type="checkbox" value="10"/>Gallus Gallus</label>
+      </div>
+
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
+
+    <script>
+        $("#addGeneBtn").click(function() {
+            var intId = $("#inputGeneField div").length + 1;
+            var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
+            var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" required/>');
+            var removeButton = $('<input type="button" class="remove btn btn-primary btn-sm" value="x" />');
+            removeButton.click(function() {
+                $(this).parent().remove();
+                min_genes_dec(); //Update min_genes option list
+            });
+            fieldWrapper.append(fName);
+            fieldWrapper.append(removeButton);
+            $("#inputGeneField").append(fieldWrapper);
+            min_genes_inc(); //Update min_genes option list
+        });
+
+        /* Dynamically populate min genes list */
+        function min_genes_inc() {
+            var cnt = document.getElementById("genes-select").length;
+            var option = document.createElement("option");
+            option.text = cnt;
+            option.value = cnt;
+            document.getElementById("genes-select").appendChild(option);
+        }
+
+        function min_genes_dec() {
+            var cnt = document.getElementById("genes-select").length - 1;
+            if(document.getElementById("genes-select").selectedIndex == cnt){
+                document.getElementById("genes-select").selectedIndex=cnt-1;
+            }
+            document.getElementById("genes-select").options[cnt].remove();
+        }
+
+        /* Select Restricted Species */
+        function hideSelectSpecies() {
+            document.getElementById("select-species").style.display = "none";
+        }
+
+        function showSelectSpecies() {
+            document.getElementById("select-species").style.display = "block";
+        }
+    </script>
+
 
     <script>
         (function ($) {
@@ -386,4 +430,3 @@
         });
     </script>
 </div>
-
