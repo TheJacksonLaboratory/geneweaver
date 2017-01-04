@@ -722,7 +722,7 @@ def assign_publication_to_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('notes', ''))
         pubmed_id = request.form.get('pubmed_id')
         group_id = request.form.get('group_id', type=int)
 
