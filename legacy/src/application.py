@@ -888,9 +888,10 @@ def render_pub_assignment(assignment_id):
             else:
                 view = 'no_access'
 
-            gs_ids = pub_assignments.get_genesets_for_assignment(assignment.id)
-            if assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
-                curator = geneweaverdb.get_user(assignment.assignee)
+            if view != 'no_access':
+                gs_ids = pub_assignments.get_genesets_for_assignment(assignment.id)
+                if assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
+                    curator = geneweaverdb.get_user(assignment.assignee)
 
 
             if view == 'assigner' or view == 'group_admin':
