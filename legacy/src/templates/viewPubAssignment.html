@@ -3,13 +3,13 @@
 
 {% if g.user.user_id == 0 %}
     {% include 'htmlfragments/permissionError.html' %}
-{% elif no_access is defined %}
+{% elif view == 'no_access' %}
     {% include 'htmlfragments/genericPermissionError.html' %}
 {% else %}
 
-    {% if view != 'assignee' %}
+    {% if view == 'group_admin' or view == 'assigner' %}
         {% include 'modal/assignPublicationToCurator.html' %}
-    {% else %}
+    {% elif view == 'assignee' %}
         {% include 'modal/addGenesetStub.html' %}
     {% endif %}
 
@@ -111,14 +111,16 @@
                         <div class="form-group">
                             <label for="notes"><h4>Notes:</h4></label>
                                 <textarea class="form-control" rows="10"
-                                          id="notes">{{ assignment.notes }}</textarea>
+                                          id="notes" {% if view == 'group_member' %}readonly{% endif %}>{{ assignment.notes }}</textarea>
 
-                            &nbsp;
-                            <button type="button"
-                                    class="btn btn-block btn-primary"
-                                    id="saveNotes">
-                                <i class="fa fa-save pull-left"></i> Save Notes
-                            </button>
+                            {% if view != 'group_member' %}
+                                &nbsp;
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="saveNotes">
+                                    <i class="fa fa-save pull-left"></i> Save Notes
+                                </button>
+                            {% endif %}
                         </div>
                         {% if view == 'group_admin' %}
                             <button type="button"
