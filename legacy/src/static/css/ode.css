@@ -497,12 +497,12 @@ input[type="radio"] {margin-right: 4px;}
  */
 .ontology-tag {
 
-    border-radius:5px;
-    display:inline-block;
+    border-radius: 5px;
+    display: inline-block;
     font-size: 12px;
+    margin-bottom: 5px;
+    margin-right: 5px;
     padding: 5px 6px 5px 6px;
-    margin-bottom:5px;
-    margin-right:5px;
 }
 
 
