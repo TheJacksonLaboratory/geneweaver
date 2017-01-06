@@ -358,6 +358,8 @@
     $(function() {
 
         var current_pub = null;
+        var publicationTable = null;
+        var currentPublicationList = [];
 
         $('#assign').hide();
 
@@ -625,7 +627,7 @@
             $('#generator_id').val(stubgenid);
             $('#collapseTwo').collapse('hide');
             $('#collapseThree').collapse('show');
-            var publicationList = [];
+            currentPublicationList = [];
             $.ajax({
                 type: "GET",
                 url: "/run_generator/" + stubgenid,
@@ -654,9 +656,9 @@
                                 row['year'],
                                 row['link_to_fulltext']
                         );
-                        publicationList.push(publication);
+                        currentPublicationList.push(publication);
                     });
-                    createPublicationTable(publicationList);
+                    createPublicationTable(currentPublicationList);
                     $(document).trigger("add-alerts", [{
                         'message': "Generator Successfully Run.",
                         'priority': 'success'
@@ -694,10 +696,10 @@
         #}
         function createPublicationTable(data) {
             if ( $.fn.dataTable.isDataTable('#publications')) {
-                table = $('#publications').DataTable();
-                table.destroy();
+                publicationTable = $('#publications').DataTable();
+                publicationTable.destroy();
             }
-            table = $('#publications').DataTable({
+            publicationTable = $('#publications').DataTable({
                 "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
                 "iDisplayLength": 10,
                 "bLengthChange": true,
@@ -786,15 +788,12 @@
             } );
         }
 
-
         {#  Methods for processing Publication Listing actions #}
-
-        // TODO:  Add event listener for opening and closing details
         $('#publications').on('click', 'td.details-control', function() {
             var tr = $(this).closest('tr');
             //var T = table.fnGetData(tr);
             //var row = $(this).parents(tr);
-            var row = table.row( tr );
+            var row = publicationTable.row( tr );
 
             if (row.child.isShown()) {
                 row.child.hide();
@@ -804,23 +803,6 @@
                 row.child( formatPublication(row.data())).show();
                 tr.addClass('shown');
             }
-            {#
-            if (tr.hasClass('shown')) {
-
-                tr.next().hide();
-                tr.removeClass('shown');
-            }
-            else {
-                // Open this row
-                var newRow = $(formatPublication(T)).animate({
-                    height: "100px",
-                    opacity: 0.75
-                }, 500);
-                tr.after(newRow);
-                tr.addClass('shown');
-            }
-             #}
-
         });
 
         {#
@@ -929,8 +911,11 @@
                             }
                         }
                     }
-                    var table = $('#publications').DataTable();
-                            table.rows().invalidate().draw(false);
+                    // Recreating the publication table with the existing currentPublicationList seems to be the
+                    // simplest way to refresh this table, and the contents of the expanded detail views.
+                    // The only two downsides I see are that it 1) closes the detail if opened, and 2) resets the
+                    // pagination to the first row of the table.
+                    createPublicationTable(currentPublicationList);
                     TableTools.fnGetInstance('publications').fnSelectNone();
                     $(document).trigger("add-alerts", [
                         {
@@ -959,13 +944,16 @@
         function formatPublication(d) {
             // `d` is the original data object for the row
 
+            console.log(d.assigned);
             var html = '<tr><td colspan=5><table class="table">' +
                     '<tr><td class="pub-title">' + d.title + '</td></tr>';
             if (d.authors) {
                 html += '<tr><td class="pub-subdued">' + d.authors + '</td></tr>';
             }
-            html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>' +
-                    '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>';
+            if (d.linkToFullText) {
+                html += '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            }
             if (d.assigned) {
                 html += '<tr><td><div class="pub-title">Assigned to Curation Groups:</div> <div class="pub-normal">' + d.assigned + '</div></td></tr>';
             }
