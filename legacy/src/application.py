@@ -883,6 +883,8 @@ def render_pub_assignment(assignment_id):
                 view = 'assigner'
             elif assignment.group in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
                 view = 'group_admin'
+            elif uid in [u['usr_id'] for u in geneweaverdb.get_group_members(assignment.group)]:
+                view = 'group_member'
             else:
                 view = 'no_access'
 
@@ -890,6 +892,7 @@ def render_pub_assignment(assignment_id):
                 gs_ids = pub_assignments.get_genesets_for_assignment(assignment.id)
                 if assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
                     curator = geneweaverdb.get_user(assignment.assignee)
+
 
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
