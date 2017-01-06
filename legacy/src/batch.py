@@ -482,7 +482,7 @@ def parseScoreType(s):
     Acceptable score types and threshold values include:
         Binary
         P-Value < 0.05
-        Q-Value < 0.05
+        ue < 0.05
         0.40 < Correlation < 0.05
         6.0 < Effect < 22.50
     The numbers can vary and if they can't be parsed, default values
@@ -1100,34 +1100,22 @@ def buGenesetValues(gs):
         #print sym2ode[tup[0].lower()][1]
         #print dups
         ## Remember to lower that shit, forgot earlier :(
-        try:
-            ## Unsure why some of these are tuples and others aren't
-            #if type(sym2ode[tup[0].lower()][1]) == tuple:
-            #    s2o = sym2ode[tup[0].lower()][1][1]
-            #else:
-            #    s2o = sym2ode[tup[0].lower()][1]
+        ## Unsure why some of these are tuples and others aren't
+        #if type(sym2ode[tup[0].lower()][1]) == tuple:
+        #    s2o = sym2ode[tup[0].lower()][1][1]
+        #else:
+        #    s2o = sym2ode[tup[0].lower()][1]
 
-            db.insertGenesetValue(
-                gs['gs_id'], 
-                #sym2ode[tup[0].lower()][1][1], 
-                sym2ode[tup[0]], 
-                #s2o,
-                tup[1],
-                tup[0],
-                #sym2ode[tup[0]][0], 
-                gs['gs_threshold']
-            )
-        except Exception, e:
-            print gs
-            print ''
-            print tup[0], 
-            print ''
-            print sym2ode[tup[0]], 
-            print ''
-            #print sym2ode[tup[0]][1], 
-            print ''
-            print e
-            return
+        db.insertGenesetValue(
+            gs['gs_id'], 
+            #sym2ode[tup[0].lower()][1][1], 
+            sym2ode[tup[0]], 
+            #s2o,
+            tup[1],
+            tup[0],
+            #sym2ode[tup[0]][0], 
+            gs['gs_threshold']
+        )
 
         total += 1
 
