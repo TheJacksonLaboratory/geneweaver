@@ -296,7 +296,7 @@ class TheDB():
     def getSpecies(self):
         query = 'SELECT sp_id, sp_name FROM odestatic.species;'
 
-        self.cur.execute(query, [])
+        self.cur.execute(query)
 
         ## Returns a list of tuples [(sp_id, sp_name)]
         res = self.cur.fetchall()
@@ -1173,7 +1173,7 @@ def buGenesets(fp, usr_id=0, cur_id=5):
                     gs['gs_id'], ont_id, 'Manual Association'
                 )
 
-    db.commit()
+    #db.commit()
 
     return (added, noncrits)
 

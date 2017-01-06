@@ -142,7 +142,15 @@ def create_batch_geneset():
         ## Non-critical errors discovered during geneset_value creation
         if gsverr[1]:
             batchFile[1].extend(gsverr[1])
-            continue
+
+        ## Add ontology annotations provided they exist
+        if gs['annotations']:
+            ont_ids = geneweaverdb.get_ontologies_by_refs(gs['annotations'])
+
+            for ont_id in ont_ids:
+                geneweaverdb.add_ont_to_geneset(
+                    gs['gs_id'], ont_id, 'Manual Association'
+                )
 
         with geneweaverdb.PooledCursor() as cursor:
             if not pub:
