@@ -347,10 +347,14 @@
             $('#confirmUpload').modal('show');
 
             $.ajax({
-                type: "GET",
-                url: "../createBatchGeneset",
-                data: {"batchFile": batchFile},
+                type: 'POST',
+                url: '../createBatchGeneset',
+                dataType: 'text',
+                data: {'batchFile': batchFile},
                 success: function (data) {
+
+                    data = JSON.parse(data);
+
                     // Hides confirmation after any kind of result (success or
                     // error) is returned.
                     $('#confirmUpload').modal('hide');

@@ -63,7 +63,7 @@ def render_batchupload(genes=None):
 
     return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts)
 
-@geneset_blueprint.route('/createBatchGeneset')
+@geneset_blueprint.route('/createBatchGeneset', methods=['POST'])
 def create_batch_geneset():
     """
     Attempts to parse a batch file and create a temporary GeneSet for review.
@@ -72,11 +72,17 @@ def create_batch_geneset():
           its own database calls.
     """
 
-    if not request or not request.args or not request.args['batchFile']:
+    if not flask.request.form or not flask.request.form['batchFile']:
         return flask.jsonify({'error': 'No batch file was provided.'})
 
+    batchFile = flask.request.form['batchFile']
+
+    #if not request or not request.args or not request.args['batchFile']:
+    #    return flask.jsonify({'error': 'No batch file was provided.'})
+
     ## The data sent to us should be URL encoded
-    batchFile = urllib2.unquote(request.args['batchFile'])
+    #batchFile = urllib2.unquote(request.args['batchFile'])
+    batchFile = urllib2.unquote(batchFile)
     batchFile = batchFile.split('\n')
     batchFile = map(lambda s: s.encode('ascii', 'ignore'), batchFile)
 
