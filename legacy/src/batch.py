@@ -917,7 +917,7 @@ def parseBatchFile(lns, usr=0, cur=5):
 
             #ln = ln.split()
             else:
-                lns[i] = lns[i].split()
+                lns[i] = lns[i].split('\t')
 
                 ## I don't think this code can ever be reached...
                 if len(lns[i]) < 2:
@@ -1020,8 +1020,8 @@ def buGenesetValues(gs):
         sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
 
         ## Save gene symbol with proper capitalization
-        for sym in sym2ode.keys():
-            sym2ode[sym.lower()] = (sym, sym2ode[sym])
+        #for sym in sym2ode.keys():
+        #    sym2ode[sym.lower()] = (sym, sym2ode[sym])
 
     else:
         sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
@@ -1076,28 +1076,58 @@ def buGenesetValues(gs):
             continue
 
         ## Not platform stuff
-        if not sym2ode[tup[0].lower()][1]:
+        #if not sym2ode[tup[0].lower()][1]:
+        #if not sym2ode[tup[0]]:
+        if tup[0] not in sym2ode or not sym2ode[tup[0]]:
             err = ("Error! There doesn't seem to be any gene/locus data for "
                    "%s in the database." % tup[0])
             noncrit.append(err)
             continue
 
         ## Check for duplicate ode_gene_ids, otherwise postgres bitches
-        if not dups[sym2ode[tup[0].lower()][1]]:
-            dups[sym2ode[tup[0].lower()][1]] = tup[0]
+        #if not dups[sym2ode[tup[0].lower()][1]]:
+        #    dups[sym2ode[tup[0].lower()][1]] = tup[0]
+        if not dups[sym2ode[tup[0]]]:
+            dups[sym2ode[tup[0]]] = tup[0]
 
         else:
             err = ('Error! Seems that %s is a duplicate of %s. %s was not '
                    'added to the geneset.' %
-                   (tup[0], dups[sym2ode[tup[0].lower()]], tup[0]))
+                   (tup[0], dups[sym2ode[tup[0]]], tup[0]))
             noncrit.append(err)
             continue
 
         #print sym2ode[tup[0].lower()][1]
         #print dups
         ## Remember to lower that shit, forgot earlier :(
-        db.insertGenesetValue(gs['gs_id'], sym2ode[tup[0].lower()][1], tup[1],
-                              sym2ode[tup[0].lower()][0], gs['gs_threshold'])
+        try:
+            ## Unsure why some of these are tuples and others aren't
+            #if type(sym2ode[tup[0].lower()][1]) == tuple:
+            #    s2o = sym2ode[tup[0].lower()][1][1]
+            #else:
+            #    s2o = sym2ode[tup[0].lower()][1]
+
+            db.insertGenesetValue(
+                gs['gs_id'], 
+                #sym2ode[tup[0].lower()][1][1], 
+                sym2ode[tup[0]], 
+                #s2o,
+                tup[1],
+                tup[0],
+                #sym2ode[tup[0]][0], 
+                gs['gs_threshold']
+            )
+        except Exception, e:
+            print gs
+            print ''
+            print tup[0], 
+            print ''
+            print sym2ode[tup[0]], 
+            print ''
+            #print sym2ode[tup[0]][1], 
+            print ''
+            print e
+            return
 
         total += 1
 

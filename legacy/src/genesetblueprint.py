@@ -137,7 +137,8 @@ def create_batch_geneset():
             ce = ('The GeneSet "%s" has no valid genes/loci and could not be '
                     'uploaded.\n' % gs['gs_name'])
 
-            return flask.jsonify({'error': ce})
+            batchFile[1].extend(ce)
+            #return flask.jsonify({'error': ce})
 
         ## Update gs_count if some geneset_values were found to be invalid
         if gsverr[0] != len(gs['values']):
