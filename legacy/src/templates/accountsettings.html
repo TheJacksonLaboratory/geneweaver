@@ -292,16 +292,15 @@
                     <div class="page-header">
                         <h2>Message All Users</h2>
                     </div>
-                    <form method="post" action="{{ url_for('generate_api_key') }}">
                         <div class="panel-body">
                             <div class="col-xs-7">
                                 Use this feature to send a notification to every geneweaver user in the database.
                             </div>
-                            <button id="message_all_users" class="btn btn-success btn-transparent pull-right clickable_message">
+                            <button id="message_all_users" class="btn btn-success btn-transparent pull-right">
                                 <i class="fa fa-envelope"></i> Message All Users
                             </button>
                         </div>
-                    </form>
+			{% include 'modal/messageAll.html' %}
                 </div>
 		{% endif %}
             </div>
@@ -645,17 +644,21 @@
             }, "json").fail(handleAssignmentError);
 	});
 
+        $('#message_all_users').on('click', function() {
+
+            $("#user_id_all").val({{ user.user_id }});
+            $('#messageModal_All').modal('show');
+        });
+
 	$('.messageAllSend').on('click', function() {
-            var formID = $(this).attr("data-modal-id");
             params = {
-                "form_id": formID,
-                "user_id": $("#message_user_id_" + formID).val(),
-                "subject": $("#message_subject_" + formID).val(),
-                "message": $("#message_content_" + formID).val()
+                "user_id": $("#user_id_all").val(),
+                "subject": $("#message_subject_all").val(),
+                "message": $("#message_content_all").val()
             };
 
-            $.post("{{ url_for('message_group_json') }}", params ,function(data) {
-		$('#messageModal_' + $(this).attr("data-grp")).modal('hide');
+            $.post("{{ url_for('message_all_json') }}", params ,function(data) {
+		$('#messageModal_All').modal('hide');
                 $(document).trigger("add-alerts", [
                     {
                         'message': data.message,
