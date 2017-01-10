@@ -64,10 +64,13 @@ class PublicationGenerator(object):
 
             cursor.execute("SELECT * FROM gwcuration.stubgenerators WHERE stubgenid=%s;",
                            (generator_id,))
+            generator = None
+            # There should only be 1
+            for row_dict in geneweaverdb.dictify_cursor(cursor):
+                generator = PublicationGenerator(**row_dict)
+                break
 
-            generators = [PublicationGenerator(**row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
-
-            return generators[0] if generators[0] else None
+            return generator
 
     def save(self):
         """
@@ -176,17 +179,15 @@ def list_generators(user_id, groups):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT DISTINCT stubgenid, sg.name as name, querystring, to_char(last_update, 'YYYY-MM-DD') as last_update, g.grp_id as grp_id, grp_name, LOWER(name)
-            FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
-            ON sg.grp_id = g.grp_id
-            WHERE usr_id=%s OR sg.grp_id=ANY(%s)
-            ORDER BY LOWER(name), grp_name
-            ''',
-            (str(user_id), '{' + ','.join(groups) + '}')
+                        SELECT DISTINCT stubgenid, sg.name as name, querystring, sg.usr_id,
+                        to_char(last_update, 'YYYY-MM-DD') as last_update, sg.grp_id as grp_id, grp_name, LOWER(name)
+                        FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
+                        ON sg.grp_id = g.grp_id
+                        WHERE usr_id=%s OR sg.grp_id=ANY(%s)
+                        ORDER BY LOWER(name), grp_name
+                        ''', (str(user_id), '{' + ','.join(groups) + '}')
         )
-
         generators = [PublicationGenerator(**row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
-
     return generators
 
 

@@ -609,43 +609,34 @@ def render_assign_publication():
                                  myGenerators=generators)
 
 
-@app.route('/generators')
-def list_generators():
-    if 'user_id' in flask.session:
-        # TODO:  Implement a version to be called when refreshing, not just at page load
-        #  return a list of generators
-        response = []
-    return response
-
-
 @app.route('/add_generator', methods=['POST'])
 def add_generator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-
         generator_name = request.form.get('name', '')
         generator_querystring = request.form.get('querystring', '')
         group_id = request.form.get('group_id', type=int)
 
-        if not generator_name or not generator_querystring:
-            response = flask.jsonify(success=False, message='You must provide a generator name and query string.')
+        if generator_name and generator_querystring and group_id:
+            generator_dict = {
+                'name': generator_name,
+                'querystring': generator_querystring,
+                'grp_id': group_id,
+                'usr_id': user_id
+            }
+            generator = publication_generator.PublicationGenerator(**generator_dict)
+
+            if not generator:
+                # couldn't create a generator
+                response = flask.jsonify(message="Generator not created")
+                response.status_code = 500
+            else:
+                # generator created
+                response = flask.jsonify(message="Generator successfully added to group")
+        else:
+            response = flask.jsonify(success=False, message='You must provide a generator name, query string and group id.')
             response.status_code = 412
 
-        generator_dict = {
-            'name': generator_name,
-            'querystring': generator_querystring,
-            'grp_id': group_id,
-            'usr_id': user_id
-        }
-        generator = publication_generator.PublicationGenerator(**generator_dict)
-
-        if not generator:
-            # couldn't create a generator
-            response = flask.jsonify(message="Generator not created")
-            response.status_code = 500
-        else:
-            # generator created
-            response = flask.jsonify(message="Generator successfully added to group")
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
@@ -664,23 +655,24 @@ def update_generator():
         generator_querystring = request.form.get('querystring', '')
         group_id = request.form.get('group_id', type=int)
 
-        if not generator_id or not generator_name or not generator_querystring:
-            response = flask.jsonify(success=False, message='You must provide a generator name and query string.')
+        if generator_id and generator_name and generator_querystring and group_id:
+            generator_dict = {
+                'stubgenid': generator_id,
+                'name': generator_name,
+                'querystring': generator_querystring,
+                'grp_id': group_id,
+                'usr_id': user_id
+            }
+            try:
+                generator = publication_generator.PublicationGenerator(**generator_dict)
+                generator.save()
+                response = flask.jsonify(message="Generator successfully updated")
+            except Error as error:
+                response = flask.jsonify(message="Generator not saved.  Error encountered while updating database: {0}".format(error))
+        else:
+            response = flask.jsonify(success=False,
+                                     message='You must provide a generator id, name, query string and group id.')
             response.status_code = 412
-
-        generator_dict = {
-            'stubgenid': generator_id,
-            'name': generator_name,
-            'querystring': generator_querystring,
-            'grp_id': group_id,
-            'usr_id': user_id
-        }
-        try:
-            generator = publication_generator.PublicationGenerator(**generator_dict)
-            generator.save()
-            response = flask.jsonify(message="Generator successfully added to group")
-        except Error as error:
-            response = flask.jsonify(message="Generator not saved.  Error encountered while updating database: {0}".format(error))
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
