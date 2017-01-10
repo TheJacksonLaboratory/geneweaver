@@ -34,6 +34,8 @@ import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
+from psycopg2 import Error
+
 
 
 app = flask.Flask(__name__)
@@ -492,7 +494,8 @@ def assign_publications_to_curator():
 
     else:
         #user is not logged in
-        response = flask.jsonify(success=False, message='You do not have permissions to assign these Publications to a curator')
+        response = flask.jsonify(success=False,
+                                 message='You do not have permissions to assign these Publications to a curator')
         response.status_code = 401
 
     return response
@@ -643,6 +646,41 @@ def add_generator():
         else:
             # generator created
             response = flask.jsonify(message="Generator successfully added to group")
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route('/update_generator', methods=['POST'])
+def update_generator():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        generator_id = request.form.get('id', '')
+        generator_name = request.form.get('name', '')
+        generator_querystring = request.form.get('querystring', '')
+        group_id = request.form.get('group_id', type=int)
+
+        if not generator_id or not generator_name or not generator_querystring:
+            response = flask.jsonify(success=False, message='You must provide a generator name and query string.')
+            response.status_code = 412
+
+        generator_dict = {
+            'stubgenid': generator_id,
+            'name': generator_name,
+            'querystring': generator_querystring,
+            'grp_id': group_id,
+            'usr_id': user_id
+        }
+        try:
+            generator = publication_generator.PublicationGenerator(**generator_dict)
+            generator.save()
+            response = flask.jsonify(message="Generator successfully added to group")
+        except Error as error:
+            response = flask.jsonify(message="Generator not saved.  Error encountered while updating database: {0}".format(error))
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
