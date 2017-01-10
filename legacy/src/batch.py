@@ -823,7 +823,7 @@ def parseBatchFile(lns, usr=0, cur=5):
                 ## function calculated % string similarity between the user
                 ## supplied platform and the list of plats in the db, choosing
                 ## the one with the best match
-                best = 0.70
+                best = 0.50
                 for plat, pid in plats.items():
                     sim = calcStringSimilarity(plat.lower(), origplat.lower())
 
