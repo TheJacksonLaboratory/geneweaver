@@ -89,8 +89,8 @@ class PublicationGenerator(object):
                                (self.name, self.grp_id, self.usr_id))
                 self.stubgenid = cursor.fetchone()[0]
             else:
-                cursor.execute('UPDATE gwcuration.stubgenerators SET querystring = %s WHERE stubgenid = %s',
-                               (self.stubgenid,))
+                cursor.execute('UPDATE gwcuration.stubgenerators SET name = %s, querystring = %s, grp_id = %s WHERE stubgenid = %s',
+                               (self.name, self.querystring, self.grp_id, self.stubgenid,))
                 cursor.connection.commit()
 
     def run(self):
@@ -176,11 +176,11 @@ def list_generators(user_id, groups):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT DISTINCT stubgenid, sg.name as name, querystring, to_char(last_update, 'YYYY-MM-DD') as last_update, g.grp_id as grp_id, grp_name
+            SELECT DISTINCT stubgenid, sg.name as name, querystring, to_char(last_update, 'YYYY-MM-DD') as last_update, g.grp_id as grp_id, grp_name, LOWER(name)
             FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
             ON sg.grp_id = g.grp_id
             WHERE usr_id=%s OR sg.grp_id=ANY(%s)
-            ORDER BY sg.name, grp_name
+            ORDER BY LOWER(name), grp_name
             ''',
             (str(user_id), '{' + ','.join(groups) + '}')
         )
