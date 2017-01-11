@@ -112,7 +112,7 @@ def send_all_users_notification(subject, message):
     """
 
     for user in geneweaverdb.get_all_users():
-	send_usr_notification(user['usr_id'], subject, message)
+	send_usr_notification(user, subject, message)
 
 
 def send_email(to, subject, message):
