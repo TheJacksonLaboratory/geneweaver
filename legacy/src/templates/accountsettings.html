@@ -292,15 +292,15 @@
                     <div class="page-header">
                         <h2>Message All Users</h2>
                     </div>
-                        <div class="panel-body">
-                            <div class="col-xs-7">
-                                Use this feature to send a notification to every geneweaver user in the database.
-                            </div>
-                            <button id="message_all_users" class="btn btn-success btn-transparent pull-right">
-                                <i class="fa fa-envelope"></i> Message All Users
-                            </button>
+		    <div class="panel-body">
+			<div class="col-xs-7">
+				Use this feature to send a notification to every geneweaver user in the database.
+			</div>
+			<button id="message_all_users" class="btn btn-success btn-transparent pull-right">
+			    <i class="fa fa-envelope"></i> Message All Users
+			</button>
 			    {% include 'modal/messageAll.html' %}
-                        </div>
+		    </div>
                 </div>
 		{% endif %}
             </div>
@@ -646,13 +646,11 @@
 
         $('#message_all_users').on('click', function() {
 
-            $("#user_id_all").val({{ user.user_id }});
             $('#messageModal_All').modal('show');
         });
 
 	$('.messageAllSend').on('click', function() {
             params = {
-                "user_id": $("#user_id_all").val(),
                 "subject": $("#message_subject_all").val(),
                 "message": $("#message_content_all").val()
             };
