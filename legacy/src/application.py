@@ -410,7 +410,7 @@ def assign_genesets_to_curation_group():
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        note = bleach.clean(request.form.get('note', ''))
+        note = bleach.clean(request.form.get('note', ''), strip=True)
         grp_id = request.form.get('grp_id')
 
         gs_ids = request.form.getlist('gs_ids[]', type=int)
@@ -442,7 +442,7 @@ def assign_genesets_to_curator():
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        note = bleach.clean(request.form.get('note', ''))
+        note = bleach.clean(request.form.get('note', ''), strip=True)
         curator = request.form.get('usr_id')
         gs_ids = request.form.getlist('gs_ids[]', type=int)
         curator_info = geneweaverdb.get_user(curator)
@@ -476,7 +476,7 @@ def assign_genesets_to_curator():
 def assign_publications_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         curator = request.form.get('usr_id')
         pub_assign_ids = request.form.getlist('pub_assign_ids[]', type=int)
         group_id = request.form.get('group_id')
@@ -506,7 +506,7 @@ def assign_geneset_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         gs_id = request.form.get('gs_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -539,7 +539,7 @@ def geneset_ready_for_review():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         gs_id = request.form.get('gs_id', type=int)
 
         assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
@@ -567,7 +567,7 @@ def mark_geneset_reviewed():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         gs_id = request.form.get('gs_id', type=int)
         review_ok = request.form.get('review_ok') in ['true', '1']
 
@@ -752,7 +752,7 @@ def assign_publication_to_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('notes', ''))
+        notes = bleach.clean(request.form.get('notes', ''), strip=True)
         pubmed_id = request.form.get('pubmed_id')
         group_id = request.form.get('group_id', type=int)
 
@@ -797,7 +797,7 @@ def assign_publications_to_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('notes', ''))
+        notes = bleach.clean(request.form.get('notes', ''), strip=True)
         pubmed_ids = request.form.getlist('pubmed_ids[]', type=str)
         group_id = request.form.get('group_id', type=int)
 
@@ -851,7 +851,7 @@ def assign_publication_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         pub_assignment_id = request.form.get('assignment_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -944,7 +944,7 @@ def save_pub_assignment_note():
         uid = flask.session['user_id']
         pub_assignment_id = request.form.get('assignment_id', type=int)
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
 
         assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
         if assignment:
@@ -3441,8 +3441,8 @@ def message_group_json():
 
         if group_id in [g.grp_id for g in geneweaverdb.get_groups_owned_by_user(user_id)]:
             try:
-                subject = bleach.clean(request.form['subject'])
-                message = bleach.clean(request.form['message'])
+                subject = bleach.clean(request.form['subject'], strip=True)
+                message = bleach.clean(request.form['message'], strip=True)
                 if len(subject) < 1 or len(message) < 1:
                     raise KeyError
 
@@ -3472,8 +3472,8 @@ def message_all_json():
 
         if geneweaverdb.get_user(user_id).is_admin:
             try:
-                subject = bleach.clean(request.form['subject'])
-                message = bleach.clean(request.form['message'])
+                subject = bleach.clean(request.form['subject'], strip=True)
+                message = bleach.clean(request.form['message'], strip=True)
                 notifications.send_all_users_notification(subject, message)
                 response = flask.jsonify(success=True)
 
