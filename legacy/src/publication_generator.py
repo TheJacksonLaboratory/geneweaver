@@ -62,15 +62,9 @@ class PublicationGenerator(object):
         """
         with geneweaverdb.PooledCursor() as cursor:
 
-            cursor.execute("SELECT * FROM gwcuration.stubgenerators WHERE stubgenid=%s;",
-                           (generator_id,))
-            generator = None
-            # There should only be 1
-            for row_dict in geneweaverdb.dictify_cursor(cursor):
-                generator = PublicationGenerator(**row_dict)
-                break
-
-            return generator
+            cursor.execute("SELECT * FROM gwcuration.stubgenerators WHERE stubgenid=%s;", (generator_id,))
+            rows = geneweaverdb.dictify_cursor(cursor)
+            return PublicationGenerator(**next(rows)) if rows else None
 
     def save(self):
         """
