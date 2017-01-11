@@ -107,10 +107,10 @@
                                         {% for grpO in groups_owner %}
                                             <tr>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                          data-original-title="Group Name" type="button" title="Group Name"
+                                                          data-original-title="Group Name" type="button" title="{{ grpO.grp_name }}"
                                                           class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
                                                           data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}"
-                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name }}</span>
+                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name | truncate(15, True) }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -147,10 +147,10 @@
                                         {% for grpM in groups_member %}
                                             <tr>
                                             <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      data-original-title="Group Name" type="button" title="{{ grpM.grp_name }}"
                                                       class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpM.grp_id }}"
                                                       data-grp="{{ grpM.grp_id }}" data-grp-name="{{ grpM.grp_name }}"
-                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name }}</span>
+                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name | truncate(15, True) }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -253,6 +253,7 @@
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
+
     var group_id;
     var groupCurators;
     var group_owner;

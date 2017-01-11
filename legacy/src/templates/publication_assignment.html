@@ -309,10 +309,10 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header bg-green">
-                        <h3 class="modal-title" style="color: #f5f5f5">No Publications Selected</h3>
+                        <h3 id="myAlertTitle" class="modal-title" style="color: #f5f5f5"></h3>
                     </div>
                     <div class="modal-body">
-                        <h4>You must select at least one Publication.</h4>
+                        <h4 id="myAlertMessage"></h4>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-error" data-dismiss="modal">Close</button>
@@ -358,6 +358,8 @@
     $(function() {
 
         var current_pub = null;
+        var publicationTable = null;
+        var currentPublicationList = [];
 
         $('#assign').hide();
 
@@ -518,34 +520,59 @@
         #}
         $('#addGeneratorConfirm').click(function (){
             $('#modalLoader').show();
-            var params = {
-                "name": $('#generatorName').val(),
-                "querystring": $('#generatorQuery').val(),
-                "group_id": $("#genGroups").val()
-            };
+            var gen_name = $('#generatorName').val();
+            var gen_querystring = $('#generatorQuery').val();
+            if (!gen_name || !gen_querystring) {
+                $("#myAlertTitle").html("No Generator Definition");
+                $("#myAlertMessage").html("You must include a generator name and query string.");
+                $("#myAlert").focus();
+                $("#myAlert").modal('show');
+            } else {
+                var params = {
+                    "name": gen_name,
+                    "querystring": gen_querystring,
+                    "group_id": $("#genGroups").val()
+                };
 
-            $.post("{{ url_for('add_generator') }}", params ,function(data) {
-                $('#modalLoader').hide();
-                $("#addGeneratorToGroupModal").modal('hide');
+                $.post("{{ url_for('add_generator') }}", params ,function(data) {
+                    $('#modalLoader').hide();
+                    $("#addGeneratorToGroupModal").modal('hide');
 
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': data.message,
-                        'priority': 'success'
-                    }
-                ]);
-                window.location.reload(true);
-            }, "json").fail(handleAssignmentError);
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': data.message,
+                            'priority': 'success'
+                        }
+                    ]);
+                    window.location.reload(true);
+                }, "json").fail(handleAssignmentError);
+            }
         });
 
         {#
             Function confirm button in the add generator modal when a group has been selected
-        #}
+
         $("#genGroups").change( function () {
             // submit button will be disabled until the user selects a group
             // selection
             $('#addGeneratorConfirm').prop("disabled", false).button("refresh");
         });
+         #}
+        $("#genGroups").change(function() {
+            validateGenModalFields()
+        });
+        $("#generatorName").change( function() {
+            validateGenModalFields()
+        });
+        $("#generatorQuery").change(  function() {
+            validateGenModalFields()
+        });
+
+        function validateGenModalFields() {
+            if ($("#genGroups").val() && $("#generatorName").val() && $("#generatorQuery").val()) {
+                $('#addGeneratorConfirm').prop("disabled", false).button("refresh");
+            }
+        }
 
         {#
             Activate a delete action on a generator
@@ -600,7 +627,7 @@
             $('#generator_id').val(stubgenid);
             $('#collapseTwo').collapse('hide');
             $('#collapseThree').collapse('show');
-            var publicationList = [];
+            currentPublicationList = [];
             $.ajax({
                 type: "GET",
                 url: "/run_generator/" + stubgenid,
@@ -629,9 +656,9 @@
                                 row['year'],
                                 row['link_to_fulltext']
                         );
-                        publicationList.push(publication);
+                        currentPublicationList.push(publication);
                     });
-                    createPublicationTable(publicationList);
+                    createPublicationTable(currentPublicationList);
                     $(document).trigger("add-alerts", [{
                         'message': "Generator Successfully Run.",
                         'priority': 'success'
@@ -669,10 +696,10 @@
         #}
         function createPublicationTable(data) {
             if ( $.fn.dataTable.isDataTable('#publications')) {
-                table = $('#publications').DataTable();
-                table.destroy();
+                publicationTable = $('#publications').DataTable();
+                publicationTable.destroy();
             }
-            table = $('#publications').DataTable({
+            publicationTable = $('#publications').DataTable({
                 "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
                 "iDisplayLength": 10,
                 "bLengthChange": true,
@@ -761,15 +788,12 @@
             } );
         }
 
-
         {#  Methods for processing Publication Listing actions #}
-
-        // TODO:  Add event listener for opening and closing details
         $('#publications').on('click', 'td.details-control', function() {
             var tr = $(this).closest('tr');
             //var T = table.fnGetData(tr);
             //var row = $(this).parents(tr);
-            var row = table.row( tr );
+            var row = publicationTable.row( tr );
 
             if (row.child.isShown()) {
                 row.child.hide();
@@ -779,23 +803,6 @@
                 row.child( formatPublication(row.data())).show();
                 tr.addClass('shown');
             }
-            {#
-            if (tr.hasClass('shown')) {
-
-                tr.next().hide();
-                tr.removeClass('shown');
-            }
-            else {
-                // Open this row
-                var newRow = $(formatPublication(T)).animate({
-                    height: "100px",
-                    opacity: 0.75
-                }, 500);
-                tr.after(newRow);
-                tr.addClass('shown');
-            }
-             #}
-
         });
 
         {#
@@ -808,6 +815,8 @@
             var aselectedTrs = TableTools.fnGetInstance('publications').fnGetSelectedData();
             if (aselectedTrs == 0) {
                 // let the user know they need to select at least on geneset
+                $("#myAlertTitle").html("No Publications Selected");
+                $("#myAlertMessage").html("You must select at least one Publication.");
                 $("#myAlert").modal('show');
             }
             else {
@@ -851,7 +860,6 @@
             };
 
             var group_name = $("#selectPubGroup option:selected").text();
-            console.log(group_name);
             // since params["pubmed_ids"] is a list the server needs to use
             // request.args.getlist('pubmed_ids') instead of request.args['pubmed_ids']
             $.post("{{ url_for('assign_publications_to_group') }}", params ,function(data) {
@@ -903,9 +911,12 @@
                             }
                         }
                     }
-
+                    // Recreating the publication table with the existing currentPublicationList seems to be the
+                    // simplest way to refresh this table, and the contents of the expanded detail views.
+                    // The only two downsides I see are that it 1) closes the detail if opened, and 2) resets the
+                    // pagination to the first row of the table.
+                    createPublicationTable(currentPublicationList);
                     TableTools.fnGetInstance('publications').fnSelectNone();
-                    TableTools.fnGetInstance('publications').fnDraw();
                     $(document).trigger("add-alerts", [
                         {
                         'message': "Publications assigned to group: " + successfulLabels.join(', '),
@@ -933,13 +944,16 @@
         function formatPublication(d) {
             // `d` is the original data object for the row
 
+            console.log(d.assigned);
             var html = '<tr><td colspan=5><table class="table">' +
                     '<tr><td class="pub-title">' + d.title + '</td></tr>';
             if (d.authors) {
                 html += '<tr><td class="pub-subdued">' + d.authors + '</td></tr>';
             }
-            html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>' +
-                    '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>';
+            if (d.linkToFullText) {
+                html += '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            }
             if (d.assigned) {
                 html += '<tr><td><div class="pub-title">Assigned to Curation Groups:</div> <div class="pub-normal">' + d.assigned + '</div></td></tr>';
             }

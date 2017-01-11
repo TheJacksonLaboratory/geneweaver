@@ -106,18 +106,17 @@
                                             </td>
                                             <td>
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Add" type="button" title="Add Members"
+                                                      data-original-title="Edit" type="button" title="Edit Group"
                                                       style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-user-plus"></i></span>
-                                                </span>
+                                                <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
+                                                            <i class="fa fa-pencil"></i></span></span>
 
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Delete" type="button" title="Delete Group"
+                                                      data-original-title="Add" type="buadvisor.fidelity.comtton" title="Add Members"
                                                       style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable_delete" id="deleteGroupModal_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
-                                                      <i class="fa fa-trash-o"></i></span>
+                                                <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-user"></i></span>
                                                 </span>
                                                 &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
@@ -128,20 +127,6 @@
                                                 </span></span>
                                                 &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Message" type="button" title="Message Members"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable_message" id="message_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-envelope"></i>
-                                                </span></span>
-                                                &nbsp;
-                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Edit" type="button" title="Edit Group"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
-                                                            <i class="fa fa-pencil"></i></span></span>
-                                                 &nbsp;
-                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Admins" type="button" title="Set Group Admins"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_setAdmins" id="groupAdminModal_{{ grpO.grp_id }}"
@@ -149,11 +134,26 @@
                                                 </span></span>
 
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Message" type="button" title="Message Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_message" id="message_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-envelope"></i>
+                                                </span></span>
+                                                &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Tasks" type="button" title="View Tasks"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
                                                       data-grp="{{ grpO.grp_id }}"><i class="fa fa-eye"></i>
                                                 </span></span>
+
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Delete" type="button" title="Delete Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_delete" id="deleteGroupModal_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
+                                                      <i class="fa fa-trash-o"></i></span>
+                                                </span>
                                             </td>
                                         </tr>
                                         {% include 'modal/deleteGroup.html' %}
@@ -675,7 +675,7 @@
             if (data.responseJSON) {
                 console.error("something bad happened: " + data.responseJSON.message);
 
-                $(document).trigger("set-alert-id-modal-alert", {
+                $(document).trigger("add-alerts", {
                     message: data.responseJSON.message,
                     priority: "error"
                 });
