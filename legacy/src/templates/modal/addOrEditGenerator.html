@@ -1,9 +1,9 @@
-<div class="modal fade" id="addGeneratorToGroupModal">
+<div class="modal fade" id="addOrEditGeneratorModal">
     <div class="modal-dialog">
         <div class="modal-content" style="overflow: auto">
-            <form id="addGeneratorForGroup" name="addGeneratorForGroup" method="post" action="#" class="form-horizontal">
+            <form id="addOrEditGenerator" name="addOrEditGenerator" method="post" action="#" class="form-horizontal">
                 <div class="modal-header bg-green">
-                    <h3 class="modal-title" style="color: #f5f5f5">Create New Publication Generator</h3>
+                    <h3 class="modal-title" style="color: #f5f5f5">Create/Edit Publication Generator</h3>
                 </div>
 
                 <div class="modal-body">
@@ -17,6 +17,7 @@
 
                     <form>
                     <fieldset>
+                        <input hidden id="generatorId" name="generatorId" value="">
                         <div class="form-group row">
                             <label for="generatorName" class="col-sm-4 col-form-label" align="right"><strong>Generator Name:</strong></label>
                             <div class="col-sm-8">
@@ -45,8 +46,8 @@
                     </fieldset>
 
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-warning" id="addGeneratorConfirm"  >
-                            Create
+                        <button type="button" class="btn btn-warning" id="saveGeneratorConfirm"  >
+                            Save
                         </button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">
                             Cancel
