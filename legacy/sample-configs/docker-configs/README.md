@@ -2,7 +2,7 @@
 
 Using Docker to deploy a Geneweaver stack can significantly reduce the amount of setup required to get a working installation running.
 
->Docker containers wrap a piece of software in a complete filesystem that contains everything needed to run: code, runtime, system tools, system libraries â€“ anything that can be installed on a server. This guarantees that the software will always run the same, regardless of its environment.
+>Docker containers wrap a piece of software in a complete filesystem that contains everything needed to run: code, runtime, system tools, system libraries – anything that can be installed on a server. This guarantees that the software will always run the same, regardless of its environment.
 
 ### Installation
 
@@ -33,3 +33,21 @@ host = 127.0.0.1
 smtp = smtp.mycompany.com
 admin_email = NoReply@geneweaver.org
 ```
+### Initial Startup
+While in the sample-configs directory, call the following command.
+```sh
+$ docker-compose build
+```
+This command can take a few seconds to several minutes, to more than 10 minutes, depending on your computer and internet connection.
+
+The first time you start the docker stack, it is often a good idea to view the stderr/stdout of each container as it initializes. 
+```sh
+$ docker-compose up
+```
+You can use <kbd>CTRL</kbd>+<kbd>C</kbd> to bring the stack down.
+
+To start the stack in the backgroun, use the -d flag.
+```sh
+$ docker-compose up -d
+```
+### Managing
