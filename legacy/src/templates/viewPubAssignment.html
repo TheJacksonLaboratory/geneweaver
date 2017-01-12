@@ -147,17 +147,30 @@
         </div>
         <div class="panel-heading"
              style="border-bottom-width: thick; border-bottom-color: #006400;">
-                <h3 class="panel-title" style="width:100%">Genesets Created For This Assignment</h3>
+                <h3 class="panel-title" style="width:100%">GeneSets Created For This Assignment:</h3>
         </div>
         <div class="panel-body" id="geneset_panel">
             {% for gs in genesets %}
-                <p><a href="/curategeneset/{{ gs }}">GS{{ gs }}</a></p>
+                <p><a href="/curategeneset/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}</a>: {{ gs.name }}</p>
+                <p style="padding-left: 10px">{{ gs.description }}</p>
+            {% endfor %}
+        </div>
+        <div class="panel-heading"
+             style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title" style="width:100%">Other Visible GeneSets Associated With This Publication:</h3>
+        </div>
+        <div class="panel-body" id="geneset_panel">
+            {% for gs in other_genesets %}
+                <p><a href="/viewgenesetdetails/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}: {{ gs.name }}</a></p>
+                <p style="padding-left: 10px">{{ gs.description }}</p>
             {% endfor %}
         </div>
     </div>
 
     <script>
         $(document).ready(function () {
+
+            console.log({{ other_genesets }})
 
             var stub_placeholder_index = 0;
 

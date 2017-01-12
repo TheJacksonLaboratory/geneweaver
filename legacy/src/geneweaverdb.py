@@ -350,7 +350,6 @@ def get_group_members(grp_id):
     return members if len(members) > 0 else None
 
 
-
 def get_group_admins(grp_id):
     """
     get all of the admins (aka owners) for a specified group id
@@ -2767,6 +2766,46 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
                 '''SELECT geneset.* FROM geneset WHERE geneset.gs_id IN (%s)''' % ",".join(str(x) for x in gs_ids)))
 
         genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        return genesets
+
+
+def get_genesets_for_publication(pub_id, user_id):
+    """
+
+    :param pub_id:
+    :param user_id:
+    :return:
+    """
+
+    gs_ids = []
+    gs_ids_readable = []
+    genesets = []
+
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    if user_id is 0:
+        user_id = -1
+
+    with PooledCursor() as cursor:
+
+        # first get all genesets with this pub_id
+        cursor.execute('''SELECT gs_id FROM geneset WHERE pub_id = %s''', (pub_id,))
+        res = cursor.fetchall()
+        for r in res:
+            gs_ids.append(r[0])
+
+        # now find out which of those are readable to the user
+        for gs_id in gs_ids:
+            cursor.execute('''SELECT geneset_is_readable(%s, %s)''', (user_id, gs_id))
+            a = cursor.fetchone()[0]
+            if a:
+                gs_ids_readable.append(gs_id)
+
+        if gs_ids_readable:
+            SQL = "SELECT geneset.* FROM geneset WHERE geneset.gs_id IN ({})".format(','.join(['%s'] * len(gs_ids_readable)))
+            cursor.execute(SQL, gs_ids_readable)
+
+            genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+
         return genesets
 
 

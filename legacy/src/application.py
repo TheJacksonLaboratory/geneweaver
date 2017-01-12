@@ -869,6 +869,8 @@ def render_pub_assignment(assignment_id):
     species = None
     gs_ids = []
 
+    other_gs_ids = []
+
     if 'user_id' in flask.session:
         uid = flask.session['user_id']
         assignment = pub_assignments.get_publication_assignment(assignment_id)
@@ -887,7 +889,9 @@ def render_pub_assignment(assignment_id):
                 view = 'no_access'
 
             if view != 'no_access':
-                gs_ids = pub_assignments.get_genesets_for_assignment(assignment.id)
+                genesets = pub_assignments.get_genesets_for_assignment(assignment.id)
+                genesets_for_pub = geneweaverdb.get_genesets_for_publication(assignment.pub_id, uid)
+                other_genesets = [gs for gs in genesets_for_pub if gs.geneset_id not in [gs.geneset_id for gs in genesets]]
                 if assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
                     curator = geneweaverdb.get_user(assignment.assignee)
 
@@ -902,7 +906,7 @@ def render_pub_assignment(assignment_id):
                                  view=view, assignment=assignment,
                                  curator=curator, species=species,
                                  curation_team=curation_team_members,
-                                 genesets=gs_ids)
+                                 genesets=genesets, other_genesets=other_genesets)
 
 
 @app.route('/save_pub_note.json', methods=['POST'])
