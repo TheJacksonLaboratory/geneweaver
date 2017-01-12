@@ -44,7 +44,7 @@ The first time you start the docker stack, it is often a good idea to view the s
 ```sh
 $ docker-compose up
 ```
-You can use <kbd>CTRL</kbd>+<kbd>C</kbd> to bring the stack down.
+You can use <pre>CTRL</pre>+<pre>C</pre> to bring the stack down.
 
 To start the stack in the backgroun, use the -d flag.
 ```sh
