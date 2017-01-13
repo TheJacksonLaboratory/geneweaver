@@ -308,6 +308,7 @@ def insert_gs_to_pub_assignment(gs_id, pub_assign_id):
 
 def get_genesets_for_assignment(pub_assign_id):
     gs_ids = []
+    genesets = []
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute("SELECT gs_id FROM production.gs_to_pub_assignment WHERE pub_assign_id=%s ORDER BY gs_id ASC", (pub_assign_id,))
 
@@ -315,8 +316,10 @@ def get_genesets_for_assignment(pub_assign_id):
         for r in res:
             gs_ids.append(r[0])
 
-        SQL = "SELECT geneset.* FROM geneset WHERE geneset.gs_id IN ({})".format(','.join(['%s'] * len(gs_ids)))
-        cursor.execute(SQL, gs_ids)
+        if gs_ids:
+            SQL = "SELECT geneset.* FROM geneset WHERE geneset.gs_id IN ({})".format(','.join(['%s'] * len(gs_ids)))
+            cursor.execute(SQL, gs_ids)
 
-        return [geneweaverdb.Geneset(row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
+            genesets =  [geneweaverdb.Geneset(row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
+    return genesets
 
