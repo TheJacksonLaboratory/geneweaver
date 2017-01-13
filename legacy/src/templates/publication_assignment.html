@@ -666,6 +666,10 @@
             $('#collapseTwo').collapse('hide');
             $('#collapseThree').collapse('show');
             currentPublicationList = [];
+            if (publicationTable) {
+                // Clear old data from the publication table while the spinner is running
+                publicationTable.clear().draw();
+            }
             $.ajax({
                 type: "GET",
                 url: "/run_generator/" + stubgenid,
