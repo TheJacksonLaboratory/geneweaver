@@ -50,4 +50,80 @@ To start the stack in the backgroun, use the -d flag.
 ```sh
 $ docker-compose up -d
 ```
-### Managing
+### Management
+##### Container Management
+Your docker stack is managed through the [docker-compose](https://docs.docker.com/compose/reference/overview/) command.
+```
+Define and run multi-container applications with Docker.
+
+Usage:
+  docker-compose [-f=<arg>...] [options] [COMMAND] [ARGS...]
+  docker-compose -h|--help
+
+Options:
+  -f, --file FILE             Specify an alternate compose file (default: docker-compose.yml)
+  -p, --project-name NAME     Specify an alternate project name (default: directory name)
+  --verbose                   Show more output
+  -v, --version               Print version and exit
+  -H, --host HOST             Daemon socket to connect to
+
+  --tls                       Use TLS; implied by --tlsverify
+  --tlscacert CA_PATH         Trust certs signed only by this CA
+  --tlscert CLIENT_CERT_PATH  Path to TLS certificate file
+  --tlskey TLS_KEY_PATH       Path to TLS key file
+  --tlsverify                 Use TLS and verify the remote
+  --skip-hostname-check       Don't check the daemon's hostname against the name specified
+                              in the client certificate (for example if your docker host
+                              is an IP address)
+
+Commands:
+  build              Build or rebuild services
+  config             Validate and view the compose file
+  create             Create services
+  down               Stop and remove containers, networks, images, and volumes
+  events             Receive real time events from containers
+  help               Get help on a command
+  kill               Kill containers
+  logs               View output from containers
+  pause              Pause services
+  port               Print the public port for a port binding
+  ps                 List containers
+  pull               Pulls service images
+  restart            Restart services
+  rm                 Remove stopped containers
+  run                Run a one-off command
+  scale              Set number of containers for a service
+  start              Start services
+  stop               Stop services
+  unpause            Unpause services
+  up                 Create and start containers
+  version            Show the Docker-Compose version information
+```
+
+##### Database Management
+Managing the postgresql database in the docker stack is slightly more convoluted than if you were to run a local instance of Postgres. First, on your host system call the docker exec command on your postgres container in order to access its command line. 
+```sh
+$ docker exec -it geneweaver-postgres /bin/bash
+```
+This will take you to the command line of the postgres container. You can now use the psql application to manage the postgresl database. 
+```sh
+root@f4ddc1cbd90c:/# psql -U postgres -h geneweaver
+psql (9.6.1)
+Type "help" for help.
+
+postgres=#
+```
+If you cannot connect to the container, but instead recieve the following response, it's likely that your container is no longer running.
+```sh
+Error response from daemon: No such container: geneweaver-postgres
+```
+In this case, check the status of your docker processes, and restart the stack if need be. Here we can see that although our containers are initialized, they have since exited, some with non-zero exit statuses.
+```sh
+$ docker ps -a
+CONTAINER ID        IMAGE                        COMMAND                  CREATED             STATUS            NAMES
+21687550ac91        geneweaver:latest            "/usr/bin/supervisord"   3 minutes ago       Exited (0)        geneweaver-web
+fd36e07d6393        leodido/sphinxsearch:2.2.9   "indexall.sh"            3 minutes ago       Exited (137)      geneweaver-sphinx
+86e8fec12a98        rabbitmq:3-management        "docker-entrypoint.sh"   3 minutes ago       Exited (143)      geneweaver-rabbitmq
+87ecc5d6241b        postgres:9.6                 "/docker-entrypoint.s"   3 minutes ago       Exited (137)      geneweaver-postgres
+ddd5a36007d4        localhost:5000/gwdb:0.2      "/docker-entrypoint.s"   6 weeks ago         Exited (137)      gwdb-ext
+```
