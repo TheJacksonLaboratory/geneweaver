@@ -1024,7 +1024,10 @@ def buGenesetValues(gs):
         #    sym2ode[sym.lower()] = (sym, sym2ode[sym])
 
     else:
-        sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
+        try:
+            sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
+        except:
+            print gs
         prbids = []
 
         for sym in symbols:
@@ -1032,7 +1035,6 @@ def buGenesetValues(gs):
 
         prbids = list(set(prbids))
         prb2odes = db.getProbe2Gene(prbids)
-
 
     # non-critical errors we will inform the user about
     noncrit = []

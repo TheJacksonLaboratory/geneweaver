@@ -112,6 +112,11 @@ def create_batch_geneset():
     pub = None
 
     for gs in batchFile[0]:
+
+        ## Empty genesets shouldn't get uploaded
+        if not gs['values']:
+            continue
+
         ## If a PMID was provided, we get the info from NCBI
         if gs['pub_id']:
             pub = pubmedsvc.get_pubmed_info(gs['pub_id'])
