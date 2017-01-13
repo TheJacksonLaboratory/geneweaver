@@ -2772,9 +2772,10 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
 def get_genesets_for_publication(pub_id, user_id):
     """
 
-    :param pub_id:
-    :param user_id:
-    :return:
+    :param pub_id: publication id
+    :param user_id: user id
+    :return: list of Genesets associated with the specified publication that are
+             visible to the specified user
     """
 
     gs_ids = []
