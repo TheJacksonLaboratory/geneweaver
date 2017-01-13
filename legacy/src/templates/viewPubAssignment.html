@@ -159,7 +159,7 @@
              style="border-bottom-width: thick; border-bottom-color: #006400;">
                 <h3 class="panel-title" style="width:100%">Other Visible GeneSets Associated With This Publication:</h3>
         </div>
-        <div class="panel-body" id="geneset_panel">
+        <div class="panel-body">
             {% for gs in other_genesets %}
                 <p><a href="/viewgenesetdetails/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}: {{ gs.name }}</a></p>
                 <p style="padding-left: 10px">{{ gs.description }}</p>
