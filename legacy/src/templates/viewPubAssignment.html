@@ -298,10 +298,10 @@
                     page once the server responds with the new genest ID
                 #}
                 var stub_index = stub_placeholder_index++;
-                $('#geneset_panel').append('<p id="stub_' + stub_index + '">loading...</p>')
+                $('#geneset_panel').append('<div id="stub_' + stub_index + '">loading...</div>')
 
                 $.post("{{ url_for('create_geneset_stub') }}", params, function (data) {
-                    $('#stub_' + stub_index).html('<a href="/curategeneset/' + data.gs_id + '">GS' + data.gs_id + '</a>')
+                    $('#stub_' + stub_index).html('<p><a href="/viewgenesetdetails/' + data.gs_id +'">GS' + data.gs_id + '</a>:' + params.gs_name + '</p><p style="padding-left: 10px">' + params.gs_description + '</p>');
                 }, 'json').fail(handlePostJsonError);
 
             });
