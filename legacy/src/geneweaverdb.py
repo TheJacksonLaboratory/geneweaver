@@ -38,7 +38,7 @@ pool = GeneWeaverThreadedConnectionPool(
     5, 20,
     database=config.get('db', 'database'),
     user=config.get('db', 'user'),
-    #password=config.get('db', 'password'),
+    password=config.get('db', 'password'),
     host=config.get('db', 'host'),
     port=config.getInt('db', 'port')
 )
@@ -1048,96 +1048,151 @@ def cancel_geneset_edit_by_id(rargs):
             return gs_id
 
 
-def updategeneset(usr_id, form):
-    '''
-    This function updates both some of the metadata in the geneset table and the publication table. If geneset metadata
-    is not null, it will update everything. If the pub_pubmed is not null, it will insert all publication information if
-    it does not exist. If pub_pubmed is null, and any other pubmed record is populated it will update those records. This
-    function does not check a mismatch between pubmed info and pub_pubmed id. Both are done in an explicit transaction.
-    :param usr_id:
-    :param form:
-    :return: success is 'True' or 'Error Msg'
-    '''
-    gs_id = int((form["gs_id"]).strip()) if form["gs_id"] else None
-    gs_abbreviation = (form["gs_abbreviation"]).strip() if form["gs_abbreviation"] else None
-    gs_description = (form["gs_description"]).strip() if form["gs_description"] else None
-    gs_name = (form["gs_name"]).strip() if form["gs_name"] else None
-    pub_authors = (form["pub_authors"]).strip() if form["pub_authors"] else None
-    pub_title = (form["pub_title"]).strip() if form["pub_title"] else None
-    pub_abstract = (form["pub_abstract"]).strip() if form["pub_abstract"] else None
-    pub_journal = (form["pub_journal"]).strip() if form["pub_journal"] else None
-    pub_volume = (form["pub_volume"]).strip() if form["pub_volume"] else None
-    pub_pages = (form["pub_pages"]).strip() if form["pub_pages"] else None
-    pub_month = (form["pub_month"]).strip() if form["pub_month"] else None
-    pub_year = (form["pub_year"]).strip() if form["pub_year"] else None
-    pub_pubmed = (form["pub_pubmed"]).strip() if form["pub_pubmed"] else None
-    pub_id = (form["pmid"]).strip() if form["pmid"] else None
-    # ont_ids = (byteify(json.loads(form["onts"].strip()))) if form["onts"] else None
-    # ont_ids = (form["onts"].strip()) if form["onts"] else None
-    pmid = None
-    if ((get_user(usr_id).is_admin == 'False' and get_user(usr_id).is_curator == 'False') or
-            (user_is_owner(usr_id, gs_id) != 1) and not user_is_assigned_curation(usr_id, gs_id)):
-        return 'You do not have permission to update this GeneSet'
-    if gs_abbreviation is None or gs_description is None or gs_name is None:
-        return 'Required Field is not provided'
-    # if a pubmed id is submitted, insert into the db if it does not exist. Then return the pub_id.
-    if pub_pubmed is not None:
+def update_geneset(usr_id, form):
+    """
+    Selectively updates geneset metacontent and publication information. The
+    function determines how to update things in the following order: 
+    If a PMID (pub_pubmed) is provided, all metacontent fields will be 
+    updated. 
+    If a PMID is not provided and all other metacontent fields are blank, all
+    publication information associated with the geneset is removed. 
+    Finally, if any metacontent fields are filled out, all publication
+    metacontent fields are updated and a new publication ID (pub_id) is created
+    depending on whether it already exstis or not.
+
+    :param usr_id:  ID of the user updating the geneset
+    :param form:    form dict containing data from the edit geneset form
+    :return:        an object containing two fields, 'success' and 'error'. If
+                    any error occurs during update 'success' is set to False
+                    and the error message is contained in 'error'. A successful
+                    update results in 'success' being set to True and the 'error'
+                    field missing from the result dict.
+    """
+
+    gs_id = int(form.get('gs_id', 0))
+    gs_abbreviation = form.get('gs_abbreviation', '').strip()
+    gs_description = form.get('gs_description', '').strip()
+    gs_name = form.get('gs_name', '').strip()
+    pub_authors = form.get('pub_authors', '').strip()
+    pub_title = form.get('pub_title', '').strip()
+    pub_abstract = form.get('pub_abstract', '').strip()
+    pub_journal = form.get('pub_journal', '').strip()
+    pub_volume = form.get('pub_volume', '').strip()
+    pub_pages = form.get('pub_pages', '').strip()
+    pub_month = form.get('pub_month', '').strip()
+    pub_year = form.get('pub_year', '').strip()
+    pub_pubmed = form.get('pub_pubmed', '').strip()
+    pub_id = form.get('pub_id', '').strip()
+
+    ## Should have already been checked but does't hurt to do it again I guess
+    if ((get_user(usr_id).is_admin == False and\
+        get_user(usr_id).is_curator == False) or\
+        (user_is_owner(usr_id, gs_id) != 1) and not 
+        user_is_assigned_curation(usr_id, gs_id)):
+            return {
+                'success': False,
+                'error': 'You do not have permission to update this GeneSet'
+            }
+
+    if not gs_abbreviation or not gs_description or not gs_name:
+        return {
+            'success': False,
+            'error': 'You did not provide a required field'
+        }
+
+    ## PMID exists, we insert a new publication entry if it doesn't already
+    ## exist in the publication table
+    if pub_pubmed:
         with PooledCursor() as cursor:
-            cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal,
-									pub_volume, pub_pages, pub_month, pub_year, pub_pubmed)
-									SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
-									WHERE NOT EXISTS
-									(SELECT 1 FROM publication WHERE pub_pubmed=%s)''', (pub_authors, pub_title,
-                                                                                         pub_abstract, pub_journal,
-                                                                                         pub_volume, pub_pages,
-                                                                                         pub_month, pub_year,
-                                                                                         pub_pubmed, pub_pubmed,))
+            cursor.execute('''
+                INSERT INTO publication (
+                    pub_authors, pub_title, pub_abstract, pub_journal, 
+                    pub_volume, pub_pages, pub_month, pub_year, pub_pubmed
+                )
+				SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s
+				WHERE NOT EXISTS (
+                    SELECT 1 
+                    FROM publication 
+                    WHERE pub_pubmed = %s
+                );
+                ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
+                      pub_volume, pub_pages, pub_month, pub_year, pub_pubmed, 
+                      pub_pubmed)
+            )
+
             cursor.connection.commit()
+
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pub_pubmed,))
-            pmid = cursor.fetchone()[0]
+            cursor.execute('''
+                SELECT pub_id 
+                FROM publication 
+                WHERE pub_pubmed = %s;
+                ''', (pub_pubmed,)
+            )
 
-    # if pubmed id is none and everything else is blank, then pub_id = None
-    elif pub_authors is None and pub_title is None and pub_abstract is None and pub_journal is None and pub_volume is None and pub_pages is None and pub_month is None and pub_year is None:
-        pmid = None
+            pub_id = cursor.fetchone()[0]
 
-    # if pubmed id is none and something else is not, then use the pmid to update the appropriate information
+    ## All publication metacontent is missing, any publication info associated
+    ## with this geneset is removed
+    elif not pub_authors and not pub_title and not pub_abstract and\
+         not pub_journal and not pub_volume and not pub_pages and\
+         not pub_month and not pub_year:
+             pub_id = None
+
+    ## Some publication metacontent is filled out, we update all metacontent
+    ## fields
     else:
-        if pub_id is not None:
+        ## A pub_id already exists, we don't need to do any insertions
+        if pub_id:
             with PooledCursor() as cursor:
-                cursor.execute('''UPDATE publication SET pub_title=%s, pub_abstract=%s, pub_journal=%s, pub_volume=%s,
-								  pub_pages=%s, pub_month=%s, pub_year=%s, pub_pubmed=%s FROM geneset WHERE publication.pub_id=geneset.pub_id AND
-								  geneset.gs_id=%s''',
-                               (pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month,
-                                pub_year, pub_pubmed, gs_id,))
+                cursor.execute('''
+                    UPDATE publication 
+                    SET pub_title = %s, pub_abstract = %s, pub_journal = %s, 
+                        pub_volume = %s, pub_pages = %s, pub_month = %s, 
+                        pub_year = %s, pub_pubmed = %s 
+                    FROM geneset 
+                    WHERE publication.pub_id = geneset.pub_id AND
+						  geneset.gs_id = %s;
+                    ''', (pub_title, pub_abstract, pub_journal, pub_volume, 
+                          pub_pages, pub_month, pub_year, pub_pubmed, gs_id,)
+                )
+
                 cursor.connection.commit()
-            pmid = pub_id
-        # if there is no pmid associated, we need to add it and return the pub_id
+
+        ## No pub_id exists, we need to insert a new publication entry
         else:
             with PooledCursor() as cursor:
-                cursor.execute(
-                        '''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                        (
-                        pub_authors, pub_title, pub_abstract, pub_journal, pub_volume, pub_pages, pub_month, pub_year,))
+                cursor.execute('''
+                    INSERT INTO publication (
+                        pub_authors, pub_title, pub_abstract, pub_journal, 
+                        pub_volume, pub_pages, pub_month, pub_year
+                    ) 
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s
+                    ) 
+                    RETURNING pub_id;
+                    ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
+                          pub_volume, pub_pages, pub_month, pub_year)
+                )
+
                 cursor.connection.commit()
-            with PooledCursor() as cursor:
-                cursor.execute('''SELECT currval(%s)''', ("publication_pub_id_seq",))
-                pmid = cursor.fetchone()[0]
+
+                pub_id = cursor.fetchone()[0]
+
     # update geneset with changes
     with PooledCursor() as cursor:
-        sql = cursor.mogrify('''UPDATE geneset SET pub_id=%s, gs_name=(%s), gs_abbreviation=(%s), gs_description=(%s)
-								WHERE gs_id=%s''', (pmid, gs_name, gs_abbreviation, gs_description, gs_id,))
-        # print sql
+        sql = cursor.mogrify('''
+            UPDATE geneset 
+            SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
+                gs_description = (%s)
+			WHERE gs_id = %s;
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_id,)
+        )
+
         cursor.execute(sql)
         cursor.connection.commit()
-    # update geneset ontologies
-    # clear_geneset_ontology(gs_id)
 
-    # gso_ref_type = ""
-    # for ont in ont_ids:
-    #	 add_ont_to_geneset(gs_id, ont, gso_ref_type)
-
-    return 'True'
+    return {'success': True}
 
 
 def byteify(input):
@@ -1160,20 +1215,113 @@ def clear_geneset_ontology(gs_id):
             ''',
                 (gs_id,)
         )
-    cursor.connection.commit()
-    return
+        cursor.connection.commit()
 
 
 def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
-    print(gs_id, ", ", ont_id)
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''INSERT INTO geneset_ontology
-            (gs_id, ont_id, gso_ref_type) VALUES (%s, %s, %s);
+        cursor.execute('''
+            INSERT INTO geneset_ontology
+                (gs_id, ont_id, gso_ref_type) 
+            VALUES 
+                (%s, %s, %s);
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
-    return  # cursor.fetchone()
 
+def get_ontologies_by_refs(ont_ref_ids):
+    """
+    Returns ont_ids (if they exist) for each of the given ont_ref_ids.
+
+    :param ont_ref_ids: list of the ontology reference IDs
+    :return:            list of ont_ids
+    """
+
+    ont_ref_ids = tuple(ont_ref_ids)
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT ont_id
+            FROM ontology
+            WHERE ont_ref_id IN %s
+            ''', (ont_ref_ids,))
+
+        result = cursor.fetchall()
+
+        if not result:
+            return []
+
+        return map(lambda t: t[0], result)
+
+def does_geneset_have_annotation(gs_id, ont_id):
+    """
+    Checks to see if a particular ontology term has been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID 
+    :param ont_id:  ontology ID for the term being checked
+    :return:        true if the term is annotated to the given geneset,
+                    otherwise false
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT EXISTS(
+                SELECT 1
+                FROM geneset_ontology
+                WHERE gs_id = %s AND
+                      ont_id = %s
+            );
+            ''', (gs_id, ont_id))
+
+        return cursor.fetchone()[0]
+
+def get_geneset_annotation_reference(gs_id, ont_id):
+    """
+    Returns the reference type for an ontology term that's been annotated to a
+    geneset.
+
+    :param gs_id:   geneset ID
+    :param ont_id:  ontology term ID
+    :return:        the reference type (a string) if it exists, otherwise None
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            SELECT gso_ref_type
+            FROM geneset_ontology
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (gs_id, ont_id))
+
+        result = cursor.fetchone()
+
+        if not result:
+            return None
+
+        return result[0]
+
+def update_geneset_ontology_reference(gs_id, ont_id, ref_type):
+    """
+    Updates the ontology reference type for the given geneset and ontology
+    term.
+
+    :param gs_id:       geneset ID 
+    :param ont_id:      ontology ID for the term being checked
+    :param ref_type:    new reference type
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute('''
+            UPDATE geneset_ontology
+            SET gso_ref_type = %s
+            WHERE gs_id = %s AND
+                  ont_id = %s;
+            ''', (ref_type, gs_id, ont_id))
+
+        cursor.connection.commit()
 
 def add_project(usr_id, pj_name):
     with PooledCursor() as cursor:
@@ -1333,11 +1481,11 @@ def remove_genesets_from_multiple_projects(rargs):
 
 def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''
+        cursor.execute('''
             DELETE FROM geneset_ontology
-            WHERE gs_id=%s AND ont_id=%s AND gso_ref_type=%s
-            ''', (gs_id, ont_id, gso_ref_type)
+            WHERE gs_id = %s AND 
+                  ont_id = %s
+            ''', (gs_id, ont_id)
         )
         cursor.connection.commit()
         return
@@ -2291,6 +2439,24 @@ class Publication:
         self.year = pub_dict['pub_year']
         self.pubmed_id = pub_dict['pub_pubmed']
 
+class MSETGeneset:
+    def __init__(self, gs_dict):
+        self.project_id = gs_dict['pj_id']
+        self.int_id = gs_dict['int_id']
+        self.user_id = gs_dict['usr_id']
+        self.name = gs_dict['pj_name']
+        self.description = gs_dict['pj_notes']
+        self.creation_date = gs_dict['pj_created']
+        #self.num_genes = gs_dict['num_genes']
+
+        # declare value caches for instance properties
+        self.__geneset_values = None
+
+    @property
+    def geneset_values(self):
+        if self.__geneset_values is None:
+            self.__geneset_values = get_geneset_values_for_mset(self.project_id, self.int_id)
+        return self.__geneset_values
 
 def get_publication_by_pubmed(pubmed_id, create=False):
     """
@@ -2378,10 +2544,9 @@ class Geneset:
         self.name = gs_dict['gs_name']
         self.abbreviation = gs_dict['gs_abbreviation']
         self.pub_id = gs_dict['pub_id']
-        #print self.pub_id
         if self.pub_id is not None:
             try:
-                self.publication = Publication(gs_dict)
+                self.publication = get_all_publications(self.geneset_id)
             except KeyError:
                 self.publication = None
         else:
@@ -2624,6 +2789,31 @@ def update_notification_pref(user_id, state):
 
     return {'error': 'unable to update user notification email preference'}
 
+def get_genes_for_mset(tg_id, int_id):
+    """
+    Gets the Geneset if either the geneset is publicly visible or the user
+    has permission to view it.
+    :param geneset_id:	the geneset ID
+    :param user_id:		the user ID that needs permission
+    :return:			the Geneset corresponding to the given ID if the
+                        user has read permission, None otherwise
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT usr_id, pj_name, pj_notes, pj_created, pj_id, %(int_id)s AS int_id
+            FROM project
+            WHERE project.pj_id=%(tg_id)s;
+            ''',
+                {
+                    'tg_id': tg_id,
+                    'int_id': int_id
+                }
+        )
+        genesets = [MSETGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
+
+        return genesets[0] if len(genesets) == 1 else None
 
 def update_annotation_pref(user_id, annotator):
     if annotator not in ann.ANNOTATORS:
@@ -3238,6 +3428,115 @@ def get_species_homologs(hom_id):
 
     return map(lambda l: l[0], set(cursor))
 
+def get_geneset_values_for_mset(pj_tg_id, pj_int_id):
+    """
+    This geneset value query has been augmented to return a list of sp_ids that can be used
+    on the geneset information page.
+    Also, augmented to add a session call for sorting
+    :param geneset_id:
+    :returns to geneset class.
+    """
+    s = ' ORDER BY gsv.gs_id ASC'
+
+    if 'sort' in session:
+        d = session['dir']
+        if session['sort'] == 'value':
+            s = ' ORDER BY gsv.gsv_value ' + d
+        elif session['sort'] == 'priority':
+            s = ' ORDER BY gi.gene_rank ' + d
+        elif session['sort'] == 'symbol':
+            s = ' ORDER BY gsv.gsv_source_list ' + d
+        elif session['sort'] == 'alt':
+            s = ' ORDER BY g.ode_ref_id ' + d
+
+    ode_ref = '1'
+    if 'extsrc' in session:
+        ode_ref = session['extsrc']
+
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
+                   gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
+                   gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
+            FROM geneset_value AS gsv
+            INNER JOIN homology AS h
+            ON gsv.ode_gene_id = h.ode_gene_id
+            INNER JOIN gene_info AS gi
+            ON gsv.ode_gene_id = gi.ode_gene_id
+            INNER JOIN gene AS g
+            ON gsv.ode_gene_id = g.ode_gene_id
+            WHERE gsv.gs_id IN
+                  (SELECT gs_id
+	                FROM production.project2geneset
+	                WHERE pj_id = %s)
+	              AND
+		          gsv.ode_gene_id IN
+		          ((SELECT DISTINCT ode_gene_id
+					FROM geneset_value
+					WHERE gs_id IN (SELECT gs_id
+					FROM production.geneset
+					WHERE gs_id IN
+						(SELECT gs_id
+						FROM production.project2geneset
+						WHERE pj_id = %s))
+					INTERSECT
+					SELECT DISTINCT ode_gene_id
+					FROM geneset_value
+					WHERE gs_id IN (SELECT gs_id
+					FROM production.geneset
+					WHERE gs_id IN
+						(SELECT gs_id
+						FROM production.project2geneset
+						WHERE pj_id = %s))))
+		          AND
+                  -- This checks to see if the alternate symbol the user wants to view actually exists
+                  -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
+                  -- returned then there would be missing genes on the view geneset page.
+                  g.gdb_id = (SELECT COALESCE (
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+                  ))
+                  AND
+                  -- When viewing symbols, always pick the preferred gene symbol
+                  CASE WHEN g.gdb_id = 7
+                  THEN g.ode_pref = 't'
+                  ELSE true
+                  END''' + s, (pj_tg_id, pj_int_id, pj_tg_id, ode_ref))
+
+        return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+def get_geneset_values_for_mset_small(pj_tg_id, pj_int_id):
+    """
+    This geneset value query has been augmented to return a list of sp_ids that can be used
+    on the geneset information page.
+    Also, augmented to add a session call for sorting
+    :param geneset_id:
+    :returns to geneset class.
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT unnest(gsv_source_list)
+					FROM geneset_value
+					WHERE gs_id IN (SELECT gs_id
+					FROM production.geneset
+					WHERE gs_id IN
+						(SELECT gs_id
+						FROM production.project2geneset
+						WHERE pj_id = %s))
+			INTERSECT
+			SELECT unnest(gsv_source_list)
+				    FROM geneset_value
+					WHERE gs_id IN (SELECT gs_id
+					FROM production.geneset
+					WHERE gs_id IN
+						(SELECT gs_id
+						FROM production.project2geneset
+						WHERE pj_id = %s))''', (pj_tg_id, pj_int_id))
+
+        return cursor.fetchall()
+
 def get_geneset_values(geneset_id):
     """
     This geneset value query has been augmented to return a list of sp_ids that can be used
@@ -3257,7 +3556,7 @@ def get_geneset_values(geneset_id):
         elif session['sort'] == 'symbol':
             s = ' ORDER BY gsv.gsv_source_list ' + d
         elif session['sort'] == 'alt':
-            s = ' ORDER BY g.ode_ref ' + d
+            s = ' ORDER BY g.ode_ref_id ' + d
 
     ode_ref = '1'
     if 'extsrc' in session:
@@ -4097,6 +4396,25 @@ def get_geneset_by_project_id(apikey, projectid):
                     ) row; ''', (projectid, user))
     return cursor.fetchall()
 
+def get_geneset_by_project_id(projectid):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                ''' SELECT gs_id
+                        FROM production.project2geneset
+                        WHERE pj_id = %s;
+                ''', (projectid,))
+    return cursor.fetchall()
+
+def get_user_by_project_id(projectid):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            select usr_id from production.project where pj_id = %s;
+            ''', (projectid,)
+        )
+
+    return cursor.fetchall()
+
 
 def get_gene_database_by_id(apikey, gdb_id):
     user = get_user_id_by_apikey(apikey)
@@ -4120,6 +4438,22 @@ def get_genesymbols_by_gs_id(gs_id):
 
     return cursor.fetchall()
 
+def get_genesymbols_by_pj_id(pj_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT g.ode_ref_id
+            FROM extsrc.gene g, extsrc.geneset_value gv
+            WHERE (gv.gs_id IN
+             (SELECT gs_id AS geneSetId
+               FROM production.project2geneset
+               WHERE pj_id = %s))
+             AND gv.ode_gene_id=g.ode_gene_id AND g.gdb_id=7 AND ode_pref='t';
+            ''', (pj_id,)
+        )
+
+    return cursor.fetchall()
+
 
 def get_gsinfo_by_gs_id(gs_id):
     with PooledCursor() as cursor:
@@ -4131,6 +4465,40 @@ def get_gsinfo_by_gs_id(gs_id):
 
     return cursor.fetchall()
 
+def get_gsinfo_by_pj_id(pj_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT gs_name, gs_abbreviation, sp_id
+            FROM production.geneset
+            WHERE gs_id IN
+              (SELECT gs_id
+                FROM production.project2geneset
+                WHERE pj_id = %s);
+            ''', (pj_id,)
+        )
+
+    return cursor.fetchall()
+
+def get_pjname_by_pj_id(pj_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            select pj_name from project where pj_id = %s;
+            ''', (pj_id,)
+        )
+
+    return cursor.fetchall()
+
+def get_parameters_for_tool(tp_name):
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            select tp_options from odestatic.tool_param where tp_name = %s;
+            ''', (tp_name,)
+        )
+
+    return cursor.fetchall()
 
 def get_species_name_by_sp_id(sp_id):
     with PooledCursor() as cursor:

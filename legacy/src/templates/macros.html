@@ -21,7 +21,7 @@
     {% endfor %}
 {% endmacro %}
 
-{% macro tool_param_select(tool_param) %}
+{%  macro tool_param_select(tool_param) %}
     <div class="form-group">
         <div class="col-md-6" style="text-align:right;">
             <label for="{{ tool_param.name|e }}" class="control-label">{{ tool_param.label_name|e }}:</label>
@@ -83,23 +83,42 @@
     </div>
 {% endmacro %}
 
-{% macro tool_param_textbox(tool_param) %}
+
+{% macro tool_param_checkbox_mset(tool_param) %}
     <div class="form-group">
         <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
         <div class="col-md-8">
             {% for opt in tool_param.options %}
-                <div>
-                    <label>
-                        <input
-                                type="text"
-                                name="{{ tool_param.name|e }}"
-                                id="{{ tool_param.name|e }}_{{ loop.index }}"
-                                value="{{ opt|e }}"
-                                {% if opt|e == tool_param.default %}  checked{% endif %}>
+                <label class="checkbox-inline">
+                    <input
+                        type="checkbox"
+                        name="{{ tool_param.name|e }}"
+                        id="{{ tool_param.name|e }}_{{ loop.index }}"
+                        value = "{{ opt|e }}"
+                        {% if opt|e in tool_param.default %}  checked{% endif %}>
                         {{ opt|e }}
-                    </label>
-                </div>
+                </label>
             {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro tool_param_textbox(tool_param) %}
+    <div class="form-group">
+        <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
+        <div class="col-md-8">
+            <div>
+                <label>
+                    <input
+                        type="number"
+                        name="{{ tool_param.name|e }}"
+                        id="{{ tool_param.name|e }}"
+                        min="1"
+                        placeholder="Type here"
+                        value="1"
+                    >
+                </label>
+            </div>
         </div>
     </div>
 {% endmacro %}
@@ -121,8 +140,20 @@
     </div>
 {% endmacro %}
 
+{% macro parse_cluster(clusters) %}
+    <table class="table">
+    {%  for clus in clusters %}
+        <tr>
+        <td>Cluster{{ loop.index0 }}:</td>
+        {%  for g in clus %}
+            <td>{{ g }}</td>
+        {% endfor %}
+        </tr>
+    {% endfor %}
+    </table>
+{% endmacro %}
+
 {# Generates the onclick url so non-default button styles can be used. #}
 {% macro tool_run_click(tool) %}
     onclick='this.form.action="{{ url_for(tool.classname + '.run_tool') }}";'
 {% endmacro %}
-

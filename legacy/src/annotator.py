@@ -276,7 +276,7 @@ def annotate_text(text, onts, ncbo=False, monarch=True):
     ## Prevent annotation duplicates
     ncbo_onts = list(set(ncbo_onts) - set(mi_onts))
 
-    return (mi_onts, ncbo_onts)
+    return [mi_onts, ncbo_onts]
 
 
 def insert_annotations(dbcur, gsid, desc, abstract, ncbo=False, monarch=True):
