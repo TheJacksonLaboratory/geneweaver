@@ -30,7 +30,7 @@
         cursor: pointer;
     }
 
-        a:hover {
+    a:hover {
         text-decoration: none;
     }
 
@@ -82,7 +82,7 @@
             <p>
 
             <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+                <h2 class="panel-title"><strong>{{ title }}</strong></h2>
             </div>
 
             <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
@@ -92,7 +92,7 @@
                 <div class="col-md-3">
                     <div class="panel panel-primary">
                         <div class="page-header">
-                            <h2>Visible Groups</h2>
+                            <h3>Visible Groups</h3>
                         </div>
 
                         <div class="panel-body">
@@ -107,10 +107,10 @@
                                         {% for grpO in groups_owner %}
                                             <tr>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                          data-original-title="Group Name" type="button" title="Group Name"
+                                                          data-original-title="Group Name" type="button" title="{{ grpO.grp_name }}"
                                                           class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
                                                           data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}"
-                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name }}</span>
+                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name | truncate(15, True) }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -147,10 +147,10 @@
                                         {% for grpM in groups_member %}
                                             <tr>
                                             <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      data-original-title="Group Name" type="button" title="{{ grpM.grp_name }}"
                                                       class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpM.grp_id }}"
                                                       data-grp="{{ grpM.grp_id }}" data-grp-name="{{ grpM.grp_name }}"
-                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name }}</span>
+                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name | truncate(15, True) }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -185,13 +185,13 @@
                         <div class="page-header">
                             <input hidden id="group_id" value="{{ group.grp_id }}">
                             <input hidden id="user_id" value="{{ user_id }}">
-                            <h2><label id="group_name">{{ group.grp_name }}</label>
+                            <h3><label id="group_name">{{ group.grp_name }}</label>
                                     <label hidden id="group_private" class="label label-danger">Private</label>
                                     <label hidden id="group_public" class="label label-info">Public</label>
                                 {% if group_owner == true %}
                                     <span type="button" class="btn btn-primary pull-right" id="assignCurator"><i class="fa fa-user pull-right"></i> Assign Curator</span>
                                 {% endif %}
-                            </h2>
+                            </h3>
                         </div>
 
                         <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
@@ -253,6 +253,7 @@
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
+
     var group_id;
     var groupCurators;
     var group_owner;
@@ -328,7 +329,7 @@
                         if (taskType === 'GeneSet') {
                             $(nTd).append('<a href=\"/curategeneset/' + taskID + '\">' + task + '</a>');
                         } else if (taskType === 'Publication') {
-                            $(nTd).append('<a href=\"/viewPubAssignment/' + group_id + '/' + taskID + '/\">' + task + '</a>');
+                            $(nTd).append('<a href=\"/viewPubAssignment/' + taskID + '\">' + task + '</a>');
                         } else {
                             $(nTd).append(task);
                         }
@@ -463,7 +464,7 @@
                 $('#curationModalLabel').html(taskString);
 
                 // when we show the modal window, we don't want a group selected.
-                $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+                $("#selectCurator option").prop("selected", false);
 
                 // submit button will be disabled until the user selects a group radio button
                 $('#assignTasks').prop("disabled", true).button("refresh");
@@ -475,9 +476,10 @@
             }
 
 
-
-            // Enable submit button once a member of the radio group in Modal assignTasksForCuration selected
-            $("input:radio[name='group']").on('click', function () {
+            // Enable submit button once a curator selected
+            $("#selectCurator").change( function () {
+                // submit button will be disabled until the user selects a group
+                // selection
                 $('#assignTasks').prop("disabled", false).button("refresh");
             });
 
@@ -494,7 +496,7 @@
 
             // Assignment of tasks occurs on click of the assignTasks button in Modal assignTasksForCuration
             $('#assignTasks').on('click', function () {
-                var selectedCuratorId = $("input[name=group]:checked").val();
+                var selectedCuratorId = $("#selectCurator").val()
                 if (selectedGeneSets.length > 0) {
                     var params = {
                         "note": $('#curationNotes').val(),
@@ -548,13 +550,13 @@
                 if (selectedPublications.length > 0) {
                     var params = {
                         "note": $('#curationNotes').val(),
-                        "pub_ids[]": selectedPublications,
+                        "pub_assign_ids[]": selectedPublications,
                         "group_id": group_id,
                         "usr_id": selectedCuratorId,
                     };
 
-                    // since params["pub_ids"] is a list the server needs to use
-                    // request.args.getlist('pub_ids') instead of request.args['pub_ids']
+                    // since params["pub_assign_ids"] is a list the server needs to use
+                    // request.args.getlist('pub_assign_ids') instead of request.args['pub_assign_ids']
                     $.post("{{ url_for('assign_publications_to_curator') }}", params, function (data) {
 
                         var failed = [];

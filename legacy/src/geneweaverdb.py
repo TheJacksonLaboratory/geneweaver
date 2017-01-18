@@ -12,6 +12,7 @@ import config
 import notifications
 from curation_assignments import CurationAssignment
 import pubmedsvc
+import annotator as ann
 
 app = flask.Flask(__name__)
 
@@ -347,7 +348,6 @@ def get_group_members(grp_id):
         )
     members = list(dictify_cursor(cursor))
     return members if len(members) > 0 else None
-
 
 
 def get_group_admins(grp_id):
@@ -822,9 +822,6 @@ def get_attributed_genesets(atid=None, abbrev=None):
         #    counts['at_abbrev'] = abbrev
 
         return cursor.fetchone()
-
-
-
 
 
 def resolve_feature_id(sp_id, feature_id):
@@ -1644,7 +1641,7 @@ def get_server_side_grouptasks(rargs):
 
         union_select = """
           SELECT uc1.usr_last_name || ', ' || uc1.usr_first_name AS full_name,
-                 p.pub_id AS task_id,
+                 pa.id AS task_id,
                  p.pub_pubmed AS task,
                  'Publication' AS task_type,
                  to_char(pa.updated, 'YYYY-MM-DD') AS updated,
@@ -2407,16 +2404,22 @@ def get_group_by_id(group_id):
         cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
                           WHERE g.grp_id=%s''', (group_id,))
         groups = [Group(row_dict) for row_dict in dictify_cursor(cursor)]
-    return groups[0]
+    return None if len(groups) == 0 else groups[0]
 
 
 class Groups:
+    """
+    This class has a specific purpose for conveying user privleges on a given group
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
 
 class Group:
+    """
+    This class is intended to represent a group and whether it's private or public
+    """
     def __init__(self, grp_dict):
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
@@ -2426,7 +2429,7 @@ class Group:
 class Publication:
     def __init__(self, pub_dict):
         self.pub_id = pub_dict['pub_id']
-        self.authors = pub_dict['pub_authors']
+        self.authors = pub_dict['pub_authors'] if 'pub_authors' in pub_dict else ""
         self.title = pub_dict['pub_title']
         self.abstract = pub_dict['pub_abstract']
         self.journal = pub_dict['pub_journal']
@@ -2812,6 +2815,26 @@ def get_genes_for_mset(tg_id, int_id):
 
         return genesets[0] if len(genesets) == 1 else None
 
+def update_annotation_pref(user_id, annotator):
+    if annotator not in ann.ANNOTATORS:
+        return {'error': "invalid annotator: '{}' must be one of {}".format(annotator, ", ".join(ann.ANNOTATORS))}
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''select usr_prefs FROM usr WHERE usr_id=%s''', (user_id,)
+        )
+        results = cursor.fetchall()
+        if len(results) == 1:
+            preferences = json.loads(results[0][0])
+            preferences['annotator'] = annotator
+            cursor.execute(
+                '''UPDATE usr SET usr_prefs=%s WHERE usr_id=%s''', (json.dumps(preferences), user_id)
+            )
+            cursor.connection.commit()
+            return {'success': True}
+
+    return {'error': 'unable to update user annotation'}
+
+
 def get_geneset(geneset_id, user_id=None, temp=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user
@@ -2936,6 +2959,47 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
         return genesets
 
 
+def get_genesets_for_publication(pub_id, user_id):
+    """
+
+    :param pub_id: publication id
+    :param user_id: user id
+    :return: list of Genesets associated with the specified publication that are
+             visible to the specified user
+    """
+
+    gs_ids = []
+    gs_ids_readable = []
+    genesets = []
+
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    if user_id is 0:
+        user_id = -1
+
+    with PooledCursor() as cursor:
+
+        # first get all genesets with this pub_id
+        cursor.execute('''SELECT gs_id FROM geneset WHERE pub_id = %s''', (pub_id,))
+        res = cursor.fetchall()
+        for r in res:
+            gs_ids.append(r[0])
+
+        # now find out which of those are readable to the user
+        for gs_id in gs_ids:
+            cursor.execute('''SELECT geneset_is_readable(%s, %s)''', (user_id, gs_id))
+            a = cursor.fetchone()[0]
+            if a:
+                gs_ids_readable.append(gs_id)
+
+        if gs_ids_readable:
+            SQL = "SELECT geneset.* FROM geneset WHERE geneset.gs_id IN ({})".format(','.join(['%s'] * len(gs_ids_readable)))
+            cursor.execute(SQL, gs_ids_readable)
+
+            genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
+
+        return genesets
+
+
 def compare_geneset_jac(gs_id1, gs_id2):
     """
     Compares two genesets together. returns 1 if they are > .95 similar
@@ -3007,7 +3071,7 @@ def get_user_groups(usr_id):
     """
     Gets a list of groups that the user belongs to
     :param usr_id:	the user ID
-    :return:		The list of groups that the user belongs to
+    :return:		The list of group ids that the user belongs to
     """
 
     with PooledCursor() as cursor:
@@ -3028,8 +3092,8 @@ def get_user_groups(usr_id):
 def get_group_users(grp_id):
     """
     Gets a list of users in a group
-    :param usr_id:	the user ID
-    :return:		The list of groups that the user belongs to
+    :param grp_id:	the group ID
+    :return:		The list of user ids that the belong to a group
     """
 
     with PooledCursor() as cursor:
@@ -3042,6 +3106,22 @@ def get_group_users(grp_id):
                 {
                     'grp_id': grp_id,
                 }
+        )
+        usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
+        return usr_ids
+
+def get_all_users():
+    """
+    Gets a list of all users
+    :return:		The list of user ids for every user in the database
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+                '''
+            SELECT usr_id
+            FROM usr;
+            '''
         )
         usr_ids = [row_dict['usr_id'] for row_dict in dictify_cursor(cursor)]
         return usr_ids

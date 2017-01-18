@@ -307,7 +307,7 @@
 
         $("[name='g_id[]']").bootstrapSwitch();
 
-        $(window).load(function() {
+        $(window).on('load', function(e) {
 	        $(".loader").fadeOut("slow");
         });
 

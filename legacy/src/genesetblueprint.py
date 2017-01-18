@@ -4,6 +4,7 @@ import pubmedsvc
 import urllib2
 import re
 import batch
+import json
 import annotator as ann
 from flask import request
 
@@ -164,6 +165,19 @@ def create_batch_geneset():
                     gs['gs_id'], ont_id, 'Manual Association'
                 )
 
+        user = geneweaverdb.get_user(user_id)
+        user_prefs = json.loads(user.prefs)
+
+        # get the user's annotator preference.  if there isn't one in their user
+        # preferences, default to the monarch annotator
+        annotator = user_prefs.get('annotator', 'monarch')
+        ncbo = True
+        monarch = True
+        if annotator == 'ncbo':
+            monarch = False
+        elif annotator == 'monarch':
+            ncbo = False
+
         with geneweaverdb.PooledCursor() as cursor:
             if not pub:
                 abstract = ''
@@ -172,7 +186,8 @@ def create_batch_geneset():
 
             ## Annotate the geneset using the NCBO/MI services and insert new
             ## annotations into the DB
-            ann.insert_annotations(cursor, gs['gs_id'], gs['gs_description'], abstract)
+            ann.insert_annotations(cursor, gs['gs_id'], gs['gs_description'],
+                                   abstract, ncbo=ncbo, monarch=monarch)
 
     batch.db.commit()
 

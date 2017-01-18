@@ -576,7 +576,7 @@
         document.getElementById("file_text").value= genes1;
     };
 
-    $(window).load(function() {
+    $(window).on("load", function(e) {
         $(".loader").fadeOut("slow");
     });
 
