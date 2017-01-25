@@ -53,10 +53,6 @@ class GroupTasks(unittest.TestCase):
                                                          False)
 
     def tearDown(self):
-        """
-        Remove test user and group we created
-        :return: None
-        """
         # Cleanup after ourselves
 
         # It appears some notifications get fired, so we need to clean this up as well
