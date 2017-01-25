@@ -1482,6 +1482,7 @@ def get_server_side_grouptasks(rargs):
                 }
     if group_id:
         select_columns = ['full_name', 'task_id', 'task', 'task_type', 'updated', 'task_status', 'reviewer']
+        # The GeneSet half of the query
         select_clause = """
           SELECT uc.usr_last_name || ', ' || uc.usr_first_name AS full_name,
                  gs.gs_id AS task_id,
@@ -1489,9 +1490,13 @@ def get_server_side_grouptasks(rargs):
                  'GeneSet' AS task_type,
                  to_char(ca.updated, 'YYYY-MM-DD') AS updated,
                  ca.curation_state AS task_status,
-                 ur.usr_last_name || ', ' || ur.usr_first_name AS reviewer
+                 ur.usr_last_name || ', ' || ur.usr_first_name AS reviewer,
+                 p.pub_pubmed as pubmedid,
+                 0 as geneset_count,
+                 pa.id as pub_assign_id
         """
 
+        # The publication half of the query
         union_select = """
           SELECT uc1.usr_last_name || ', ' || uc1.usr_first_name AS full_name,
                  pa.id AS task_id,
@@ -1499,31 +1504,45 @@ def get_server_side_grouptasks(rargs):
                  'Publication' AS task_type,
                  to_char(pa.updated, 'YYYY-MM-DD') AS updated,
                  pa.assignment_state AS task_status,
-                 ur1.usr_last_name || ', ' || ur1.usr_first_name AS reviewer
+                 ur1.usr_last_name || ', ' || ur1.usr_first_name AS reviewer,
+                 null as pubmedid,
+                 count(gpa.gs_id) as geneset_count,
+                 null as pub_assign_id
         """
 
         # Separate FROM and WHERE for counting purposes
+        # GeneSet where clause
         from_where = """
           FROM production.grp g,
                production.geneset gs,
                production.curation_assignments ca
                LEFT OUTER JOIN production.usr uc on ca.curator = uc.usr_id
                LEFT OUTER JOIN production.usr ur on ca.reviewer = ur.usr_id
+               LEFT OUTER JOIN production.gs_to_pub_assignment gpa on ca.gs_id = gpa.gs_id
+               LEFT OUTER JOIN production.pub_assignments pa on gpa.pub_assign_id = pa.id
+               and pa.curation_group = ca.curation_group
+               LEFT OUTER JOIN production.publication p on pa.pub_id = p.pub_id
           WHERE g.grp_id = %s
             AND g.grp_id = ca.curation_group
             AND ca.gs_id = gs.gs_id
         """ % (group_id)
 
+        # Publication where clause
         union_where = """
           FROM production.grp g1,
                production.publication p,
                production.pub_assignments pa
                LEFT OUTER JOIN production.usr uc1 on pa.assignee = uc1.usr_id
                LEFT OUTER JOIN production.usr ur1 on pa.assigner = ur1.usr_id
+               LEFT OUTER JOIN production.gs_to_pub_assignment gpa on pa.id = gpa.pub_assign_id
           WHERE g1.grp_id = %s
             AND g1.grp_id = pa.curation_group
             AND pa.pub_id = p.pub_id
         """ % (group_id)
+
+        group_by = """
+          GROUP BY full_name, task_id, task, task_type, updated, task_status, reviewer
+        """
 
         search_columns = ['cast(uc.usr_first_name as text)',
                           'cast(uc.usr_last_name as text)',
@@ -1588,6 +1607,7 @@ def get_server_side_grouptasks(rargs):
                         union_select,
                         union_where,
                         union_where_clause,
+                        group_by,
                         order_clause,
                         limit_clause]) + ';'
 
@@ -1609,7 +1629,7 @@ def get_server_side_grouptasks(rargs):
                 sql = ' '.join([select_clause, from_where, search_where_clause]) + ';'
                 cursor.execute(sql)
                 iTotalDisplayRecords = cursor.rowcount
-                sql = ' '.join([union_select, union_where, union_where_clause]) + ';'
+                sql = ' '.join([union_select, union_where, union_where_clause, group_by]) + ';'
                 cursor.execute(sql)
                 iTotalDisplayRecords += cursor.rowcount
 
