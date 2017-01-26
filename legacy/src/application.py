@@ -2989,7 +2989,6 @@ def get_db_genesets_data():
 
 @app.route('/getServersideGroupTasksdb')
 def get_db_grouptasks_data():
-    print(request.args)
     results = geneweaverdb.get_server_side_grouptasks(request.args)
     return json.dumps(results)
 
