@@ -1491,9 +1491,9 @@ def get_server_side_grouptasks(rargs):
                  to_char(ca.updated, 'YYYY-MM-DD') AS updated,
                  ca.curation_state AS task_status,
                  ur.usr_last_name || ', ' || ur.usr_first_name AS reviewer,
-                 p.pub_pubmed as pubmedid,
-                 0 as geneset_count,
-                 pa.id as pub_assign_id
+                 p.pub_pubmed AS pubmedid,
+                 0 AS geneset_count,
+                 pa.id AS pub_assign_id
         """
 
         # The publication half of the query
@@ -1505,9 +1505,9 @@ def get_server_side_grouptasks(rargs):
                  to_char(pa.updated, 'YYYY-MM-DD') AS updated,
                  pa.assignment_state AS task_status,
                  ur1.usr_last_name || ', ' || ur1.usr_first_name AS reviewer,
-                 null as pubmedid,
-                 count(gpa.gs_id) as geneset_count,
-                 null as pub_assign_id
+                 null AS pubmedid,
+                 count(gpa.gs_id) AS geneset_count,
+                 null AS pub_assign_id
         """
 
         # Separate FROM and WHERE for counting purposes
@@ -1516,12 +1516,12 @@ def get_server_side_grouptasks(rargs):
           FROM production.grp g,
                production.geneset gs,
                production.curation_assignments ca
-               LEFT OUTER JOIN production.usr uc on ca.curator = uc.usr_id
-               LEFT OUTER JOIN production.usr ur on ca.reviewer = ur.usr_id
-               LEFT OUTER JOIN production.gs_to_pub_assignment gpa on ca.gs_id = gpa.gs_id
-               LEFT OUTER JOIN production.pub_assignments pa on gpa.pub_assign_id = pa.id
+               LEFT OUTER JOIN production.usr uc ON ca.curator = uc.usr_id
+               LEFT OUTER JOIN production.usr ur ON ca.reviewer = ur.usr_id
+               LEFT OUTER JOIN production.gs_to_pub_assignment gpa ON ca.gs_id = gpa.gs_id
+               LEFT OUTER JOIN production.pub_assignments pa ON gpa.pub_assign_id = pa.id
                and pa.curation_group = ca.curation_group
-               LEFT OUTER JOIN production.publication p on pa.pub_id = p.pub_id
+               LEFT OUTER JOIN production.publication p ON pa.pub_id = p.pub_id
           WHERE g.grp_id = %s
             AND g.grp_id = ca.curation_group
             AND ca.gs_id = gs.gs_id
@@ -1532,9 +1532,9 @@ def get_server_side_grouptasks(rargs):
           FROM production.grp g1,
                production.publication p,
                production.pub_assignments pa
-               LEFT OUTER JOIN production.usr uc1 on pa.assignee = uc1.usr_id
-               LEFT OUTER JOIN production.usr ur1 on pa.assigner = ur1.usr_id
-               LEFT OUTER JOIN production.gs_to_pub_assignment gpa on pa.id = gpa.pub_assign_id
+               LEFT OUTER JOIN production.usr uc1 ON pa.assignee = uc1.usr_id
+               LEFT OUTER JOIN production.usr ur1 ON pa.assigner = ur1.usr_id
+               LEFT OUTER JOIN production.gs_to_pub_assignment gpa ON pa.id = gpa.pub_assign_id
           WHERE g1.grp_id = %s
             AND g1.grp_id = pa.curation_group
             AND pa.pub_id = p.pub_id
