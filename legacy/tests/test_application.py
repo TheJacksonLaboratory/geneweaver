@@ -57,7 +57,7 @@ class PublicationAssignment(unittest.TestCase):
         self.app = application.app.test_client()
 
     def tearDown(self):
-        # Remove test user/group relationship
+        # Remove user/group relationship
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute(
                 '''
@@ -70,7 +70,7 @@ class PublicationAssignment(unittest.TestCase):
                 (self.group_id, self.user_id,)
             )
             cursor.connection.commit()
-        # Remove test user/other group
+        # Remove user/other group relationship
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute(
                 '''
@@ -230,7 +230,8 @@ class PublicationAssignment(unittest.TestCase):
         generators = publication_generator.list_generators(user_id, [str(group_id)])
         generator_id = -1
         for generator in generators:
-            if generator.name == gen_name and generator.grp_id == group_id and generator.usr_id == user_id and generator.querystring == gen_qstring:
+            if generator.name == gen_name and generator.grp_id == group_id and \
+                            generator.usr_id == user_id and generator.querystring == gen_qstring:
                 generator_id = generator.stubgenid
                 break
         return generator_id
