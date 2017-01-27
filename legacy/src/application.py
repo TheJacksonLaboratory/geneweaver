@@ -2299,7 +2299,9 @@ def render_group_tasks(group_id):
             {'name': 'task_type'},
             {'name': 'updated'},
             {'name': 'task_status'},
-            {'name': 'reviewer'}
+            {'name': 'reviewer'},
+            {'name': 'pubmedid'},
+            {'name': 'geneset_count'}
         ]
         headerCols = ["Assignee Name",
                       "Task ID",
@@ -2307,7 +2309,9 @@ def render_group_tasks(group_id):
                       "Task Type",
                       "Updated",
                       "Status",
-                      "Reviewer"]
+                      "Reviewer",
+                      "Pub Assignment",
+                      "# GeneSets"]
 
         groups_member = geneweaverdb.get_all_member_groups(user_id)
         groups_owner  = geneweaverdb.get_all_owned_groups(user_id)
