@@ -9,7 +9,7 @@ services:
      - "80:80"
      - "443:443"
     volumes: 
-     - ../src:/srv/geneweaver/website-py/src
+     - '../src:/srv/geneweaver/website-py/src'
     depends_on:
      - sphinx
      - rabbitmq
@@ -18,13 +18,14 @@ services:
     container_name: geneweaver-web
     links:
      - postgres
+     - rabbitmq
   sphinx:
     image: leodido/sphinxsearch:2.2.9
     ports: 
      - "9306:9306"
      - "9312:9312"
     volumes:
-     - /opt/compsci/geneweaver/sphinx-config:/usr/local/etc
+     - './docker-configs/sphinx-configs:/usr/local/etc'
     command: indexall.sh
     restart: unless-stopped
     container_name: geneweaver-sphinx
@@ -36,8 +37,6 @@ services:
      - "8080:15672"
     environment:
      - RABBITMQ_ERLANG_COOKIE='7gH3cB9vtK4j'
-     - RABBITMQ_DEFAULT_USER=DenimWeft
-     - RABBITMQ_DEFAULT_PASS=AosLeb3QC4PU9uxHz7z8Ga98
     restart: unless-stopped
     container_name: geneweaver-rabbitmq
   postgres:
@@ -45,4 +44,14 @@ services:
     volumes_from:
      - container:gwdb-ext:rw
     container_name: geneweaver-postgres
-
+  celery:
+    build:
+      context: ../../tools
+      dockerfile: Dockerfile
+    links:
+      - rabbitmq
+      - postgres
+    container_name: geneweaver-celery
+    depends_on:
+      - rabbitmq
+      - postgres
