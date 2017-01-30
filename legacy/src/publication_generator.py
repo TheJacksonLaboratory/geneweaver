@@ -260,12 +260,10 @@ def _process_pubmed_response(response):
             citation = child.find('BookDocument')
             if citation:
                 article = citation.find('Book')
-                article_title = "Book: " + citation.find('ArticleTitle').text if citation.find('ArticleTitle') is not None else None
+                article_title = "Book: " + article.find('BookTitle').text if article.find('BookTitle') is not None else 'Book:'
                 article_id_list = citation.find('ArticleIdList')
                 # for journal we'll take the Book Title
-                journal = article.find('BookTitle').text
-                if not article_title:
-                    article_title = 'Book: ' + journal
+                journal = article.find('Publisher').find('PublisherName').text
 
                 pub_date = article.find('PubDate')
                 pub_year = pub_date.find('Year').text if pub_date.find('Year') is not None else ''
