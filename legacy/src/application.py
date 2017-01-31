@@ -938,6 +938,73 @@ def mark_pub_assignment_as_complete():
     return response
 
 
+@app.route("/close_pub_assignment.json", methods=['POST'])
+def close_pub_assignment():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
+        pub_assignment_id = request.form.get('assignment_id', type=int)
+
+        assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
+
+        if assignment:
+
+            if assignment.assigner != user_id:
+                response = flask.jsonify(message='You do not have permissions to perform this action.')
+                response.status_code = 403
+            elif assignment.state != assignment.READY_FOR_TEAM_REVIEW:
+                response = flask.jsonify(message='Invalid state.')
+                response.status_code = 403
+            else:
+                assignment.review_accepted(notes)
+                response = flask.jsonify(success=True)
+        else:
+            response = flask.jsonify(message='Publication Assignment Not Found.')
+            response.status_code = 404
+
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+@app.route("/pub_assignment_rejection.json", methods=['POST'])
+def pub_assignment_rejection():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
+        pub_assignment_id = request.form.get('assignment_id', type=int)
+
+        assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
+
+        if assignment:
+
+            if assignment.assigner != user_id:
+                response = flask.jsonify(message='You do not have permissions to perform this action.')
+                response.status_code = 403
+            elif assignment.state != assignment.READY_FOR_TEAM_REVIEW:
+                response = flask.jsonify(message='Invalid state.')
+                response.status_code = 403
+            else:
+                assignment.review_rejected(notes)
+                response = flask.jsonify(success=True)
+        else:
+            response = flask.jsonify(message='Publication Assignment Not Found.')
+            response.status_code = 404
+
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
 @app.route('/viewPubAssignment/<int:assignment_id>')
 def render_pub_assignment(assignment_id):
     publication = None
@@ -956,10 +1023,15 @@ def render_pub_assignment(assignment_id):
         if assignment:
             publication = geneweaverdb.get_publication(assignment.pub_id)
 
-            if uid == assignment.assignee:
+            if uid == assignment.assignee and uid == assignment.assigner:
+                if assignment.state == assignment.ASSIGNED:
+                    view = 'assignee'
+                    species = geneweaverdb.get_all_species()
+                else:
+                    view = 'assigner'
+            elif uid == assignment.assignee:
                 view = 'assignee'
                 species = geneweaverdb.get_all_species()
-
             elif uid == assignment.assigner:
                 view = 'assigner'
             elif assignment.group in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
@@ -975,7 +1047,6 @@ def render_pub_assignment(assignment_id):
                 other_genesets = [gs for gs in genesets_for_pub if gs.geneset_id not in [gs.geneset_id for gs in genesets]]
                 if assignment.state !=assignment.UNASSIGNED:
                     curator = geneweaverdb.get_user(assignment.assignee)
-
 
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
