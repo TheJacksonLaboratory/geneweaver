@@ -107,11 +107,14 @@
                             <p>
                                 <strong>Curator:</strong> <span id="curatorName">{{ curator.first_name }} {{ curator.last_name }}</span>
                             </p>
+                            <p>
+                                <strong>State:</strong> <span id="state">{{ assignment.state_as_string }}</span>
+                            </p>
                         {% endif %}
                         <div class="form-group">
                             <label for="notes"><h4>Notes:</h4></label>
                                 <textarea class="form-control" rows="10"
-                                          id="notes" {% if view == 'group_member' %}readonly{% endif %}>{{ assignment.notes }}</textarea>
+                                          id="notes" {% if view == 'group_member' or assignment.state == assignment.REVIEWED %}readonly{% endif %}>{{ assignment.notes }}</textarea>
 
                             {% if view != 'group_member' %}
                                 &nbsp;
@@ -135,12 +138,29 @@
                                     id="assignCurator">
                                 <i class="fa fa-user pull-left"></i> Reassign
                             </button>
+                            {% if assignment.state == assignment.READY_FOR_TEAM_REVIEW %}
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="sendBack">
+                                    Send Back to Reviewer
+                                </button>
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="closePubAssignment">
+                                    Approve and Close
+                                </button>
+                            {% endif %}
 
                         {% elif view == 'assignee' %}
                             <button type="button"
                                     class="btn btn-block btn-primary"
                                     id="newGeneset">
                                 <i class="fa fa-plus pull-left"></i> Create New Geneset
+                            </button>
+                            <button type="button"
+                                    class="btn btn-block btn-primary"
+                                    id="markAsComplete">
+                                Mark as Complete
                             </button>
                         {% endif %}
                     </div>
@@ -172,6 +192,12 @@
     <script>
         $(document).ready(function () {
             var stub_placeholder_index = 0;
+
+            {% if view != 'group_member' %}
+                // no idea why this was needed, but the "Save Notes" button was
+                // disabled when the page was first rendered
+                $('#saveNotes').prop("disabled", false).button("refresh");
+            {% endif %}
 
             $('#assignCurator').on('click', function () {
 
@@ -267,6 +293,58 @@
                 $('#addStubModal').modal('show');
             });
 
+            $('#markAsComplete').on('click', function() {
+                var params = {
+                    "notes": $('#notes').val(),
+                    "assignment_id": {{ assignment.id }}
+                };
+
+                $.post("{{ url_for('mark_pub_assignment_as_complete') }}", params, function (data) {
+                    $('#newGeneset').remove();
+
+                    $('#state').html('Under Review');
+                }, 'json').fail(handlePostJsonError);
+            });
+
+
+            $('#closePubAssignment').on('click', function() {
+                var params = {
+                    "notes": $('#notes').val(),
+                    "assignment_id": {{ assignment.id }}
+                };
+
+                $.post("{{ url_for('close_pub_assignment') }}", params, function (data) {
+
+                    // once the assignment is closed, remove these buttons
+                    // (should we have a button to reopen?)
+                    $('#saveNotes').remove();
+                    $('#sendBack').remove();
+                    $('#assignCurator').remove();
+                    $('#closePubAssignment').remove();
+
+                    $('#state').html('Closed');
+
+                    $('#notes').prop('readonly', true);
+
+                }, 'json').fail(handlePostJsonError);
+            });
+
+
+            $('#sendBack').on('click', function() {
+                var params = {
+                    "notes": $('#notes').val(),
+                    "assignment_id": {{ assignment.id }}
+                };
+
+                $.post("{{ url_for('pub_assignment_rejection') }}", params, function (data) {
+                    $('#sendBack').remove();
+                    $('#assignCurator').html('Reassign');
+                    $('#closePubAssignment').remove();
+
+                    $('#state').html('Assigned (in progress)');
+
+                }, 'json').fail(handlePostJsonError);
+            });
 
             $('#name, #figureLabel, #description, #sp_id').change(validate_form);
 
@@ -301,7 +379,7 @@
                 $('#geneset_panel').append('<div id="stub_' + stub_index + '">loading...</div>')
 
                 $.post("{{ url_for('create_geneset_stub') }}", params, function (data) {
-                    $('#stub_' + stub_index).html('<p><a href="/viewgenesetdetails/' + data.gs_id +'">GS' + data.gs_id + '</a>:' + params.gs_name + '</p><p style="padding-left: 10px">' + params.gs_description + '</p>');
+                    $('#stub_' + stub_index).html('<p><a href="/viewgenesetdetails/' + data.gs_id +'">GS' + data.gs_id + '</a>: ' + params.gs_name + '</p><p style="padding-left: 10px">' + params.gs_description + '</p>');
                 }, 'json').fail(handlePostJsonError);
 
             });
