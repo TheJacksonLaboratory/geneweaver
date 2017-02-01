@@ -659,12 +659,14 @@
             Function will cause a generator to be run.
             Results will be sent to the createPublicationTable function
         #}
+        var currentGeneratorResult = null;
         $('.clickable_runGenerator').on('click', function () {
             var stubgenid = ($(this).attr("data-gen"));
             var gen_name = ($(this).attr("data-gen-name"));
             $('#generator_id').val(stubgenid);
             $('#collapseTwo').collapse('hide');
             $('#collapseThree').collapse('show');
+
             currentPublicationList = [];
             if (publicationTable) {
                 // Clear old data from the publication table while the spinner is running
@@ -675,6 +677,7 @@
                 url: "/run_generator/" + stubgenid,
                 dataType: 'json',
                 success: function (data) {
+                    currentGeneratorResult = data;
                     if ("error" in data) {
                         console.error("Problem with running generator " + data.error);
                         $(document).trigger("add-alerts", [
@@ -684,23 +687,7 @@
                             }
                         ]);
                     }
-                    $.each(data, function(i, row) {
-                        var publication = new Publication(
-                                row['pmid'],
-                                row['title'],
-                                row['authors'],
-                                row['pub_assigns'],
-                                row['abstract'],
-                                row['journal'],
-                                row['volume'],
-                                row['pages'],
-                                row['month'],
-                                row['year'],
-                                row['link_to_fulltext']
-                        );
-                        currentPublicationList.push(publication);
-                    });
-                    createPublicationTable(currentPublicationList);
+                    createPublicationTable();
                     $(document).trigger("add-alerts", [{
                         'message': "Generator Successfully Run.",
                         'priority': 'success'
@@ -716,27 +703,9 @@
         });
 
         {#
-            Javascript object to house the attributes of a publication
-        #}
-        function Publication ( pubmed, title, authors, assigned, abstract, journal,
-                               volume, pages, month, year, link_to_fulltext) {
-            this.pubmed = pubmed;
-            this.title = title;
-            this.authors = authors;
-            this.assigned = assigned;
-            this.abstract = abstract;
-            this.journal = journal;
-            this.volume = volume;
-            this.pages = pages;
-            this.month = month;
-            this.year = year;
-            this.linkToFulltext = link_to_fulltext;
-        };
-
-        {#
             Function create and populate the publications table
         #}
-        function createPublicationTable(data) {
+        function createPublicationTable() {
             if ( $.fn.dataTable.isDataTable('#publications')) {
                 publicationTable = $('#publications').DataTable();
                 publicationTable.destroy();
@@ -746,12 +715,23 @@
                 "iDisplayLength": 10,
                 "bLengthChange": true,
                 "processing": true,
+                "bFilter": false,
                 "tableTools": {
                     "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
                     "sRowSelect": "multi",
                     'aButtons': [ 'select_all', 'select_none' ]
                 },
-                "data": data,
+                "serverSide": true,
+                "ajax": {
+                    'url': "/../get_generator_results",
+                    'type': 'GET',
+                    "data": function ( d ) {
+                        return $.extend( {}, d, {
+                            "pubmedResult": currentGeneratorResult
+                        });
+                    }
+                },
+                //"data": data,
                 "columns": [
                     {
                         "className": 'details-control',
@@ -760,7 +740,7 @@
                         "defaultContent": ''
                     },
                     {
-                        "data": "pubmed",
+                        "data": "pmid",
                         "width": "10%"
                     },
                     {
@@ -772,7 +752,7 @@
                         "width": "30%"
                     },
                     {
-                        "data": "assigned",
+                        "data": "pub_assigns",
                         "defaultContent": '',
                         "width": "5%"
                     }
@@ -864,7 +844,7 @@
             else {
                 selectedPublications = [];
                 for (var k in aselectedTrs) {
-                    selectedPublications.push(aselectedTrs[k].pubmed);
+                    selectedPublications.push(aselectedTrs[k].pmid);
                 }
                 processSelections(selectedPublications);
             }
@@ -957,7 +937,8 @@
                     // simplest way to refresh this table, and the contents of the expanded detail views.
                     // The only two downsides I see are that it 1) closes the detail if opened, and 2) resets the
                     // pagination to the first row of the table.
-                    createPublicationTable(currentPublicationList);
+                    //createPublicationTable();
+                    publicationTable.rows().invalidate().draw(false);
                     TableTools.fnGetInstance('publications').fnSelectNone();
                     $(document).trigger("add-alerts", [
                         {
@@ -985,19 +966,17 @@
         #}
         function formatPublication(d) {
             // `d` is the original data object for the row
-
-            console.log(d.assigned);
             var html = '<tr><td colspan=5><table class="table">' +
                     '<tr><td class="pub-title">' + d.title + '</td></tr>';
             if (d.authors) {
                 html += '<tr><td class="pub-subdued">' + d.authors + '</td></tr>';
             }
             html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>';
-            if (d.linkToFullText) {
-                html += '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            if (d.link_to_fulltext) {
+                html += '<tr><td class="pub-normal"><a href="' + d.link_to_fulltext + '" target="_blank">' + d.link_to_fulltext + '</a></td></tr>';
             }
-            if (d.assigned) {
-                html += '<tr><td><div class="pub-title">Assigned to Curation Groups:</div> <div class="pub-normal">' + d.assigned + '</div></td></tr>';
+            if (d.pub_assigns) {
+                html += '<tr><td><div class="pub-title">Assigned to Curation Groups:</div> <div class="pub-normal">' + d.pub_assigns + '</div></td></tr>';
             }
             if (d.abstract) {
                 html += '<tr><td class="pub-normal">' + d.abstract + '</td></tr>';
