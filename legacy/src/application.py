@@ -736,9 +736,25 @@ def run_generator(generator_id):
         except HTTPError:
             print("HTTPError trying to run generator {}".format(generator.name))
             return json.dumps({'error': 'Problem communicating with PubMed, please try again later...'})
-        return json.dumps(results)
+        return json.dumps(results.__dict__)
     else:
         return json.dumps({'error': 'You do not have permission to run this generator'})
+
+
+@app.route('/get_generator_results')
+def get_generator_results():
+    sEcho = request.args.get('sEcho', type=int)
+    iDisplayStart = request.args.get('start', type=int)
+    iDisplayLength = request.args.get('length', type=int)
+    search_response = request.args.get('pubmedResult[search_response]')
+    pubmed_results = publication_generator.PubmedResult(search_response)
+    results = pubmed_results.fetch(iDisplayStart, iDisplayLength)
+    response = {'sEcho': sEcho,
+                'iTotalRecords': results.total_count,
+                'iTotalDisplayRecords': results.total_count,
+                'aaData': results.current_rows
+                }
+    return json.dumps(response)
 
 
 @app.route('/get_publication_by_pubmed_id/<pubmed_id>.json')
