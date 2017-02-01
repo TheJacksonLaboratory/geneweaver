@@ -17,6 +17,13 @@ $ git clone git@bitbucket.org:geneweaver/website-py.git
 $ git clone git@bitbucket.org:geneweaver/tools.git
 ```
 
+Download the database tar file, create a new container named gw-dbstore, then extract the tar file to that container:
+```sh
+$ wget http://somelink.tothefile.com
+$ docker run -v /var/lib/postgresql/data --name gw-dbstore ubuntu /bin/bash
+$ docker run --rm --volumes-from gw-dbstore -v $(pwd):/backup ubuntu bash -c "cd /dbdata && tar xvf /backup/backup.tar --strip 1"
+```
+
 Navigate to the website-py/sample-configs directory:
 
 ```sh
