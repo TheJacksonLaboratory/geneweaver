@@ -366,7 +366,6 @@
 
         var current_pub = null;
         var publicationTable = null;
-        var currentPublicationList = [];
 
         $('#assign').hide();
 
@@ -667,7 +666,6 @@
             $('#collapseTwo').collapse('hide');
             $('#collapseThree').collapse('show');
 
-            currentPublicationList = [];
             if (publicationTable) {
                 // Clear old data from the publication table while the spinner is running
                 publicationTable.clear().draw();
@@ -933,11 +931,7 @@
                             }
                         }
                     }
-                    // Recreating the publication table with the existing currentPublicationList seems to be the
-                    // simplest way to refresh this table, and the contents of the expanded detail views.
-                    // The only two downsides I see are that it 1) closes the detail if opened, and 2) resets the
-                    // pagination to the first row of the table.
-                    //createPublicationTable();
+                    
                     publicationTable.rows().invalidate().draw(false);
                     TableTools.fnGetInstance('publications').fnSelectNone();
                     $(document).trigger("add-alerts", [
