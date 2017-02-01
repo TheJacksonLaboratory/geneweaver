@@ -258,7 +258,7 @@ def _process_pubmed_response(response):
         else:
             # Not a journal article, check to see if it's a book...
             citation = child.find('BookDocument')
-            if citation:
+            if citation is not None:
                 article = citation.find('Book')
                 article_title = "Book: " + article.find('BookTitle').text if article.find('BookTitle') is not None else 'Book:'
                 article_id_list = citation.find('ArticleIdList')
