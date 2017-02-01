@@ -758,10 +758,13 @@
                 "aoColumnDefs": [
                     {
                         "aTargets": [0],
-                        "bSortable": false
+                        "bSortable": false,
+                        "bSearchable": false
                     },
                     {
                         "aTargets": [1],
+                        "bSortable": false,
+                        "bSearchable": false,
                         "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                             $(nTd).empty();
                             $(nTd).append('<p><a href=\"https://www.ncbi.nlm.nih.gov/pubmed/' + sData + '\" target=\"_blank\">' + sData + '</a></p>');
@@ -769,6 +772,8 @@
                     },
                     {
                         "aTargets": [2],
+                        "bSortable": false,
+                        "bSearchable": false,
                         "render": $.fn.dataTable.render.ellipsis(65),
                         "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                             var title = sData;
@@ -778,6 +783,8 @@
                     },
                     {
                         "aTargets": [3],
+                        "bSortable": false,
+                        "bSearchable": false,
                         "render": $.fn.dataTable.render.ellipsis(40),
                         "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                             var authors = sData;
@@ -787,6 +794,8 @@
                     },
                     {
                         "aTargets": [4],
+                        "bSortable": false,
+                        "bSearchable": false,
                         "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
                             /* show the publication has been assigned for curation */
                             var curation_icon = $('<span class="pointer" data-placement="top" \
