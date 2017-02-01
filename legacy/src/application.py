@@ -941,15 +941,13 @@ def mark_pub_assignment_as_complete():
 @app.route("/close_pub_assignment.json", methods=['POST'])
 def close_pub_assignment():
     if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
 
+        user_id = flask.session['user_id']
         notes = bleach.clean(request.form.get('note', ''), strip=True)
         pub_assignment_id = request.form.get('assignment_id', type=int)
-
         assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
 
         if assignment:
-
             if assignment.assigner != user_id:
                 response = flask.jsonify(message='You do not have permissions to perform this action.')
                 response.status_code = 403
@@ -962,8 +960,6 @@ def close_pub_assignment():
         else:
             response = flask.jsonify(message='Publication Assignment Not Found.')
             response.status_code = 404
-
-
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
@@ -971,14 +967,14 @@ def close_pub_assignment():
 
     return response
 
+
 @app.route("/pub_assignment_rejection.json", methods=['POST'])
 def pub_assignment_rejection():
     if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
 
+        user_id = flask.session['user_id']
         notes = bleach.clean(request.form.get('note', ''), strip=True)
         pub_assignment_id = request.form.get('assignment_id', type=int)
-
         assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
 
         if assignment:
@@ -995,8 +991,6 @@ def pub_assignment_rejection():
         else:
             response = flask.jsonify(message='Publication Assignment Not Found.')
             response.status_code = 404
-
-
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
