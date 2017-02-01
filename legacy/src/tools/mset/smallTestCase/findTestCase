@@ -1,0 +1,14 @@
+#!/bin/bash
+#findTestCase: Script to find a small but valid test case for mset
+#Created: Sat Oct 29 18:44:17 CDT 2016
+
+count=0
+
+until ./testOutput.sh > /dev/null ; do
+    ./a.out backgroundSmall.txtorig $1 > backgroundSmall.txt
+    ./a.out interestSmall.txtorig $1 > interestSmall.txt
+    let count=count+1
+    echo "num trials: $count"
+done
+
+exit 0

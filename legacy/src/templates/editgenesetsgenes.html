@@ -50,6 +50,33 @@
 
 {% else %}
 
+	{% if geneset.status == 'delayed' %}
+		<div class="alert alert-warning fade in" style="text-align:center">
+			<button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+				&times;
+			</button>
+			<strong>
+				<u>
+					This GeneSet requires your approval.
+				</u>
+			</strong>
+			<br />
+			<br />
+			<p>
+				<strong>
+				Please ensure all the GeneSet MetaContent on this page is correct.
+				<br />
+				If any information is incorrect make the appropriate changes.
+				Once you are finished, scroll to the bottom of the page and click
+				the "Save Updates" button. This GeneSet will only be available for
+				analysis and searching (if it is public) after updates are
+				saved.
+				</strong>
+			</p>
+		</div>
+
+	{% endif %}
+
     <div class="loader"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
@@ -57,10 +84,10 @@
     </div>
 
 
-    {# Geneset Metadata #}
+    {# Geneset MetaContent #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
         <h2 class="panel-title">
-            GeneSet Metadata &bull; GS{{ geneset.geneset_id }}
+            GeneSet MetaContent &bull; GS{{ geneset.geneset_id }}
         </h2>
     </div>
 
@@ -71,7 +98,7 @@
     <div class="col-xs-6 col-md-3">
 
         <button type="button" class="btn btn-block btn-warning" id="editGeneset">
-            <i class="fa fa-edit pull-left"></i> Edit MetaData
+            <i class="fa fa-edit pull-left"></i> Edit MetaContent
         </button>
         <button type="button" class="btn btn-block btn-warning" id="viewGenesetDetails">
             <i class="fa fa-eye pull-left"></i> GeneSet Details
@@ -250,7 +277,7 @@
 
     var user_id = {{ user_id }}
 
-    $(window).load(function () {
+    $(window).on("load", function (e) {
         $(".loader").fadeOut("slow");
     });
 

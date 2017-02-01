@@ -89,7 +89,7 @@
 
     }
 
-    .clickable, .clickable_delete, .clickable_runGenerator {
+    .clickable, .clickable_delete, .clickable_runGenerator, .clickable_editGenerator {
         cursor: pointer;
     }
 
@@ -218,9 +218,10 @@
                                                           data-original-title="Generator Name" title="Generator Name"
                                                           style="margin: 2px; padding: 0px 2px;">{{ gen.name }}</span>
                                                 </td>
-                                                <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                <td width="40%"><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Pubmed Query String" title="Pubmed Query String"
-                                                          style="margin: 2px; padding: 0px 2px;"><a href="https://www.ncbi.nlm.nih.gov/pubmed?term={{ gen.querystring }}">{{ gen.querystring }}</a>
+                                                          style="margin: 2px; padding: 0px 2px;">
+                                                    <a href="https://www.ncbi.nlm.nih.gov/pubmed?term={{ gen.querystring }}">{{ gen.querystring }}</a>
                                                     </span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
@@ -231,7 +232,7 @@
                                                           data-original-title="Last Run" title="Last Run"
                                                           style="margin: 2px; padding: 0px 2px;">{{ gen.last_update }}</span>
                                                 </td>
-                                                <td>
+                                                <td width="10%">
                                                     <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Run Generator" type="button" title="Run Generator"
                                                           class="clickable_runGenerator" id="runGenerator_{{ gen.stubgenid }}"
@@ -240,13 +241,19 @@
                                                         <i class="fa fa-refresh"></i>
                                                     </span>
                                                     <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Delete" type="button" title="Delete Group"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                                        <span class="clickable_delete" id="deleteGeneratorModal_{{ gen.stubgenid }}"
-                                                              data-gen="{{ gen.stubgenid }}" data-gen-name="{{ gen.name }}"
-                                                              style="margin: 2px; padding: 0px 2px;">
-                                                            <i class="fa fa-trash-o"></i>
-                                                        </span>
+                                                          data-original-title="Edit Generator" type="button" title="Edit Generator"
+                                                          class="clickable_editGenerator" id="editGenerator_{{ gen.stubgenid }}"
+                                                          data-gen="{{ gen.stubgenid }}" data-gen-name="{{ gen.name }}"
+                                                          data-gen-qstring="{{ gen.querystring }}" data-grp-id="{{ gen.grp_id }}"
+                                                          style="margin: 2px; padding: 0px 2px;">
+                                                        <i class="fa fa-pencil"></i>
+                                                    </span>
+                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                          data-original-title="Delete" type="button" title="Delete Generator"
+                                                          class="clickable_delete" id="deleteGeneratorModal_{{ gen.stubgenid }}"
+                                                          data-gen="{{ gen.stubgenid }}" data-gen-name="{{ gen.name }}"
+                                                          style="margin: 2px; padding: 0px 2px;">
+                                                        <i class="fa fa-trash-o"></i>
                                                     </span>
                                                 </td>
                                             </tr>
@@ -323,7 +330,7 @@
 
         {# this modal is for the singleton assignment #}
         {% include 'modal/assignPublicationToGroup.html' %}
-        {% include 'modal/addGeneratorToGroup.html' %}
+        {% include 'modal/addOrEditGenerator.html' %}
         {% include 'modal/deleteGenerator.html' %}
         {# this modal is for the multi pub assignment #}
         {% include 'modal/assignPublicationsToGroup.html' %}
@@ -358,6 +365,8 @@
     $(function() {
 
         var current_pub = null;
+        var publicationTable = null;
+        var currentPublicationList = [];
 
         $('#assign').hide();
 
@@ -507,34 +516,51 @@
             $('#generatorName').val("");
             $('#generatorQuery').val("");
 
-            // submit button will be disabled until the user selects a group radio button
-            $('#addGeneratorConfirm').prop("disabled", true).button("refresh");
+            // submit button will be disabled until the user selects a group and populates
+            // name and query string
+            $('#saveGeneratorConfirm').prop("disabled", true).button("refresh");
 
-            $("#addGeneratorToGroupModal").modal('show');
+            $("#addOrEditGeneratorModal").modal('show');
         });
 
         {#
-            Function called by the confirm button in the add generator modal
+            Edit existing Generator
+            Uses a Modal imported above to alter the name, querystring or group associated with generator
         #}
-        $('#addGeneratorConfirm').click(function (){
+        $('.clickable_editGenerator').on('click', function () {
+            var stubgenid = ($(this).attr("data-gen"));
+            var gen_name = ($(this).attr("data-gen-name"));
+            var gen_qstring = ($(this).attr("data-gen-qstring"));
+            var group_id = ($(this).attr("data-grp-id"));
+            $("#generatorId").val(stubgenid);
+            $("#generatorName").val(gen_name);
+            $("#generatorQuery").val(gen_qstring);
+            $("#genGroups").val(group_id);
+            $('#addOrEditGeneratorModal').modal('show');
+
+            $("#editGeneratorModal").modal('show');
+        });
+
+        {#
+            Function called by the confirm button in the add or edit generator modal
+        #}
+        $('#saveGeneratorConfirm').click(function (){
             $('#modalLoader').show();
             var gen_name = $('#generatorName').val();
             var gen_querystring = $('#generatorQuery').val();
-            if (!gen_name || !gen_querystring) {
-                $("#myAlertTitle").html("No Generator Definition");
-                $("#myAlertMessage").html("You must include a generator name and query string.");
-                $("#myAlert").focus();
-                $("#myAlert").modal('show');
-            } else {
-                var params = {
-                    "name": gen_name,
-                    "querystring": gen_querystring,
-                    "group_id": $("#genGroups").val()
-                };
+            var group_id = $("#genGroups").val()
+            var gen_id = $("#generatorId").val()
+            var params = {
+                "name": gen_name,
+                "querystring": gen_querystring,
+                "group_id": group_id,
+                "id": gen_id
+            };
 
-                $.post("{{ url_for('add_generator') }}", params ,function(data) {
+            if (gen_id) {
+                $.post("{{ url_for('update_generator') }}", params ,function(data) {
                     $('#modalLoader').hide();
-                    $("#addGeneratorToGroupModal").modal('hide');
+                    $("#addOrEditGeneratorModal").modal('hide');
 
                     $(document).trigger("add-alerts", [
                         {
@@ -544,18 +570,28 @@
                     ]);
                     window.location.reload(true);
                 }, "json").fail(handleAssignmentError);
+            } else {
+                $.post("{{ url_for('add_generator') }}", params ,function(data) {
+                    $('#modalLoader').hide();
+                    $("#addOrEditGenerator").modal('hide');
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': data.message,
+                            'priority': 'success'
+                        }
+                    ]);
+                    window.location.reload(true);
+                }, "json").fail(handleAssignmentError);
+
             }
+
         });
 
         {#
-            Function confirm button in the add generator modal when a group has been selected
-
-        $("#genGroups").change( function () {
-            // submit button will be disabled until the user selects a group
-            // selection
-            $('#addGeneratorConfirm').prop("disabled", false).button("refresh");
-        });
-         #}
+            Functions confirm the add or edit generator modal has values for
+            group, name and query string
+        #}
         $("#genGroups").change(function() {
             validateGenModalFields()
         });
@@ -567,8 +603,12 @@
         });
 
         function validateGenModalFields() {
+            // activate save button if all are populated with values
             if ($("#genGroups").val() && $("#generatorName").val() && $("#generatorQuery").val()) {
-                $('#addGeneratorConfirm').prop("disabled", false).button("refresh");
+                $('#saveGeneratorConfirm').prop("disabled", false).button("refresh");
+            } else {
+                // submit button will be disabled until selects group and name and querystring populated
+                $('#saveGeneratorConfirm').prop("disabled", true).button("refresh");
             }
         }
 
@@ -625,7 +665,11 @@
             $('#generator_id').val(stubgenid);
             $('#collapseTwo').collapse('hide');
             $('#collapseThree').collapse('show');
-            var publicationList = [];
+            currentPublicationList = [];
+            if (publicationTable) {
+                // Clear old data from the publication table while the spinner is running
+                publicationTable.clear().draw();
+            }
             $.ajax({
                 type: "GET",
                 url: "/run_generator/" + stubgenid,
@@ -654,9 +698,9 @@
                                 row['year'],
                                 row['link_to_fulltext']
                         );
-                        publicationList.push(publication);
+                        currentPublicationList.push(publication);
                     });
-                    createPublicationTable(publicationList);
+                    createPublicationTable(currentPublicationList);
                     $(document).trigger("add-alerts", [{
                         'message': "Generator Successfully Run.",
                         'priority': 'success'
@@ -694,10 +738,10 @@
         #}
         function createPublicationTable(data) {
             if ( $.fn.dataTable.isDataTable('#publications')) {
-                table = $('#publications').DataTable();
-                table.destroy();
+                publicationTable = $('#publications').DataTable();
+                publicationTable.destroy();
             }
-            table = $('#publications').DataTable({
+            publicationTable = $('#publications').DataTable({
                 "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
                 "iDisplayLength": 10,
                 "bLengthChange": true,
@@ -786,15 +830,12 @@
             } );
         }
 
-
         {#  Methods for processing Publication Listing actions #}
-
-        // TODO:  Add event listener for opening and closing details
         $('#publications').on('click', 'td.details-control', function() {
             var tr = $(this).closest('tr');
             //var T = table.fnGetData(tr);
             //var row = $(this).parents(tr);
-            var row = table.row( tr );
+            var row = publicationTable.row( tr );
 
             if (row.child.isShown()) {
                 row.child.hide();
@@ -804,23 +845,6 @@
                 row.child( formatPublication(row.data())).show();
                 tr.addClass('shown');
             }
-            {#
-            if (tr.hasClass('shown')) {
-
-                tr.next().hide();
-                tr.removeClass('shown');
-            }
-            else {
-                // Open this row
-                var newRow = $(formatPublication(T)).animate({
-                    height: "100px",
-                    opacity: 0.75
-                }, 500);
-                tr.after(newRow);
-                tr.addClass('shown');
-            }
-             #}
-
         });
 
         {#
@@ -878,7 +902,6 @@
             };
 
             var group_name = $("#selectPubGroup option:selected").text();
-            console.log(group_name);
             // since params["pubmed_ids"] is a list the server needs to use
             // request.args.getlist('pubmed_ids') instead of request.args['pubmed_ids']
             $.post("{{ url_for('assign_publications_to_group') }}", params ,function(data) {
@@ -930,9 +953,12 @@
                             }
                         }
                     }
-
+                    // Recreating the publication table with the existing currentPublicationList seems to be the
+                    // simplest way to refresh this table, and the contents of the expanded detail views.
+                    // The only two downsides I see are that it 1) closes the detail if opened, and 2) resets the
+                    // pagination to the first row of the table.
+                    createPublicationTable(currentPublicationList);
                     TableTools.fnGetInstance('publications').fnSelectNone();
-                    TableTools.fnGetInstance('publications').fnDraw();
                     $(document).trigger("add-alerts", [
                         {
                         'message': "Publications assigned to group: " + successfulLabels.join(', '),
@@ -960,13 +986,16 @@
         function formatPublication(d) {
             // `d` is the original data object for the row
 
+            console.log(d.assigned);
             var html = '<tr><td colspan=5><table class="table">' +
                     '<tr><td class="pub-title">' + d.title + '</td></tr>';
             if (d.authors) {
                 html += '<tr><td class="pub-subdued">' + d.authors + '</td></tr>';
             }
-            html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>' +
-                    '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            html += '<tr><td class="pub-subdued">' + d.year + '&nbsp;' + d.month + '&nbsp;' + d.journal + '</td></tr>';
+            if (d.linkToFullText) {
+                html += '<tr><td class="pub-normal"><a href="' + d.linkToFulltext + '" target="_blank">' + d.linkToFulltext + '</a></td></tr>';
+            }
             if (d.assigned) {
                 html += '<tr><td><div class="pub-title">Assigned to Curation Groups:</div> <div class="pub-normal">' + d.assigned + '</div></td></tr>';
             }

@@ -25,7 +25,7 @@ import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
 from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint
+    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint, msetblueprint, upsetblueprint
 import sphinxapi
 import search
 import math
@@ -34,6 +34,8 @@ import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
+from psycopg2 import Error
+
 
 
 app = flask.Flask(__name__)
@@ -46,6 +48,8 @@ app.register_blueprint(jaccardclusteringblueprint.jaccardclustering_blueprint)
 app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
+app.register_blueprint(msetblueprint.mset_blueprint)
+app.register_blueprint(upsetblueprint.upset_blueprint)
 
 # *************************************
 
@@ -95,11 +99,12 @@ admin.add_view(
 
 admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
 
+
 class ListConverter(BaseConverter):
     """
     A class for handling a custom URL converter. Allows lists to be used as
     routing variables. Currently only used for viewing geneset overlap for >2
-    genesets. 
+    genesets.
     This should probably be put in a separate file.
     """
 
@@ -114,16 +119,16 @@ class ListConverter(BaseConverter):
         returns
             a list of strings
         """
-        
+
         return value.split('+')
 
     def to_url(self, values):
         """
         Converts a list of values to a string. The exact opposite of the
-        to_python function. 
+        to_python function.
 
         arguments
-            values: a list of values being converted 
+            values: a list of values being converted
 
         returns
             a string
@@ -203,6 +208,20 @@ def _form_login():
     return user
 
 
+def send_mail(to, subject, body):
+    # print to, subject, body
+    sendmail_location = "/usr/bin/mail"  # sendmail location
+    p = os.popen("%s -t" % sendmail_location, "w")
+    p.write("From: NoReply@geneweaver.org\n")
+    p.write("To: %s\n" % to)
+    p.write("Subject: %s\n" % subject)
+    p.write("\n")  # blank line separating headers from body
+    p.write(body)
+    status = p.close()
+    if status != 0:
+        print "Sendmail exit status", status
+
+
 def _form_register():
     user = None
     _logout()
@@ -261,14 +280,14 @@ def render_analyze():
         else:
             grp2proj[p.group].append(p)
 
-
         grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
 
     return flask.render_template(
-        'analyze.html', 
+        'analyze.html',
         active_tools=active_tools,
         grp2proj=grp2proj
     )
+
 
 @app.route('/analyzeshared')
 def render_analyze_shared():
@@ -287,10 +306,8 @@ def render_analyze_shared():
             else:
                 grp2proj[p.group].append(p)
 
-
             grp2proj = OrderedDict(sorted(grp2proj.items(), key=lambda d: d[0]))
-            #sorted(flask.g.user.shared_projects, key=lambda x: x.group_id)
-
+            # sorted(flask.g.user.shared_projects, key=lambda x: x.group_id)
 
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze_shared.html', active_tools=active_tools, grp2proj=grp2proj)
@@ -350,7 +367,7 @@ def render_shareprojects():
 
 @app.route('/analyze_new_project/<string:pj_name>.html')
 def render_analyze_new_project(pj_name):
-    #print 'dbg analyze proj'
+    # print 'dbg analyze proj'
     args = flask.request.args
     active_tools = geneweaverdb.get_active_tools()
     user = geneweaverdb.get_user(flask.session.get('user_id'))
@@ -401,14 +418,13 @@ def render_editgenesets(gs_id, curation_view=False):
         curation_view=curation_view
     )
 
-
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
 def assign_genesets_to_curation_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        note = bleach.clean(request.form.get('note', ''))
+        note = bleach.clean(request.form.get('note', ''), strip=True)
         grp_id = request.form.get('grp_id')
 
         gs_ids = request.form.getlist('gs_ids[]', type=int)
@@ -440,7 +456,7 @@ def assign_genesets_to_curator():
         user_id = flask.session['user_id']
         user_info = geneweaverdb.get_user(user_id)
 
-        note = bleach.clean(request.form.get('note', ''))
+        note = bleach.clean(request.form.get('note', ''), strip=True)
         curator = request.form.get('usr_id')
         gs_ids = request.form.getlist('gs_ids[]', type=int)
         curator_info = geneweaverdb.get_user(curator)
@@ -474,7 +490,7 @@ def assign_genesets_to_curator():
 def assign_publications_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         curator = request.form.get('usr_id')
         pub_assign_ids = request.form.getlist('pub_assign_ids[]', type=int)
         group_id = request.form.get('group_id')
@@ -483,7 +499,8 @@ def assign_publications_to_curator():
         status = {}
         for pub_assign_id in pub_assign_ids:
             if int(group_id) in [g['grp_id'] for g in owned_groups]:
-                pub_assignments.assign_publication(pub_assign_id, curator, user_id, notes)
+                assignment = pub_assignments.get_publication_assignment(pub_assign_id)
+                assignment.assign_to_curator(curator, user_id, notes)
                 status[pub_assign_id] = {'success': True}
             else:
                 status[pub_assign_id] = {'success': False,
@@ -492,7 +509,8 @@ def assign_publications_to_curator():
 
     else:
         #user is not logged in
-        response = flask.jsonify(success=False, message='You do not have permissions to assign these Publications to a curator')
+        response = flask.jsonify(success=False,
+                                 message='You do not have permissions to assign these Publications to a curator')
         response.status_code = 401
 
     return response
@@ -503,7 +521,7 @@ def assign_geneset_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         gs_id = request.form.get('gs_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -536,7 +554,7 @@ def geneset_ready_for_review():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         gs_id = request.form.get('gs_id', type=int)
 
         assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
@@ -564,7 +582,7 @@ def mark_geneset_reviewed():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         gs_id = request.form.get('gs_id', type=int)
         review_ok = request.form.get('review_ok') in ['true', '1']
 
@@ -606,43 +624,70 @@ def render_assign_publication():
                                  myGenerators=generators)
 
 
-@app.route('/generators')
-def list_generators():
-    if 'user_id' in flask.session:
-        # TODO:  Implement a version to be called when refreshing, not just at page load
-        #  return a list of generators
-        response = []
-    return response
-
-
 @app.route('/add_generator', methods=['POST'])
 def add_generator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-
         generator_name = request.form.get('name', '')
         generator_querystring = request.form.get('querystring', '')
         group_id = request.form.get('group_id', type=int)
 
-        if not generator_name or not generator_querystring:
-            response = flask.jsonify(success=False, message='You must provide a generator name and query string.')
+        if generator_name and generator_querystring and group_id:
+            generator_dict = {
+                'name': generator_name,
+                'querystring': generator_querystring,
+                'grp_id': group_id,
+                'usr_id': user_id
+            }
+            generator = publication_generator.PublicationGenerator(**generator_dict)
+
+            if not generator:
+                # couldn't create a generator
+                response = flask.jsonify(message="Generator not created")
+                response.status_code = 500
+            else:
+                # generator created
+                response = flask.jsonify(message="Generator successfully added to group")
+        else:
+            response = flask.jsonify(success=False, message='You must provide a generator name, query string and group id.')
             response.status_code = 412
 
-        generator_dict = {
-            'name': generator_name,
-            'querystring': generator_querystring,
-            'grp_id': group_id,
-            'usr_id': user_id
-        }
-        generator = publication_generator.PublicationGenerator(**generator_dict)
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
 
-        if not generator:
-            # couldn't create a generator
-            response = flask.jsonify(message="Generator not created")
-            response.status_code = 500
+    return response
+
+
+@app.route('/update_generator', methods=['POST'])
+def update_generator():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        generator_id = request.form.get('id', '')
+        generator_name = request.form.get('name', '')
+        generator_querystring = request.form.get('querystring', '')
+        group_id = request.form.get('group_id', type=int)
+
+        if generator_id and generator_name and generator_querystring and group_id:
+            generator_dict = {
+                'stubgenid': generator_id,
+                'name': generator_name,
+                'querystring': generator_querystring,
+                'grp_id': group_id,
+                'usr_id': user_id
+            }
+            try:
+                generator = publication_generator.PublicationGenerator(**generator_dict)
+                generator.save()
+                response = flask.jsonify(message="Generator successfully updated")
+            except Error as error:
+                response = flask.jsonify(message="Generator not saved.  Error encountered while updating database: {0}".format(error))
         else:
-            # generator created
-            response = flask.jsonify(message="Generator successfully added to group")
+            response = flask.jsonify(success=False,
+                                     message='You must provide a generator id, name, query string and group id.')
+            response.status_code = 412
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
@@ -722,7 +767,7 @@ def assign_publication_to_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('notes', ''))
+        notes = bleach.clean(request.form.get('notes', ''), strip=True)
         pubmed_id = request.form.get('pubmed_id')
         group_id = request.form.get('group_id', type=int)
 
@@ -767,7 +812,7 @@ def assign_publications_to_group():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('notes', ''))
+        notes = bleach.clean(request.form.get('notes', ''), strip=True)
         pubmed_ids = request.form.getlist('pubmed_ids[]', type=str)
         group_id = request.form.get('group_id', type=int)
 
@@ -821,7 +866,7 @@ def assign_publication_to_curator():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
         pub_assignment_id = request.form.get('assignment_id', type=int)
         curator = request.form.get('curator', type=int)
 
@@ -838,10 +883,10 @@ def assign_publication_to_curator():
                 response.status_code = 401
             elif assignment.group not in [g['grp_id'] for g in curator_groups]:
                 response = flask.jsonify(message='User is not a member of this group.')
-                response.status_code = 412
+                response.status_code = 401
             else:
                 curator_info = geneweaverdb.get_user(curator)
-                pub_assignments.assign_publication(pub_assignment_id, curator, user_id, notes)
+                assignment.assign_to_curator(curator, user_id, notes)
 
                 response = flask.jsonify(success=True,
                                          curator_name=curator_info.first_name + " " + curator_info.last_name,
@@ -849,8 +894,103 @@ def assign_publication_to_curator():
 
         else:
             response = flask.jsonify(success=False, message="Error assigning curator, publication does not have an active curation record")
-            response.status_code = 412
+            response.status_code = 403
 
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route("/mark_pub_assignment_as_complete.json", methods=['POST'])
+def mark_pub_assignment_as_complete():
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
+        pub_assignment_id = request.form.get('assignment_id', type=int)
+
+        assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
+
+        if assignment:
+
+            if assignment.assignee != user_id:
+                response = flask.jsonify(message='You do not have permissions to perform this action.')
+                response.status_code = 403
+            elif assignment.state != assignment.ASSIGNED:
+                response = flask.jsonify(message='Invalid state.')
+                response.status_code = 403
+            else:
+                assignment.mark_as_complete(notes)
+                response = flask.jsonify(success=True)
+        else:
+            response = flask.jsonify(message='Publication Assignment Not Found.')
+            response.status_code = 404
+
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route("/close_pub_assignment.json", methods=['POST'])
+def close_pub_assignment():
+    if 'user_id' in flask.session:
+
+        user_id = flask.session['user_id']
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
+        pub_assignment_id = request.form.get('assignment_id', type=int)
+        assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
+
+        if assignment:
+            if assignment.assigner != user_id:
+                response = flask.jsonify(message='You do not have permissions to perform this action.')
+                response.status_code = 403
+            elif assignment.state != assignment.READY_FOR_TEAM_REVIEW:
+                response = flask.jsonify(message='Invalid state.')
+                response.status_code = 403
+            else:
+                assignment.review_accepted(notes)
+                response = flask.jsonify(success=True)
+        else:
+            response = flask.jsonify(message='Publication Assignment Not Found.')
+            response.status_code = 404
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You do not have permissions to perform this action.')
+        response.status_code = 401
+
+    return response
+
+
+@app.route("/pub_assignment_rejection.json", methods=['POST'])
+def pub_assignment_rejection():
+    if 'user_id' in flask.session:
+
+        user_id = flask.session['user_id']
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
+        pub_assignment_id = request.form.get('assignment_id', type=int)
+        assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
+
+        if assignment:
+
+            if assignment.assigner != user_id:
+                response = flask.jsonify(message='You do not have permissions to perform this action.')
+                response.status_code = 403
+            elif assignment.state != assignment.READY_FOR_TEAM_REVIEW:
+                response = flask.jsonify(message='Invalid state.')
+                response.status_code = 403
+            else:
+                assignment.review_rejected(notes)
+                response = flask.jsonify(success=True)
+        else:
+            response = flask.jsonify(message='Publication Assignment Not Found.')
+            response.status_code = 404
     else:
         # user is not logged in
         response = flask.jsonify(message='You do not have permissions to perform this action.')
@@ -869,26 +1009,37 @@ def render_pub_assignment(assignment_id):
     species = None
     gs_ids = []
 
+    other_gs_ids = []
+
     if 'user_id' in flask.session:
         uid = flask.session['user_id']
         assignment = pub_assignments.get_publication_assignment(assignment_id)
         if assignment:
             publication = geneweaverdb.get_publication(assignment.pub_id)
 
-            if uid == assignment.assignee:
+            if uid == assignment.assignee and uid == assignment.assigner:
+                if assignment.state == assignment.ASSIGNED:
+                    view = 'assignee'
+                    species = geneweaverdb.get_all_species()
+                else:
+                    view = 'assigner'
+            elif uid == assignment.assignee:
                 view = 'assignee'
                 species = geneweaverdb.get_all_species()
-
             elif uid == assignment.assigner:
                 view = 'assigner'
             elif assignment.group in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
                 view = 'group_admin'
+            elif uid in [u['usr_id'] for u in geneweaverdb.get_group_members(assignment.group)]:
+                view = 'group_member'
             else:
                 view = 'no_access'
 
             if view != 'no_access':
-                gs_ids = pub_assignments.get_genesets_for_assignment(assignment.id)
-                if assignment.state != pub_assignments.PubAssignment.UNASSIGNED:
+                genesets = assignment.get_genesets()
+                genesets_for_pub = geneweaverdb.get_genesets_for_publication(assignment.pub_id, uid)
+                other_genesets = [gs for gs in genesets_for_pub if gs.geneset_id not in [gs.geneset_id for gs in genesets]]
+                if assignment.state !=assignment.UNASSIGNED:
                     curator = geneweaverdb.get_user(assignment.assignee)
 
             if view == 'assigner' or view == 'group_admin':
@@ -902,7 +1053,7 @@ def render_pub_assignment(assignment_id):
                                  view=view, assignment=assignment,
                                  curator=curator, species=species,
                                  curation_team=curation_team_members,
-                                 genesets=gs_ids)
+                                 genesets=genesets, other_genesets=other_genesets)
 
 
 @app.route('/save_pub_note.json', methods=['POST'])
@@ -911,14 +1062,14 @@ def save_pub_assignment_note():
         uid = flask.session['user_id']
         pub_assignment_id = request.form.get('assignment_id', type=int)
 
-        notes = bleach.clean(request.form.get('note', ''))
+        notes = bleach.clean(request.form.get('note', ''), strip=True)
 
         assignment = pub_assignments.get_publication_assignment(pub_assignment_id)
         if assignment:
             # make sure user is authorized (assignee, assigner, group admin)
             if uid == assignment.assignee or uid == assignment.assigner or int(gid) in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
                 # SAVE notes to DB
-                pub_assignments.update_notes(pub_assignment_id, notes)
+                assignment.update_notes(notes)
                 response = flask.jsonify(success=True)
             else:
                 response = flask.jsonify(message='You do not have permissions to perform this action.')
@@ -951,7 +1102,7 @@ def create_geneset_stub():
             response = flask.jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
         else:
-            gs_id = pub_assignments.create_geneset_stub_for_publication(pub_assign_id, gs_name, gs_label, gs_description, species_id)
+            gs_id = assignment.create_geneset_stub(gs_name, gs_label, gs_description, species_id)
             response = flask.jsonify(gs_id=gs_id)
 
     else:
@@ -1009,18 +1160,23 @@ def get_ontology_terms(gsid):
 
     ## Format ontologies for display, only send the min. requirements
     for ont in onts:
-        o = {'reference_id': ont.reference_id, 'name': ont.name,
-             'dbname': ontdbdict[ont.ontdb_id].name }
+        o = {
+            'reference_id': ont.reference_id, 
+            'name': ont.name,
+            'dbname': ontdbdict[ont.ontdb_id].name,
+            'ontdb_id': ont.ontdb_id
+        }
 
         ontret.append(o)
 
     return ontret
 
+
 @app.route('/initOntTree')
 def init_ont_tree():
     parentdict = {}
     gs_id = request.args['gs_id']
-    gso_ref_type = request.args['universe'] # Usually 'All Reference Types'
+    gso_ref_type = request.args['universe']  # Usually 'All Reference Types'
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
 
     for ont in onts:
@@ -1049,7 +1205,7 @@ def init_ont_tree():
                 ontpath.append(node)
 
             ## Add things in reverse order because it makes things easier
-            #for p in ontpath[::-1]:
+            # for p in ontpath[::-1]:
             for i in range(len(ontpath), 0, -1):
                 i -= 1
 
@@ -1072,6 +1228,7 @@ def init_ont_tree():
 
     return json.dumps(tree)
 
+
 def doesChildExist(child, children):
     """
     Given a list of children, checks to see if a child node already exists
@@ -1082,6 +1239,7 @@ def doesChildExist(child, children):
     children = map(lambda c: c['key'], children)
 
     return child['key'] in children
+
 
 def _convertTree(parent, child):
     """
@@ -1113,13 +1271,15 @@ def _convertTree(parent, child):
 
     return parent
 
+
 def convertTree(root):
     """
     Converts a tree structure generated by mergeTreePath into the array of
     nested dicts that can be used by DynaTree on the client side of things.
 
-    :arg dict: the top level (root) node of the tree structure
-    :ret dict: formatted tree (see create_new_child_dict() for relevant fields)
+    :param root:    the top level (root) node of the tree structure
+    :return:        formatted tree (see create_new_child_dict for relevant 
+                    fields)
     """
 
     subtrees = []
@@ -1140,13 +1300,14 @@ def convertTree(root):
 
     return subtrees
 
+
 def mergeTreePath(tree, path):
     """
-    Given a tree and list of ontology nodes, adds the node list to the tree.
-    Uses ont_ids as keys. This is used to merge sections of the ontology
-    tree that may overlap. The list of nodes should be in order i.e. from
-    root -> leaf. In the returned tree, every element except the 'node' key
-    is a child of the previous node.
+    Merges a single path from an ontology tree into an existing tree structure.
+    Used to merge section of an ontology that may overlap. The list of nodes in
+    the path should be in order i.e. from root -> leaf. 
+    In the returned tree, every element except the 'node' key is a child of the 
+    previous node.
 
     :arg dict: tree structure to add the node path to
     :arg list: list of ontology nodes
@@ -1169,6 +1330,7 @@ def mergeTreePath(tree, path):
 
     return tree
 
+
 def create_new_child_dict(ontology_node, grt):
     new_child_dict = dict()
     new_child_dict["title"] = ontology_node.name
@@ -1176,7 +1338,7 @@ def create_new_child_dict(ontology_node, grt):
     new_child_dict["key"] = ontology_node.ontology_id
     new_child_dict["db"] = False
     new_child_dict["children"] = []
-    #new_child_dict["children"] = set()
+    # new_child_dict["children"] = set()
     if grt == "All Reference Types":
         new_child_dict["unselectable"] = True
     if ontology_node.children == 0:
@@ -1316,14 +1478,14 @@ def render_editgeneset_genes(gs_id, curation_view=False):
         symbol2ode = None
 
     return flask.render_template(
-        'editgenesetsgenes.html', 
-        geneset=geneset, 
-        user_id=user_id, 
+        'editgenesetsgenes.html',
+        geneset=geneset,
+        user_id=user_id,
         species=species,
-        gidts=gidts, 
-        pidts=pidts, 
-        view=view, 
-        meta=meta, 
+        gidts=gidts,
+        pidts=pidts,
+        view=view,
+        meta=meta,
         ontology=ontology,
         id_map=symbol2ode,
         curation_view=curation_view
@@ -1409,12 +1571,12 @@ def update_project_groups():
         proj_id = request.args['proj_id']
 
         if json.loads(request.args['groups']) != '':
-            groups = (json.loads(request.args['groups'])) 
-        else: 
+            groups = (json.loads(request.args['groups']))
+        else:
             groups = '-1'
 
-        if geneweaverdb.get_user(user_id).is_admin != 'False' or\
-           geneweaverdb.user_is_project_owner(user_id, proj_id):
+        if geneweaverdb.get_user(user_id).is_admin != 'False' or \
+                geneweaverdb.user_is_project_owner(user_id, proj_id):
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
@@ -1552,6 +1714,7 @@ def render_login_error():
 def render_forgotpass():
     return flask.render_template('resetpassword.html')
 
+
 @app.route('/downloadResult', methods=['POST'])
 def download_result():
     """
@@ -1595,6 +1758,7 @@ def download_result():
         imgout = svgout
 
     return imgout.getvalue().encode('base64')
+
 
 @app.route('/viewStoredResults', methods=['GET'])
 def viewStoredResults_by_runhash():
@@ -1647,9 +1811,22 @@ def viewStoredResults_by_runhash():
             task_id=runhash
         )
 
+    elif results['res_tool'] == 'MSET':
+        return flask.url_for(
+            msetblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
+    elif results['res_tool'] == 'UpSet':
+        return flask.url_for(
+            upsetblueprint.TOOL_CLASSNAME + '.view_result',
+            task_id=runhash
+        )
+
     else:
         ## Something bad has happened
         return ''
+
 
 @app.route('/reruntool.json', methods=['POST', 'GET'])
 def rerun_tool():
@@ -1846,7 +2023,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                                  curation_assignment=curation_assignment,
                                  curator_info=curator_info)
 
-
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
 def render_viewgenesetoverlap(gs_ids):
     """
@@ -1938,12 +2114,12 @@ def render_viewgenesetoverlap(gs_ids):
 
     ## Sort by the # of genes in the intersection
     intersects = sorted(intersects, key=lambda i: i['intersect_count'],
-            reverse=True)
+                        reverse=True)
 
     if user_id != 0:
-        if user_info.is_admin or\
-           user_info.is_curator:
-            view = 'True' 
+        if user_info.is_admin or \
+                user_info.is_curator:
+            view = 'True'
 
         else:
             view = None
@@ -2022,22 +2198,22 @@ def render_viewgenesetoverlap(gs_ids):
 
 
     ## TODO: fix emphasis genes
-    #emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    # emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
 
-    #for row in emphgenes:
+    # for row in emphgenes:
     #    emphgeneids.append(str(row['ode_gene_id']))
 
     ## variables to hole if a geneset has an emphasis gene
-    #inGeneset1 = False
-    #inGeneset2 = False
+    # inGeneset1 = False
+    # inGeneset2 = False
 
     ## Check to see if an emphasis gene is in one of the genesets
-    #for gene in emphgeneids:
+    # for gene in emphgeneids:
     #    inGeneset1 = geneweaverdb.check_emphasis(gs_id, gene)
     #    if inGeneset1 == True:
     #        break
 
-    #for gene in emphgeneids:
+    # for gene in emphgeneids:
     #    inGeneset2 = geneweaverdb.check_emphasis(gs_id1, gene)
     #    if inGeneset2 == True:
     #        break
@@ -2188,7 +2364,9 @@ def render_group_tasks(group_id):
             {'name': 'task_type'},
             {'name': 'updated'},
             {'name': 'task_status'},
-            {'name': 'reviewer'}
+            {'name': 'reviewer'},
+            {'name': 'pubmedid'},
+            {'name': 'geneset_count'}
         ]
         headerCols = ["Assignee Name",
                       "Task ID",
@@ -2196,7 +2374,9 @@ def render_group_tasks(group_id):
                       "Task Type",
                       "Updated",
                       "Status",
-                      "Reviewer"]
+                      "Reviewer",
+                      "Pub Assignment",
+                      "# GeneSets"]
 
         groups_member = geneweaverdb.get_all_member_groups(user_id)
         groups_owner  = geneweaverdb.get_all_owned_groups(user_id)
@@ -2225,8 +2405,8 @@ def render_group_tasks(group_id):
 
     return flask.render_template(
         'groupTasks.html',
-        headerCols=headerCols, 
-        user_id=user_id, 
+        headerCols=headerCols,
+        user_id=user_id,
         columns=columns,
         group=group,
         group_owner=group_owner,
@@ -2326,7 +2506,8 @@ def render_sim_genesets(gs_id, grp_by):
     # This is the bit for the bar chart
     i = 1
     for k in simgs:
-        d3BarChart.append({'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': k.abbreviation.encode('utf-8')})
+        d3BarChart.append(
+            {'x': i, 'y': float(k.jac_value), 'gsid': int(k.geneset_id), 'abr': k.abbreviation.encode('utf-8')})
         i += 1
     d3Data.extend([tier1, tier2, tier3, tier4, tier5])
     json.dumps(d3Data, default=decimal_default)
@@ -2339,13 +2520,13 @@ def render_sim_genesets(gs_id, grp_by):
         species.append([sp_id, sp_name])
 
     return flask.render_template(
-        'similargenesets.html', 
-        geneset=geneset, 
-        user_id=user_id, 
-        gs_id=gs_id, 
+        'similargenesets.html',
+        geneset=geneset,
+        user_id=user_id,
+        gs_id=gs_id,
         simgs=simgs,
-        d3Data=d3Data, 
-        max=max, 
+        d3Data=d3Data,
+        max=max,
         d3BarChart=d3BarChart,
         species=species
     )
@@ -2558,6 +2739,7 @@ def deemphasize(rm_gene):
     user_id = flask.session['user_id']
     return str(geneweaverdb.delete_usr2gene_by_user_and_gene(user_id, rm_gene))
 
+
 @app.route('/search/')
 def render_searchFromHome():
     """
@@ -2607,10 +2789,10 @@ def render_searchFromHome():
 
     # Perform a search
     search_values = search.keyword_paginated_search(
-        terms, 
+        terms,
         pagination_page,
         search_fields,
-        default_filters, 
+        default_filters,
         sortby
     )
 
@@ -2620,7 +2802,7 @@ def render_searchFromHome():
 
     if (search_values['STATUS'] == 'NO MATCHES'):
         return flask.render_template('search.html', paginationValues=None,
-                noResults=True)
+                                     noResults=True)
 
     ## Used to dynamically generate species tags
     species = geneweaverdb.get_all_species()
@@ -2976,6 +3158,7 @@ def date_handler(obj):
 def render_manage():
     return flask.render_template('mygenesets.html')
 
+
 # This function should be deprecated
 @app.route('/share_projects.html')
 def render_share_projects():
@@ -3197,6 +3380,7 @@ def render_funding():
 def render_datasharing():
     return flask.render_template('datasharing.html')
 
+
 @app.route('/datasources')
 def render_datasources():
     attribs = geneweaverdb.get_all_attributions()
@@ -3204,10 +3388,11 @@ def render_datasources():
     attcounts = {}
     for at_id, at_abbrev in attribs.items():
         attlist.append(at_abbrev)
-        #attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
+        # attcounts.append(geneweaverdb.get_attributed_genesets(at_id, at_abbrev))
         attcounts[at_abbrev] = geneweaverdb.get_attributed_genesets(at_id, at_abbrev)
 
     return flask.render_template('datasources.html', attributions=attlist, attcounts=attcounts)
+
 
 @app.route('/privacy')
 def render_privacy():
@@ -3268,12 +3453,14 @@ def generate_api_key():
     geneweaverdb.generate_api_key(flask.session.get('user_id'))
     return flask.redirect('accountsettings')
 
+
 @app.route('/index.html', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def render_home():
     news_array = geneweaverdb.get_news()
     stats = geneweaverdb.get_stats()
     return flask.render_template('index.html', news_array=news_array, stats=stats)
+
 
 @app.route('/register_submit.html', methods=['GET', 'POST'])
 def json_register_successful():
@@ -3333,6 +3520,7 @@ def json_register_successful():
     flask.g.user = user
 
     return render_home()
+
 
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def add_geneset_to_project(project_id, geneset_id):
@@ -3408,8 +3596,8 @@ def message_group_json():
 
         if group_id in [g.grp_id for g in geneweaverdb.get_groups_owned_by_user(user_id)]:
             try:
-                subject = bleach.clean(request.form['subject'])
-                message = bleach.clean(request.form['message'])
+                subject = bleach.clean(request.form['subject'], strip=True)
+                message = bleach.clean(request.form['message'], strip=True)
                 if len(subject) < 1 or len(message) < 1:
                     raise KeyError
 
@@ -3439,8 +3627,8 @@ def message_all_json():
 
         if geneweaverdb.get_user(user_id).is_admin:
             try:
-                subject = bleach.clean(request.form['subject'])
-                message = bleach.clean(request.form['message'])
+                subject = bleach.clean(request.form['subject'], strip=True)
+                message = bleach.clean(request.form['message'], strip=True)
                 notifications.send_all_users_notification(subject, message)
                 response = flask.jsonify(success=True)
 
@@ -3684,6 +3872,27 @@ class ToolBooleanAlgebraProjects(restful.Resource):
         genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
         return booleanalgebrablueprint.run_tool_api(apikey, relation, genesets)
 
+class ToolUpSet(restful.Resource):
+    def get(self, apikey, homology, genesets, zeros):
+        return upsetblueprint.run_tool_api(apikey, homology, genesets, zeros)
+
+
+class ToolUpSetProjects(restful.Resource):
+    def get(self, apikey, homology, projects, zeros):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return upsetblueprint.run_tool_api(apikey, homology, genesets, zeros)
+
+
+class ToolMSET(restful.Resource):
+    def get(self, apikey, homology, numberOfSamples, genesets):
+        return msetblueprint.run_tool_api(apikey, homology, numberOfSamples, genesets)
+
+
+class ToolMSETProjects(restful.Resource):
+    def get(self, apikey, homology, numberOfSamples, projects):
+        genesets = geneweaverdb.get_genesets_by_projects(apikey, projects)
+        return msetblueprint.run_tool_api(apikey, homology, numberOfSamples, genesets)
+
 
 class KeywordSearchGuest(restful.Resource):
     def get(self, apikey, search_term):
@@ -3753,6 +3962,15 @@ api.add_resource(ToolPhenomeMapProjects,
 
 api.add_resource(ToolBooleanAlgebra, '/api/tool/booleanalgebra/<apikey>/<relation>/<genesets>/')
 api.add_resource(ToolBooleanAlgebraProjects, '/api/tool/booleanalgebra/byprojects/<apikey>/<relation>/<projects>/')
+
+api.add_resource(ToolMSET, '/api/tool/mset/<apikey>/<homology>/<method>/<genesets>/')
+api.add_resource(ToolMSETProjects,
+                 '/api/tool/mset/byprojects/<apikey>/<homology>/<method>/<projects>/')
+
+api.add_resource(ToolUpSet,
+                 '/api/tool/upset/<apikey>/<homology>/<zeros>/<genesets>/')
+api.add_resource(ToolUpSetProjects,
+                 '/api/tool/upset/byprojects/<apikey>/<homology>/<zeros>/<projects>/')
 
 # ********************************************
 # END API BLOCK

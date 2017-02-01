@@ -4,12 +4,14 @@ import pub_assignments
 import re
 import urllib
 import urllib2
+import xml.etree.ElementTree as ET
 
 PUBMED_SEARCH_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&usehistory=y'
 PUBMED_DATA_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s&retmode=xml'
 TO_MONTH_NAME = {
-    '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
-    '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
+    '1': 'Jan', '01': 'Jan', '2': 'Feb', '02': 'Feb', '3': 'Mar', '03': 'Mar', '4': 'Apr', '04': 'Apr',
+    '5': 'May', '05': 'May', '6': 'Jun','06': 'Jun', '7': 'Jul', '07': 'Jul', '8': 'Aug', '08': 'Aug',
+    '9': 'Sep', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
 }
 
 
@@ -62,12 +64,9 @@ class PublicationGenerator(object):
         """
         with geneweaverdb.PooledCursor() as cursor:
 
-            cursor.execute("SELECT * FROM gwcuration.stubgenerators WHERE stubgenid=%s;",
-                           (generator_id,))
-
-            generators = [PublicationGenerator(**row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
-
-            return generators[0] if generators[0] else None
+            cursor.execute("SELECT * FROM gwcuration.stubgenerators WHERE stubgenid=%s;", (generator_id,))
+            rows = geneweaverdb.dictify_cursor(cursor)
+            return PublicationGenerator(**next(rows)) if rows else None
 
     def save(self):
         """
@@ -89,8 +88,8 @@ class PublicationGenerator(object):
                                (self.name, self.grp_id, self.usr_id))
                 self.stubgenid = cursor.fetchone()[0]
             else:
-                cursor.execute('UPDATE gwcuration.stubgenerators SET querystring = %s WHERE stubgenid = %s',
-                               (self.stubgenid,))
+                cursor.execute('UPDATE gwcuration.stubgenerators SET name = %s, querystring = %s, grp_id = %s WHERE stubgenid = %s',
+                               (self.name, self.querystring, self.grp_id, self.stubgenid,))
                 cursor.connection.commit()
 
     def run(self):
@@ -111,6 +110,7 @@ class PublicationGenerator(object):
         # PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&usehistory=y&query_key=%s&WebEnv=%s'
         # Allow HTTPError from communication problems with PubMed to get propogated up
         try:
+            pubmed_query = PUBMED_DATA_URL % (query_key, web_env)
             response = urllib2.urlopen(PUBMED_DATA_URL % (query_key, web_env)).read()
         except urllib2.HTTPError as e:
             print("Problem communicating with PubMed. {}".format(e.message))
@@ -176,17 +176,15 @@ def list_generators(user_id, groups):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT DISTINCT stubgenid, sg.name as name, querystring, to_char(last_update, 'YYYY-MM-DD') as last_update, g.grp_id as grp_id, grp_name
-            FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
-            ON sg.grp_id = g.grp_id
-            WHERE usr_id=%s OR sg.grp_id=ANY(%s)
-            ORDER BY sg.name, grp_name
-            ''',
-            (str(user_id), '{' + ','.join(groups) + '}')
+                        SELECT DISTINCT stubgenid, sg.name as name, querystring, sg.usr_id,
+                        to_char(last_update, 'YYYY-MM-DD') as last_update, sg.grp_id as grp_id, grp_name, LOWER(name)
+                        FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
+                        ON sg.grp_id = g.grp_id
+                        WHERE usr_id=%s OR sg.grp_id=ANY(%s)
+                        ORDER BY LOWER(name), grp_name
+                        ''', (str(user_id), '{' + ','.join(groups) + '}')
         )
-
         generators = [PublicationGenerator(**row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
-
     return generators
 
 
@@ -217,16 +215,15 @@ def _process_pubmed_response(response):
     marked as such.  Additional supporting information about that publication (group and user it is assigned to) will
     be included with the result.
 
-    NOTE:  This is adapted from curation_server._process_pubmed_response, as written by Jeremy Jay.  I kept his code
-    mostly intact (with the exception of some format cleanup), and then altered the code where relevant for our
-    new workflow.
-
     :param response:  The PubMed result response received for the given query associated with a PublicationGenerator
     :return:  A list of GeneratedPublication objects.  GeneratedPublication is not persisted in the database.  However,
               they may have an associated PubAssignment if they have already been assigned to a group and/or curator,
               in which case they are persisted as a publication entry and a pub_assignment entry in the database.
     """
+    # Get the XML Object from the pubmed response
+    root = ET.fromstring(response)
     pubmed_results = []
+    # Timing code is for future performance tuning
     import time
     start = time.time()
     last = start
@@ -234,49 +231,84 @@ def _process_pubmed_response(response):
     total_db = 0
     total_append = 0
     count = 0
-    for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
+    # Pubmed document is received as a list of PubmedArticle or PubmedBookArticle elements
+    for child in root:
         ++count
         last = time.time()
         article_ids = {}
         abstract = ''
         fulltext_link = None
 
-        article = match.group(1)
-        article_id_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>', article, re.S)
-        abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>', article, re.S)
-        article_title = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>', article, re.S).group(1).strip()
+        # Default element type for a journal article is a MedlineCitation
+        citation = child.find('MedlineCitation')
+        if citation is not None:
+            article = citation.find('Article')
+            article_title = article.find('ArticleTitle').text
+            pubmed_data = child.find('PubmedData')
+            article_id_list = pubmed_data.find('ArticleIdList')
+            journal = citation.find('MedlineJournalInfo').find('MedlineTA').text
 
-        for amatch in article_id_matches:
-            article_ids[amatch.group(1).strip()] = amatch.group(2).strip()
-        for amatch in abstract_matches:
-            abstract += amatch.group(2).strip() + ' '
+            year = article.find('Journal').find('JournalIssue').find('PubDate').find('Year')
+            pub_year = year.text if year is not None else ''
 
-        if 'pmc' in article_ids:
-            fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
-        elif 'doi' in article_ids:
-            fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
-        pmid = article_ids['pubmed'].strip()
+            month = article.find('Journal').find('JournalIssue').find('PubDate').find('Month')
+            pm = month.text if month is not None else ''
+            if pm in TO_MONTH_NAME:
+                pm = TO_MONTH_NAME[pm]
+        else:
+            # Not a journal article, check to see if it's a book...
+            citation = child.find('BookDocument')
+            if citation is not None:
+                article = citation.find('Book')
+                article_title = "Book: " + article.find('BookTitle').text if article.find('BookTitle') is not None else 'Book:'
+                article_id_list = citation.find('ArticleIdList')
+                # for journal we'll take the Book Title
+                journal = article.find('Publisher').find('PublisherName').text
 
-        author_matches = re.finditer('<Author [^>]*>(.*?)</Author>', article, re.S)
+                pub_date = article.find('PubDate')
+                pub_year = pub_date.find('Year').text if pub_date.find('Year') is not None else ''
+                pm = pub_date.find('Month').text if pub_date.find('Month') is not None else ''
+                if pm in TO_MONTH_NAME:
+                    pm = TO_MONTH_NAME[pm]
+
+                # All remaining items that were under article for a Journal are actually under the "citation" for a book
+                article = citation
+            else:
+                # Unknown child type
+                print("Could not process citation {} skipping".format(child.tag))
+                continue
+
+        pmid = citation.find('PMID').text
+
+        # Iterate through list to get info for what to include for a link back to pub
+        if article_id_list is not None:
+            for id_element in article_id_list:
+                article_ids[id_element.get('IdType')] = id_element.text
+            if 'pmc' in article_ids:
+                fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
+            elif 'doi' in article_ids:
+                fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
+
+        # Many abstracts come in multiple parts.  Iterate through and stitch them together
+        abstract_text_list = article.find('Abstract')
+        if abstract_text_list is not None:
+            for abstract_element in abstract_text_list:
+                if abstract_element.tag == 'AbstractText':
+                    if abstract_element.text:
+                        abstract += abstract_element.text
+
         authors = []
-        for author_match in author_matches:
-            name = ''
-            try:
-                name = re.search('<LastName>([^<]*)</LastName>', author_match.group(1), re.S).group(1).strip()
-                name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', author_match.group(1), re.S).group(1).strip()
-            except:
-                pass
-            authors.append(name)
+        author_list = article.find('AuthorList')
+        if author_list is not None:
+            for author_element in author_list:
+                name = author_element.find('LastName').text if author_element.find('LastName') is not None else ''
+                initials = author_element.find('Initials')
+                if initials is not None:
+                    name += ' ' + initials.text
+                if name:
+                    authors.append(name)
 
         authors = ', '.join(authors)
-
-        journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
-
-        pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
-        pm = pubdate.group(2).strip()
-        if pm in TO_MONTH_NAME:
-            pm = TO_MONTH_NAME[pm]
-        pub_year = pubdate.group(1).strip()
 
         new_time = time.time()
         total_parse += new_time - last
