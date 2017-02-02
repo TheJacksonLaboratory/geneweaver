@@ -608,15 +608,18 @@ def mark_geneset_reviewed():
     return response
 
 
-@app.route('/publication_assignment')
-def render_assign_publication():
+@app.route('/publication_assignment', defaults={'group_id': None})
+@app.route('/publication_assignment/<int:group_id>')
+def render_assign_publication(group_id):
     my_groups = []
     generators = []
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
-
-        generators = publication_generator.list_generators(user_id, [str(group['grp_id']) for group in my_groups])
+        if group_id:
+            generators = publication_generator.list_generators(user_id, [str(group_id)])
+        else:
+            generators = publication_generator.list_generators(user_id, [str(group['grp_id']) for group in my_groups])
 
     return flask.render_template('publication_assignment.html',
                                  myGroups=my_groups,
