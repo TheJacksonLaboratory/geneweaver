@@ -24,4 +24,9 @@
             {% endif %}
             GS{{ geneset.geneset_id }} &bull; {{ geneset.name }}
 		</h3>
+		<h4>
+	    {% if geneset.pub_assign_id %}
+	    	from Publication Assignment: <a href="{{ url_for('render_pub_assignment', assignment_id=geneset.pub_assign_id) }}"> {{ geneset.pub_assign_id }} </a>
+	    {% endif %}
+		</h4>
     </div>
