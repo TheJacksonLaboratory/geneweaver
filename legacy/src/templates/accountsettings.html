@@ -413,8 +413,11 @@
         });
 
         $('#createGroupButton').on('click', function () {
-            var groupName = $("#groupCreate").val();
-            //var isPrivate = $("#groupPrivate").val();
+
+            // In the case that the user includes "/" in the group name, it requires a double encode
+            // to avoid a 404 error.
+            // The server side will need to decode this to get back the "/"
+            var groupName = encodeURIComponent(encodeURIComponent($("#groupCreate").val()));
             var isPrivate = 'Public';
             if ($("#groupPrivate").is(':checked')) {
                 isPrivate = 'Private';

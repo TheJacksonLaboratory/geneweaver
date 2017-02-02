@@ -174,7 +174,7 @@ def fetch_monarch_annotations(text):
     ## is handled three times.
     for attempt in range(3):
         try:
-            req = url2.Request(MONARCH_ANNOTATOR, params)
+            req = url2.Request(MONARCH_ANNOTATOR + '?' + params)
             res = url2.urlopen(req)
             res = res.read()
 
