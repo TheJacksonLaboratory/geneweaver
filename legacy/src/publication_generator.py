@@ -252,11 +252,8 @@ class PubmedResult(object):
             # Many abstracts come in multiple parts.  Iterate through and stitch them together
             abstract_text_list = article.find('Abstract')
             if abstract_text_list is not None:
-                for abstract_element in abstract_text_list:
-                    if abstract_element.tag == 'AbstractText':
-                        if abstract_element.text:
-                            abstract += abstract_element.text
-
+                abstract += ''.join([abstract_element.text for abstract_element in abstract_text_list
+                                     if abstract_element.tag == 'AbstractText' and abstract_element.text])
             authors = []
             author_list = article.find('AuthorList')
             if author_list is not None:
