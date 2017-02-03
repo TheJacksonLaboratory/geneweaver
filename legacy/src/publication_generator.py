@@ -188,6 +188,29 @@ def list_generators(user_id, groups):
     return generators
 
 
+def list_generators_by_group(groups):
+    """
+    For a group or list of groups return all of the associated publication generators
+
+    :param groups:   A list of database generated grp_id values associated with user_id, for which there may be generators.
+    :return: An array of PublicationGenerator objects
+    """
+    generators = []
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute(
+            '''
+                        SELECT DISTINCT stubgenid, sg.name as name, querystring, sg.usr_id,
+                        to_char(last_update, 'YYYY-MM-DD') as last_update, sg.grp_id as grp_id, grp_name, LOWER(name)
+                        FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
+                        ON sg.grp_id = g.grp_id
+                        WHERE sg.grp_id IN (%s)
+                        ORDER BY LOWER(name), grp_name
+                        ''' % (','.join(groups), )
+        )
+        generators = [PublicationGenerator(**row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
+    return generators
+
+
 def delete_generator(generator):
     """
     Delete a given PublicationGenerator object from the database

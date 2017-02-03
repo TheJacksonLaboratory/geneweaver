@@ -619,9 +619,11 @@ def render_assign_publication(group_id):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
-        if group_id:
-            generators = publication_generator.list_generators(user_id, [str(group_id)])
-        else:
+
+        if group_id and group_id in (group['grp_id'] for group in my_groups):
+            generators = publication_generator.list_generators_by_group([str(group_id)])
+
+        if not group_id:
             generators = publication_generator.list_generators(user_id, [str(group['grp_id']) for group in my_groups])
 
     return flask.render_template('publication_assignment.html',
