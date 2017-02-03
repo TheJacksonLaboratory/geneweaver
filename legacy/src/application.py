@@ -1108,9 +1108,7 @@ def save_pub_assignment_note():
 def create_geneset_stub():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-        gs_name = request.form.get('gs_name')
-        gs_label = request.form.get('gs_label')
-        gs_description = request.form.get('gs_description')
+        stubs = json.loads(request.form.get('stubs'))
         pub_assign_id = request.form.get('pub_assign_id', type=int)
         species_id = request.form.get('species_id', type=int)
 
@@ -1120,8 +1118,8 @@ def create_geneset_stub():
             response = flask.jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
         else:
-            gs_id = assignment.create_geneset_stub(gs_name, gs_label, gs_description, species_id)
-            response = flask.jsonify(gs_id=gs_id)
+            gs_ids = [assignment.create_geneset_stub(stub['gs_name'], stub['gs_label'], stub['gs_description'], species_id) for stub in stubs]
+            response = flask.jsonify(gs_ids=gs_ids)
 
     else:
         # user is not logged in

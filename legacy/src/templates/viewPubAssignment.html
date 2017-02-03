@@ -192,6 +192,8 @@
     <script>
         $(document).ready(function () {
             var stub_placeholder_index = 0;
+            var modal_stub_count = 1;
+            var modal_fields = [];
 
             {% if view != 'group_member' %}
                 // no idea why this was needed, but the "Save Notes" button was
@@ -285,11 +287,7 @@
             });
 
             $('#newGeneset').on('click', function() {
-                $('#stubSubmit').attr('disabled', true).button('refresh');
-                $('#sp_id').val([]);
-                $('#name').val("");
-                $('#figureLabel').val("");
-                $('#description').val("");
+                reset_stub_modal();
                 $('#addStubModal').modal('show');
             });
 
@@ -346,10 +344,17 @@
                 }, 'json').fail(handlePostJsonError);
             });
 
-            $('#name, #figureLabel, #description, #sp_id').change(validate_form);
-
             function validate_form () {
-                if ($('#sp_id').val() && $('#name').val().length && $('#figureLabel').val().length && $('#description').val().length) {
+                var okay = true;
+
+                for (var i = 0; i < modal_fields.length; i++) {
+                    if (!$(modal_fields[i]).val()) {
+                        okay = false;
+                        break;
+                    }
+                }
+
+                if (okay) {
                     $('#stubSubmit').attr('disabled', false).button('refresh');
                 }
                 else {
@@ -357,14 +362,80 @@
                 }
             }
 
+            function reset_stub_modal() {
+
+                for (var i = 0; i < modal_fields.length; i++) {
+                    if (modal_fields[i] == '#sp_id') {
+                        $(modal_fields[i]).unbind('change');
+                    }
+                    else {
+                        $(modal_fields[i]).unbind('keyup');
+                    }
+                }
+
+                modal_fields = ['#name_1', '#figureLabel_1', '#description_1', '#sp_id'];
+                $('#sp_id').change(validate_form);
+                $('#name_1, #figureLabel_1, #description_1').keyup(validate_form);
+
+
+                $('#stubSubmit').attr('disabled', true).button('refresh');
+
+                $('#name_1').val("");
+                $('#figureLabel_1').val("");
+                $('#description_1').val("");
+                $('#sp_id').val([]);
+
+                $('#newRowContainer').html("");
+            }
+
+            $('#addStubRow').on('click', function () {
+
+                $('#stubSubmit').attr('disabled', true).button('refresh');
+
+                modal_stub_count++;
+
+                html = '<div class="row" style="padding-top: 10px" id="stubRow_' + modal_stub_count + '">' +
+                       '    <div class="col-md-3"><input' +
+                       '             class="form-control" name="name_' + modal_stub_count + '"' +
+                       '             id="name_' + modal_stub_count +'" type="text" required></div>' +
+                       '     <div class="col-md-3"><input' +
+                       '            class="form-control"' +
+                       '            name="figureLabel_' + modal_stub_count + '" id="figureLabel_' + modal_stub_count + '"' +
+                       '             type="text" required></div>' +
+                       '     <div class="col-md-6"><textarea' +
+                       '             class="form-control" name="description_'+ modal_stub_count + '"' +
+                       '             id="description_' + modal_stub_count + '"' +
+                       '             form="addStub" rows="1" cols="40"' +
+                       '             required></textarea></div>' +
+                       ' </div>';
+
+                $('#newRowContainer').append(html);
+                modal_fields.push('#name_' + modal_stub_count);
+                modal_fields.push('#figureLabel_' + modal_stub_count);
+                modal_fields.push('#description_' + modal_stub_count);
+
+                $('#name_' + modal_stub_count).keyup(validate_form);
+                $('#figureLabel_' + modal_stub_count).keyup(validate_form);
+                $('#description_' + modal_stub_count).keyup(validate_form);
+
+
+
+            });
+
             $('#stubSubmit').on('click', function () {
                 var params = {
                     pub_assign_id: {{ assignment.id }},
-                    gs_name: $('#name').val(),
-                    gs_label: $('#figureLabel').val(),
-                    gs_description: $('#description').val(),
-                    species_id: $('#sp_id').val()
+                    species_id: $('#sp_id').val(),
+                    stubs: []
                 };
+
+                var stubs = [];
+
+                for (var i = 1; i <= modal_stub_count; i++) {
+                    stubs.push({gs_name: $('#name_' + i).val(), gs_label: $('#figureLabel_' + i).val(), gs_description: $('#description_' + i).val()})
+                }
+
+                params.stubs = JSON.stringify(stubs);
 
                 {#
                     create a placeholder in the list of genesets. Creating the
@@ -379,7 +450,14 @@
                 $('#geneset_panel').append('<div id="stub_' + stub_index + '">loading...</div>')
 
                 $.post("{{ url_for('create_geneset_stub') }}", params, function (data) {
-                    $('#stub_' + stub_index).html('<p><a href="/viewgenesetdetails/' + data.gs_id +'">GS' + data.gs_id + '</a>: ' + params.gs_name + '</p><p style="padding-left: 10px">' + params.gs_description + '</p>');
+
+                    var html = "";
+
+                    for (var i = 0; i < data.gs_ids.length; i++) {
+                        html = html + '<p><a href="/viewgenesetdetails/' + data.gs_ids[i] +'">GS' + data.gs_ids[i] + '</a>: ' + stubs[i].gs_name + '</p><p style="padding-left: 10px">' + stubs[i].gs_description + '</p>'
+                    }
+
+                    $('#stub_' + stub_index).html(html);
                 }, 'json').fail(handlePostJsonError);
 
             });
