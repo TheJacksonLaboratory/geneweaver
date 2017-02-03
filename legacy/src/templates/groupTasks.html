@@ -188,9 +188,14 @@
                             <h3><label id="group_name">{{ group.grp_name }}</label>
                                     <label hidden id="group_private" class="label label-danger">Private</label>
                                     <label hidden id="group_public" class="label label-info">Public</label>
-                                {% if group_owner == true %}
-                                    <span type="button" class="btn btn-primary pull-right" id="assignCurator"><i class="fa fa-user pull-right"></i> Assign Curator</span>
-                                {% endif %}
+				    <div class="btn-toolbar" role="toolbar">
+				    {% if group_owner == true %}
+					<span type="button" class="btn btn-primary pull-right" id="assignCurator">
+						<i class="fa fa-user pull-right"></i>Assign Curator</span>
+				    {% endif %}
+					<a href="{{ url_for('render_assign_publication', group_id=group.grp_id) }}" class="btn btn-primary pull-right" id="addPublication">
+						<i class="fa fa-book pull-right"></i>Add Publications</a>
+				    </div>
                             </h3>
                         </div>
 
