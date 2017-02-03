@@ -1100,9 +1100,7 @@ def create_geneset_stub():
             response = flask.jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
         else:
-            gs_ids = []
-            for stub in stubs:
-                gs_ids.append(assignment.create_geneset_stub(stub['gs_name'], stub['gs_label'], stub['gs_description'], species_id))
+            gs_ids = [assignment.create_geneset_stub(stub['gs_name'], stub['gs_label'], stub['gs_description'], species_id) for stub in stubs]
             response = flask.jsonify(gs_ids=gs_ids)
 
     else:
