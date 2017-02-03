@@ -83,7 +83,7 @@ class PubAssignment(object):
 
         # Send notification to curator
         subject = "Publication Assigned To You For Review"
-        message = "View Assignment: <i>" + get_pub_assignment_url(self.get_url()) + '</i><br>' + notes
+        message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
         notifications.send_usr_notification(assignee_id, subject, message)
 
         self.notes = notes
