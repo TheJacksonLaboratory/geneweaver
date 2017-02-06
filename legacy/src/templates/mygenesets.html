@@ -180,14 +180,18 @@
         spname = spname.split(' ');
 
         // Mus musculus and Macaca mulatta have the same abbreviation
-        if (spname[1].slice(0, 3) == 'mul')
+        if (! spname[1])
+            spname = ""
+        else if (spname[1].slice(0, 3) == 'mul')
             spname = spname[0][0].toUpperCase() + '.' + 'mul' + '.';
         else
             spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
 
-        var tag = '<span class="group_name" style="background-color:' + colors[spid] +
-                '; border:1px solid ' + borders[spid] + '">' +
-                spname + '</span>';
+        var tag = ""
+        if (spname != "")
+            tag = '<span class="group_name" style="background-color:' + colors[spid] +
+                    '; border:1px solid ' + borders[spid] + '">' +
+                    spname + '</span>';
 
         return tag;
     };
