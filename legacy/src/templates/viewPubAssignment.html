@@ -237,7 +237,7 @@
 
 
                 for (var i = 0; i < fields_to_validate.length; i++) {
-                    if ($.inArray(fields_to_validate[i], original_fields) != -1) {
+                    if ($.inArray(fields_to_validate[i], original_fields) == -1) {
                         $(fields_to_validate[i]).unbind('keyup');
                     }
                 }
