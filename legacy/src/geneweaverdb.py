@@ -2571,6 +2571,12 @@ class Geneset:
                 self.publication = None
         else:
             self.publication = None
+
+        try:
+            self.pub_assign_id = gs_dict['pub_assign_id']
+        except KeyError:
+            self.pub_assign_id = None
+
         self.res_id = gs_dict['res_id']
         self.cur_id = gs_dict['cur_id']
         self.description = gs_dict['gs_description']
@@ -2872,10 +2878,11 @@ def get_geneset(geneset_id, user_id=None, temp=None):
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
-            SELECT geneset.*, curation_assignments.curation_group, publication.*
+            SELECT geneset.*, curation_assignments.curation_group, publication.*, gs_to_pub_assignment.pub_assign_id
             FROM geneset
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
+            LEFT OUTER JOIN gs_to_pub_assignment ON geneset.gs_id = gs_to_pub_assignment.gs_id
             WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
             ''',
                 {
