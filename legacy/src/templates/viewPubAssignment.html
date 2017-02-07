@@ -1,6 +1,12 @@
 {% set title="Publication Assignment" %}
 {% include 'header.html' %}
 
+<style>
+    .clickable_delete {
+        cursor: pointer;
+    }
+</style>
+
 {% if g.user.user_id == 0 %}
     {% include 'htmlfragments/permissionError.html' %}
 {% elif view == 'no_access' %}
@@ -192,8 +198,75 @@
     <script>
         $(document).ready(function () {
             var stub_placeholder_index = 0;
-            var modal_stub_count = 1;
-            var modal_fields = [];
+            var modal_stub_index = 0;
+            var original_fields = ['#name_0', '#figureLabel_0', '#description_0', '#sp_id'];
+            var fields_to_validate = [];
+            var deleted_rows = [];
+
+            function validate_form () {
+                var okay = true;
+
+                for (var i = 0; i < fields_to_validate.length; i++) {
+                    if (!$(fields_to_validate[i]).val()) {
+                        // if any required fields are blank, set status and break
+                        okay = false;
+                        break;
+                    }
+                }
+
+                if (okay) {
+                    $('#stubSubmit').attr('disabled', false).button('refresh');
+                }
+                else {
+                    $('#stubSubmit').attr('disabled', true).button('refresh');
+                }
+            }
+
+            $('#sp_id').change(validate_form);
+            $('#name_0, #figureLabel_0, #description_0').keyup(validate_form);
+
+            function reset_stub_modal() {
+
+                /*
+                  reset the genset stub modal to virgin state
+                  : only one row of empty fields
+                  : removes existing even handlers bound to rows we are about to
+                  delete
+                  :
+                 */
+
+
+                for (var i = 0; i < fields_to_validate.length; i++) {
+                    if ($.inArray(fields_to_validate[i], original_fields) == -1) {
+                        $(fields_to_validate[i]).unbind('keyup');
+                    }
+                }
+
+                fields_to_validate = original_fields;
+
+                $('#stubSubmit').attr('disabled', true).button('refresh');
+
+                $('#name_0').val("");
+                $('#figureLabel_0').val("");
+                $('#description_0').val("");
+                $('#sp_id').val([]);
+
+
+
+                // unbind all of the on click handlers for any delete row
+                // buttons left on the form. loop starts at 1 because the
+                // first row does not have a delete button
+                for (var i = 1; i <= modal_stub_index; i++) {
+                    if ($.inArray(i, deleted_rows) == -1) {
+                        $('#deleteRow_' + i).unbind('click');
+                    }
+                }
+
+                $('#newRowContainer').html("");
+
+                modal_stub_index = 0;
+                deleted_rows = [];
+            }
 
             {% if view != 'group_member' %}
                 // no idea why this was needed, but the "Save Notes" button was
@@ -226,6 +299,38 @@
                         'priority': 'danger'
                     }
                 ]);
+            }
+
+            /*
+            event handler for row delete button click
+             */
+            function delete_click() {
+
+                var row = ($(this).attr("data-row"));
+                deleted_rows.push(parseInt(row));
+                $('#deleteRow_' + row).unbind('click');
+
+                var fields = ['#name_', '#figureLabel_', '#description_'];
+
+                for (var i = 0; i < fields.length; i++) {
+                    var id_string = fields[i] + row;
+                    $(id_string).unbind('keyup');
+
+                    /* remove the id string from the list of modal fields
+                       to validate
+                    */
+                    var index = fields_to_validate.indexOf(id_string);
+                    if (index > -1) {
+                        fields_to_validate.splice(index, 1);
+                    }
+                }
+
+                $("#stubRow_" + row).remove();
+
+                // force the validate form function to run, if we deleted
+                // the only invalid row we want to enable to submit button
+                validate_form();
+
             }
 
             $('#assignToCurator').on('click', function() {
@@ -344,81 +449,47 @@
                 }, 'json').fail(handlePostJsonError);
             });
 
-            function validate_form () {
-                var okay = true;
-
-                for (var i = 0; i < modal_fields.length; i++) {
-                    if (!$(modal_fields[i]).val()) {
-                        okay = false;
-                        break;
-                    }
-                }
-
-                if (okay) {
-                    $('#stubSubmit').attr('disabled', false).button('refresh');
-                }
-                else {
-                    $('#stubSubmit').attr('disabled', true).button('refresh');
-                }
-            }
-
-            function reset_stub_modal() {
-
-                for (var i = 0; i < modal_fields.length; i++) {
-                    if (modal_fields[i] == '#sp_id') {
-                        $(modal_fields[i]).unbind('change');
-                    }
-                    else {
-                        $(modal_fields[i]).unbind('keyup');
-                    }
-                }
-
-                modal_fields = ['#name_1', '#figureLabel_1', '#description_1', '#sp_id'];
-                $('#sp_id').change(validate_form);
-                $('#name_1, #figureLabel_1, #description_1').keyup(validate_form);
-
-
-                $('#stubSubmit').attr('disabled', true).button('refresh');
-
-                $('#name_1').val("");
-                $('#figureLabel_1').val("");
-                $('#description_1').val("");
-                $('#sp_id').val([]);
-
-                $('#newRowContainer').html("");
-            }
 
             $('#addStubRow').on('click', function () {
 
                 $('#stubSubmit').attr('disabled', true).button('refresh');
 
-                modal_stub_count++;
+                // need to increment index (current value is index of last row
+                // added to window)
+                modal_stub_index++;
 
-                html = '<div class="row" style="padding-top: 10px" id="stubRow_' + modal_stub_count + '">' +
+                html = '<div class="row" style="padding-top: 10px" id="stubRow_' + modal_stub_index + '">' +
                        '    <div class="col-md-3"><input' +
-                       '             class="form-control" name="name_' + modal_stub_count + '"' +
-                       '             id="name_' + modal_stub_count +'" type="text" required></div>' +
+                       '             class="form-control" name="name_' + modal_stub_index + '"' +
+                       '             id="name_' + modal_stub_index +'" type="text" required></div>' +
                        '     <div class="col-md-3"><input' +
                        '            class="form-control"' +
-                       '            name="figureLabel_' + modal_stub_count + '" id="figureLabel_' + modal_stub_count + '"' +
+                       '            name="figureLabel_' + modal_stub_index + '" id="figureLabel_' + modal_stub_index + '"' +
                        '             type="text" required></div>' +
-                       '     <div class="col-md-6"><textarea' +
-                       '             class="form-control" name="description_'+ modal_stub_count + '"' +
-                       '             id="description_' + modal_stub_count + '"' +
+                       '     <div class="col-md-5"><textarea' +
+                       '             class="form-control" name="description_'+ modal_stub_index + '"' +
+                       '             id="description_' + modal_stub_index + '"' +
                        '             form="addStub" rows="1" cols="40"' +
                        '             required></textarea></div>' +
+                       '     <div class="col-md-1">' +
+                       '          <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"' +
+                       '                data-original-title="Delete" type="button" title="Delete Row">' +
+                       '               <span class="clickable_delete" id="deleteRow_' + modal_stub_index +'"' +
+                       '                     data-row="' + modal_stub_index + '">' +
+                       '                    <i class="fa fa-trash-o"></i></span>' +
+                       '               </span></div>' +
                        ' </div>';
 
                 $('#newRowContainer').append(html);
-                modal_fields.push('#name_' + modal_stub_count);
-                modal_fields.push('#figureLabel_' + modal_stub_count);
-                modal_fields.push('#description_' + modal_stub_count);
+                fields_to_validate.push('#name_' + modal_stub_index);
+                fields_to_validate.push('#figureLabel_' + modal_stub_index);
+                fields_to_validate.push('#description_' + modal_stub_index);
 
-                $('#name_' + modal_stub_count).keyup(validate_form);
-                $('#figureLabel_' + modal_stub_count).keyup(validate_form);
-                $('#description_' + modal_stub_count).keyup(validate_form);
+                $('#name_' + modal_stub_index).keyup(validate_form);
+                $('#figureLabel_' + modal_stub_index).keyup(validate_form);
+                $('#description_' + modal_stub_index).keyup(validate_form);
 
-
+                $('#deleteRow_' + modal_stub_index).on('click', delete_click);
 
             });
 
@@ -431,8 +502,14 @@
 
                 var stubs = [];
 
-                for (var i = 1; i <= modal_stub_count; i++) {
-                    stubs.push({gs_name: $('#name_' + i).val(), gs_label: $('#figureLabel_' + i).val(), gs_description: $('#description_' + i).val()})
+                for (var i = 0; i <= modal_stub_index; i++) {
+                    if ($.inArray(i, deleted_rows) == -1) {
+                        stubs.push({
+                            gs_name: $('#name_' + i).val(),
+                            gs_label: $('#figureLabel_' + i).val(),
+                            gs_description: $('#description_' + i).val()
+                        })
+                    }
                 }
 
                 params.stubs = JSON.stringify(stubs);
