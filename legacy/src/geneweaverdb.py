@@ -479,32 +479,37 @@ def add_user_to_group(group_id, owner_id, usr_email, permission=0):
             return {'error': 'No User'}
         else:
             email_from_db = list(dictify_cursor(cursor))[0]['usr_email']
-            cursor.execute(
-                    '''
-                INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
-                VALUES ((SELECT grp_id
-                         FROM production.usr2grp
-                         WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
-                        (SELECT usr_id
-                         FROM production.usr
-                         WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
-                RETURNING grp_id;
-                ''',
-                    (group_id, owner_id, usr_email, permission,)
-            )
-            cursor.connection.commit()
-            # return the primary ID for the insert that we just performed
-            # grp_id = cursor.fetchone()[0]
+            # First check if user is already in group
+            cursor.execute('''SELECT u.usr_id FROM usr u, usr2grp ug WHERE LOWER(u.usr_email)=%s and u.usr_id = ug.usr_id''', (usr_email,))
+            if cursor.rowcount > 0:
+                return {'error': 'Already belongs to group'}
+            else:
+                cursor.execute(
+                        '''
+                    INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
+                    VALUES ((SELECT grp_id
+                             FROM production.usr2grp
+                             WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
+                            (SELECT usr_id
+                             FROM production.usr
+                             WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
+                    RETURNING grp_id;
+                    ''',
+                        (group_id, owner_id, usr_email, permission,)
+                )
+                cursor.connection.commit()
+                # return the primary ID for the insert that we just performed
+                # grp_id = cursor.fetchone()[0]
 
-            #send user a notification that they have been added to the group
+                #send user a notification that they have been added to the group
 
-            group_name = get_group_name(group_id)
-            owner = get_user(owner_id)
-            owner_name = owner.first_name + " " + owner.last_name
-            notifications.send_usr_notification(email_from_db, "Added to Group",
-                                                "You have been added to the group {} by {}".format(group_name, owner_name),
-                                                True)
-            return {'error': 'None'}
+                group_name = get_group_name(group_id)
+                owner = get_user(owner_id)
+                owner_name = owner.first_name + " " + owner.last_name
+                notifications.send_usr_notification(email_from_db, "Added to Group",
+                                                    "You have been added to the group {} by {}".format(group_name, owner_name),
+                                                    True)
+                return {'error': 'None'}
 
 
 def remove_user_from_group(group_name, owner_id, usr_email):
