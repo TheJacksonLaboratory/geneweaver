@@ -1426,11 +1426,9 @@ def get_ont_root_nodes():
 def update_geneset():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
-        result = geneweaverdb.updategeneset(user_id, flask.request.form)
-        data = dict()
-        data.update({"success": result})
-        data.update({'usr_id': user_id})
-        return json.dumps(data)
+        result = geneweaverdb.update_geneset(user_id, flask.request.form)
+        result['usr_id'] = user_id
+        return json.dumps(result)
 
 @app.route('/curategenesetgenes/<int:gs_id>')
 def render_curategenesetgenes(gs_id):
