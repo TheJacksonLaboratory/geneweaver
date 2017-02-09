@@ -604,6 +604,14 @@
                             }
                         ]);
                     }
+                    else if (v["error"] == 'Already belongs to group') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "User " + userEmail + " is already in group.",
+                                'priority': 'warning'
+                            }
+                        ]);
+                    }
                     else {
                         $(document).trigger("add-alerts", [
                             {
