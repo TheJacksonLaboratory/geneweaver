@@ -334,10 +334,28 @@
                 url: "../addGenesetsToProjects",
                 data: {"npn": npn, "gs_id": g, "option": option},
                 success: function (data) {
-                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                    var v = JSON.parse(data);
+                    if (v["error"] != 'None') {
+                        console.log("Error returned " + v['error']);
+                        $("#result").html('<div class="alert alert-danger fade in"> ' +
+                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            '</button>' + v['error'] + '</div>');
+                    } else {
+                        console.log('no error');
+                        $("#result").html('<div class="alert alert-success fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                             '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
+                    }
+
+                },
+                error: function (jqXHR, textStatus, errorThrown ) {
+
+                    $(document).trigger("add-alerts", [{
+                        'message': "An Error (" + jqXHR + ") occurred while adding geneset(s) to project(s)",
+                        'priority': 'danger'
+                    }]);
                 }
+
             });
         }
     });
