@@ -139,7 +139,7 @@ class CurationAssignment(object):
 
         # Send notification to reviewer
         subject = 'Geneset Curation Ready For Review'
-        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + note
+        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
         notifications.send_usr_notification(self.reviewer, subject, message)
 
     def review_passed(self, notes, tier):
