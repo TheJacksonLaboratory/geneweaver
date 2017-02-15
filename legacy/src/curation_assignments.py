@@ -97,7 +97,6 @@ class CurationAssignment(object):
         except KeyError:
             return "Unknown"
 
-
     def assign_curator(self, curator_id, reviewer_id, notes):
         """
         :param curator_id: id of user assigned as curator
