@@ -69,14 +69,12 @@ class CurationAssignment(object):
     def reviewer(self, value):
         self._reviewer = value
         if value and value != -1:
-            print(value)
             user = geneweaverdb.get_user(value)
             if user.is_curator or user.is_admin:
                 self.reviewer_tiers = [(3, "III"), (4, "IV"), (5, "V")]
             else:
                 self.reviewer_tiers = [(4, "IV"), (5, "V")]
 
-            print (self.reviewer_tiers)
 
     @staticmethod
     def status_to_string(status):
