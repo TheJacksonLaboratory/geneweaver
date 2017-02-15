@@ -54,7 +54,7 @@ class PubAssignment(object):
     def state_as_string(self):
         state_dict = {
             PubAssignment.UNASSIGNED: "Unassigned",
-            PubAssignment.ASSIGNED: "Assigned",
+            PubAssignment.ASSIGNED: "Assigned (in progress)",
             PubAssignment.READY_FOR_TEAM_REVIEW: "Under Review",
             PubAssignment.REVIEWED: "Complete"
         }
@@ -63,6 +63,202 @@ class PubAssignment(object):
             return state_dict[self.state]
         except KeyError:
             return "Unknown"
+
+    def assign_to_curator(self, assignee_id, assigner_id, notes):
+        """
+        :param pub_assignment_id: id of assignment record
+        :param assignee_id: id of user assigned task
+        :param assigner_id: id of group admin assigning this publication
+        :param note: message that will be sent to the assignee
+        :return:
+        """
+        state = self.ASSIGNED
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                'UPDATE production.pub_assignments SET assignee=%s, assigner=%s, assignment_state=%s, notes=%s, updated=now() WHERE id=%s',
+                (assignee_id, assigner_id, state, notes, self.id)
+            )
+            cursor.connection.commit()
+
+        # Send notification to curator
+        subject = "Publication Assigned To You For Review"
+        message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        notifications.send_usr_notification(assignee_id, subject, message)
+
+        self.notes = notes
+        self.assignee = assignee_id
+        self.assigner = assigner_id
+        self.state = state
+
+    def mark_as_complete(self, notes):
+        state = self.READY_FOR_TEAM_REVIEW
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assigner",
+                (state, notes, self.id))
+            cursor.connection.commit()
+            assignee_id = cursor.fetchone()[0]
+
+        # Send notification to assigner
+        subject = 'Publication Assignment Complete'
+        message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        notifications.send_usr_notification(assignee_id, subject, message)
+        self.notes = notes
+        self.state = state
+
+    def review_accepted(self, notes):
+        """
+        :param notes: message that will be sent to the assigned reviewer
+           and stored in the database and sent to the curator
+        :return:
+        """
+
+        state = PubAssignment.REVIEWED
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assignee",
+                (state, notes, self.id))
+            cursor.connection.commit()
+            assignee_id = cursor.fetchone()[0]
+
+        # Send notification to curator
+        subject = 'Publication Assignment Accepted'
+        message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        notifications.send_usr_notification(assignee_id, subject, message)
+
+        self.state = state
+
+    def review_rejected(self, notes):
+        """
+        :param notes: notes to be stored in the database and sent to the curator
+        :return:
+        """
+
+        state = PubAssignment.ASSIGNED
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assignee",
+                (state, notes, self.id))
+            cursor.connection.commit()
+            assignee_id = cursor.fetchone()[0]
+
+        # Send notification to curator
+        subject = 'Publication Assignment Rejected'
+        message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        notifications.send_usr_notification(assignee_id, subject, message)
+
+        self.state = state
+
+    def update_notes(self, notes):
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.pub_assignments SET notes=%s, updated=now() WHERE id=%s",
+                (notes, self.id))
+            cursor.connection.commit()
+        self.notes = notes
+
+    def get_genesets(self):
+        gs_ids = []
+        genesets = []
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute("SELECT gs_id FROM production.gs_to_pub_assignment WHERE pub_assign_id=%s ORDER BY gs_id ASC", (self.id,))
+
+            res = cursor.fetchall()
+            for r in res:
+                gs_ids.append(r[0])
+
+            if gs_ids:
+                sql = "SELECT geneset.* FROM geneset WHERE geneset.gs_id IN ({})".format(','.join(['%s'] * len(gs_ids)))
+                cursor.execute(sql, gs_ids)
+
+                genesets = [geneweaverdb.Geneset(row_dict) for row_dict in geneweaverdb.dictify_cursor(cursor)]
+        return genesets
+
+    def __insert_gs_to_pub(self, gs_id):
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id,
+                              pub_assign_id) VALUES (%s, %s)''',
+                           (gs_id, self.id))
+            cursor.connection.commit()
+
+    def create_geneset_stub(self, name, label, description, species_id):
+        """
+        create a stub geneset for this publication.  a stub geneset is a record
+        that only has the basic information filled out.  This will generate a new
+        geneset curation assignment for the publication curator. They will finish
+        filling out the geneset through the geneset curation workflow.
+
+        :param name: name of new geneset
+        :param label: figure label for new geneset
+        :param description: description of geneset
+        :return: ID of new geneset
+        """
+
+        geneset_id = None
+
+        if self.state == self.ASSIGNED:
+            user = geneweaverdb.get_user(self.assignee)
+            user_prefs = json.loads(user.prefs)
+
+            # get the user's annotator preference.  if there isn't one in their user
+            # preferences, default to the monarch annotator. if set, valid values
+            # are 'ncbo', 'monarch', 'both'
+            annotator = user_prefs.get('annotator', 'monarch')
+            ncbo = True
+            monarch = True
+            if annotator == 'ncbo':
+                monarch = False
+            elif annotator == 'monarch':
+                ncbo = False
+
+            # default geneset as 'Private'
+            # group id -1 signifies private
+            gs_groups = '-1'
+            # set initial curation level to 5 (private)
+            cur_id = 5
+
+            # right now, this can be set in the curation view.  should we
+            # set this in the stub?
+            gene_identifier = 0
+
+            with geneweaverdb.PooledCursor() as cursor:
+                file_id = uploadfiles.insert_new_contents_to_file("")
+                cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
+                                  gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
+                                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
+                               (self.assignee, file_id, name, label,
+                                self.pub_id, cur_id,
+                                description, species_id, 0, gs_groups,
+                                gene_identifier,
+                                'delayed',))
+                geneset_id = cursor.fetchone()[0]
+                cursor.connection.commit()
+
+            if geneset_id:
+                curation_assignments.submit_geneset_for_curation(geneset_id,
+                                                                 self.group,
+                                                                 "", False)
+                curation_assignments.assign_geneset_curator(geneset_id,
+                                                            self.assignee,
+                                                            self.assigner, "")
+                self.__insert_gs_to_pub(geneset_id)
+
+                # run the annotator for the geneset (on geneset description and the
+                # publication
+                gs = geneweaverdb.get_geneset(geneset_id, self.assignee)
+                publication = geneweaverdb.get_publication(self.pub_id)
+                ann.insert_annotations(cursor, geneset_id, gs.description,
+                                       publication.abstract, ncbo=ncbo,
+                                       monarch=monarch)
+
+        return geneset_id
+
+    def get_url(self):
+        return get_pub_assignment_url(self.id)
 
 
 def get_pub_assignment_url(pub_assignment_id):
@@ -104,105 +300,6 @@ def queue_publication(pub_id, group_id, note):
         notifications.send_group_admin_notification(group_id, subject, message)
 
 
-def assign_publication(pub_assignment_id, assignee_id, assigner_id, note):
-    """
-    :param pub_assignment_id: id of assignment record
-    :param assignee_id: id of user assigned task
-    :param assigner_id: id of group admin assigning this publication
-    :param note: message that will be sent to the assignee
-    :return:
-    """
-
-    state = PubAssignment.ASSIGNED
-
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            'UPDATE production.pub_assignments SET assignee=%s, assigner=%s, assignment_state=%s, notes=%s, updated=now() WHERE id=%s',
-            (assignee_id, assigner_id, state, note, pub_assignment_id)
-        )
-        cursor.connection.commit()
-
-    # Send notification to curator
-    subject = "Publication Assigned To You For Review"
-    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
-    notifications.send_usr_notification(assignee_id, subject, message)
-
-
-def assignment_complete(pub_assignment_id, note):
-    """
-    :param pub_assignment_id: id of publication assignment
-    :param note: notes to be stored in the database and sent to the assigner
-    :return:
-    """
-
-    state = PubAssignment.READY_FOR_TEAM_REVIEW
-
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assigner",
-            (state, note, pub_assignment_id))
-        cursor.connection.commit()
-        assignee_id = cursor.fetchone()[0]
-
-    # Send notification to assigner
-    subject = 'Publication Assignment Complete'
-    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
-    notifications.send_usr_notification(assignee_id, subject, message)
-
-
-def review_accepted(pub_assignment_id, note):
-    """
-    :param pub_assignment_id: id of assignment being reviewed
-    :param note: message that will be sent to the assigned reviewer
-    :param note: notes to be stored in the database and sent to the curator
-    :return:
-    """
-
-    state = PubAssignment.REVIEWED
-
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assignee",
-            (state, note, pub_assignment_id))
-        cursor.connection.commit()
-        assignee_id = cursor.fetchone()[0]
-
-    # Send notification to curator
-    subject = 'Publication Assignment Accepted'
-    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
-    notifications.send_usr_notification(assignee_id, subject, message)
-
-
-def review_rejected(pub_assignment_id, note):
-    """
-    :param pub_assignment_id: id of assignment being reviewed
-    :param note: notes to be stored in the database and sent to the curator
-    :return:
-    """
-
-    state = PubAssignment.ASSIGNED
-
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            "UPDATE production.pub_assignments SET assignment_state=%s, notes=%s, updated=now() WHERE id=%s RETURNING assignee",
-            (state, note, pub_assignment_id))
-        cursor.connection.commit()
-        assignee_id = cursor.fetchone()[0]
-
-    # Send notification to curator
-    subject = 'Publication Assignment Rejected'
-    message = "View Assignment: <i>" + get_pub_assignment_url(pub_assignment_id) + '</i><br>' + note
-    notifications.send_usr_notification(assignee_id, subject, message)
-
-
-def update_notes(pub_assignment_id, notes):
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            "UPDATE production.pub_assignments SET notes=%s, updated=now() WHERE id=%s",
-            (notes, pub_assignment_id))
-        cursor.connection.commit()
-
-
 def get_publication_assignment(pub_assignment_id):
     with geneweaverdb.PooledCursor() as cursor:
 
@@ -221,97 +318,7 @@ def get_publication_assignment_by_pub_id(pub_id, group_id):
         return PubAssignment(assignments[0]) if len(assignments) == 1 else None
 
 
-def create_geneset_stub_for_publication(pub_assign_id, name, label, description,
-                                        species_id):
-    """
-    create a stub geneset for this publication.  a stub geneset is a record
-    that only has the basic information filled out.  This will generate a new
-    geneset curation assignment for the publication curator. They will finish
-    filling out the geneset through the geneset curation workflow.
-
-    :param pub_assign_id: ID of the publication assignment for which this
-        geneset is being created
-    :param name: name of new geneset
-    :param label: figure label for new geneset
-    :param description: description of geneset
-    :return: ID of new geneset
-    """
-
-    geneset_id = None
-    assignment = get_publication_assignment(pub_assign_id)
-
-    if assignment:
-        user = geneweaverdb.get_user(assignment.assignee)
-        user_prefs = json.loads(user.prefs)
-
-        # get the user's annotator preference.  if there isn't one in their user
-        # preferences, default to the monarch annotator. if set, valid values
-        # are 'ncbo', 'monarch', 'both'
-        annotator = user_prefs.get('annotator', 'monarch')
-        ncbo = True
-        monarch = True
-        if annotator == 'ncbo':
-            monarch = False
-        elif annotator == 'monarch':
-            ncbo = False
-
-        # default geneset as 'Private'
-        # group id -1 signifies private
-        gs_groups = '-1'
-        # set initial curation level to 5 (private)
-        cur_id = 5
-
-        # right now, this can be set in the curation view.  should we
-        # set this in the stub?
-        gene_identifier = 0
-
-        with geneweaverdb.PooledCursor() as cursor:
-            file_id = uploadfiles.insert_new_contents_to_file("")
-            cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
-                              gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
-                              VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
-                           (assignment.assignee, file_id, name, label,
-                            assignment.pub_id, cur_id,
-                            description, species_id, 0, gs_groups,
-                            gene_identifier,
-                            'delayed',))
-            geneset_id = cursor.fetchone()[0]
-            cursor.connection.commit()
-
-        if geneset_id:
-            curation_assignments.submit_geneset_for_curation(geneset_id,
-                                                             assignment.group,
-                                                             "", False)
-            curation_assignments.assign_geneset_curator(geneset_id,
-                                                        assignment.assignee,
-                                                        assignment.assigner, "")
-            insert_gs_to_pub_assignment(geneset_id, pub_assign_id)
-
-            # run the annotator for the geneset (on geneset description and the
-            # publication
-            gs = geneweaverdb.get_geneset(geneset_id, assignment.assignee)
-            publication = geneweaverdb.get_publication(assignment.pub_id)
-            ann.insert_annotations(cursor, geneset_id, gs.description,
-                                   publication.abstract, ncbo=ncbo,
-                                   monarch=monarch)
-
-    return geneset_id
 
 
-def insert_gs_to_pub_assignment(gs_id, pub_assign_id):
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute('''INSERT INTO production.gs_to_pub_assignment (gs_id,
-                          pub_assign_id) VALUES (%s, %s)''',
-                       (gs_id, pub_assign_id))
-        cursor.connection.commit()
 
 
-def get_genesets_for_assignment(pub_assign_id):
-    gs_ids = []
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute("SELECT gs_id FROM production.gs_to_pub_assignment WHERE pub_assign_id=%s ORDER BY gs_id ASC", (pub_assign_id,))
-
-        for row in geneweaverdb.dictify_cursor(cursor):
-            gs_ids.append(row['gs_id'])
-
-    return gs_ids

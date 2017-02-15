@@ -1,6 +1,7 @@
 from celery import Celery
 import flask
 import config
+import sys
 
 #BROKER_URL = 'amqp://guest@localhost//'
 #CELERY_RESULT_BACKEND = 'amqp'
@@ -66,6 +67,7 @@ def fully_qualified_name(tool_class_name):
 
 
 def render_tool_pending(async_result, tool):
+    sys.stderr.write("Start rendering\n")
     return flask.render_template(
         'tool/toolstatus.html',
         async_result=async_result,

@@ -1,0 +1,43 @@
+{% import 'macros.html' as macros %}
+
+<style>
+
+    .panel .panel-header .panel-info .panel-heading {
+
+        background-color: #F0F0F0;
+    }
+
+
+
+
+</style>
+
+<div class="panel">
+	<div class="panel-heading">
+		<div class="row panel-title" style="width:100%;">
+			<div class="col-md-2">
+				<button type="submit" {{ macros.tool_run_click(tool) }}
+					style="background:transparent; margin:0; padding:0; border:none !important;">
+				<img  src="/static/images/GW2-dbscan.png" width=50 height=50 style="margin-top:5px">
+				</button>
+			</div>
+			<div class="col-md-10" style="margin:0">
+				<a data-toggle="collapse" data-parent="#accordion" href="#dbscanCollapse" style="color:black;">
+					<u>DBSCAN Gene Clustering</u>
+					<span class="caret"></span>
+				<span style="font-size:11px; display:inline-block;">
+					Density-based clustering algorithm for genes.
+				</span>
+				</a>
+			</div>
+        </div>
+    </div>
+    <div id="dbscanCollapse" class="panel-collapse collapse">
+        <div class="panel-body">
+            <div class="form-group">{{ macros.tool_param_radio(tool.params['DBSCAN_Homology']) }}</div>
+            <div class="form-group">{{ macros.tool_param_textbox(tool.params['DBSCAN_epsilon']) }}</div>
+            <div class="form-group">{{ macros.tool_param_textbox(tool.params['DBSCAN_minPts']) }}</div>
+			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+        </div>
+    </div>
+</div>

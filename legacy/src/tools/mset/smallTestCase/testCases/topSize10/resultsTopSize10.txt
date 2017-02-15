@@ -1,0 +1,45 @@
+> source ("mset.R")
+Loading required package: tcltk
+Enter how many of your top microarray results you would like to test 
+for enrichment ('1000' for the top 1000, '2000' for the top 2000, etc.)
+1: 10
+Enter the number of simulated results to generate (1000, 5000, 10000, etc.)
+1: 10000
+
+INPUT FILES
+Expression data file:
+/svr/geneweaver/website-py/src/tools/mset/smallTestCase/backgroundSmall.txt
+10 unique gene IDs in top 10 microarray results.
+300 gene IDs in microarray background.
+
+Database of genes of interest file:
+/svr/geneweaver/website-py/src/tools/mset/smallTestCase/interestSmall.txt
+21 unique gene IDs in gene list of interest.
+
+RESULTS
+10000 simulated results of length 10 generated from background.
+9 matches to database found in microarray results.
+3.5692 mean matches to database in simulated results.
+2 simulated results of length 10 contained at least as many matches 
+to database as the actual expression results.
+
+p-value: 2e-04
+
+ADDITIONAL INFO
+90% of top selected expression results are matches to database.
+11% of background genes are matches to database.
+8.44 fold enrichment of microarray results over background.
+
+MATCHES TO DATABASE
+Matches to database in top selected expression results:
+
+Gpr50
+Lrrn1
+Chrna4
+Adsl
+Muc1
+Slc6a1
+Tspan12
+Chrm5
+Drd2
+
