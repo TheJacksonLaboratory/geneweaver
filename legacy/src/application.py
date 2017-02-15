@@ -596,7 +596,7 @@ def mark_geneset_reviewed():
                     tier = request.form.get('tier', type=int)
                     assignment.review_passed(notes, tier)
                 else:
-                    assignment.review_failed( notes)
+                    assignment.review_failed(notes)
                 response = flask.jsonify(success=True)
             else:
                 response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')

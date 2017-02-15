@@ -51,30 +51,52 @@ class CurationAssignment(object):
         self.state = row_dict['curation_state']
         self.gs_id = row_dict['gs_id']
         self.curator = row_dict['curator']
-        self.reviewer = row_dict['reviewer']
         self.notes = row_dict['notes']
         self.group = row_dict['curation_group']
         self.created = row_dict['created']
         self.updated = row_dict['updated']
+        self.reviewer_tiers = None
+        self._reviewer = None
 
-        if self.reviewer and geneweaverdb.get_user(self.reviewer).is_curator or geneweaverdb.get_user(self.reviewer).is_admin:
-            self.reviewer_tiers = [(3, "III"), (4, "IV"), (5, "V")]
-        else:
-            self.reviewer_tiers = [(4, "IV"), (5, "V")]
-
+        self.reviewer = row_dict['reviewer']
 
 
+    @property
+    def reviewer(self):
+        return self._reviewer
+
+    @reviewer.setter
+    def reviewer(self, value):
+        self._reviewer = value
+        if value and value != -1:
+            print(value)
+            user = geneweaverdb.get_user(value)
+            if user.is_curator or user.is_admin:
+                self.reviewer_tiers = [(3, "III"), (4, "IV"), (5, "V")]
+            else:
+                self.reviewer_tiers = [(4, "IV"), (5, "V")]
+
+            print (self.reviewer_tiers)
+
+    @reviewer.getter
+    def reviewer(self):
+        return self._reviewer
 
     @staticmethod
     def status_to_string(status):
-        if (status == CurationAssignment.UNASSIGNED):
-            return "Unassigned"
-        elif (status == CurationAssignment.ASSIGNED):
-            return "Assigned"
-        elif (status == CurationAssignment.READY_FOR_REVIEW):
-            return "Ready for team review"
-        elif (status == CurationAssignment.REVIEWED):
-            return "Reviewed"
+
+        state_dict = {
+            CurationAssignment.UNASSIGNED:  "Unassigned",
+            CurationAssignment.ASSIGNED:  "Assigned",
+            CurationAssignment.READY_FOR_REVIEW: "Ready for review",
+            CurationAssignment.REVIEWED:  "Reviewed"
+        }
+
+        try:
+            return state_dict[status]
+        except KeyError:
+            return "Unknown"
+
 
     def assign_curator(self, curator_id, reviewer_id, notes):
         """
@@ -97,11 +119,6 @@ class CurationAssignment(object):
         self.notes = notes
         self.curator = curator_id
         self.reviewer = reviewer_id
-
-        if self.reviewer and geneweaverdb.get_user(self.reviewer).is_curator or geneweaverdb.get_user(self.reviewer).is_admin:
-            self.reviewer_tiers = [(3, "III"), (4, "IV"), (5, "V")]
-        else:
-            self.reviewer_tiers = [(4, "IV"), (5, "V")]
 
         # Send notification to curator
         subject = 'Geneset Curation Assigned To You'
