@@ -1723,8 +1723,11 @@ def get_server_side_grouptasks(rargs):
         search_value = rargs.get('search[value]')
         search_clauses = []
         union_clauses = []
-
-        if search_value:
+        if search_value.startswith('status='):
+            search_value = search_value[7:]
+            search_clause = '''%s = '%s' ''' % (search_columns[4], search_value)
+            union_clause = '''%s = '%s' ''' % (union_columns[4], search_value)
+        elif search_value:
             search_clauses = ['''%s LIKE '%%%s%%' ''' % (search_columns[i], search_value) for i in range(len(search_columns))]
             union_clauses = ['''%s LIKE '%%%s%%' ''' % (union_columns[i], search_value) for i in range(len(union_columns))]
             search_clause = 'OR '.join(search_clauses)
