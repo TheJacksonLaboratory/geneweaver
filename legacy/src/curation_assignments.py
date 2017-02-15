@@ -78,10 +78,6 @@ class CurationAssignment(object):
 
             print (self.reviewer_tiers)
 
-    @reviewer.getter
-    def reviewer(self):
-        return self._reviewer
-
     @staticmethod
     def status_to_string(status):
 
