@@ -3190,6 +3190,8 @@ def add_genesets_projects():
     if 'user_id' in flask.session:
         results = geneweaverdb.add_genesets_to_projects(request.args)
         return json.dumps(results)
+    else:
+        return json.dumps({'error': 'You must be logged in to add a geneset to a project'})
 
 
 @app.route('/removeGenesetFromProject')
