@@ -647,6 +647,7 @@
                     var params = {
                         "note": $('#curationNotes').val(),
                         "gs_id": {{geneset.geneset_id}},
+                        "tier": $('#tier').val(),
                         "review_ok": false
                     };
 
@@ -664,6 +665,7 @@
                         $('#reviewed').prop('disabled', true).button('refresh');
                         $('#review_div').remove();
                         $('#assignCurator').remove();
+                        $('#tier').prop('disabled', true).button('refresh');
 
                     }, 'json').fail(handleError);
 

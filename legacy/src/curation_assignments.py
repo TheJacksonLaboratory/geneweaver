@@ -30,7 +30,7 @@
 #    0 - undefined
 #    1 - UNASSIGNED
 #    2 - ASSIGNED
-#    3 - READY_FOR_TEAM_REVIEW
+#    3 - READY_FOR_REVIEW
 #    4 - REVIEWED
 #    5 - APPROVED
 #
@@ -44,29 +44,158 @@ class CurationAssignment(object):
 
     UNASSIGNED = 1
     ASSIGNED = 2
-    READY_FOR_TEAM_REVIEW = 3
+    READY_FOR_REVIEW = 3
     REVIEWED = 4
 
     def __init__(self, row_dict):
         self.state = row_dict['curation_state']
         self.gs_id = row_dict['gs_id']
         self.curator = row_dict['curator']
-        self.reviewer = row_dict['reviewer']
         self.notes = row_dict['notes']
         self.group = row_dict['curation_group']
         self.created = row_dict['created']
         self.updated = row_dict['updated']
+        self.reviewer_tiers = None
+        self._reviewer = None
+
+        self.reviewer = row_dict['reviewer']
+
+
+    @property
+    def reviewer(self):
+        return self._reviewer
+
+    @reviewer.setter
+    def reviewer(self, value):
+        self._reviewer = value
+        if value and value != -1:
+            print(value)
+            user = geneweaverdb.get_user(value)
+            if user.is_curator or user.is_admin:
+                self.reviewer_tiers = [(3, "III"), (4, "IV"), (5, "V")]
+            else:
+                self.reviewer_tiers = [(4, "IV"), (5, "V")]
+
+            print (self.reviewer_tiers)
 
     @staticmethod
     def status_to_string(status):
-        if (status == CurationAssignment.UNASSIGNED):
-            return "Unassigned"
-        elif (status == CurationAssignment.ASSIGNED):
-            return "Assigned"
-        elif (status == CurationAssignment.READY_FOR_TEAM_REVIEW):
-            return "Ready for team review"
-        elif (status == CurationAssignment.REVIEWED):
-            return "Reviewed"
+
+        state_dict = {
+            CurationAssignment.UNASSIGNED:  "Unassigned",
+            CurationAssignment.ASSIGNED:  "Assigned",
+            CurationAssignment.READY_FOR_REVIEW: "Ready for review",
+            CurationAssignment.REVIEWED:  "Reviewed"
+        }
+
+        try:
+            return state_dict[status]
+        except KeyError:
+            return "Unknown"
+
+    def assign_curator(self, curator_id, reviewer_id, notes):
+        """
+        :param curator_id: id of user assigned as curator
+        :param reviewer_id: id of user assigned as a reviewer
+        :param notes: curation assignment notes
+        :return:
+        """
+
+        state = CurationAssignment.ASSIGNED
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.curation_assignments SET curator=%s, reviewer=%s, curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
+                (curator_id, reviewer_id, state, notes, self.gs_id)
+            )
+            cursor.connection.commit()
+
+        self.state = state
+        self.notes = notes
+        self.curator = curator_id
+        self.reviewer = reviewer_id
+
+        # Send notification to curator
+        subject = 'Geneset Curation Assigned To You'
+        message = get_geneset_url(self.gs_id) + ' : <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
+        notifications.send_usr_notification(curator_id, subject, message)
+
+    def submit_for_review(self, notes):
+        """
+        :param notes: curation notes
+        :return:
+        """
+
+        assert self.state == CurationAssignment.ASSIGNED
+
+        curation_state = CurationAssignment.READY_FOR_REVIEW
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
+                (curation_state, notes, self.gs_id))
+            cursor.connection.commit()
+
+        self.state = curation_state
+        self.notes = notes
+
+        # Send notification to reviewer
+        subject = 'Geneset Curation Ready For Review'
+        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + note
+        notifications.send_usr_notification(self.reviewer, subject, message)
+
+    def review_passed(self, notes, tier):
+        """
+        :param geneset_id: geneset being curated
+        :param notes: message that will be sent to the assigned curator
+        :param tier: curation tier for finalized geneset
+        :return:
+        """
+
+        assert self.state == CurationAssignment.READY_FOR_REVIEW
+
+        curation_state = CurationAssignment.REVIEWED
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
+                (curation_state, notes, self.gs_id))
+            cursor.connection.commit()
+            # update curation tier of geneset
+            cursor.execute("UPDATE production.geneset SET cur_id=%s WHERE gs_id=%s", (tier, self.gs_id))
+            cursor.connection.commit()
+
+        self.state = curation_state
+        self.notes = notes
+
+        # Send notification to curator
+        subject = 'Geneset Curation Review PASSED'
+        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
+        notifications.send_usr_notification(self.curator, subject, message)
+
+    def review_failed(self, notes):
+        """
+        :param notes: curation notes, saved in curation_assignment and sent to curator
+        :return:
+        """
+
+        assert self.state == CurationAssignment.READY_FOR_REVIEW
+
+        curation_state = CurationAssignment.ASSIGNED
+
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
+                (curation_state, notes, self.gs_id))
+            cursor.connection.commit()
+
+        self.state = curation_state
+        self.notes = notes
+
+        # Send notification to curator
+        subject = 'Geneset Curation Review FAILED'
+        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
+        notifications.send_usr_notification(self.curator, subject, message)
 
 
 def get_geneset_url(geneset_id):
@@ -129,130 +258,6 @@ def submit_geneset_for_curation(geneset_id, group_id, note, notify=True):
     return
 
 
-def assign_geneset_curator(geneset_id, curator_id, reviewer_id, note):
-    """
-    :param geneset_id: geneset to be curated
-    :param curator_id: id of user assigned as curator
-    :param note: message that will be sent to the assigned curator
-    :return:
-    """
-
-    curation_state = CurationAssignment.ASSIGNED
-
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            "UPDATE production.curation_assignments SET curator=%s, reviewer=%s, curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curator_id, reviewer_id, curation_state, note, geneset_id)
-        )
-        cursor.connection.commit()
-
-    # Send notification to curator
-    subject = 'Geneset Curation Assigned To You'
-    message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
-    notifications.send_usr_notification(curator_id, subject, message)
-    return
-
-
-def submit_geneset_curation_for_review(geneset_id, note):
-    """
-    :param geneset_id: geneset being curated
-    :param note: message that will be sent to the assigned curator
-    :return:
-    """
-
-    curation_state = CurationAssignment.READY_FOR_TEAM_REVIEW
-
-    with geneweaverdb.PooledCursor() as cursor:
-        #log_entry = 'Curation submitted for review: \n' + note
-        cursor.execute(
-            "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curation_state, note, geneset_id))
-        cursor.connection.commit()
-
-        cursor.execute(
-            '''
-            SELECT reviewer
-            FROM production.curation_assignments
-            WHERE gs_id=%s
-            ''',
-            (geneset_id,)
-        )
-        reviewer_id = cursor.fetchone()[0]
-
-    # Send notification to reviewer
-    subject = 'Geneset Curation Ready For Review'
-    message = get_geneset_url(geneset_id) + ': <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
-    notifications.send_usr_notification(reviewer_id, subject, message)
-    return
-
-
-def geneset_curation_review_passed(geneset_id, note):
-    """
-    :param geneset_id: geneset being curated
-    :param note: message that will be sent to the assigned curator
-    :return:
-    """
-
-    curation_state = CurationAssignment.REVIEWED
-
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curation_state, note, geneset_id))
-        cursor.connection.commit()
-
-        cursor.execute(
-            '''
-            SELECT curator
-            FROM production.curation_assignments
-            WHERE gs_id=%s
-            ''',
-            (geneset_id,)
-        )
-        curator_id = cursor.fetchone()[0]
-
-    # Send notification to curator
-    subject = 'Geneset Curation Review PASSED'
-    message = get_geneset_url(geneset_id) + ': <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
-    notifications.send_usr_notification(curator_id, subject, message)
-
-    return
-
-
-def geneset_curation_review_failed(geneset_id, note):
-    """
-    :param geneset_id: geneset being curated
-    :param note: message that will be sent to the assigned curator
-    :return:
-    """
-
-    curation_state = CurationAssignment.ASSIGNED
-    geneset_name = get_geneset_name(geneset_id)
-
-    with geneweaverdb.PooledCursor() as cursor:
-        cursor.execute(
-            "UPDATE production.curation_assignments SET curation_state=%s, notes=%s, updated=now() WHERE gs_id=%s",
-            (curation_state, note, geneset_id))
-        cursor.connection.commit()
-
-        cursor.execute(
-            '''
-            SELECT curator
-            FROM production.curation_assignments
-            WHERE gs_id=%s
-            ''',
-            (geneset_id,)
-        )
-        curator_id = cursor.fetchone()[0]
-
-    # Send notification to curator
-    subject = 'Geneset Curation Review FAILED'
-    message = get_geneset_url(geneset_id) + ': <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
-    notifications.send_usr_notification(curator_id, subject, message)
-
-    return
-
-
 def get_geneset_curation_assignment(geneset_id):
 
     with geneweaverdb.PooledCursor() as cursor:
@@ -278,17 +283,20 @@ def main():
     print("Adding geneset to group...")
     submit_geneset_for_curation(geneset_id, group_id, "submission_note")
 
+    assignment = get_geneset_curation_assignment(geneset_id)
+
     print("Assigning curator...")
-    assign_geneset_curator(geneset_id, curator, reviewer, "assignment_note")
+    assignment.assign_curator(curator, reviewer, "assignment_note")
 
     print("Submit for review...")
-    submit_geneset_curation_for_review(geneset_id, "ready_for_review_note")
+    assignment.submit_for_review("ready_for_review_note")
 
     print("Failed team review...")
-    geneset_curation_review_failed(geneset_id, "failed_review_note")
+    assignment.review_failed("failed_review_note")
 
     #print("Passed team review...")
 
     #print(get_geneset_curation_assignment(geneset_id))
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
