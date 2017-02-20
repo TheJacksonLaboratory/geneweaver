@@ -2033,15 +2033,45 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
-    return flask.render_template('viewgenesetdetails.html', geneset=geneset,
-                                 emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
-                                 altGeneSymbol=altGeneSymbol, view=view,
-                                 ontology=ontology, alt_gdb_id=alt_gdb_id,
-                                 species=species, curation_view=curation_view,
-                                 curation_team=curation_team,
-                                 curation_assignment=curation_assignment,
-                                 curator_info=curator_info)
+    ## Append the symbol to each geneset_value, required for ABA linkouts
+    genetypes = geneweaverdb.get_gene_id_types()
+    symbol_type = None
+
+    for gtype in genetypes:
+        if gtype['gdb_shortname'].lower() == 'symbol':
+            symbol_type = gtype['gdb_id']
+            break
+
+    if symbol_type:
+        ## This should be changed because the db functions shouldn't be 
+        ## accessing session variables
+        old_type = session['extsrc']
+        session['extsrc'] = symbol_type
+
+        gs = geneweaverdb.get_geneset(gs_id, user_id)
+
+        for i in range(len(geneset.geneset_values)):
+            geneset.geneset_values[i].symbol = gs.geneset_values[i].ode_ref
+
+        session['extsrc'] = old_type
+
+    return flask.render_template(
+        'viewgenesetdetails.html', 
+        geneset=geneset,
+        emphgeneids=emphgeneids, 
+        user_id=user_id,
+        colors=HOMOLOGY_BOX_COLORS, 
+        tt=SPECIES_NAMES,
+        altGeneSymbol=altGeneSymbol, 
+        view=view,
+        ontology=ontology, 
+        alt_gdb_id=alt_gdb_id,
+        species=species, 
+        curation_view=curation_view,
+        curation_team=curation_team,
+        curation_assignment=curation_assignment,
+        curator_info=curator_info
+    )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
 def render_viewgenesetoverlap(gs_ids):
