@@ -1954,6 +1954,17 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                 session['dir'] = 'ASC'
 
 
+    emphgenes = {}
+    emphgeneids = []
+
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
 
@@ -1967,22 +1978,11 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             alt_gdb_id = session['extsrc']
 
         else:
-            altGeneSymbol = 'Entrez'
-            alt_gdb_id = 1
+            altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+            alt_gdb_id = abs(geneset.gene_id_type)
     else:
-        altGeneSymbol = 'Entrez'
-        alt_gdb_id = 1
-
-    emphgenes = {}
-    emphgeneids = []
-
-    if 'user_id' in session:
-        user_id = session['user_id']
-    else:
-        user_id = 0
-
-    user_info = geneweaverdb.get_user(user_id)
-    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+        altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+        alt_gdb_id = abs(geneset.gene_id_type)
 
     ## User account
     if user_info:
@@ -2043,6 +2043,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             break
 
     if symbol_type:
+        if 'extsrc' not in session:
+            session['extsrc'] = abs(geneset.gene_id_type)
+
         ## This should be changed because the db functions shouldn't be 
         ## accessing session variables
         old_type = session['extsrc']
