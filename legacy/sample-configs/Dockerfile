@@ -37,7 +37,8 @@ RUN ln -sf /dev/stdout /var/log/nginx/access.log \
  && mv ${CONFIG_DIR}/gw-uwsgi.ini /srv/geneweaver \
  && mv ${CONFIG_DIR}/geneweaver.cfg /srv/geneweaver \
  && mkdir -p /etc/uwsgi/ && mv ${CONFIG_DIR}/uwsgi.ini /etc/uwsgi \
- && mv ${CONFIG_DIR}/supervisord.conf /etc/supervisord.conf
+ && mv ${CONFIG_DIR}/supervisord.conf /etc/supervisord.conf \
+ && mkdir -p /srv/geneweaver/results && chmod 777 /srv/geneweaver/results
 
 WORKDIR ${SRV_DIR}
 

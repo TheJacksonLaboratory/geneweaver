@@ -10,6 +10,7 @@ services:
      - "443:443"
     volumes: 
      - '../src:/srv/geneweaver/website-py/src'
+     - 'results:/srv/geneweaver/results'
     depends_on:
      - sphinx
      - rabbitmq
@@ -19,6 +20,7 @@ services:
     links:
      - postgres
      - rabbitmq
+     - sphinx
   sphinx:
     image: leodido/sphinxsearch:2.2.9
     ports: 
@@ -40,9 +42,9 @@ services:
     restart: unless-stopped
     container_name: geneweaver-rabbitmq
   postgres:
-    image: postgres:9.6
-    volumes_from:
-     - container:gwdb-ext:rw
+    build:
+      context: ../../database
+      dockerfile: Dockerfile
     container_name: geneweaver-postgres
   celery:
     build:
@@ -51,7 +53,11 @@ services:
     links:
       - rabbitmq
       - postgres
-    container_name: geneweaver-celery
     depends_on:
       - rabbitmq
       - postgres
+    volumes: 
+     - 'results:/home/user/results'
+
+volumes:
+  results:
