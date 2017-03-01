@@ -242,9 +242,9 @@ class PubAssignment(object):
                 curation_assignments.submit_geneset_for_curation(geneset_id,
                                                                  self.group,
                                                                  "", False)
-                curation_assignments.assign_geneset_curator(geneset_id,
-                                                            self.assignee,
-                                                            self.assigner, "")
+                assignment = curation_assignments.get_geneset_curation_assignment(geneset_id)
+                assignment.assign_curator(self.assignee, self.assigner, "")
+
                 self.__insert_gs_to_pub(geneset_id)
 
                 # run the annotator for the geneset (on geneset description and the

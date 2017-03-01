@@ -69,14 +69,12 @@ class CurationAssignment(object):
     def reviewer(self, value):
         self._reviewer = value
         if value and value != -1:
-            print(value)
             user = geneweaverdb.get_user(value)
             if user.is_curator or user.is_admin:
                 self.reviewer_tiers = [(3, "III"), (4, "IV"), (5, "V")]
             else:
                 self.reviewer_tiers = [(4, "IV"), (5, "V")]
 
-            print (self.reviewer_tiers)
 
     @staticmethod
     def status_to_string(status):
@@ -141,7 +139,7 @@ class CurationAssignment(object):
 
         # Send notification to reviewer
         subject = 'Geneset Curation Ready For Review'
-        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + note
+        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
         notifications.send_usr_notification(self.reviewer, subject, message)
 
     def review_passed(self, notes, tier):

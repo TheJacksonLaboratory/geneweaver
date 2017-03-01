@@ -1954,6 +1954,17 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                 session['dir'] = 'ASC'
 
 
+    emphgenes = {}
+    emphgeneids = []
+
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        user_id = 0
+
+    user_info = geneweaverdb.get_user(user_id)
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+
     genetypes = geneweaverdb.get_gene_id_types()
     genedict = {}
 
@@ -1967,22 +1978,11 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             alt_gdb_id = session['extsrc']
 
         else:
-            altGeneSymbol = 'Entrez'
-            alt_gdb_id = 1
+            altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+            alt_gdb_id = abs(geneset.gene_id_type)
     else:
-        altGeneSymbol = 'Entrez'
-        alt_gdb_id = 1
-
-    emphgenes = {}
-    emphgeneids = []
-
-    if 'user_id' in session:
-        user_id = session['user_id']
-    else:
-        user_id = 0
-
-    user_info = geneweaverdb.get_user(user_id)
-    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+        altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+        alt_gdb_id = abs(geneset.gene_id_type)
 
     ## User account
     if user_info:
@@ -2033,15 +2033,48 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
-    return flask.render_template('viewgenesetdetails.html', geneset=geneset,
-                                 emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
-                                 altGeneSymbol=altGeneSymbol, view=view,
-                                 ontology=ontology, alt_gdb_id=alt_gdb_id,
-                                 species=species, curation_view=curation_view,
-                                 curation_team=curation_team,
-                                 curation_assignment=curation_assignment,
-                                 curator_info=curator_info)
+    ## Append the symbol to each geneset_value, required for ABA linkouts
+    genetypes = geneweaverdb.get_gene_id_types()
+    symbol_type = None
+
+    for gtype in genetypes:
+        if gtype['gdb_shortname'].lower() == 'symbol':
+            symbol_type = gtype['gdb_id']
+            break
+
+    if symbol_type:
+        if 'extsrc' not in session:
+            session['extsrc'] = abs(geneset.gene_id_type)
+
+        ## This should be changed because the db functions shouldn't be 
+        ## accessing session variables
+        old_type = session['extsrc']
+        session['extsrc'] = symbol_type
+
+        gs = geneweaverdb.get_geneset(gs_id, user_id)
+
+        for i in range(len(geneset.geneset_values)):
+            geneset.geneset_values[i].symbol = gs.geneset_values[i].ode_ref
+
+        session['extsrc'] = old_type
+
+    return flask.render_template(
+        'viewgenesetdetails.html', 
+        geneset=geneset,
+        emphgeneids=emphgeneids, 
+        user_id=user_id,
+        colors=HOMOLOGY_BOX_COLORS, 
+        tt=SPECIES_NAMES,
+        altGeneSymbol=altGeneSymbol, 
+        view=view,
+        ontology=ontology, 
+        alt_gdb_id=alt_gdb_id,
+        species=species, 
+        curation_view=curation_view,
+        curation_team=curation_team,
+        curation_assignment=curation_assignment,
+        curator_info=curator_info
+    )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
 def render_viewgenesetoverlap(gs_ids):

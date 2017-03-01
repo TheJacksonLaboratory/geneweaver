@@ -53,6 +53,55 @@ Create a new database. We typically use 'geneweaver':
 
 	$ createdb geneweaver 
 
+### Performance Tuning
+
+The defalut postgres settings are not optimal for dealing with large data sets.
+It is advised that you alter memory and cache parameters for a more performant
+database, especially if the database will be on its own server or you plan on
+utilizing variant annotation functions. 
+
+Copy the lines below to the *end* of the postgres configuration file which 
+should be found at `/var/lib/pgsql/data/postgresql.conf`. Each setting is 
+commented and you should alter them depending on your needs and available
+resources. The settings below were based on a server with 24GB of RAM.
+
+```
+## The amount of memory postgres uses for caching data. A good value (assuming
+## a separate database server) is 1/4 the available RAM.
+shared_buffers = 7168MB
+
+## An estimate of memory available for disk caching and used by the query
+## planner. Conservative value is 1/2 the available memory and a more
+## aggressive amount is 3/4.
+effective_cache_size = 18432MB
+
+## Postgres writes DB transactions in segments of 16MB and everytime a number
+## of these files (parameter below) has been written, a checkpoint occurs.
+## Doing these frequently is resource intensive and requires a lot of overhead.
+## The default is 3 (3 * 16MB = 48MB). A good value for larger datasets is
+## anywhere from 32 (512MB) to 256 (4GB). Keep in mind large settings use
+## more disk and cause longer recovery times.
+checkpoint_segments = 64
+
+## Memory used for in-memory sorts. This setting is used per connection and
+## must be set with care. e.g. if it is set to 50MB and 30 users submit 
+## queries, you will be using 1.5GB of real memory. If a query involves a 
+## merge sort of 8 tables you are using (8 * 50MB = 400MB) of memory. For 
+## applications that don't have many users at once, the value can be set 
+## higher. Required whenever ORDER BY, DISTINCT, merge joins, or IN is used 
+## in a query.
+work_mem = 128MB
+
+## Memory used by maintenance operations (e.g. VACUUM, CREATE INDEX). Only a
+## single maintenance operation can be executed at a time so this value can be
+## much higher than work_mem.
+maintenance_work_mem = 512MB
+```
+
+If you altered any settings you will need to restart the server. 
+
+    $ pg_ctl restart -D /var/lib/pgsql/data -m fast -l logfile
+
 You can now log out of the postgres user account.
 
 ### Dumping the Database
