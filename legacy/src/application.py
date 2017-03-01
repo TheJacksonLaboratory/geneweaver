@@ -1065,6 +1065,7 @@ def render_pub_assignment(assignment_id):
                 other_genesets = [gs for gs in genesets_for_pub if gs.geneset_id not in [gs.geneset_id for gs in genesets]]
                 if assignment.state !=assignment.UNASSIGNED:
                     curator = geneweaverdb.get_user(assignment.assignee)
+                group_name = geneweaverdb.get_group_name(assignment.group)
 
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
@@ -1075,7 +1076,7 @@ def render_pub_assignment(assignment_id):
 
     return flask.render_template('viewPubAssignment.html', pub=publication,
                                  view=view, assignment=assignment,
-                                 curator=curator, species=species,
+                                 curator=curator, group_name=group_name, species=species,
                                  curation_team=curation_team_members,
                                  genesets=genesets, other_genesets=other_genesets)
 
