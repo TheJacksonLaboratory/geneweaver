@@ -1966,30 +1966,13 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
-    genetypes = geneweaverdb.get_gene_id_types()
-    genedict = {}
-
-    for gtype in genetypes:
-        genedict[gtype['gdb_id']] = gtype['gdb_name']
-
-    # get value for the alt-gene-id column
-    if 'extsrc' in session:
-        if genedict.get(session['extsrc'], None):
-            altGeneSymbol = genedict[session['extsrc']]
-            alt_gdb_id = session['extsrc']
-
-        else:
-            altGeneSymbol = genedict[abs(geneset.gene_id_type)]
-            alt_gdb_id = abs(geneset.gene_id_type)
-    else:
-        altGeneSymbol = genedict[abs(geneset.gene_id_type)]
-        alt_gdb_id = abs(geneset.gene_id_type)
+    # can the user see this geneset?
 
     ## User account
     if user_info:
         if not user_info.is_admin and not user_info.is_curator:
             ## get_geneset takes into account permissions, if a geneset is
-            ## returned by *_no_user then we know they can't view it b/c of 
+            ## returned by *_no_user then we know they can't view it b/c of
             ## access rights
             if not geneset and geneweaverdb.get_geneset_no_user(gs_id):
                 return flask.render_template(
@@ -2005,6 +1988,37 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             no_access=True,
             user_id=user_id
         )
+
+
+    genetypes = geneweaverdb.get_gene_id_types()
+    genedict = {}
+
+    for gtype in genetypes:
+        genedict[gtype['gdb_id']] = gtype['gdb_name']
+
+    show_gene_list = True
+    # get value for the alt-gene-id column
+    # if this is a 'stub' geneset.gene_id_type might not be valid,
+    # if it is a stub and doens't have any genes yet, don't try to display a
+    # gene list
+    if not curation_view or len(geneset.geneset_values):
+        if 'extsrc' in session:
+            if genedict.get(session['extsrc'], None):
+                altGeneSymbol = genedict[session['extsrc']]
+                alt_gdb_id = session['extsrc']
+
+            else:
+                altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+                alt_gdb_id = abs(geneset.gene_id_type)
+        else:
+            altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+            alt_gdb_id = abs(geneset.gene_id_type)
+    else:
+        altGeneSymbol = None
+        alt_gdb_id = None
+        show_gene_list = False
+
+
 
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
@@ -2074,7 +2088,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curation_view=curation_view,
         curation_team=curation_team,
         curation_assignment=curation_assignment,
-        curator_info=curator_info
+        curator_info=curator_info,
+        show_gene_list=show_gene_list
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])

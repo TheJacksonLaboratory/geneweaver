@@ -86,6 +86,7 @@
     {% include 'viewGenesetMeta.html' %}
 
     <!-- Show the Geneset List -->
+    {% if show_geneset_list %}
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
@@ -285,7 +286,18 @@
             document.getElementById("{{gene}}").checked = true;
         </script>
     {% endfor %}
-
+    {% else %}
+        <div class="panel panel-default">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
+            </div>
+            <div class="panel-body" style="padding-top:10px;">
+                <div class="row">
+                    <div class="alert bg-gray-light">No Genes are Associated with this GeneSet</div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
 
     <!-- <body onload="myFunction()"> -->
