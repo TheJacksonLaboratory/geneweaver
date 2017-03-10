@@ -25,7 +25,7 @@
                                 </button>
                                 <ul class="dropdown-menu option" role="menu">
                                     {% for key in gidts %}
-                                        {% if geneset.gene_id_type < 0 %}
+                                        {% if geneset.gene_id_type < 0 or curation_view %}
                                             <li id="{{ key }}"><a href="#">{{ gidts[key] }}</a></li>
                                         {% endif %}
                                     {% endfor %}

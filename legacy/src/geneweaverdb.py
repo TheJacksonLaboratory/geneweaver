@@ -1000,14 +1000,22 @@ def user_is_assigned_curation(usr_id, gs_id):
         return True
 
 
+def user_can_edit(usr_id, gs_id):
+    if user_is_owner(usr_id, gs_id) or user_is_assigned_curation(usr_id, gs_id):
+        return True
+
+    return False
+
+
 def edit_geneset_id_value_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
     gene_id = rargs.get('id', type=str)
     gene_old = rargs.get('idold', type=str)
     value = rargs.get('value', type=float)
     user_id = flask.session['user_id']
-    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id,
-                                                                                                           gs_id) != 0:
+    if (get_user(user_id).is_admin != 'False' or
+                get_user(user_id).is_curator != 'False') or user_can_edit(user_id,
+                                                                          gs_id):
         with PooledCursor() as cursor:
             cursor.execute('''UPDATE temp_geneset_value SET src_id=%s, src_value=%s WHERE gs_id=%s AND src_id=%s''',
                            (gene_id, value, gs_id, gene_old,))
@@ -1020,8 +1028,9 @@ def add_geneset_gene_to_temp(rargs):
     gene_id = rargs.get('id', type=str)
     value = rargs.get('value', type=float)
     user_id = flask.session['user_id']
-    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id,
-                                                                                                           gs_id) != 0:
+    if (get_user(user_id).is_admin != 'False' or
+                get_user(user_id).is_curator != 'False') or user_can_edit(user_id,
+                                                                          gs_id):
         with PooledCursor() as cursor:
             ##Check to see if ode_gene_id exists
             cursor.execute('''SELECT g.ode_gene_id FROM gene g, geneset gs WHERE gs.gs_id=%s AND gs.sp_id=g.sp_id AND
@@ -1044,8 +1053,8 @@ def add_geneset_gene_to_temp(rargs):
 def cancel_geneset_edit_by_id(rargs):
     gs_id = rargs.get('gsid', type=int)
     user_id = rargs.get('user_id', type=int)
-    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_is_owner(user_id,
-                                                                                                           gs_id) != 0:
+    if (get_user(user_id).is_admin != 'False' or get_user(user_id).is_curator != 'False') or user_can_edit(user_id,
+                                                                                                           gs_id):
         with PooledCursor() as cursor:
             cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
             cursor.execute('''DELETE FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))

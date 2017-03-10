@@ -469,7 +469,7 @@ def assign_genesets_to_curator():
             assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
             if assignment:
                 if assignment.group in [g['grp_id'] for g in owned_groups]:
-                    curation_assignments.assign_geneset_curator(gs_id, curator, user_id, note)
+                    assignment.assign_curator(curator, user_id, note)
                     status[gs_id] = {'success': True}
                 else:
                     status[gs_id] = {'success': False,
@@ -535,7 +535,7 @@ def assign_geneset_to_curator():
 
                 curator_info = geneweaverdb.get_user(curator)
 
-                curation_assignments.assign_geneset_curator(gs_id, curator, user_id, notes)
+                assignment.assign_curator(curator, user_id, notes)
 
                 response = flask.jsonify(success=True, curator_name=curator_info.first_name + " " + curator_info.last_name, curator_email=curator_info.email)
 
@@ -563,7 +563,7 @@ def geneset_ready_for_review():
 
         if assignment:
             if user_id == assignment.curator:
-                curation_assignments.submit_geneset_curation_for_review(gs_id, notes)
+                assignment.submit_for_review(notes)
                 response = flask.jsonify(success=True)
             else:
                 response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
@@ -593,9 +593,10 @@ def mark_geneset_reviewed():
         if assignment:
             if user_id == assignment.reviewer:
                 if review_ok:
-                    curation_assignments.geneset_curation_review_passed(gs_id, notes)
+                    tier = request.form.get('tier', type=int)
+                    assignment.review_passed(notes, tier)
                 else:
-                    curation_assignments.geneset_curation_review_failed(gs_id, notes)
+                    assignment.review_failed(notes)
                 response = flask.jsonify(success=True)
             else:
                 response = flask.jsonify(success=False, message='You do not have permissions to perform this action.')
@@ -974,7 +975,7 @@ def close_pub_assignment():
             if assignment.assigner != user_id:
                 response = flask.jsonify(message='You do not have permissions to perform this action.')
                 response.status_code = 403
-            elif assignment.state != assignment.READY_FOR_TEAM_REVIEW:
+            elif assignment.state != assignment.READY_FOR_REVIEW:
                 response = flask.jsonify(message='Invalid state.')
                 response.status_code = 403
             else:
@@ -1005,7 +1006,7 @@ def pub_assignment_rejection():
             if assignment.assigner != user_id:
                 response = flask.jsonify(message='You do not have permissions to perform this action.')
                 response.status_code = 403
-            elif assignment.state != assignment.READY_FOR_TEAM_REVIEW:
+            elif assignment.state != assignment.READY_FOR_REVIEW:
                 response = flask.jsonify(message='Invalid state.')
                 response.status_code = 403
             else:
@@ -1064,6 +1065,7 @@ def render_pub_assignment(assignment_id):
                 other_genesets = [gs for gs in genesets_for_pub if gs.geneset_id not in [gs.geneset_id for gs in genesets]]
                 if assignment.state !=assignment.UNASSIGNED:
                     curator = geneweaverdb.get_user(assignment.assignee)
+                group_name = geneweaverdb.get_group_name(assignment.group)
 
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
@@ -1074,7 +1076,7 @@ def render_pub_assignment(assignment_id):
 
     return flask.render_template('viewPubAssignment.html', pub=publication,
                                  view=view, assignment=assignment,
-                                 curator=curator, species=species,
+                                 curator=curator, group_name=group_name, species=species,
                                  curation_team=curation_team_members,
                                  genesets=genesets, other_genesets=other_genesets)
 
@@ -1910,7 +1912,7 @@ def render_curategeneset(gs_id):
                     curation_view = 'curator'
                 elif user_is_curation_leader():
                     curation_view = 'curation_leader'
-            elif (assignment.state == curation_assignments.CurationAssignment.READY_FOR_TEAM_REVIEW or
+            elif (assignment.state == curation_assignments.CurationAssignment.READY_FOR_REVIEW or
                           assignment.state == curation_assignments.CurationAssignment.REVIEWED):
                 if flask.session['user_id'] == assignment.reviewer:
                     curation_view = 'reviewer'
@@ -1953,25 +1955,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                 session['dir'] = 'ASC'
 
 
-    genetypes = geneweaverdb.get_gene_id_types()
-    genedict = {}
-
-    for gtype in genetypes:
-        genedict[gtype['gdb_id']] = gtype['gdb_name']
-
-    # get value for the alt-gene-id column
-    if 'extsrc' in session:
-        if genedict.get(session['extsrc'], None):
-            altGeneSymbol = genedict[session['extsrc']]
-            alt_gdb_id = session['extsrc']
-
-        else:
-            altGeneSymbol = 'Entrez'
-            alt_gdb_id = 1
-    else:
-        altGeneSymbol = 'Entrez'
-        alt_gdb_id = 1
-
     emphgenes = {}
     emphgeneids = []
 
@@ -1983,11 +1966,13 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
+    # can the user see this geneset?
+
     ## User account
     if user_info:
         if not user_info.is_admin and not user_info.is_curator:
             ## get_geneset takes into account permissions, if a geneset is
-            ## returned by *_no_user then we know they can't view it b/c of 
+            ## returned by *_no_user then we know they can't view it b/c of
             ## access rights
             if not geneset and geneweaverdb.get_geneset_no_user(gs_id):
                 return flask.render_template(
@@ -2003,6 +1988,37 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             no_access=True,
             user_id=user_id
         )
+
+
+    genetypes = geneweaverdb.get_gene_id_types()
+    genedict = {}
+
+    for gtype in genetypes:
+        genedict[gtype['gdb_id']] = gtype['gdb_name']
+
+    show_gene_list = True
+    # get value for the alt-gene-id column
+    # if this is a 'stub' geneset.gene_id_type might not be valid,
+    # if it is a stub and doens't have any genes yet, don't try to display a
+    # gene list
+    if not curation_view or len(geneset.geneset_values):
+        if 'extsrc' in session:
+            if genedict.get(session['extsrc'], None):
+                altGeneSymbol = genedict[session['extsrc']]
+                alt_gdb_id = session['extsrc']
+
+            else:
+                altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+                alt_gdb_id = abs(geneset.gene_id_type)
+        else:
+            altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+            alt_gdb_id = abs(geneset.gene_id_type)
+    else:
+        altGeneSymbol = None
+        alt_gdb_id = None
+        show_gene_list = False
+
+
 
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
@@ -2032,15 +2048,49 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
-    return flask.render_template('viewgenesetdetails.html', geneset=geneset,
-                                 emphgeneids=emphgeneids, user_id=user_id,
-                                 colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
-                                 altGeneSymbol=altGeneSymbol, view=view,
-                                 ontology=ontology, alt_gdb_id=alt_gdb_id,
-                                 species=species, curation_view=curation_view,
-                                 curation_team=curation_team,
-                                 curation_assignment=curation_assignment,
-                                 curator_info=curator_info)
+    ## Append the symbol to each geneset_value, required for ABA linkouts
+    genetypes = geneweaverdb.get_gene_id_types()
+    symbol_type = None
+
+    for gtype in genetypes:
+        if gtype['gdb_shortname'].lower() == 'symbol':
+            symbol_type = gtype['gdb_id']
+            break
+
+    if symbol_type:
+        if 'extsrc' not in session:
+            session['extsrc'] = abs(geneset.gene_id_type)
+
+        ## This should be changed because the db functions shouldn't be 
+        ## accessing session variables
+        old_type = session['extsrc']
+        session['extsrc'] = symbol_type
+
+        gs = geneweaverdb.get_geneset(gs_id, user_id)
+
+        for i in range(len(geneset.geneset_values)):
+            geneset.geneset_values[i].symbol = gs.geneset_values[i].ode_ref
+
+        session['extsrc'] = old_type
+
+    return flask.render_template(
+        'viewgenesetdetails.html', 
+        geneset=geneset,
+        emphgeneids=emphgeneids, 
+        user_id=user_id,
+        colors=HOMOLOGY_BOX_COLORS, 
+        tt=SPECIES_NAMES,
+        altGeneSymbol=altGeneSymbol, 
+        view=view,
+        ontology=ontology, 
+        alt_gdb_id=alt_gdb_id,
+        species=species, 
+        curation_view=curation_view,
+        curation_team=curation_team,
+        curation_assignment=curation_assignment,
+        curator_info=curator_info,
+        show_gene_list=show_gene_list
+    )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
 def render_viewgenesetoverlap(gs_ids):
@@ -3190,6 +3240,8 @@ def add_genesets_projects():
     if 'user_id' in flask.session:
         results = geneweaverdb.add_genesets_to_projects(request.args)
         return json.dumps(results)
+    else:
+        return json.dumps({'error': 'You must be logged in to add a geneset to a project'})
 
 
 @app.route('/removeGenesetFromProject')

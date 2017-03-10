@@ -29,6 +29,7 @@ var COLORS = [
 var doThings = function(graphData) {
 
     g.data = graphData;
+    g.data.nodes = removeBootstrappedNodes(g.data.nodes);
 
     var width = '900',
         height = '700',
@@ -349,7 +350,6 @@ function update() {
     nodeEnter.select('.gs-node')
         .append('svg:title')
         .text(function (d) {
-            console.log(d);
             return d.tooltip;
         });
 
@@ -424,6 +424,42 @@ function textColor(d) {
 // tooltipSpan.style.left = (x + 20) + 'px';
 // });
 
+/**
+ * Iterates through each node and removes edges (nodes in the children lists)
+ * that no longer exist due to boostrapping.
+ *
+ */
+function removeBootstrappedNodes(nodes) {
+
+    var nodeIds = nodes.map(function(n) { return n.id; });
+    var idmap = nodeIds.reduce(function(obj, arr) {
+
+        obj[arr] = arr;
+
+        return obj;
+    }, {});
+
+    for (var i = 0; i < nodes.length; i++) {
+
+        var node = nodes[i];
+
+        if (nodes[i].children) {
+
+            nodes[i].children = nodes[i].children.filter(function(c) { 
+                return c in idmap; 
+            });
+        }
+
+        if (nodes[i]._children) {
+
+            nodes[i]._children = nodes[i]._children.filter(function(c) { 
+                return c in idmap; 
+            });
+        }
+    }
+
+    return nodes;
+}
 
 // Invoked from 'update'.
 // The original source data is not the usual nodes + edge list,

@@ -36,7 +36,7 @@ class PubAssignment(object):
 
     UNASSIGNED = 1
     ASSIGNED = 2
-    READY_FOR_TEAM_REVIEW = 3
+    READY_FOR_REVIEW = 3
     REVIEWED = 4
 
     def __init__(self, row_dict):
@@ -55,7 +55,7 @@ class PubAssignment(object):
         state_dict = {
             PubAssignment.UNASSIGNED: "Unassigned",
             PubAssignment.ASSIGNED: "Assigned (in progress)",
-            PubAssignment.READY_FOR_TEAM_REVIEW: "Under Review",
+            PubAssignment.READY_FOR_REVIEW: "Under Review",
             PubAssignment.REVIEWED: "Complete"
         }
 
@@ -92,7 +92,7 @@ class PubAssignment(object):
         self.state = state
 
     def mark_as_complete(self, notes):
-        state = self.READY_FOR_TEAM_REVIEW
+        state = self.READY_FOR_REVIEW
 
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute(
@@ -242,9 +242,9 @@ class PubAssignment(object):
                 curation_assignments.submit_geneset_for_curation(geneset_id,
                                                                  self.group,
                                                                  "", False)
-                curation_assignments.assign_geneset_curator(geneset_id,
-                                                            self.assignee,
-                                                            self.assigner, "")
+                assignment = curation_assignments.get_geneset_curation_assignment(geneset_id)
+                assignment.assign_curator(self.assignee, self.assigner, "")
+
                 self.__insert_gs_to_pub(geneset_id)
 
                 # run the annotator for the geneset (on geneset description and the

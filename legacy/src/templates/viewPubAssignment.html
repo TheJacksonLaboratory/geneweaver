@@ -107,6 +107,7 @@
                 </div>
                 <div class="col-xs-6 col-md-3">
                     <div class="row">
+                        <p><strong>Curation Group:</strong> <span id="groupName">{{ group_name }}</span></p>
                         {% if assignment.state == assignment.UNASSIGNED %}
                             <p><strong>Curator:</strong> <span id="curatorName">Unassigned</span></p>
                         {% else %}
@@ -144,7 +145,7 @@
                                     id="assignCurator">
                                 <i class="fa fa-user pull-left"></i> Reassign
                             </button>
-                            {% if assignment.state == assignment.READY_FOR_TEAM_REVIEW %}
+                            {% if assignment.state == assignment.READY_FOR_REVIEW %}
                                 <button type="button"
                                         class="btn btn-block btn-primary"
                                         id="sendBack">
@@ -531,7 +532,7 @@
                     var html = "";
 
                     for (var i = 0; i < data.gs_ids.length; i++) {
-                        html = html + '<p><a href="/viewgenesetdetails/' + data.gs_ids[i] +'">GS' + data.gs_ids[i] + '</a>: ' + stubs[i].gs_name + '</p><p style="padding-left: 10px">' + stubs[i].gs_description + '</p>'
+                        html = html + '<p><a href="/curategeneset/' + data.gs_ids[i] +'">GS' + data.gs_ids[i] + '</a>: ' + stubs[i].gs_name + '</p><p style="padding-left: 10px">' + stubs[i].gs_description + '</p>'
                     }
 
                     $('#stub_' + stub_index).html(html);
