@@ -1,6 +1,0 @@
-FROM postgres:9.6.1
-
-MAINTAINER Alexander Berger <alexander.berger@jax.org>
-
-COPY sample-configs/create-database/* /docker-entrypoint-initdb.d/
-COPY migration/* /docker-entrypoint-initdb.d/
