@@ -5,6 +5,11 @@ services:
       context: ../../website-py
       dockerfile: sample-configs/Dockerfile
     image: geneweaver:latest
+    healthcheck:
+      test: ["CMD-SHELL", "cd", "..", "&&", "python", "-m", "unittest", "discover", "&&", "echo", "HEALTHCHECK PASSED"]
+      interval: 12h
+      timeout: 30s
+      retries: 3
     ports: 
      - "80:80"
      - "443:443"
@@ -45,6 +50,11 @@ services:
     build:
       context: ../../database
       dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "geneweaver", "-h", "postgres", "-U", "postgres", "-t" "10"]
+      iterval: 30m
+      timeout: 15s
+      retries: 3
     container_name: geneweaver-postgres
   celery:
     build:
