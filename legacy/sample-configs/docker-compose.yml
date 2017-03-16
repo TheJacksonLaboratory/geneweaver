@@ -5,8 +5,9 @@ services:
       context: ../../website-py
       dockerfile: sample-configs/Dockerfile
     image: geneweaver:latest
+    container_name: geneweaver-web
     healthcheck:
-      test: ["CMD-SHELL", "cd", "..", "&&", "python", "-m", "unittest", "discover", "&&", "echo", "HEALTHCHECK PASSED"]
+      test: ["CMD-SHELL", "cd", "..", "&&", "python", "-m", "unittest", "discover" ]
       interval: 12h
       timeout: 30s
       retries: 3
@@ -17,17 +18,22 @@ services:
      - '../src:/srv/geneweaver/website-py/src'
      - 'results:/srv/geneweaver/results'
     depends_on:
-     - sphinx
-     - rabbitmq
-     - postgres
+      sphinx:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      celery:
+        condition: service_started
     restart: unless-stopped
-    container_name: geneweaver-web
     links:
      - postgres
      - rabbitmq
      - sphinx
   sphinx:
     image: leodido/sphinxsearch:2.2.9
+    container_name: geneweaver-sphinx
     ports: 
      - "9306:9306"
      - "9312:9312"
@@ -35,37 +41,46 @@ services:
      - './docker-configs/sphinx-configs:/usr/local/etc'
     command: indexall.sh
     restart: unless-stopped
-    container_name: geneweaver-sphinx
     links:
      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: geneweaver-rabbitmq
     ports:
      - "8080:15672"
     environment:
      - RABBITMQ_ERLANG_COOKIE='7gH3cB9vtK4j'
     restart: unless-stopped
-    container_name: geneweaver-rabbitmq
+    depends_on:
+      postgres:
+        condition: service_healthy
   postgres:
     build:
       context: ../../database
       dockerfile: Dockerfile
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "geneweaver", "-h", "postgres", "-U", "postgres", "-t", "10"]
-      interval: 30m
-      timeout: 15s
-      retries: 3
+    image: geneweaver-db:latest
     container_name: geneweaver-postgres
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /base-data/init-finished.txt ]", "&&", "echo 0", "||", "echo 1"]
+      interval: 5m
+      timeout: 15s
+      retries: 10
   celery:
     build:
       context: ../../tools
       dockerfile: Dockerfile
+    image: geneweaver-celery:latest
     links:
       - rabbitmq
       - postgres
     depends_on:
-      - rabbitmq
-      - postgres
+      rabbitmq:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     volumes: 
      - 'results:/home/user/results'
 
