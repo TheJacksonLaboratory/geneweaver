@@ -32,6 +32,15 @@
 
             <div class="row">
                 <div class="col-md-2">
+                    <p class="text-right"><strong>DATE UPDATED:</strong></p>
+                </div>
+                <div class="col-md-10">
+                    {{ geneset.updated_date.strftime('%Y-%m-%d') }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-2">
                     <p class="text-right"><strong>SPECIES:</strong></p>
                 </div>
                 <div id="sp-tag" class="col-md-10">
@@ -144,6 +153,30 @@
                     </div>
                 </div>
                 {% if curation_view is not defined or (curation_view == 'curator' and curation_assignment.state == curation_assignment.ASSIGNED) %}
+                <div class="row">
+                    <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
+                        Go to the
+						<a href="/editgeneset/{{geneset.geneset_id}}">
+							Edit MetaContent 
+						</a>
+						page to change ontology annotations.
+                    </div>
+                </div>
+                {% endif %}
+                <div id="ont-key">
+                </div>
+                <br />
+                {% for ont in ontology %}
+                    <div class="ont-{{ont.ontdb_id}} group_name ontology-tag">
+                            <span style="color:#000">
+                                <strong>{{ ont.name }}</strong>
+                            </span>
+                            ({{ ont.reference_id }})
+                    </div>
+                {% endfor %}
+
+                {#
                     <div class="row">
                         <div id="genesetOntologyAlert" class="alert alert-warning fade in" style="margin-top: 0px; width: 100%;">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
@@ -168,6 +201,7 @@
                             {% endfor %}
                         </ul>
                 </div>
+                #}
             </div>
 
             <script>

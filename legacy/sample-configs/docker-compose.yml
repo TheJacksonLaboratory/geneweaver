@@ -1,0 +1,89 @@
+version: '2.1'
+services:
+  web:
+    build: 
+      context: ../../website-py
+      dockerfile: sample-configs/Dockerfile
+    image: geneweaver:latest
+    container_name: geneweaver-web
+    healthcheck:
+      test: ["CMD-SHELL", "cd", "..", "&&", "python", "-m", "unittest", "discover" ]
+      interval: 12h
+      timeout: 30s
+      retries: 3
+    ports: 
+     - "80:80"
+     - "443:443"
+    volumes: 
+     - '../src:/srv/geneweaver/website-py/src'
+     - '../tests:/srv/geneweaver/website-py/tests'
+     - 'results:/srv/geneweaver/results'
+    depends_on:
+      sphinx:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      celery:
+        condition: service_started
+    restart: unless-stopped
+    links:
+     - postgres
+     - rabbitmq
+     - sphinx
+  sphinx:
+    image: leodido/sphinxsearch:2.2.9
+    container_name: geneweaver-sphinx
+    ports: 
+     - "9306:9306"
+     - "9312:9312"
+    volumes:
+     - './docker-configs/sphinx-configs:/usr/local/etc'
+    command: indexall.sh
+    restart: unless-stopped
+    links:
+     - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: geneweaver-rabbitmq
+    ports:
+     - "8080:15672"
+    environment:
+     - RABBITMQ_ERLANG_COOKIE='7gH3cB9vtK4j'
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    build:
+      context: ../../database
+      dockerfile: Dockerfile
+    image: geneweaver-db:latest
+    container_name: geneweaver-postgres
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /base-data/init-finished.txt ]", "&&", "echo 0", "||", "echo 1"]
+      interval: 5m
+      timeout: 15s
+      retries: 10
+  celery:
+    build:
+      context: ../../tools
+      dockerfile: Dockerfile
+    image: geneweaver-celery:latest
+    links:
+      - rabbitmq
+      - postgres
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    volumes: 
+     - 'results:/home/user/results'
+
+volumes:
+  results:

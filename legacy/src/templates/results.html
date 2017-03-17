@@ -29,6 +29,25 @@
 			$('.' + $(this).attr('data-hide')).hide();
 		});
 	});
+    // Can now call redirectPost via $
+    $.extend({
+        // Forces a page redirect (using a hidden form) while passing data
+        // through a POST request. This is used to redirect the user to
+        // their old results.
+        redirectPost: function(location, args) {
+            var form = '';
+
+            $.each(args, function(key, value) {
+                form += '<input type="hidden" name="' + key + 
+                        '" value="' + value + '">';
+            });
+
+            form = '<form action="' + location + '" method="POST">' + 
+                   form + '</form>';
+
+            $(form).appendTo('body').submit();
+        }
+    });
 
 	var r = false;
 	var editor;
@@ -137,6 +156,10 @@
 								$.redirectPost('/run-phenome-map.html', form);
 							if (data['tool'] === 'Jaccard Similarity')
 								$.redirectPost('/run-jaccard-similarity.html', form);
+                            if (data['tool'] === 'DBSCAN')
+								$.redirectPost('/run-dbscan.html', form);
+                            if (data['tool'] === 'MSET')
+                                $.redirectPost('/run-mset.html', form)
 						});
 					});
 

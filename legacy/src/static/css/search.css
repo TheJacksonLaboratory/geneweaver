@@ -453,6 +453,16 @@ a.gs_deprecated:hover {
     border:1px solid black;
 }
 
+.ontology-tag {
+
+    border-radius: 5px;
+    display: inline-block;
+    font-size: 12px;
+    margin-bottom: 5px;
+    margin-right: 5px;
+    padding: 5px 6px 5px 6px;
+}
+
 div#gs_size_slider {
     margin-bottom: 5px;
     margin-top: 10px;

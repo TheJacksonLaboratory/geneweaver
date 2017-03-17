@@ -1,4 +1,4 @@
-{# insert section about metadata #}
+{# insert section about MetaContent #}
 {% include 'genesetMeta.html' %}
 
 {# Right Side List of Buttons #}
@@ -23,7 +23,7 @@
                 <i class="fa fa-signal pull-left"></i> Set Threshold
             </button>
             <button type="button" class="btn btn-block btn-warning" id="editGeneset">
-                <i class="fa fa-edit pull-left"></i> Edit MetaData
+                <i class="fa fa-edit pull-left"></i> Edit MetaContent
             </button>
             <button type="button" class="btn btn-block btn-warning" id="editGenesetGenes">
                 <i class="fa fa-edit pull-left"></i> Edit Genes
@@ -65,7 +65,7 @@
             <i class="fa fa-signal pull-left"></i> Set Threshold
         </button>
         <button type="button" class="btn btn-block btn-warning" id="editGeneset">
-            <i class="fa fa-edit pull-left"></i> Edit MetaData
+            <i class="fa fa-edit pull-left"></i> Edit MetaContent
         </button>
         <button type="button" class="btn btn-block btn-warning" id="editGenesetGenes">
             <i class="fa fa-edit pull-left"></i> Edit Genes
@@ -77,7 +77,7 @@
         <button type="button" class="btn btn-block btn-primary" id="readyForReview">
             <i class="fa fa-check pull-left"></i> Ready For Review
         </button>
-    {% elif curation_view == 'curator' and curation_assignment.state == curation_assignment.READY_FOR_TEAM_REVIEW %}
+    {% elif curation_view == 'curator' and curation_assignment.state == curation_assignment.READY_FOR_REVIEW %}
         <div class="form-group" >
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
             <textarea class="form-control" rows="10" id="curationNotes" disabled>{{ curation_assignment.notes }}</textarea>
@@ -85,7 +85,7 @@
         <button type="button" class="btn btn-block btn-primary" id="readyForReview" disabled="true">
             <i class="fa fa-check pull-left"></i> Pending Review
         </button>
-    {% elif curation_view == 'reviewer' and curation_assignment.state == curation_assignment.READY_FOR_TEAM_REVIEW %}
+    {% elif curation_view == 'reviewer' and curation_assignment.state == curation_assignment.READY_FOR_REVIEW %}
         <div class="form-group">
             <label for="curationNotes"><h4>Curation Notes:</h4></label>
             <textarea class="form-control" rows="10" id="curationNotes" >{{ curation_assignment.notes }}</textarea>
@@ -98,7 +98,7 @@
 
         <div class="form-group" id="review_div">
             <label for="radio_group"><h4>Review Decision:</h4></label>
-            <div id="radio_group">
+            <div id="radio_group" style="padding-left: 5px">
                 <label for="review_ok_radio" id="label_review_ok">Accept</label>
                 <input class="form-control" type="radio" name="review" value="accept" id="review_ok_radio">
                 <small class="form-text text-muted" >Mark curation task as complete</small>
@@ -106,6 +106,15 @@
                 <input class="form-control" type="radio" name="review" value="reject" id="review_reject_radio">
                 <small class="form-text text-muted" >Send GeneSet back to curator for additional work. Please provide feedback in the curation notes.</small>
             </div>
+
+            <label for="tier"><h4>Curation Level:</h4></label>
+
+            <select id="tier" autocomplete="off">
+                {% for tier in curation_assignment.reviewer_tiers %}
+                    <option value="{{ tier[0] }}" {% if geneset.cur_id == tier[0] %}selected="selected"{% endif %}>Tier {{ tier[1] }}</option>
+                {% endfor %}
+            </select>
+
 
         </div>
         <div class="form-group" stype="padding-top: 30px">

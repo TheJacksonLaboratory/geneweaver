@@ -34,7 +34,7 @@ import random
 import re
 import urllib2 as url2
 import config
-#import geneweaverdb
+import geneweaverdb
 
 #### TheDB
 ##
@@ -52,11 +52,11 @@ class TheDB():
         host = config.get('db', 'host')
         port = config.getInt('db', 'port')
 
-        cs = "host='%s' dbname='%s' user='%s' password='%s'" % (host, db, user, password)
+        cs = "host='%s' dbname='%s' user='%s' password='%s' port='%s'" % (host, db, user, password, port)
 
         try:
             self.conn = psycopg2.connect(cs)
-        except:
+        except:  
             print '[!] Oh noes, failed to connect to the db.'
             print ''
             exit()
@@ -169,8 +169,11 @@ class TheDB():
         if type(syms) == list:
             syms = tuple(syms)
 
-        query = ('SELECT DISTINCT ode_ref_id, ode_gene_id FROM extsrc.gene '
-                 'WHERE sp_id = %s AND ode_pref = true AND ode_ref_id IN %s;')
+        query = '''SELECT DISTINCT ode_ref_id, ode_gene_id 
+                   FROM extsrc.gene
+                   WHERE sp_id = %s AND 
+                         ode_pref = true AND 
+                         lower(ode_ref_id) IN %s;'''
 
         self.cur.execute(query, [sp, syms])
 
@@ -188,7 +191,7 @@ class TheDB():
         ## ode_gene_id for the species given. This way we add the pref. symbol
         ## and the user provided one to the gsv_source_list. If we still can't
         ## find it, then all hope is lost.
-        found = map(lambda x: x[0], res)
+        found = map(lambda x: x[0].lower(), res)
         notfound = list(set(syms) - set(found))
 
         if notfound:
@@ -196,7 +199,8 @@ class TheDB():
 
         ## We return a dict of ode_ref_id --> ode_gene_ids
         for tup in res:
-            d[tup[0].lower()] = tup[1]
+            #d[tup[0].lower()] = tup[1]
+            d[tup[0]] = tup[1]
 
         return d
 
@@ -292,7 +296,7 @@ class TheDB():
     def getSpecies(self):
         query = 'SELECT sp_id, sp_name FROM odestatic.species;'
 
-        self.cur.execute(query, [])
+        self.cur.execute(query)
 
         ## Returns a list of tuples [(sp_id, sp_name)]
         res = self.cur.fetchall()
@@ -478,7 +482,7 @@ def parseScoreType(s):
     Acceptable score types and threshold values include:
         Binary
         P-Value < 0.05
-        Q-Value < 0.05
+        ue < 0.05
         0.40 < Correlation < 0.05
         6.0 < Effect < 22.50
     The numbers can vary and if they can't be parsed, default values
@@ -556,7 +560,7 @@ def parseScoreType(s):
 ##
 ##
 def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
-                usr=0, cur_id=5):
+                usr=0, cur_id=5, annotations=None):
     """
     Given a shitload of arguments, this function returns a dictionary
     representation of a single geneset. Each key is a different column found
@@ -593,6 +597,7 @@ def makeGeneset(name, abbr, desc, spec, pub, grp, ttype, thresh, gtype, vals,
     gs['gs_gene_id_type'] = int(gtype)
     gs['usr_id'] = int(usr)
     gs['values'] = vals  # Not a column in the geneset table; processed later
+    gs['annotations'] = annotations # Not a column in the geneset table, etc.
 
     ## Other fields we can fill out
     gs['gs_count'] = len(vals)
@@ -683,6 +688,7 @@ def parseBatchFile(lns, usr=0, cur=5):
     stype = ''  # score type (gs_threshold_type)
     thresh = '0.05'  # threshold value for scores
     spec = ''  # species name
+    onts = []   # ontology annotations
     cerr = ''  # critical errors discovered during parsing
     ncerr = []  # non-critical errors discovered during parsing
     errors = [] # critical errors discovered during parsing
@@ -817,7 +823,7 @@ def parseBatchFile(lns, usr=0, cur=5):
                 ## function calculated % string similarity between the user
                 ## supplied platform and the list of plats in the db, choosing
                 ## the one with the best match
-                best = 0.70
+                best = 0.50
                 for plat, pid in plats.items():
                     sim = calcStringSimilarity(plat.lower(), origplat.lower())
 
@@ -865,6 +871,10 @@ def parseBatchFile(lns, usr=0, cur=5):
             #pub = eatWhiteSpace(ln[1:])
             pub = eatWhiteSpace(lns[i][1:])
 
+        ## Lines beginning with '~ ' are ontology annotations (OPTIONAL)
+        elif (lns[i][:2] == '~ ') and (len(lns[i].split('\t')) == 1):
+            onts.append(eatWhiteSpace(lns[i][1:]))
+
         ## Lines beginning with 'A' are groups, default is private (OPTIONAL)
         #elif ln[:2].lower() == 'a ' and (len(ln.split('\t')) == 1):
         elif lns[i][:2].lower() == 'a ' and (len(lns[i].split('\t')) == 1):
@@ -907,7 +917,7 @@ def parseBatchFile(lns, usr=0, cur=5):
 
             #ln = ln.split()
             else:
-                lns[i] = lns[i].split()
+                lns[i] = lns[i].split('\t')
 
                 ## I don't think this code can ever be reached...
                 if len(lns[i]) < 2:
@@ -1009,8 +1019,15 @@ def buGenesetValues(gs):
     if gs['gs_gene_id_type'] < 0:
         sym2ode = db.getOdeGeneIds(gs['sp_id'], symbols)
 
+        ## Save gene symbol with proper capitalization
+        #for sym in sym2ode.keys():
+        #    sym2ode[sym.lower()] = (sym, sym2ode[sym])
+
     else:
-        sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
+        try:
+            sym2probe = db.getPlatformProbes(gs['gs_gene_id_type'], symbols)
+        except:
+            print gs
         prbids = []
 
         for sym in symbols:
@@ -1018,7 +1035,6 @@ def buGenesetValues(gs):
 
         prbids = list(set(prbids))
         prb2odes = db.getProbe2Gene(prbids)
-
 
     # non-critical errors we will inform the user about
     noncrit = []
@@ -1062,26 +1078,46 @@ def buGenesetValues(gs):
             continue
 
         ## Not platform stuff
-        if not sym2ode[tup[0].lower()]:
+        #if not sym2ode[tup[0].lower()][1]:
+        #if not sym2ode[tup[0]]:
+        if tup[0] not in sym2ode or not sym2ode[tup[0]]:
             err = ("Error! There doesn't seem to be any gene/locus data for "
                    "%s in the database." % tup[0])
             noncrit.append(err)
             continue
 
         ## Check for duplicate ode_gene_ids, otherwise postgres bitches
-        if not dups[sym2ode[tup[0].lower()]]:
-            dups[sym2ode[tup[0].lower()]] = tup[0]
+        #if not dups[sym2ode[tup[0].lower()][1]]:
+        #    dups[sym2ode[tup[0].lower()][1]] = tup[0]
+        if not dups[sym2ode[tup[0]]]:
+            dups[sym2ode[tup[0]]] = tup[0]
 
         else:
             err = ('Error! Seems that %s is a duplicate of %s. %s was not '
                    'added to the geneset.' %
-                   (tup[0], dups[sym2ode[tup[0].lower()]], tup[0]))
+                   (tup[0], dups[sym2ode[tup[0]]], tup[0]))
             noncrit.append(err)
             continue
 
+        #print sym2ode[tup[0].lower()][1]
+        #print dups
         ## Remember to lower that shit, forgot earlier :(
-        db.insertGenesetValue(gs['gs_id'], sym2ode[tup[0].lower()], tup[1],
-                              tup[0], gs['gs_threshold'])
+        ## Unsure why some of these are tuples and others aren't
+        #if type(sym2ode[tup[0].lower()][1]) == tuple:
+        #    s2o = sym2ode[tup[0].lower()][1][1]
+        #else:
+        #    s2o = sym2ode[tup[0].lower()][1]
+
+        db.insertGenesetValue(
+            gs['gs_id'], 
+            #sym2ode[tup[0].lower()][1][1], 
+            sym2ode[tup[0]], 
+            #s2o,
+            tup[1],
+            tup[0],
+            #sym2ode[tup[0]][0], 
+            gs['gs_threshold']
+        )
 
         total += 1
 
@@ -1148,7 +1184,16 @@ def buGenesets(fp, usr_id=0, cur_id=5):
         if gsverr[1]:
             noncrits.extend(gsverr[1])
 
-    db.commit()
+        ## Add ontology annotations provided they exist
+        if gs['annotations']:
+            ont_ids = geneweaverdb.get_ontologies_by_refs(gs['annotations'])
+
+            for ont_id in ont_ids:
+                geneweaverdb.add_ont_to_geneset(
+                    gs['gs_id'], ont_id, 'Manual Association'
+                )
+
+    #db.commit()
 
     return (added, noncrits)
 

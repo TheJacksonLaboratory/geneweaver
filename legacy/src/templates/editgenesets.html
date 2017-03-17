@@ -42,7 +42,7 @@
 
     }
 
-    #anotologyInformation, #noAnotologyInformation {
+    #ontologyInformation, #noAnotologyInformation {
         cursor: pointer;
     }
 
@@ -92,17 +92,25 @@
 
     <form id="upload-geneset-form"  enctype="multipart/form-data" method="POST" >
 
-        {# Geneset Metadata #}
+        {# Geneset MetaContent #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h2 class="panel-title">
-                GeneSet Metadata &bull; GS{{ geneset.geneset_id }}
+                GeneSet MetaContent &bull; GS{{ geneset.geneset_id }}
             </h2>
         </div>
 
         <div style="margin-left: 1em;">
             <br>
             <p>
-                Please enter some descriptive info about this GeneSet. In order to ensure rapid acceptance by our curation team or, in the case of private data, maximum integration into the existing GeneWeaver dataset, please confirm that your GeneSet Metadata meets the guidlines outlined in our <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">Curation Standards</a>
+                Please complete the descriptive information about this GeneSet.
+                Follow the guidelines outlined in our
+                <a href="http://geneweaver.org/wiki/index.php?title=Curation_Standards">
+                    Curation Standards
+                </a>
+                to facilitate acceptance of your public data submission by
+                GeneWeaver Curators. Following these guidelines for private
+                data will assist you and your team in interpreting results and
+                taking advantage of text and ontology analysis tools.
             </p>
             <br>
             <input type="hidden" name="gs_id" value="{{ geneset.geneset_id }}"/>
@@ -170,17 +178,21 @@
         </div>
         <br>
 
-
-        {# Reference Information #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h2 class="panel-title">
-                Reference Information
+                Publication Information
             </h2>
         </div>
         <div style="margin-left: 1em;">
             <br>
             <p>
-                If this experiment has been published and listed in PubMed, just enter the Pubmed ID below to automatically fill in the publication info, otherwise you may manually enter publication information. Providing this will allow others to discover and use your data more quickly, provide a means to link here directly from PubMed, and streamline our curation efforts.
+                If this GeneSet has been published in a PubMed indexed journal,
+                just enter the PubMed ID below to automatically fill in the
+                publication info, otherwise you may manually enter publication
+                information. Providing this will allow others to discover and
+                use your data more quickly, provide a means to link here
+                directly from PubMed, avoid data duplication and streamline
+                our curation efforts.
             </p>
 
             <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="3000"></div>
@@ -245,12 +257,46 @@
             </div>
         </div>
 
+        {# Elissa will probably want these buttons moved #}
+        <div class="row pull-right">
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-block btn-warning"
+                        id="run-annotator">
+                    <i id="annotator-icon" class="fa fa-play"></i>
+                    <span id="annotator-text">
+                        Run Annotator
+                    </span>
+                </button>
+            </div>
+
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-block btn-warning"
+                        id="save-updates">
+                    <i class="fa fa-save "></i>
+                    Save Updates
+                </button>
+            </div>
+
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-block btn-warning"
+                        id="edit-genes">
+                    <i class="fa fa-fast-forward "></i> Edit Genes
+                </button>
+            </div>
+
+        </div>
+
+        <br>
         <br>
 
         {# Annotation Information #}
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h2 class="panel-title">
-                Annotation Information
+                Ontology Annotations
+                <span id="ontologyInformation" tabindex="0"
+                      data-trigger="focus">
+                    <i class="fa fa-info-circle"></i>
+                </span>
             </h2>
         </div>
 
@@ -258,58 +304,131 @@
             <br>
             <div class="row">
                 {% if onts %}
-                <div class="panel panel-default panel-heading bg-gray-light">
-                    <h3 class="panel-title"><strong>Annotation Information</strong>
-                        <span id="anotologyInformation" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
-                </div>
+
+                    <div class="row">
+                        <div class="col-xs-3";>
+                            <select name="gso_ref_type" id="gso_ref_type"
+                                    class="form-control"
+                                    style="margin-bottom: 20px;" required>
+                                <option value="all" selected>
+                                    All Reference Types
+                                </option>
+                                {% for ref_type in ref_types %}
+                                    <option value="ref_type">
+                                        {{ ref_type }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="genesetOntologyAlert"
+                             class="alert alert-warning fade in col-xs-3"
+                             style="width:400px; text-align:center;">
+                                <button type="button" class="close"
+                                        data-dismiss="alert" aria-hidden="true">
+                                    x
+                                </button>
+                                <strong>
+                                    Annotation changes persist on (de)selection.
+                                </strong>
+                        </div>
+                    </div>
+
+                    <div style="border: 1px solid #afafaf;">
+                        <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
+                    </div>
 
                 {% else %}
-                <div class="panel panel-default panel-heading bg-gray-light">
-                    <h3 class="panel-title"><strong>No Annotation Information is Associated with this GeneSet</strong>
-                        <span id="noAnotologyInformation" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
-                </div>
+                    <div id="genesetOntologyAlert" align="center"
+                         class="alert alert-danger fade in col-xs-3"
+                         style="width:100%">
+                            <strong>
+                                No annotations are associated with this
+                                GeneSet.
+                            </strong>
+                    </div>
 
                 {% endif %}
-
-                <div class="row">
-                    <div class="col-xs-3";>
-                        <select name="gso_ref_type" id="gso_ref_type" class="form-control" style="margin-bottom: 20px;" required>
-                            <option value="all" selected>All Reference Types</option>
-                            {% for ref_type in ref_types %}
-                            <option value="ref_type">{{ ref_type }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div id="genesetOntologyAlert" class="alert alert-warning fade in col-xs-3">
-                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-                            GeneSet-Ontology Link Changes Persist on Select/Deselect.
-                    </div>
-                </div>
-
-                <div style="border: 1px solid #afafaf;">
-                    <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
-                </div>
-                <!--<span id="echoActive">-</span>-->
             </div>
         </div>
 
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;"></div>
-
-        <div class="panel-heading">
-            <div class="pull-right">
-                <button type="submit" class="btn btn-block btn-warning" id="upload-geneset-button">
-                    <i class="fa fa-fast-forward pull-right"></i> Edit Genes
-                </button>
-            </div>
-        </div>
 
     </form>
-
-
 
 {% endif %}
 
 <script>
+
+    var gsID = {{ geneset.geneset_id | safe }};
+
+    /*
+     * Toggles an element's enabled/disabled property.
+     *
+     * arguments
+     *      element: HTML element being enabled/disabled
+     */
+    var toggleElementDisabled = function(element) {
+
+        $(element).prop('disabled', function() {
+            return !$(this).prop('disabled')
+        });
+    };
+
+    /*
+     * Retrieves the currently selected annotation reference type.
+     *
+     * returns
+     *      the name of the currently selected reference type
+     */
+    var getSelectedRefType = function() {
+
+        var ref = $('#gso_ref_type option:selected').text();
+
+        return $.trim(ref);
+    };
+
+    /*
+     * Retrieves and concatenates GS name/description text and publication
+     * title/abstract text so it can be sent to the annotator. Description and
+     * publication text is returned separately because the annotator tool has
+     * specific reference types for each.
+     *
+     * returns
+     *      an object containing text from the GS description and publication
+     */
+    var getGenesetText = function() {
+
+        var gsName = $.trim($('#genesetName').text()),
+            gsDesc = $.trim($('#genesetDescription').text()),
+            pubTitle = $.trim($('#pub_title').text()),
+            pubAbs = $.trim($('#pub_abstract').text());
+
+        return {
+            description: gsName + ' ' + gsDesc,
+            publication: pubTitle + ' ' + pubAbs
+        };
+    };
+
+    /**
+      * Changes the "Run Annotator" button between its disabled, running and
+      * enabled, ready states. The style change is performed so the user knows
+      * the annotator is running (it might take awhile depending on the amount
+      * of text being annotated).
+      */
+    var changeAnnotatorButton = function() {
+
+        if ($('#run-annotator').prop('disabled')) {
+
+            $('#annotator-icon').attr('class', 'fa fa-play');
+            $('#annotator-text').text('Run Annotator');
+
+        } else {
+
+            $('#annotator-icon').attr('class', 'fa fa-cog fa-spin');
+            $('#annotator-text').text('Running...');
+        }
+
+        toggleElementDisabled('#run-annotator');
+    };
 
     $(function(){
         //Initialize dynatree data and functions
@@ -319,8 +438,8 @@
             initAjax: {
                 url: "/initOntTree",
                 data: {
-                    "gs_id": $(location).attr("href").split('/').pop(),
-                    universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+                    gs_id: gsID,
+                    universe: getSelectedRefType()
                 }
             },
 
@@ -331,39 +450,125 @@
                     data: {
                         key: node.data.key,
                         is_db: node.data.db,
-                        universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+                        universe: getSelectedRefType()
                     }
                 })
             },
 
-            //Performs lazy ajax call to update the database when an ontology is selected or unselected
-            onSelect: termSelectionHandler
-        })
-    });
+			// Does nothing but needs to be present for nodes to be unselected.
+            onClick: function (node, event) {
 
-    var user_id = {{ user_id }}
+			},
+
+			/**
+              * Called during node creation. If a node has the "Manual
+              * Rejection" reference type we alter the style. Every node gets
+              * its reference type added to the span title so it can be viewed
+              * when a user hovers over the node.
+              *
+              * arguments
+              *     node:       the node object being initialized
+              *     nodeSpan:   jQuery object representing the node's span
+              *                 element
+              */
+            onCreate: function (node, nodeSpan) {
+
+                if (node.data.ref === undefined)
+                    return;
+
+                if (node.data.ref === 'Manual Rejection') {
+
+                    $(nodeSpan)
+                        .children('.dynatree-title')
+                        .css('text-decoration', 'line-through')
+                        .css('background-color', 'none')
+                        .css('font-weight', 'normal');
+                }
+
+                $(nodeSpan).attr('title', node.data.ref);
+			},
+
+            // Updates the database based on the ontology terms a user selects.
+            onSelect: function (flag, node) {
+                $.ajax({
+                    url: '/update_geneset_annotation.json',
+                    type: 'POST',
+                    data: {
+                        key: node.data.key,
+                        flag: flag,
+                        gs_id: gsID
+                    },
+                    success: function(data){
+                        data = JSON.parse(data);
+
+                        if (!data.success && data.error) {
+
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#result').html(
+                                '<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" ' +
+                                'data-dismiss="alert" aria-hidden="true">x' +
+                                '</button><strong>Error:</strong> ' +
+                                data.error + '</div>');
+                        }
+                    },
+                    error: function(request, error, thrownError) {
+                    }
+                })
+            }
+        })
+
+        /**
+          * Clicking this button reruns the annotator tool on the geneset's
+          * description and publication text.
+          */
+        $('#run-annotator').on('click', function(event) {
+            event.preventDefault();
+
+            var postData = getGenesetText();
+            postData.gs_id = gsID;
+
+            // Style changes so the user knows something is happening
+            changeAnnotatorButton();
+
+            $.ajax({
+                url: '/rerun_annotator.json',
+                type: 'POST',
+                data: postData,
+                success: function(data) {
+
+                    changeAnnotatorButton();
+
+                    $('#tree').dynatree('getTree').reload();
+                },
+                error: function(request, error, thrownError) {
+
+                    changeAnnotatorButton();
+                }
+            });
+        });
+
+        /**
+          * Should eventually redirect the user to the edit genes page.
+          */
+        $('#edit-genes').on('click', function(event) {
+            event.preventDefault();
+        });
+    });
 
     //This refreshes all tree data based on changing gso_ref_type (universe) seen in the gso_ref_type select tag
     $($("#gso_ref_type").change(function () {
         $("#tree").dynatree("option", "initAjax", {
             url: "/initOntTree",
             data: {
-                "gs_id": $(location).attr("href").split('/').pop(),
-                universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML
+                gs_id: gsID,
+                universe: getSelectedRefType()
             }
         });
         $("#tree").dynatree("getTree").reload();
     }));
 
-    function myFunction(genes)
-    {
-        genes1 = genes.split("_");
-        genes1 = genes1.join("\t1\n");
-        genes1 = genes1.concat("\t1");
-        document.getElementById("file_text").value= genes1;
-    };
-
-    $(window).load(function() {
+    $(window).on("load", function(e) {
         $(".loader").fadeOut("slow");
     });
 
@@ -387,57 +592,58 @@
         $e.style.backgroundColor = '';
     }
 
-    function myFunction(genes) {
-	    genes1 = genes.split("_");
-	    genes1 = genes1.join("\t1\n");
-	    genes1 = genes1.concat("\t1");
-	    document.getElementById("genesetValues").value= genes1;
-    };
+    $('#upload-geneset-form').submit(function(event) {
+        event.preventDefault();
 
+        toggleElementDisabled('#save-updates');
 
-        $('#upload-geneset-form').submit(function(event) {
-            event.preventDefault();
-            $('#upload-geneset-button').prop('disabled',function() { return !$(this).prop('disabled') });
+        var data = $("#upload-geneset-form").serialize();
+        var tree = $("#tree").dynatree("getTree");
+        //May be used later on in order to submit ontology tree information with form.
+        //var onts = JSON.stringify(tree.serializeArr());
+        //data = data.concat("&onts=", onts);
 
-            var data = $("#upload-geneset-form").serialize();
-            var tree = $("#tree").dynatree("getTree");
-            //May be used later on in order to submit ontology tree information with form.
-            var onts = JSON.stringify(tree.serializeArr());
-            data = data.concat("&onts=", onts);
+        $.ajax({
+            type: "POST",
+            url: "/updategeneset",
+            data: data,
+            success: function(result) {
 
-            $.ajax({
-                type: "POST",
-                url: "/updategeneset",
-                data: data, //{data: data, onts: onts},
-                //processData: false,
-                //contentType: false,
-                success: function(r)
-                {
-                    var v = JSON.parse(r);
-                    if (v["success"] == 'True') {
-                        var gs_id = {{ geneset.geneset_id }};
-                        {% if curation_view %}
-                            window.location = '/curategenesetgenes/' + gs_id;
-                        {% else %}
-                            window.location = '/editgenesetgenes/' + gs_id;
-                        {% endif %}
-                    }
-                    else {
-                        $("html, body").animate({ scrollTop: 0 }, "slow");
-                        $("#result").html('<div class="alert alert-danger fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Oops. An ERROR occured while updating the database. ' + v["success"] + '</div>');
-                    }
-                },
-                error: function(r)
-                {
+                result = JSON.parse(result);
+
+                if (result.success === true) {
+
+                    {% if curation_view %}
+                        window.location = '/curategenesetgenes/' + gsID;
+                    {% else %}
+                        window.location = '/editgenesetgenes/' + gsID;
+                    {% endif %}
+
+                } else {
+
                     $("html, body").animate({ scrollTop: 0 }, "slow");
-                    $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>Oops. An ERROR occured. Please try again later or submit an error report.</div>');
+                    $("#result").html(
+                        '<div class="alert alert-danger fade in"> ' +
+                        '<button type="button" class="close" ' +
+                        'data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>An error occurred while updating GeneSet ' +
+                        'metacontent: ' + result.error + '</div>');
                 }
-            });
+
+                toggleElementDisabled('#save-updates');
+            },
+            error: function(result) {
+
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                $("#result").html(
+                    '<div class="alert alert-danger fade in"> ' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                    '</button>An unknown error ocurred. Please try again later or submit an error report.</div>');
+
+                toggleElementDisabled('#save-updates');
+            }
         });
+    });
 
         function createReaderHandler(name) {
             return function(ev) {
@@ -491,9 +697,6 @@
                     }
                 });
             };
-
-
-
         });
 
         $("#pubmed_manual_button").click(function() {
@@ -544,18 +747,28 @@
 
     //Popover that gives Geneset Ontology functionality overview for the user
     //Displayed when ontologies are linked with the geneset
-    $('#anotologyInformation').popover({
-            title: 'GeneSet Ontologies', content: 'Linked GeneSet ontologies are displayed below as the highlighted ' +
-            'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
-            'selection of various GeneSet ontology reference types.  All selected ontologies may be viewed under the ' +
-            'All Reference Types category.  GeneSet-ontology links may be added or removed under any other category'
+    $('#ontologyInformation').popover({
+            title: 'GeneSet Ontologies',
+            content: 'GeneSet ontology annotations are highlighted below.' +
+            'The drop down menu above the ontology tree allows for the ' +
+            'selection of GeneSet annotation source, e.g. manual or inferred ' +
+            'from text mining. All selected ontology terms may be viewed ' +
+            'under the All Reference Types category. GeneSet ontology ' +
+            'annotations may be added or removed under any other category. ' +
+            'Contact us to suggest additional ontologies that you would ' +
+            'like to use to annotate your GeneSets.'
     });
     //Displayed when NO ontologies are linked with the geneset
     $('#noAnotologyInformation').popover({
-            title: 'GeneSet Ontologies', content: 'Linked GeneSet ontologies are displayed below as the highlighted ' +
-            'nodes within the ontology databases. The drop down menu above the ontology tree window allows for the ' +
-            'selection of various GeneSet ontology reference types.  All selected ontologies may be viewed under the ' +
-            'All Reference Types category.  GeneSet-ontology links may be added or removed under any other category'
+            title: 'GeneSet Ontologies',
+            content: 'GeneSet ontology annotations are highlighted below.' +
+            'The drop down menu above the ontology tree allows for the ' +
+            'selection of GeneSet annotation source, e.g. manual or inferred ' +
+            'from text mining. All selected ontology terms may be viewed ' +
+            'under the All Reference Types category. GeneSet ontology ' +
+            'annotations may be added or removed under any other category. ' +
+            'Contact us to suggest additional ontologies that you would ' +
+            'like to use to annotate your GeneSets.'
     });
 
     // Handles dynatree term selection

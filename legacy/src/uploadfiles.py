@@ -11,6 +11,7 @@ from urlparse import parse_qs, urlparse
 from flask import session
 import batch
 import annotator as ann
+import json
 
 
 def create_temp_geneset():
@@ -166,25 +167,42 @@ def create_new_geneset(args):
     gs_values = form_text.strip().split('\n')
     gs_values = map(lambda s: s.encode('ascii', 'ignore'), gs_values)
     gs_values = map(lambda s: s.split(), gs_values)
+    ## Identifiers are converted to lowercase so user's don't have to specify
+    ## proper capitalization
+    gs_values_lower = map(lambda t: (t[0].lower(), t[1]), gs_values)
 
     ## Generate a minimal geneset for the batch system's value upload
     gs = {'gs_id': gs_id,
           'gs_gene_id_type': gene_identifier,
           'sp_id': formData['sp_id'][0],
-          'values': gs_values,
+          'values': gs_values_lower,
           'gs_threshold': 1}
+
+
+    # need to get user's preference for annotation tool
+    user = get_user(user_id)
+    user_prefs = json.loads(user.prefs)
+
+    # get the user's annotator preference.  if there isn't one in their user
+    # preferences, default to the monarch annotator
+    annotator = user_prefs.get('annotator', 'monarch')
+    ncbo = True
+    monarch = True
+    if annotator == 'ncbo':
+        monarch = False
+    elif annotator == 'monarch':
+        ncbo = False
 
     with PooledCursor() as cursor:
         ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
-                               pubDict['pub_abstract'])
+                               pubDict['pub_abstract'], ncbo=ncbo,
+                               monarch=monarch)
     ## TODO
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
-    print gs
     vals = batch.buGenesetValues(gs)
 
     batch.db.commit()
-    #print vals
 
     return {'error': 'None', 'gs_id': gs_id}
 

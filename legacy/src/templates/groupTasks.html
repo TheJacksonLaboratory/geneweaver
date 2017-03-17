@@ -30,7 +30,7 @@
         cursor: pointer;
     }
 
-        a:hover {
+    a:hover {
         text-decoration: none;
     }
 
@@ -82,7 +82,7 @@
             <p>
 
             <div class="panel panel-default panel-heading bg-gray-light">
-                <h3 class="panel-title"><strong>{{ title }}</strong></h3>
+                <h2 class="panel-title"><strong>{{ title }}</strong></h2>
             </div>
 
             <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
@@ -92,7 +92,7 @@
                 <div class="col-md-3">
                     <div class="panel panel-primary">
                         <div class="page-header">
-                            <h2>Visible Groups</h2>
+                            <h3>Visible Groups</h3>
                         </div>
 
                         <div class="panel-body">
@@ -107,10 +107,10 @@
                                         {% for grpO in groups_owner %}
                                             <tr>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                          data-original-title="Group Name" type="button" title="Group Name"
+                                                          data-original-title="Group Name" type="button" title="{{ grpO.grp_name }}"
                                                           class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
                                                           data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}"
-                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name }}</span>
+                                                          data-grp-prv="{{ grpO.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpO.grp_name | truncate(15, True) }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -147,10 +147,10 @@
                                         {% for grpM in groups_member %}
                                             <tr>
                                             <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Group Name" type="button" title="Group Name"
+                                                      data-original-title="Group Name" type="button" title="{{ grpM.grp_name }}"
                                                       class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpM.grp_id }}"
                                                       data-grp="{{ grpM.grp_id }}" data-grp-name="{{ grpM.grp_name }}"
-                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name }}</span>
+                                                      data-grp-prv="{{ grpM.grp_private }}" style="margin: 2px; padding: 0px 2px;">{{ grpM.grp_name | truncate(15, True) }}</span>
                                                 </td>
                                                 <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                           data-original-title="Privacy" type="button" title="Privacy Status"
@@ -185,17 +185,38 @@
                         <div class="page-header">
                             <input hidden id="group_id" value="{{ group.grp_id }}">
                             <input hidden id="user_id" value="{{ user_id }}">
-                            <h2><label id="group_name">{{ group.grp_name }}</label>
-                                    <label hidden id="group_private" class="label label-danger">Private</label>
-                                    <label hidden id="group_public" class="label label-info">Public</label>
-                                {% if group_owner == true %}
-                                    <span type="button" class="btn btn-primary pull-right" id="assignCurator"><i class="fa fa-user pull-right"></i> Assign Curator</span>
-                                {% endif %}
-                            </h2>
+                            <h3>
+                                <label id="group_name">{{ group.grp_name }}</label>
+                                <label hidden id="group_private" class="label label-danger">Private</label>
+                                <label hidden id="group_public" class="label label-info">Public</label>
+                                <div class="btn-toolbar" role="toolbar">
+                                    {% if group_owner == true %}
+                                        <span type="button" class="btn btn-primary pull-right" id="assignCurator">
+                                            <i class="fa fa-user pull-right"></i>Assign Curator
+                                        </span>
+                                    {% endif %}
+                                    <a href="{{ url_for('render_assign_publication', group_id=group.grp_id) }}" class="btn btn-primary pull-right" id="addPublication">
+                                    <i class="fa fa-book pull-right"></i>Add Publications</a>
+                                </div>
+                            </h3>
                         </div>
 
                         <div class="col-md-12 col-sm-12 col-xs-12 table-responsive table-red filter-right">
-
+                            <span type="button" class="btn btn-info filter" id="filter-all">
+                                All
+                            </span>
+                             <span type="button" class="btn btn-default filter" id="filter-assigned">
+                                Assigned
+                            </span>
+                            <span type="button" class="btn btn-default filter" id="filter-unassigned">
+                                Unassigned
+                            </span>
+                            <span type="button" class="btn btn-default filter" id="filter-ready">
+                                Ready
+                            </span>
+                            <span type="button" class="btn btn-default filter" id="filter-reviewed">
+                                Reviewed
+                            </span>
                             <table id="groupTasksViewer"
                                    class="table table-striped table-hover table-dynamic dataTable no-footer table-tools">
 
@@ -253,6 +274,7 @@
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
+
     var group_id;
     var groupCurators;
     var group_owner;
@@ -296,7 +318,9 @@
                 { "name": "task_type" },
                 { "name": "updated" },
                 { "name": "task_status" },
-                { "name": "reviewer" }
+                { "name": "reviewer" },
+                { "name": "pubmedid"},
+                { "name": "geneset_count" }
             ],
             "aoColumnDefs": [
 
@@ -328,7 +352,7 @@
                         if (taskType === 'GeneSet') {
                             $(nTd).append('<a href=\"/curategeneset/' + taskID + '\">' + task + '</a>');
                         } else if (taskType === 'Publication') {
-                            $(nTd).append('<a href=\"/viewPubAssignment/' + group_id + '/' + taskID + '/\">' + task + '</a>');
+                            $(nTd).append('<a href=\"/viewPubAssignment/' + taskID + '\">' + task + '</a>');
                         } else {
                             $(nTd).append(task);
                         }
@@ -381,6 +405,32 @@
                         $(nTd).empty();
                         $(nTd).append(reviewer);
                     }
+                },
+                {
+                    "aTargets": [7],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var pubmedid = sData;
+                        var pubAssignId = oData[9];
+                        $(nTd).empty();
+                        if (pubmedid) {
+                            $(nTd).append('<a href=\"/viewPubAssignment/' + pubAssignId + '\">' + pubmedid + '</a>');
+                        } else {
+                            $(nTd).append("");
+                        }
+                    }
+                },
+                {
+                    "aTargets": [8],
+                    "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                        var gs_count = sData;
+                        $(nTd).empty();
+                        if (gs_count > 0) {
+                            $(nTd).append(gs_count);
+                        } else {
+                            $(nTd).append("");
+                        }
+
+                    }
                 }
             ]
 
@@ -403,6 +453,69 @@
             group_id = ($(this).attr("data-grp"));
             window.location.href = '../groupTasks/' + group_id;
         });
+
+        $('.filter').on('click', function () {
+            var button_id = ($(this).attr("id"));
+            var status = '';
+            switch(button_id) {
+                case 'filter-all':
+                    status = '';
+                    buttonOn("#filter-all");
+                    buttonOff("#filter-assigned");
+                    buttonOff("#filter-unassigned");
+                    buttonOff("#filter-ready");
+                    buttonOff("#filter-reviewed");
+                    break;
+                case 'filter-assigned':
+                    status = "status=" + '2';
+                    buttonOn("#filter-assigned");
+                    buttonOff("#filter-all");
+                    buttonOff("#filter-unassigned");
+                    buttonOff("#filter-ready");
+                    buttonOff("#filter-reviewed");
+                    break;
+                case 'filter-unassigned':
+                    status = "status=" + '1';
+                    buttonOn("#filter-unassigned");
+                    buttonOff("#filter-all");
+                    buttonOff("#filter-assigned");
+                    buttonOff("#filter-ready");
+                    buttonOff("#filter-reviewed");
+                    break;
+                case 'filter-ready':
+                    status = "status=" + '3';
+                    buttonOn("#filter-ready");
+                    buttonOff("#filter-all");
+                    buttonOff("#filter-assigned");
+                    buttonOff("#filter-unassigned");
+                    buttonOff("#filter-reviewed");
+                    break;
+                case 'filter-reviewed':
+                    status = "status=" + '4';
+                    buttonOn("#filter-reviewed");
+                    buttonOff("#filter-all");
+                    buttonOff("#filter-assigned");
+                    buttonOff("#filter-unassigned");
+                    buttonOff("#filter-ready");
+                    break;
+            }
+            var table = $('#groupTasksViewer').DataTable();
+            table.search( status ).draw();
+        });
+
+        function buttonOn(whichButton) {
+            if ($(whichButton).hasClass('btn-default')) {
+                $(whichButton).removeClass('btn-default');
+                $(whichButton).addClass('btn-info');
+            }
+        }
+
+        function buttonOff(whichButton) {
+            if ($(whichButton).hasClass('btn-info')){
+                $(whichButton).removeClass('btn-info');
+                $(whichButton).addClass('btn-default');
+            }
+        }
 
         {% if group_owner == true %}
 
@@ -463,7 +576,7 @@
                 $('#curationModalLabel').html(taskString);
 
                 // when we show the modal window, we don't want a group selected.
-                $("input:radio[name='group']:checked").prop('checked', false).checkboxradio("refresh");
+                $("#selectCurator option").prop("selected", false);
 
                 // submit button will be disabled until the user selects a group radio button
                 $('#assignTasks').prop("disabled", true).button("refresh");
@@ -475,9 +588,10 @@
             }
 
 
-
-            // Enable submit button once a member of the radio group in Modal assignTasksForCuration selected
-            $("input:radio[name='group']").on('click', function () {
+            // Enable submit button once a curator selected
+            $("#selectCurator").change( function () {
+                // submit button will be disabled until the user selects a group
+                // selection
                 $('#assignTasks').prop("disabled", false).button("refresh");
             });
 
@@ -494,7 +608,7 @@
 
             // Assignment of tasks occurs on click of the assignTasks button in Modal assignTasksForCuration
             $('#assignTasks').on('click', function () {
-                var selectedCuratorId = $("input[name=group]:checked").val();
+                var selectedCuratorId = $("#selectCurator").val()
                 if (selectedGeneSets.length > 0) {
                     var params = {
                         "note": $('#curationNotes').val(),
@@ -548,13 +662,13 @@
                 if (selectedPublications.length > 0) {
                     var params = {
                         "note": $('#curationNotes').val(),
-                        "pub_ids[]": selectedPublications,
+                        "pub_assign_ids[]": selectedPublications,
                         "group_id": group_id,
                         "usr_id": selectedCuratorId,
                     };
 
-                    // since params["pub_ids"] is a list the server needs to use
-                    // request.args.getlist('pub_ids') instead of request.args['pub_ids']
+                    // since params["pub_assign_ids"] is a list the server needs to use
+                    // request.args.getlist('pub_assign_ids') instead of request.args['pub_assign_ids']
                     $.post("{{ url_for('assign_publications_to_curator') }}", params, function (data) {
 
                         var failed = [];

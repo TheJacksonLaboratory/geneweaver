@@ -22,6 +22,10 @@
         cursor: pointer;
     }
 
+    .popover {
+        text-transform: none;
+    }
+
     .loader {
         /* IE 8 */
         -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
@@ -78,10 +82,11 @@
     <div class="panel panel-default">
         {% include 'htmlfragments/curIDBoxes.html' %}
 
-    <!-- View GeneSet MetaData -->
+    <!-- View GeneSet MetaContent -->
     {% include 'viewGenesetMeta.html' %}
 
     <!-- Show the Geneset List -->
+    {% if show_geneset_list %}
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
             <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
@@ -112,10 +117,56 @@
                             <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt">
                                 <i class="fa fa-sort"></i>
                             </a>
-                            <span id="altSymbolHeader">{{ altGeneSymbol }}</span>
-                            <span id="clickableGeneSymbol">
-                                <i class="fa fa-gear"></i>
-                            </span>
+
+							<span class="dropdown">
+	
+								<span id="clickableGeneSymbol"
+									  data-toggle="dropdown" 
+									  aria-haspopup="true"
+									  aria-expanded="true">
+
+									<span id="altSymbolHeader">
+										{{ altGeneSymbol }}
+									</span>
+									<i id="type-loading" class="fa fa-caret-down"></i>
+
+								</span>
+
+								{# 
+									TODO: Should be rewritten to dynamically
+									load gene types from the DB
+								#}
+								<ul class="dropdown-menu"
+									aria-labelledby="clickableGeneSymbol">
+									<li class="gene-type" rel="0"><a tabindex="0" class="" style="">
+										<span class="text">Gene Symbol</span>
+									</a></li>
+									<li class="gene-type" rel="1"><a tabindex="0" class="" style="">
+										<span class="text">Entrez</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">Ensembl Gene</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">UniGene</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">MGI</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">FlyBase</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">WormBase</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">RGD</span>
+									</a></li>
+									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
+										<span class="text">ZFIN</span>
+									</a></li>
+								</ul>
+							</span>
                         </th>
                         <th>
                             Homology 
@@ -123,7 +174,7 @@
                                 <i class="fa fa-info-circle"></i>
                             </span>
                         </th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Value</th>
+                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Score</th>
                         <th>
                             <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority">
                                 <i class="fa fa-sort"></i></a> Priority
@@ -199,6 +250,7 @@
                                 <td>
                                     <!-- TODO Insert outside links here -->
                                     {% set gene=geneset_value.source_list[0] %}
+                                    {% set symbol=geneset_value.symbol %}
                                     {% include 'linkouts.html' %}
                                 </td>
 
@@ -234,17 +286,41 @@
             document.getElementById("{{gene}}").checked = true;
         </script>
     {% endfor %}
-
+    {% else %}
+        <div class="panel panel-default">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
+            </div>
+            <div class="panel-body" style="padding-top:10px;">
+                <div class="row">
+                    <div class="alert bg-gray-light">No Genes are Associated with this GeneSet</div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
 
     <!-- <body onload="myFunction()"> -->
 	<iframe id="ie-export" style="display:none;">
 	</iframe>
 
+    <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
     <script type="text/javascript">
+        $(document).ready(function () {
+
+            {% if species %}
+                makeSpeciesTags({{ species | tojson | safe }}, true);
+            {% else %}
+                makeSpeciesTags();
+            {% endif %}
+
+            //makeOntologyTags({{ ontology | map(attribute='ontdb_id') | list }});
+            makeOntologyTags({{ ontology | tojson | safe }});
+        });
+
         $("[name='g_id[]']").bootstrapSwitch();
 
-        $(window).load(function() {
+        $(window).on('load', function(e) {
 	        $(".loader").fadeOut("slow");
         });
 
@@ -264,7 +340,7 @@
         });
 
         $('#clickableGeneSymbol').on('click', function (e) {
-                $("#selectGeneDisplayType").modal('show');
+			//$("#selectGeneDisplayType").modal('show');
         });
 
 
@@ -446,16 +522,17 @@
                 });
             });
 
-            $('#selectGeneType').on('click', function (e) {
-                var val = $('.dropdown-menu li a').parents('.btn-group')
-                        .find('[data-bind="label"]').text();
+            //$('#selectGeneType').on('click', function (e) {
+            $('.gene-type').on('click', function (e) {
 
-                val = $.trim(val);
+				var geneType = $.trim($(this).text());
+
+				$('#type-loading').attr('class', 'fa fa-cog fa-spin');
 
                 $.ajax({
                     type: "GET",
                     url: "../updateAltGeneSymbol",
-                    data: {"altSymbol": val, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
+                    data: {"altSymbol": geneType, "gs_id": {{geneset.geneset_id}}, "user_id": {{ user_id }} },
                     success: function (genesetValues) {
                         genesetValues = JSON.parse(genesetValues);
 
@@ -469,7 +546,7 @@
                             // Should check if this is null and handle
                             var altElement = $.find('[ode-gene-id="' + odeId + '"]')[0];
 
-                            $('#altSymbolHeader').html(val);
+                            $('#altSymbolHeader').html(geneType);
 
                             // Indicates an alternate ID type does exist for
                             // this particular gene
@@ -477,6 +554,8 @@
                                 $(altElement).html('<strong>' + refId + '</strong>');
                             else
                                 $(altElement).html('<strong>None</strong>');
+
+							$('#type-loading').attr('class', 'fa fa-caret-down');
                         }
                     }
                 })
@@ -581,6 +660,7 @@
                     var params = {
                         "note": $('#curationNotes').val(),
                         "gs_id": {{geneset.geneset_id}},
+                        "tier": $('#tier').val(),
                         "review_ok": false
                     };
 
@@ -598,6 +678,7 @@
                         $('#reviewed').prop('disabled', true).button('refresh');
                         $('#review_div').remove();
                         $('#assignCurator').remove();
+                        $('#tier').prop('disabled', true).button('refresh');
 
                     }, 'json').fail(handleError);
 
@@ -643,40 +724,59 @@
     });
 
 
+    /*
+     * Extracts geneset metacontent and a user selected subset of the gene 
+     * list to create a new geneset. 
+     */
 	$('#addNewGeneset').on('click', function () {
 
 		var checkedArray = [];
-		$("input:checkbox[name='gsoptions[]']:checked").each(function(){
-			//console.log($(this));
-			checkedArray.push($(this).val());
+
+        // Grabs rows in the gene list that a user has selected
+		$("input:checkbox[name='gsoptions[]']:checked").each( function() {
+			checkedArray.push($(this).parents('.gene-list-row'));
 		});
 
-		if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
+		if (typeof checkedArray != "undefined" && 
+            checkedArray != null && 
+            checkedArray.length > 0) {
 
-			{# Assign the needed async_results variables #}
-			var numGS = 0;
 			// Genesets with newlines cause js to shit the bed and get stuck
 			// in an infinite loading loop. Any variable replaced by jinja
 			// should be safe'd and trimmed.
-			var getStr = 'Genes dervied from the GeneSet: {{ geneset.name | safe | trim }}';
-			getStr += '?' + getStr;
+			var gsData = 'Genes dervied from the GeneSet: ' + 
+                         "{{ geneset.name | safe | trim }}";
+            var species = '{{ geneset.sp_id | safe }}';
+            var geneType = {{ geneset.gene_id_type | safe }};
 
-			// add in all the checked boxes gene names
+            // GS Description
+            gsData += '?' + gsData;
+            gsData += '?' + species;
+
+            // Negative types indicate a symbolic gene representation while
+            // positive types are expression platforms
+            if (geneType < 0)
+                gsData += '?' + 'gene_' + (geneType * -1);
+            else
+                gsData += '?' + 'ma_' + geneType;
+
+			// Gene names and scores
 			checkedArray.forEach(function (entry) {
 
-				getStr += "?";
-				getStr += entry;
-				getStr += "?";
-				getStr += '1';
-
+				gsData += "?";
+				gsData += $.trim($(entry).children('#defaultSymbol').text());
+				gsData += "?";
+				gsData += $.trim($(entry).children('.gene-value').text());
 			});
 
-			// Load the new page with the extra url bit
-			setTimeout(function(){
-                window.location = "/uploadgeneset/" + getStr;
-			}, 1000);
-		}
-		else{
+            // 'gsdata?' is needed otherwise the first section of the data
+            // string is eaten by something (js?)
+            var uploadUrl = window.location.origin + '/uploadgeneset/' + 
+                            'gsdata?' + gsData;
+
+            window.open(uploadUrl, '_blank');
+            
+		} else {
 			window.alert("No genes selected.")
 		}
 	});
@@ -687,8 +787,6 @@
 {% endif %}
 
 {% include 'modal/addGenesetsToProjects.html' %}
-
-{% include 'modal/selectGeneDisplayType.html' %}
 
 {% include 'modal/deleteGeneset.html' %}
 

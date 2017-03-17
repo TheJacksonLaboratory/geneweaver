@@ -29,6 +29,7 @@ var COLORS = [
 var doThings = function(graphData) {
 
     g.data = graphData;
+    g.data.nodes = removeBootstrappedNodes(g.data.nodes);
 
     var width = '900',
         height = '700',
@@ -169,7 +170,7 @@ var doThings = function(graphData) {
         .append('svg')
         .attr('width', '300')
         .attr('height', function () {
-            return ((Object.keys(color_dict).length) * 20 + 10);
+            return ((Object.keys(color_dict).length + 1) * 20 + 10);
         })
         .selectAll('circle')
         .data(Object.keys(color_dict))
@@ -198,6 +199,29 @@ var doThings = function(graphData) {
         })
         .attr('dy', function (d) {
             return 14 + 20 * Object.keys(color_dict).indexOf(d);
+        })
+        .attr('dx', '30')
+        .attr('text-anchor', 'start')
+        .style('font', '12px sans-serif')
+        .style('fill', 'black');
+
+    // Emphasis genes
+    legend.append('circle')
+        .attr('r', 3.5)
+        .style('fill', function (d) {
+            return '#006400';
+        })
+        .style('stroke', 'none')
+        .style('fill-opacity', '.7')
+        .attr('cy', function (d) {
+            return 10 + 20 * Object.keys(color_dict).length;
+        })
+        .attr('cx', 20);
+
+    legend.append('text')
+        .text('Contains an emphasis gene')
+        .attr('dy', function (d) {
+            return 14 + 20 * Object.keys(color_dict).length;
         })
         .attr('dx', '30')
         .attr('text-anchor', 'start')
@@ -257,8 +281,24 @@ function update() {
         })
         .call(g.force.drag);
 
+    // Circle for emphasis genes
+    nodeEnter.append('circle')
+        .attr('class', 'emphasis-node')
+        .attr('r', 4)
+        .style('fill', '#006400')
+        .style('opacity', function(d) {
+            if (d.emphasis === 'yes')
+                return opacity;
+
+            return 0.0;
+        })
+        .style('stroke', 'none')
+        .style('stroke-width', 0)
+        ;
+    
     //circle within the single node group:
     nodeEnter.append('circle')
+        .attr('class', 'gs-node')
         .attr('r', 4.5);
     //nodeEnter.append('rect')
     //    .attr('width', 200)
@@ -304,23 +344,29 @@ function update() {
                 return d.Abbreviations[0];
         });
 
+
     //mouseover information for each node
-    nodeEnter.select('circle')
+    //nodeEnter.select('circle')
+    nodeEnter.select('.gs-node')
         .append('svg:title')
         .text(function (d) {
             return d.tooltip;
         });
 
     //All nodes, do the following:
-    g.node.select('circle')
+    //g.node.select('circle')
+    g.node.select('.gs-node')
         .style('fill', function (d) { return colorMap(d); })
-        .style('stroke', function (d) { return colorMap(d); })
+        .style('stroke', function (d) { 
+            return colorMap(d); 
+        })
         .style('fill-opacity', opacity);
 
     g.node.selectAll("text").attr("fill", textColor);
     g.force.start();
 
-    d3.selectAll("circle")
+    //d3.selectAll("circle")
+    d3.selectAll('.gs-node')
         .attr("r", function (d) {
             return (d.weight >= 3 ? 4.5 * Math.sqrt(d.weight) : 4.5);
         });
@@ -378,6 +424,42 @@ function textColor(d) {
 // tooltipSpan.style.left = (x + 20) + 'px';
 // });
 
+/**
+ * Iterates through each node and removes edges (nodes in the children lists)
+ * that no longer exist due to boostrapping.
+ *
+ */
+function removeBootstrappedNodes(nodes) {
+
+    var nodeIds = nodes.map(function(n) { return n.id; });
+    var idmap = nodeIds.reduce(function(obj, arr) {
+
+        obj[arr] = arr;
+
+        return obj;
+    }, {});
+
+    for (var i = 0; i < nodes.length; i++) {
+
+        var node = nodes[i];
+
+        if (nodes[i].children) {
+
+            nodes[i].children = nodes[i].children.filter(function(c) { 
+                return c in idmap; 
+            });
+        }
+
+        if (nodes[i]._children) {
+
+            nodes[i]._children = nodes[i]._children.filter(function(c) { 
+                return c in idmap; 
+            });
+        }
+    }
+
+    return nodes;
+}
 
 // Invoked from 'update'.
 // The original source data is not the usual nodes + edge list,

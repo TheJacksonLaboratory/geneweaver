@@ -1,0 +1,505 @@
+{% set title=tool.name + " Results" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+<style>
+
+.key > * {
+    margin: 5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#panel, #flip {
+    padding: 5px;
+    text-align: left;
+}
+
+#panel {
+    display: none;
+    background-color: #FFFFFF;
+}
+
+#flip {
+ height: 50px;
+}
+
+#rerunPanel, #rerunFlip {
+    padding: 5px;
+    text-align: left;
+}
+
+#rerunPanel {
+    height: 350px;
+    text-align: left;
+    display: none;
+}
+
+#rerunFlip {
+   height: 50px;
+   text-shadow: none;
+}
+#rerun{
+ float:right;
+    display:block;
+    margin-right: 585px;
+    clear:left;
+ }
+
+.left-cell {
+  vertical-align: middle;
+  width: 200px;
+}
+
+.right-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: right;
+  right: 0;
+}
+
+.middle-cell {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: left;
+  padding-left: 320px;
+}
+
+.box-header {
+  padding-bottom: 5px;
+  display: table;
+  width: 90%;
+}
+
+#addToProject, #exportData {
+    float: left;
+}
+
+ .divider{
+    margin: 5px;
+}
+
+#checkall{
+    float: left;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+}
+
+.sidenav {
+        height: 1000px;
+        width: 0;
+        position: absolute;
+        z-index: 1;
+        top: 420px;
+        left: 0;
+        background-color: whitesmoke;
+        overflow-x: hidden;
+        padding-top: 60px;
+        transition: 0.5s;
+    }
+
+    .sidenav a:hover, .offcanvas a:focus{
+        color: darkgreen;
+    }
+
+    .sidenav .closebtn {
+        position: absolute;
+        top: 0;
+        right: 25px;
+        font-size: 36px;
+        margin-left: 50px;
+    }
+
+    #upset-graph {
+        transition: margin-left .5s;
+        padding: 20px;
+        overflow: auto;
+    }
+
+    @media screen and (max-height: 450px){
+        .sidenav {padding-top: 15px;}
+        .sidenav a {font-size: 18px;}
+    }
+
+td, th {
+    padding: 1px 4px;
+}
+
+ th {
+     background-color: darkgreen;
+     color: white;
+ }
+
+ tr:hover {
+     background-color: lightgrey;
+ }
+
+div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 300px;
+  height: 60px;
+  padding: 2px;
+  font: 10px sans-serif;
+  background: ghostwhite;
+  pointer-events: none;
+}
+</style>
+<script src="/static/d3/d3.v4.js" charset="utf-8"></script>
+<script src="/static/js/jquery-1.4.4.min.js"></script>
+<script src="/static/js/jquery.layout.js"></script>
+
+<div class="page-header">
+    <h1>{{ title }}
+        {{ runhash }} </h1>
+</div>
+
+<form id="todo-id" class="form-horizontal" role="form" method="post">
+    <div class="panel panel-info" >
+        <div class="panel-heading bg-green" style="border-radius:4px;">
+			<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
+				<div class="panel-title" style="width:100%;">
+					UpSet Tool Options
+					<span class="caret"></span>
+				</div>
+			</a>
+        </div>
+        <div id="jcCollapse" class="panel-collapse collapse" style="">
+            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['UpSet_Homology']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['UpSet_Zero-sizeIntersections']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                    <div class="col-md-8">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('UpSet.run_tool') }}";'>
+                            Re-Run Tool
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<form target="_blank" class="form-horizontal" role="form" method="post">
+    <div class="panel panel-info" >
+        <div class="panel-heading bg-green" style="border-radius:4px;">
+			<a data-toggle="collapse" data-parent="#accordion" href="#jaccCollapse"style="color:#FFFFFF; width:100%;">
+				<div class="panel-title" style="width:100%;">
+					Jaccard Options
+					<span class="caret"></span>
+				</div>
+			</a>
+        </div>
+        <div id="jaccCollapse" class="panel-collapse collapse" style="">
+            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['JaccardSimilarity_PairwiseDeletion']) }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ macros.tool_param_select(tool.params['JaccardSimilarity_p-Value']) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                    </div>
+                    <div class="col-md-8">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary"
+                                type='submit'
+                                value='run'
+                                onclick='this.form.action="{{ url_for('JaccardSimilarity.run_tool') }}";'>
+                            Run Jaccard Tool
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="panel panel-info" >
+	<div class="panel-heading bg-green" style="border-radius:4px;">
+		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
+			<div class="panel-title" style="width:100%;">
+				Visualization Options
+				<span class="caret"></span>
+			</div>
+		</a>
+	</div>
+	<div id="viz-options" class="panel-collapse collapse" style="">
+		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+            <div class="row">
+				<div class="col-md-2">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="download-image" id="dl-pdf">PDF</a></li>
+                            <li><a class="download-image" id="dl-png">PNG</a></li>
+                            <li><a class="download-image" id="dl-svg">SVG</a></li>
+                        </ul>
+                    </div>
+				</div>
+
+				<div class="col-md-2">
+                    <button type="button" value="Update" id="zoomButton" class="btn btn-primary">
+                        Reset Zoom
+                    </button>
+                </div>
+            </div>
+
+		</div>
+	</div>
+
+<br>
+    <!-- Div(UpSet), where all the bar chart D3 is appended to in the JavaScript below -->
+<div id="container">
+    <div id="upset-genes" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <p><strong>Click on a geneset or intersection to view information</strong></p>
+    </div>
+
+    <span onclick="openNav()"><p style="color:darkgreen;"><strong>CLICK HERE TO VIEW GENES</strong></p></span>
+    <div id="upset-graph">
+    </div>
+</div>
+
+<article class="project-reference">
+    <h1 id="publiation">Publications</h1>
+    <ul class="publication-icon-list">
+        <li>
+            <a href="http://www.caleydo.org/publications/2014_infovis_upset/">UpSet: Visualization of Interscting Sets</a>
+        </li>
+    </ul>
+</article>
+
+</div>
+
+<br>
+<br>
+
+<script src="/static/tools/UpSet.js" charset="utf-8"></script>
+<script type="text/javascript">
+
+    window.onresize = function () {
+        var width = $(window).width();
+        closeNav();
+    };
+
+    function openNav() {
+        $("table").remove();
+        var w = window.innerWidth;
+
+        document.getElementById("upset-genes").style.width = "600px";
+        if(w > 2300)
+            document.getElementById("upset-graph").style.marginLeft = "0";
+        else
+            document.getElementById("upset-graph").style.marginLeft = "" + (610 - ((w - $("#container").width())/2)) + "px";
+    }
+
+    function closeNav() {
+        document.getElementById("upset-genes").style.width = "0";
+        document.getElementById("upset-graph").style.marginLeft = "0";
+        $("table").remove();
+    }
+
+
+$(document).ready(function() {
+
+   var d = {{ data | safe }}; //Declaration of data as d variable
+    var us = upset()
+        .data(d)
+        .draw();
+
+    // The "Add GeneSets to Project" button
+    $('#addToProject').on('click', function (e) {
+        var checked = [];
+
+        // Checkbox element ids contain the gs_id
+        $('input[name="matrix-checkbox"]:checked').each(function() {
+
+            // Removes "check-"
+            var gsID = $(this).attr('id').slice(6);
+            gsID = 'GS' + gsID;
+
+            checked.push(gsID);
+        });
+
+
+        if (!checked.length) {
+
+          $('#myAlert').modal('show');  
+
+        } else {
+
+            var ids = checked.join(', ');
+
+            $('#myModalLabel').html(ids);
+            $('#myModalValue').val(ids);
+            $('#addToProjectModal').modal('show');
+        }
+    });
+
+    // The "Add GeneSets to Project" modal dialog. Should probably be moved to the
+    // modal fragment itself because this code is duplicated in a number of areas.
+    $('#addGenesetsToProjects').on('click', function(e) {
+
+        var checked = [];
+
+        $('input[name="options[]"]:checked').each(function () {
+            checked.push(parseInt($(this).val()));
+        });
+
+        var projectIds = JSON.stringify(checked);
+        var newProject = $('#newProjName').val();
+        var g = $('#myModalValue').val();
+        var user_id = '{{ g.user.user_id | safe }}';
+
+        if (!checked.length && !newProject) {
+            $('#result')
+                .html('<div class="alert alert-danger fade in"> ' +
+                      '<button type="button" class="close" ' +
+                      'data-dismiss="alert" aria-hidden="true">x' +
+                      '</button>No Projects Were Selected</div>');
+
+        // TODO: add alert indicating adding to projects was successful
+        } else {
+            $.ajax({
+                type: 'GET',
+                url: '../addGenesetsToProjects',
+                data: {
+                    'user_id': user_id, 
+                    'npn': newProject, 
+                    'gs_id': g, 
+                    'option': projectIds
+                },
+                success: function (data) {
+                    $("#result")
+                        .html('<div class="alert alert-success fade in"> ' +
+                              '<button type="button" class="close" ' +
+                              'data-dismiss="alert" aria-hidden="true">x' +
+                              '</button>GeneSets Successfully Added to ' +
+                              'Selected Projects</div>');
+                }
+            });
+        }
+    });
+});
+</script>
+
+
+<!-- Script for the geneset table panel and all functionality and buttons that go along with it -->
+<script>
+    $('.download-image').on('click', function(event) {
+
+        var dlurl = '/downloadResult';
+        // Removes 'dl-' from the id string
+        var filetype = event.target.id.slice(3);
+
+        // Gives our SVG a white background color prior to conversion.
+        // This actually changes the image the user is seeing, but they
+        // shouldn't be able to notice.
+        d3.select('#upset > svg')
+                .insert('rect', 'g')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('fill', 'white');
+
+        var html = d3.select("#upset > svg")
+                .attr("version", 1.1)
+                .attr("xmlns", "http://www.w3.org/2000/svg")
+                .node().innerHTML;
+
+        // The upset tool appends extra divs inside the SVG container
+        // for tooltips. When we try to convert the image to a PNG, the SVG
+        // parser chokes, because these are picked up along with the SVG. So
+        // we recreate the SVG element.
+        var margin = {top: -5, right: -5, bottom: -5, left: -5},
+                width = 1100 - margin.left - margin.right,
+                height = 900 - margin.top - margin.bottom;
+
+        html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
+               html + '</svg>';
+
+        $.post(dlurl, {svg: html, filetype: filetype}).done(function (data) {
+
+            if (filetype == 'png')
+                var png = 'data:image/png;base64,' + data;
+
+            else if (filetype == 'pdf')
+                var png = 'data:application/pdf;base64,' + data;
+
+            else
+                var png = 'data:xml/svg;base64,' + data;
+
+            var a = document.createElement("a");
+            a.download = 'result.' + filetype;
+            a.href = png;
+
+            document.body.appendChild(a);
+
+            a.click();
+        });
+    });
+
+
+</script>
+
+<script>
+
+// Includes all images in the what popover button
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+var imgAltKey = '<img src="{{url_for('static', filename='images/altkey.png')}}">';
+var imgShiftKey = '<img src="{{url_for('static', filename='images/shiftkey.png')}}">';
+var wikiIcon = '<img src="{{url_for('static', filename='images/wikiIcon.png')}}">';
+var wikiImg = '<a href="http://geneweaver.org/wiki/index.php?title=UpSet">' + wikiIcon +'</i></a>';
+
+// Cooresponds to the information or what button (gives users instructions how to work tool)
+$('#what').popover({
+            title: 'How to Use', content: 'Scroll up or down to zoom in/out respectively ' +
+           'within the Bar Chart View. Click and drag to pan. Hover for labels and double click' +
+            ' to navigate to intersection details. <br>' +
+            imgShiftKey + "+Click: Highlight a row for a certain geneset. <br>" +
+            imgAltKey + "+Click: Remove highlighting." + "<br> Wiki for further questions:" + wikiImg , html: true
+        });
+        });
+
+</script>
+
+{% if g.user is defined %}
+    {% include 'modal/addGenesetsToProjects.html' %}
+{% endif %}
+
+{% include 'modal/addGenesetsToProjectsAlert.html' %}
+
+<!-- Includes the footer for the page -->
+{% include 'footer.html' %}

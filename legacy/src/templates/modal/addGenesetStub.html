@@ -1,34 +1,66 @@
 {# This modal allows you to create a stub Geneset #}
 
 <div class="modal fade" id="addStubModal">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form id="addStub" name="addStub" method="post" action="#" class="form-horizontal"
+            <form id="addStub" name="addStub" method="post" action="#"
+                  class="form-horizontal"
                   novalidate="novalidate">
                 <div class="modal-header bg-green">
-                    <h3 class="modal-title" style="color: #f5f5f5">Create New Geneset</h3>
+                    <h3 class="modal-title" style="color: #f5f5f5">Create New
+                        Geneset</h3>
                 </div>
                 <div class="modal-body">
-                    <div class="form-class">
-                        <label for="name"><h4>GenSet Name:</h4></label>
-                        <input class="form-control input-lg" name="name" id="name" type="text" size="50" required>
-                        <label for="figureLabel"><h4>GeneSet Figure Label:</h4></label>
-                        <input class="form-control input-lg" name="figureLabel" id="figureLabel" type="text" size="50" required>
-                        <label for="description"><h4>Description:</h4></label>
-                        <textarea class="form-control" name="description" id="description"
-                                  form="addStub" rows="10" cols="50" required></textarea>
-
-                        <label for="sp_id"><h4>Species:</h4></label>
-                        <select class="form-control" name="sp_id" id="sp_id" required>
-                            {% for spec in species %}
-                                <option label="{{ species[spec] }}" value="{{ spec }}">{{ species[spec] }}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="container col-md-12">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label
+                                        for="sp_id">Species:</label>
+                                <select class="form-control"
+                                        name="sp_id"
+                                        id="sp_id" required>
+                                    {% for spec in species %}
+                                        <option label="{{ species[spec] }}"
+                                                value="{{ spec }}">{{ species[spec] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row" style="padding-top: 10px">
+                            <div class="col-md-3">GeneSet Name</div>
+                            <div class="col-md-3">GeneSet Fig. Label</div>
+                            <div class="col-md-6">Description</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3"><input
+                                    class="form-control" name="name_0"
+                                    id="name_0" type="text" required></div>
+                            <div class="col-md-3"><input
+                                    class="form-control"
+                                    name="figureLabel_0" id="figureLabel_0"
+                                    type="text" required></div>
+                            <div class="col-md-5"><textarea
+                                    class="form-control" name="description_0"
+                                    id="description_0"
+                                    form="addStub" rows="1" cols="40"
+                                    required></textarea></div>
+                            <div class="col-md-1"></div>
+                        </div>
+                        <div id="newRowContainer"></div>
+                        <div class="row">
+                            <button type="button" class="btn btn-default"
+                                    id="addStubRow">Add Row
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="stubSubmit">Submit</button>
+                    <button type="button" class="btn btn-default"
+                            data-dismiss="modal">Close
+                    </button>
+                    <button type="submit" class="btn btn-warning"
+                            data-dismiss="modal" id="stubSubmit">Submit
+                    </button>
                 </div>
             </form>
         </div>

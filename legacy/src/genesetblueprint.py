@@ -4,6 +4,7 @@ import pubmedsvc
 import urllib2
 import re
 import batch
+import json
 import annotator as ann
 from flask import request
 
@@ -63,7 +64,7 @@ def render_batchupload(genes=None):
 
     return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts)
 
-@geneset_blueprint.route('/createBatchGeneset')
+@geneset_blueprint.route('/createBatchGeneset', methods=['POST'])
 def create_batch_geneset():
     """
     Attempts to parse a batch file and create a temporary GeneSet for review.
@@ -72,11 +73,17 @@ def create_batch_geneset():
           its own database calls.
     """
 
-    if not request or not request.args or not request.args['batchFile']:
+    if not flask.request.form or not flask.request.form['batchFile']:
         return flask.jsonify({'error': 'No batch file was provided.'})
 
+    batchFile = flask.request.form['batchFile']
+
+    #if not request or not request.args or not request.args['batchFile']:
+    #    return flask.jsonify({'error': 'No batch file was provided.'})
+
     ## The data sent to us should be URL encoded
-    batchFile = urllib2.unquote(request.args['batchFile'])
+    #batchFile = urllib2.unquote(request.args['batchFile'])
+    batchFile = urllib2.unquote(batchFile)
     batchFile = batchFile.split('\n')
     batchFile = map(lambda s: s.encode('ascii', 'ignore'), batchFile)
 
@@ -106,20 +113,21 @@ def create_batch_geneset():
     pub = None
 
     for gs in batchFile[0]:
+
+        ## Empty genesets shouldn't get uploaded
+        if not gs['values']:
+            continue
+
         ## If a PMID was provided, we get the info from NCBI
         if gs['pub_id']:
-            pub = batch.getPubmedInfo(gs['pub_id'])
-            gs['pub_id'] = pub[0]
+            pub = pubmedsvc.get_pubmed_info(gs['pub_id'])
 
-            ## Non-critical pubmed retrieval errors
-            if pub[1]:
-                batchFile[1].append(pub[1])
+            if pub:
+                pub['pub_pubmed'] = gs['pub_id']
+                gs['pub_id'] = batch.db.insertPublication(pub)
 
-            ## New row in the publication table
-            if gs['pub_id']:
-                gs['pub_id'] = batch.db.insertPublication(gs['pub_id'])
             else:
-                gs['pub_id'] = None  # empty pub
+                gs['pub_id'] = None
 
         else:
             gs['pub_id'] = None  # empty pub
@@ -135,7 +143,8 @@ def create_batch_geneset():
             ce = ('The GeneSet "%s" has no valid genes/loci and could not be '
                     'uploaded.\n' % gs['gs_name'])
 
-            return flask.jsonify({'error': ce})
+            batchFile[1].extend(ce)
+            #return flask.jsonify({'error': ce})
 
         ## Update gs_count if some geneset_values were found to be invalid
         if gsverr[0] != len(gs['values']):
@@ -146,17 +155,39 @@ def create_batch_geneset():
         ## Non-critical errors discovered during geneset_value creation
         if gsverr[1]:
             batchFile[1].extend(gsverr[1])
-            continue
+
+        ## Add ontology annotations provided they exist
+        if gs['annotations']:
+            ont_ids = geneweaverdb.get_ontologies_by_refs(gs['annotations'])
+
+            for ont_id in ont_ids:
+                geneweaverdb.add_ont_to_geneset(
+                    gs['gs_id'], ont_id, 'Manual Association'
+                )
+
+        user = geneweaverdb.get_user(user_id)
+        user_prefs = json.loads(user.prefs)
+
+        # get the user's annotator preference.  if there isn't one in their user
+        # preferences, default to the monarch annotator
+        annotator = user_prefs.get('annotator', 'monarch')
+        ncbo = True
+        monarch = True
+        if annotator == 'ncbo':
+            monarch = False
+        elif annotator == 'monarch':
+            ncbo = False
 
         with geneweaverdb.PooledCursor() as cursor:
             if not pub:
                 abstract = ''
             else:
-                abstract = pub[0]['pub_abstract']
+                abstract = pub['pub_abstract']
 
             ## Annotate the geneset using the NCBO/MI services and insert new
             ## annotations into the DB
-            ann.insert_annotations(cursor, gs['gs_id'], gs['gs_description'], abstract)
+            ann.insert_annotations(cursor, gs['gs_id'], gs['gs_description'],
+                                   abstract, ncbo=ncbo, monarch=monarch)
 
     batch.db.commit()
 

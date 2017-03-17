@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks {
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks, .clickable_message {
         cursor: pointer;
     }
 
@@ -104,36 +104,28 @@
                                                       style="margin: 2px; padding: 0px 2px;">
                                                     {{ grpO.grp_created }}
                                             </td>
-                                            <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Delete" type="button" title="Delete Group"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable_delete" id="deleteGroupModal_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
-                                                      <i class="fa fa-trash-o"></i></span>
-                                                </span>
-                                                &nbsp;
-                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="View" type="button" title="View Members"
-                                                      style="margin: 2px; padding: 0px 2px;">
-                                                <span class="clickable" id="view_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-external-link"></i>
-                                                </span></span>
-                                                &nbsp;
+                                            <td>
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Edit" type="button" title="Edit Group"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_edit" id="editGroupModal_{{ grpO.grp_id }}"
                                                       data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
                                                             <i class="fa fa-pencil"></i></span></span>
-                                                &nbsp;
+
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                      data-original-title="Add" type="button" title="Add Members"
+                                                      data-original-title="Add" type="buadvisor.fidelity.comtton" title="Add Members"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_addUsr" id="addUsrToGroupID_{{ grpO.grp_id }}"
-                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-plus"></i></span>
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-user-plus"></i></span>
                                                 </span>
-
-                                                 &nbsp;
+                                                &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="View" type="button" title="View Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable" id="view_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-group"></i>
+                                                </span></span>
+                                                &nbsp;
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Admins" type="button" title="Set Group Admins"
                                                       style="margin: 2px; padding: 0px 2px;">
@@ -142,15 +134,31 @@
                                                 </span></span>
 
                                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Message" type="button" title="Message Members"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_message" id="message_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}"><i class="fa fa-envelope"></i>
+                                                </span></span>
+                                                &nbsp;
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                       data-original-title="Tasks" type="button" title="View Tasks"
                                                       style="margin: 2px; padding: 0px 2px;">
                                                 <span class="clickable_viewGroupTasks" id="viewGroupTasks_{{ grpO.grp_id }}"
                                                       data-grp="{{ grpO.grp_id }}"><i class="fa fa-eye"></i>
                                                 </span></span>
+
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="Delete" type="button" title="Delete Group"
+                                                      style="margin: 2px; padding: 0px 2px;">
+                                                <span class="clickable_delete" id="deleteGroupModal_{{ grpO.grp_id }}"
+                                                      data-grp="{{ grpO.grp_id }}" data-grp-name="{{ grpO.grp_name }}">
+                                                      <i class="fa fa-trash-o"></i></span>
+                                                </span>
                                             </td>
                                         </tr>
                                         {% include 'modal/deleteGroup.html' %}
                                         {% include 'modal/editGroupName.html' %}
+                                        {% include 'modal/messageGroup.html' %}
                                         {% include 'modal/addUserToGroup.html' %}
                                         {% include 'modal/deleteGroupUsers.html' %}
                                         {% include 'modal/setGroupAdmins.html' %}
@@ -279,6 +287,22 @@
                         </div>
                     </form>
                 </div>
+		{% if user.is_admin %}
+                <div class="panel panel-primary">
+                    <div class="page-header">
+                        <h2>Message All Users</h2>
+                    </div>
+		    <div class="panel-body">
+			<div class="col-xs-7">
+				Use this feature to send a notification to every geneweaver user in the database.
+			</div>
+			<button id="message_all_users" class="btn btn-success btn-transparent pull-right">
+			    <i class="fa fa-envelope"></i> Message All Users
+			</button>
+			    {% include 'modal/messageAll.html' %}
+		    </div>
+                </div>
+		{% endif %}
             </div>
             <div class="col-md-6">
                 <div class="panel panel-primary">
@@ -313,6 +337,15 @@
                         <div class="row">
                             <label class="checkbox-inline" for="email_notifications"><h4>Receive Notifications As Email</h4>
                                 <input type="checkbox" name="email_notifications" id="email_notifications" {% if emailNotifications %}checked{% endif %}>
+                            </label>
+                        </div>
+                        <div class="row">
+                            <label for="annotation_pref"><h4>Text Annotator</h4>
+                                <select class="form-control" id="annotation_pref">
+                                    <option value='monarch'>Monarch</option>
+                                    <option value='ncbo'>NCBO</option>
+                                    <option value='both'>Both</option>
+                                </select>
                             </label>
                         </div>
                     </div>
@@ -361,8 +394,11 @@
     $(document).ready(function () {
 
         var groupAdmins = {{ groupAdmins | tojson }};
+        var annotation_pref = '{{ annotation_pref }}';
 
         $("#password_2").keyup(validate);
+
+        $('#annotation_pref').val(annotation_pref);
 
         $(function () {
             $("[data-toggle='tooltip']").tooltip();
@@ -377,8 +413,11 @@
         });
 
         $('#createGroupButton').on('click', function () {
-            var groupName = $("#groupCreate").val();
-            //var isPrivate = $("#groupPrivate").val();
+
+            // In the case that the user includes "/" in the group name, it requires a double encode
+            // to avoid a 404 error.
+            // The server side will need to decode this to get back the "/"
+            var groupName = encodeURIComponent(encodeURIComponent($("#groupCreate").val()));
             var isPrivate = 'Public';
             if ($("#groupPrivate").is(':checked')) {
                 isPrivate = 'Private';
@@ -530,7 +569,6 @@
         });
 
 
-
         $('.clickable_addUsr').on('click', function () {
             var grp_id = ($(this).attr("data-grp"));
             $("#add_user_id_" + grp_id).val({{ user.user_id }});
@@ -566,6 +604,14 @@
                             }
                         ]);
                     }
+                    else if (v["error"] == 'Already belongs to group') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "User " + userEmail + " is already in group.",
+                                'priority': 'warning'
+                            }
+                        ]);
+                    }
                     else {
                         $(document).trigger("add-alerts", [
                             {
@@ -578,6 +624,80 @@
             })
         });
 
+        $('.clickable_message').on('click', function() {
+
+            var grp_name = ($(this).attr("data-grp-name"));
+            var grp_id = ($(this).attr("data-grp"));
+            $("#groupName_" + grp_id).val(grp_name);
+            $("#user_id_" + grp_id).val({{ user.user_id }});
+            $("#message_grp_id_" + grp_id).val(grp_id);
+            $('#messageModal_' + $(this).attr("data-grp")).modal('show');
+        });
+
+	$('.messageGroupSend').on('click', function() {
+            var formID = $(this).attr("data-modal-id");
+            params = {
+                "form_id": formID,
+                "group_id": $("#message_grp_id_"  + formID).val(),
+                "user_id": $("#message_user_id_" + formID).val(),
+                "subject": $("#message_subject_" + formID).val(),
+                "message": $("#message_content_" + formID).val()
+            };
+
+            $.post("{{ url_for('message_group_json') }}", params ,function(data) {
+		$('#messageModal_' + $(this).attr("data-grp")).modal('hide');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.message,
+                        'priority': 'success'
+                    }
+                ]);
+            }, "json").fail(handleAssignmentError);
+	});
+
+        $('#message_all_users').on('click', function() {
+
+            $('#messageModal_All').modal('show');
+        });
+
+	$('.messageAllSend').on('click', function() {
+            params = {
+                "subject": $("#message_subject_all").val(),
+                "message": $("#message_content_all").val()
+            };
+
+            $.post("{{ url_for('message_all_json') }}", params ,function(data) {
+		$('#messageModal_All').modal('hide');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.message,
+                        'priority': 'success'
+                    }
+                ]);
+            }, "json").fail(handleAssignmentError);
+	});
+
+       function handleAssignmentError(data) {
+
+            $('#modalLoader').hide();
+
+            if (data.responseJSON) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("add-alerts", {
+                    message: data.responseJSON.message,
+                    priority: "error"
+                });
+            }
+            else {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Internal Server Error",
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+        }
 
         $('.clickable_edit').on('click', function () {
             var grp_name = ($(this).attr("data-grp-name"));
@@ -723,6 +843,22 @@
 
         }
 
+        function handleAnnotatorError(data) {
+
+            // unable to set preferences, reset dropdown
+            $('#annotation_pref').val(annotation_pref);
+
+            if (data.responseJSON.error) {
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.error,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+        }
+
         $('#email_notifications').change(function () {
             var state = 0;
             var usr = {{ g.user.user_id }};
@@ -733,8 +869,31 @@
                 'user_id': usr,
                 'new_state': state
             }, function (data) {
-                console.log('notification preferences updated');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Email notification preference updated.",
+                        'priority': 'success'
+                    }
+                ]);
             }).fail(handleEmailNotificationError);
+        });
+
+        $('#annotation_pref').change(function () {
+            var usr = {{ g.user.user_id }};
+            $.getJSON("{{ url_for('set_annotator') }}", {
+                'user_id': usr,
+                'annotator': $('#annotation_pref').val(),
+            }, function (data) {
+                annotation_pref = $('#annotation_pref').val();
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': "Annotator preference updated.",
+                        'priority': 'success'
+                    }
+                ]);
+
+            }).fail(handleAnnotatorError);
         });
 
     });
