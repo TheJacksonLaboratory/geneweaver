@@ -1200,7 +1200,7 @@ def init_ont_tree():
     parentdict = {}
     gs_id = request.args['gs_id']
     gso_ref_type = request.args['universe']  # Usually 'All Reference Types'
-    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
+    onts = geneweaverdb.get_all_ontologies(gs_id, gso_ref_type)
 
     print('onts: %i' % len(onts))
 
