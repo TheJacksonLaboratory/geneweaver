@@ -4359,13 +4359,7 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
                     '''
                     SELECT *
                     FROM extsrc.ontology NATURAL JOIN odestatic.ontologydb
-                    WHERE ont_id in (
-                                      SELECT ont_id
-                                      FROM extsrc.geneset_ontology
-                                      WHERE gs_id = %s
-                                    )
-                    ORDER BY ont_id
-                    ''', (gs_id,)
+                    '''
             )
         else:
             cursor.execute(
