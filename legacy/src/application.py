@@ -1202,6 +1202,8 @@ def init_ont_tree():
     gso_ref_type = request.args['universe']  # Usually 'All Reference Types'
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
 
+    print('onts: %i' % len(onts))
+
     for ont in onts:
         ## Path is a list of lists since there may be more than one
         ## root -> term path for a particular ontology term
@@ -1226,6 +1228,8 @@ def init_ont_tree():
                 node = create_new_child_dict(p, gso_ref_type)
 
                 ontpath.append(node)
+
+            print(ontpath)
 
             ## Add things in reverse order because it makes things easier
             # for p in ontpath[::-1]:

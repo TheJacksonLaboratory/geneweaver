@@ -4,7 +4,7 @@ import os
 ## Just as a reminder: the configuration file (geneweaver.cfg) should NEVER be
 ## included in version control, especially if it has any usernames, passwords,
 ## or API keys.
-rootpath="/srv/geneweaver/"
+rootpath="/home/kelechi/Workspace/GeneWeaver/website-py/"
 CONFIG_PATH = rootpath+'geneweaver.cfg'
 
 ## Global config object, sholudn't be accessed directly but using the helper

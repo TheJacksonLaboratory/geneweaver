@@ -4358,28 +4358,31 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
             cursor.execute(
                     '''
                     SELECT *
-                                FROM extsrc.ontology natural join odestatic.ontologydb
-                                WHERE ont_id in (	SELECT ont_id
-                                                    FROM extsrc.geneset_ontology
-                                                    WHERE gs_id = %s
-                                                )
-                                order by ont_id
+                    FROM extsrc.ontology NATURAL JOIN odestatic.ontologydb
+                    WHERE ont_id in (
+                                      SELECT ont_id
+                                      FROM extsrc.geneset_ontology
+                                      WHERE gs_id = %s
+                                    )
+                    ORDER BY ont_id
                     ''', (gs_id,)
             )
         else:
             cursor.execute(
                     '''
                     SELECT *
-                                FROM extsrc.ontology natural join odestatic.ontologydb
-                                WHERE ont_id in (	SELECT ont_id
-                                                    FROM extsrc.geneset_ontology
-                                                    WHERE gs_id = %s AND gso_ref_type = %s
-                                                )
-                                order by ont_id
-                    ''', (gs_id, gso_ref_type,)
+                    FROM extsrc.ontology NATURAL JOIN odestatic.ontologydb
+                    WHERE ont_id in (
+                                      SELECT ont_id
+                                      FROM extsrc.geneset_ontology
+                                      WHERE gso_ref_type = %s
+                                    )
+                    ORDER BY ont_id
+                    ''', (gso_ref_type,)
             )
     ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return ontology
+
 
 def get_ontology_by_id(ont_id):
     with PooledCursor() as cursor:

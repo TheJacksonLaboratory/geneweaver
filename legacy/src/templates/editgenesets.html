@@ -431,10 +431,11 @@
     };
 
     $(function(){
+        console.log('HELLO!');
         //Initialize dynatree data and functions
         $("#tree").dynatree({
             checkbox: true,
-            selectMode: 2,
+            selectMode: 1,
             initAjax: {
                 url: "/initOntTree",
                 data: {
@@ -457,7 +458,8 @@
 
 			// Does nothing but needs to be present for nodes to be unselected.
             onClick: function (node, event) {
-
+                console.log('CLICKED');
+                console.log(node);
 			},
 
 			/**
@@ -490,31 +492,7 @@
 
             // Updates the database based on the ontology terms a user selects.
             onSelect: function (flag, node) {
-                $.ajax({
-                    url: '/update_geneset_annotation.json',
-                    type: 'POST',
-                    data: {
-                        key: node.data.key,
-                        flag: flag,
-                        gs_id: gsID
-                    },
-                    success: function(data){
-                        data = JSON.parse(data);
-
-                        if (!data.success && data.error) {
-
-                            $('html, body').animate({ scrollTop: 0 }, 'slow');
-                            $('#result').html(
-                                '<div class="alert alert-danger fade in"> ' +
-                                '<button type="button" class="close" ' +
-                                'data-dismiss="alert" aria-hidden="true">x' +
-                                '</button><strong>Error:</strong> ' +
-                                data.error + '</div>');
-                        }
-                    },
-                    error: function(request, error, thrownError) {
-                    }
-                })
+                console.log('SELECTED');
             }
         })
 
@@ -773,6 +751,8 @@
 
     // Handles dynatree term selection
     function termSelectionHandler(flag, node) {
+        console.log('SELECTED');
+
         var tree = $("#tree").dynatree("getTree"); // tree
         var rootNode = $("#tree").dynatree("getRoot"); // root
         var indexNode = node;
@@ -794,17 +774,30 @@
         }
 
         $.ajax({
-            url: "/updateGenesetOntologyDB",
+            url: '/update_geneset_annotation.json',
+            type: 'POST',
             data: {
                 key: node.data.key,
                 flag: flag,
-                universe: $("#gso_ref_type option")[$("#gso_ref_type")[0].selectedIndex].innerHTML,
-                gs_id: $(location).attr("href").split('/').pop()
+                gs_id: gsID
             },
             success: function(data){
+                data = JSON.parse(data);
 
+                if (!data.success && data.error) {
+
+                    $('html, body').animate({ scrollTop: 0 }, 'slow');
+                    $('#result').html(
+                        '<div class="alert alert-danger fade in"> ' +
+                        '<button type="button" class="close" ' +
+                        'data-dismiss="alert" aria-hidden="true">x' +
+                        '</button><strong>Error:</strong> ' +
+                        data.error + '</div>');
+                }
+            },
+            error: function(request, error, thrownError) {
             }
-        });
+        })
     }
 
     // Deselects all descending nodes
