@@ -303,51 +303,34 @@
         <div style="margin-left: 1em;">
             <br>
             <div class="row">
-                {% if onts %}
-
-                    <div class="row">
-                        <div class="col-xs-3";>
-                            <select name="gso_ref_type" id="gso_ref_type"
-                                    class="form-control"
-                                    style="margin-bottom: 20px;" required>
-                                <option value="all" selected>
-                                    All Reference Types
+                <div class="row">
+                    <div class="col-xs-3";>
+                        <select name="ontology_db" id="ontology_db"
+                                class="form-control"
+                                style="margin-bottom: 20px;" required>
+                            {% for ont in ont_dbs %}
+                                <option value="{{ ont.ontologydb_id }}">
+                                    {{ ont.name }}
                                 </option>
-                                {% for ref_type in ref_types %}
-                                    <option value="ref_type">
-                                        {{ ref_type }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div id="genesetOntologyAlert"
-                             class="alert alert-warning fade in col-xs-3"
-                             style="width:400px; text-align:center;">
-                                <button type="button" class="close"
-                                        data-dismiss="alert" aria-hidden="true">
-                                    x
-                                </button>
-                                <strong>
-                                    Annotation changes persist on (de)selection.
-                                </strong>
-                        </div>
+                            {% endfor %}
+                        </select>
                     </div>
-
-                    <div style="border: 1px solid #afafaf;">
-                        <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
-                    </div>
-
-                {% else %}
-                    <div id="genesetOntologyAlert" align="center"
-                         class="alert alert-danger fade in col-xs-3"
-                         style="width:100%">
+                    <div id="genesetOntologyAlert"
+                         class="alert alert-warning fade in col-xs-3"
+                         style="width:400px; text-align:center;">
+                            <button type="button" class="close"
+                                    data-dismiss="alert" aria-hidden="true">
+                                x
+                            </button>
                             <strong>
-                                No annotations are associated with this
-                                GeneSet.
+                                Annotation changes persist on (de)selection.
                             </strong>
                     </div>
+                </div>
 
-                {% endif %}
+                <div style="border: 1px solid #afafaf;">
+                    <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
+                </div>
             </div>
         </div>
 
@@ -381,7 +364,7 @@
      */
     var getSelectedRefType = function() {
 
-        var ref = $('#gso_ref_type option:selected').text();
+        var ref = $('#ontology_db option:selected').val();
 
         return $.trim(ref);
     };
@@ -535,7 +518,7 @@
     });
 
     //This refreshes all tree data based on changing gso_ref_type (universe) seen in the gso_ref_type select tag
-    $($("#gso_ref_type").change(function () {
+    $($("#ontology_db").change(function () {
         $("#tree").dynatree("option", "initAjax", {
             url: "/initOntTree",
             data: {

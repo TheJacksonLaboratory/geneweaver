@@ -392,6 +392,7 @@ def render_editgenesets(gs_id, curation_view=False):
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
     onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
+    ont_dbs = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
 
     user_info = geneweaverdb.get_user(user_id)
@@ -417,6 +418,7 @@ def render_editgenesets(gs_id, curation_view=False):
         view=view, 
         ref_types=ref_types, 
         onts=onts,
+        ont_dbs=ont_dbs,
         curation_view=curation_view
     )
 
@@ -1199,10 +1201,8 @@ def get_ontology_terms(gsid):
 def init_ont_tree():
     parentdict = {}
     gs_id = request.args['gs_id']
-    gso_ref_type = request.args['universe']  # Usually 'All Reference Types'
-    onts = geneweaverdb.get_all_ontologies(gs_id, gso_ref_type)
-
-    print('onts: %i' % len(onts))
+    ontdb_id = request.args['universe']  # Usually 'All Reference Types'
+    onts = geneweaverdb.get_all_root_ontology_for_database(ontdb_id)
 
     for ont in onts:
         ## Path is a list of lists since there may be more than one
@@ -1225,11 +1225,9 @@ def init_ont_tree():
                 else:
                     p = ontcache[p]
 
-                node = create_new_child_dict(p, gso_ref_type)
+                node = create_new_child_dict(p, ontdb_id)
 
                 ontpath.append(node)
-
-            print(ontpath)
 
             ## Add things in reverse order because it makes things easier
             # for p in ontpath[::-1]:
