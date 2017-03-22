@@ -418,7 +418,7 @@
         //Initialize dynatree data and functions
         $("#tree").dynatree({
             checkbox: true,
-            selectMode: 1,
+            selectMode: 2,
             initAjax: {
                 url: "/initOntTree",
                 data: {
@@ -429,6 +429,7 @@
 
             //Performs lazy ajax call when new nodes need to be viewed
             onLazyRead: function (node) {
+                console.log('LAZY READ!');
                 node.appendAjax({
                     url: "/expandOntNode",
                     data: {
@@ -441,7 +442,6 @@
 
 			// Does nothing but needs to be present for nodes to be unselected.
             onClick: function (node, event) {
-                console.log('CLICKED');
                 console.log(node);
 			},
 
@@ -474,9 +474,7 @@
 			},
 
             // Updates the database based on the ontology terms a user selects.
-            onSelect: function (flag, node) {
-                console.log('SELECTED');
-            }
+            onSelect: termSelectionHandler
         })
 
         /**
@@ -756,6 +754,7 @@
             recursiveDeselect(indexNode);
         }
 
+        /*
         $.ajax({
             url: '/update_geneset_annotation.json',
             type: 'POST',
@@ -781,6 +780,7 @@
             error: function(request, error, thrownError) {
             }
         })
+        */
     }
 
     // Deselects all descending nodes
