@@ -1,13 +1,9 @@
 version: '2.1'
 services:
   web:
-    build: 
-      context: ../../website-py
-      dockerfile: sample-configs/Dockerfile
-    image: geneweaver:latest
-    container_name: geneweaver-web
+    image: csdocker.jax.org/geneweaver:latest
     healthcheck:
-      test: ["CMD-SHELL", "cd", "..", "&&", "python", "-m", "unittest", "discover" ]
+      test: ["CMD-SHELL", "cd", "..", "&&", "python", "-m", "unittest", "discover", "&&", "echo", "HEALTHCHECK PASSED"]
       interval: 12h
       timeout: 30s
       retries: 3
@@ -16,7 +12,6 @@ services:
      - "443:443"
     volumes: 
      - '../src:/srv/geneweaver/website-py/src'
-     - '../tests:/srv/geneweaver/website-py/tests'
      - 'results:/srv/geneweaver/results'
     depends_on:
       sphinx:
@@ -28,13 +23,13 @@ services:
       celery:
         condition: service_started
     restart: unless-stopped
+    container_name: geneweaver-web
     links:
      - postgres
      - rabbitmq
      - sphinx
   sphinx:
     image: leodido/sphinxsearch:2.2.9
-    container_name: geneweaver-sphinx
     ports: 
      - "9306:9306"
      - "9312:9312"
@@ -42,6 +37,7 @@ services:
      - './docker-configs/sphinx-configs:/usr/local/etc'
     command: indexall.sh
     restart: unless-stopped
+    container_name: geneweaver-sphinx
     links:
      - postgres
     depends_on:
@@ -49,31 +45,25 @@ services:
         condition: service_healthy
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: geneweaver-rabbitmq
     ports:
      - "8080:15672"
     environment:
      - RABBITMQ_ERLANG_COOKIE='7gH3cB9vtK4j'
     restart: unless-stopped
+    container_name: geneweaver-rabbitmq
     depends_on:
       postgres:
         condition: service_healthy
   postgres:
-    build:
-      context: ../../database
-      dockerfile: Dockerfile
-    image: geneweaver-db:latest
-    container_name: geneweaver-postgres
+    image: csdocker.jax.org/geneweaver-db:latest
     healthcheck:
-      test: ["CMD-SHELL", "[ -f /var/lib/postgresql/data/pg_init.finished ]", "&&", "echo", "0", "||", "echo", "1"]
-      interval: 5m
+      test: ["CMD-SHELL", "[", "-f", "/var/lib/postgresql/data/pg_init.finished ]", "&&", "echo", "0", "||", "echo", "1"]
+      interval: 1m
       timeout: 15s
-      retries: 10
+      retries: 3
+    container_name: geneweaver-postgres
   celery:
-    build:
-      context: ../../tools
-      dockerfile: Dockerfile
-    image: geneweaver-celery:latest
+    image: csdocker.jax.org/geneweaver-celery:latest
     links:
       - rabbitmq
       - postgres
