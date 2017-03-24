@@ -55,7 +55,7 @@ class PublicationGenerator(object):
         """
         Simple static method to pull an instance of a generator from the database by it's generator_id.
 
-        :param generator_id: Maps to a stubgenid in the gwcuration.stubgenerators table.
+        :param generator_id: Maps to a stubgenid in the production.stubgenerators table.
         :return: An instance of the PublicationGenerator class if the id exists, otherwise method returns "None"
         """
         """
@@ -64,7 +64,7 @@ class PublicationGenerator(object):
         """
         with geneweaverdb.PooledCursor() as cursor:
 
-            cursor.execute("SELECT * FROM gwcuration.stubgenerators WHERE stubgenid=%s;", (generator_id,))
+            cursor.execute("SELECT * FROM production.stubgenerators WHERE stubgenid=%s;", (generator_id,))
             rows = geneweaverdb.dictify_cursor(cursor)
             return PublicationGenerator(**next(rows)) if rows else None
 
@@ -78,17 +78,17 @@ class PublicationGenerator(object):
         with geneweaverdb.PooledCursor() as cursor:
             if not self.stubgenid:
                 cursor.execute(
-                    'INSERT INTO gwcuration.stubgenerators (name, querystring, grp_id, usr_id) values (%s, %s, %s, %s);',
+                    'INSERT INTO production.stubgenerators (name, querystring, grp_id, usr_id) values (%s, %s, %s, %s);',
                     (self.name, self.querystring, self.grp_id, self.usr_id))
                 cursor.connection.commit()
 
                 # Get the database generated stubgenid and set the attribute on the instance
-                cursor.execute('''SELECT stubgenid FROM gwcuration.stubgenerators
+                cursor.execute('''SELECT stubgenid FROM production.stubgenerators
                                WHERE name = %s AND grp_id = %s AND usr_id = %s ''',
                                (self.name, self.grp_id, self.usr_id))
                 self.stubgenid = cursor.fetchone()[0]
             else:
-                cursor.execute('UPDATE gwcuration.stubgenerators SET name = %s, querystring = %s, grp_id = %s WHERE stubgenid = %s',
+                cursor.execute('UPDATE production.stubgenerators SET name = %s, querystring = %s, grp_id = %s WHERE stubgenid = %s',
                                (self.name, self.querystring, self.grp_id, self.stubgenid,))
                 cursor.connection.commit()
 
@@ -114,7 +114,7 @@ class PublicationGenerator(object):
         # Update the generator has having been run
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute(
-                'UPDATE gwcuration.stubgenerators SET last_update=NOW() WHERE stubgenid=%s;',
+                'UPDATE production.stubgenerators SET last_update=NOW() WHERE stubgenid=%s;',
                 (self.stubgenid,))
             cursor.connection.commit()
         return pubmed_result
@@ -326,7 +326,7 @@ def list_generators(user_id, groups):
             '''
                         SELECT DISTINCT stubgenid, sg.name as name, querystring, sg.usr_id,
                         to_char(last_update, 'YYYY-MM-DD') as last_update, sg.grp_id as grp_id, grp_name, LOWER(name)
-                        FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
+                        FROM production.stubgenerators sg LEFT JOIN production.grp g
                         ON sg.grp_id = g.grp_id
                         WHERE usr_id=%s OR sg.grp_id=ANY(%s)
                         ORDER BY LOWER(name), grp_name
@@ -349,7 +349,7 @@ def list_generators_by_group(groups):
             '''
                         SELECT DISTINCT stubgenid, sg.name as name, querystring, sg.usr_id,
                         to_char(last_update, 'YYYY-MM-DD') as last_update, sg.grp_id as grp_id, grp_name, LOWER(name)
-                        FROM gwcuration.stubgenerators sg LEFT JOIN production.grp g
+                        FROM production.stubgenerators sg LEFT JOIN production.grp g
                         ON sg.grp_id = g.grp_id
                         WHERE sg.grp_id IN (%s)
                         ORDER BY LOWER(name), grp_name
@@ -368,10 +368,7 @@ def delete_generator(generator):
     """
     rowcount = 0
     with geneweaverdb.PooledCursor() as cursor:
-        # Foreign key constraint required deleting the records from this table first.
-        cursor.execute('DELETE FROM gwcuration.stub_status WHERE stubgenid=%s;', (generator.stubgenid,))
-        cursor.connection.commit()
-        cursor.execute('DELETE FROM gwcuration.stubgenerators WHERE stubgenid=%s;',
+        cursor.execute('DELETE FROM production.stubgenerators WHERE stubgenid=%s;',
                        (generator.stubgenid,))
         rowcount = cursor.rowcount
         cursor.connection.commit()
