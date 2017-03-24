@@ -1240,8 +1240,6 @@ def init_ont_tree():
 
                 ontpath.append(node)
 
-            ## Add things in reverse order because it makes things easier
-            # for p in ontpath[::-1]:
             for i in range(0, len(ontpath)):
                 if i == len(ontpath) - 1:
                     ontpath[i]['expand'] = False

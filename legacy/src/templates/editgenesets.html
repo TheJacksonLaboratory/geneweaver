@@ -429,7 +429,6 @@
 
             //Performs lazy ajax call when new nodes need to be viewed
             onLazyRead: function (node) {
-                console.log('LAZY READ!');
                 node.appendAjax({
                     url: "/expandOntNode",
                     data: {
@@ -732,8 +731,6 @@
 
     // Handles dynatree term selection
     function termSelectionHandler(flag, node) {
-        console.log('SELECTED');
-
         var tree = $("#tree").dynatree("getTree"); // tree
         var rootNode = $("#tree").dynatree("getRoot"); // root
         var indexNode = node;
@@ -747,44 +744,38 @@
                 indexNode = indexNode.getParent();
             }
 
+            $.ajax({
+                    url: "/updateGenesetOntologyDB",
+                    data: {
+                        key: node.data.key,
+                        flag: flag,
+                        universe: "Manual Association",
+                        gs_id: $(location).attr("href").split('/').pop()
+                    },
+                    success: function(data){}
+                })
+
         // Term deselected
         } else {
 
             // Deselect all descendant terms
             recursiveDeselect(indexNode);
         }
-
-        /*
-        $.ajax({
-            url: '/update_geneset_annotation.json',
-            type: 'POST',
-            data: {
-                key: node.data.key,
-                flag: flag,
-                gs_id: gsID
-            },
-            success: function(data){
-                data = JSON.parse(data);
-
-                if (!data.success && data.error) {
-
-                    $('html, body').animate({ scrollTop: 0 }, 'slow');
-                    $('#result').html(
-                        '<div class="alert alert-danger fade in"> ' +
-                        '<button type="button" class="close" ' +
-                        'data-dismiss="alert" aria-hidden="true">x' +
-                        '</button><strong>Error:</strong> ' +
-                        data.error + '</div>');
-                }
-            },
-            error: function(request, error, thrownError) {
-            }
-        })
-        */
     }
 
     // Deselects all descending nodes
     function recursiveDeselect(node) {
+        $.ajax({
+                    url: "/updateGenesetOntologyDB",
+                    data: {
+                        key: node.data.key,
+                        flag: false,
+                        universe: "Manual Association",
+                        gs_id: $(location).attr("href").split('/').pop()
+                    },
+                    success: function(data){}
+                })
+
         // Get all descendants
         var descendant = node.getChildren();
 
