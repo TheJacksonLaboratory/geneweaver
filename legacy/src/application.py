@@ -391,7 +391,8 @@ def render_editgenesets(gs_id, curation_view=False):
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     species = geneweaverdb.get_all_species()
     pubs = geneweaverdb.get_all_publications(gs_id)
-    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
+    #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
+    ont_dbs = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
 
     user_info = geneweaverdb.get_user(user_id)
@@ -415,8 +416,8 @@ def render_editgenesets(gs_id, curation_view=False):
         species=species, 
         pubs=pubs,
         view=view, 
-        ref_types=ref_types, 
-        onts=onts,
+        ref_types=ref_types,
+        ont_dbs=ont_dbs,
         curation_view=curation_view
     )
 
@@ -1199,14 +1200,26 @@ def get_ontology_terms(gsid):
 def init_ont_tree():
     parentdict = {}
     gs_id = request.args['gs_id']
-    gso_ref_type = request.args['universe']  # Usually 'All Reference Types'
-    onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, gso_ref_type)
+    ontdb_id = request.args['universe']
 
-    for ont in onts:
+    # Gather root annotations for given ontology database
+    root_annotations = geneweaverdb.get_all_root_ontology_for_database(ontdb_id)
+
+    for annotation in root_annotations:
+        parentdict[annotation.ontology_id] = [[annotation.ontology_id]]
+
+    # Gather all terms associated with the geneset within the selected ontology
+    assoc_annotations = geneweaverdb.get_all_ontologies_by_geneset_and_db(gs_id, ontdb_id)
+
+    for annotation in assoc_annotations:
         ## Path is a list of lists since there may be more than one
         ## root -> term path for a particular ontology term
-        path = geneweaverdb.get_all_parents_to_root_for_ontology(ont.ontology_id)
-        parentdict[ont.ontology_id] = path
+        paths = geneweaverdb.get_all_parents_to_root_for_ontology(annotation.ontology_id)
+
+        for path in paths:
+            root = path[0]
+            if parentdict.get(root):
+                parentdict[root].append(path)
 
     tree = {}
     ontcache = {}
@@ -1223,27 +1236,38 @@ def init_ont_tree():
                 else:
                     p = ontcache[p]
 
-                node = create_new_child_dict(p, gso_ref_type)
+                node = create_new_child_dict(p, ontdb_id)
 
                 ontpath.append(node)
 
-            ## Add things in reverse order because it makes things easier
-            # for p in ontpath[::-1]:
-            for i in range(len(ontpath), 0, -1):
-                i -= 1
-
-                ## Last term in the path is the most granular child and
-                ## shouldn't expand or be a folder
-                if i == (len(ontpath) - 1):
-                    ontpath[i]['isFolder'] = False
-                    ontpath[i]['select'] = True
+            for i in range(0, len(ontpath)):
+                if i == len(ontpath) - 1:
                     ontpath[i]['expand'] = False
-
                 else:
                     ontpath[i]['expand'] = True
 
-                if i == 0:
-                    break
+                    child_annotations = geneweaverdb.get_all_children_for_ontology(ontpath[i]['key'])
+                    children = list()
+
+                    for j in range(0, len(child_annotations)):
+                        child_node = dict()
+                        child_node["title"] = child_annotations[j].name
+                        if (child_annotations[j].children == 0):
+                            child_node["isFolder"] = False
+                        else:
+                            child_node["isFolder"] = True
+                        child_node["isLazy"] = True
+                        child_node["key"] = child_annotations[j].ontology_id
+                        child_node["db"] = False
+                        children.append(child_node)
+
+                        if child_node in filter(lambda s: s["title"] == ontpath[i+1]["title"], children):
+                            children.remove(child_node)
+
+                    ontpath[i]["children"] = children
+
+                if len(ontpath) > 1:
+                    ontpath[i]['select'] = True
 
             tree = mergeTreePath(tree, ontpath)
 
