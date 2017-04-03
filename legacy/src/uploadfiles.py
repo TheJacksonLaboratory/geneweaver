@@ -1,10 +1,3 @@
-__author__ = 'baker'
-
-'''
-This file contains functions to parse and upload files from file_contents. In particular it contains functions to
-create temp tables that hold upload data and map it back to geneweaver
-'''
-
 import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 from urlparse import parse_qs, urlparse
@@ -12,7 +5,14 @@ from flask import session
 import batch
 import annotator as ann
 import json
+import psycopg2
 
+__author__ = 'baker'
+
+'''
+This file contains functions to parse and upload files from file_contents. In particular it contains functions to
+create temp tables that hold upload data and map it back to geneweaver
+'''
 
 def create_temp_geneset():
     '''
@@ -147,6 +147,7 @@ def create_new_geneset(args):
     gs_count = len(form_text.split('\n'))
 
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
+    print gene_identifier
 
     try:
         with PooledCursor() as cursor:

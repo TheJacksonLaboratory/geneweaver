@@ -3356,13 +3356,17 @@ def get_all_root_ontology_for_database(ontdb_id):
     :param ont_id:	   ontologydb ID
     :return:			a list of ontology objects that are the root of a given ontology database
     """
+    # if a default of 'All Reference Types' is passed, set ont_db to GO
+    if ontdb_id.startswith('All'):
+        ontdb_id = 1
+
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
                SELECT *
                FROM ontology
                WHERE ont_parents = 0 AND ontdb_id = %s;
-            ''' % (ontdb_id)
+            ''' % (ontdb_id,)
         )
     return [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
 

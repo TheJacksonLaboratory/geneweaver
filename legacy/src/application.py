@@ -1898,7 +1898,7 @@ def create_geneset_meta():
     if 'user_id' in flask.session:
         if int(request.args['sp_id']) == 0:
             return json.dumps({'error': 'You must select a species.'})
-        if str(request.args['gdb_id']) == '0':
+        if str(request.args['gdb_id']) == 0:
             return json.dumps({'error': 'You must select an identifier.'})
         ## Create the geneset in upload genesets. The new geneset is set to 'delayed'
         ## and will be updated whenever the editgenesetgenes are verified.
