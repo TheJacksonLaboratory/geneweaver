@@ -61,21 +61,7 @@
         {% endif %}
     </td>
 
-    <td>		<span class="sp-tag-{{gs.sp_id}}"></span>
-        <span style="font: italic bold 12px/30px Georgia, serif;">
-            {% if gs.sp_id == 1 %}M.m.
-            {% elif gs.sp_id == 2 %}H.s.
-            {% elif gs.sp_id == 3 %}R.n.
-            {% elif gs.sp_id == 4 %}D.r.
-            {% elif gs.sp_id == 5 %}D.m.
-            {% elif gs.sp_id == 6 %}M.mul.
-            {% elif gs.sp_id == 8 %}C.e.
-            {% elif gs.sp_id == 9 %}S.c.
-            {% elif gs.sp_id == 10 %}G.g.
-            {% elif gs.sp_id == 11 %}C.f.
-            {% endif %}
-        </span>
-
+    <td><span id="sp-tag-{{gs.geneset_id}}"></span>
     </td>
 
     <td>
@@ -237,9 +223,8 @@
     // case species have been removed and gaps exist between IDs. The original
     // colors for GW's first six species are still used, the rest are based off
     // ColorBrewer scale combinations.
-/*
-    $(function() {
 
+    $(function() {
         var gsid = {{gs.geneset_id}};
         var spid = {{ gs.sp_id }};
         // The alist returned by the server should already be sorted
@@ -255,7 +240,6 @@
            if (spid === splist[i][0]) {
                spid = i;
                spname = splist[i][1];
-
                break;
            }
         }
@@ -271,13 +255,12 @@
         else
             spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
 
-        var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+        var tag = '<span class="group_name" style="font: italic 10px/14px Georgia, serif; background-color:' + colors[spid] +
                   '; border:1px solid ' + borders[spid] + '">' +
                   spname + '</span>';
-
         $('#sp-tag-' + gsid).html(tag);
     });
-	*/
+
 
     function toggleDetails(id) {
         var element = document.getElementById(id);
