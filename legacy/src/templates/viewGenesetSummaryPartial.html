@@ -61,9 +61,21 @@
         {% endif %}
     </td>
 
-    <td>
-		<span class="sp-tag-{{gs.sp_id}}">
-		</span>
+    <td>		<span class="sp-tag-{{gs.sp_id}}"></span>
+        <span style="font: italic bold 12px/30px Georgia, serif;">
+            {% if gs.sp_id == 1 %}M.m.
+            {% elif gs.sp_id == 2 %}H.s.
+            {% elif gs.sp_id == 3 %}R.n.
+            {% elif gs.sp_id == 4 %}D.r.
+            {% elif gs.sp_id == 5 %}D.m.
+            {% elif gs.sp_id == 6 %}M.mul.
+            {% elif gs.sp_id == 8 %}C.e.
+            {% elif gs.sp_id == 9 %}S.c.
+            {% elif gs.sp_id == 10 %}G.g.
+            {% elif gs.sp_id == 11 %}C.f.
+            {% endif %}
+        </span>
+
     </td>
 
     <td>
@@ -360,3 +372,5 @@
     //});
 
 </script>
+
+
