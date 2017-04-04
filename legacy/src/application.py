@@ -1470,6 +1470,10 @@ def render_editgeneset_genes(gs_id, curation_view=False):
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
 
+    # get unmapped gene ids (this is only an approximation and will not work
+    # for probe sets
+    genesnotfound = uploadfiles.get_unmapped_ids(gs_id, geneset, geneset.sp_id, geneset.gene_id_type)
+
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
         if view is None and curation_view and geneweaverdb.user_is_assigned_curation(user_id, gs_id):
@@ -1522,6 +1526,8 @@ def render_editgeneset_genes(gs_id, curation_view=False):
     else:
         symbol2ode = None
 
+    print symbol2ode
+
     return flask.render_template(
         'editgenesetsgenes.html',
         geneset=geneset,
@@ -1533,7 +1539,8 @@ def render_editgeneset_genes(gs_id, curation_view=False):
         meta=meta,
         ontology=ontology,
         id_map=symbol2ode,
-        curation_view=curation_view
+        curation_view=curation_view,
+        genesnotfound=genesnotfound
     )
 
 
@@ -1898,10 +1905,8 @@ def create_geneset_meta():
     if 'user_id' in flask.session:
         if int(request.args['sp_id']) == 0:
             return json.dumps({'error': 'You must select a species.'})
-        if str(request.args['gdb_id']) == 0:
+        if str(request.args['gdb_id']) == '0':
             return json.dumps({'error': 'You must select an identifier.'})
-        ## Create the geneset in upload genesets. The new geneset is set to 'delayed'
-        ## and will be updated whenever the editgenesetgenes are verified.
         results = uploadfiles.create_new_geneset(request.args)
         return json.dumps(results)
     else:
