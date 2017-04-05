@@ -721,7 +721,10 @@ $(document).ready(function() {
         var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
         html += $(data).find('#curIDBoxes').html();
         html += "</a>"
-        html += $(data).find('#geneset-meta').html();
+        html += $(data).find('#geneset-meta').html(); 
+      }
+      }); 
+  }
 
   function formatGenesetInfo(infoPane, activeRow){
     var id = activeRow.data('id');
@@ -1247,13 +1250,14 @@ $(document).ready(function() {
 <script type="text/javascript">
 makeInnerList();
 function makeInnerList() {
-	var a = {{async_result.GeneResultCount}};
-	var stuffString = "{{async_result}}";
-	stuffString = stuffString.replace(/&#39;/ig,'\"');
-	var stuffString2 = '\''+stuffString+'\'';
-	stuffString2 = stuffString2.replace(/u"/ig, '\"');
-	stuffString2 = stuffString2.replace(/'/ig, '');
-	modifiableData = JSON.parse(stuffString2);
+	var a = {{async_result.GeneResultsCount}};
+	//var stuffString = "{{async_result  }}";
+	//stuffString = stuffString.replace(/&#39;/ig,'\"');
+	//var stuffString2 = '\''+stuffString+'\'';
+	//stuffString2 = stuffString2.replace(/u"/ig, '\"');
+	//stuffString2 = stuffString2.replace(/'/ig, '');
+	//modifiableData = JSON.parse(stuffString2);
+    modifiableData = JSON.parse('{{async_result | tojson | safe}}');
 };
 
 function removeGene(ogid) {

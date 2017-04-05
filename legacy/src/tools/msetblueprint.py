@@ -61,7 +61,7 @@ def run_tool():
         flask.flash("Warning: You need only 2 projects!")
         return flask.redirect('analyze')
 
-    BGFILE_DIR = "/svr/geneweaver/tools/TOOLBOX/mset/backgroundFiles/" + form["MSET_Background"]
+    BGFILE_DIR = "/srv/geneweaver/tools/TOOLBOX/mset/backgroundFiles/" + form["MSET_Background"]
 
     size_of_files = 0
     for sp_name in species_checked:
