@@ -216,6 +216,15 @@ def create_new_geneset(args):
     except psycopg2.Error as e:
         return {'error': e}
 
+    # Some genesets contain no genes. We need to remove those genesets
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s''', (gs_id,))
+        if cursor.fetchone()[0] < 1:
+            cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
+            cursor.connection.commit()
+            error_string = 'No Genes in your GeneSet could be uploaded. Please check the Identifier type and Species'
+            return{'error': error_string}
+
 
     # need to get user's preference for annotation tool
     user = get_user(user_id)
