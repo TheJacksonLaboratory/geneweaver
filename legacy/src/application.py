@@ -34,7 +34,6 @@ from tools import jaccardsimilarityblueprint
 from tools import msetblueprint
 from tools import phenomemapblueprint
 from tools import tricliqueblueprint
-#from tools import upsetblueprint
 import sphinxapi
 import search
 import math
@@ -44,8 +43,6 @@ from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
-
-
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -59,7 +56,6 @@ app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 app.register_blueprint(msetblueprint.mset_blueprint)
-#app.register_blueprint(upsetblueprint.upset_blueprint)
 
 # *************************************
 
