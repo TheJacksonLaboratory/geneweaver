@@ -288,6 +288,18 @@ var jaccardSimilarity = function() {
                 .text(function() { return '= ' + types[i]; });
             ;
         }
+
+        return exports;
+    };
+
+    /**
+     * Erases the venn diagram matrix by deleting the SVG element and its
+     * children nodes. Used for reseting the zoom and image.
+     */
+    exports.erase = function() { 
+        d3.select('#jaccard').selectAll('*').remove();
+
+        return exports;
     };
 
     /**

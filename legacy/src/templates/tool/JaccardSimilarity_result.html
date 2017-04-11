@@ -234,10 +234,13 @@
 <script src="/static/tools/JaccardSimilarity.js" charset="utf-8"></script>
 <script type="text/javascript">
 
+var js;
+
 $(document).ready(function() {
 
-   var d = {{ data | safe }}; //Declaration of data as d variable
-    var js = jaccardSimilarity()
+    var d = {{ data | safe }};
+
+    js = jaccardSimilarity()
         .data(d)
         .diagramPadding(150)
         .draw()
@@ -248,6 +251,12 @@ $(document).ready(function() {
     var jsm = jaccardSimilarityMatrix()
         .data(d)
         .draw();
+
+    $('#zoomButton').on('click', function(event) {
+
+        js.erase();
+        js.draw();
+    });
 
     // The "Add GeneSets to Project" button
     $('#addToProject').on('click', function (e) {
@@ -328,6 +337,7 @@ $(document).ready(function() {
 
 <!-- Script for the geneset table panel and all functionality and buttons that go along with it -->
 <script>
+
     $('.download-image').on('click', function(event) {
 
         var dlurl = '/downloadResult';
