@@ -8,7 +8,7 @@
 /**
  * Jaccard similarity module. Publicly exposes setters/getters for most
  * visualization options and two functions, draw and drawLegend, for
- * drawing the venn diagram matrix and associated matrix.
+ * drawing the venn diagram and similarity matrices.
  *
  * The only variable required to be set by this module is data, which should
  * be the object returned by the jaccard tool.
@@ -133,7 +133,9 @@ var jaccardSimilarity = function() {
                     column: venn.column,
                     row: venn.row,
                     title: venn['title1'],
-                    desc: venn['desc1']
+                    desc: venn['desc1'],
+                    gsid1: venn.gsids[0],
+                    gsid2: venn.gsids[1]
                 };
 
                 vennCircles.push(circle);
@@ -375,6 +377,20 @@ var jaccardSimilarity = function() {
                             .style('stroke', 'black')
                             .style("stroke-width", 1);
                     }
+
+                // User is clicking the venn diagram without shift, this will
+                // open a new window for them and allow them to view the gene
+                // set details (if X == Y) or the gene overlap page.
+                } else {
+
+                    // Remove GS prefix
+                    var gsid1 = d.gsid1.slice(2);
+                    var gsid2 = d.gsid2.slice(2);
+
+                    if (gsid1 === gsid2)
+                        window.open('/viewgenesetdetails/' + gsid1, '_blank');
+                    else
+                        window.open('/viewgenesetoverlap/' + gsid1 + '+' + gsid2, '_blank');
                 }
             })
         ;
