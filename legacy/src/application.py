@@ -24,8 +24,17 @@ import re
 import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
-from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint, msetblueprint, upsetblueprint
+from tools import abbablueprint
+from tools import booleanalgebrablueprint
+from tools import combineblueprint
+from tools import dbscanblueprint
+from tools import genesetviewerblueprint
+from tools import jaccardclusteringblueprint
+from tools import jaccardsimilarityblueprint
+from tools import msetblueprint
+from tools import phenomemapblueprint
+from tools import tricliqueblueprint
+#from tools import upsetblueprint
 import sphinxapi
 import search
 import math
@@ -41,6 +50,7 @@ from psycopg2 import Error
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
+app.register_blueprint(dbscanblueprint.dbscan_blueprint)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 app.register_blueprint(genesetviewerblueprint.geneset_viewer_blueprint)
 app.register_blueprint(phenomemapblueprint.phenomemap_blueprint)
@@ -49,7 +59,7 @@ app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 app.register_blueprint(msetblueprint.mset_blueprint)
-app.register_blueprint(upsetblueprint.upset_blueprint)
+#app.register_blueprint(upsetblueprint.upset_blueprint)
 
 # *************************************
 
