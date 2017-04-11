@@ -8,6 +8,7 @@ from urllib2 import HTTPError
 from sys import exc_info
 from urlparse import parse_qs, urlparse
 import config
+import datetime
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -29,7 +30,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import cairosvg
+# import cairosvg
 import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
@@ -2744,6 +2745,31 @@ def render_export_genelist(gs_id):
             str = str + k + ',' + results[k] + '\n'
         response = make_response(str)
         response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
+        return response
+
+
+@app.route('/exportOmicsSoft/<int:gs_id>')
+def render_export_omicssoft(gs_id):
+    if 'user_id' in flask.session:
+        results = geneweaverdb.get_geneset(gs_id, flask.session['user_id'])
+        title = 'gw_omicssoft_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
+        if results is not None:
+            string = '[GeneSet]\n'
+            string += '##Source=GeneWeaver Generated\n'
+            string += '##Type=\n'
+            string += '##Project=\n'
+            string += '##Name=' + str(results.name) + '\n'
+            string += '##Description=' + str(results.description) + '\n'
+            string += '##Tag=\n'
+            for gsv in results.geneset_values:
+                string += gsv.ode_ref + '\t' + str(gsv.ode_gene_id) + '\n'
+        else:
+            string = '## An Error Occured During File Creation. Please contact GeneWeaver@gmail.com.'
+        response = make_response(string)
+        response.headers["Content-Disposition"] = "attachment; filename=" + title
+        response.headers["Cache-Control"] = "must-revalidate"
+        response.headers["Pragma"] = "must-revalidate"
+        response.headers["Content-type"] = "text/plain"
         return response
 
 
