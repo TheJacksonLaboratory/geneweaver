@@ -147,6 +147,7 @@
 
                 var as = {{ async_result | tojson | safe}};
                 var sets = Object.keys(as['genesets']);
+                console.log(as);
 
                 var numGS = 0;
                 numGS = {{ async_result.numGS}};
@@ -154,7 +155,7 @@
                 // The 1? is added so the entire string will appear in
                 // window.location.search. Without the 1? The string is
                 // truncated and missing the first sentence.
-                var getStr = '1?' + 
+                var getStr = '1?algebra?' + 
                     'The {{ async_result.type }} of {{ async_result.numGS }}' +
                     ' GeneSets.?' + 
                     'The Boolean Algebra tool was used to find the ' + 
