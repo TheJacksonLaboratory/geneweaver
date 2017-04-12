@@ -8,6 +8,7 @@ from urllib2 import HTTPError
 from sys import exc_info
 from urlparse import parse_qs, urlparse
 import config
+import datetime
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -29,7 +30,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import cairosvg
+# import cairosvg
 import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
@@ -2744,6 +2745,36 @@ def render_export_genelist(gs_id):
             str = str + k + ',' + results[k] + '\n'
         response = make_response(str)
         response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
+        return response
+
+
+@app.route('/exportOmicsSoft/<string:gs_ids>')
+def render_export_omicssoft(gs_ids):
+    if 'user_id' in flask.session:
+        gs_ids_list = gs_ids.split(',')
+        string = ''
+        for gs_id in gs_ids_list:
+            results = geneweaverdb.get_geneset(gs_id, flask.session['user_id'])
+            gsv_values = geneweaverdb.export_results_by_gs_id(gs_id)
+            title = 'gw_omicssoft_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
+            string += '[GeneSet]\n'
+            if results is not None:
+                string += '##Source=GeneWeaver Generated\n'
+                string += '##Type=N/A\n'
+                string += '##Project=N/A\n'
+                string += '##Name=' + str(results.name) + '\n'
+                string += '##Description=' + str(results.description) + '\n'
+                string += '##Tag=GeneWeaver\n'
+                for gene, value in gsv_values.iteritems():
+                    string += str(gene) + '\t' + str(value) + '\n'
+                string += '\n'
+            else:
+                string = '## An Error Occured During File Creation. Please contact GeneWeaver@gmail.com.\n\n'
+        response = make_response(string)
+        response.headers["Content-Disposition"] = "attachment; filename=" + title
+        response.headers["Cache-Control"] = "must-revalidate"
+        response.headers["Pragma"] = "must-revalidate"
+        response.headers["Content-type"] = "text/plain"
         return response
 
 

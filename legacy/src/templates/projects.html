@@ -97,6 +97,9 @@
                         <button type="button" class="btn btn-block btn-warning" id="callCombineGeneSets">
                             <i class="fa fa-chain pull-left"></i> Combine GeneSets
                         </button>
+                        <button type="button" class="btn btn-block btn-warning" id="callExportOmicsSoft">
+                            <i class="fa fa-download pull-left"></i> Export OmicsSoft
+                        </button>
                     </div>
                     <div class="panel-group pull-right" id="selectedGenesets">
 
@@ -343,6 +346,42 @@
                 $("#myCombineGSValue").val(i);
                 $("#combineGenesets").modal('show');
 
+            }
+        });
+
+
+        // Call function to export genesets as OmicsSoft
+        $('#callExportOmicsSoft').on('click', function () {
+            //get all checked gene sets
+            //also split off the name from the number
+            //we are only interested in the number
+            var gsid = [];
+
+            $('input[type=checkbox]:checked').each(function () {
+                var checkId = $(this).attr('id');
+				checkId = checkId.split('_');
+                // This selects other checkboxes that may not be genesets so we
+                // have to filter those out.
+				if (checkId[0] === 'geneset') {
+					gsid.push(checkId[1]);
+				}
+            });
+
+            // display error if no genesets are selected
+            if (gsid.length == 0) {
+				$(document).trigger("add-alerts", [{
+					'message': "No GeneSets were selected for combining into the same project.",
+					'priority': 'danger'
+				}]);
+            }
+
+            // send the list to a route/function.
+            else{
+                var i = gsid.join(",");
+                window.location = '/exportOmicsSoft/' + i;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded GeneSet in OmicsSoft Format Completed</div>');
             }
         });
 
