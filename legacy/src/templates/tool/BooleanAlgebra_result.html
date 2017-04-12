@@ -44,10 +44,22 @@
 
     {%  for i in range(async_result.numGS,-1,-1) %}
         {%  if async_result.formatPrint[i]|length != 0 %}
-                <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+            <div class="row">
+                <div class="col-md-10">
                     <h6 class="panel-title">{{ (i + 1 ) }} of {{ async_result.numGS}} GeneSets</h6>
                 </div>
-                <div class="row">
+                <div class="col-md-2" align="right" style="text-align:right">
+                    <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck" style="padding:0; border:0; margin:0">
+                        <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
+                            Select All
+                            <input type="checkbox" 
+                                   name="group_{{ i }}"
+                                   />
+                        </label>
+                    </div>
+                </div>
+            </div>
+                <div class="row" id="group-{{ i }}">
                     <table class="table table-hover">
                         <tbody>
                             <tr>
@@ -55,6 +67,7 @@
                                 <th>LinkOuts</th>
                                 <th>In GeneSets</th>
                                 <th>Emphasis</th>
+                                <th></th>                                
                             </tr>
                             {%  for j in range(((async_result.formatPrint[i]|length) - 1), -1, -1) %}
                                 {%  set gene = async_result.formatPrint[i][j] %}
@@ -103,6 +116,7 @@
                     </table>
                 </div>
         {%  endif %}
+        <br />
     {% endfor %}
 {%  endif %}
 </div>
@@ -113,6 +127,68 @@
             document.getElementById("{{gene}}").checked = true;
         </script>
 {% endfor %}
+<script type="text/javascript">
+
+    $(document).ready(function() {
+
+        $('.group-checkbox').on('click', function(event) {
+
+            // Grabs the group ID for this checkbox. Format: group-#-checkbox
+            var groupId = $(this).attr('id').split('-')[1];
+            var groupCheck = $(this).find('input[type=checkbox]');
+            // Id for checkbox grouping
+            var groupCheckboxes = '#group-' + groupId;
+            var checks = $(groupCheckboxes).find('input[type=checkbox]');
+            // Even when we mark the checkbox as checked the stupid UI doesn't
+            // get updated because of these weird ui button things
+            var btns = $(groupCheckboxes).find('.ui-btn');
+
+            // Opposite because by the time this code executes, the box is
+            // already checked
+            if (!groupCheck.attr('checked')) {
+
+                console.log('checked');
+                checks.each(function (index) {
+                    $(this).attr('checked', false);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-on');
+                    $(this).addClass('ui-checkbox-off');
+                });
+
+            } else {
+
+                console.log('not checked');
+
+                checks.each(function (index) {
+                    $(this).attr('checked', true);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-off');
+                    $(this).addClass('ui-checkbox-on');
+                });
+            }
+
+        });
+
+        /**
+          * Ever since we added the select all checkbox, we now have to hook
+          * into these stupid ui-checkbox clicks otherwise the actual checkbox
+          * which lies underneath all the ui crap doesn't get (de)selected.
+          */
+        $('.ui-checkbox').on('click', function(event) {
+
+            var check = $(this).find('input[type=checkbox]');
+
+            if (check.attr('checked'))
+                check.attr('checked', false);
+            else
+                check.attr('checked', true);
+        });
+    });
+</script>
 
 {# To update the ephasize genes. #}
 <script type="text/javascript">
