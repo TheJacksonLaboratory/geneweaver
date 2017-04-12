@@ -206,12 +206,8 @@
 
                 });
 
-                console.log(getStr);
                 // Load the new page with the extra url bit
-                setTimeout(function(){
-                    window.open('/uploadgeneset/' + getStr, '_blank');
-                    //window.location = "/uploadgeneset/" + getStr;
-                }, 1000);
+                window.open('/uploadgeneset/' + getStr, '_blank');
             }
             else{
                 window.alert("No checkboxes selected.")
