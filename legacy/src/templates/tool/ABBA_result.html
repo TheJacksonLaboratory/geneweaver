@@ -728,7 +728,8 @@ $(document).ready(function() {
 
   function formatGenesetInfo(infoPane, activeRow){
     var id = activeRow.data('id');
-    var url = '/viewgenesetdetails/' + id + '/meta';
+    //var url = '/viewgenesetdetails/' + id + '/meta';
+    var url = '/viewgenesetdetails/' + id;
     console.log(url);
     $.ajax({
       url: url,

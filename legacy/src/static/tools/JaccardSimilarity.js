@@ -1,18 +1,18 @@
 /**
- * file: JaccardSimilarity.js
- * desc: d3js code for visualizing jaccard similarity venn diagrams and the
- *       similarity matrix.
- * auth: TR
- */
+  * file: JaccardSimilarity.js
+  * desc: d3js code for visualizing jaccard similarity venn diagrams and the
+  *       similarity matrix.
+  * auth: TR
+  */
 
 /**
- * Jaccard similarity module. Publicly exposes setters/getters for most
- * visualization options and two functions, draw and drawLegend, for
- * drawing the venn diagram and similarity matrices.
- *
- * The only variable required to be set by this module is data, which should
- * be the object returned by the jaccard tool.
- */
+  * Jaccard similarity module. Publicly exposes setters/getters for most
+  * visualization options and two functions, draw and drawLegend, for
+  * drawing the venn diagram and similarity matrices.
+  *
+  * The only variable required to be set by this module is data, which should
+  * be the object returned by the jaccard tool.
+  */
 var jaccardSimilarity = function() {
 
     var exports = {},
@@ -135,7 +135,8 @@ var jaccardSimilarity = function() {
                     title: venn['title1'],
                     desc: venn['desc1'],
                     gsid1: venn.gsids[0],
-                    gsid2: venn.gsids[1]
+                    gsid2: venn.gsids[1],
+                    pvalue: venn.pvalue
                 };
 
                 vennCircles.push(circle);
@@ -144,8 +145,8 @@ var jaccardSimilarity = function() {
     };
 
     /**
-     * Formats and positions text elements for each individual venn diagram.
-     */
+      * Formats and positions text elements for each individual venn diagram.
+      */
     var makeText = function() {
 
         for (var i = 0; i < data.venn_diagrams.length; i++) {
@@ -197,8 +198,8 @@ var jaccardSimilarity = function() {
     };
 
     /**
-     * Formats and positions row and column labels for the venn diagram matrix.
-     */
+      * Formats and positions row and column labels for the venn diagram matrix.
+      */
     var makeLabels = function() {
 
         var gsTable = data.geneset_table;
@@ -237,9 +238,11 @@ var jaccardSimilarity = function() {
         };
     })();
 
+    /** public **/
+
     /**
-     * Draws the venn diagram matrix legend.
-     */
+      * Draws the venn diagram matrix legend.
+      */
     exports.drawLegend = function() {
 
         var types = [
@@ -293,9 +296,9 @@ var jaccardSimilarity = function() {
     };
 
     /**
-     * Erases the venn diagram matrix by deleting the SVG element and its
-     * children nodes. Used for reseting the zoom and image.
-     */
+      * Erases the venn diagram matrix by deleting the SVG element and its
+      * children nodes. Used for reseting the zoom and image.
+      */
     exports.erase = function() { 
         d3.select('#jaccard').selectAll('*').remove();
 
@@ -303,8 +306,31 @@ var jaccardSimilarity = function() {
     };
 
     /**
-     * Draws the venn diagram matrix.
-     */
+      * Shades insignificant venn diagrams based on a p-value threshold.
+      */
+    exports.shadeInsignificant = function(threshold) {
+
+        if (!threshold)
+            threshold = 0.05;
+
+        // Shades insignificant results
+        d3.selectAll('circle')
+            .filter(function(d) { return d != undefined; })
+            .filter(function(d) { return d.pvalue > threshold; })
+            .attr('fill', function(d) { return '#AAA' });
+
+        // Restors/keeps colors on significant results
+        d3.selectAll('circle')
+            .filter(function(d) { return d != undefined; })
+            .filter(function(d) { return d.pvalue <= threshold; })
+            .attr('fill', function(d) { return d.fill; });
+
+        return exports;
+    };
+
+    /**
+      * Draws the venn diagram matrix.
+      */
     exports.draw = function() {
 
         positionDiagrams();
@@ -334,7 +360,7 @@ var jaccardSimilarity = function() {
             .attr('cx', function(d) { return d.cx; })
             .attr('cy', function(d) { return d.cy; })
             .attr('r', function(d) { return d.r; })
-            .style('fill', function(d) { return d.fill; })
+            .attr('fill', function(d) { return d.fill; })
             .style('fill-opacity', opacity)
             .style('shape-rendering', 'geometricPrecision')
             .style('stroke', '#000')
@@ -486,9 +512,8 @@ var jaccardSimilarity = function() {
         return exports;
     };
 
-    /**
-      * Setters/getters
-      */
+    /** setters/getters **/
+
     exports.data = function(_) {
         if (!arguments.length) return data;
         data = _;

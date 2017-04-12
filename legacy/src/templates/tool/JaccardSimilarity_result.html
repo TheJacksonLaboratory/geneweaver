@@ -223,10 +223,10 @@
 <!-- Opacity slider that allows users to change the opacity of the circles based on meeting the p-value threshold on the slider -->
   <label for="nOpacity">
         <h2 id="pthresh">P-Value Threshold (0.01 increments):
-      <label  style="font-weight: bold" id="nOpacity-value">…</label></h2>
+      <label style="font-weight: bold" id="p-threshold-label">0.05</label></h2>
   </label>
   <!-- Specifies the slider's range, min, max and step values -->
-  <input type="range" min="0" max="1" step = "0.01" id="nOpacity">
+  <input type="range" min="0" max="1" value="0.05" step="0.01" id="p-threshold">
 </p>
 <br>
 <br>
@@ -256,6 +256,26 @@ $(document).ready(function() {
 
         js.erase();
         js.draw();
+    });
+
+    /**
+      * Updates the p-value label when the user drags the slider.
+      */
+    $('#p-threshold').on('mousemove', function(event) {
+
+        var threshold = $('#p-threshold').val();
+
+        $('#p-threshold-label').html(threshold);
+    });
+
+    /**
+      * Shades venn diagrams based on the p-value threshold.
+      */
+    $('#p-threshold').on('change', function(event) {
+
+        var threshold = $('#p-threshold').val();
+
+        js.shadeInsignificant(threshold);
     });
 
     // The "Add GeneSets to Project" button
