@@ -145,11 +145,22 @@
 
             if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
 
-                {# Assign the needed async_results variables #}
+                var as = {{ async_result | tojson | safe}};
+                var sets = Object.keys(as['genesets']);
+
                 var numGS = 0;
                 numGS = {{ async_result.numGS}};
-                // add in the title and the description
-                var getStr = "The {{ async_result.type }} of {{ async_result.numGS }} GeneSets.?The {{ async_result.type }} of {{ async_result.numGS }} GeneSets.";
+
+                // The 1? is added so the entire string will appear in
+                // window.location.search. Without the 1? The string is
+                // truncated and missing the first sentence.
+                var getStr = '1?' + 
+                    'The {{ async_result.type }} of {{ async_result.numGS }}' +
+                    ' GeneSets.?' + 
+                    'The Boolean Algebra tool was used to find the ' + 
+                    '{{ async_result.type }} of ' + numGS + ' sets: ' +
+                    sets.join(', ');
+
                 // add in all the checked boxes gene names
                 checkedArray.forEach(function (entry) {
                     getStr += "?";
@@ -194,9 +205,11 @@
 
                 });
 
+                console.log(getStr);
                 // Load the new page with the extra url bit
                 setTimeout(function(){
-                    window.location = "/uploadgeneset/" + getStr;
+                    window.open('/uploadgeneset/' + getStr, '_blank');
+                    //window.location = "/uploadgeneset/" + getStr;
                 }, 1000);
             }
             else{

@@ -415,10 +415,12 @@
         if (!uploadData)
             return;
 
+        console.log(uploadData);
         // Escpaed spaces
         uploadData = uploadData.replace(/%20/g, ' ');
         // Skips the first '?'
         uploadData = uploadData.slice(1).split('?');
+        console.log(uploadData);
 
         if (uploadData.length < 5)
             return;
