@@ -57,7 +57,8 @@ def run_tool():
     if 'ABBA_MinGenesets' in form:
         params['ABBA_MinGenesets'] = form['ABBA_MinGenesets']
     if 'ABBA_Tierset' in form:
-        params['ABBA_Tierset'] = form['ABBA_Tierset']
+        #params['ABBA_Tierset'] = form['ABBA_Tierset']
+        params['ABBA_Tierset'] = form.getlist('ABBA_Tierset')
     if 'ABBA_RestrictOption' in form:
         params['ABBA_RestrictOption'] = form['ABBA_RestrictOption']    
     if 'ABBA_RestrictSpecies' in form:

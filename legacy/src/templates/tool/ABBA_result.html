@@ -202,16 +202,26 @@
                   <label style="width:50%;">
                       Tierset:
                   </label>
-                  <select name="ABBA_Tierset"  class="form-control">
-                      <option value="0" selected="selected">All</option>
-                      <option value="4">Curated or Provisional (Tier I-IV)</option>
-                      <option value="3">Curated (Tier I-III)</option>
-                      <option value="2">Pro-curated (Tier I-II)</option>
-                      <option value="1">Public Resource (Tier I)</option>
-                      <option value="-1">Non-Resource (Tier II-V)</option>
-                      <option value="-2">Curated Non-Resource (Tier II-III)</option>
-                      <option value="-10">Private/Group Only (Tier V)</option>
-                  </select>
+                  <label>
+                      <input name="ABBA_Tierset" type="checkbox" value="1"/>
+                      Public Resources (Tier I)
+                  </label>
+                  <label>
+                      <input name="ABBA_Tierset" type="checkbox" value="2"/>
+                      Auto-curated (Tier II)
+                  </label>
+                  <label>
+                      <input name="ABBA_Tierset" type="checkbox" value="3"/>
+                      Curated (Tier III)
+                  </label>
+                  <label>
+                      <input name="ABBA_Tierset" type="checkbox" value="4"/>
+                      Provisional (Tier IV)
+                  </label>
+                  <label>
+                      <input name="ABBA_Tierset" type="checkbox" value="5"/>
+                      Private (Tier V)
+                  </label>
               </div>
                   <!-- Restrict Species Options-->
               <div class="form-group">

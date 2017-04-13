@@ -147,7 +147,6 @@
             // already checked
             if (!groupCheck.attr('checked')) {
 
-                console.log('checked');
                 checks.each(function (index) {
                     $(this).attr('checked', false);
                 });
@@ -159,8 +158,6 @@
 
             } else {
 
-                console.log('not checked');
-
                 checks.each(function (index) {
                     $(this).attr('checked', true);
                 });
@@ -170,7 +167,6 @@
                     $(this).addClass('ui-checkbox-on');
                 });
             }
-
         });
 
         /**

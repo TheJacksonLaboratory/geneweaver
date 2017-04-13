@@ -319,7 +319,7 @@ var jaccardSimilarity = function() {
             .filter(function(d) { return d.pvalue > threshold; })
             .attr('fill', function(d) { return '#AAA' });
 
-        // Restors/keeps colors on significant results
+        // Restores/keeps colors on significant results
         d3.selectAll('circle')
             .filter(function(d) { return d != undefined; })
             .filter(function(d) { return d.pvalue <= threshold; })
