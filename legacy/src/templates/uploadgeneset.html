@@ -403,8 +403,9 @@
 
     /*
      * Auto-populates the upload form with geneset title, description, species,
-     * gene identifier, and gene list data. This is only done using the 'add
-     * genes to geneset' function on the view geneset page. If any required
+     * gene identifier, and gene list data. 
+     * This is done using the boolean algebra tool or the 'add genes to 
+     * geneset' function on the view geneset page. If any required
      * values are missing, auto-population doesn't occur.
      */
     var autoPopulateForm = function() {
@@ -423,11 +424,27 @@
         if (uploadData.length < 5)
             return;
 
-        var title       = uploadData.shift(),
-            description = uploadData.shift(),
-            species     = uploadData.shift(),
-            geneType    = uploadData.shift(),
-            genes       = '';
+        // New set from the boolean algebra tool
+        if (uploadData[0] === 'algebra') {
+
+            // Get rid of 'algebra'
+            uploadData.shift();
+
+            var title       = uploadData.shift(),
+                description = uploadData.shift(),
+                species     = 0,
+                geneType    = 0,
+                genes       = '';
+
+        // New set from the view geneset page
+        } else {
+
+            var title       = uploadData.shift(),
+                description = uploadData.shift(),
+                species     = uploadData.shift(),
+                geneType    = uploadData.shift(),
+                genes       = '';
+        }
 
         for (var i = 0; i < uploadData.length; i += 2) {
 
