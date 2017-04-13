@@ -37,7 +37,6 @@ import bleach
 from psycopg2 import Error
 
 
-
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
@@ -1218,13 +1217,15 @@ def init_ont_tree():
 
         for path in paths:
             root = path[0]
-            if parentdict.get(root):
+            if parentdict.get(root) and path not in parentdict.get(root):
                 parentdict[root].append(path)
 
     tree = {}
     ontcache = {}
 
     for ontid, paths in parentdict.items():
+        paths.sort()
+
         for path in paths:
             ontpath = []
 
@@ -1237,13 +1238,10 @@ def init_ont_tree():
                     p = ontcache[p]
 
                 node = create_new_child_dict(p, ontdb_id)
-
                 ontpath.append(node)
 
             for i in range(0, len(ontpath)):
-                if i == len(ontpath) - 1:
-                    ontpath[i]['expand'] = False
-                else:
+                if not i == len(ontpath) - 1:
                     ontpath[i]['expand'] = True
 
                     child_annotations = geneweaverdb.get_all_children_for_ontology(ontpath[i]['key'])
@@ -1252,10 +1250,12 @@ def init_ont_tree():
                     for j in range(0, len(child_annotations)):
                         child_node = dict()
                         child_node["title"] = child_annotations[j].name
-                        if (child_annotations[j].children == 0):
+
+                        if child_annotations[j].children == 0:
                             child_node["isFolder"] = False
                         else:
                             child_node["isFolder"] = True
+
                         child_node["isLazy"] = True
                         child_node["key"] = child_annotations[j].ontology_id
                         child_node["db"] = False
