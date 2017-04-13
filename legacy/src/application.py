@@ -2060,7 +2060,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
     ## checked for, otherwise sad times ahead :(
-    if not geneset or (geneset and geneset.status == 'deleted'):
+    ## allow admins and curators to view deleted sets (like in classic GW)
+    if (not user_info.is_admin and not user_info.is_curator) and\ 
+       (not geneset or (geneset and geneset.status == 'deleted')):
         return flask.render_template(
             'viewgenesetdetails.html', 
             geneset=None,
