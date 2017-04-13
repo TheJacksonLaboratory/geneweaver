@@ -57,7 +57,7 @@ services:
   postgres:
     image: csdocker.jax.org/geneweaver-db:latest
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "geneweaver", "-h", "postgres", "-U", "postgres", "-t", "10"]
+      test: ["CMD-SHELL", "[", "-f", "/var/lib/postgresql/data/pg_init.finished ]", "&&", "echo", "0", "||", "echo", "1"]
       interval: 1m
       timeout: 15s
       retries: 3

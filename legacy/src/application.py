@@ -8,6 +8,7 @@ from urllib2 import HTTPError
 from sys import exc_info
 from urlparse import parse_qs, urlparse
 import config
+import datetime
 import adminviews
 import genesetblueprint
 import geneweaverdb
@@ -29,7 +30,7 @@ from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsim
 import sphinxapi
 import search
 import math
-import cairosvg
+# import cairosvg
 import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
@@ -1470,6 +1471,10 @@ def render_editgeneset_genes(gs_id, curation_view=False):
     platform = geneweaverdb.get_microarray_types()
     idTypes = geneweaverdb.get_gene_id_types()
 
+    # get unmapped gene ids (this is only an approximation and will not work
+    # for probe sets
+    genesnotfound = uploadfiles.get_unmapped_ids(gs_id, geneset, geneset.sp_id, geneset.gene_id_type)
+
     if user_id != 0:
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
         if view is None and curation_view and geneweaverdb.user_is_assigned_curation(user_id, gs_id):
@@ -1522,6 +1527,8 @@ def render_editgeneset_genes(gs_id, curation_view=False):
     else:
         symbol2ode = None
 
+    print symbol2ode
+
     return flask.render_template(
         'editgenesetsgenes.html',
         geneset=geneset,
@@ -1533,7 +1540,8 @@ def render_editgeneset_genes(gs_id, curation_view=False):
         meta=meta,
         ontology=ontology,
         id_map=symbol2ode,
-        curation_view=curation_view
+        curation_view=curation_view,
+        genesnotfound=genesnotfound
     )
 
 
@@ -1900,8 +1908,6 @@ def create_geneset_meta():
             return json.dumps({'error': 'You must select a species.'})
         if str(request.args['gdb_id']) == '0':
             return json.dumps({'error': 'You must select an identifier.'})
-        ## Create the geneset in upload genesets. The new geneset is set to 'delayed'
-        ## and will be updated whenever the editgenesetgenes are verified.
         results = uploadfiles.create_new_geneset(request.args)
         return json.dumps(results)
     else:
@@ -2739,6 +2745,36 @@ def render_export_genelist(gs_id):
             str = str + k + ',' + results[k] + '\n'
         response = make_response(str)
         response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
+        return response
+
+
+@app.route('/exportOmicsSoft/<string:gs_ids>')
+def render_export_omicssoft(gs_ids):
+    if 'user_id' in flask.session:
+        gs_ids_list = gs_ids.split(',')
+        string = ''
+        for gs_id in gs_ids_list:
+            results = geneweaverdb.get_geneset(gs_id, flask.session['user_id'])
+            gsv_values = geneweaverdb.export_results_by_gs_id(gs_id)
+            title = 'gw_omicssoft_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
+            string += '[GeneSet]\n'
+            if results is not None:
+                string += '##Source=GeneWeaver Generated\n'
+                string += '##Type=N/A\n'
+                string += '##Project=N/A\n'
+                string += '##Name=' + str(results.name) + '\n'
+                string += '##Description=' + str(results.description) + '\n'
+                string += '##Tag=GeneWeaver\n'
+                for gene, value in gsv_values.iteritems():
+                    string += str(gene) + '\t' + str(value) + '\n'
+                string += '\n'
+            else:
+                string = '## An Error Occured During File Creation. Please contact GeneWeaver@gmail.com.\n\n'
+        response = make_response(string)
+        response.headers["Content-Disposition"] = "attachment; filename=" + title
+        response.headers["Cache-Control"] = "must-revalidate"
+        response.headers["Pragma"] = "must-revalidate"
+        response.headers["Content-type"] = "text/plain"
         return response
 
 

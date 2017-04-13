@@ -1,10 +1,3 @@
-__author__ = 'baker'
-
-'''
-This file contains functions to parse and upload files from file_contents. In particular it contains functions to
-create temp tables that hold upload data and map it back to geneweaver
-'''
-
 import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 from urlparse import parse_qs, urlparse
@@ -12,7 +5,14 @@ from flask import session
 import batch
 import annotator as ann
 import json
+import psycopg2
 
+__author__ = 'baker'
+
+'''
+This file contains functions to parse and upload files from file_contents. In particular it contains functions to
+create temp tables that hold upload data and map it back to geneweaver
+'''
 
 def create_temp_geneset():
     '''
@@ -116,22 +116,34 @@ def create_new_geneset(args):
     else:
         pub_id = insertPublication(pubDict)
 
-    ##insert into file and return file_id
-    if 'file_text' in formData:
-        if formData['file_text'][0] is not None:
-            form_text = formData['file_text'][0].strip('\r')
-    elif args['fileData'] is not None:
-        form_text = args['fileData']
-    else:
-        return {'error': 'File upload text is empty'}
 
-    try:
-        if form_text is not None:
-            ## REMEMBER TO UNCOMMENT LOL
-            file_id = insert_new_contents_to_file(form_text)
-            pass
-    except:
-        return {'error': 'File upload text is empty'}
+    ###########################################################
+    #
+    # In order to streamline the upload process this function
+    # is being rewritten to use the stored procedures.
+    #
+    # Create GeneSet (which reparses GS) -> Edit GeneSet ->
+    # Saved Genesets get file_contents rewritten and reparsed
+    # -emtpy genesets are not allowed.
+    # -loaded genesets will display unmapped ids
+    #
+
+    ##insert into file and return file_id
+    # if 'file_text' in formData:
+    #     if formData['file_text'][0] is not None:
+    #         form_text = formData['file_text'][0].strip('\r')
+    # elif args['fileData'] is not None:
+    #     form_text = args['fileData']
+    # else:
+    #     return {'error': 'File upload text is empty'}
+    #
+    # try:
+    #     if form_text is not None:
+    #         ## REMEMBER TO UNCOMMENT LOL
+    #         file_id = insert_new_contents_to_file(form_text)
+    #         pass
+    # except:
+    #     return {'error': 'File upload text is empty'}
 
 
     ## Set permissions and cur id
@@ -143,40 +155,75 @@ def create_new_geneset(args):
         cur_id = 4
         gs_groups = '0'
 
-    ## get gs count
-    gs_count = len(form_text.split('\n'))
 
+    # The old geneset loader is commented out, followed by the new geneset insert
+    # try:
+    #     with PooledCursor() as cursor:
+    #         cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
+    #                           gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
+    #                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
+    #                        (user_id, file_id, formData['gs_name'][0], formData['gs_abbreviation'][0], pub_id, cur_id,
+    #                         formData['gs_description'][0], formData['sp_id'][0], gs_count, gs_groups, gene_identifier,
+    #                         'normal',))
+    #         gs_id = cursor.fetchone()[0]
+    #         cursor.connection.commit()
+    #         print 'Inserted gs_id: ' + str(gs_id)
+    # except psycopg2.Error as e:
+    #     return {'error': e}
+
+    # ## For some reason this function was missing the part where geneset values
+    # ## are inserted, so I'm just using the batch upload's version of this.
+    # gs_values = form_text.strip().split('\n')
+    # gs_values = map(lambda s: s.encode('ascii', 'ignore'), gs_values)
+    # gs_values = map(lambda s: s.split(), gs_values)
+    # ## Identifiers are converted to lowercase so user's don't have to specify
+    # ## proper capitalization
+    # gs_values_lower = map(lambda t: (t[0].lower(), t[1]), gs_values)
+    #
+    # ## Generate a minimal geneset for the batch system's value upload
+    # gs = {'gs_id': gs_id,
+    #       'gs_gene_id_type': gene_identifier,
+    #       'sp_id': formData['sp_id'][0],
+    #       'values': gs_values_lower,
+    #       'gs_threshold': 1}
+
+    gs_count = len(formData['file_text'][0].split('\n'))
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
+    gs_threshold_type = int(3)
+    gs_threshold = str('0.5')
+    gs_status = 'normal'
+    gs_uri = str('')
+    gs_attribution = 1
+    print formData['file_text'][0].strip('\r')
 
     try:
         with PooledCursor() as cursor:
-            cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
-                              gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
-                              VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
-                           (user_id, file_id, formData['gs_name'][0], formData['gs_abbreviation'][0], pub_id, cur_id,
-                            formData['gs_description'][0], formData['sp_id'][0], gs_count, gs_groups, gene_identifier,
-                            'delayed',))
+            cursor.execute('''SELECT production.create_geneset(%s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s)''', (user_id, cur_id, formData['sp_id'][0], gs_threshold_type, gs_threshold,
+                                         gs_groups, gs_status, gs_count, gs_uri, gene_identifier,
+                                         formData['gs_name'][0], formData['gs_abbreviation'][0],
+                                         formData['gs_description'][0], gs_attribution,
+                                         formData['file_text'][0].strip('\r'),))
             gs_id = cursor.fetchone()[0]
             cursor.connection.commit()
-            print 'Inserted gs_id: ' + str(gs_id)
+            print 'gs_id inserted as: ' + str(gs_id)
+
+            # update geneset to add pub_id
+            if pub_id is not None:
+                cursor.execute('''UPDATE geneset SET pub_id=%s WHERE gs_id=%s''', (pub_id, gs_id,))
+                cursor.connection.commit()
+
     except psycopg2.Error as e:
         return {'error': e}
 
-    ## For some reason this function was missing the part where geneset values
-    ## are inserted, so I'm just using the batch upload's version of this.
-    gs_values = form_text.strip().split('\n')
-    gs_values = map(lambda s: s.encode('ascii', 'ignore'), gs_values)
-    gs_values = map(lambda s: s.split(), gs_values)
-    ## Identifiers are converted to lowercase so user's don't have to specify
-    ## proper capitalization
-    gs_values_lower = map(lambda t: (t[0].lower(), t[1]), gs_values)
-
-    ## Generate a minimal geneset for the batch system's value upload
-    gs = {'gs_id': gs_id,
-          'gs_gene_id_type': gene_identifier,
-          'sp_id': formData['sp_id'][0],
-          'values': gs_values_lower,
-          'gs_threshold': 1}
+    # Some genesets contain no genes. We need to remove those genesets
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s''', (gs_id,))
+        if cursor.fetchone()[0] < 1:
+            cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
+            cursor.connection.commit()
+            error_string = 'No Genes in your GeneSet could be uploaded. Please check the Identifier type and Species'
+            return{'error': error_string}
 
 
     # need to get user's preference for annotation tool
@@ -200,9 +247,9 @@ def create_new_geneset(args):
     ## TODO
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
-    vals = batch.buGenesetValues(gs)
-
-    batch.db.commit()
+    # vals = batch.buGenesetValues(gs)
+    #
+    # batch.db.commit()
 
     return {'error': 'None', 'gs_id': gs_id}
 
@@ -246,6 +293,30 @@ def get_file_contents_by_gsid(gsid):
                               AND g.file_id=f.file_id''', (gsid,))
             results = cursor.fetchall()
         return results
+
+
+def get_unmapped_ids(gs_id, geneset, sp_id, gdb_id):
+    """
+    returns a dictionary of gene ids that do not map to geneweaver
+    """
+    user_ids = []
+    not_found = []
+    file_contents = get_file_contents_by_gsid(gs_id)
+    file = file_contents[0][0].strip('\r').split('\n')
+    for f in file:
+        user_ids.append((f.split('\t')[0]).lower())
+    # genes vs probe ids
+    if gdb_id < 0:
+        for i in geneset.geneset_values:
+            with PooledCursor() as cursor:
+                cursor.execute('''SELECT ode_ref_id FROM extsrc.gene WHERE ode_gene_id=%s AND sp_id=%s AND gdb_id=-%s''',
+                               (i.ode_gene_id, sp_id, gdb_id,))
+                results = cursor.fetchall()
+                for res in results:
+                    if res[0].lower() in user_ids:
+                        not_found.append(res[0].lower())
+        not_in = set(user_ids) - set(not_found)
+    return not_in
 
 
 def get_temp_geneset_gsid(gsid):

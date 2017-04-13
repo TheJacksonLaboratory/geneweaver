@@ -65,7 +65,7 @@ services:
     image: geneweaver-db:latest
     container_name: geneweaver-postgres
     healthcheck:
-      test: ["CMD-SHELL", "[ -f /base-data/init-finished.txt ]", "&&", "echo 0", "||", "echo 1"]
+      test: ["CMD-SHELL", "[ -f /var/lib/postgresql/data/pg_init.finished ]", "&&", "echo", "0", "||", "echo", "1"]
       interval: 5m
       timeout: 15s
       retries: 10

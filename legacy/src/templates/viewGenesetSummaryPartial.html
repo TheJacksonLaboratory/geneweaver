@@ -61,9 +61,7 @@
         {% endif %}
     </td>
 
-    <td>
-		<span class="sp-tag-{{gs.sp_id}}">
-		</span>
+    <td><span id="sp-tag-{{gs.geneset_id}}"></span>
     </td>
 
     <td>
@@ -85,7 +83,7 @@
 
 
 
-    <td width="50%">
+    <td width="60%">
 
         <a href="/viewgenesetdetails/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}: {{ gs.name }} </a>
         <!-- need status for if not normal -->
@@ -225,9 +223,8 @@
     // case species have been removed and gaps exist between IDs. The original
     // colors for GW's first six species are still used, the rest are based off
     // ColorBrewer scale combinations.
-/*
-    $(function() {
 
+    $(function() {
         var gsid = {{gs.geneset_id}};
         var spid = {{ gs.sp_id }};
         // The alist returned by the server should already be sorted
@@ -243,7 +240,6 @@
            if (spid === splist[i][0]) {
                spid = i;
                spname = splist[i][1];
-
                break;
            }
         }
@@ -259,13 +255,12 @@
         else
             spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
 
-        var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+        var tag = '<span class="group_name" style="font: italic 10px/14px Georgia, serif; background-color:' + colors[spid] +
                   '; border:1px solid ' + borders[spid] + '">' +
                   spname + '</span>';
-
         $('#sp-tag-' + gsid).html(tag);
     });
-	*/
+
 
     function toggleDetails(id) {
         var element = document.getElementById(id);
@@ -360,3 +355,5 @@
     //});
 
 </script>
+
+

@@ -83,6 +83,15 @@
         <h2 class="panel-title"><strong>Edit GeneSet Gene Information</strong></h2>
     </div>
 
+    <div class="col-md-4 pull-right">
+        {% if curation_view %}
+            <a href="/curategeneset/{{ geneset.geneset_id }}">
+        {% else %}
+            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}">
+        {% endif %}
+        <b>Go to GeneSet Details <i class="fa fa-step-forward"></i></b></a>
+
+    </div>
 
     {# Geneset MetaContent #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -92,7 +101,11 @@
     </div>
 
     {% include 'genesetMeta.html' %}
+
+    {#
     {% include 'ontologyTree.html' %}
+    #}
+
     {# Right Side List of Buttons #}
 
     <div class="col-xs-6 col-md-3">
@@ -195,10 +208,8 @@
                     <table class="table table-hover">
                         <tbody>
                         <tr>
-                            <th>GW Identifier</th>
-							{#
                             <th>Your Identifier</th>
-							#}
+                            <th>GeneWeaver ID</th>
                             <th>Value</th>
                             <th>&nbsp;</th>
                         </tr>
@@ -207,7 +218,8 @@
                         {% for geneset_value in geneset.temp_geneset_values %}
                             <tr>
                                 <td>{{ geneset_value.source_list[0] | trim | replace ('\n', '') }}</td>
-								{#
+                                <td>{{ geneset_value.ode_gene_id }}</td>
+                                {#
                                 <td>{{ id_map[geneset_value.ode_gene_id] }}</td>
 								#}
                                 <td>{{ geneset_value.value_list[0] | trim }}</td>
@@ -234,6 +246,21 @@
                                 </td>
                             </tr>
                         {% endfor %}
+                        {% if genesnotfound[0]|length > 1 %}
+                            {% for genes in genesnotfound %}
+                                <tr>
+                                    <td>{{ genes }}</td>
+                                    <td><span class="badge badge-danger">Gene Not Found</span></td>
+                                    {#
+                                    <td>{{ id_map[geneset_value.ode_gene_id] }}</td>
+                                    #}
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+
+
                         </tbody>
                     </table>
                 </div>
