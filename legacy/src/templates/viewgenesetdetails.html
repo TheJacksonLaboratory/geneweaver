@@ -364,13 +364,12 @@
             {% if 'deprecated' in geneset.status %}
 
                 var status = '{{ geneset.status | safe }}';
-                var gsId = status.split(':')[1];
+                var gsid = status.split(':')[1];
 
-                if (!gsid) {
+                if (!gsid)
                     $('#deprecated-message').hide();
                 else
-                    $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsId);
-                }
+                    $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsid);
 
             {% endif %}
 
