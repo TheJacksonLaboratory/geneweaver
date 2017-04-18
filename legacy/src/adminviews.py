@@ -1,5 +1,5 @@
 import flask
-from flask.ext.admin import Admin, BaseView, expose, AdminIndexView
+from flask_admin import Admin, BaseView, expose, AdminIndexView
 import geneweaverdb
 import json
 

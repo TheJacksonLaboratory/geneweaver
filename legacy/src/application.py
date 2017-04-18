@@ -1,7 +1,7 @@
 import flask
-from flask.ext.admin import Admin, BaseView, expose
-from flask.ext.admin.base import MenuLink
-from flask.ext import restful
+from flask_admin import Admin, BaseView, expose
+from flask_admin.base import MenuLink
+import flask_restful as restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from urllib2 import HTTPError
