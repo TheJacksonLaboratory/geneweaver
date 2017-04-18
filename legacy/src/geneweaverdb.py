@@ -1460,6 +1460,15 @@ def add_geneset_group(gs_id, grp_id):
         )
 
 
+def update_gs_groups(gs_id, groups, user_id):
+    usr_id = flask.session['user_id']
+    if int(user_id) == int(usr_id):
+        with PooledCursor() as cursor:
+            cursor.execute('''UPDATE geneset SET gs_groups=%s WHERE gs_id=%s''', (groups, gs_id,))
+            cursor.connection.commit()
+            return {'error': 'None'}
+
+
 def update_project_groups(proj_id, groups, user_id):
     usr_id = flask.session['user_id']
     if int(user_id) == int(usr_id):

@@ -1640,6 +1640,22 @@ def update_project_groups():
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
+@app.route('/updateGenesetGroups', methods=['GET'])
+def update_geneset_groups():
+	if 'user_id' in flask.session:
+		user_id = request.args['user_id']
+		gs_id = request.args['gs_id']
+
+		if json.loads(request.args['groups']) != '':
+			groups = (json.laods(request.args['groups']))
+		else:
+			groups = '-1'
+
+		if geneweaverdb.get_user(user_id).is_admin != 'False' or \
+				geneweaverdb.user_is_owner(user_id, gs_id):
+			results = geneweaverdb.update_gs_groups(gs_id, groups, user_id)
+			return json.dumps(results)
+
 
 @app.route('/updateStaredProject', methods=['GET'])
 def update_star_project():
