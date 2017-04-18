@@ -10,6 +10,7 @@ from urlparse import parse_qs, urlparse
 import config
 import datetime
 import adminviews
+import annotator
 import genesetblueprint
 import geneweaverdb
 import notifications
@@ -1166,6 +1167,111 @@ def update_geneset_ontology_db():
         geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
 
     return json.dumps(True)
+
+
+@app.route('/rerun_annotator.json', methods=['POST'])
+def rerun_annotator():
+    """
+    Reruns the annotator tool for a given geneset and updates its annotations.
+    """
+
+    publication = request.form['publication']
+    description = request.form['description']
+    gs_id = request.form['gs_id']
+    user_id = session['user_id'] if session['user_id'] else 0
+
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        return json.dumps({
+            'success': False,
+            'error': 'You must be logged in to make changes to this GeneSet'
+        })
+
+    ## Only admins, curators, and owners can make changes
+    if (not user.is_admin and not user.is_curator) or\
+       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
+        not geneweaverdb.user_is_assigned_curation(user_id, gs_id)):
+           return json.dumps({
+               'success': False,
+               'error': 'You do not have permission to update this GeneSet'
+           })
+
+    # get user's annotator preference
+    user_prefs = json.loads(user.prefs)
+
+    # get the user's annotator preference.  if there isn't one in their user
+    # preferences, default to the monarch annotator. if set, valid values
+    # are 'ncbo', 'monarch', 'both'
+    annotator_pref = user_prefs.get('annotator', 'monarch')
+
+    if annotator_pref == 'both':
+        ncbo = True
+        monarch = True
+    elif annotator_pref == 'ncbo':
+        ncbo = True
+        monarch = False
+    elif annotator_pref == 'monarch':
+        monarch = True
+        ncbo = False
+
+    pub_annos = annotator.annotate_text(publication, annotator.ONT_IDS,
+                                        ncbo=ncbo, monarch=monarch)
+    desc_annos = annotator.annotate_text(description, annotator.ONT_IDS,
+                                         ncbo=ncbo, monarch=monarch)
+
+    ## These are the only annotations we preserve
+    assoc_annos =\
+        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Association')
+    reject_annos =\
+        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Rejection')
+
+    ## Convert to ont_ids
+    for i in range(len(pub_annos)):
+        if pub_annos[i]:
+            pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
+
+    for i in range(len(desc_annos)):
+        if desc_annos[i]:
+            desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
+
+    assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
+    reject_annos = map(lambda a: a.ontology_id, reject_annos)
+
+    geneweaverdb.clear_geneset_ontology(gs_id)
+
+    ## There's probably a cleaner way to do this but idk
+    for ont_id in assoc_annos:
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Association')
+
+    for ont_id in reject_annos:
+        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Rejection')
+
+    for ont_id in pub_annos[0]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Publication, MI Annotator'
+            )
+
+    for ont_id in pub_annos[1]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Publication, NCBO Annotator'
+            )
+
+    for ont_id in desc_annos[0]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Description, MI Annotator'
+            )
+
+    for ont_id in desc_annos[1]:
+        if ont_id not in assoc_annos or ont_id not in reject_annos:
+            geneweaverdb.add_ont_to_geneset(
+                gs_id, ont_id, 'Description, NCBO Annotator'
+            )
+
+    return json.dumps({'success': True})
 
 
 def get_ontology_terms(gsid):
