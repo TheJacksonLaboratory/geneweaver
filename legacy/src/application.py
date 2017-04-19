@@ -1183,19 +1183,20 @@ def rerun_annotator():
     user = geneweaverdb.get_user(user_id)
 
     if not user:
-        return json.dumps({
-            'success': False,
-            'error': 'You must be logged in to make changes to this GeneSet'
-        })
+        response = flask.jsonify(
+            {'error': 'You must be logged in to make changes to this GeneSet'})
+        response.status_code = 401
+        return response
 
-    ## Only admins, curators, and owners can make changes
-    if (not user.is_admin and not user.is_curator) or\
-       (not geneweaverdb.user_is_owner(user_id, gs_id) and\
-        not geneweaverdb.user_is_assigned_curation(user_id, gs_id)):
-           return json.dumps({
-               'success': False,
-               'error': 'You do not have permission to update this GeneSet'
-           })
+    # Only admins, curators, and owners can make changes
+    if ((not user.is_admin and not user.is_curator) or
+            (not geneweaverdb.user_is_owner(user_id, gs_id) and
+                     not geneweaverdb.user_is_assigned_curation(user_id,
+                                                                gs_id))):
+        response = flask.jsonify(
+            {'error': 'You do not have permission to update this GeneSet'})
+        response.status_code = 403
+        return response
 
     # get user's annotator preference
     user_prefs = json.loads(user.prefs)
@@ -1220,13 +1221,11 @@ def rerun_annotator():
     desc_annos = annotator.annotate_text(description, annotator.ONT_IDS,
                                          ncbo=ncbo, monarch=monarch)
 
-    ## These are the only annotations we preserve
+    # These are the only annotations we preserve
     assoc_annos =\
         geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Association')
-    reject_annos =\
-        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Rejection')
 
-    ## Convert to ont_ids
+    # Convert to ont_ids
     for i in range(len(pub_annos)):
         if pub_annos[i]:
             pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
@@ -1236,42 +1235,38 @@ def rerun_annotator():
             desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
 
     assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
-    reject_annos = map(lambda a: a.ontology_id, reject_annos)
 
     geneweaverdb.clear_geneset_ontology(gs_id)
 
-    ## There's probably a cleaner way to do this but idk
+    # There's probably a cleaner way to do this but idk
     for ont_id in assoc_annos:
         geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Association')
 
-    for ont_id in reject_annos:
-        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Rejection')
-
     for ont_id in pub_annos[0]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
+        if ont_id not in assoc_annos:
             geneweaverdb.add_ont_to_geneset(
                 gs_id, ont_id, 'Publication, MI Annotator'
             )
 
     for ont_id in pub_annos[1]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
+        if ont_id not in assoc_annos:
             geneweaverdb.add_ont_to_geneset(
                 gs_id, ont_id, 'Publication, NCBO Annotator'
             )
 
     for ont_id in desc_annos[0]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
+        if ont_id not in assoc_annos:
             geneweaverdb.add_ont_to_geneset(
                 gs_id, ont_id, 'Description, MI Annotator'
             )
 
     for ont_id in desc_annos[1]:
-        if ont_id not in assoc_annos or ont_id not in reject_annos:
+        if ont_id not in assoc_annos:
             geneweaverdb.add_ont_to_geneset(
                 gs_id, ont_id, 'Description, NCBO Annotator'
             )
 
-    return json.dumps({'success': True})
+    return flask.jsonify({'success': True})
 
 
 def get_ontology_terms(gsid):
