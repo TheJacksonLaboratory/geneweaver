@@ -206,8 +206,14 @@ def status_json(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
 
     if async_result.state == states.PENDING:
-        progress = async_result.info['message']
-        percent = async_result.info['percent']
+        ## We haven't given the tool enough time to setup
+        if not async_result.info:
+            progress = None
+            percent = None
+
+        else:
+            progress = async_result.info['message']
+            percent = async_result.info['percent']
 
     elif async_result.state == states.FAILURE:
         progress = 'Failed'
