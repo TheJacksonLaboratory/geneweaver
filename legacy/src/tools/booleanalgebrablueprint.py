@@ -200,7 +200,7 @@ def status_json(task_id):
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
-        'progress': progress#,
-        #'percent': percent
+        'progress': progress,
+        'percent': percent
     })
 
