@@ -1201,70 +1201,7 @@ def rerun_annotator():
     # get user's annotator preference
     user_prefs = json.loads(user.prefs)
 
-    # get the user's annotator preference.  if there isn't one in their user
-    # preferences, default to the monarch annotator. if set, valid values
-    # are 'ncbo', 'monarch', 'both'
-    annotator_pref = user_prefs.get('annotator', 'monarch')
-
-    if annotator_pref == 'both':
-        ncbo = True
-        monarch = True
-    elif annotator_pref == 'ncbo':
-        ncbo = True
-        monarch = False
-    elif annotator_pref == 'monarch':
-        monarch = True
-        ncbo = False
-
-    pub_annos = annotator.annotate_text(publication, annotator.ONT_IDS,
-                                        ncbo=ncbo, monarch=monarch)
-    desc_annos = annotator.annotate_text(description, annotator.ONT_IDS,
-                                         ncbo=ncbo, monarch=monarch)
-
-    # These are the only annotations we preserve
-    assoc_annos =\
-        geneweaverdb.get_all_ontologies_by_geneset(gs_id, 'Manual Association')
-
-    # Convert to ont_ids
-    for i in range(len(pub_annos)):
-        if pub_annos[i]:
-            pub_annos[i] = geneweaverdb.get_ontologies_by_refs(pub_annos[i])
-
-    for i in range(len(desc_annos)):
-        if desc_annos[i]:
-            desc_annos[i] = geneweaverdb.get_ontologies_by_refs(desc_annos[i])
-
-    assoc_annos = map(lambda a: a.ontology_id, assoc_annos)
-
-    geneweaverdb.clear_geneset_ontology(gs_id)
-
-    # There's probably a cleaner way to do this but idk
-    for ont_id in assoc_annos:
-        geneweaverdb.add_ont_to_geneset(gs_id, ont_id, 'Manual Association')
-
-    for ont_id in pub_annos[0]:
-        if ont_id not in assoc_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Publication, MI Annotator'
-            )
-
-    for ont_id in pub_annos[1]:
-        if ont_id not in assoc_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Publication, NCBO Annotator'
-            )
-
-    for ont_id in desc_annos[0]:
-        if ont_id not in assoc_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Description, MI Annotator'
-            )
-
-    for ont_id in desc_annos[1]:
-        if ont_id not in assoc_annos:
-            geneweaverdb.add_ont_to_geneset(
-                gs_id, ont_id, 'Description, NCBO Annotator'
-            )
+    annotator.rerun_annotator(gs_id, publication, description, user_prefs)
 
     return flask.jsonify({'success': True})
 
