@@ -190,9 +190,17 @@ def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
+    if not async_result.info:
+        async_result.info = {}
+
+    if not async_result.info['message']:
+        async_result.info['message'] = 'Working...'
+
+    if not async_result.info['percent']:
+        async_result.info['percent'] = None
+
     if async_result.state == states.PENDING:
-        #progress = async_result.info['message']
-        progress = 'Working...'
+        progress = async_result.info['message']
         percent = async_result.info['percent']
 
     elif async_result.state == states.FAILURE:
