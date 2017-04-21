@@ -27,9 +27,40 @@
 	<div id="baCollapse" class="panel-collapse collapse">
 		<div class="panel-body">
 			<div class="form-group">{{ macros.tool_param_radio(tool.params['BooleanAlgebra_Relation']) }}
-            <label><input type="text" name="BooleanAlgebra_min_sets" id="min_sets" value="2"
-                          style="margin-left: 160px; width:30px;text-align:center;"> GeneSet(s) </label> </div>
+             </div>
+            <div class="form-group">
+                  <label>
+                      <input name="BooleanAlgebra_min_sets" type="checkbox" value="union" checked/>
+                      Union
+                  </label>
+                  <label>
+                      <input name="BooleanAlgebra_min_sets" type="checkbox" onselect="showSetIntersection();"
+                             value="intersect"/>
+                      Intersect
+                  </label>
+                      <div class="form-group" id="set-intersect" style="display: none;">
+                          <label>
+                              A gene must intersect in at least:<input type="text" name="BooleanAlgebra_min_sets" id="min_sets" value="2"
+                          style="margin-left: 160px; width:30px;text-align:center;">
+                          </label>
+                      </div>
+                  <label>
+                      <input name="BooleanAlgebra_min_sets" type="checkbox" value="except"/>
+                      Except
+                  </label>
+            </div>
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>
 </div>
+
+<script>
+            /* Select set intersections */
+        function hideSetIntersection() {
+            document.getElementById("set-intersect").style.display = "none";
+        }
+
+        function showSetIntersection() {
+            document.getElementById("set-intersect").style.display = "block";
+        }
+</script>

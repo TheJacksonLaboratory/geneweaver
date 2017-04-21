@@ -34,7 +34,10 @@
             <h6 class="panel-title">{{ async_result.type }} of {{ async_result.numGS}} GeneSets</h6>
 
 </div>
- <p><br><br></p>
+{# {{ async_result }}  #}
+ {# div for venn diagram #}
+ <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
+
  {# Check to see if there are results to display #}
 {%  if async_result.num_genes == 0 %}
     <h4> No results. </h4>
@@ -59,6 +62,7 @@
                     </div>
                 </div>
             </div>
+
                 <div class="row" id="group-{{ i }}">
                     <table class="table table-hover">
                         <tbody>
@@ -286,6 +290,137 @@
 
         }
 
+
+</script>
+
+{# script for d3 Eularean diagrams #}
+<script type="text/javascript" src="https://d3js.org/d3.v2.js"></script>
+<script type="text/javascript" src="../../static/d3/numeric-1.2.4.js"></script>
+<script type="text/javascript" src="../../static/d3/venn.js"></script>
+
+<script type="text/javascript">
+    /* This is the original code block, rewritten below to be dynamic. */
+//var A="Friends", B="High School", C="College", D="Work", E="Sports";
+//var groups = [A, B, C, D, E];
+//var data = [];
+//for (var i=0; i<3; i++) data.push([A]);
+//for (var i=0; i<4; i++) data.push([A, B]);
+//for (var i=0; i<6; i++) data.push([A, C]);
+//data.push([C]);
+//for (var i=0; i<2; i++) data.push([C, D]);
+//data.push([A, D]);
+//data.push([A, C, D]);
+//for (var i=0; i<4; i++) data.push([D]);
+//for (var i=0; i<3; i++) data.push([E]);
+//for (var i=0; i<2; i++) data.push([A, E]);
+
+
+
+// Initialize a dictionary to keep the powerset of gs_ids
+// also initialize an array of the same values to ensure that
+    // they are sorted properly
+var countArray = {};
+var orderArray = [];
+var data = [];
+var groups = [];
+var results = {{ async_result | tojson | safe }};
+
+// This initializes data by creating variables for each of the gs_ids
+    // TODO: rewrite to include it in the dictionary
+for (var key in results['genesets']) {
+    if (results['genesets'].hasOwnProperty(key)){
+        // add gs_ids to groups and create individual variables
+        groups.push('GS' + key);
+        //groups.push(key);
+        eval("var GS" + key + "= results['genesets'][key][0][0].gs_abbreviation");
+
+    }
+}
+
+// create power set and dictionry for values
+function powerSet(arr) {
+  var res = [];
+  var len = arr.length;
+  for (var i = 0; i < Math.pow(2, len); i++) {
+    var aux = [];
+    for (var j = 0; j < len; j++) {
+      //console.log(j +':'+((1<<j) & j));
+      if (i & (1 << j)) {
+          if (arr[j] !== '') { aux.push(arr[j]); }
+      }
+    }
+    res.push(aux);
+      // initialize variables
+      if (aux[0] !== undefined) {
+          countArray[(aux.join(":"))] = 0;
+          orderArray.push(aux.join(":"));
+      }
+  }
+  return res;
+}
+
+powerSet(groups);
+
+
+// add number of values to countArray
+for (var key in results['geneset_from']){
+    if (results['geneset_from'].hasOwnProperty(key)){
+        var list = [];
+        for (var i=0; i<results['geneset_from'][key].length; i++){
+            list.push('GS'+results['geneset_from'][key][i]);
+            //list.push(results['geneset_from'][key][i]);
+        }
+        var l = list.join(":");
+        if (countArray.hasOwnProperty(l)) {
+            var temp = countArray[l];
+            countArray[l] = temp + 1;
+        }
+    }
+}
+
+
+// put the countarray in the data array
+    for (var i=0; i<orderArray.length; i++) {
+        for (var j=0; j<countArray[orderArray[i]]; j++) {
+            var temp = orderArray[i];
+            data.push(temp.replace(':',','));
+        }
+        //alert(orderArray[i]);
+        //alert(countArray[orderArray[i]]);
+        //data.push(countArray[orderArray[i]]);
+    }
+
+
+alert(data);
+//data = [75,36,1];
+
+
+
+// Standard D3
+var color = d3.scale.category20c();
+var venn = d3.layout.venn().size([700, 500]);
+var circle = d3.svg.arc().innerRadius(0).startAngle(0).endAngle(2*Math.PI);
+
+var vis = d3.select(".vis")
+  .append("svg")
+    .data([data])
+    .attr("width", 800).attr("height", 600);
+
+var circles = vis.selectAll("g.arc")
+    .data(venn)
+  .enter().append("g")
+    .attr("class", "arc")
+    .attr("transform", function(d, i){ return "translate(" + (50 + d.x) + "," + (50 + d.y) + ")"; });
+circles.append("path")
+    .attr("fill", function(d, i) { return color(i); })
+    .attr("opacity", 0.5)
+    .attr("d", circle);
+circles.append("text")
+    .attr("text-anchor", "middle")
+    .text(function(d, i) { return d.label; })
+    .attr("fill", function(d, i) { return color(i); })
+    .attr("x", function(d, i) { return d.labelX; })
+    .attr("y", function(d, i) { return d.labelY; });
 
 </script>
 
