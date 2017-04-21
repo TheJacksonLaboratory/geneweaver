@@ -474,7 +474,7 @@
 
             // Updates the database based on the ontology terms a user selects.
             onSelect: termSelectionHandler
-        })
+        });
 
         /**
           * Clicking this button reruns the annotator tool on the geneset's
@@ -489,21 +489,15 @@
             // Style changes so the user knows something is happening
             changeAnnotatorButton();
 
-            $.ajax({
-                url: '/rerun_annotator.json',
-                type: 'POST',
-                data: postData,
-                success: function(data) {
-
-                    changeAnnotatorButton();
-
-                    $('#tree').dynatree('getTree').reload();
-                },
-                error: function(request, error, thrownError) {
-
-                    changeAnnotatorButton();
-                }
+            $.post("{{ url_for('rerun_annotator') }}", postData, function (data) {
+                changeAnnotatorButton();
+                $('#tree').dynatree('getTree').reload();
+            }, "json").fail(function (data) {
+                // failure, log error message returned
+                console.error(data.responseJSON.error);
+                changeAnnotatorButton();
             });
+
         });
 
         /**
