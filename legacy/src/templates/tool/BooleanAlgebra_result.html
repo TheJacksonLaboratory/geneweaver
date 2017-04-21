@@ -326,12 +326,10 @@ var groups = [];
 var results = {{ async_result | tojson | safe }};
 
 // This initializes data by creating variables for each of the gs_ids
-    // TODO: rewrite to include it in the dictionary
 for (var key in results['genesets']) {
     if (results['genesets'].hasOwnProperty(key)){
         // add gs_ids to groups and create individual variables
         groups.push('GS' + key);
-        //groups.push(key);
         eval("var GS" + key + "= results['genesets'][key][0][0].gs_abbreviation");
 
     }
@@ -383,16 +381,10 @@ for (var key in results['geneset_from']){
     for (var i=0; i<orderArray.length; i++) {
         for (var j=0; j<countArray[orderArray[i]]; j++) {
             var temp = orderArray[i];
-            data.push(temp.replace(':',','));
+            var t = temp.replace(/:/g,',');
+            data.push(t.split(','));
         }
-        //alert(orderArray[i]);
-        //alert(countArray[orderArray[i]]);
-        //data.push(countArray[orderArray[i]]);
     }
-
-
-alert(data);
-//data = [75,36,1];
 
 
 
