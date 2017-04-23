@@ -2,6 +2,22 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+<style>
+    .venntooltip {
+      position: absolute;
+      text-align: center;
+      vertical-align: middle;
+      width: 128px;
+      height: 26px;
+      background: #333;
+      color: #ddd;
+      padding: 3px;
+      border: 0px;
+      border-radius: 8px;
+      opacity: 0;
+    }
+</style>
+
 
 <div class="loader"></div>
 
@@ -120,7 +136,7 @@
                     </table>
                 </div>
         {%  endif %}
-        <br />
+        {#  <br /> #}
     {% endfor %}
 {%  endif %}
 </div>
@@ -294,125 +310,112 @@
 </script>
 
 {# script for d3 Eularean diagrams #}
-<script type="text/javascript" src="https://d3js.org/d3.v2.js"></script>
-<script type="text/javascript" src="../../static/d3/numeric-1.2.4.js"></script>
+<script type="text/javascript" src="../../static/d3/d3.v4.min.js"></script>
+{# <script type="text/javascript" src="../../static/d3/numeric-1.2.4.js"></script>  #}
 <script type="text/javascript" src="../../static/d3/venn.js"></script>
 
 <script type="text/javascript">
-    /* This is the original code block, rewritten below to be dynamic. */
-//var A="Friends", B="High School", C="College", D="Work", E="Sports";
-//var groups = [A, B, C, D, E];
-//var data = [];
-//for (var i=0; i<3; i++) data.push([A]);
-//for (var i=0; i<4; i++) data.push([A, B]);
-//for (var i=0; i<6; i++) data.push([A, C]);
-//data.push([C]);
-//for (var i=0; i<2; i++) data.push([C, D]);
-//data.push([A, D]);
-//data.push([A, C, D]);
-//for (var i=0; i<4; i++) data.push([D]);
-//for (var i=0; i<3; i++) data.push([E]);
-//for (var i=0; i<2; i++) data.push([A, E]);
+// script to make the Euler circles
+//variables
 
 
-
-// Initialize a dictionary to keep the powerset of gs_ids
-// also initialize an array of the same values to ensure that
-    // they are sorted properly
-var countArray = {};
-var orderArray = [];
+var sets = {};
 var data = [];
-var groups = [];
 var results = {{ async_result | tojson | safe }};
+var groups = [];
+
+if (results['numGS'] < 11) {
 
 // This initializes data by creating variables for each of the gs_ids
-for (var key in results['genesets']) {
-    if (results['genesets'].hasOwnProperty(key)){
-        // add gs_ids to groups and create individual variables
-        groups.push('GS' + key);
-        eval("var GS" + key + "= results['genesets'][key][0][0].gs_abbreviation");
+for (var key in results['genesets']) { groups.push('GS' + key); }
 
-    }
-}
-
-// create power set and dictionry for values
+// Initialize the data array with the power set included in groups
 function powerSet(arr) {
-  var res = [];
-  var len = arr.length;
-  for (var i = 0; i < Math.pow(2, len); i++) {
-    var aux = [];
-    for (var j = 0; j < len; j++) {
-      //console.log(j +':'+((1<<j) & j));
-      if (i & (1 << j)) {
-          if (arr[j] !== '') { aux.push(arr[j]); }
-      }
+    var len = arr.length;
+    for (var i = 0; i < Math.pow(2, len); i++) {
+        var aux = [];
+        for (var j = 0; j < len; j++) {
+            //console.log(j +':'+((1<<j) & j));
+            if (i & (1 << j)) {
+                if (arr[j] !== '') { aux.push(arr[j]); }
+            }
+        }
+        sets = {};
+        // initialize variables
+        if (aux[0] !== undefined) {
+            sets.sets = aux;
+            sets.size = 0;
+            if (aux.length === 1) { sets.abbr = results['genesets'][aux[0].substring(2)][0][0].gs_abbreviation; }
+            else { sets.abbr = ''; }
+            data.push(sets);
+        }
     }
-    res.push(aux);
-      // initialize variables
-      if (aux[0] !== undefined) {
-          countArray[(aux.join(":"))] = 0;
-          orderArray.push(aux.join(":"));
-      }
-  }
-  return res;
 }
 
 powerSet(groups);
 
-
-// add number of values to countArray
+//Go through the data array and add counts to the appropriate set size elements
 for (var key in results['geneset_from']){
     if (results['geneset_from'].hasOwnProperty(key)){
         var list = [];
-        for (var i=0; i<results['geneset_from'][key].length; i++){
-            list.push('GS'+results['geneset_from'][key][i]);
-            //list.push(results['geneset_from'][key][i]);
-        }
-        var l = list.join(":");
-        if (countArray.hasOwnProperty(l)) {
-            var temp = countArray[l];
-            countArray[l] = temp + 1;
+        for (var i=0; i<results['geneset_from'][key].length; i++) { list.push('GS'+results['geneset_from'][key][i]); }
+        //loop through data and add/update values
+        for (var j=0; j<data.length; j++){
+            if (data[j]['sets'] == list.join() ) {
+                data[j]['size'] = data[j]['size'] + 1;
+            }
         }
     }
 }
 
 
-// put the countarray in the data array
-    for (var i=0; i<orderArray.length; i++) {
-        for (var j=0; j<countArray[orderArray[i]]; j++) {
-            var temp = orderArray[i];
-            var t = temp.replace(/:/g,',');
-            data.push(t.split(','));
-        }
-    }
+
+//var chart = venn.VennDiagram();
+//d3.select(".vis").datum(data).call(chart);
 
 
+// draw venn diagram
+var div = d3.select(".vis");
+div.datum(data).call(venn.VennDiagram());
 
-// Standard D3
-var color = d3.scale.category20c();
-var venn = d3.layout.venn().size([700, 500]);
-var circle = d3.svg.arc().innerRadius(0).startAngle(0).endAngle(2*Math.PI);
+// add a tooltip
+var tooltip = d3.select("body").append("div")
+    .attr("class", "venntooltip");
 
-var vis = d3.select(".vis")
-  .append("svg")
-    .data([data])
-    .attr("width", 800).attr("height", 600);
+// add listeners to all the groups to display tooltip on mouseover
+div.selectAll("g")
+    .on("mouseover", function (d, i) {
+        // sort all the areas relative to the current item
+        venn.sortAreas(div, d);
 
-var circles = vis.selectAll("g.arc")
-    .data(venn)
-  .enter().append("g")
-    .attr("class", "arc")
-    .attr("transform", function(d, i){ return "translate(" + (50 + d.x) + "," + (50 + d.y) + ")"; });
-circles.append("path")
-    .attr("fill", function(d, i) { return color(i); })
-    .attr("opacity", 0.5)
-    .attr("d", circle);
-circles.append("text")
-    .attr("text-anchor", "middle")
-    .text(function(d, i) { return d.label; })
-    .attr("fill", function(d, i) { return color(i); })
-    .attr("x", function(d, i) { return d.labelX; })
-    .attr("y", function(d, i) { return d.labelY; });
+        // Display a tooltip with the current size
+        tooltip.transition().duration(400).style("opacity", .9);
+        tooltip.text(d.size + " genes.");
+
+        // highlight the current path
+        var selection = d3.select(this).transition("tooltip").duration(400);
+        selection.select("path")
+            .style("stroke-width", 3)
+            .style("fill-opacity", d.sets.length == 1 ? .4 : .1)
+            .style("stroke-opacity", 1);
+    })
+
+    .on("mousemove", function () {
+        tooltip.style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+    })
+
+    .on("mouseout", function (d, i) {
+        tooltip.transition().duration(400).style("opacity", 0);
+        var selection = d3.select(this).transition("tooltip").duration(400);
+        selection.select("path")
+            .style("stroke-width", 0)
+            .style("fill-opacity", d.sets.length == 1 ? .25 : .0)
+            .style("stroke-opacity", 0);
+    });
+
+
+}
 
 </script>
 
