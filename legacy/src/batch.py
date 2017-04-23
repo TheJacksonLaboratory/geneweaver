@@ -1197,6 +1197,111 @@ def buGenesets(fp, usr_id=0, cur_id=5):
 
     return (added, noncrits)
 
+def is_omicssoft(lines):
+    """
+    Checks to see if the given file is in the OmicsSoft gene set format.
+
+    arguments
+        lines: batch file split into lines
+
+    returns
+        true if the file is an OmicsSoft gene set
+    """
+
+    ## Remove leading/trailing whitespace and remove blank/empty lines
+    lines = map(lambda s: s.strip(), lines)
+    lines = filter(lambda s: not not s, lines)
+
+    if lines and lines[0].lower() == '[geneset]':
+        return True
+
+    return False
+
+def reset_omicssoft_geneset(sp_id, gene_type):
+    """
+    """
+
+    return {'sp_id': sp_id, 'gs_gene_id_type': gene_type}
+
+def parse_omicssoft(lines):
+    """
+    Parses the OmicsSoft gene set file.
+
+    arguments
+        lines: batch file split into lines
+
+    returns
+    """
+
+    ## Remove leading/trailing whitespace and remove blank/empty lines
+    lines = map(lambda s: s.strip(), lines)
+    lines = filter(lambda s: not not s, lines)
+    ## 
+    species = db.getSpecies()
+    gene_types = db.getGeneTypes()
+    ## Assumes the species is human and gene type is symbols
+    geneset = {
+        'sp_id': sp_id, 
+        'gs_gene_id_type': gene_type,
+        'values': []
+    }
+    genesets = []
+
+    for line in lines:
+        ## Append the current parsed set (if applicable) and reset the set data
+        if line.lower() == '[geneset]':
+            if len(geneset.keys()) > 2:
+                genesets.append(geneset)
+
+                geneset = {
+                    'sp_id': sp_id, 
+                    'gs_gene_id_type': gene_type,
+                    'values': []
+                }
+
+        ## Metadata is prefixed by '##'
+        elif line and line[0] == '#':
+            line = line.strip('#')
+            line = line.split('=')
+
+            if line[0].lower() == 'source':
+                geneset['source'] = line[1]
+
+            elif line[0].lower() == 'project':
+                geneset['project'] = line[1]
+
+            elif line[0].lower() == 'type':
+                geneset['type'] = line[1]
+
+            ## Tag might have more than one =, don't bother trying to handle
+            ## the rest 
+            elif line[0].lower() == 'tag':
+                geneset['tag'] = '='.join(line[1:])
+
+            elif line[0].lower() == 'name':
+                geneset['gs_name'] = line[1]
+
+            elif line[0].lower() == 'description':
+                geneset['gs_description'] = line[1]
+
+        ## Assumes the only thing left to parse are the gene values
+        else:
+            ## Idk if the gene value lines are tab or space delimited so using
+            ## spaces
+            line = line.split()
+
+            ## Only a gene symbol so default to binary scoring
+            if len(line) == 1:
+                geneset['values'].append((line[0], 1))
+                geneset['gs_threshold_type'] = 3
+
+            ## Saved as the 'Effect' type
+            else
+                geneset['values'].append((line[0], line[1]))
+                geneset['gs_threshold_type'] = 5
+
+    ## Adds the last parsed geneset
+    genesets.append(geneset)
 
 if __name__ == '__main__':
     from optparse import OptionParser
