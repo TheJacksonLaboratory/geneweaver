@@ -1223,7 +1223,7 @@ def reset_omicssoft_geneset(sp_id, gene_type):
 
     return {'sp_id': sp_id, 'gs_gene_id_type': gene_type}
 
-def parse_omicssoft(lines):
+def parse_omicssoft(lines, usr_id):
     """
     Parses the OmicsSoft gene set file.
 
@@ -1239,10 +1239,19 @@ def parse_omicssoft(lines):
     ## 
     species = db.getSpecies()
     gene_types = db.getGeneTypes()
-    ## Assumes the species is human and gene type is symbols
+    ## Assumes the species is human and gene type is symbols. The other fields
+    ## are set so this type of upload doesn't fail when they are missing.
     geneset = {
-        'sp_id': sp_id, 
-        'gs_gene_id_type': gene_type,
+        'sp_id': species['homo sapiens'], 
+        'gs_gene_id_type': -gene_types['gene symbol'],
+        'pub_id': None,
+        'usr_id': usr_id,
+        'cur_id': 5,
+        'gs_threshold': 1.0,
+        'gs_groups': '-1',
+        'gs_name': '',
+        'gs_description': '',
+        'gs_abbreviation': '',
         'values': []
     }
     genesets = []
@@ -1251,17 +1260,27 @@ def parse_omicssoft(lines):
         ## Append the current parsed set (if applicable) and reset the set data
         if line.lower() == '[geneset]':
             if len(geneset.keys()) > 2:
+                geneset['gs_count'] = len(geneset['values'])
+
                 genesets.append(geneset)
 
                 geneset = {
-                    'sp_id': sp_id, 
-                    'gs_gene_id_type': gene_type,
+                    'sp_id': species['homo sapiens'], 
+                    'gs_gene_id_type': -gene_types['gene symbol'],
+                    'pub_id': None,
+                    'usr_id': usr_id,
+                    'cur_id': 5,
+                    'gs_threshold': 1.0,
+                    'gs_groups': '-1',
+                    'gs_name': '',
+                    'gs_description': '',
+                    'gs_abbreviation': '',
                     'values': []
                 }
 
         ## Metadata is prefixed by '##'
         elif line and line[0] == '#':
-            line = line.strip('#')
+            line = line.strip('#').strip()
             line = line.split('=')
 
             if line[0].lower() == 'source':
@@ -1278,8 +1297,12 @@ def parse_omicssoft(lines):
             elif line[0].lower() == 'tag':
                 geneset['tag'] = '='.join(line[1:])
 
+            ## Currently sets the gene set abbreviation as the name with spaces
+            ## replaced by underscores and only up to 140 characters, idk what 
+            ## else the abbreviation should be
             elif line[0].lower() == 'name':
                 geneset['gs_name'] = line[1]
+                geneset['gs_abbreviation'] = '_'.join(line[1].split())[:140]
 
             elif line[0].lower() == 'description':
                 geneset['gs_description'] = line[1]
@@ -1292,16 +1315,20 @@ def parse_omicssoft(lines):
 
             ## Only a gene symbol so default to binary scoring
             if len(line) == 1:
-                geneset['values'].append((line[0], 1))
+                geneset['values'].append((line[0], '1'))
                 geneset['gs_threshold_type'] = 3
 
             ## Saved as the 'Effect' type
-            else
+            else:
                 geneset['values'].append((line[0], line[1]))
                 geneset['gs_threshold_type'] = 5
 
+    geneset['gs_count'] = len(geneset['values'])
+
     ## Adds the last parsed geneset
     genesets.append(geneset)
+
+    return genesets
 
 if __name__ == '__main__':
     from optparse import OptionParser

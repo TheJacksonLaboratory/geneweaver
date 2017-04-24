@@ -92,8 +92,14 @@ def create_batch_geneset():
     if user_id == None:
         return flask.jsonify({"error": "You must be signed in to upload a GeneSet."})
 
-    ## Returns a triplet (geneset list, warnings, errors)
-    batchFile = batch.parseBatchFile(batchFile, user_id)
+    if batch.is_omicssoft(batchFile):
+        batchFile = batch.parse_omicssoft(batchFile, user_id)
+        batchFile = (batchFile, [], [])
+
+    else:
+        ## Returns a triplet (geneset list, warnings, errors)
+        batchFile = batch.parseBatchFile(batchFile, user_id)
+
     batchErrors = ''
     batchWarns = ''
 
@@ -142,7 +148,7 @@ def create_batch_geneset():
             ce = ('The GeneSet "%s" has no valid genes/loci and could not be '
                     'uploaded.\n' % gs['gs_name'])
 
-            batchFile[1].extend(ce)
+            batchFile[1].append(ce)
             #return flask.jsonify({'error': ce})
 
         ## Update gs_count if some geneset_values were found to be invalid
@@ -156,7 +162,7 @@ def create_batch_geneset():
             batchFile[1].extend(gsverr[1])
 
         ## Add ontology annotations provided they exist
-        if gs['annotations']:
+        if 'annotations' in gs and gs['annotations']:
             ont_ids = geneweaverdb.get_ontologies_by_refs(gs['annotations'])
 
             for ont_id in ont_ids:
