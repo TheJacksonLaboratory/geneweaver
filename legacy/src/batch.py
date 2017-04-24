@@ -1217,12 +1217,6 @@ def is_omicssoft(lines):
 
     return False
 
-def reset_omicssoft_geneset(sp_id, gene_type):
-    """
-    """
-
-    return {'sp_id': sp_id, 'gs_gene_id_type': gene_type}
-
 def parse_omicssoft(lines, usr_id):
     """
     Parses the OmicsSoft gene set file.
