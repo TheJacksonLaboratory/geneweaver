@@ -52,7 +52,17 @@
 </div>
 {# {{ async_result }}  #}
  {# div for venn diagram #}
+ {% if async_result.numGS < 11 %}
  <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
+{% else %}
+ <div class="row">
+     <div class="alert alert-warning fade in">
+         <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+         <strong>Warning!</strong> Too many GeneSets to display graph representation. Please select 10 or fewer to
+         display overlaps.
+     </div>
+ </div>
+ {% endif %}
 
  {# Check to see if there are results to display #}
 {%  if async_result.num_genes == 0 %}
