@@ -1141,8 +1141,6 @@ def buGenesets(fp, usr_id=0, cur_id=5):
 
     ## A critical error has occurred
     if b[2]:
-        print b[2]
-        print ''
         exit()
 
     else:
@@ -1253,7 +1251,7 @@ def parse_omicssoft(lines, usr_id):
     for line in lines:
         ## Append the current parsed set (if applicable) and reset the set data
         if line.lower() == '[geneset]':
-            if len(geneset.keys()) > 2:
+            if geneset['values']:
                 geneset['gs_count'] = len(geneset['values'])
 
                 genesets.append(geneset)
