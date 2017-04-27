@@ -4,17 +4,17 @@
 
 <style>
     .venntooltip {
-      position: absolute;
-      text-align: center;
-      vertical-align: middle;
-      width: 128px;
-      height: 26px;
-      background: #333;
-      color: #ddd;
-      padding: 3px;
-      border: 0px;
-      border-radius: 8px;
-      opacity: 0;
+        position: absolute;
+        text-align: center;
+        vertical-align: middle;
+        width: 128px;
+        height: 26px;
+        background: #333;
+        color: #ddd;
+        padding: 3px;
+        border: 0px;
+        border-radius: 8px;
+        opacity: 0;
     }
 </style>
 
@@ -24,144 +24,243 @@
 <div class="row" id="result"></div>
 
 <div class="panel panel-default panel-heading bg-gray-light">
-     <h2 class="panel-title"><strong>Boolean Algebra</strong></h2>
+    <h2 class="panel-title"><strong>Boolean Algebra</strong></h2>
 </div>
 
- <div class="panel panel-default">
+<div class="panel panel-default">
 
 
-<div class="row">
-                <div class="col-xs-12 col-md-9">
-                    <div class="row">
-                    </div>
-                </div>
-                <div class="col-xs-6 col-md-3">
-                    <button type="button" class="btn btn-block btn-warning" onclick="addNewGS()" id="addToNewGeneset" style="margin-bottom: 10px;">
-                        <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
-                    </button>
-                </div>
-</div>
-
-
-
-{# Relation type and Number of Genesets used Title #}
-<div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-
-            <h6 class="panel-title">{{ async_result.type }} of {{ async_result.numGS}} GeneSets</h6>
-
-</div>
-{# {{ async_result }}  #}
- {# div for venn diagram #}
- {% if async_result.numGS < 11 %}
- <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
-{% else %}
- <div class="row">
-     <div class="alert alert-warning fade in">
-         <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-         <strong>Warning!</strong> Too many GeneSets to display graph representation. Please select 10 or fewer to
-         display overlaps.
-     </div>
- </div>
- {% endif %}
-
- {# Check to see if there are results to display #}
-{%  if async_result.num_genes == 0 %}
-    <h4> No results. </h4>
-
-{# Display the results if there are any. #}
-{% else %}
-
-    {%  for i in range(async_result.numGS,-1,-1) %}
-        {%  if async_result.formatPrint[i]|length != 0 %}
+    <div class="row">
+        <div class="col-xs-12 col-md-9">
             <div class="row">
-                <div class="col-md-10">
-                    <h6 class="panel-title">{{ (i + 1 ) }} of {{ async_result.numGS}} GeneSets</h6>
-                </div>
-                <div class="col-md-2" align="right" style="text-align:right">
-                    <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck" style="padding:0; border:0; margin:0">
-                        <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                            Select All
-                            <input type="checkbox" 
-                                   name="group_{{ i }}"
-                                   />
-                        </label>
+            </div>
+        </div>
+        <div class="col-xs-6 col-md-3">
+            <button type="button" class="btn btn-block btn-warning" onclick="addNewGS()" id="addToNewGeneset"
+                    style="margin-bottom: 10px;">
+                <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+            </button>
+        </div>
+    </div>
+
+
+    {# Relation type and Number of Genesets used Title #}
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+
+        <h6 class="panel-title">{{ async_result.type }} of {{ async_result.numGS }} GeneSets</h6>
+
+    </div>
+
+{#     {{ async_result }}#}
+    {# div for venn diagram #}
+    {% if async_result.numGS < 11 %}
+        <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
+    {% else %}
+        <div class="row">
+            <div class="alert alert-warning fade in">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <strong>Warning!</strong> Too many GeneSets to display graph representation. Please select 10 or fewer
+                to display overlaps.
+            </div>
+        </div>
+    {% endif %}
+
+    {# Check to see if there are results to display #}
+    {% if async_result.num_genes == 0 %}
+        <h4> No results. </h4>
+
+        {# Display the results if there are any. #}
+    {% else %}
+
+    {% if async_result.type == 'Union' %}
+                <div class="row">
+                    <div class="col-md-10">
+                        <h6 class="panel-title">{{ async_result.gene_names | length }} Genes found in the Union of {{ async_result.numGS }} GeneSets</h6>
+                    </div>
+                    <div class="col-md-2" align="right" style="text-align:right">
+                        <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
+                             style="padding:0; border:0; margin:0">
+                            <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
+                                Select All
+                                <input type="checkbox"
+                                       name="group_{{ i }}"
+                                />
+                            </label>
+                        </div>
                     </div>
                 </div>
-            </div>
+
+        <div class="row" id="group-{{ async_result.numGS }}">
+            <table class="table table-hover">
+                <tbody>
+                        <tr>
+                            <th><i class="fa fa-sort"></i></a> Default</th>
+                            <th>LinkOuts</th>
+                            <th>In GeneSets</th>
+                            <th>Emphasis</th>
+                            <th></th>
+                        </tr>
+                        {% for g in async_result.gene_names %}
+                            {% set gene = g %}
+                                    <tr>
+                                {# Default #}
+                                <td>
+                                    <strong>
+                                        <a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes"
+                                           style="margin-left: 50px;">{{ gene }}</a>
+                                    </strong>
+                                </td>
+                                {# Linkouts #}
+                                <td>
+                                    {% include 'linkouts.html' %}
+                                </td>
+                                        {# In Gene Sets #}
+                                <td>
+                                    {% for gsid in async_result.geneset_from[gene] %}
+                                        {% set rowloop = loop %}
+                                        {% for ags in async_result.genesets[gsid] %}
+                                            {% for gs in ags %}
+{#                                                {% include 'viewGenesetTitleOnly.html' %}#}
+                                                <span id="{{ gs.gs_id }}">
+                                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                      data-original-title="{{ gs.gs_abbreviation }}"
+                                                  title="{{ gs.gs_abbreviation }}">
+                                                <a href="/viewgenesetdetails/{{ gs.gs_id }}">
+                                                <strong>GS{{ gs.gs_id }}</strong>
+                                                </a>
+                                                {% if not rowloop.last %},{% endif %}
+                                                </span>
+                                                </span>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                </td>
+                                {# Emphasize #}
+                                <td nowrap>
+                                    <input type="checkbox" name="g_id[]" id="{{ async_result.odeLookup[gene] }}"
+                                           onchange="emphasize('{{ async_result.odeLookup[gene] }}');"
+                                           class="switch" data-size="mini"
+                                           style="padding: 0px; vertical-align: middle;">
+                                </td>
+                                {# Checkbox #}
+                                <td>
+                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                        <label for="addGeneset"
+                                               style="margin: -6px; padding-right: 0;">
+                                            <input type="checkbox" name="gsoptions[]"
+                                                   id="addGeneset{{ gene }}"
+                                                   value="{{ gene }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+{#        {% for g in async_result.gene_names %}#}
+{#        {{ g }}<br>#}
+{#        {% endfor %}#}
+
+        {% else %}
+
+        {% for i in range(async_result.numGS,-1,-1) %}
+            {% if async_result.formatPrint[i]|length != 0 %}
+                <div class="row">
+                    <div class="col-md-10">
+                        {% if async_result.type != 'Union' %}
+                            <h6 class="panel-title">{{ (i + 1 ) }} of {{ async_result.numGS }} GeneSets</h6>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2" align="right" style="text-align:right">
+                        <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
+                             style="padding:0; border:0; margin:0">
+                            <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
+                                Select All
+                                <input type="checkbox"
+                                       name="group_{{ i }}"
+                                />
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="row" id="group-{{ i }}">
                     <table class="table table-hover">
                         <tbody>
+                        <tr>
+                            <th><i class="fa fa-sort"></i></a> Default</th>
+                            <th>LinkOuts</th>
+                            <th>In GeneSets</th>
+                            <th>Emphasis</th>
+                            <th></th>
+                        </tr>
+                        {% for j in range(((async_result.formatPrint[i]|length) - 1), -1, -1) %}
+                            {% set gene = async_result.formatPrint[i][j] %}
                             <tr>
-                                <th><i class="fa fa-sort"></i></a> Default</th>
-                                <th>LinkOuts</th>
-                                <th>In GeneSets</th>
-                                <th>Emphasis</th>
-                                <th></th>                                
-                            </tr>
-                            {%  for j in range(((async_result.formatPrint[i]|length) - 1), -1, -1) %}
-                                {%  set gene = async_result.formatPrint[i][j] %}
-                                    <tr>
-                                        {# Default #}
-                                        <td>
-                                            <strong>
-                                                <a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes" style="margin-left: 50px;">{{ gene }}</a>
-                                            </strong>
-                                        </td>
-                                        {# Linkouts #}
-                                        <td>
-                                            {% include 'linkouts.html' %}
-                                        </td>
-                                        {# In Gene Sets #}
-                                        <td>
-                                            {% for gsid in async_result.geneset_from[gene] %}
-                                                {% for ags in async_result.genesets[gsid] %}
-                                                    {% for gs in ags %}
-                                                        {% include 'viewGenesetTitleOnly.html' %}
-                                                    {% endfor %}
-                                                {% endfor %}
+                                {# Default #}
+                                <td>
+                                    <strong>
+                                        <a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes"
+                                           style="margin-left: 50px;">{{ gene }}</a>
+                                    </strong>
+                                </td>
+                                {# Linkouts #}
+                                <td>
+                                    {% include 'linkouts.html' %}
+                                </td>
+                                {# In Gene Sets #}
+                                <td>
+                                    {% for gsid in async_result.geneset_from[gene] %}
+                                        {% for ags in async_result.genesets[gsid] %}
+                                            {% for gs in ags %}
+                                                {% include 'viewGenesetTitleOnly.html' %}
                                             {% endfor %}
-                                        </td>
-                                        {# Emphasize #}
-                                        <td nowrap>
-                                            <input type="checkbox" name="g_id[]" id="{{ async_result.odeLookup[gene] }}"
-                                                   onchange="emphasize('{{ async_result.odeLookup[gene]}}');"
-                                                   class="switch" data-size="mini"
-                                                   style="padding: 0px; vertical-align: middle;">
-                                        </td>
-                                        {# Checkbox #}
-                                        <td>
-                                            <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                                <label for="addGeneset"
-                                                       style="margin: -6px; padding-right: 0;">
-                                                    <input type="checkbox" name="gsoptions[]"
-                                                           id="addGeneset{{ gene }}"
-                                                           value="{{ gene }}"/>
-                                                </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                            {% endfor %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                </td>
+                                {# Emphasize #}
+                                <td nowrap>
+                                    <input type="checkbox" name="g_id[]" id="{{ async_result.odeLookup[gene] }}"
+                                           onchange="emphasize('{{ async_result.odeLookup[gene] }}');"
+                                           class="switch" data-size="mini"
+                                           style="padding: 0px; vertical-align: middle;">
+                                </td>
+                                {# Checkbox #}
+                                <td>
+                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                        <label for="addGeneset"
+                                               style="margin: -6px; padding-right: 0;">
+                                            <input type="checkbox" name="gsoptions[]"
+                                                   id="addGeneset{{ gene }}"
+                                                   value="{{ gene }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
-        {%  endif %}
-        {#  <br /> #}
-    {% endfor %}
-{%  endif %}
+            {% endif %}
+            {#  <br /> #}
+        {% endfor %}
+    {% endif %}
+{% endif %}
 </div>
 
 {# Grab the list of emphgeneids. It is an environment variable set in the blueprint. #}
 {% for gene in emphgeneids %}
-        <script>
-            document.getElementById("{{gene}}").checked = true;
-        </script>
+    <script>
+        document.getElementById("{{gene}}").checked = true;
+    </script>
 {% endfor %}
 <script type="text/javascript">
 
-    $(document).ready(function() {
+    $(document).ready(function () {
 
-        $('.group-checkbox').on('click', function(event) {
+        $('.group-checkbox').on('click', function (event) {
 
             // Grabs the group ID for this checkbox. Format: group-#-checkbox
             var groupId = $(this).attr('id').split('-')[1];
@@ -200,11 +299,11 @@
         });
 
         /**
-          * Ever since we added the select all checkbox, we now have to hook
-          * into these stupid ui-checkbox clicks otherwise the actual checkbox
-          * which lies underneath all the ui crap doesn't get (de)selected.
-          */
-        $('.ui-checkbox').on('click', function(event) {
+         * Ever since we added the select all checkbox, we now have to hook
+         * into these stupid ui-checkbox clicks otherwise the actual checkbox
+         * which lies underneath all the ui crap doesn't get (de)selected.
+         */
+        $('.ui-checkbox').on('click', function (event) {
 
             var check = $(this).find('input[type=checkbox]');
 
@@ -218,103 +317,105 @@
 
 {# To update the ephasize genes. #}
 <script type="text/javascript">
-        $("[name='g_id[]']").bootstrapSwitch();
+    $("[name='g_id[]']").bootstrapSwitch();
 
-        $(function () {
-            $("[data-toggle='tooltip']").tooltip();
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+
+
+    function emphasize(id) {
+        if (document.getElementById(id).checked) {
+            $.get("/emphasize/" + id + ".html", function (data, status) {
+            });
+        }
+        else {
+            $.get("/deemphasize/" + id + ".html", function (data, status) {
+            });
+        }
+    }
+
+    {# Functionality for the "Add to New GeneSets Button.
+       All the checked checkboxes are loaded and sent with a Query String
+       to the 'Batch Upload Geneset' Page #}
+    function addNewGS() {
+
+        var checkedArray = [];
+        $("input:checkbox[name='gsoptions[]']:checked").each(function () {
+            checkedArray.push($(this).val());
         });
 
-        function emphasize(id) {
-            if (document.getElementById(id).checked) {
-                $.get("/emphasize/" + id + ".html", function (data, status) {
-                });
-            }
-            else {
-                $.get("/deemphasize/" + id + ".html", function (data, status) {
-                });
-            }
-        }
+        if (typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
 
-        {# Functionality for the "Add to New GeneSets Button.
-           All the checked checkboxes are loaded and sent with a Query String
-           to the 'Batch Upload Geneset' Page #}
-        function addNewGS() {
+            var as = {{ async_result | tojson | safe}};
+            var sets = Object.keys(as['genesets']);
 
-            var checkedArray = [];
-            $("input:checkbox[name='gsoptions[]']:checked").each(function(){
-                checkedArray.push($(this).val());
+            var numGS = 0;
+            numGS = {{ async_result.numGS}};
+
+            // The 1? is added so the entire string will appear in
+            // window.location.search. Without the 1? The string is
+            // truncated and missing the first sentence.
+            var getStr = '1?algebra?' +
+                'The {{ async_result.type }} of {{ async_result.numGS }}' +
+                ' GeneSets.?' +
+                'The Boolean Algebra tool was used to find the ' +
+                '{{ async_result.type }} of ' + numGS + ' sets: ' +
+                sets.join(', ');
+
+            // add in all the checked boxes gene names
+            checkedArray.forEach(function (entry) {
+                getStr += "?";
+                getStr += entry;
+                getStr += "?";
+
+                // grab the value
+                var tmpString = "{{ async_result.valueLookup }}";
+                // conver the string to an array by looping
+                var values = [];
+                var t_length = tmpString.length;
+                for (var i = 0; i < t_length; i++) {
+                    var tmpName = "";
+                    var tmpValue = "";
+                    while (tmpString[i] !== '?' && i < t_length) {
+                        tmpName += tmpString[i];
+                        i++;
+                    }
+                    tmpName = String(tmpName);
+                    values.push(tmpName);
+                    // skip over '?'
+                    i++;
+                    while (tmpString[i] !== '?' && i < t_length) {
+                        tmpValue += tmpString[i];
+                        i++;
+                    }
+                    tmpValue = parseInt(tmpValue);
+                    values.push(tmpValue);
+                }
+                var currVal = 1;
+                // find the current value we need
+                var arrayLen = values.length;
+                for (var j = 0; j < arrayLen;) {
+                    if (values[j] === entry) {
+                        j = (j + 1);
+                        currVal = values[j];
+                    }
+                    j = (j + 1);
+                }
+                // assign the current value for the gene name
+                getStr += currVal;
+
             });
 
-            if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
-
-                var as = {{ async_result | tojson | safe}};
-                var sets = Object.keys(as['genesets']);
-
-                var numGS = 0;
-                numGS = {{ async_result.numGS}};
-
-                // The 1? is added so the entire string will appear in
-                // window.location.search. Without the 1? The string is
-                // truncated and missing the first sentence.
-                var getStr = '1?algebra?' + 
-                    'The {{ async_result.type }} of {{ async_result.numGS }}' +
-                    ' GeneSets.?' + 
-                    'The Boolean Algebra tool was used to find the ' + 
-                    '{{ async_result.type }} of ' + numGS + ' sets: ' +
-                    sets.join(', ');
-
-                // add in all the checked boxes gene names
-                checkedArray.forEach(function (entry) {
-                    getStr += "?";
-                    getStr += entry;
-                    getStr += "?";
-
-                    // grab the value
-                    var tmpString = "{{ async_result.valueLookup }}";
-                    // conver the string to an array by looping
-                    var values = [];
-                    var t_length = tmpString.length;
-                    for (var i = 0; i < t_length; i++){
-                        var tmpName = "";
-                        var tmpValue = "";
-                        while (tmpString[i] !== '?' && i < t_length){
-                            tmpName += tmpString[i];
-                            i++;
-                        }
-                        tmpName = String(tmpName);
-                        values.push(tmpName);
-                        // skip over '?'
-                        i++;
-                        while(tmpString[i] !== '?' && i < t_length) {
-                            tmpValue += tmpString[i];
-                            i++;
-                        }
-                        tmpValue = parseInt(tmpValue);
-                        values.push(tmpValue);
-                    }
-                    var currVal = 1;
-                    // find the current value we need
-                    var arrayLen = values.length;
-                    for (var j = 0; j < arrayLen; ){
-                        if (values[j] === entry){
-                            j = (j + 1);
-                            currVal = values[j];
-                        }
-                        j = (j + 1);
-                    }
-                    // assign the current value for the gene name
-                    getStr += currVal;
-
-                });
-
-                // Load the new page with the extra url bit
-                window.open('/uploadgeneset/' + getStr, '_blank');
-            }
-            else{
-                window.alert("No checkboxes selected.")
-            }
-
+            // Load the new page with the extra url bit
+            window.open('/uploadgeneset/' + getStr, '_blank');
         }
+        else {
+            window.alert("No checkboxes selected.")
+        }
+
+    }
 
 
 </script>
@@ -325,59 +426,68 @@
 <script type="text/javascript" src="../../static/d3/venn.js"></script>
 
 <script type="text/javascript">
-// script to make the Euler circles
-//variables
+    // script to make the Euler circles
+    //variables
 
 
-var sets = {};
-var data = [];
-var results = {{ async_result | tojson | safe }};
-var groups = [];
+    var sets = {};
+    var data = [];
+    var results = {{ async_result | tojson | safe }};
+    var groups = [];
 
-if (results['numGS'] < 11) {
+    if (results['numGS'] < 11) {
 
 // This initializes data by creating variables for each of the gs_ids
-for (var key in results['genesets']) { groups.push('GS' + key); }
+        for (var key in results['genesets']) {
+            groups.push('GS' + key);
+        }
 
 // Initialize the data array with the power set included in groups
-function powerSet(arr) {
-    var len = arr.length;
-    for (var i = 0; i < Math.pow(2, len); i++) {
-        var aux = [];
-        for (var j = 0; j < len; j++) {
-            //console.log(j +':'+((1<<j) & j));
-            if (i & (1 << j)) {
-                if (arr[j] !== '') { aux.push(arr[j]); }
+        function powerSet(arr) {
+            var len = arr.length;
+            for (var i = 0; i < Math.pow(2, len); i++) {
+                var aux = [];
+                for (var j = 0; j < len; j++) {
+                    //console.log(j +':'+((1<<j) & j));
+                    if (i & (1 << j)) {
+                        if (arr[j] !== '') {
+                            aux.push(arr[j]);
+                        }
+                    }
+                }
+                sets = {};
+                // initialize variables
+                if (aux[0] !== undefined) {
+                    sets.sets = aux;
+                    sets.size = 0;
+                    if (aux.length === 1) {
+                        sets.abbr = results['genesets'][aux[0].substring(2)][0][0].gs_abbreviation;
+                    }
+                    else {
+                        sets.abbr = '';
+                    }
+                    data.push(sets);
+                }
             }
         }
-        sets = {};
-        // initialize variables
-        if (aux[0] !== undefined) {
-            sets.sets = aux;
-            sets.size = 0;
-            if (aux.length === 1) { sets.abbr = results['genesets'][aux[0].substring(2)][0][0].gs_abbreviation; }
-            else { sets.abbr = ''; }
-            data.push(sets);
-        }
-    }
-}
 
-powerSet(groups);
+        powerSet(groups);
 
 //Go through the data array and add counts to the appropriate set size elements
-for (var key in results['geneset_from']){
-    if (results['geneset_from'].hasOwnProperty(key)){
-        var list = [];
-        for (var i=0; i<results['geneset_from'][key].length; i++) { list.push('GS'+results['geneset_from'][key][i]); }
-        //loop through data and add/update values
-        for (var j=0; j<data.length; j++){
-            if (data[j]['sets'] == list.join() ) {
-                data[j]['size'] = data[j]['size'] + 1;
+        for (var key in results['geneset_from']) {
+            if (results['geneset_from'].hasOwnProperty(key)) {
+                var list = [];
+                for (var i = 0; i < results['geneset_from'][key].length; i++) {
+                    list.push('GS' + results['geneset_from'][key][i]);
+                }
+                //loop through data and add/update values
+                for (var j = 0; j < data.length; j++) {
+                    if (data[j]['sets'] == list.join()) {
+                        data[j]['size'] = data[j]['size'] + 1;
+                    }
+                }
             }
         }
-    }
-}
-
 
 
 //var chart = venn.VennDiagram();
@@ -385,47 +495,47 @@ for (var key in results['geneset_from']){
 
 
 // draw venn diagram
-var div = d3.select(".vis");
-div.datum(data).call(venn.VennDiagram());
+        var div = d3.select(".vis");
+        div.datum(data).call(venn.VennDiagram());
 
 // add a tooltip
-var tooltip = d3.select("body").append("div")
-    .attr("class", "venntooltip");
+        var tooltip = d3.select("body").append("div")
+            .attr("class", "venntooltip");
 
 // add listeners to all the groups to display tooltip on mouseover
-div.selectAll("g")
-    .on("mouseover", function (d, i) {
-        // sort all the areas relative to the current item
-        venn.sortAreas(div, d);
+        div.selectAll("g")
+            .on("mouseover", function (d, i) {
+                // sort all the areas relative to the current item
+                venn.sortAreas(div, d);
 
-        // Display a tooltip with the current size
-        tooltip.transition().duration(400).style("opacity", .9);
-        tooltip.text(d.size + " genes.");
+                // Display a tooltip with the current size
+                tooltip.transition().duration(400).style("opacity", .9);
+                tooltip.text(d.size + " genes.");
 
-        // highlight the current path
-        var selection = d3.select(this).transition("tooltip").duration(400);
-        selection.select("path")
-            .style("stroke-width", 3)
-            .style("fill-opacity", d.sets.length == 1 ? .4 : .1)
-            .style("stroke-opacity", 1);
-    })
+                // highlight the current path
+                var selection = d3.select(this).transition("tooltip").duration(400);
+                selection.select("path")
+                    .style("stroke-width", 3)
+                    .style("fill-opacity", d.sets.length == 1 ? .4 : .1)
+                    .style("stroke-opacity", 1);
+            })
 
-    .on("mousemove", function () {
-        tooltip.style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
-    })
+            .on("mousemove", function () {
+                tooltip.style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
 
-    .on("mouseout", function (d, i) {
-        tooltip.transition().duration(400).style("opacity", 0);
-        var selection = d3.select(this).transition("tooltip").duration(400);
-        selection.select("path")
-            .style("stroke-width", 0)
-            .style("fill-opacity", d.sets.length == 1 ? .25 : .0)
-            .style("stroke-opacity", 0);
-    });
+            .on("mouseout", function (d, i) {
+                tooltip.transition().duration(400).style("opacity", 0);
+                var selection = d3.select(this).transition("tooltip").duration(400);
+                selection.select("path")
+                    .style("stroke-width", 0)
+                    .style("fill-opacity", d.sets.length == 1 ? .25 : .0)
+                    .style("stroke-opacity", 0);
+            });
 
 
-}
+    }
 
 </script>
 
