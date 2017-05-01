@@ -92,9 +92,13 @@ def create_batch_geneset():
     if user_id == None:
         return flask.jsonify({"error": "You must be signed in to upload a GeneSet."})
 
+    ## Required later on when inserting OmicsSoft specific metadata
+    is_omicssoft = False
+
     if batch.is_omicssoft(batchFile):
         batchFile = batch.parse_omicssoft(batchFile, user_id)
         batchFile = (batchFile, [], [])
+        is_omicssoft = True
 
     else:
         ## Returns a triplet (geneset list, warnings, errors)
@@ -195,6 +199,17 @@ def create_batch_geneset():
                                    abstract, ncbo=ncbo, monarch=monarch)
 
     batch.db.commit()
+
+    if is_omicssoft:
+        for gs in batchFile[0]:
+            project = gs['project'] if 'project' in gs else ''
+            source = gs['source'] if 'source' in gs else ''
+            tag = gs['tag'] if 'tag' in gs else ''
+            otype = gs['type'] if 'type' in gs else ''
+
+            geneweaverdb.insert_omicssoft_metadata(
+                gs['gs_id'], project, source, tag, otype
+            )
 
     for w in batchFile[1]:
         batchWarns += w
