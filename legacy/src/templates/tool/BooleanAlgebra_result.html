@@ -16,6 +16,17 @@
         border-radius: 8px;
         opacity: 0;
     }
+
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    th, td {
+        text-align: center;
+    }
 </style>
 
 
@@ -75,7 +86,7 @@
     {% if async_result.type == 'Union' %}
                 <div class="row">
                     <div class="col-md-10">
-                        <h6 class="panel-title">{{ async_result.gene_names | length }} Genes found in the Union of {{ async_result.numGS }} GeneSets</h6>
+                        <h6 class="panel-title">{{ async_result.gene_names | length }} Distinct Genes found in the Union of {{ async_result.numGS }} GeneSets</h6>
                     </div>
                     <div class="col-md-2" align="right" style="text-align:right">
                         <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
@@ -94,26 +105,77 @@
             <table class="table table-hover">
                 <tbody>
                         <tr>
-                            <th><i class="fa fa-sort"></i></a> Default</th>
-                            <th>LinkOuts</th>
+                            <th></th>
+                            <th>Genes</th>
+                            <th>Species</th>
+                            <th>Homology</th>
                             <th>In GeneSets</th>
                             <th>Emphasis</th>
                             <th></th>
                         </tr>
                         {% for g in async_result.gene_names %}
                             {% set gene = g %}
-                                    <tr>
-                                {# Default #}
+                            <tr>
+                                    {# Default #}
+                                <td style="text-align: left;">
+                                    <span style="margin-left: 5px;">
+                                            <span class="group_name" style="font: italic 10px/14px Georgia, serif;
+                                                    background-color: {{ async_result.bg[(async_result.genesets[async_result.geneset_from[gene][0]][0][0]['sp_id']|int-1)] }};
+                                                    border:1px solid {{ async_result.bg[(async_result.genesets[async_result.geneset_from[gene][0]][0][0]['sp_id']|int-1)] }}">
+                                                {{ async_result.all_species[async_result.genesets[async_result.geneset_from[gene][0]][0][0]['sp_id']|string] }}.
+                                            </span>
+                                    </span>
+                                </td>
                                 <td>
                                     <strong>
-                                        <a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes"
-                                           style="margin-left: 50px;">{{ gene }}</a>
+                                        <a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes">{{ gene }}</a>
                                     </strong>
                                 </td>
-                                {# Linkouts #}
                                 <td>
-                                    {% include 'linkouts.html' %}
+                                    {# Make boxes for homology blocks #}
+                                    {# see application.py for the list of species and colors #}
+                                    {% for i in range(1,12) %}
+                                        {# skip elements that are empty #}
+                                        {% if async_result.tt[(i-1)] != 'empty' %}
+                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                  data-original-title="{{ async_result.tt[(i-1)] }}"
+                                                  title="{{ async_result.tt[(i-1)] }}">
+                                            {% set exists = ['1'] %}
+{#                                            {{ async_result.grid[async_result.odeLookup[gene]|string] }}#}
+                                            {% for h in async_result.grid[async_result.odeLookup[gene]|string]|sort %}
+                                                {% if h == i %}
+                                                    <div class="geneBox" style="background-color: {{ async_result.colors[(i-1)] }};"></div>
+                                                    {% if exists.append('1') %}{% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if exists|length == 1 %}
+                                                <div class="geneBox"></div>
+                                            {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
                                 </td>
+                                <td>
+                                    {% if async_result.numSpecies == 1 %}
+                                        <span class="label label-default">No Mapping</span>
+                                    {% else %}
+                                        <span class="label label-info">Homologene</span>
+                                    {% endif %}
+                                </td>
+
+
+
+                                    {# species #}
+                                 {#  <td>
+                                     TODO: Species
+                                    </td>
+                                 #}
+                                    {# Linkouts #}
+                                    {#
+                                    <td>
+                                        {% include 'linkouts.html' %}
+                                    </td>
+                                    #}
                                         {# In Gene Sets #}
                                 <td>
                                     {% for gsid in async_result.geneset_from[gene] %}
@@ -256,6 +318,8 @@
         document.getElementById("{{gene}}").checked = true;
     </script>
 {% endfor %}
+
+
 <script type="text/javascript">
 
     $(document).ready(function () {
