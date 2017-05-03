@@ -3436,6 +3436,24 @@ def get_genes_by_gs_id(geneset_id):
     return genes
 
 
+def get_omicssoft(gs_id):
+    '''
+    Return data from the omicssoft table if any exists
+    :param gs_id: 
+    :return: dictionary
+    '''
+    omicssoft = {'project': 'N\A', 'tag': 'GeneWeaver', 'type': 'N\A'}
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT os_project, os_tag, os_source FROM production.omicsoft WHERE gs_id=%s''', (gs_id,))
+        res = cursor.fetchall()
+        if res is not None:
+            for r in res:
+                omicssoft['project'] = r[0] if r[0] is not None else 'N\A'
+                omicssoft['tag'] = r[1] if r[0] is not None else 'GeneWeaver'
+                omicssoft['type'] = r[2] if r[0] is not None else 'N\A'
+    return omicssoft
+
+
 def get_all_geneset_values(gs_id):
     '''
     Generic function to get all geneset values geneset_value.gs_values

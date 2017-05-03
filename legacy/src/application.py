@@ -2801,15 +2801,17 @@ def render_export_omicssoft(gs_ids):
         for gs_id in gs_ids_list:
             results = geneweaverdb.get_geneset(gs_id, flask.session['user_id'])
             gsv_values = geneweaverdb.export_results_by_gs_id(gs_id)
+            omicssoft = geneweaverdb.get_omicssoft(gs_id)
+            print omicssoft
             title = 'gw_omicssoft_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
             string += '[GeneSet]\n'
             if results is not None:
                 string += '##Source=GeneWeaver Generated\n'
-                string += '##Type=N/A\n'
-                string += '##Project=N/A\n'
+                string += '##Type=' + str(omicssoft['type']) + '\n'
+                string += '##Project=' + str(omicssoft['project']) + '\n'
                 string += '##Name=' + str(results.name) + '\n'
                 string += '##Description=' + str(results.description) + '\n'
-                string += '##Tag=GeneWeaver\n'
+                string += '##Tag=' + str(omicssoft['tag']) + '\n'
                 for gene, value in gsv_values.iteritems():
                     string += str(gene) + '\t' + str(value) + '\n'
                 string += '\n'
