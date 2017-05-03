@@ -19,29 +19,27 @@
                     </div>
                     <div class="row" style="text-align:center;">
                         <strong>
-							<span class="rows" id="modal-label" style="color: #006400;">
-							</span>
-						</strong>
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-success btn-transparent"
-								id="addNewProject"style="padding-left:12px;padding-right:12px">
-							<i class="fa fa-plus"></i> Add to New Project
-						</button>
-						<button type="button" class="btn btn-warning" id="addGenesetsToProjects" data-dismiss="modal"style="padding-left:12px;padding-right:12px">
-							Add to Selected Project(s)
-						</button>
-						<button type="button" class="btn btn-default" data-dismiss="modal">
-							Close
-						</button>
-					</div>
+				<span class="rows" id="modal-label" style="color: #006400;">
+				</span>
+			</strong>
+                    </div>
 
                     <div class="row" id="reveal-if-active" style="display:none;">
                         <label for="newProjName"><h4>New Project Name: </h4></label>
                         <input type="text" id="newProjName" name="newProjName" class="form-control input-lg">
                     </div>
                     <div class="row" style="padding-top: 10px">
-						{% if g.user is defined %}
+                        <label for="sel2">Select which projects to add to (hold shift to select more than one):</label>
+                        <select multiple class="form-control" id="sel2"> 
+                            {% if g.user is defined %}
+                            {% for project in g.user.projects %}
+                                <option value="{{ project.project_id }}">{{ project.name}}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="row" style="padding-top: 10px">
+			{% if g.user is defined %}
                         {% for currProj in g.user.projects %}
                             <label for="addProjects{{ currProj.project_id }}"
                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off">
@@ -56,6 +54,18 @@
                         <input type="hidden" id="myModalValue" name="gs_id" value=""/>
                         <input type="hidden" id="gsID" name="gs_id" value=""/>
                         <input type="hidden" id="projID" name="proj_id" value=""/>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success btn-transparent"
+                                        id="addNewProject"style="padding-left:12px;padding-right:12px">
+                                <i class="fa fa-plus"></i> Add to New Project
+                        </button>
+                        <button type="button" class="btn btn-warning" id="addGenesetsToProjects" data-dismiss="modal"style="padding-left:12px;padding-right:12px">
+                                Add to Selected Project(s)
+                        </button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                                Close
+                        </button>
                     </div>
                 </div>
             </form>
