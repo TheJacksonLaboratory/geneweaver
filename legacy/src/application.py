@@ -25,6 +25,7 @@ import os.path as path
 import re
 import urllib
 import urllib3
+import itertools
 from collections import OrderedDict, defaultdict
 from tools import abbablueprint
 from tools import booleanalgebrablueprint
@@ -1678,21 +1679,19 @@ def update_project_groups():
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
-@app.route('/updateGenesetGroups', methods=['GET'])
+@app.route('/shareGenesetsWithGroups')
 def update_geneset_groups():
-	if 'user_id' in flask.session:
-		user_id = request.args['user_id']
-		gs_id = request.args['gs_id']
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        gs_ids = request.args.get('gs_id', type=str, default='').split(',')
+        groups = json.loads(request.args.get('option', type=str))
 
-		if json.loads(request.args['groups']) != '':
-			groups = (json.laods(request.args['groups']))
-		else:
-			groups = '-1'
+        for product in itertools.product(gs_ids, groups):
+            geneweaverdb.add_geneset_group(product[0].strip(), product[1])
 
-		if geneweaverdb.get_user(user_id).is_admin != 'False' or \
-				geneweaverdb.user_is_owner(user_id, gs_id):
-			results = geneweaverdb.update_gs_groups(gs_id, groups, user_id)
-			return json.dumps(results)
+        return json.dumps({'error': 'None'})
+    else:
+        return json.dumps({'error': 'You must be logged in to share a geneset with a group'})
 
 
 @app.route('/updateStaredProject', methods=['GET'])
@@ -3360,9 +3359,32 @@ def render_share_projects():
 
 @app.route('/addGenesetsToProjects')
 def add_genesets_projects():
+    """ Function to add a group of genesets to a group of projects.
+
+    Args:
+        request.args['gs_ids']: The genesets that will be added to projects
+        request.args['options']: The projects to which genesets will be added
+        request.args['npn'] (optional): The name of a new project to be created (if given)
+
+    Returns:
+        JSON Dict: {'error': 'None'} for successs, {'error': 'Error Message'} for error
+
+    """
+    
     if 'user_id' in flask.session:
-        results = geneweaverdb.add_genesets_to_projects(request.args)
-        return json.dumps(results)
+        user_id = flask.session['user_id']
+        gs_ids = request.args.get('gs_id', type=str, default='').split(',')
+        projects = json.loads(request.args.get('option', type=str))
+        new_project_name = request.args.get('npn', type=str)
+
+        if new_project_name:
+            new_project_id = geneweaverdb.add_project(user_id, new_project_name)
+            projects.append(new_project_id)
+
+        for product in itertools.product(projects, gs_ids):
+            geneweaverdb.add_geneset2project(product[0], product[1].strip())
+
+        return json.dumps({'error': 'None'})
     else:
         return json.dumps({'error': 'You must be logged in to add a geneset to a project'})
 

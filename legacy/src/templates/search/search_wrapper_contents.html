@@ -216,6 +216,7 @@
 </div>
 
 {% include 'modal/addGenesetsToProjects.html' %}
+{% include 'modal/shareGenesetWithGroup.html' %}
 {% include 'modal/showGenericMessage.html' %}
 
 <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
@@ -321,37 +322,35 @@
 
     var openGSModal = function(modalID, gschecked) {
         return function() {
-        genesets = Object.keys(gschecked);
+            genesets = Object.keys(gschecked);
 
-        // If no genesets selected, display geneneric error modal.
-        if (genesets.length === 0) {
-            showErrorModal('You must first select Genesets to add.');
-        } else {
-
-            var gsString = genesets.map(function(s){ return 'GS' + s; }).join(', ');
-            $(modalID).find('#modal-label').html(gsString);
-            $(modalID).find('#myModalValue').val(genesets.join(','));
-            $(modalID).modal('show');
-	}
-
+            // If no genesets selected, display geneneric error modal.
+            if (genesets.length === 0) {
+                showErrorModal('You must first select Genesets to add.');
+            } else {
+                var gsString = genesets.map(function(s){ return 'GS' + s; }).join(', ');
+                $(modalID).find(modalID+'-label').html(gsString);
+                $(modalID).find(modalID+'Value').val(genesets.join(','));
+                $(modalID).modal('show');
+            }
         }
     }
 
-    var submitModal = function(modalID, url) {
+    var submitGSModal = function(modalID, url) {
         return function() {
-            var selected = $(modalID+' select').val();
-            console.log(selected);
-            return;
+            var selected = $(modalID+' select').val().map(Number);
 
-            var option = JSON.stringify(checked);
-            var g = $('#myModalValue').val();
+            var option = JSON.stringify(selected);
+            var g = $(modalID+'Value').val();
             var npn = null;
 
-            if ($('#newProjName').val().length > 0) {
-                npn = $('#newProjName').val();
+            var newNameElement = $(modalID+'NewName')
+
+            if (newNameElement.length && newNameElement.val().length > 0) {
+                npn = $(modalID+'NewName').val();
             }
 
-            if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
+            if ($.isEmptyObject(selected) && $.isEmptyObject(npn)){
                 $("#result").html('<div class="alert alert-danger fade in"> ' +
                         '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                         '</button>No Projects Were Selected</div>');
@@ -363,72 +362,16 @@
     }
 
     // The 'Share Geneset(s) w/ Group' button
-    $('#shareWithGroup').on('click', openGSModal('#shareWithGroupModal', gschecked));
+    $('#shareWithGroup').on('click', openGSModal('#shareWithGroupsModal', gschecked));
 
     // The 'Share with selected groups' button in the modal above 
+    $('#shareGenesetsWithGroups').on('click', submitGSModal("#shareWithGroupsModal", "../shareGenesetsWithGroups"));
 
     // The 'Add GeneSet(s) to Project' button
     $('#addToProject').on('click', openGSModal('#addToProjectModal', gschecked));
 
     // The 'add to selected projects' button in the modal above
-    $('#addGenesetsToProjects').on('click', submitModal("#addToProjectModal", "../addGenesetsToProjects"));
-    /*
-    $('#addGenesetsToProjects').on('click', function (e) {
-        var checked = [];
-
-        $("input[name='options[]']:checked").each(function () {
-            checked.push(parseInt($(this).val()));
-        });
-
-        var option = JSON.stringify(checked);
-        var g = $('#myModalValue').val();
-        var npn = null;
-
-        console.log(checked);
-        console.log(option);
-        console.log(g);
-        console.log(npn);
-
-        if ($('#newProjName').val().length > 0) {
-            npn = $('#newProjName').val();
-        }
-
-        if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
-            $("#result").html('<div class="alert alert-danger fade in"> ' +
-                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                    '</button>No Projects Were Selected</div>');
-        } else {
-            $.ajax({
-                type: "GET",
-                url: "../addGenesetsToProjects",
-                data: {"npn": npn, "gs_id": g, "option": option},
-                success: function (data) {
-                    var v = JSON.parse(data);
-                    if (v["error"] != 'None') {
-                        console.log("Error returned " + v['error']);
-                        $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>' + v['error'] + '</div>');
-                    } else {
-                        console.log('no error');
-                        $("#result").html('<div class="alert alert-success fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
-                    }
-
-                },
-                error: function (jqXHR, textStatus, errorThrown ) {
-
-                    $(document).trigger("add-alerts", [{
-                        'message': "An Error (" + jqXHR + ") occurred while adding geneset(s) to project(s)",
-                        'priority': 'danger'
-                    }]);
-                }
-
-            });
-        }
-    });
-    */
+    $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
 
     // This chunk of code always needs to go with the addGenesetsToProjects
     // click handler
