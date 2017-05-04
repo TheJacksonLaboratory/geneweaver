@@ -3102,7 +3102,7 @@ def get_groups_by_project(proj_id):
     return results if len(results) > 0 else None
 
 
-def def get_user_groups(usr_id):
+def get_user_groups(usr_id):
     """
     Gets a list of groups that the user belongs to
     :param usr_id:	the user ID
