@@ -1362,6 +1362,7 @@ def add_geneset2project(pj_id, gs_id):
         cursor.connection.commit()
     return
 
+# TODO: Get your logic seperation worked out
 def add_genesets_to_projects(rargs):
     usr_id = rargs.get('user_id', type=int)
     ## Will occur when adding genesets to a project from search, since the
