@@ -1681,6 +1681,16 @@ def update_project_groups():
 
 @app.route('/shareGenesetsWithGroups')
 def update_geneset_groups():
+    """ Function to share a collection of genesets with a collection of groups.
+
+    Args:
+        request.args['gs_ids']: The genesets that will be added to projects
+        request.args['options']: The groups to which genesets will be added
+
+    Returns:
+        JSON Dict: {'error': 'None'} for successs, {'error': 'Error Message'} for error
+
+    """
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         gs_ids = request.args.get('gs_id', type=str, default='').split(',')

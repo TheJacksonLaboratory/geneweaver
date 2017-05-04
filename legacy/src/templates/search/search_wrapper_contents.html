@@ -276,7 +276,7 @@
             e.preventDefault();
     });
 
-    //TODO START HERE
+    // A function to display the error modal
     var showErrorModal = function(message) {
         $('#showGenericModal').find('.modal-header')
             .removeClass('bg-green')
@@ -288,6 +288,7 @@
         $('#showGenericModal').modal('show');
     }
 
+    // Submit the modal information for 'Share w Group' and 'Add to Project' via AJAX
     var submitGSModalAjax = function(url, data) {
         $.ajax({
             type: "GET",
@@ -320,6 +321,7 @@
 
     }
 
+    // Open a geneset modal and update selected genesets label
     var openGSModal = function(modalID, gschecked) {
         return function() {
             genesets = Object.keys(gschecked);
@@ -336,6 +338,7 @@
         }
     }
 
+    // Collect data from modal for ajax call, or display error if needed
     var submitGSModal = function(modalID, url) {
         return function() {
             var selected = $(modalID+' select').val().map(Number);
