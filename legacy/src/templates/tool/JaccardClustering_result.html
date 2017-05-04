@@ -220,11 +220,13 @@
                     ;
             });
 
-        });
 
         $("select#visualizationType").change(function(){
 
-            //visualize(jsonPath);
+            d3.select('#d3-visual').selectAll('*').remove();
+            visualize(jsonPath);
+        });
+
         });
     </script>
 <script>

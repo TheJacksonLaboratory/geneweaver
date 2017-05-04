@@ -28,6 +28,7 @@ var jaccardClustering = function() {
         gravity = 0.02,
         // Element ID of the div to draw in
         element = '#d3-visual',
+        speciesColors = {},
         // Node color palette
         colors = [
             "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", 
@@ -37,6 +38,26 @@ var jaccardClustering = function() {
         ];
 
     /** private **/
+
+    /**
+      * Maps colors to drawn nodes based on species. 
+      */
+    var colorMap = function(d) {
+
+        // This indicates the node isn't a geneset; it's either an internal node 
+        // or a geneset node that has been collapsed.
+        if (d.species === undefined)
+            return '#0099FF';
+
+        if (!(d.species in speciesColors)) {
+
+            var cindex = Object.keys(speciesColors).length % colors.length;
+
+            speciesColors[d.species] = colors[cindex];
+        }
+
+        return speciesColors[d.species];
+    }
 
     /**
      * Updates currently drawn nodes and edges based on user input (e.g.
@@ -88,6 +109,7 @@ var jaccardClustering = function() {
         node.on('mouseover', mouseover);
         node.on('mouseout', mouseout);
         node.on('dblclick', dblclick);
+        node.on('contextmenu', dblclick);
     };
 
     /**
@@ -395,9 +417,7 @@ var jaccardClustering = function() {
         return exports;
     };
 
-    /*
-     * Setters/getters
-     */
+    /* setters/getters */
     
     exports.jsonData = function(_) {
         if (!arguments.length) return jsonData;
@@ -777,11 +797,12 @@ function visualize(jsonPath) {
         .attr("width", width)
         .attr("height", height);
 
-    if ($("select#visualizationType").val() == "forceTree") {
+    //if ($("select#visualizationType").val() == "forceTree") {
 
-        visualizeForceTree(svg, jsonPath);
+    //    visualizeForceTree(svg, jsonPath);
 
-    } else if ($("select#visualizationType").val() == "sunburst") {
+    //} else if ($("select#visualizationType").val() == "sunburst") {
+    if (true) {
         var radius = Math.min(width, height) / 3;
 
         var x = d3.scale.linear()
@@ -1087,7 +1108,7 @@ function opac(d) {
     return 0.8;
 }
 
-function colorMap(d) {
+function colorMap2(d) {
 
     // This indicates the node isn't a geneset; it's either an internal node 
     // or a geneset node that has been collapsed.
