@@ -52,9 +52,20 @@ $.ajax({
 }
 
 // Open a geneset modal and update selected genesets label
-var openGSModal = function(modalID, gschecked) {
+var openGSModal = function(modalID, genesets, modalTitle) {
 return function() {
-    genesets = Object.keys(gschecked);
+
+    // If not an array, get gs_ids from Object.keys
+    if (!Array.isArray(genesets)){
+        genesets = Object.keys(genesets);
+    }
+
+    console.log(genesets);
+
+    // Update the modal title if specified
+    if (typeof modalTitle !== 'undefined') {
+        $(modalID).find('.modal-title').html(modalTitle);
+    }
 
     // If no genesets selected, display geneneric error modal.
     if (genesets.length === 0) {

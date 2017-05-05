@@ -305,6 +305,7 @@
 	</iframe>
 
     <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+    <script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
 
@@ -359,7 +360,7 @@
         $(document).ready(function () {
 
             var gs_id = {{ geneset.geneset_id }};
-			var user_id = {{ user_id }};
+            var user_id = {{ user_id }};
 
             {% if 'deprecated' in geneset.status %}
 
@@ -374,61 +375,24 @@
 
             {% endif %}
 
-			// The right side button 'Add to Project'
-            $('#addToProject').on('click', function (e) {
+            // The 'Share Geneset(s) w/ Group' button
+            $('#shareWithGroup').on('click', openGSModal('#shareWithGroupsModal', [gs_id], 'Share GeneSet with Group(s)'));
 
-				var modal = $('#myModalValue').val();
-				var npn = $('#newProjName').val();
-				var geneset = 'GS' + gs_id;
+            // The 'Share with selected groups' button in the modal above
+            $('#shareGenesetsWithGroups').on('click', submitGSModal("#shareWithGroupsModal", "../shareGenesetsWithGroups"));
 
-				console.log(geneset);
-				// Alter the modal text a bit since we're only adding a single
-				// geneset, not several which is the default.
-				$('#addToProjectModal').find('.modal-title')
-					.html('Add GeneSet to Project(s)');
-                $("#myModalValue").val(geneset);
-                $("#modal-label").html(geneset);
-				$('#addToProjectModal').modal('show');
+            // The 'Add GeneSet(s) to Project' button
+            $('#addToProject').on('click', openGSModal('#addToProjectModal', [gs_id], 'Add GeneSet to Project(s)'));
+
+            // The 'add to selected projects' button in the modal above
+            $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
+
+            // The button for this is found on the addGenesetsToProjects modal
+            $('#addNewProject').on('click', function () {
+                    $('#reveal-if-active').toggle();
             });
 
-			// The 'add to selected projects' button on the modal
-            $('#addGenesetsToProjects').on('click', function (e) {
-                var checked = [];
-
-                $("input[name='options[]']:checked").each(function () {
-                    checked.push(parseInt($(this).val()));
-                });
-
-                var option = JSON.stringify(checked);
-                var g = $('#myModalValue').val();
-                if ($('#newProjName').val().length > 0) {
-                    var npn = $('#newProjName').val();
-                }
-
-                if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
-                    $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>No Projects Were Selected</div>');
-                } else {
-                    $.ajax({
-                        type: "GET",
-                        url: "../addGenesetsToProjects",
-                        data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
-                        success: function (data) {
-                            $("#result").html('<div class="alert alert-success fade in"> ' +
-                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                    '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
-                        }
-                    });
-                }
-            });
-
-			// The button for this is found on the addGenesetsToProjects modal
-			$('#addNewProject').on('click', function () {
-				$('#reveal-if-active').toggle();
-			});
-
-			// Export OmicSoft version
+            // Export OmicSoft version
             $('#exportOmicsSoft').on('click', function() {
                 var gs_id = {{ geneset.geneset_id }};
                 window.location = '/exportOmicsSoft/' + gs_id;
@@ -437,8 +401,8 @@
                         '</button>Downloaded GeneSet in OmicsSoft Format Completed</div>');
             });
 
-			// Generates a text version of the gene/value list using the 
-			// currently selected alternate ID. 
+            // Generates a text version of the gene/value list using the 
+            // currently selected alternate ID. 
             $('#exportData').on('click', function (e) {
                 // window.open('../exportGeneList/' + gs_id);
 				var exports = '';
@@ -795,7 +759,8 @@
 
 {% endif %}
 
-{% include 'modal/addGenesetsToProjects.html' %}
+{% include 'modal/addGenesetsToProjects_multiselect.html' %}
+{% include 'modal/shareGenesetWithGroup.html' %}
 
 {% include 'modal/deleteGeneset.html' %}
 
