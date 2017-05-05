@@ -18,6 +18,8 @@ def render_uploadgeneset(genes=None):
 
     user_id = flask.session['user_id'] if 'user_id' in flask.session else 0
 
+    my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
+
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
         gidts.append((
             'gene_{0}'.format(gene_id_type_record['gdb_id']),
@@ -43,7 +45,8 @@ def render_uploadgeneset(genes=None):
             gs=dict(),
             all_species=geneweaverdb.get_all_species(),
             gidts=gidts,
-            user_id=user_id)
+            user_id=user_id,
+            myGroups=my_groups)
 
 @geneset_blueprint.route('/batchupload')
 def render_batchupload(genes=None):
@@ -92,9 +95,18 @@ def create_batch_geneset():
     if user_id == None:
         return flask.jsonify({"error": "You must be signed in to upload a GeneSet."})
 
+    ## Required later on when inserting OmicsSoft specific metadata
+    is_omicssoft = False
 
-    ## Returns a triplet (geneset list, warnings, errors)
-    batchFile = batch.parseBatchFile(batchFile, user_id)
+    if batch.is_omicssoft(batchFile):
+        batchFile = batch.parse_omicssoft(batchFile, user_id)
+        batchFile = (batchFile, [], [])
+        is_omicssoft = True
+
+    else:
+        ## Returns a triplet (geneset list, warnings, errors)
+        batchFile = batch.parseBatchFile(batchFile, user_id)
+
     batchErrors = ''
     batchWarns = ''
 
@@ -143,7 +155,7 @@ def create_batch_geneset():
             ce = ('The GeneSet "%s" has no valid genes/loci and could not be '
                     'uploaded.\n' % gs['gs_name'])
 
-            batchFile[1].extend(ce)
+            batchFile[1].append(ce)
             #return flask.jsonify({'error': ce})
 
         ## Update gs_count if some geneset_values were found to be invalid
@@ -157,7 +169,7 @@ def create_batch_geneset():
             batchFile[1].extend(gsverr[1])
 
         ## Add ontology annotations provided they exist
-        if gs['annotations']:
+        if 'annotations' in gs and gs['annotations']:
             ont_ids = geneweaverdb.get_ontologies_by_refs(gs['annotations'])
 
             for ont_id in ont_ids:
@@ -190,6 +202,17 @@ def create_batch_geneset():
                                    abstract, ncbo=ncbo, monarch=monarch)
 
     batch.db.commit()
+
+    if is_omicssoft:
+        for gs in batchFile[0]:
+            project = gs['project'] if 'project' in gs else ''
+            source = gs['source'] if 'source' in gs else ''
+            tag = gs['tag'] if 'tag' in gs else ''
+            otype = gs['type'] if 'type' in gs else ''
+
+            geneweaverdb.insert_omicssoft_metadata(
+                gs['gs_id'], project, source, tag, otype
+            )
 
     for w in batchFile[1]:
         batchWarns += w
