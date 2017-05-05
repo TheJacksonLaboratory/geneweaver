@@ -6,7 +6,10 @@
  */
 
 
-// A function to display the error modal
+/**
+ * A function to display the error modal. Page must include the generic modal.
+ * @param {String} message      The error message to display on the modal
+ */
 var showErrorModal = function(message) {
 $('#showGenericModal').find('.modal-header')
     .removeClass('bg-green')
@@ -18,7 +21,11 @@ $('#showGenericModal').find('#genericMessage')
 $('#showGenericModal').modal('show');
 }
 
-// Submit the modal information for 'Share w Group' and 'Add t' via AJAX
+/**
+ * Submit the modal information for 'Share w Group' and 'Add t' via AJAX
+ * @param {String} url  The url to which the ajax call will be made
+ * @param {Object} data The data which will be submitted via ajax
+ */
 var submitGSModalAjax = function(url, data) {
 $.ajax({
     type: "GET",
@@ -51,7 +58,13 @@ $.ajax({
 
 }
 
-// Open a geneset modal and update selected genesets label
+/**
+ * Open a geneset modal and update selected genesets label
+ * @param  {String} modalID     The ID of the modal to open
+ * @param  {Object} or {Array}  A collection of genesets to add
+ *                                if Object, will use keys to build array
+ * @param  {String} modalTitle  Title to replace default modal title with
+ */
 var openGSModal = function(modalID, genesets, modalTitle) {
 return function() {
 
@@ -79,7 +92,11 @@ return function() {
 }
 }
 
-// Collect data from modal for ajax call, or display error if needed
+/**
+ * Collect data from modal for ajax call, or display error if needed
+ * @param  {String} modalID     The ID of the modal to submit
+ * @param  {String} url         The url to which the ajax call will be made
+ */
 var submitGSModal = function(modalID, url) {
 return function() {
     var selected = $(modalID+' select').val().map(Number);
