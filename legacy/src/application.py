@@ -451,7 +451,7 @@ def assign_genesets_to_curation_group():
             else:
                 status[gs_id] = {'success': False}
 
-            response = flask.jsonify(results=status)
+        response = flask.jsonify(results=status)
 
     else:
         #user is not logged in
