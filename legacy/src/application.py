@@ -1680,7 +1680,7 @@ def update_project_groups():
             return json.dumps(results)
 
 @app.route('/shareGenesetsWithGroups')
-def update_geneset_groups():
+def update_genesets_groups():
     """ Function to share a collection of genesets with a collection of groups.
 
     Args:
@@ -1697,7 +1697,12 @@ def update_geneset_groups():
         groups = json.loads(request.args.get('option', type=str))
 
         for product in itertools.product(gs_ids, groups):
-            geneweaverdb.add_geneset_group(product[0].strip(), product[1])
+            try:
+                geneweaverdb.add_geneset_group(product[0].strip(), product[1])
+            except ValueError:
+                pass
+            except TypeError:
+                pass
 
         return json.dumps({'error': 'None'})
     else:

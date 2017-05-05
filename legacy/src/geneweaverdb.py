@@ -1419,6 +1419,9 @@ def add_geneset_group(gs_id, grp_id):
         group_id: group ID being added
     """
 
+    if not grp_id or not gs_id:
+        raise TypeError('Both gs_id and grp_id cannot be none.')
+
     grp_id = str(grp_id)
 
     with PooledCursor() as cursor:
@@ -1431,7 +1434,7 @@ def add_geneset_group(gs_id, grp_id):
         groups = cursor.fetchone()
 
         if not groups:
-            return
+            raise ValueError('No groups returned for gs_id')
 
         groups = groups[0].split(',')
 
@@ -1439,7 +1442,7 @@ def add_geneset_group(gs_id, grp_id):
             groups = []             
 
         if grp_id in groups or '0' in groups:
-            return
+            raise ValueError('Group exists, or geneset is public')
 
         groups.append(grp_id)
         groups = ','.join(groups)
