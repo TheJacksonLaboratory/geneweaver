@@ -1,5 +1,5 @@
 /**
- * file: searchResultModals.js
+ * file: shareAddGenesetsModals.js
  * desc: Code to abstract modal handling to avoid duplication
  *       Requires JQuery to be loaded before this file.
  * auth: Alexander Berger
