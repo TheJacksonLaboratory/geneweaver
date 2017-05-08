@@ -38,6 +38,9 @@
 from __future__ import print_function
 import geneweaverdb
 import notifications
+import psycopg2
+
+__CORE_CURATION_GROUP = None
 
 
 class CurationAssignment(object):
@@ -227,7 +230,7 @@ def get_geneset_name(geneset_id):
     return geneset_name
 
 
-def submit_geneset_for_curation(geneset_id, group_id, note, notify=True):
+def submit_geneset_for_curation(geneset_id, group_id, note, notify=True, delete_existing=True):
     """
     :param geneset_id: geneset submitted for curation
     :param group_id: group responsible for the curation
@@ -238,14 +241,15 @@ def submit_geneset_for_curation(geneset_id, group_id, note, notify=True):
     curation_state = CurationAssignment.UNASSIGNED
     with geneweaverdb.PooledCursor() as cursor:
 
-        # JGP - for now delete the object to prevent exception on the INSERT...
-        cursor.execute(
-            "DELETE FROM production.curation_assignments WHERE gs_id=%s", (geneset_id,))
+        if delete_existing:
+            cursor.execute(
+                "DELETE FROM production.curation_assignments WHERE gs_id=%s",
+                (geneset_id,))
 
         # Add a record to the table
         cursor.execute(
             "INSERT INTO production.curation_assignments (gs_id, curation_group, curation_state, notes) VALUES (%s, %s, %s, %s)",
-            (geneset_id, group_id, 1, note))
+            (geneset_id, group_id, curation_state, note))
         cursor.connection.commit()
 
         if notify:
@@ -253,7 +257,6 @@ def submit_geneset_for_curation(geneset_id, group_id, note, notify=True):
             subject = 'New Geneset Awaiting Curation'
             message = get_geneset_url(geneset_id) + ' : <i>' + get_geneset_name(geneset_id) + '</i><br>' + note
             notifications.send_group_admin_notification(group_id, subject, message)
-    return
 
 
 def get_geneset_curation_assignment(geneset_id):
@@ -268,10 +271,45 @@ def get_geneset_curation_assignment(geneset_id):
         else:
             return None
 
+
+def nominate_public_gs(geneset_id, notes):
+    """
+    nominate a public geneset for curation by the GW core curation team
+    will raise an exception if the geneset can't be assigned (for example,
+    it might already be assigned for curation)
+    :param geneset_id: geneset ID identifying the geneset that needs curation
+    :param notes: notes from the submitter indicating why they feel the geneset
+                  needs attention
+    :return:
+    """
+
+    global __CORE_CURATION_GROUP
+
+    if not __CORE_CURATION_GROUP:
+        __CORE_CURATION_GROUP = geneweaverdb.get_curation_group()
+        if not __CORE_CURATION_GROUP:
+            raise Exception("GeneWeaverCurators group is not defined")
+
+    assignment = get_geneset_curation_assignment(geneset_id)
+    if assignment and assignment.state == assignment.REVIEWED:
+        # if there is already a curation assignment record for this geneset it
+        # is okay to delete it if the assigment has been reviewed (closed)
+        delete_existing = True
+    else:
+        delete_existing = False
+
+
+    try:
+        submit_geneset_for_curation(geneset_id, __CORE_CURATION_GROUP.grp_id,
+                                    notes, delete_existing=delete_existing)
+    except psycopg2.IntegrityError:
+        raise Exception("Geneset already assigned to curation group")
+
+
 #
 # Start of TEST program
 #
-def main():
+def main2():
     print("curation_assignments testing...")
     geneset_id=248306
     group_id=136

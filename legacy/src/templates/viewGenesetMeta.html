@@ -14,6 +14,11 @@
         <button type="button" class="btn btn-block btn-warning" id="viewSimilarGenesets">
             <i class="fa fa-eye pull-left"></i> Similar GeneSets
         </button>
+        {% if geneset.cur_id in [3, 4] %}
+        <button type="button" class="btn btn-block btn-warning" id="requestCuration">
+            <i class="fa fa-flag pull-left"></i> Request Curation
+        </button>
+        {% endif %}
 
         {% if g.user is defined %}
         <button type="button" class="btn btn-block btn-warning" id="addToProject">
