@@ -40,7 +40,181 @@ var jaccardClustering = function() {
     /** private **/
 
     /**
-      * Maps colors to drawn nodes based on species. 
+      * Returns the label for geneset nodes and an empty string for all others
+      * (i.e. collapsed/internal/root nodes).
+      */
+    var getNodeLabel = function(d) { return d.type == 'geneset' ? d.name : ''; };
+
+    /**
+      * Returns an opacity value that's dependent on the node or edge type
+      * provided.
+      */
+    var getOpacity = function(d) {
+        // We're dealing with nodes
+        if (d.name) {
+
+            if (d.type === 'geneset')
+                return 1;
+
+            // Probably an internal node
+            return 0.8;
+            
+        // We're dealing with edges
+        } else {
+
+            // An invisible root node exists and we don't show the edge for it.
+            if (d.source.name === 'root')
+                return 0;
+
+            return 1;
+        }
+
+        return 0.8;
+    }
+
+    /**
+      * Calculates the radius for a given node based on its type. Collapsed
+      * cluster nodes are twice as big as the initial cluster node.
+      */
+    var getRadius = function(d) {
+
+        if (d.type === 'collapsed-cluster')
+            return d.size * 2;
+
+        if (d.size)
+            return d.size;
+
+        return 0;
+    }
+
+    /**
+      * Calculates the proper node label position for the given node.
+      */
+    var getPosition = function(d) { return -1 * (getRadius(d) + 5) };
+
+    // Toggle children on click.
+    var collapse = function(d) {
+
+        if (d.children) {
+
+            d.genes = d.children;
+            d.g_index = 0;
+            d.children = null;
+        }
+    }
+
+    // Toggle children on click.
+    var click = function(d) {
+
+        // Ignores drag events
+        if (d3.event.defaultPrevented) 
+            return;
+
+        // Hide displayed genes when a user clicks on a geneset node
+        if (d.type === 'geneset' && d.children) {
+
+            if (d.children) {
+
+                d.genes = d.children;
+                d.g_index = 0;
+                d.children = null;
+            }
+        
+        } else if (d.genes) {
+
+            if (d.g_index >= d.genes.length) {
+                
+                d.children = null;
+                d.g_index = 0;
+
+            } else if (d.g_index + 10 < d.genes.length) {
+            
+                d.children = d.genes.slice(d.g_index, d.g_index + 10);
+                d.g_index += 10;
+
+            } else {
+
+                d.children = d.genes.slice(d.g_index);
+                d.g_index = d.genes.length;
+            }
+
+        } else {
+
+            if (d.children) {
+
+                d.type = 'collapsed-cluster';
+                d._children = d.children;
+                d.children = null;
+
+            } else {
+
+                d.type = 'cluster';
+                d.children = d._children;
+                d._children = null;
+            }
+        }
+
+        updateLayout();
+    }
+
+
+    var mouseover = function(d) {
+
+        if (d.type == "cluster") {
+            var nodeSelected = d3.select(this);
+
+            nodeSelected.select("circle").attr("r", d.size + 10);
+            nodeSelected.select("text").attr("dy", "0.5em");
+            nodeSelected.select("text").attr("dx", "0em");
+            nodeSelected.select("text").text(d.jaccard_index.toPrecision(2));
+
+        } else if (d.type == "geneset") {
+            var nodeSelected = d3.select(this);
+
+            nodeSelected.select("text").text(d.info);
+
+        } else {
+            var nodeSelected = d3.select(this);
+
+            nodeSelected.select("circle").attr("r", d.size * 2);
+            nodeSelected.select("text").text(d.name);
+        }
+    }
+
+    var mouseout = function(d) {
+
+        var nodeSelected = d3.select(this);
+
+        nodeSelected.select("circle").attr("r", getRadius);
+        nodeSelected.select("text").attr("dy", getPosition);
+        nodeSelected.select("text").attr("dx", getPosition);
+        nodeSelected.select("text").text(getNodeLabel);
+    }
+
+    // Returns a list of all nodes under the root.
+    var flatten = function(root) {
+        var flatNodes = [], i = 0;
+
+        var recurse = function(node) {
+            
+            if (node.children) 
+                node.children.forEach(recurse);
+
+            if (!node.id) 
+                node.id = ++i;
+
+            flatNodes.push(node);
+        };
+
+        recurse(root);
+
+        return flatNodes;
+    }
+
+    /**
+      * Maps colors to drawn nodes based on species. Each node (which
+      * represents a gene set or a cluster) will get a certain color dependent
+      * on its species. Clusters get their own color too.
       */
     var colorMap = function(d) {
 
@@ -53,6 +227,7 @@ var jaccardClustering = function() {
 
             var cindex = Object.keys(speciesColors).length % colors.length;
 
+            // speciesColors is a mapping of species names -> color
             speciesColors[d.species] = colors[cindex];
         }
 
@@ -60,9 +235,9 @@ var jaccardClustering = function() {
     }
 
     /**
-     * Updates currently drawn nodes and edges based on user input (e.g.
-     * clicking nodes).
-     */
+      * Updates currently drawn nodes and edges based on user input (e.g.
+      * clicking nodes).
+      */
     var updateLayout = function() {
         var nodes = flatten(jsonData);
         var links = d3.layout.tree().links(nodes);
@@ -81,7 +256,7 @@ var jaccardClustering = function() {
             .insert('line', '.node')
             .style('stroke', '#555')
             .style('stroke-width', '2px')
-            .style('opacity', opac);
+            .style('opacity', getOpacity);
 
         node = node.data(nodes, function (d) { return d.id; });
 
@@ -94,17 +269,17 @@ var jaccardClustering = function() {
             .call(layout.drag);
 
         nodeEnter.append('circle')
-            .attr('r', radius)
+            .attr('r', getRadius)
             .attr('shape-rendering', 'auto')
             .style('stroke', '#000')
             .style('stroke-width', '1.5px')
             .style('fill', function(d) { return colorMap(d); })
-            .style('opacity', opac);
+            .style('opacity', getOpacity);
 
         nodeEnter.append('text')
-            .attr('dy', dist)
-            .attr('dx', dist)
-            .text(label);
+            .attr('dy', getPosition)
+            .attr('dx', getPosition)
+            .text(getNodeLabel);
 
         node.on('mouseover', mouseover);
         node.on('mouseout', mouseout);
@@ -173,165 +348,6 @@ var jaccardClustering = function() {
         */
     };
 
-    /**
-     * Returns the label for geneset nodes and an empty string for all others
-     * (i.e. internal/root nodes).
-     */
-    var label = function(d) { return d.type == "geneset" ? d.name : ''; };
-
-    var opac = function(d) {
-        // We're dealing with nodes
-        if (d.name) {
-
-            if (d.type === 'geneset')
-                return 1;
-
-            // Probably an internal node
-            return 0.8;
-            
-        // We're dealing with edges
-        } else {
-
-            // An invisible root node exists and we don't show the edge for it.
-            if (d.source.name === 'root')
-                return 0;
-
-            return 1;
-        }
-
-        return 0.8;
-    }
-
-    var dist = function(d) { return -1 * (radius(d) + 5) };
-
-    var radius = function(d) {
-
-        if (d.type === 'collapsed-cluster')
-            return d.size * 2;
-
-        if (d.size)
-            return d.size;
-
-        return 0;
-    }
-
-    // Toggle children on click.
-    var click = function(d) {
-
-        // Ignores drag events
-        if (d3.event.defaultPrevented) 
-            return;
-
-        // Hide displayed genes when a user clicks on a geneset node
-        if (d.type === 'geneset' && d.children) {
-
-            if (d.children) {
-
-                d.genes = d.children;
-                d.g_index = 0;
-                d.children = null;
-            }
-        
-        } else if (d.genes) {
-
-            if (d.g_index >= d.genes.length) {
-                
-                d.children = null;
-                d.g_index = 0;
-
-            } else if (d.g_index + 10 < d.genes.length) {
-            
-                d.children = d.genes.slice(d.g_index, d.g_index + 10);
-                d.g_index += 10;
-
-            } else {
-
-                d.children = d.genes.slice(d.g_index);
-                d.g_index = d.genes.length;
-            }
-
-        } else {
-
-            if (d.children) {
-
-                d.type = 'collapsed-cluster';
-                d._children = d.children;
-                d.children = null;
-
-            } else {
-
-                d.type = 'cluster';
-                d.children = d._children;
-                d._children = null;
-            }
-        }
-
-        updateLayout();
-    }
-
-    // Toggle children on click.
-    var collapse = function(d) {
-
-        if (d.children) {
-
-            d.genes = d.children;
-            d.g_index = 0;
-            d.children = null;
-        }
-    }
-
-    var mouseover = function(d) {
-
-        if (d.type == "cluster") {
-            var nodeSelected = d3.select(this);
-
-            nodeSelected.select("circle").attr("r", d.size + 10);
-            nodeSelected.select("text").attr("dy", "0.5em");
-            nodeSelected.select("text").attr("dx", "0em");
-            nodeSelected.select("text").text(d.jaccard_index.toPrecision(2));
-
-        } else if (d.type == "geneset") {
-            var nodeSelected = d3.select(this);
-
-            nodeSelected.select("text").text(d.info);
-
-        } else {
-            var nodeSelected = d3.select(this);
-
-            nodeSelected.select("circle").attr("r", d.size * 2);
-            nodeSelected.select("text").text(d.name);
-        }
-    }
-
-    var mouseout = function(d) {
-
-        var nodeSelected = d3.select(this);
-
-        nodeSelected.select("circle").attr("r", radius);
-        nodeSelected.select("text").attr("dy", dist);
-        nodeSelected.select("text").attr("dx", dist);
-        nodeSelected.select("text").text(label);
-    }
-
-    // Returns a list of all nodes under the root.
-    var flatten = function(root) {
-        var flatNodes = [], i = 0;
-
-        var recurse = function(node) {
-            
-            if (node.children) 
-                node.children.forEach(recurse);
-
-            if (!node.id) 
-                node.id = ++i;
-
-            flatNodes.push(node);
-        };
-
-        recurse(root);
-
-        return flatNodes;
-    }
 
     /** public **/
     
