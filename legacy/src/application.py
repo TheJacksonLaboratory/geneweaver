@@ -1,7 +1,7 @@
 import flask
-from flask.ext.admin import Admin, BaseView, expose
-from flask.ext.admin.base import MenuLink
-from flask.ext import restful
+from flask_admin import Admin, BaseView, expose
+from flask_admin.base import MenuLink
+import flask_restful as restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from urllib2 import HTTPError
@@ -10,6 +10,7 @@ from urlparse import parse_qs, urlparse
 import config
 import datetime
 import adminviews
+import annotator
 import genesetblueprint
 import geneweaverdb
 import notifications
@@ -450,7 +451,7 @@ def assign_genesets_to_curation_group():
             else:
                 status[gs_id] = {'success': False}
 
-            response = flask.jsonify(results=status)
+        response = flask.jsonify(results=status)
 
     else:
         #user is not logged in
@@ -1166,6 +1167,43 @@ def update_geneset_ontology_db():
         geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
 
     return json.dumps(True)
+
+
+@app.route('/rerun_annotator.json', methods=['POST'])
+def rerun_annotator():
+    """
+    Reruns the annotator tool for a given geneset and updates its annotations.
+    """
+
+    publication = request.form['publication']
+    description = request.form['description']
+    gs_id = request.form['gs_id']
+    user_id = session['user_id'] if session['user_id'] else 0
+
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        response = flask.jsonify(
+            {'error': 'You must be logged in to make changes to this GeneSet'})
+        response.status_code = 401
+        return response
+
+    # Only admins, curators, and owners can make changes
+    if ((not user.is_admin and not user.is_curator) or
+            (not geneweaverdb.user_is_owner(user_id, gs_id) and
+                     not geneweaverdb.user_is_assigned_curation(user_id,
+                                                                gs_id))):
+        response = flask.jsonify(
+            {'error': 'You do not have permission to update this GeneSet'})
+        response.status_code = 403
+        return response
+
+    # get user's annotator preference
+    user_prefs = json.loads(user.prefs)
+
+    annotator.rerun_annotator(gs_id, publication, description, user_prefs)
+
+    return flask.jsonify({'success': True})
 
 
 def get_ontology_terms(gsid):
@@ -2765,15 +2803,17 @@ def render_export_omicssoft(gs_ids):
         for gs_id in gs_ids_list:
             results = geneweaverdb.get_geneset(gs_id, flask.session['user_id'])
             gsv_values = geneweaverdb.export_results_by_gs_id(gs_id)
+            omicssoft = geneweaverdb.get_omicssoft(gs_id)
+            print omicssoft
             title = 'gw_omicssoft_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
             string += '[GeneSet]\n'
             if results is not None:
                 string += '##Source=GeneWeaver Generated\n'
-                string += '##Type=N/A\n'
-                string += '##Project=N/A\n'
+                string += '##Type=' + str(omicssoft['type']) + '\n'
+                string += '##Project=' + str(omicssoft['project']) + '\n'
                 string += '##Name=' + str(results.name) + '\n'
                 string += '##Description=' + str(results.description) + '\n'
-                string += '##Tag=GeneWeaver\n'
+                string += '##Tag=' + str(omicssoft['tag']) + '\n'
                 for gene, value in gsv_values.iteritems():
                     string += str(gene) + '\t' + str(value) + '\n'
                 string += '\n'

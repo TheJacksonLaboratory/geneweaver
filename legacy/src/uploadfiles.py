@@ -154,7 +154,10 @@ def create_new_geneset(args):
     else:
         cur_id = 4
         gs_groups = '0'
-
+    ## If any groups were sent, replace gs_groups, with the list of groups
+    if 'select_groups' in formData:
+        cur_id = 5
+        gs_groups = ", ".join(formData['select_groups'])
 
     # The old geneset loader is commented out, followed by the new geneset insert
     # try:
