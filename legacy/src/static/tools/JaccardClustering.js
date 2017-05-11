@@ -92,76 +92,87 @@ var jaccardClustering = function() {
       */
     var getPosition = function(d) { return -1 * (getRadius(d) + 5) };
 
-    // Toggle children on click.
-    var collapse = function(d) {
-
-        if (d.children) {
-
-            d.genes = d.children;
-            d.g_index = 0;
-            d.children = null;
-        }
-    }
-
-    // Toggle children on click.
-    var click = function(d) {
+    /**
+      * Controls single mouse clicking behavior. Nothing happens if a gene set
+      * node is clicked. Cluster nodes are collapsed and collpased clusters
+      * expanded when they are clicked.
+      */
+    var onClick = function(d) {
 
         // Ignores drag events
         if (d3.event.defaultPrevented) 
             return;
 
-        // Hide displayed genes when a user clicks on a geneset node
-        if (d.type === 'geneset' && d.children) {
+        if (d.type === 'geneset')
+            return;
 
-            if (d.children) {
+        // The node is a cluster node and we set it to collapsed, which hides
+        // all of its children.
+        if (d.children) {
 
-                d.genes = d.children;
-                d.g_index = 0;
-                d.children = null;
-            }
-        
-        } else if (d.genes) {
+            d.type = 'collapsed-cluster';
+            d._children = d.children;
+            d.children = null;
 
-            if (d.g_index >= d.genes.length) {
-                
-                d.children = null;
-                d.g_index = 0;
-
-            } else if (d.g_index + 10 < d.genes.length) {
-            
-                d.children = d.genes.slice(d.g_index, d.g_index + 10);
-                d.g_index += 10;
-
-            } else {
-
-                d.children = d.genes.slice(d.g_index);
-                d.g_index = d.genes.length;
-            }
-
+        // The node is a collapsed cluster node and we expand it
         } else {
 
-            if (d.children) {
-
-                d.type = 'collapsed-cluster';
-                d._children = d.children;
-                d.children = null;
-
-            } else {
-
-                d.type = 'cluster';
-                d.children = d._children;
-                d._children = null;
-            }
+            d.type = 'cluster';
+            d.children = d._children;
+            d._children = null;
         }
 
         updateLayout();
     }
 
+    /**
+      * Controls right click behavior. Takes the user to the 
+      * /viewgenesetdetails page when a gene set node is clicked.
+      * node is clicked. (Collapsed) Cluster nodes take the user to the
+      * /viewgenesetoverlap page.
+      */
+    var onRightClick = function(d) {
 
+        // Prevent the stupid context menu from popping up
+        d3.event.preventDefault();
+
+        if (d.type === 'geneset') {
+            window.open('/viewgenesetdetails/' + d.id, '_blank');
+
+        // This is a cluster or collapsed cluster node.
+        } else {
+
+            var children = [];
+
+            var getChildren = function(node) {
+                
+                if (node.children) 
+                    node.children.forEach(getChildren);
+                // Get hidden children too (only needed for collpased clusters)
+                if (node._children) 
+                    node._children.forEach(getChildren);
+
+                if (node.type === 'geneset')
+                    children.push(node.id);
+            };
+
+            getChildren(d);
+
+            window.open('/viewgenesetoverlap/' + children.join('+'), '_blank');
+        }
+    }
+
+    /**
+      * Controls visualization behavior when the mouse hovers over a node.
+      * On gene set nodes, the labels are changed to gene set names.
+      * Cluster nodes display the jaccard value or clustering coefficient or
+      * whatever the hell that value is.
+      */
     var mouseover = function(d) {
 
+        var nodeSelected = d3.select(this);
+
         if (d.type == "cluster") {
-            var nodeSelected = d3.select(this);
 
             nodeSelected.select("circle").attr("r", d.size + 10);
             nodeSelected.select("text").attr("dy", "0.5em");
@@ -169,18 +180,22 @@ var jaccardClustering = function() {
             nodeSelected.select("text").text(d.jaccard_index.toPrecision(2));
 
         } else if (d.type == "geneset") {
-            var nodeSelected = d3.select(this);
 
             nodeSelected.select("text").text(d.info);
 
         } else {
-            var nodeSelected = d3.select(this);
 
             nodeSelected.select("circle").attr("r", d.size * 2);
             nodeSelected.select("text").text(d.name);
         }
     }
 
+    /**
+      * Controls visualization behavior when the mouse stops hovering over a 
+      * node. On gene set nodes, the labels are changed back from gene set 
+      * names to abbreviations.
+      * Cluster nodes no longer display value.
+      */
     var mouseout = function(d) {
 
         var nodeSelected = d3.select(this);
@@ -191,9 +206,13 @@ var jaccardClustering = function() {
         nodeSelected.select("text").text(getNodeLabel);
     }
 
-    // Returns a list of all nodes under the root.
+    /**
+      * Flattens the dendogram into a list of nodes.
+      */
     var flatten = function(root) {
-        var flatNodes = [], i = 0;
+
+        var flatNodes = [], 
+            i = 0;
 
         var recurse = function(node) {
             
@@ -239,6 +258,7 @@ var jaccardClustering = function() {
       * clicking nodes).
       */
     var updateLayout = function() {
+
         var nodes = flatten(jsonData);
         var links = d3.layout.tree().links(nodes);
         var treeHeight = jsonData.height;
@@ -260,12 +280,13 @@ var jaccardClustering = function() {
 
         node = node.data(nodes, function (d) { return d.id; });
 
+        // Removes the node from the SVG
         node.exit().remove();
 
         var nodeEnter = node.enter()
             .append('g')
             .attr('class', 'node')
-            .on('click', click)
+            .on('click', onClick)
             .call(layout.drag);
 
         nodeEnter.append('circle')
@@ -283,8 +304,7 @@ var jaccardClustering = function() {
 
         node.on('mouseover', mouseover);
         node.on('mouseout', mouseout);
-        node.on('dblclick', dblclick);
-        node.on('contextmenu', dblclick);
+        node.on('contextmenu', onRightClick);
     };
 
     /**
@@ -327,9 +347,11 @@ var jaccardClustering = function() {
         var collapsedNodes = flatten(jsonData);
 
         // Don't draw geneset genes initially
-        for (var n in collapsedNodes) {
+        //for (var n in collapsedNodes) {
+        for (var n in nodes) {
 
-            var cnode = collapsedNodes[n];
+            //var cnode = collapsedNodes[n];
+            var cnode = nodes[n];
 
             if (cnode.type == "geneset") {
 
@@ -1202,8 +1224,3 @@ function species(d) {
     }
 }
 
-function dblclick(d) {
-    if (d.type == 'geneset') {
-        window.open("/viewgenesetdetails/" + d.id);
-    }
-}
