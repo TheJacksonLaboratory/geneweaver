@@ -2431,6 +2431,7 @@ def get_groups_owned_by_user(user_id):
                           WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
     return [Groups(row_dict) for row_dict in dictify_cursor(cursor)]
 
+
 def get_group_by_id(group_id):
     """
     Returns a Group by its ID
@@ -2459,6 +2460,7 @@ def get_curation_group():
     # len(groups) > 1
     return None if len(groups) == 0 else groups[0]
 
+
 class Groups:
     """
     This class has a specific purpose for conveying user privleges on a given group
@@ -2467,6 +2469,7 @@ class Groups:
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
+
 
 class Group:
     """

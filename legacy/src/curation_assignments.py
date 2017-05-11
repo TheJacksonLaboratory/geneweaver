@@ -305,34 +305,3 @@ def nominate_public_gs(geneset_id, notes):
     except psycopg2.IntegrityError:
         raise Exception("Geneset already assigned to curation group")
 
-
-#
-# Start of TEST program
-#
-def main2():
-    print("curation_assignments testing...")
-    geneset_id=248306
-    group_id=136
-    curator=8446948
-    reviewer=8446948
-
-    print("Adding geneset to group...")
-    submit_geneset_for_curation(geneset_id, group_id, "submission_note")
-
-    assignment = get_geneset_curation_assignment(geneset_id)
-
-    print("Assigning curator...")
-    assignment.assign_curator(curator, reviewer, "assignment_note")
-
-    print("Submit for review...")
-    assignment.submit_for_review("ready_for_review_note")
-
-    print("Failed team review...")
-    assignment.review_failed("failed_review_note")
-
-    #print("Passed team review...")
-
-    #print(get_geneset_curation_assignment(geneset_id))
-
-if __name__ == "__main__":
-    main()
