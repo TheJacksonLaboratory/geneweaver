@@ -1,11 +1,11 @@
 /**
- * file: JaccardClustering.js
+ * file: clusteringGraph.js
  * desc: d3js code for drawing the force directed clustering visualization.
  * auth: Capstone jaccard clustering team
  *       TR
  */
 
-var jaccardClustering = function() {
+var clusteringGraph = function() {
 
     var exports = {},
         // SVG object
