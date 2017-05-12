@@ -114,30 +114,19 @@ var clusteringSunburst = function() {
             //.attr('y', function(d) { return d.x; })
             .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
             .attr('transform', function(d) {
-                console.log(d);
-                var rots = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
-                //return 'rotate(' + (((d.x + d.dx) / 2) - Math.PI / 2) / Math.PI * 270 + ')';
-                return 'rotate(' + rots + ')' + 
-                    (rots < 180 ? '' : 'translate(' + ((radius * 2) + 10) + ',0)') + 
-                    (rots < 180 ? '' : 'rotate(180)')
-                //return 'rotate(' + (d.x - 90) + ')' + 
-                //    'translate(' + (Math.sqrt(d.y) + 5) + ',0)' + 
-                //    (d.x < 180 ? '' : 'rotate(180)');
+                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
+
+                return 'rotate(' + degrees + ')' + 
+                    (degrees < 180 ? '' : 'translate(' + ((radius * 2) + 10) + ',0)') + 
+                    (degrees < 180 ? '' : 'rotate(180)')
             })
-            //.attr('transform', function(d) { 
-            //    console.log(d.x);
-            //    console.log( 'rotate(' + (d.x - 90) + ')' + 
-            //        'translate(' + (Math.sqrt(d.y)) + ',0)' + 
-            //        (d.x < 180 ? '' : 'rotate(180)'));
-            //    return 'rotate(' + (d.x - 90) + ')' + 
-            //        'translate(' + (0) + ',0)' + 
-            //        (d.x < 180 ? '' : 'rotate(180)');
-            // })
             .style('text-anchor', function(d) {
-                var rots = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
-                return rots < 180 ? 'start' : 'end'
+                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
+
+                console.log(d);
+                return degrees < 180 ? 'start' : 'end'
             })
-            .text(function(d) { return d.id; })
+            .text(function(d) { return d.type === 'geneset' ? d.name : ''; })
             ;
     };
 
@@ -153,7 +142,7 @@ var clusteringSunburst = function() {
             .append('g')
             .attr('transform', 'translate(' + width / 2 + ',' + height * 0.55 + ')');
 
-        radius = Math.min(width, height) / 2.5;
+        radius = Math.min(width, height) / 3;
 
         // Removes gene nodes
         var recurse = function(node) {
@@ -170,82 +159,78 @@ var clusteringSunburst = function() {
         drawArcs();
         drawLabels();
 
+        return exports;
+    };
 
+    exports.drawLegend = function() {
 
-        return;
-        /*
-          var text = g.append("text")
-            .attr("transform", function(d) { return "rotate(" + computeTextRotation(d) + ")"; })
-            .attr("x", function(d) { return y(d.y + d.dy +.4); })
-            .attr("dx", "6") // margin
-            .attr("dy", ".35em") // vertical-align
-            .text(label);
+        var added = {},
+            nodeStack = [jsonData],
+            key = svg
+                .append('g')
+                // Undo the global image translate performed by draw()
+                .attr('transform', 
+                      'translate(' + -(width / 2) + 
+                      ',' + -(height * 0.55) + ')');
 
-          function click(d) {
-            // fade out all text elements
-            text.transition().attr("opacity", 0);
+        while (nodeStack.length > 0) {
 
-            path.transition()
-              .duration(750)
-              .attrTween("d", arcTween(d))
-              .each("end", function(e, i) {
-                  // check if the animated element's data e lies within the visible angle span given in d
-                  if (e.x >= d.x && e.x < (d.x + d.dx)) {
-                    // get a selection of the associated text element
-                    var arcText = d3.select(this.parentNode).select("text");
-                    // fade in the text element and recalculate positions
-                    arcText.transition().duration(750)
-                      .attr("opacity", 1)
-                      .attr("transform", function() { return "rotate(" + computeTextRotation(e) + ")" })
-                      .attr("x", function(d) { return y(d.y +.25); });
-                  }
-              });
-          }
+            var node = nodeStack.shift();
 
-        d3.select(self.frameElement).style("height", height + "px");
+            if (node.children)
+                nodeStack = nodeStack.concat(node.children);
 
-        // Interpolate the scales!
-        function arcTween(d) {
-          var xd = d3.interpolate(x.domain(), [d.x, d.x + d.dx]),
-              yd = d3.interpolate(y.domain(), [d.y, 1]),
-              yr = d3.interpolate(y.range(), [d.y ? 20 : 0, radius]);
-          return function(d, i) {
-            return i
-                ? function(t) { return arc(d); }
-                : function(t) { x.domain(xd(t)); y.domain(yd(t)).range(yr(t)); return arc(d); };
-          };
+            if (node.species === undefined)
+                continue;
+
+            if (node.species in added)
+                continue;
+
+            added[node.species] = true;
+
+            // Abbreviate species names
+            var species = node.species.split(' ');
+            species = species[0][0] + '. ' + species[1];
+
+            key.append('rect')
+                .attr('x', 15)
+                .attr('y', 28 * Object.keys(added).length + 10)
+                .attr('width', 20)
+                .attr('height', 20)
+                .style('fill-opacity', 0.90)
+                .style('shape-rendering', 'auto')
+                .style('stroke', '#000')
+                .style('stroke-width', '2px')
+                .style('fill', function(d) { return colorMap(node); })
+                ;
+
+            key.append('text')
+                .attr('x', 40)
+                .attr('y', 29 * Object.keys(added).length + 24)
+                .text(species)
+            ;
         }
 
-        function computeTextRotation(d) {
-          return (x(d.x + d.dx / 2) - Math.PI / 2) / Math.PI * 180;
-        }
+        // Legend element for the cluster (internal) nodes
+        key.append('rect')
+            .attr('x', 15)
+            .attr('y', 28 * (Object.keys(added).length + 1) + 10)
+            .attr('width', 20)
+            .attr('height', 20)
+            .style('fill-opacity', 0.90)
+            .style('shape-rendering', 'auto')
+            .style('stroke', '#000')
+            .style('stroke-width', '2px')
+            .style('fill', colorMap('cluster'))
+            ;
 
-        function mouseover(d) {
-            if (d.type == "cluster") {
-                var nodeSelected = d3.select(this);
-                nodeSelected.select("text")
-                        .attr("x", function(d) { return y(d.y-.01); })
-                        .text(d.jaccard_index.toPrecision(2));
-            }
-            else if (d.type == "geneset") {
-                var nodeSelected = d3.select(this);
-                var nodeName = d.name;
-                svg.selectAll("text").transition().attr("opacity",function(d){return d.name != nodeName ? .2 : 1});
-            }
-            else if(d.type == "gene"){
-                var nodeSelected = d3.select(this);
-                var nodeName = d.name;
-                nodeSelected.select("text").text(d.name);
-                svg.selectAll("text").transition().attr("opacity",function(d){return d.name != nodeName ? .2 : 1});
-            }
-        }
+        key.append('text')
+            .attr('x', 40)
+            .attr('y', 28 * (Object.keys(added).length + 1) + 24)
+            .text('Cluster')
+        ;
 
-        function mouseout(d) {
-            var nodeSelected = d3.select(this);
-            nodeSelected.select("text").text(label);
-            svg.selectAll("text").transition().attr("opacity",1);
-        }
-    */
+        return exports;
     };
 
     /** private **/
