@@ -59,6 +59,10 @@ var clusteringSunburst = function() {
         return speciesColors[d.species];
     }
 
+    /**
+      * Creates the d3 partition layout and arc generator for the
+      * visualization.
+      */
     var makeLayout = function() {
 
         // Generate the partition layout. Areas are drawn based on the size
@@ -117,14 +121,17 @@ var clusteringSunburst = function() {
                 var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
 
                 return 'rotate(' + degrees + ')' + 
-                    (degrees < 180 ? '' : 'translate(' + ((radius * 2) + 10) + ',0)') + 
-                    (degrees < 180 ? '' : 'rotate(180)')
+                    (degrees < 90 ? '' : 'translate(' + ((radius * 2) + 10) + ',0)') + 
+                    (degrees < 90 ? '' : 'rotate(180)')
             })
             .style('text-anchor', function(d) {
                 var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
 
-                console.log(d);
-                return degrees < 180 ? 'start' : 'end'
+                if (d.type === 'geneset') {
+                    console.log(degrees);
+                    console.log(d.name);
+                }
+                return degrees < 90 ? 'start' : 'end'
             })
             .text(function(d) { return d.type === 'geneset' ? d.name : ''; })
             ;
@@ -173,6 +180,8 @@ var clusteringSunburst = function() {
                       'translate(' + -(width / 2) + 
                       ',' + -(height * 0.55) + ')');
 
+        // Since the data is stored as a hierarchy we traverse each node and
+        // their children
         while (nodeStack.length > 0) {
 
             var node = nodeStack.shift();
@@ -180,6 +189,7 @@ var clusteringSunburst = function() {
             if (node.children)
                 nodeStack = nodeStack.concat(node.children);
 
+            // Probably a cluster or gene node
             if (node.species === undefined)
                 continue;
 
