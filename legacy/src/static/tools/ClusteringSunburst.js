@@ -101,6 +101,22 @@ var clusteringSunburst = function() {
 
     var drawLabels = function() {
 
+            // The duplicate removal has a quadratic runtime but it shouldn't
+            // matter too much
+        var levels = partition.nodes(jsonData)
+            .filter(function(d) { return d.type === 'geneset'; })
+            .filter(function(d) { 
+                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
+                return degrees > 90;
+            })
+            .map(function(d) { return d.y; })
+            .filter(function(item, i, self) {
+                return self.indexOf(item) == i;
+            })
+            //.sort(function(a, b) { return b - a; })
+            .sort()
+                ;
+
         var labels = svg.datum(jsonData)
             .append('g')
             .selectAll('text')
@@ -120,17 +136,51 @@ var clusteringSunburst = function() {
             .attr('transform', function(d) {
                 var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
 
+                //var mod = levels.slice(d.depth)
+                var mod = levels.slice(levels.indexOf(d.y) )
+                //var mod = levels.slice(0, d.depth - 1)
+                    //.reduce(function(ac, v) { return ac + Math.sqrt(v); }, 0);
+                    //.reduce(function(ac, v) { return ac + Math.sqrt(v - (d.y)); }, 0);
+                    //.reduce(function(ac, v) { return ac + Math.sqrt(v - (d.y)); }, 0);
+                    //.reduce(function(ac, v) { return ac + Math.sqrt(v - d.dy); }, 0);
+                    .map(function(v) { return v - d.dy; })
+
+                if (d.type === 'geneset' && degrees > 90) {
+                    console.log('-------');
+                    //console.log(radius * 2);
+                    //console.log(Math.sqrt(d.y));
+                    //console.log(Math.sqrt(d.dy));
+                    console.log(d.depth);
+                    console.log(levels);
+                    console.log(d.y);
+                    console.log(d.dy);
+                    console.log(mod);
+                    console.log(d.name);
+                }
+                //mod = mod.reduce(function(ac, v) { return ac + Math.sqrt(v - d.dy); }, 0);
+                //mod = mod.reduce(function(ac, v) { return ac + (v); }, 0);
+                if (mod.length)
+                    mod = d3.min(mod);
+                else
+                    mod = 0;
+                
+                //var modLevel = (radius) + Math.sqrt(d.y + d.dy) - Math.sqrt(mod);
+                var modLevel = Math.sqrt(d.y ) + Math.sqrt(mod) + Math.sqrt(d.dy);
+                //var modLevel = (radius ) - Math.sqrt(mod) + Math.sqrt(d.y); // + Math.sqrt(d.y + d.dy) - Math.sqrt(mod);
+                //var modLevel = (radius) + (mod);
+                               
                 return 'rotate(' + degrees + ')' + 
-                    (degrees < 90 ? '' : 'translate(' + ((radius * 2) + 10) + ',0)') + 
+                    //(degrees < 90 ? '' : 'translate(' + (((radius - Math.sqrt(d.dy)) * 2) + 10) + ',0)') + 
+                    //(degrees < 90 ? '' : 'translate(' + ((radius / d.depth) + Math.sqrt(d.y + d.dy)   ) + ',0)') + 
+                    //(degrees < 90 ? '' : 'translate(' + ((radius) + Math.sqrt(d.dy + d.y)) + ',0)') + 
+                    //
+                    //(degrees < 90 ? '' : 'translate(' + ((radius) + Math.sqrt(d.dy * d.depth ) ) + ',0)') + 
+                    (degrees < 90 ? '' : 'translate(' + modLevel + ',0)') + 
                     (degrees < 90 ? '' : 'rotate(180)')
             })
             .style('text-anchor', function(d) {
                 var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
 
-                if (d.type === 'geneset') {
-                    console.log(degrees);
-                    console.log(d.name);
-                }
                 return degrees < 90 ? 'start' : 'end'
             })
             .text(function(d) { return d.type === 'geneset' ? d.name : ''; })
