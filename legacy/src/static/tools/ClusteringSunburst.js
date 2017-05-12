@@ -14,12 +14,18 @@ var clusteringSunburst = function() {
         width = 1100,
         // SVG height
         height = 900,
+        // Radius of the sunburst
+        radius = 0,
         // Parsed JSON object
         jsonData = '',
         // Maps species names to colors
         speciesColors = {},
         // Element ID of the div to draw in
         element = '#d3-visual',
+        // Partition layout object
+        partition = null,
+        // Arc generator object
+        arc = null,
         // Node color palette
         colors = [
             "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", 
@@ -40,7 +46,7 @@ var clusteringSunburst = function() {
         // This indicates the node isn't a geneset; it's either an internal node 
         // or a geneset node that has been collapsed.
         if (d.species === undefined)
-            return '#0099FF';
+            return '#bdbdbd';
 
         if (!(d.species in speciesColors)) {
 
@@ -53,49 +59,112 @@ var clusteringSunburst = function() {
         return speciesColors[d.species];
     }
 
+    var makeLayout = function() {
+
+        // Generate the partition layout. Areas are drawn based on the size
+        // parameter of each node object.
+        partition = d3.layout.partition()
+            .sort(null)
+            .size([2 * Math.PI, radius * radius])
+            .value(function(d) { return d.size; });
+
+        // Arc generator for each gene set and cluster node in the layout.
+        arc = d3.svg.arc()
+            .startAngle(function(d) { return d.x; })
+            .endAngle(function(d) { return d.x + d.dx; })
+            .innerRadius(function(d) { return Math.sqrt(d.y); })
+            .outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
+    };
+
+    var drawArcs = function() {
+
+        var path = svg.datum(jsonData)
+            .selectAll('path')
+            .data(partition.nodes)
+            .enter()
+            .append('path')
+            .attr('id', function(d){ return d.name; })
+            .attr('d', arc)
+            // Hides the inner circle
+            .attr('display', function(d) { return d.depth ? null : 'none'; })
+            .style('fill', colorMap)
+            .style('stroke', '#222')
+            //.style('opacity', opac)
+            //.on('click', click)
+            //.on('dblclick',dblclick)
+            ;
+    };
+
+    var drawLabels = function() {
+
+        var labels = svg.datum(jsonData)
+            .append('g')
+            .selectAll('text')
+            //.data(function() { 
+            //    console.log(partition.nodes);
+            //    partition.nodes.filter(function(d) { 
+            //    return d.type === 'geneset';
+            //})})
+            .data(partition.nodes)
+            .enter()
+            .append('text')
+            //.attr('dy', '.31em')
+            //.attr('y', function(d) { return (((d.x + d.dx) / 2) - Math.PI / 2) / Math.PI * 180; })
+            //.attr('y', function(d) { return d.x; })
+            .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
+            .attr('transform', function(d) {
+                //return 'rotate(' + (((d.x + d.dx) / 2) - Math.PI / 2) / Math.PI * 270 + ')';
+                return 'rotate(' + (((d.x + d.dx) / 2))  / Math.PI * 180 + ')';
+            })
+            //.attr('transform', function(d) { 
+            //    console.log(d.x);
+            //    console.log( 'rotate(' + (d.x - 90) + ')' + 
+            //        'translate(' + (Math.sqrt(d.y)) + ',0)' + 
+            //        (d.x < 180 ? '' : 'rotate(180)'));
+            //    return 'rotate(' + (d.x - 90) + ')' + 
+            //        'translate(' + (0) + ',0)' + 
+            //        (d.x < 180 ? '' : 'rotate(180)');
+            // })
+            .style('text-anchor', function(d) { 
+                return d.x < 180 ? 'start' : 'end';
+            })
+            .text(function(d) { return d.id; })
+            ;
+    };
+
     /** public **/
 
     exports.draw = function() {
 
-        var radius = Math.min(width, height) / 3;
 
-        var x = d3.scale.linear()
-            .range([0, 2 * Math.PI]);
+        svg = d3.select(element)
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .append('g')
+            .attr('transform', 'translate(' + width / 2 + ',' + height * 0.55 + ')');
 
-        var y = d3.scale.linear()
-            .range([0, radius]);
+        radius = Math.min(width, height) / 2.5;
 
-        var color = d3.scale.category20c();
+        // Removes gene nodes
+        var recurse = function(node) {
+            
+            if (node.type === 'geneset')
+                node.children = null;
 
-        var svg = d3.select("#d3-visual").append("svg")
-            .attr("width", width)
-            .attr("height", height)
-          .append("g")
-            .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")");
+            else if (node.children) 
+                node.children.forEach(recurse);
+        };
+        recurse(jsonData);
 
-        var partition = d3.layout.partition()
-            .value(function(d) { return d.size; });
+        makeLayout();
+        drawArcs();
+        drawLabels();
 
-        var arc = d3.svg.arc()
-            .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x))); })
-            .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx))); })
-            .innerRadius(function(d) { return Math.max(0, y(d.y)); })
-            .outerRadius(function(d) { return Math.max(0, y(d.y + d.dy)); });
 
-          var g = svg.selectAll("g")
-              .data(partition.nodes(jsonData))
-            .enter().append("g")
-                  .on("mouseover", mouseover)
-            .on("mouseout", mouseout);
 
-          var path = g.append("path")
-                  .attr("id", function(d){return d.name})
-            .attr("d", arc)
-            .attr("fill", colorMap)
-            .attr("opacity",opac)
-            .on("click", click)
-            .on("dblclick",dblclick);
-
+        return;
+        /*
           var text = g.append("text")
             .attr("transform", function(d) { return "rotate(" + computeTextRotation(d) + ")"; })
             .attr("x", function(d) { return y(d.y + d.dy +.4); })
@@ -167,6 +236,7 @@ var clusteringSunburst = function() {
             nodeSelected.select("text").text(label);
             svg.selectAll("text").transition().attr("opacity",1);
         }
+    */
     };
 
     /** private **/

@@ -227,15 +227,30 @@
             });
 
 
-        $("select#visualizationType").change(function(){
+        $("select#visualizationType").change(function(event){
 
             d3.select('#d3-visual').selectAll('*').remove();
-            
-            var clustering = clusteringSunburst()
-                .jsonData(jsonData)
-                .draw()
-                //.drawLegend()
-                ;
+
+            if (event.target.value === 'sunburst') {
+
+                var clustering = clusteringSunburst()
+                    .jsonData(jsonData)
+                    .draw()
+                    ;
+
+            } else {
+
+                // Has to be re-read from the json file otherwise the tree is
+                // generated outside the svg box. It's fucking weird.
+                d3.json(jsonPath, function(err, json) {
+
+                    var clustering = clusteringGraph()
+                        .jsonData(json)
+                        .drawGraph()
+                        .drawLegend()
+                        ;
+                });
+            }
         });
 
         });
