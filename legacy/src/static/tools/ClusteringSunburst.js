@@ -108,13 +108,21 @@ var clusteringSunburst = function() {
             .data(partition.nodes)
             .enter()
             .append('text')
+            .attr('dx', '.30em')
             //.attr('dy', '.31em')
             //.attr('y', function(d) { return (((d.x + d.dx) / 2) - Math.PI / 2) / Math.PI * 180; })
             //.attr('y', function(d) { return d.x; })
             .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
             .attr('transform', function(d) {
+                console.log(d);
+                var rots = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
                 //return 'rotate(' + (((d.x + d.dx) / 2) - Math.PI / 2) / Math.PI * 270 + ')';
-                return 'rotate(' + (((d.x + d.dx) / 2))  / Math.PI * 180 + ')';
+                return 'rotate(' + rots + ')' + 
+                    (rots < 180 ? '' : 'translate(' + ((radius * 2) + 10) + ',0)') + 
+                    (rots < 180 ? '' : 'rotate(180)')
+                //return 'rotate(' + (d.x - 90) + ')' + 
+                //    'translate(' + (Math.sqrt(d.y) + 5) + ',0)' + 
+                //    (d.x < 180 ? '' : 'rotate(180)');
             })
             //.attr('transform', function(d) { 
             //    console.log(d.x);
@@ -125,8 +133,9 @@ var clusteringSunburst = function() {
             //        'translate(' + (0) + ',0)' + 
             //        (d.x < 180 ? '' : 'rotate(180)');
             // })
-            .style('text-anchor', function(d) { 
-                return d.x < 180 ? 'start' : 'end';
+            .style('text-anchor', function(d) {
+                var rots = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
+                return rots < 180 ? 'start' : 'end'
             })
             .text(function(d) { return d.id; })
             ;
