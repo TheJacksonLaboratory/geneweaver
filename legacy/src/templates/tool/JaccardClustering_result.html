@@ -194,6 +194,7 @@
 </div>
 	<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
 	<script type="text/javascript" src="../../static/tools/ClusteringGraph.js"></script>
+	<script type="text/javascript" src="../../static/tools/ClusteringSunburst.js"></script>
     <script type="text/javascript">
         if('{{ async_result.method }}' != 'Heatmap'){
             $("select#visualizationType")
@@ -207,24 +208,34 @@
         }
 
 		var jsonPath = '{{ cluster_data | safe }}';
+        var jsonData = null;
 
         //$(document).ready(visualize(jsonPath));
         $(document).ready(function() {
 
             d3.json(jsonPath, function(err, json) {
-                var clustering = jaccardClustering()
-                    //.jsonPath(jsonPath)
-                    .jsonData(json)
-                    .drawGraph()
-                    .drawLegend()
+                jsonData = json;
+
+                //var clustering = clusteringGraph()
+                var clustering = clusteringSunburst()
+                    .jsonData(jsonData)
+                    .draw()
+                    //.drawGraph()
+                    //.drawLegend()
                     ;
+            console.log(jsonData);
             });
 
 
         $("select#visualizationType").change(function(){
 
             d3.select('#d3-visual').selectAll('*').remove();
-            visualize(jsonPath);
+            
+            var clustering = clusteringSunburst()
+                .jsonData(jsonData)
+                .draw()
+                //.drawLegend()
+                ;
         });
 
         });
