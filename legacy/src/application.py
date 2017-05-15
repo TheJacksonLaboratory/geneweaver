@@ -1,14 +1,16 @@
 import flask
-from flask.ext.admin import Admin, BaseView, expose
-from flask.ext.admin.base import MenuLink
-from flask.ext import restful
+from flask_admin import Admin, BaseView, expose
+from flask_admin.base import MenuLink
+import flask_restful as restful
 from flask import request, send_file, Response, make_response, session
 from decimal import Decimal
 from urllib2 import HTTPError
 from sys import exc_info
 from urlparse import parse_qs, urlparse
 import config
+import datetime
 import adminviews
+import annotator
 import genesetblueprint
 import geneweaverdb
 import notifications
@@ -24,23 +26,30 @@ import re
 import urllib
 import urllib3
 from collections import OrderedDict, defaultdict
-from tools import genesetviewerblueprint, jaccardclusteringblueprint, jaccardsimilarityblueprint, phenomemapblueprint, \
-    combineblueprint, abbablueprint, booleanalgebrablueprint, tricliqueblueprint, msetblueprint, upsetblueprint
+from tools import abbablueprint
+from tools import booleanalgebrablueprint
+from tools import combineblueprint
+from tools import dbscanblueprint
+from tools import genesetviewerblueprint
+from tools import jaccardclusteringblueprint
+from tools import jaccardsimilarityblueprint
+from tools import msetblueprint
+from tools import phenomemapblueprint
+from tools import tricliqueblueprint
 import sphinxapi
 import search
 import math
-import cairosvg
+# import cairosvg
 import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
 
-
-
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
+app.register_blueprint(dbscanblueprint.dbscan_blueprint)
 app.register_blueprint(genesetblueprint.geneset_blueprint)
 app.register_blueprint(genesetviewerblueprint.geneset_viewer_blueprint)
 app.register_blueprint(phenomemapblueprint.phenomemap_blueprint)
@@ -49,7 +58,6 @@ app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 app.register_blueprint(msetblueprint.mset_blueprint)
-app.register_blueprint(upsetblueprint.upset_blueprint)
 
 # *************************************
 
@@ -443,7 +451,7 @@ def assign_genesets_to_curation_group():
             else:
                 status[gs_id] = {'success': False}
 
-            response = flask.jsonify(results=status)
+        response = flask.jsonify(results=status)
 
     else:
         #user is not logged in
@@ -1161,6 +1169,43 @@ def update_geneset_ontology_db():
     return json.dumps(True)
 
 
+@app.route('/rerun_annotator.json', methods=['POST'])
+def rerun_annotator():
+    """
+    Reruns the annotator tool for a given geneset and updates its annotations.
+    """
+
+    publication = request.form['publication']
+    description = request.form['description']
+    gs_id = request.form['gs_id']
+    user_id = session['user_id'] if session['user_id'] else 0
+
+    user = geneweaverdb.get_user(user_id)
+
+    if not user:
+        response = flask.jsonify(
+            {'error': 'You must be logged in to make changes to this GeneSet'})
+        response.status_code = 401
+        return response
+
+    # Only admins, curators, and owners can make changes
+    if ((not user.is_admin and not user.is_curator) or
+            (not geneweaverdb.user_is_owner(user_id, gs_id) and
+                     not geneweaverdb.user_is_assigned_curation(user_id,
+                                                                gs_id))):
+        response = flask.jsonify(
+            {'error': 'You do not have permission to update this GeneSet'})
+        response.status_code = 403
+        return response
+
+    # get user's annotator preference
+    user_prefs = json.loads(user.prefs)
+
+    annotator.rerun_annotator(gs_id, publication, description, user_prefs)
+
+    return flask.jsonify({'success': True})
+
+
 def get_ontology_terms(gsid):
     """
     Retrieves ontology terms and metadata for a particular gs_id. For each term
@@ -1218,13 +1263,15 @@ def init_ont_tree():
 
         for path in paths:
             root = path[0]
-            if parentdict.get(root):
+            if parentdict.get(root) and path not in parentdict.get(root):
                 parentdict[root].append(path)
 
     tree = {}
     ontcache = {}
 
     for ontid, paths in parentdict.items():
+        paths.sort()
+
         for path in paths:
             ontpath = []
 
@@ -1237,13 +1284,10 @@ def init_ont_tree():
                     p = ontcache[p]
 
                 node = create_new_child_dict(p, ontdb_id)
-
                 ontpath.append(node)
 
             for i in range(0, len(ontpath)):
-                if i == len(ontpath) - 1:
-                    ontpath[i]['expand'] = False
-                else:
+                if not i == len(ontpath) - 1:
                     ontpath[i]['expand'] = True
 
                     child_annotations = geneweaverdb.get_all_children_for_ontology(ontpath[i]['key'])
@@ -1252,10 +1296,12 @@ def init_ont_tree():
                     for j in range(0, len(child_annotations)):
                         child_node = dict()
                         child_node["title"] = child_annotations[j].name
-                        if (child_annotations[j].children == 0):
+
+                        if child_annotations[j].children == 0:
                             child_node["isFolder"] = False
                         else:
                             child_node["isFolder"] = True
+
                         child_node["isLazy"] = True
                         child_node["key"] = child_annotations[j].ontology_id
                         child_node["db"] = False
@@ -2744,6 +2790,38 @@ def render_export_genelist(gs_id):
             str = str + k + ',' + results[k] + '\n'
         response = make_response(str)
         response.headers["Content-Disposition"] = "attachment; filename=geneset_export.csv"
+        return response
+
+
+@app.route('/exportOmicsSoft/<string:gs_ids>')
+def render_export_omicssoft(gs_ids):
+    if 'user_id' in flask.session:
+        gs_ids_list = gs_ids.split(',')
+        string = ''
+        for gs_id in gs_ids_list:
+            results = geneweaverdb.get_geneset(gs_id, flask.session['user_id'])
+            gsv_values = geneweaverdb.export_results_by_gs_id(gs_id)
+            omicssoft = geneweaverdb.get_omicssoft(gs_id)
+            print omicssoft
+            title = 'gw_omicssoft_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
+            string += '[GeneSet]\n'
+            if results is not None:
+                string += '##Source=GeneWeaver Generated\n'
+                string += '##Type=' + str(omicssoft['type']) + '\n'
+                string += '##Project=' + str(omicssoft['project']) + '\n'
+                string += '##Name=' + str(results.name) + '\n'
+                string += '##Description=' + str(results.description) + '\n'
+                string += '##Tag=' + str(omicssoft['tag']) + '\n'
+                for gene, value in gsv_values.iteritems():
+                    string += str(gene) + '\t' + str(value) + '\n'
+                string += '\n'
+            else:
+                string = '## An Error Occured During File Creation. Please contact GeneWeaver@gmail.com.\n\n'
+        response = make_response(string)
+        response.headers["Content-Disposition"] = "attachment; filename=" + title
+        response.headers["Cache-Control"] = "must-revalidate"
+        response.headers["Pragma"] = "must-revalidate"
+        response.headers["Content-type"] = "text/plain"
         return response
 
 

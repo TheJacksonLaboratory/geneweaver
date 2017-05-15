@@ -3436,6 +3436,24 @@ def get_genes_by_gs_id(geneset_id):
     return genes
 
 
+def get_omicssoft(gs_id):
+    '''
+    Return data from the omicssoft table if any exists
+    :param gs_id: 
+    :return: dictionary
+    '''
+    omicssoft = {'project': 'N\A', 'tag': 'GeneWeaver', 'type': 'N\A'}
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT os_project, os_tag, os_source FROM production.omicsoft WHERE gs_id=%s''', (gs_id,))
+        res = cursor.fetchall()
+        if res is not None:
+            for r in res:
+                omicssoft['project'] = r[0] if r[0] is not None else 'N\A'
+                omicssoft['tag'] = r[1] if r[0] is not None else 'GeneWeaver'
+                omicssoft['type'] = r[2] if r[0] is not None else 'N\A'
+    return omicssoft
+
+
 def get_all_geneset_values(gs_id):
     '''
     Generic function to get all geneset values geneset_value.gs_values
@@ -4038,6 +4056,30 @@ def check_emphasis(gs_id, em_gene):
 
     return inGeneset
 
+def insert_omicssoft_metadata(gs_id, project, source, tag, otype):
+    """
+    Inserts metadata from OmicsSoft gene sets into the special OmicsSoft table.
+    This is additional GW functionality requested by Sanofi.
+
+    arguments
+        gs_id: gene set ID
+        project: the project field from an OmicsSoft gene set 
+        tag: the tag field from an OmicsSoft gene set 
+        source: the source field from an OmicsSoft gene set 
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO production.omicsoft
+                (gs_id, os_project, os_tag, os_source, os_type)
+            VALUES
+                (%s, %s, %s, %s, %s);
+            ''', (gs_id, project, tag, source, otype)
+        )
+
+        cursor.connection.commit()
 
 # sample api calls begin
 
