@@ -24,6 +24,11 @@
         vertical-align: middle;
     }
 
+    #circles {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
     th, td {
         text-align: center;
     }
@@ -63,6 +68,18 @@
     {#     {{ async_result }}#}
     {# div for venn diagram #}
     {% if async_result.numGS < 11 %}
+        <span id="circles">
+                About this figure <i class="fa fa-caret-down"></i>
+        </span>
+        <div id="circle-explanation" style="display: none;">
+            <div class="row">
+                <blockquote>
+                <p>The Circle Overlap representation is an approximation of Euler fractional overlaps. It is created
+                without the use of homology and is intended as a broad representation of Gene Set relationships. It will
+                not necessarily reflect the results of Boolean Algebra tool.</p>
+                </blockquote>
+            </div>
+        </div>
         <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
     {% else %}
         <div class="row">
@@ -385,6 +402,11 @@
 <script type="text/javascript">
 
     $(document).ready(function () {
+
+        // open div for circle explanation
+        $("#circles").on('click', function () {
+            $("#circle-explanation").slideToggle();
+        });
 
         $('.group-checkbox').on('click', function (event) {
 
