@@ -87,11 +87,13 @@
 
 
 
-{% if async_result.type == 'Union' %}
+{% if async_result.type == 'Union'%}
     {% set i = 1 %}
+    {% set results = async_result.bool_results %}
+
     <div class="row">
         <div class="col-md-10">
-            <h6 class="panel-title">{{ async_result.bool_results | length }} Distinct Genes found in the Union
+            <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
                 of {{ async_result.numGS }} GeneSets</h6>
         </div>
         <div class="col-md-2" align="right" style="text-align:right">
@@ -118,8 +120,8 @@
                 <th>Emphasis</th>
                 <th></th>
             </tr>
-            {% for g in async_result.bool_results %}
-                {% set cluster = async_result.bool_results[g] %}
+            {% for g in results | sort(attribute=0) %}
+                {% set cluster = results[g] %}
                 <tr>
                     <td style="text-align: left;">
                         {% for gene in cluster %}
@@ -219,19 +221,26 @@
     </div>
 {% endif %}
 
-    {% if async_result.type == 'Intersect' %}
+    {% if async_result.type == 'Intersect' or async_result.type == 'Except' %}
+        {% if async_result.type == 'Intersect' %}
+            {% set results = async_result.intersect_results %}
+            {% set union = 'Intersection' %}
+        {% elif async_result.type == 'Except' %}
+            {% set results = async_result.bool_except %}
+            {% set union = 'Except Clause' %}
+        {% endif %}
 
         <div class="row">
             <div class="col-md-12">
                 <h6 class="panel-title">{{ async_result.intersect_results | length }} Distinct Sets found in the
-                    Intersection
+                    {{ union }}
                     of {{ async_result.numGS }} GeneSets where each gene is found in a minimum
                     of {{ async_result.at_least }}
                     Gene Sets</h6>
             </div>
         </div>
 
-        {% for gs_group in async_result.intersect_results | sort | reverse %}
+        {% for gs_group in results | sort %}
             <div class="row">
                 <div class="col-md-2 pull-right" align="right" style="text-align:right">
                     <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
@@ -255,12 +264,12 @@
                         <th>Emphasis</th>
                         <th></th>
                     </tr>
-                        {% for g in async_result.intersect_results[gs_group] %}
-{#                            {{ async_result.intersect_results[gs_group][g] }}#}
-                            {% set cluster = async_result.intersect_results[gs_group][g] %}
+                        {% for g in results[gs_group] %}
+
+                            {% set cluster = results[gs_group][g] %}
                             <tr>
 
-                                <td style="text-align: left;">
+                                <td style="text-align: left; width: 30%;">
                                     {% for gene in cluster %}
                                         {% if previous != gene[2]|string + gene[1] %}
                                             {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
@@ -311,7 +320,7 @@
                                 {#                    </td>#}
 
                                 {# homoology #}
-                                <td>
+                                <td style="width: 10%;">
                                     {% if cluster | length == 1 %}
                                         <span class="label label-default">No Mapping</span>
                                     {% else %}
@@ -352,7 +361,6 @@
                                     </div>
                                 </td>
                             </tr>
-                            {#                    {% endfor %}#}
                         {% endfor %}
                     </tbody>
                 </table>
@@ -360,10 +368,6 @@
         {% endfor %}
     {% endif %}
 
-
-{#        {% for g in async_result.gene_names %}#}
-{#        {{ g }}<br>#}
-{#        {% endfor %}#}
 
 {% endif %}
 
