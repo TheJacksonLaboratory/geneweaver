@@ -60,7 +60,7 @@
         <h6 class="panel-title">{{ async_result.type }} of {{ async_result.numGS }} GeneSets</h6>
     </div>
 
-{#     {{ async_result }}#}
+    {#     {{ async_result }}#}
     {# div for venn diagram #}
     {% if async_result.numGS < 11 %}
         <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
@@ -87,167 +87,23 @@
 
 
 
-{% if async_result.type == 'Union'%}
-    {% set i = 1 %}
-    {% set results = async_result.bool_results %}
+        {% if async_result.type == 'Union' %}
+            {% set i = 1 %}
+            {% set results = async_result.bool_results %}
 
-    <div class="row">
-        <div class="col-md-10">
-            <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
-                of {{ async_result.numGS }} GeneSets</h6>
-        </div>
-        <div class="col-md-2" align="right" style="text-align:right">
-            <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
-                 style="padding:0; border:0; margin:0">
-                <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                    Select All
-                    <input type="checkbox"
-                           name="group-{{ i }}"
-                    />
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <div class="row" id="group-{{ async_result.numGS }}">
-        <table class="table table-hover">
-            <tbody>
-            <tr>
-                <th>Genes</th>
-{#                <th>Species</th>#}
-                <th>Homology</th>
-                <th>In GeneSets</th>
-                <th>Emphasis</th>
-                <th></th>
-            </tr>
-            {% for g in results | sort(attribute=0) %}
-                {% set cluster = results[g] %}
-                <tr>
-                    <td style="text-align: left;">
-                        {% for gene in cluster %}
-                            {% if previous != gene[2]|string + gene[1] %}
-                                {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
-                            <span style="margin-left: 5px;">
-                                <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                        background-color: {{ async_result.bg[(gene[2]|int-1)] }};
-                                        border:1px solid {{ async_result.borders[(gene[2]|int-1)] }}">
-                                    {{ async_result.all_species[gene[2]|string] }}.
-                                </span>
-                            </span>
-                            <strong>
-                                <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
-                            </strong>
-                            {% endif %}
-                            {% set previous = gene[2]|string + gene[1] %}
-                        {% endfor %}
-                    </td>
-
-{#                    <td>#}
-                        {# Make boxes for homology blocks #}
-                        {# see tools repor boolean algebra for the list of species and colors #}
-                    {#
-                        {% for i in range(1,12) %}
-                            {# skip elements that are empty #}
-                {#
-                            {% if async_result.tt[(i-1)] != 'empty' %}
-                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                      data-original-title="{{ async_result.tt[(i-1)] }}"
-                                      title="{{ async_result.tt[(i-1)] }}">
-                                            {% set exists = ['1'] %}
-{#                                            {{ async_result.grid[async_result.odeLookup[gene]|string] }}#}
-    {#
-                                    {% for h in async_result.resids[g|string]|sort %}
-                                        {% if h == i %}
-                                            <div class="geneBox"
-                                                 style="background-color: {{ async_result.colors[(i-1)] }};"></div>
-                                            {% if exists.append('1') %}{% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% if exists|length == 1 %}
-                                        <div class="geneBox"></div>
-                                    {% endif %}
-                                </span>
-                            {% endif %}
-                        {% endfor %}
-                    #}
-{#                    </td>#}
-
-                    {# homoology #}
-                    <td>
-                        {% if cluster | length == 1 %}
-                            <span class="label label-default">No Mapping</span>
-                        {% else %}
-                            <span class="label label-info">Homologene</span>
-                        {% endif %}
-                    </td>
-
-                    {# In Gene Sets #}
-                    <td>
-                        {% for gene in cluster %}
-                            <span id="{{ gene[3] }}">
-                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                      data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                                <a href="/viewgenesetdetails/{{ gene[4] }}">
-                                <strong>GS{{ gene[3] }}</strong>
-                                </a>
-                                    {% if not loop.last %},{% endif %}
-                                </span>
-                            </span>
-                        {% endfor %}
-
-                    </td>
-                    {# Emphasize #}
-                    <td nowrap>
-                        <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
-                               onchange="emphasize('{{ cluster[0] }}');"
-                               class="switch" data-size="mini"
-                               style="padding: 0px; vertical-align: middle;">
-                    </td>
-                    {# Checkbox #}
-                    <td>
-                        <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                            <label for="addGeneset"
-                                   style="margin: -6px; padding-right: 0;">
-                                <input type="checkbox" name="gsoptions[]"
-                                       id="addGeneset{{ cluster[0] }}"
-                                       value="{{ cluster[0] }}"/>
-                            </label>
-                        </div>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-{% endif %}
-
-    {% if async_result.type == 'Intersect' or async_result.type == 'Except' %}
-        {% if async_result.type == 'Intersect' %}
-            {% set results = async_result.intersect_results %}
-            {% set union = 'Intersection' %}
-        {% elif async_result.type == 'Except' %}
-            {% set results = async_result.bool_except %}
-            {% set union = 'Except Clause' %}
-        {% endif %}
-
-        <div class="row">
-            <div class="col-md-12">
-                <h6 class="panel-title">{{ async_result.intersect_results | length }} Distinct Sets found in the
-                    {{ union }}
-                    of {{ async_result.numGS }} GeneSets where each gene is found in a minimum
-                    of {{ async_result.at_least }}
-                    Gene Sets</h6>
-            </div>
-        </div>
-
-        {% for gs_group in results | sort %}
             <div class="row">
-                <div class="col-md-2 pull-right" align="right" style="text-align:right">
+                <div class="col-md-10">
+                    <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
+                        of {{ async_result.numGS }} GeneSets</h6>
+                </div>
+                <div class="col-md-2" align="right" style="text-align:right">
                     <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
                          style="padding:0; border:0; margin:0">
                         <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                            Select Set
-                            <input type="checkbox" name="group-{{ i }}"/>
+                            Select All
+                            <input type="checkbox"
+                                   name="group-{{ i }}"
+                            />
                         </label>
                     </div>
                 </div>
@@ -264,6 +120,150 @@
                         <th>Emphasis</th>
                         <th></th>
                     </tr>
+                    {% for g in results | sort(attribute=0) %}
+                        {% set cluster = results[g] %}
+                        <tr>
+                            <td style="text-align: left;">
+                                {% for gene in cluster %}
+                                    {% if previous != gene[2]|string + gene[1] %}
+                                        {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
+                                        <span style="margin-left: 5px;">
+                                            <span class="group_name" style="font: italic 10px/14px Georgia, serif;
+                                        background-color: {{ async_result.bg[(gene[2]|int-1)] }};
+                                        border:1px solid {{ async_result.borders[(gene[2]|int-1)] }}">
+                                                {{ async_result.all_species[gene[2]|string] }}.
+                                            </span>
+                                        </span>
+                                        <strong>
+                                            <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
+                                        </strong>
+                                    {% endif %}
+                                    {% set previous = gene[2]|string + gene[1] %}
+                                {% endfor %}
+                            </td>
+
+                            {#                    <td>#}
+                            {# Make boxes for homology blocks #}
+                            {# see tools repor boolean algebra for the list of species and colors #}
+                            {#
+                        {% for i in range(1,12) %}
+                            {# skip elements that are empty #}
+                            {#
+                            {% if async_result.tt[(i-1)] != 'empty' %}
+                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                      data-original-title="{{ async_result.tt[(i-1)] }}"
+                                      title="{{ async_result.tt[(i-1)] }}">
+                                            {% set exists = ['1'] %}
+{#                                            {{ async_result.grid[async_result.odeLookup[gene]|string] }}#}
+                            {#
+                                    {% for h in async_result.resids[g|string]|sort %}
+                                        {% if h == i %}
+                                            <div class="geneBox"
+                                                 style="background-color: {{ async_result.colors[(i-1)] }};"></div>
+                                            {% if exists.append('1') %}{% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if exists|length == 1 %}
+                                        <div class="geneBox"></div>
+                                    {% endif %}
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                    #}
+                            {#                    </td>#}
+
+                            {# homoology #}
+                            <td>
+                                {% if cluster | length == 1 %}
+                                    <span class="label label-default">No Mapping</span>
+                                {% else %}
+                                    <span class="label label-info">Homologene</span>
+                                {% endif %}
+                            </td>
+
+                            {# In Gene Sets #}
+                            <td>
+                                {% for gene in cluster %}
+                                    <span id="{{ gene[3] }}">
+                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                      data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
+                                <a href="/viewgenesetdetails/{{ gene[4] }}">
+                                <strong>GS{{ gene[3] }}</strong>
+                                </a>
+                                    {% if not loop.last %},{% endif %}
+                                </span>
+                            </span>
+                                {% endfor %}
+
+                            </td>
+                            {# Emphasize #}
+                            <td nowrap>
+                                <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
+                                       onchange="emphasize('{{ cluster[0] }}');"
+                                       class="switch" data-size="mini"
+                                       style="padding: 0px; vertical-align: middle;">
+                            </td>
+                            {# Checkbox #}
+                            <td>
+                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                    <label for="addGeneset"
+                                           style="margin: -6px; padding-right: 0;">
+                                        <input type="checkbox" name="gsoptions[]"
+                                               id="addGeneset{{ cluster[0] }}"
+                                               value="{{ cluster[0] }}"/>
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if async_result.type == 'Intersect' or async_result.type == 'Except' %}
+            {% if async_result.type == 'Intersect' %}
+                {% set results = async_result.intersect_results %}
+                {% set union = 'Intersection' %}
+            {% elif async_result.type == 'Except' %}
+                {% set results = async_result.bool_except %}
+                {% set union = 'Except Clause' %}
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h6 class="panel-title">{{ async_result.intersect_results | length }} Distinct Sets found in the
+                        {{ union }}
+                        of {{ async_result.numGS }} GeneSets where each gene is found in a minimum
+                        of {{ async_result.at_least }}
+                        Gene Sets</h6>
+                </div>
+            </div>
+
+            {% for gs_group in results | sort %}
+                <div class="row">
+                    <div class="col-md-2 pull-right" align="right" style="text-align:right">
+                        <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
+                             style="padding:0; border:0; margin:0">
+                            <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
+                                Select Set
+                                <input type="checkbox" name="group-{{ i }}"/>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" id="group-{{ async_result.numGS }}">
+                    <table class="table table-hover">
+                        <tbody>
+                        <tr>
+                            <th>Genes</th>
+                            {#                <th>Species</th>#}
+                            <th>Homology</th>
+                            <th>In GeneSets</th>
+                            <th>Emphasis</th>
+                            <th></th>
+                        </tr>
                         {% for g in results[gs_group] %}
 
                             {% set cluster = results[gs_group][g] %}
@@ -274,12 +274,12 @@
                                         {% if previous != gene[2]|string + gene[1] %}
                                             {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
                                             <span style="margin-left: 5px;">
-                            <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                    background-color: {{ async_result.bg[(gene[2]|int-1)] }};
-                                    border:1px solid {{ async_result.borders[(gene[2]|int-1)] }}">
-                                {{ async_result.all_species[gene[2]|string] }}.
-                            </span>
-                        </span>
+                                                <span class="group_name" style="font: italic 10px/14px Georgia, serif;
+                                                    background-color: {{ async_result.bg[(gene[2]|int-1)] }};
+                                                    border:1px solid {{ async_result.borders[(gene[2]|int-1)] }}">
+                                                    {{ async_result.all_species[gene[2]|string] }}.
+                                                </span>
+                                            </span>
                                             <strong>
                                                 <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
                                             </strong>
@@ -362,20 +362,16 @@
                                 </td>
                             </tr>
                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+
     {% endif %}
 
-
-{% endif %}
-
 </div>
-
-
-
-
 
 
 {# Grab the list of emphgeneids. It is an environment variable set in the blueprint. #}
@@ -452,7 +448,6 @@
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
-
 
 
     function emphasize(id) {
@@ -568,7 +563,7 @@
     if (results['numGS'] < 11) {
 
         // This initializes data by creating variables for each of the gs_ids
-        for (var i = 0; i < results['gsids'].length; i++){
+        for (var i = 0; i < results['gsids'].length; i++) {
             groups.push('GS' + results['gsids'][i]);
         }
 
@@ -593,10 +588,9 @@
                     if (aux.length === 1) {
 
                         for (var key in results['bool_results']) {
-                            for (var k = 0; k < results['bool_results'][key].length; k++){
-                                if (results['bool_results'][key][k][3] == aux[0].substring(2))
-                                {
-                                 sets.abbr = results['bool_results'][key][k][4]
+                            for (var k = 0; k < results['bool_results'][key].length; k++) {
+                                if (results['bool_results'][key][k][3] == aux[0].substring(2)) {
+                                    sets.abbr = results['bool_results'][key][k][4]
                                 }
                             }
                         }
