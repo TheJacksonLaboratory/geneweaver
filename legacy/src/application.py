@@ -45,6 +45,7 @@ from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
+from psycopg2 import IntegrityError
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -470,9 +471,12 @@ def nominate_public_geneset_for_curation():
         try:
             curation_assignments.nominate_public_gs(gs_id, notes)
             response = flask.Response()
-        except Exception as e:
+        except IntegrityError as e:
             response = flask.jsonify(message=e.message)
             response.status_code = 400
+        except Exception as e:
+            response = flask.jsonify(message=e.message)
+            response.status_code = 500
 
     else:
         # user is not logged in
