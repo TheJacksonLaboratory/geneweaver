@@ -2762,7 +2762,7 @@ def add_guest():
     with PooledCursor() as cursor:
         cursor.execute(
             '''INSERT INTO usr
-               (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created)
+               (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
                VALUES
                (%('GUEST'), %('GUEST'), %('')s, '0', %('')s, NOW(), NOW()), 't')
             ''', {}
@@ -2783,7 +2783,7 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
         password_md5 = md5(user_password).hexdigest()
         cursor.execute(
                 '''INSERT INTO usr
-                      (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created)
+                      (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
                    VALUES
                       (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
                 ''',
