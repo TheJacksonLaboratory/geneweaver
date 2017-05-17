@@ -101,81 +101,63 @@ var clusteringSunburst = function() {
 
     var drawLabels = function() {
 
-            // The duplicate removal has a quadratic runtime but it shouldn't
-            // matter too much
-        var levels = partition.nodes(jsonData)
-            .filter(function(d) { return d.type === 'geneset'; })
-            .filter(function(d) { 
-                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
-                return degrees > 90;
-            })
-            .map(function(d) { return d.y; })
-            .filter(function(item, i, self) {
-                return self.indexOf(item) == i;
-            })
-            //.sort(function(a, b) { return b - a; })
-            .sort()
-                ;
+        var nodes = [];
+
+        for (var i = 0; i < partition.nodes(jsonData).length; i++) {
+            var node = partition.nodes(jsonData)[i];
+            var chunks = [];
+            var labelText = node.name;
+
+            if (node.type !== 'geneset')
+                continue;
+
+            // Separate a single line into lines of 25 characters
+            while (true) {
+
+                var chunk = labelText.slice(0, 25);
+
+                if (!chunk)
+                    break;
+
+                chunks.push(chunk);
+
+                labelText = labelText.slice(25);
+            }
+
+            for (var j = 0; j < chunks.length; j++) {
+
+                nodes.push({
+                    x: node.x,
+                    dx: node.dx,
+                    y: node.y,
+                    dy: node.dy,
+                    ci: j,
+                    text: chunks[j],
+                });
+            }
+        };
 
         var labels = svg.datum(jsonData)
             .append('g')
             .selectAll('text')
-            //.data(function() { 
-            //    console.log(partition.nodes);
-            //    partition.nodes.filter(function(d) { 
-            //    return d.type === 'geneset';
-            //})})
-            .data(partition.nodes)
+            .data(nodes)
             .enter()
             .append('text')
             .attr('dx', '.30em')
-            //.attr('dy', '.31em')
-            //.attr('y', function(d) { return (((d.x + d.dx) / 2) - Math.PI / 2) / Math.PI * 180; })
-            //.attr('y', function(d) { return d.x; })
             .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
             .attr('transform', function(d) {
                 var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
-
-                //var mod = levels.slice(d.depth)
-                var mod = levels.slice(levels.indexOf(d.y) )
-                //var mod = levels.slice(0, d.depth - 1)
-                    //.reduce(function(ac, v) { return ac + Math.sqrt(v); }, 0);
-                    //.reduce(function(ac, v) { return ac + Math.sqrt(v - (d.y)); }, 0);
-                    //.reduce(function(ac, v) { return ac + Math.sqrt(v - (d.y)); }, 0);
-                    //.reduce(function(ac, v) { return ac + Math.sqrt(v - d.dy); }, 0);
-                    .map(function(v) { return v - d.dy; })
-
-                if (d.type === 'geneset' && degrees > 90) {
-                    console.log('-------');
-                    //console.log(radius * 2);
-                    //console.log(Math.sqrt(d.y));
-                    //console.log(Math.sqrt(d.dy));
-                    console.log(d.depth);
-                    console.log(levels);
-                    console.log(d.y);
-                    console.log(d.dy);
-                    console.log(mod);
-                    console.log(d.name);
-                }
-                //mod = mod.reduce(function(ac, v) { return ac + Math.sqrt(v - d.dy); }, 0);
-                //mod = mod.reduce(function(ac, v) { return ac + (v); }, 0);
-                if (mod.length)
-                    mod = d3.min(mod);
-                else
-                    mod = 0;
+                var transadd = Math.sqrt(d.y + d.dy) * 2.0 + 10;
                 
-                //var modLevel = (radius) + Math.sqrt(d.y + d.dy) - Math.sqrt(mod);
-                var modLevel = Math.sqrt(d.y ) + Math.sqrt(mod) + Math.sqrt(d.dy);
-                //var modLevel = (radius ) - Math.sqrt(mod) + Math.sqrt(d.y); // + Math.sqrt(d.y + d.dy) - Math.sqrt(mod);
-                //var modLevel = (radius) + (mod);
-                               
+                if (degrees < 90)
+                    degrees += (d.ci * 3.5)
+                else
+                    degrees -= (d.ci * 3.5)
+
+                // Lables from -90 <-> 90 need to be shifted to the other side
+                // of sunburst
                 return 'rotate(' + degrees + ')' + 
-                    //(degrees < 90 ? '' : 'translate(' + (((radius - Math.sqrt(d.dy)) * 2) + 10) + ',0)') + 
-                    //(degrees < 90 ? '' : 'translate(' + ((radius / d.depth) + Math.sqrt(d.y + d.dy)   ) + ',0)') + 
-                    //(degrees < 90 ? '' : 'translate(' + ((radius) + Math.sqrt(d.dy + d.y)) + ',0)') + 
-                    //
-                    //(degrees < 90 ? '' : 'translate(' + ((radius) + Math.sqrt(d.dy * d.depth ) ) + ',0)') + 
-                    (degrees < 90 ? '' : 'translate(' + modLevel + ',0)') + 
+                    (degrees < 90 ? '' : 'translate(' + transadd + ',0)') + 
                     (degrees < 90 ? '' : 'rotate(180)')
             })
             .style('text-anchor', function(d) {
@@ -183,8 +165,98 @@ var clusteringSunburst = function() {
 
                 return degrees < 90 ? 'start' : 'end'
             })
-            .text(function(d) { return d.type === 'geneset' ? d.name : ''; })
+            .text(function(d) { return d.text; })
             ;
+
+        /*
+        var labels = svg.datum(jsonData)
+            .append('g')
+            .selectAll('text')
+            .data(partition.nodes)
+            .enter()
+            .append('text')
+            .attr('dx', '.30em')
+            .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
+            .attr('transform', function(d) {
+                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
+                var transadd = Math.sqrt(d.y + d.dy) * 2.0 + 10;
+                               
+                // Some extra spacing since we break up long abbreviations into
+                // separate lines
+                if (degrees < 90)
+                    degrees = degrees - 5;
+                else
+                    degrees = degrees + 5;
+                // Lables from -90 <-> 90 need to be shifted to the other side
+                // of sunburst
+                return 'rotate(' + degrees + ')' + 
+                    (degrees < 90 ? '' : 'translate(' + transadd + ',0)') + 
+                    (degrees < 90 ? '' : 'rotate(180)')
+            })
+            .style('text-anchor', function(d) {
+                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
+
+                return degrees < 90 ? 'start' : 'end'
+            })
+            // Since long abbreviations get cut off (they exceed the SVG
+            // boundaries) we draw text as separate tspans of 25 characters
+            // each. This code wis ripped from my own viz library for
+            // offsetting long strings of text.
+            .each(function(d) {
+
+                if (d.type !== 'geneset')
+                    return;
+
+                var chunks = [];
+                var labelText = d.name;
+
+                // Separate a single line into lines of 25 characters
+                while (true) {
+
+                    var chunk = labelText.slice(0, 25);
+
+                    if (!chunk)
+                        break;
+
+                    chunks.push(chunk);
+
+                    labelText = labelText.slice(25);
+                }
+
+                var lastLength = 0;
+                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
+
+                for (var i = 0; i < chunks.length; i++) {
+
+                    if (i === 0)
+                        lastLength = '.30em';
+
+                    // The rotate part doesn't actualy do anything
+                    var textElem = d3.select(this)
+                        .append('tspan')
+                        .text(chunks[i])
+                        .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
+                        .attr('transform', function() { 
+                            if (degrees < 90)
+                                return 'rotate(' + (degrees + (i * 35)) + ')'; 
+                            else
+                                return 'rotate(' + (degrees - (i * 15)) + ')'; 
+                        })
+                        //.attr('dx', function() {
+                        //    var oldLength = lastLength;
+                        //    lastLength = -this.getComputedTextLength();
+
+                        //    return oldLength;
+                        //})
+                        //.attr('dy', function() { return !i ? 0 : 15; })
+                        .attr('dy', function() { return 15; })
+
+                        ;
+                }
+            })
+            //.text(function(d) { return d.type === 'geneset' ? d.name : ''; })
+            ;
+            */
     };
 
     /** public **/
