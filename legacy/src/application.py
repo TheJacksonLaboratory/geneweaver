@@ -178,6 +178,8 @@ def lookup_user_from_session():
             # a bit of extra safety. Unfortunately this also means that we're
             # forcing valid users to log in again when they change networks
             _logout()
+    else:
+        flask.g.user = geneweaverdb.new_guest()
 
 
 @app.route('/logout')
@@ -3684,7 +3686,6 @@ def json_register_successful():
     if not rdata['success']:
         return flask.render_template('register.html',
                                      error="Incorrect captcha. Please try again.")
-
     user = _form_register()
 
     if user is None:

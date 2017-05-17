@@ -2753,6 +2753,24 @@ def get_user_byemail(user_email):
         return users[0] if len(users) == 1 else None
 
 
+# TODO: Finish Implementing This Method
+def add_guest():
+    """
+    Creates a new empty user to use as a guest account
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''INSERT INTO usr
+               (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created)
+               VALUES
+               (%('GUEST'), %('GUEST'), %('')s, '0', %('')s, NOW(), NOW()), 't')
+            ''', {}
+        )
+        cursor.connection.commit()
+        return None
+
+
 def register_user(user_first_name, user_last_name, user_email, user_password):
     """
     Insert a user to the db
@@ -2767,7 +2785,8 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
                 '''INSERT INTO usr
                       (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created)
                    VALUES
-                      (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW())''',
+                      (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
+                ''',
                 {
                     'user_first_name': user_first_name,
                     'user_last_name': user_last_name,
@@ -2777,6 +2796,35 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
         )
         cursor.connection.commit()
         return get_user_byemail(user_email)
+
+
+def register_user_from_guest(user_first_name, user_last_name, user_email, user_password, guest_id):
+    """
+    Updates a guest user to a registered user
+    :param user_first_name: the user's first name, if not provided use "Guest" as default
+    :param user_last_name:	the user's last name, if not provided use "User" as default
+    :param user_email:		the user's email address, if not provided use "" as default
+    :param user_password:	the user's password, if not provided use "" as default
+    :param guest_id:        the id of the guest account to register
+    """
+    with PooledCursor() as cursor:
+        password_md5 = md5(user_password).hexdigest()
+        cursor.execute(
+            '''UPDATE usr SET
+                  (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
+               VALUES
+                  (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
+               WHERE usr_id=guest_id''',
+            {
+                'user_first_name': user_first_name,
+                'user_last_name': user_last_name,
+                'user_email': user_email,
+                'user_password': password_md5
+            }
+        )
+        cursor.connection.commit()
+        return get_user_byemail(user_email)
+
 
 
 def reset_password(user_email):
