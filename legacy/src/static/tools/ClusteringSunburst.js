@@ -37,6 +37,27 @@ var clusteringSunburst = function() {
     /** private **/
 
     /**
+      * Retrieves all the children of the given node.
+      */
+    var getChildren = function(node) {
+
+        var children = [];
+
+        // Removes gene nodes
+        var recurse = function(n) {
+            
+            children.push(n);
+
+            if (n.children) 
+                n.children.forEach(recurse);
+        };
+
+        recurse(node);
+
+        return children;
+    };
+
+    /**
       * Maps colors to drawn nodes based on species. Each node (which
       * represents a gene set or a cluster) will get a certain color dependent
       * on its species. Clusters get their own color too.
@@ -57,6 +78,96 @@ var clusteringSunburst = function() {
         }
 
         return speciesColors[d.species];
+    }
+
+    /**
+      * Handles mouse hover events when a user places the mouse one of the
+      * drawn arcs.
+      */
+    var mouseover = function(d) {
+
+        if (d.type === 'cluster') {
+
+            svg.append('text')
+                .attr('id', 'cluster-text')
+                .attr('x', 0)
+                .attr('y', 0)
+                .style('font-size', '15px')
+                .style('font-family', 'sans-serif')
+                .style('color', '#000000')
+                .style('text-anchor', 'middle')
+                .style('text-decoration', 'underline')
+                .text('Clustering Coefficient')
+                ;
+
+            svg.append('text')
+                .attr('id', 'cluster-text')
+                .attr('x', 0)
+                .attr('y', 18)
+                .style('font-size', '15px')
+                .style('font-family', 'sans-serif')
+                .style('color', '#000000')
+                .style('text-anchor', 'middle')
+                .text(function() { return d.jaccard_index.toPrecision(2); })
+                ;
+
+            var children = getChildren(d);
+            var co = {};
+
+            for (var i = 0; i < children.length; i++)
+                co[children[i].name] = children[i].name;
+
+            for (var i = 0; i < children.length; i++) {
+
+                svg.selectAll('path')
+                    .filter(function(d) { return d.name in co; })
+                    .style('stroke', '#000000')
+                    .style('stroke-width', '1px')
+                    .attr('stroke', '#000000')
+                    .attr('stroke-width', '1px')
+                    ;
+            }
+        }
+    };
+
+    /**
+      * Handles hover events when the mouse leaves the boundaries of a drawn
+      * arc.
+      */
+    var mouseout = function(d) {
+
+
+        if (d.type === 'cluster') {
+            svg.selectAll('#cluster-text').remove();
+        }
+    };
+
+    /**
+      * Controls right click behavior. Takes the user to the 
+      * /viewgenesetdetails page when a gene set node is clicked.
+      * node is clicked. (Collapsed) Cluster nodes take the user to the
+      * /viewgenesetoverlap page.
+      */
+    var onRightClick = function(d) {
+
+        // Prevent the stupid context menu from popping up
+        d3.event.preventDefault();
+
+        if (d.type === 'geneset') {
+            window.open('/viewgenesetdetails/' + d.id, '_blank');
+
+        // This is a cluster or collapsed cluster node.
+        } else {
+
+            var children = getChildren(d);
+            var ids = [];
+
+            for (var i = 0 ; i < children.length; i++)
+                if (children[i].type === 'geneset')
+                    ids.push(children[i].id);
+
+            window.open('/viewgenesetoverlap/' + ids.join('+'), '_blank');
+        }
     }
 
     /**
@@ -92,10 +203,14 @@ var clusteringSunburst = function() {
             // Hides the inner circle
             .attr('display', function(d) { return d.depth ? null : 'none'; })
             .style('fill', colorMap)
-            .style('stroke', '#222')
+            .style('stroke', '#000')
+            .style('stroke-width', '2px')
             //.style('opacity', opac)
             //.on('click', click)
             //.on('dblclick',dblclick)
+            .on('mouseover', mouseover)
+            .on('mouseout', mouseout)
+            .on('contextmenu', onRightClick);
             ;
     };
 
@@ -103,6 +218,9 @@ var clusteringSunburst = function() {
 
         var nodes = [];
 
+        // Since long abbreviations get cut off (they exceed the SVG
+        // boundaries) we draw the labels as separate text objects spanning
+        // 25 characters (or less) each.
         for (var i = 0; i < partition.nodes(jsonData).length; i++) {
             var node = partition.nodes(jsonData)[i];
             var chunks = [];
@@ -126,6 +244,8 @@ var clusteringSunburst = function() {
 
             for (var j = 0; j < chunks.length; j++) {
 
+                // Each of the label coordinates. ci keeps track of the line
+                // number.
                 nodes.push({
                     x: node.x,
                     dx: node.dx,
@@ -149,6 +269,7 @@ var clusteringSunburst = function() {
                 var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
                 var transadd = Math.sqrt(d.y + d.dy) * 2.0 + 10;
                 
+                // Adjust so each label line looks like it's on a separate line
                 if (degrees < 90)
                     degrees += (d.ci * 3.5)
                 else
@@ -167,96 +288,6 @@ var clusteringSunburst = function() {
             })
             .text(function(d) { return d.text; })
             ;
-
-        /*
-        var labels = svg.datum(jsonData)
-            .append('g')
-            .selectAll('text')
-            .data(partition.nodes)
-            .enter()
-            .append('text')
-            .attr('dx', '.30em')
-            .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
-            .attr('transform', function(d) {
-                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
-                var transadd = Math.sqrt(d.y + d.dy) * 2.0 + 10;
-                               
-                // Some extra spacing since we break up long abbreviations into
-                // separate lines
-                if (degrees < 90)
-                    degrees = degrees - 5;
-                else
-                    degrees = degrees + 5;
-                // Lables from -90 <-> 90 need to be shifted to the other side
-                // of sunburst
-                return 'rotate(' + degrees + ')' + 
-                    (degrees < 90 ? '' : 'translate(' + transadd + ',0)') + 
-                    (degrees < 90 ? '' : 'rotate(180)')
-            })
-            .style('text-anchor', function(d) {
-                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
-
-                return degrees < 90 ? 'start' : 'end'
-            })
-            // Since long abbreviations get cut off (they exceed the SVG
-            // boundaries) we draw text as separate tspans of 25 characters
-            // each. This code wis ripped from my own viz library for
-            // offsetting long strings of text.
-            .each(function(d) {
-
-                if (d.type !== 'geneset')
-                    return;
-
-                var chunks = [];
-                var labelText = d.name;
-
-                // Separate a single line into lines of 25 characters
-                while (true) {
-
-                    var chunk = labelText.slice(0, 25);
-
-                    if (!chunk)
-                        break;
-
-                    chunks.push(chunk);
-
-                    labelText = labelText.slice(25);
-                }
-
-                var lastLength = 0;
-                var degrees = ((d.x + d.dx / 2) - Math.PI / 2)  / Math.PI * 180;
-
-                for (var i = 0; i < chunks.length; i++) {
-
-                    if (i === 0)
-                        lastLength = '.30em';
-
-                    // The rotate part doesn't actualy do anything
-                    var textElem = d3.select(this)
-                        .append('tspan')
-                        .text(chunks[i])
-                        .attr('x', function(d) { return Math.sqrt(d.y + d.dy); })
-                        .attr('transform', function() { 
-                            if (degrees < 90)
-                                return 'rotate(' + (degrees + (i * 35)) + ')'; 
-                            else
-                                return 'rotate(' + (degrees - (i * 15)) + ')'; 
-                        })
-                        //.attr('dx', function() {
-                        //    var oldLength = lastLength;
-                        //    lastLength = -this.getComputedTextLength();
-
-                        //    return oldLength;
-                        //})
-                        //.attr('dy', function() { return !i ? 0 : 15; })
-                        .attr('dy', function() { return 15; })
-
-                        ;
-                }
-            })
-            //.text(function(d) { return d.type === 'geneset' ? d.name : ''; })
-            ;
-            */
     };
 
     /** public **/
