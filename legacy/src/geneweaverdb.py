@@ -2394,6 +2394,8 @@ class User:
         self.creation_date = usr_dict['usr_created']
         self.ip_addr = usr_dict['ip_addr']
 
+        self.is_guest = bool(usr_dict['is_guest'])
+
         self.__projects = None
         self.__shared_projects = None
         self.__get_groups_by_user = None
@@ -2420,6 +2422,9 @@ class User:
         if self.__get_groups_by_user is None:
             self.__get_groups_by_user = get_groups_owned_by_user(self.user_id)
         return self.__get_groups_by_user
+
+    def __nonzero__(self):
+        return not self.is_guest
 
 
 def get_groups_owned_by_user(user_id):
@@ -2754,7 +2759,7 @@ def get_user_byemail(user_email):
 
 
 # TODO: Finish Implementing This Method
-def add_guest():
+def new_guest():
     """
     Creates a new empty user to use as a guest account
     :return:
@@ -2768,7 +2773,7 @@ def add_guest():
             ''', {}
         )
         cursor.connection.commit()
-        return None
+        return get_user(cursor.fetchone()[0])
 
 
 def register_user(user_first_name, user_last_name, user_email, user_password):
@@ -2783,9 +2788,9 @@ def register_user(user_first_name, user_last_name, user_email, user_password):
         password_md5 = md5(user_password).hexdigest()
         cursor.execute(
                 '''INSERT INTO usr
-                      (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
+                   (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
                    VALUES
-                      (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
+                   (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
                 ''',
                 {
                     'user_first_name': user_first_name,
@@ -2811,9 +2816,9 @@ def register_user_from_guest(user_first_name, user_last_name, user_email, user_p
         password_md5 = md5(user_password).hexdigest()
         cursor.execute(
             '''UPDATE usr SET
-                  (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
+               (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
                VALUES
-                  (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
+               (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
                WHERE usr_id=guest_id''',
             {
                 'user_first_name': user_first_name,
@@ -2824,7 +2829,6 @@ def register_user_from_guest(user_first_name, user_last_name, user_email, user_p
         )
         cursor.connection.commit()
         return get_user_byemail(user_email)
-
 
 
 def reset_password(user_email):
