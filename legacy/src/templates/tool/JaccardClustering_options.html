@@ -15,9 +15,10 @@
 						data-parent="#accordion" href="#jcCollapse" style="color:black;">
 						<u class="tool-title">GeneSet Clustering</u>
 						<span id="pm-caret" class="fa fa-caret-left"></span>
-					<span class="tool-description">
-					Use Jaccard Distance to cluster GeneSets.
-					</span>
+                        <span class="tool-description">
+                            Use Jaccard Distance to cluster GeneSets.
+                            More <span id="wiki" class="fa fa-clone"></span>
+                        </span>
 					</a>
 				</div>
 			</div>
@@ -32,6 +33,8 @@
 	</div>
 </div>
 
-{#<script>#}
-{#    $("#JaccardClustering_Method").append('<option value="Heatmap" label="Heatmap">Heatmap</option>')#}
-{#</script>#}
+<script>
+    $('#wiki').click(function () {
+        window.open('http://geneweaver.org/wiki/index.php?title=Clustering');
+    });
+</script>
