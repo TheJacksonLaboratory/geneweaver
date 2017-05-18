@@ -149,16 +149,10 @@
 	<script type="text/javascript" src="../../static/tools/ClusteringGraph.js"></script>
 	<script type="text/javascript" src="../../static/tools/ClusteringSunburst.js"></script>
     <script type="text/javascript">
-        if('{{ async_result.method }}' != 'Heatmap'){
-            $("select#visualizationType")
-                .append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>')
-                .append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
-                ;
-        }
-        else
-        {
-            $("select#visualizationType").append('<option label="heatmap" value="heatmap" selected="selected">Jaccard Heatmap</option>')
-        }
+        $("select#visualizationType")
+            .append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>')
+            .append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
+            ;
 
 		var jsonPath = '{{ cluster_data | safe }}';
         var jsonData = null;
