@@ -57,54 +57,43 @@
 </div>
 
 <div id="ui-container">
-        <form id="todo-id" class="form-horizontal" role="form" method="post">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
         <div class="row">
             <div class="col-md-12">
-                    <div class="panel panel-info">
-                    <div class="panel-heading" style="border-radius:4px;">
-					<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
-						<div class="panel-title" style="width:100%;">
-							Tool Options
-							<span class="caret"></span>
-						</div>
-					</a>
-                    </div>
-                    <div id="jcCollapse" class="panel-collapse collapse">
-						<div class="panel-body" style="border-radius:5px; border:1px solid #006400;">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-                                    <button class="btn btn-primary"
-                                        type='submit'
-                                        value='run'
-                                        onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
-                                        Run
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div id="show-tool-options" 
+                     style="color:#006400; cursor:pointer; font-weight:600; 
+                            text-decoration:underline;">
+                    Tool Options
+                    <i id="tool-options-caret" class="fa fa-caret-left"></i>
+                </div>
+                <div id="tool-options" 
+                     style="display:none; text-align:left; background-color:#ded;
+                            border-radius:5px; padding:10px;">
+                        <div >{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
+                        <div >{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+                        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+                        <button class="btn btn-primary"
+                            type='submit'
+                            value='run'
+                            onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
+                            Run
+                        </button>
                 </div>
             </div>
         </div>
     </form>
-	<div class="panel panel-info" >
-		<div class="panel-heading bg-green" style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
-				<div class="panel-title" style="width:100%;">
-					Visualization Options
-					<span class="caret"></span>
-				</div>
-			</a>
-		</div>
-		<div id="viz-options" class="panel-collapse collapse" style="">
-			<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+    <br />
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-viz-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Visualization Options
+                <i id="viz-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="viz-options" 
+                 style="display:none; text-align:left; background-color:#ded;
+                        border-radius:5px; padding:10px;">
 				<div class="row">
 					<div class="col-md-2">
 						<p style="font-size:13px; font-weight:400;">
@@ -122,7 +111,10 @@
 				<div class="row">
 					<div class="col-md-3">
 						<div class="btn-group">
-							<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<button type="button" 
+                                    class="btn btn-primary dropdown-toggle" 
+                                    data-toggle="dropdown" aria-haspopup="true" 
+                                    aria-expanded="false">
 								Download as...
 								<span class="caret"></span>
 							</button>
@@ -134,9 +126,9 @@
 						</div>
 					</div>
 				</div>
-			</div>
-		</div>
-	</div>
+            </div>
+        </div>
+    </div>
     <div id="d3-container" class="d3">
         <div id="d3-legend" class="d3"></div>
         <div id="d3-visual" class="d3"></div>
@@ -200,6 +192,37 @@
         });
     </script>
 <script>
+
+    $(document).ready(function() {
+        $('#show-tool-options').on('click', function() {
+
+            $('#tool-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-viz-options').on('click', function() {
+
+            $('#viz-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+    });
+
     $('.download-image').on('click', function(event) {
 
         var dlurl = '/downloadResult';
