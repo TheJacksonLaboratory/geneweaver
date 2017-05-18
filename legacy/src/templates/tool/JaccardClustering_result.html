@@ -68,7 +68,7 @@
                 </div>
                 <div id="tool-options" 
                      style="display:none; text-align:left; background-color:#ded;
-                            border-radius:5px; padding:10px;">
+                            border-radius:5px; padding:15px; width:30%">
                         <div >{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
                         <div >{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
                         <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
@@ -93,14 +93,14 @@
             </div>
             <div id="viz-options" 
                  style="display:none; text-align:left; background-color:#ded;
-                        border-radius:5px; padding:10px;">
+                        border-radius:5px; padding:15px; width:30%">
 				<div class="row">
-					<div class="col-md-2">
+					<div class="col-md-4">
 						<p style="font-size:13px; font-weight:400;">
 							<b>Visualization Type:</b>
 						</p>
 					</div>
-					<div class="col-md-9">
+					<div class="col-md-8">
 						<form role="form" method="post">
 							<select id="visualizationType" name="visualizationType">
 							</select>
