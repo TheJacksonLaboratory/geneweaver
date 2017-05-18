@@ -50,55 +50,6 @@
     {
         width: 15%;
     }
-
-    .node circle {
-      cursor: pointer;
-    }
-
-
-    /* gene nodes */
-    .gene, line .gene {
-        fill: #cc00ff;
-        stroke: #cc00ff;
-    }
-
-    .gene:hover {
-        fill: #8f00b3;
-        stroke: #8f00b3;
-        opacity: .8;
-    }
-
-    /* cluster nodes */
-    .cluster, line .cluster{
-        fill: #0099ff;
-        stroke: #0099ff;
-    }
-
-    path{
-        stroke: #ffffff !important;
-    }
-
-
-    path[class=cluster]:hover{
-        fill: #b3e0ff;
-        stroke: #b3e0ff;
-    }
-
-    .collapsed-cluster, line .cluster {
-        fill: #004d80;
-        stroke: #004d80;
-    }
-
-    .node text {
-      font: 10px sans-serif;
-      pointer-events: none;
-      text-anchor: middle;
-    }
-
-    line.link {
-      fill: none;
-      stroke-width: 2px;
-    }
 </style>
 
 <div class="page-header">
@@ -193,6 +144,9 @@
     </div>
 </div>
 	<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
+    <!--
+	<script type="text/javascript" src="../../static/d3/d3.v4.min.js"></script>
+    -->
 	<script type="text/javascript" src="../../static/tools/ClusteringGraph.js"></script>
 	<script type="text/javascript" src="../../static/tools/ClusteringSunburst.js"></script>
     <script type="text/javascript">

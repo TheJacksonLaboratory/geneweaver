@@ -82,7 +82,9 @@ var clusteringSunburst = function() {
 
     /**
       * Handles mouse hover events when a user places the mouse one of the
-      * drawn arcs.
+      * drawn arcs. When a user hovers over a cluster, all nodes within that
+      * cluster are highlighted and the clustering coefficient (jaccard) is
+      * displayed in the middle of the sunburst.
       */
     var mouseover = function(d) {
 
@@ -91,22 +93,26 @@ var clusteringSunburst = function() {
             svg.append('text')
                 .attr('id', 'cluster-text')
                 .attr('x', 0)
-                .attr('y', 0)
-                .style('font-size', '15px')
-                .style('font-family', 'sans-serif')
-                .style('color', '#000000')
+                .attr('y', 15)
+                .style('font-size', '12px')
+                .style('font-family', "'Open Sans', sans-serif")
+                .style('font-weight', '400')
+                .style('color', '#666')
+                .style('background-color', '#666')
                 .style('text-anchor', 'middle')
-                .style('text-decoration', 'underline')
+                //.style('text-decoration', 'underline')
                 .text('Clustering Coefficient')
                 ;
 
             svg.append('text')
                 .attr('id', 'cluster-text')
                 .attr('x', 0)
-                .attr('y', 18)
-                .style('font-size', '15px')
-                .style('font-family', 'sans-serif')
-                .style('color', '#000000')
+                .attr('y', 0)
+                .style('font-size', '40px')
+                .style('font-family', "'Open Sans', sans-serif")
+                .style('font-weight', '400')
+                .style('background-color', '#666')
+                .style('color', '#666')
                 .style('text-anchor', 'middle')
                 .text(function() { return d.jaccard_index.toPrecision(2); })
                 ;
@@ -120,11 +126,10 @@ var clusteringSunburst = function() {
             for (var i = 0; i < children.length; i++) {
 
                 svg.selectAll('path')
-                    .filter(function(d) { return d.name in co; })
-                    .style('stroke', '#000000')
-                    .style('stroke-width', '1px')
-                    .attr('stroke', '#000000')
-                    .attr('stroke-width', '1px')
+                    .filter(function(d) { return !(d.name in co); })
+                    .style('opacity', function(d){
+                        return 0.3;
+                    })
                     ;
             }
         }
@@ -139,6 +144,9 @@ var clusteringSunburst = function() {
 
         if (d.type === 'cluster') {
             svg.selectAll('#cluster-text').remove();
+
+            svg.selectAll('path')
+                .style('opacity', 1.0);
         }
     };
 
@@ -203,14 +211,14 @@ var clusteringSunburst = function() {
             // Hides the inner circle
             .attr('display', function(d) { return d.depth ? null : 'none'; })
             .style('fill', colorMap)
-            .style('stroke', '#000')
+            .style('stroke', '#fff')
             .style('stroke-width', '2px')
             //.style('opacity', opac)
             //.on('click', click)
             //.on('dblclick',dblclick)
             .on('mouseover', mouseover)
             .on('mouseout', mouseout)
-            .on('contextmenu', onRightClick);
+            .on('contextmenu', onRightClick)
             ;
     };
 
@@ -293,7 +301,6 @@ var clusteringSunburst = function() {
     /** public **/
 
     exports.draw = function() {
-
 
         svg = d3.select(element)
             .append('svg')
