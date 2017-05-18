@@ -169,15 +169,10 @@
             d3.json(jsonPath, function(err, json) {
                 jsonData = json;
 
-                //var clustering = clusteringGraph()
-                var clustering = clusteringSunburst()
+                var clustering = clusteringGraph()
                     .jsonData(jsonData)
                     .draw()
-                    .drawLegend()
-                    //.drawGraph()
-                    //.drawLegend()
-                    ;
-            console.log(jsonData);
+                    .drawLegend();
             });
 
 
@@ -201,7 +196,7 @@
 
                     var clustering = clusteringGraph()
                         .jsonData(json)
-                        .drawGraph()
+                        .draw()
                         .drawLegend()
                         ;
                 });

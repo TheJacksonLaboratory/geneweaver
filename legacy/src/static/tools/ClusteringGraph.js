@@ -438,7 +438,7 @@ var clusteringGraph = function() {
     /**
       * Draws the force directed cluster graph.
       */
-    exports.drawGraph = function() {
+    exports.draw = function() {
 
         svg = d3.select(element)
             .append('svg')
