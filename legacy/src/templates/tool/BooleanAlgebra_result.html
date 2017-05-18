@@ -62,21 +62,22 @@
 
     {# Relation type and Number of Genesets used Title #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-        <h6 class="panel-title">{{ async_result.type }} of {{ async_result.numGS }} GeneSets</h6>
+        <h6 class="panel-title">{{ json_results.type }} of {{ json_results.numGS }} GeneSets</h6>
     </div>
 
-    {#     {{ async_result }}#}
+    {#         {{ json_results | safe }}#}
     {# div for venn diagram #}
-    {% if async_result.numGS < 11 %}
+    {% if json_results.numGS < 11 %}
         <span id="circles">
                 About this figure <i class="fa fa-caret-down"></i>
         </span>
         <div id="circle-explanation" style="display: none;">
             <div class="row">
                 <blockquote>
-                <p>The Circle Overlap representation is an approximation of Euler fractional overlaps. It is created
-                without the use of homology and is intended as a broad representation of Gene Set relationships. It will
-                not necessarily reflect the results of Boolean Algebra tool.</p>
+                    <p>The Circle Overlap representation is an approximation of Euler fractional overlaps. It is created
+                        without the use of homology and is intended as a broad representation of Gene Set relationships.
+                        It will
+                        not necessarily reflect the results of the Boolean Algebra tool.</p>
                 </blockquote>
             </div>
         </div>
@@ -92,10 +93,10 @@
     {% endif %}
 
     {# Check to see if there are results to display #}
-    {% if async_result.bool_results | length == 0 %}
+    {% if json_results.bool_results | length == 0 %}
         <div class="row">
             <div class="alert alert-info fade in">
-                No results were found in the {{ async_result.type }} of your GeneSets
+                No results were found in the {{ json_results.type }} of your GeneSets
             </div>
         </div>
 
@@ -104,14 +105,14 @@
 
 
 
-        {% if async_result.type == 'Union' %}
+        {% if json_results.type == 'Union' %}
             {% set i = 1 %}
-            {% set results = async_result.bool_results %}
+            {% set results = json_results.bool_results %}
 
             <div class="row">
                 <div class="col-md-10">
                     <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
-                        of {{ async_result.numGS }} GeneSets</h6>
+                        of {{ json_results.numGS }} GeneSets</h6>
                 </div>
                 <div class="col-md-2" align="right" style="text-align:right">
                     <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
@@ -126,7 +127,7 @@
                 </div>
             </div>
 
-            <div class="row" id="group-{{ async_result.numGS }}">
+            <div class="row" id="group-{{ json_results.numGS }}">
                 <table class="table table-hover">
                     <tbody>
                     <tr>
@@ -146,9 +147,9 @@
                                         {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
                                         <span style="margin-left: 5px;">
                                             <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                        background-color: {{ async_result.bg[(gene[2]|int-1)] }};
-                                        border:1px solid {{ async_result.borders[(gene[2]|int-1)] }}">
-                                                {{ async_result.all_species[gene[2]|string] }}.
+                                                    background-color: {{ json_results.bg[(gene[2]|int-1)] }};
+                                                    border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
+                                                {{ json_results.all_species[gene[2]|string] }}.
                                             </span>
                                         </span>
                                         <strong>
@@ -163,29 +164,29 @@
                             {# Make boxes for homology blocks #}
                             {# see tools repor boolean algebra for the list of species and colors #}
                             {#
-                        {% for i in range(1,12) %}
-                            {# skip elements that are empty #}
+                            {% for i in range(1,12) %}
+                                {# skip elements that are empty #}
                             {#
-                            {% if async_result.tt[(i-1)] != 'empty' %}
-                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                      data-original-title="{{ async_result.tt[(i-1)] }}"
-                                      title="{{ async_result.tt[(i-1)] }}">
-                                            {% set exists = ['1'] %}
-{#                                            {{ async_result.grid[async_result.odeLookup[gene]|string] }}#}
+                                {% if json_results.tt[(i-1)] != 'empty' %}
+                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                          data-original-title="{{ json_results.tt[(i-1)] }}"
+                                          title="{{ json_results.tt[(i-1)] }}">
+                                                {% set exists = ['1'] %}
+    {#                                            {{ json_results.grid[json_results.odeLookup[gene]|string] }}#}
                             {#
-                                    {% for h in async_result.resids[g|string]|sort %}
-                                        {% if h == i %}
-                                            <div class="geneBox"
-                                                 style="background-color: {{ async_result.colors[(i-1)] }};"></div>
-                                            {% if exists.append('1') %}{% endif %}
+                                        {% for h in json_results.resids[g|string]|sort %}
+                                            {% if h == i %}
+                                                <div class="geneBox"
+                                                     style="background-color: {{ json_results.colors[(i-1)] }};"></div>
+                                                {% if exists.append('1') %}{% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if exists|length == 1 %}
+                                            <div class="geneBox"></div>
                                         {% endif %}
-                                    {% endfor %}
-                                    {% if exists|length == 1 %}
-                                        <div class="geneBox"></div>
-                                    {% endif %}
-                                </span>
-                            {% endif %}
-                        {% endfor %}
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
                     #}
                             {#                    </td>#}
 
@@ -238,27 +239,72 @@
             </div>
         {% endif %}
 
-        {% if async_result.type == 'Intersect' or async_result.type == 'Except' %}
-            {% if async_result.type == 'Intersect' %}
-                {% set results = async_result.intersect_results %}
+        {% if json_results.type == 'Intersect' or json_results.type == 'Except' %}
+            {% if json_results.type == 'Intersect' %}
+                {% set results = json_results.intersect_results %}
                 {% set union = 'Intersection' %}
-            {% elif async_result.type == 'Except' %}
-                {% set results = async_result.bool_except %}
+            {% elif json_results.type == 'Except' %}
+                {% set results = json_results.bool_except %}
                 {% set union = 'Except Clause' %}
             {% endif %}
 
             <div class="row">
                 <div class="col-md-12">
-                    <h6 class="panel-title">{{ async_result.intersect_results | length }} Distinct Sets found in the
+                    <h6 class="panel-title">{{ results | length }} Distinct Sets found in the
                         {{ union }}
-                        of {{ async_result.numGS }} GeneSets where each gene is found in a minimum
-                        of {{ async_result.at_least }}
+                        of {{ json_results.numGS }} GeneSets where each gene is found in a minimum
+                        of {{ json_results.at_least }}
                         Gene Sets</h6>
                 </div>
             </div>
 
-            {% for gs_group in results | sort %}
+            {# This little section will place a box to link results #}
+            {% if json_results.type == 'Except' %}
                 <div class="row">
+                    <div class="alert bg-gray-light">
+                        <h4>Quick Links to Results below</h4>
+                        <ul class="fa-ul">
+                        {% for gs_groups in results | sort %}
+                            {% for g in results[gs_groups] %}
+                                {% if loop.last %}
+                                    <li><i class="fa-li fa fa-check"></i>
+                                        <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
+                                            GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
+                                        <a href="#{{ results[gs_groups] }}"><i class="fa fa-level-down"></i></a>
+                                    </li>
+                                {% endif %}
+                            {%  endfor %}
+
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if json_results.type == 'Intersect' %}
+                <div class="row">
+                    <div class="alert bg-gray-light">
+                        <h4>Quick Links to Results below</h4>
+                        <ul class="fa-ul">
+                        {% for gs_groups in results | sort %}
+                            {% for g in results[gs_groups] %}
+                                {% if loop.last %}
+                                    <li><i class="fa-li fa fa-check"></i>
+                                        <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
+                                            GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
+                                        <a href="#{{ results[gs_groups] }}"><i class="fa fa-level-down"></i></a>
+                                    </li>
+                                {% endif %}
+                            {%  endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+
+
+            {% for gs_group in results | sort %}
+                <div class="row" id="{{ results[gs_group] }}">
                     <div class="col-md-2 pull-right" align="right" style="text-align:right">
                         <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
                              style="padding:0; border:0; margin:0">
@@ -270,7 +316,7 @@
                     </div>
                 </div>
 
-                <div class="row" id="group-{{ async_result.numGS }}">
+                <div class="row" id="group-{{ json_results.numGS }}">
                     <table class="table table-hover">
                         <tbody>
                         <tr>
@@ -292,9 +338,9 @@
                                             {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
                                             <span style="margin-left: 5px;">
                                                 <span class="group_name" style="font: italic 10px/14px Georgia, serif;
-                                                    background-color: {{ async_result.bg[(gene[2]|int-1)] }};
-                                                    border:1px solid {{ async_result.borders[(gene[2]|int-1)] }}">
-                                                    {{ async_result.all_species[gene[2]|string] }}.
+                                                        background-color: {{ json_results.bg[(gene[2]|int-1)] }};
+                                                        border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
+                                                    {{ json_results.all_species[gene[2]|string] }}.
                                                 </span>
                                             </span>
                                             <strong>
@@ -306,35 +352,6 @@
 
                                 </td>
 
-                                {#                    <td>#}
-                                {# Make boxes for homology blocks #}
-                                {# see tools repor boolean algebra for the list of species and colors #}
-                                {#
-                    {% for i in range(1,12) %}
-                        {# skip elements that are empty #}
-                                {#
-                        {% if async_result.tt[(i-1)] != 'empty' %}
-                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                  data-original-title="{{ async_result.tt[(i-1)] }}"
-                                  title="{{ async_result.tt[(i-1)] }}">
-                                        {% set exists = ['1'] %}
-{#                                            {{ async_result.grid[async_result.odeLookup[gene]|string] }}#}
-                                {#
-                                {% for h in async_result.resids[g|string]|sort %}
-                                    {% if h == i %}
-                                        <div class="geneBox"
-                                             style="background-color: {{ async_result.colors[(i-1)] }};"></div>
-                                        {% if exists.append('1') %}{% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                                {% if exists|length == 1 %}
-                                    <div class="geneBox"></div>
-                                {% endif %}
-                            </span>
-                        {% endif %}
-                    {% endfor %}
-                #}
-                                {#                    </td>#}
 
                                 {# homoology #}
                                 <td style="width: 10%;">
@@ -495,20 +512,20 @@
 
         if (typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
 
-            var as = {{ async_result | tojson | safe}};
+            var as = {{ json_results | tojson | safe}};
             var sets = Object.keys(as['genesets']);
 
             var numGS = 0;
-            numGS = {{ async_result.numGS}};
+            numGS = {{ json_results.numGS}};
 
             // The 1? is added so the entire string will appear in
             // window.location.search. Without the 1? The string is
             // truncated and missing the first sentence.
             var getStr = '1?algebra?' +
-                'The {{ async_result.type }} of {{ async_result.numGS }}' +
+                'The {{ json_results.type }} of {{ json_results.numGS }}' +
                 ' GeneSets.?' +
                 'The Boolean Algebra tool was used to find the ' +
-                '{{ async_result.type }} of ' + numGS + ' sets: ' +
+                '{{ json_results.type }} of ' + numGS + ' sets: ' +
                 sets.join(', ');
 
             // add in all the checked boxes gene names
@@ -518,7 +535,7 @@
                 getStr += "?";
 
                 // grab the value
-                var tmpString = "{{ async_result.valueLookup }}";
+                var tmpString = "{{ json_results.valueLookup }}";
                 // conver the string to an array by looping
                 var values = [];
                 var t_length = tmpString.length;
@@ -579,7 +596,7 @@
 
     var sets = {};
     var data = [];
-    var results = {{ async_result | tojson | safe }};
+    var results = {{ json_results | tojson | safe }};
     var groups = [];
 
     if (results['numGS'] < 11) {
