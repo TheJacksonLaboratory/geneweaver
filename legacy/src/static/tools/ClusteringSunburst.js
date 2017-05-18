@@ -221,6 +221,70 @@ var clusteringSunburst = function() {
             ;
     };
 
+    /**
+      * Splits a signle line of text into several lines based on words and
+      * characters per line. The returned set of lines have a max character
+      * limit of 25 which also takes word boundaries into account (so lines
+      * don't end in the middle of a word).
+      */
+    var chunkifyText = function(text) {
+
+        var lines = [],
+            line = '';
+
+        text = text.split(' ');
+
+        for (var i = 0; i < text.length; i++) {
+
+            var word = text[i];
+
+            // The characters of this line plus the next word exceed 25, so we
+            // start a new line
+            if (line.length > 0 && (line.length + word.length) > 25) {
+
+                lines.push(line);
+
+                line = '';
+            }
+
+            // Last word in the string, add the remaining characters to the
+            // line list
+            if (i === (text.length - 1)) {
+
+                line += word;
+
+                lines.push(line);
+
+            } else {
+
+                line += word + ' ';
+            }
+        }
+
+        // Some labels might just be a bunch of characters with no spaces, in
+        // this case we just slice it up into several lines of 25 characters
+        // each.
+        if (lines.length === 1 && lines[0].length > 25) {
+
+            line = lines[0];
+            lines = [];
+
+            while (true) {
+
+                var chunk = line.slice(0, 25);
+
+                if (!chunk)
+                    break;
+
+                lines.push(line);
+
+                line = line.slice(25);
+            }
+        }
+
+        return lines;
+    };
+
     var drawLabels = function() {
 
         var nodes = [];
@@ -237,18 +301,7 @@ var clusteringSunburst = function() {
             if (node.type !== 'geneset')
                 continue;
 
-            // Separate a single line into lines of 25 characters
-            while (true) {
-
-                var chunk = labelText.slice(0, 25);
-
-                if (!chunk)
-                    break;
-
-                chunks.push(chunk);
-
-                labelText = labelText.slice(25);
-            }
+            chunks = chunkifyText(labelText);
 
             for (var j = 0; j < chunks.length; j++) {
 
