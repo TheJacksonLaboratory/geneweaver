@@ -67,7 +67,7 @@
                     <i id="tool-options-caret" class="fa fa-caret-left"></i>
                 </div>
                 <div id="tool-options" 
-                     style="display:none; text-align:left; background-color:#ded;
+                     style="display:none; text-align:left; background-color:#efe;
                             border-radius:5px; padding:15px; width:30%">
                         <div >{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
                         <div >{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
@@ -92,7 +92,7 @@
                 <i id="viz-options-caret" class="fa fa-caret-left"></i>
             </div>
             <div id="viz-options" 
-                 style="display:none; text-align:left; background-color:#ded;
+                 style="display:none; text-align:left; background-color:#efe;
                         border-radius:5px; padding:15px; width:30%">
 				<div class="row">
 					<div class="col-md-4">
@@ -126,6 +126,59 @@
 						</div>
 					</div>
 				</div>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-help" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Help
+                <i id="help-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="help" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:30%">
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Graph Visualization
+                    </span>
+                    <p style="padding-left:8px">
+                        <b>Drag</b> nodes to rearrange the graph.
+                        <br />
+                        <b>Hover</b> over GeneSet nodes to display their full
+                        name.
+                        <br />
+                        <b>Hover</b> over cluster nodes to display the
+                        jaccard similarity value between nodes in the cluster.
+                        <br />
+                        <b>Right click</b> on a GeneSet node to open a new
+                        "GeneSet Details" window.
+                        <br />
+                        <b>Right click</b> on a cluster node to view the
+                        overlap between all GeneSets within the cluster.
+                    </p>
+                </div>
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Sunburst Visualization
+                    </span>
+                    <p style="padding-left:8px">
+                        <b>Hover</b> over cluster arcs to highlight members of
+                        the cluster and display the jaccard similarity value 
+                        between nodes in the cluster.
+                        <br />
+                        <b>Right click</b> on a GeneSet node to open a new
+                        "GeneSet Details" window.
+                        <br />
+                        <b>Right click</b> on a cluster node to view the
+                        overlap between all GeneSets within the cluster.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -211,6 +264,20 @@
         $('#show-viz-options').on('click', function() {
 
             $('#viz-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-help').on('click', function() {
+
+            $('#help').slideToggle();
 
 			var caret = $(this).find('.fa-caret-left');
 
