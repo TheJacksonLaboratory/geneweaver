@@ -99,7 +99,7 @@ var clusteringSunburst = function() {
                 .style('background-color', '#666')
                 .style('text-anchor', 'middle')
                 //.style('text-decoration', 'underline')
-                .text('Clustering Coefficient')
+                .text('Jaccard Similarity')
                 ;
 
             svg.append('text')
