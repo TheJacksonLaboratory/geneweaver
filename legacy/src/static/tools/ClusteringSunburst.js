@@ -43,7 +43,6 @@ var clusteringSunburst = function() {
 
         var children = [];
 
-        // Removes gene nodes
         var recurse = function(n) {
             
             children.push(n);
@@ -64,8 +63,7 @@ var clusteringSunburst = function() {
       */
     var colorMap = function(d) {
 
-        // This indicates the node isn't a geneset; it's either an internal node 
-        // or a geneset node that has been collapsed.
+        // This indicates the node isn't a geneset; it's probably a cluster.
         if (d.species === undefined)
             return '#bdbdbd';
 
@@ -81,7 +79,7 @@ var clusteringSunburst = function() {
     }
 
     /**
-      * Handles mouse hover events when a user places the mouse one of the
+      * Handles mouse hover events when a user places the mouse on one of the
       * drawn arcs. When a user hovers over a cluster, all nodes within that
       * cluster are highlighted and the clustering coefficient (jaccard) is
       * displayed in the middle of the sunburst.
@@ -120,29 +118,33 @@ var clusteringSunburst = function() {
             var children = getChildren(d);
             var co = {};
 
+            // Get all the children under the current cluster and put their
+            // names into an object for easy retrieval.
             for (var i = 0; i < children.length; i++)
                 co[children[i].name] = children[i].name;
 
+            // Lowers the opacity for all drawn arcs in the viz except for
+            // those that are children of the current cluster.
             for (var i = 0; i < children.length; i++) {
 
                 svg.selectAll('path')
                     .filter(function(d) { return !(d.name in co); })
                     .style('opacity', function(d){
                         return 0.3;
-                    })
-                    ;
+                    });
             }
         }
     };
 
     /**
       * Handles hover events when the mouse leaves the boundaries of a drawn
-      * arc.
+      * arc. When a user's mouse leaves an arc boundary the entire viz is reset
+      * to its defaults.
       */
     var mouseout = function(d) {
 
-
         if (d.type === 'cluster') {
+
             svg.selectAll('#cluster-text').remove();
 
             svg.selectAll('path')
@@ -153,8 +155,7 @@ var clusteringSunburst = function() {
     /**
       * Controls right click behavior. Takes the user to the 
       * /viewgenesetdetails page when a gene set node is clicked.
-      * node is clicked. (Collapsed) Cluster nodes take the user to the
-      * /viewgenesetoverlap page.
+      * Cluster nodes take the user to the /viewgenesetoverlap page.
       */
     var onRightClick = function(d) {
 
@@ -170,6 +171,7 @@ var clusteringSunburst = function() {
             var children = getChildren(d);
             var ids = [];
 
+            // Get the GSIDs for all geneset nodes within this cluster
             for (var i = 0 ; i < children.length; i++)
                 if (children[i].type === 'geneset')
                     ids.push(children[i].id);
@@ -185,7 +187,7 @@ var clusteringSunburst = function() {
     var makeLayout = function() {
 
         // Generate the partition layout. Areas are drawn based on the size
-        // parameter of each node object.
+        // parameter of each node (geneset) object.
         partition = d3.layout.partition()
             .sort(null)
             .size([2 * Math.PI, radius * radius])
@@ -213,9 +215,6 @@ var clusteringSunburst = function() {
             .style('fill', colorMap)
             .style('stroke', '#fff')
             .style('stroke-width', '2px')
-            //.style('opacity', opac)
-            //.on('click', click)
-            //.on('dblclick',dblclick)
             .on('mouseover', mouseover)
             .on('mouseout', mouseout)
             .on('contextmenu', onRightClick)
@@ -230,9 +229,10 @@ var clusteringSunburst = function() {
         // boundaries) we draw the labels as separate text objects spanning
         // 25 characters (or less) each.
         for (var i = 0; i < partition.nodes(jsonData).length; i++) {
-            var node = partition.nodes(jsonData)[i];
-            var chunks = [];
-            var labelText = node.name;
+
+            var node = partition.nodes(jsonData)[i],
+                chunks = [],
+                labelText = node.name;
 
             if (node.type !== 'geneset')
                 continue;
@@ -283,8 +283,8 @@ var clusteringSunburst = function() {
                 else
                     degrees -= (d.ci * 3.5)
 
-                // Lables from -90 <-> 90 need to be shifted to the other side
-                // of sunburst
+                // Lables from -90 <-> 90 degrees need to be shifted to the 
+                // other side of sunburst
                 return 'rotate(' + degrees + ')' + 
                     (degrees < 90 ? '' : 'translate(' + transadd + ',0)') + 
                     (degrees < 90 ? '' : 'rotate(180)')
