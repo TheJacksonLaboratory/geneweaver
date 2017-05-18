@@ -305,6 +305,9 @@ var clusteringGraph = function() {
         nodeEnter.append('text')
             .attr('dy', getPosition)
             .attr('dx', getPosition)
+            .style('font-family', "'Open Sans', sans-serif")
+            .style('font-size', '10px')
+            .style('text-anchor', 'middle')
             .text(getNodeLabel);
 
         node.on('mouseover', mouseover);
