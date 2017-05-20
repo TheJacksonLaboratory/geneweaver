@@ -32,6 +32,17 @@
     th, td {
         text-align: center;
     }
+
+    ul {
+    list-style: disc outside none;
+    margin-left: 0;
+    padding-left: 1em;
+    text-indent: -2em;
+    }
+
+    li{
+        padding-left: 1em;
+    }
 </style>
 
 
@@ -240,6 +251,7 @@
         {% endif %}
 
         {% if json_results.type == 'Intersect' or json_results.type == 'Except' %}
+            {% if json_results | length > 0 %}
             {% if json_results.type == 'Intersect' %}
                 {% set results = json_results.intersect_results %}
                 {% set union = 'Intersection' %}
@@ -258,41 +270,36 @@
                 </div>
             </div>
 
-            {# This little section will place a box to link results #}
-            {% if json_results.type == 'Except' %}
+            {#
+            #############################################################
+            # This little section will place a box to link results
+            #}
+            {% if results | length > 1 %}
                 <div class="row">
                     <div class="alert bg-gray-light">
-                        <h4>Quick Links to Results below</h4>
+                        <h4>Quick Links to Results below...</h4>
                         <ul class="fa-ul">
                         {% for gs_groups in results | sort %}
                             {% for g in results[gs_groups] %}
                                 {% if loop.last %}
                                     <li><i class="fa-li fa fa-check"></i>
-                                        <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
+                                        {% if json_results.type == 'Intersect' %}
+                                            <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set(s)
+                                            {% for gene in results[gs_groups][g] %}
+                                                <span id="{{ gene[3] }}">
+                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                        data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
+                                                        <strong>GS{{ gene[3] }} {{ gene[4] }}</strong>
+                                                        {% if not loop.last %},{% endif %}
+                                                    </span>
+                                                </span>
+                                            {% endfor %}
+                                        {% elif json_results.type == 'Except' %}
+                                            <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
                                             GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
-                                        <a href="#{{ results[gs_groups] }}"><i class="fa fa-level-down"></i></a>
-                                    </li>
-                                {% endif %}
-                            {%  endfor %}
-
-                        {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            {% endif %}
-
-            {% if json_results.type == 'Intersect' %}
-                <div class="row">
-                    <div class="alert bg-gray-light">
-                        <h4>Quick Links to Results below</h4>
-                        <ul class="fa-ul">
-                        {% for gs_groups in results | sort %}
-                            {% for g in results[gs_groups] %}
-                                {% if loop.last %}
-                                    <li><i class="fa-li fa fa-check"></i>
-                                        <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
-                                            GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
-                                        <a href="#{{ results[gs_groups] }}"><i class="fa fa-level-down"></i></a>
+                                        {% endif %}
+                                        <span style="position: relative; left: 25px;"><a href="#{{ results[gs_groups] }}">
+                                            <i class="fa fa-level-down"></i></a></span>
                                     </li>
                                 {% endif %}
                             {%  endfor %}
@@ -366,14 +373,13 @@
                                 <td>
                                     {% for gene in cluster %}
                                         <span id="{{ gene[3] }}">
-                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                  data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                            <a href="/viewgenesetdetails/{{ gene[3] }}">
-                            <strong>GS{{ gene[3] }}</strong>
-                            </a>
-                                {% if not loop.last %},{% endif %}
-                            </span>
-                        </span>
+                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                  data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
+                                            <a href="/viewgenesetdetails/{{ gene[3] }}"><strong>GS{{ gene[3] }}</strong>
+                                            </a>
+                                            {% if not loop.last %},{% endif %}
+                                            </span>
+                                        </span>
                                     {% endfor %}
                                 </td>
                                 {# Emphasize #}
@@ -401,7 +407,7 @@
                 </div>
             {% endfor %}
         {% endif %}
-
+        {% endif %}
 
     {% endif %}
 
