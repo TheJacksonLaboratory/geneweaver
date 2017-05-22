@@ -128,7 +128,10 @@
                 </div>
             </div>
 
+            {#
             <div class="row" id="group-{{ json_results.numGS }}">
+            #}
+            <div class="row" id="group-{{ i }}">
                 <table class="table table-hover">
                     <tbody>
                     <tr>
@@ -433,6 +436,12 @@
             // Even when we mark the checkbox as checked the stupid UI doesn't
             // get updated because of these weird ui button things
             var btns = $(groupCheckboxes).find('.ui-btn');
+
+            console.log($(this).attr('id'));
+            console.log(groupId);
+            console.log(groupCheck);
+            console.log(btns);
+
 
             // Opposite because by the time this code executes, the box is
             // already checked
