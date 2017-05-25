@@ -231,8 +231,10 @@
                                     <label for="addGeneset"
                                            style="margin: -6px; padding-right: 0;">
                                         <input type="checkbox" name="gsoptions[]"
-                                               id="addGeneset{{ cluster[0] }}"
-                                               value="{{ cluster[0] }}"/>
+                                               id="addGeneset{{ cluster[0][1] |string}}"
+                                               
+                                               value="{{ cluster[0][1] | string }}"/>
+                                               {#json_results.all_species[gene[2]|string]#}
                                     </label>
                                 </div>
                             </td>
@@ -393,8 +395,8 @@
                                         <label for="addGeneset"
                                                style="margin: -6px; padding-right: 0;">
                                             <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ cluster[0] }}"
-                                                   value="{{ cluster[0] }}"/>
+                                                   id="addGeneset{{ cluster[0][1] | string}}"
+                                                   value="{{ cluster[0][1] | string }}"/>
                                         </label>
                                     </div>
                                 </td>
@@ -508,6 +510,7 @@
     {# Functionality for the "Add to New GeneSets Button.
        All the checked checkboxes are loaded and sent with a Query String
        to the 'Batch Upload Geneset' Page #}
+
     function addNewGS() {
 
         var checkedArray = [];
@@ -518,10 +521,8 @@
         if (typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
 
             var as = {{ json_results | tojson | safe}};
-            var sets = Object.keys(as['genesets']);
-
-            var numGS = 0;
-            numGS = {{ json_results.numGS}};
+            var gsids = as['gsids'];
+            var numGS = as['numGS'];
 
             // The 1? is added so the entire string will appear in
             // window.location.search. Without the 1? The string is
@@ -531,10 +532,12 @@
                 ' GeneSets.?' +
                 'The Boolean Algebra tool was used to find the ' +
                 '{{ json_results.type }} of ' + numGS + ' sets: ' +
-                sets.join(', ');
+                gsids.join(', ');
 
             // add in all the checked boxes gene names
             checkedArray.forEach(function (entry) {
+                // idk why this is json-ish now
+                console.log(entry);
                 getStr += "?";
                 getStr += entry;
                 getStr += "?";
