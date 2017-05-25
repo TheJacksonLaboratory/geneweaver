@@ -2,136 +2,427 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
+<style>
+    .venntooltip {
+        position: absolute;
+        text-align: center;
+        vertical-align: middle;
+        width: 128px;
+        height: 26px;
+        background: #333;
+        color: #ddd;
+        padding: 3px;
+        border: 0px;
+        border-radius: 8px;
+        opacity: 0;
+    }
+
+    .geneBox {
+        padding: 7px;
+        display: inline-block;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+
+    #circles {
+        cursor: pointer;
+        color: #0090D9;
+    }
+
+    th, td {
+        text-align: center;
+    }
+
+</style>
+
 
 <div class="loader"></div>
 
 <div class="row" id="result"></div>
 
 <div class="panel panel-default panel-heading bg-gray-light">
-     <h2 class="panel-title"><strong>Boolean Algebra</strong></h2>
+    <h2 class="panel-title"><strong>Boolean Algebra</strong></h2>
 </div>
 
- <div class="panel panel-default">
+<div class="panel panel-default">
 
 
-<div class="row">
-                <div class="col-xs-12 col-md-9">
-                    <div class="row">
-                    </div>
-                </div>
-                <div class="col-xs-6 col-md-3">
-                    <button type="button" class="btn btn-block btn-warning" onclick="addNewGS()" id="addToNewGeneset" style="margin-bottom: 10px;">
-                        <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
-                    </button>
-                </div>
-</div>
+    <div class="row">
+        <div class="col-xs-12 col-md-9">
+            <div class="row">
+            </div>
+        </div>
+        <div class="col-xs-6 col-md-3">
+            <button type="button" class="btn btn-block btn-warning" onclick="addNewGS()" id="addToNewGeneset"
+                    style="margin-bottom: 10px;">
+                <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+            </button>
+        </div>
+    </div>
+
+
+    {# Relation type and Number of Genesets used Title #}
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h6 class="panel-title">{{ json_results.type }} of {{ json_results.numGS }} GeneSets</h6>
+    </div>
+
+    {#         {{ json_results | safe }}#}
+    {# div for venn diagram #}
+    {% if json_results.numGS < 11 %}
+        <span id="circles">
+                About this figure <i class="fa fa-caret-down"></i>
+        </span>
+        <div id="circle-explanation" style="display: none;">
+            <div class="row">
+                <blockquote>
+                    <p>The Circle Overlap representation is an approximation of Euler fractional overlaps. It is created
+                        without the use of homology and is intended as a broad representation of Gene Set relationships.
+                        It will
+                        not necessarily reflect the results of the Boolean Algebra tool.</p>
+                </blockquote>
+            </div>
+        </div>
+        <div class="vis" style="margin-left: auto; margin-right: auto;"></div>
+    {% else %}
+        <div class="row">
+            <div class="alert alert-warning fade in">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <strong>Warning!</strong> Too many GeneSets to display graph representation. Please select 10 or fewer
+                to display overlaps.
+            </div>
+        </div>
+    {% endif %}
+
+    {# Check to see if there are results to display #}
+    {% if json_results.bool_results | length == 0 %}
+        <div class="row">
+            <div class="alert alert-info fade in">
+                No results were found in the {{ json_results.type }} of your GeneSets
+            </div>
+        </div>
+
+        {# Display the results if there are any. #}
+    {% else %}
 
 
 
-{# Relation type and Number of Genesets used Title #}
-<div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        {% if json_results.type == 'Union' %}
+            {% set i = 1 %}
+            {% set results = json_results.bool_results %}
 
-            <h6 class="panel-title">{{ async_result.type }} of {{ async_result.numGS}} GeneSets</h6>
-
-</div>
- <p><br><br></p>
- {# Check to see if there are results to display #}
-{%  if async_result.num_genes == 0 %}
-    <h4> No results. </h4>
-
-{# Display the results if there are any. #}
-{% else %}
-
-    {%  for i in range(async_result.numGS,-1,-1) %}
-        {%  if async_result.formatPrint[i]|length != 0 %}
             <div class="row">
                 <div class="col-md-10">
-                    <h6 class="panel-title">{{ (i + 1 ) }} of {{ async_result.numGS}} GeneSets</h6>
+                    <h6 class="panel-title">{{ results | length }} Distinct Genes found in the Union
+                        of {{ json_results.numGS }} GeneSets</h6>
                 </div>
                 <div class="col-md-2" align="right" style="text-align:right">
-                    <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck" style="padding:0; border:0; margin:0">
+                    <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
+                         style="padding:0; border:0; margin:0">
                         <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
                             Select All
-                            <input type="checkbox" 
-                                   name="group_{{ i }}"
-                                   />
+                            <input type="checkbox"
+                                   name="group-{{ i }}"
+                            />
                         </label>
                     </div>
                 </div>
             </div>
-                <div class="row" id="group-{{ i }}">
+
+            <div class="row" id="group-{{ json_results.numGS }}">
+                <table class="table table-hover">
+                    <tbody>
+                    <tr>
+                        <th>Genes</th>
+                        {#                <th>Species</th>#}
+                        <th>Homology</th>
+                        <th>In GeneSets</th>
+                        <th>Emphasis</th>
+                        <th></th>
+                    </tr>
+                    {% for g in results | sort(attribute=0) %}
+                        {% set cluster = results[g] %}
+                        <tr>
+                            <td style="text-align: left;">
+                                {% for gene in cluster %}
+                                    {% if previous != gene[2]|string + gene[1] %}
+                                        {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
+                                        <span style="margin-left: 5px;">
+                                            <span class="group_name" style="font: italic 10px/14px Georgia, serif;
+                                                    background-color: {{ json_results.bg[(gene[2]|int-1)] }};
+                                                    border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
+                                                {{ json_results.all_species[gene[2]|string] }}.
+                                            </span>
+                                        </span>
+                                        <strong>
+                                            <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
+                                        </strong>
+                                    {% endif %}
+                                    {% set previous = gene[2]|string + gene[1] %}
+                                {% endfor %}
+                            </td>
+
+                            {#                    <td>#}
+                            {# Make boxes for homology blocks #}
+                            {# see tools repor boolean algebra for the list of species and colors #}
+                            {#
+                            {% for i in range(1,12) %}
+                                {# skip elements that are empty #}
+                            {#
+                                {% if json_results.tt[(i-1)] != 'empty' %}
+                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                          data-original-title="{{ json_results.tt[(i-1)] }}"
+                                          title="{{ json_results.tt[(i-1)] }}">
+                                                {% set exists = ['1'] %}
+    {#                                            {{ json_results.grid[json_results.odeLookup[gene]|string] }}#}
+                            {#
+                                        {% for h in json_results.resids[g|string]|sort %}
+                                            {% if h == i %}
+                                                <div class="geneBox"
+                                                     style="background-color: {{ json_results.colors[(i-1)] }};"></div>
+                                                {% if exists.append('1') %}{% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if exists|length == 1 %}
+                                            <div class="geneBox"></div>
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                    #}
+                            {#                    </td>#}
+
+                            {# homoology #}
+                            <td>
+                                {% if cluster | length == 1 %}
+                                    <span class="label label-default">No Mapping</span>
+                                {% else %}
+                                    <span class="label label-info">Homologene</span>
+                                {% endif %}
+                            </td>
+
+                            {# In Gene Sets #}
+                            <td>
+                                {% for gene in cluster %}
+                                    <span id="{{ gene[3] }}">
+                                <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                      data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
+                                <a href="/viewgenesetdetails/{{ gene[4] }}">
+                                <strong>GS{{ gene[3] }}</strong>
+                                </a>
+                                    {% if not loop.last %},{% endif %}
+                                </span>
+                            </span>
+                                {% endfor %}
+
+                            </td>
+                            {# Emphasize #}
+                            <td nowrap>
+                                <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
+                                       onchange="emphasize('{{ cluster[0] }}');"
+                                       class="switch" data-size="mini"
+                                       style="padding: 0px; vertical-align: middle;">
+                            </td>
+                            {# Checkbox #}
+                            <td>
+                                <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                    <label for="addGeneset"
+                                           style="margin: -6px; padding-right: 0;">
+                                        <input type="checkbox" name="gsoptions[]"
+                                               id="addGeneset{{ cluster[0] }}"
+                                               value="{{ cluster[0] }}"/>
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if json_results.type == 'Intersect' or json_results.type == 'Except' %}
+            {% if json_results | length > 0 %}
+            {% if json_results.type == 'Intersect' %}
+                {% set results = json_results.intersect_results %}
+                {% set union = 'Intersection' %}
+            {% elif json_results.type == 'Except' %}
+                {% set results = json_results.bool_except %}
+                {% set union = 'Except Clause' %}
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h6 class="panel-title">{{ results | length }} Distinct Sets found in the
+                        {{ union }}
+                        of {{ json_results.numGS }} GeneSets where each gene is found in a minimum
+                        of {{ json_results.at_least }}
+                        Gene Sets</h6>
+                </div>
+            </div>
+
+            {#
+            #############################################################
+            # This little section will place a box to link results
+            #}
+            {% if results | length > 1 %}
+                <div class="row">
+                    <div class="alert bg-gray-light">
+                        <h4>Quick Links to Results below...</h4>
+                        <ul class="fa-ul" style="list-style: disc outside none; margin-left: 0; padding-left: 1em;
+                        text-indent: -2em;">
+                        {% for gs_groups in results | sort %}
+                            {% for g in results[gs_groups] %}
+                                {% if loop.last %}
+                                    <li style="padding-left: 1em;"><i class="fa-li fa fa-check"></i>
+                                        {% if json_results.type == 'Intersect' %}
+                                            <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set(s)
+                                            {% for gene in results[gs_groups][g] %}
+                                                <span id="{{ gene[3] }}">
+                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                        data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
+                                                        <strong>GS{{ gene[3] }} {{ gene[4] }}</strong>
+                                                        {% if not loop.last %},{% endif %}
+                                                    </span>
+                                                </span>
+                                            {% endfor %}
+                                        {% elif json_results.type == 'Except' %}
+                                            <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
+                                            GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
+                                        {% endif %}
+                                        <span style="position: relative; left: 25px;"><a href="#{{ results[gs_groups] }}">
+                                            <i class="fa fa-level-down"></i></a></span>
+                                    </li>
+                                {% endif %}
+                            {%  endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+
+
+            {% for gs_group in results | sort %}
+                <div class="row" id="{{ results[gs_group] }}">
+                    <div class="col-md-2 pull-right" align="right" style="text-align:right">
+                        <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
+                             style="padding:0; border:0; margin:0">
+                            <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
+                                Select Set
+                                <input type="checkbox" name="group-{{ i }}"/>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" id="group-{{ json_results.numGS }}">
                     <table class="table table-hover">
                         <tbody>
+                        <tr>
+                            <th>Genes</th>
+                            {#                <th>Species</th>#}
+                            <th>Homology</th>
+                            <th>In GeneSets</th>
+                            <th>Emphasis</th>
+                            <th></th>
+                        </tr>
+                        {% for g in results[gs_group] %}
+
+                            {% set cluster = results[gs_group][g] %}
                             <tr>
-                                <th><i class="fa fa-sort"></i></a> Default</th>
-                                <th>LinkOuts</th>
-                                <th>In GeneSets</th>
-                                <th>Emphasis</th>
-                                <th></th>                                
-                            </tr>
-                            {%  for j in range(((async_result.formatPrint[i]|length) - 1), -1, -1) %}
-                                {%  set gene = async_result.formatPrint[i][j] %}
-                                    <tr>
-                                        {# Default #}
-                                        <td>
+
+                                <td style="text-align: left; width: 30%;">
+                                    {% for gene in cluster %}
+                                        {% if previous != gene[2]|string + gene[1] %}
+                                            {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
+                                            <span style="margin-left: 5px;">
+                                                <span class="group_name" style="font: italic 10px/14px Georgia, serif;
+                                                        background-color: {{ json_results.bg[(gene[2]|int-1)] }};
+                                                        border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
+                                                    {{ json_results.all_species[gene[2]|string] }}.
+                                                </span>
+                                            </span>
                                             <strong>
-                                                <a href="/search/?searchbar={{ gene }}&pagination_page=1&searchGenes=yes" style="margin-left: 50px;">{{ gene }}</a>
+                                                <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
                                             </strong>
-                                        </td>
-                                        {# Linkouts #}
-                                        <td>
-                                            {% include 'linkouts.html' %}
-                                        </td>
-                                        {# In Gene Sets #}
-                                        <td>
-                                            {% for gsid in async_result.geneset_from[gene] %}
-                                                {% for ags in async_result.genesets[gsid] %}
-                                                    {% for gs in ags %}
-                                                        {% include 'viewGenesetTitleOnly.html' %}
-                                                    {% endfor %}
-                                                {% endfor %}
-                                            {% endfor %}
-                                        </td>
-                                        {# Emphasize #}
-                                        <td nowrap>
-                                            <input type="checkbox" name="g_id[]" id="{{ async_result.odeLookup[gene] }}"
-                                                   onchange="emphasize('{{ async_result.odeLookup[gene]}}');"
-                                                   class="switch" data-size="mini"
-                                                   style="padding: 0px; vertical-align: middle;">
-                                        </td>
-                                        {# Checkbox #}
-                                        <td>
-                                            <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                                <label for="addGeneset"
-                                                       style="margin: -6px; padding-right: 0;">
-                                                    <input type="checkbox" name="gsoptions[]"
-                                                           id="addGeneset{{ gene }}"
-                                                           value="{{ gene }}"/>
-                                                </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                            {% endfor %}
+                                        {% endif %}
+                                        {% set previous = gene[2]|string + gene[1] %}
+                                    {% endfor %}
+
+                                </td>
+
+
+                                {# homoology #}
+                                <td style="width: 10%;">
+                                    {% if cluster | length == 1 %}
+                                        <span class="label label-default">No Mapping</span>
+                                    {% else %}
+                                        <span class="label label-info">Homologene</span>
+                                    {% endif %}
+                                </td>
+
+                                {# In Gene Sets #}
+                                <td>
+                                    {% for gene in cluster %}
+                                        <span id="{{ gene[3] }}">
+                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                                  data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
+                                            <a href="/viewgenesetdetails/{{ gene[3] }}"><strong>GS{{ gene[3] }}</strong>
+                                            </a>
+                                            {% if not loop.last %},{% endif %}
+                                            </span>
+                                        </span>
+                                    {% endfor %}
+                                </td>
+                                {# Emphasize #}
+                                <td nowrap>
+                                    <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
+                                           onchange="emphasize('{{ cluster[0] }}');"
+                                           class="switch" data-size="mini"
+                                           style="padding: 0px; vertical-align: middle;">
+                                </td>
+                                {# Checkbox #}
+                                <td>
+                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                        <label for="addGeneset"
+                                               style="margin: -6px; padding-right: 0;">
+                                            <input type="checkbox" name="gsoptions[]"
+                                                   id="addGeneset{{ cluster[0] }}"
+                                                   value="{{ cluster[0] }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
-        {%  endif %}
-        <br />
-    {% endfor %}
-{%  endif %}
+            {% endfor %}
+        {% endif %}
+        {% endif %}
+
+    {% endif %}
+
 </div>
+
 
 {# Grab the list of emphgeneids. It is an environment variable set in the blueprint. #}
 {% for gene in emphgeneids %}
-        <script>
-            document.getElementById("{{gene}}").checked = true;
-        </script>
+    <script>
+        document.getElementById("{{gene}}").checked = true;
+    </script>
 {% endfor %}
+
+
 <script type="text/javascript">
 
-    $(document).ready(function() {
+    $(document).ready(function () {
 
-        $('.group-checkbox').on('click', function(event) {
+        // open div for circle explanation
+        $("#circles").on('click', function () {
+            $("#circle-explanation").slideToggle();
+        });
+
+        $('.group-checkbox').on('click', function (event) {
 
             // Grabs the group ID for this checkbox. Format: group-#-checkbox
             var groupId = $(this).attr('id').split('-')[1];
@@ -170,11 +461,11 @@
         });
 
         /**
-          * Ever since we added the select all checkbox, we now have to hook
-          * into these stupid ui-checkbox clicks otherwise the actual checkbox
-          * which lies underneath all the ui crap doesn't get (de)selected.
-          */
-        $('.ui-checkbox').on('click', function(event) {
+         * Ever since we added the select all checkbox, we now have to hook
+         * into these stupid ui-checkbox clicks otherwise the actual checkbox
+         * which lies underneath all the ui crap doesn't get (de)selected.
+         */
+        $('.ui-checkbox').on('click', function (event) {
 
             var check = $(this).find('input[type=checkbox]');
 
@@ -188,104 +479,228 @@
 
 {# To update the ephasize genes. #}
 <script type="text/javascript">
-        $("[name='g_id[]']").bootstrapSwitch();
+    $("[name='g_id[]']").bootstrapSwitch();
 
-        $(function () {
-            $("[data-toggle='tooltip']").tooltip();
+    $(function () {
+        $("[data-toggle='tooltip']").tooltip();
+    });
+
+
+    function emphasize(id) {
+        if (document.getElementById(id).checked) {
+            $.get("/emphasize/" + id + ".html", function (data, status) {
+            });
+        }
+        else {
+            $.get("/deemphasize/" + id + ".html", function (data, status) {
+            });
+        }
+    }
+
+    {# Functionality for the "Add to New GeneSets Button.
+       All the checked checkboxes are loaded and sent with a Query String
+       to the 'Batch Upload Geneset' Page #}
+    function addNewGS() {
+
+        var checkedArray = [];
+        $("input:checkbox[name='gsoptions[]']:checked").each(function () {
+            checkedArray.push($(this).val());
         });
 
-        function emphasize(id) {
-            if (document.getElementById(id).checked) {
-                $.get("/emphasize/" + id + ".html", function (data, status) {
-                });
-            }
-            else {
-                $.get("/deemphasize/" + id + ".html", function (data, status) {
-                });
-            }
-        }
+        if (typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
 
-        {# Functionality for the "Add to New GeneSets Button.
-           All the checked checkboxes are loaded and sent with a Query String
-           to the 'Batch Upload Geneset' Page #}
-        function addNewGS() {
+            var as = {{ json_results | tojson | safe}};
+            var sets = Object.keys(as['genesets']);
 
-            var checkedArray = [];
-            $("input:checkbox[name='gsoptions[]']:checked").each(function(){
-                checkedArray.push($(this).val());
+            var numGS = 0;
+            numGS = {{ json_results.numGS}};
+
+            // The 1? is added so the entire string will appear in
+            // window.location.search. Without the 1? The string is
+            // truncated and missing the first sentence.
+            var getStr = '1?algebra?' +
+                'The {{ json_results.type }} of {{ json_results.numGS }}' +
+                ' GeneSets.?' +
+                'The Boolean Algebra tool was used to find the ' +
+                '{{ json_results.type }} of ' + numGS + ' sets: ' +
+                sets.join(', ');
+
+            // add in all the checked boxes gene names
+            checkedArray.forEach(function (entry) {
+                getStr += "?";
+                getStr += entry;
+                getStr += "?";
+
+                // grab the value
+                var tmpString = "{{ json_results.valueLookup }}";
+                // conver the string to an array by looping
+                var values = [];
+                var t_length = tmpString.length;
+                for (var i = 0; i < t_length; i++) {
+                    var tmpName = "";
+                    var tmpValue = "";
+                    while (tmpString[i] !== '?' && i < t_length) {
+                        tmpName += tmpString[i];
+                        i++;
+                    }
+                    tmpName = String(tmpName);
+                    values.push(tmpName);
+                    // skip over '?'
+                    i++;
+                    while (tmpString[i] !== '?' && i < t_length) {
+                        tmpValue += tmpString[i];
+                        i++;
+                    }
+                    tmpValue = parseInt(tmpValue);
+                    values.push(tmpValue);
+                }
+                var currVal = 1;
+                // find the current value we need
+                var arrayLen = values.length;
+                for (var j = 0; j < arrayLen;) {
+                    if (values[j] === entry) {
+                        j = (j + 1);
+                        currVal = values[j];
+                    }
+                    j = (j + 1);
+                }
+                // assign the current value for the gene name
+                getStr += currVal;
+
             });
 
-            if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
-
-                var as = {{ async_result | tojson | safe}};
-                var sets = Object.keys(as['genesets']);
-
-                var numGS = 0;
-                numGS = {{ async_result.numGS}};
-
-                // The 1? is added so the entire string will appear in
-                // window.location.search. Without the 1? The string is
-                // truncated and missing the first sentence.
-                var getStr = '1?algebra?' + 
-                    'The {{ async_result.type }} of {{ async_result.numGS }}' +
-                    ' GeneSets.?' + 
-                    'The Boolean Algebra tool was used to find the ' + 
-                    '{{ async_result.type }} of ' + numGS + ' sets: ' +
-                    sets.join(', ');
-
-                // add in all the checked boxes gene names
-                checkedArray.forEach(function (entry) {
-                    getStr += "?";
-                    getStr += entry;
-                    getStr += "?";
-
-                    // grab the value
-                    var tmpString = "{{ async_result.valueLookup }}";
-                    // conver the string to an array by looping
-                    var values = [];
-                    var t_length = tmpString.length;
-                    for (var i = 0; i < t_length; i++){
-                        var tmpName = "";
-                        var tmpValue = "";
-                        while (tmpString[i] !== '?' && i < t_length){
-                            tmpName += tmpString[i];
-                            i++;
-                        }
-                        tmpName = String(tmpName);
-                        values.push(tmpName);
-                        // skip over '?'
-                        i++;
-                        while(tmpString[i] !== '?' && i < t_length) {
-                            tmpValue += tmpString[i];
-                            i++;
-                        }
-                        tmpValue = parseInt(tmpValue);
-                        values.push(tmpValue);
-                    }
-                    var currVal = 1;
-                    // find the current value we need
-                    var arrayLen = values.length;
-                    for (var j = 0; j < arrayLen; ){
-                        if (values[j] === entry){
-                            j = (j + 1);
-                            currVal = values[j];
-                        }
-                        j = (j + 1);
-                    }
-                    // assign the current value for the gene name
-                    getStr += currVal;
-
-                });
-
-                // Load the new page with the extra url bit
-                window.open('/uploadgeneset/' + getStr, '_blank');
-            }
-            else{
-                window.alert("No checkboxes selected.")
-            }
-
+            // Load the new page with the extra url bit
+            window.open('/uploadgeneset/' + getStr, '_blank');
+        }
+        else {
+            window.alert("No checkboxes selected.")
         }
 
+    }
+
+
+</script>
+
+{# script for d3 Eularean diagrams #}
+<script type="text/javascript" src="../../static/d3/d3.v4.min.js"></script>
+{# <script type="text/javascript" src="../../static/d3/numeric-1.2.4.js"></script>  #}
+<script type="text/javascript" src="../../static/d3/venn.js"></script>
+
+<script type="text/javascript">
+    // script to make the Euler circles
+    //variables
+
+
+    var sets = {};
+    var data = [];
+    var results = {{ json_results | tojson | safe }};
+    var groups = [];
+
+    if (results['numGS'] < 11) {
+
+        // This initializes data by creating variables for each of the gs_ids
+        for (var i = 0; i < results['gsids'].length; i++) {
+            groups.push('GS' + results['gsids'][i]);
+        }
+
+        // Initialize the data array with the power set included in groups
+        function powerSet(arr) {
+            var len = arr.length;
+            for (var i = 0; i < Math.pow(2, len); i++) {
+                var aux = [];
+                for (var j = 0; j < len; j++) {
+                    //console.log(j +':'+((1<<j) & j));
+                    if (i & (1 << j)) {
+                        if (arr[j] !== '') {
+                            aux.push(arr[j]);
+                        }
+                    }
+                }
+                sets = {};
+                // initialize variables
+                if (aux[0] !== undefined) {
+                    sets.sets = aux;
+                    sets.size = 0;
+                    if (aux.length === 1) {
+
+                        for (var key in results['bool_results']) {
+                            for (var k = 0; k < results['bool_results'][key].length; k++) {
+                                if (results['bool_results'][key][k][3] == aux[0].substring(2)) {
+                                    sets.abbr = results['bool_results'][key][k][4]
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        sets.abbr = '';
+                    }
+                    data.push(sets);
+                }
+            }
+        }
+
+        powerSet(groups);
+
+
+//Go through the data array and add counts to the appropriate set size elements
+        for (var key in results['groups']) {
+            if (results['groups'].hasOwnProperty(key)) {
+                var list = [];
+                for (var k = 0; k < results['groups'][key].length; k++) {
+                    list.push('GS' + results['groups'][key][k])
+                }
+                //loop through data and add/update values
+                for (var j = 0; j < data.length; j++) {
+                    if (data[j]['sets'] == list.join()) {
+                        data[j]['size'] = data[j]['size'] + 1;
+                    }
+                }
+            }
+        }
+
+
+// draw venn diagram
+        var div = d3.select(".vis");
+        div.datum(data).call(venn.VennDiagram());
+
+// add a tooltip
+        var tooltip = d3.select("body").append("div")
+            .attr("class", "venntooltip");
+
+// add listeners to all the groups to display tooltip on mouseover
+        div.selectAll("g")
+            .on("mouseover", function (d, i) {
+                // sort all the areas relative to the current item
+                venn.sortAreas(div, d);
+
+                // Display a tooltip with the current size
+                tooltip.transition().duration(400).style("opacity", .9);
+                tooltip.text(d.size + " genes.");
+
+                // highlight the current path
+                var selection = d3.select(this).transition("tooltip").duration(400);
+                selection.select("path")
+                    .style("stroke-width", 3)
+                    .style("fill-opacity", d.sets.length == 1 ? .4 : .1)
+                    .style("stroke-opacity", 1);
+            })
+
+            .on("mousemove", function () {
+                tooltip.style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY - 28) + "px");
+            })
+
+            .on("mouseout", function (d, i) {
+                tooltip.transition().duration(400).style("opacity", 0);
+                var selection = d3.select(this).transition("tooltip").duration(400);
+                selection.select("path")
+                    .style("stroke-width", 0)
+                    .style("fill-opacity", d.sets.length == 1 ? .25 : .0)
+                    .style("stroke-opacity", 0);
+            });
+
+
+    }
 
 </script>
 

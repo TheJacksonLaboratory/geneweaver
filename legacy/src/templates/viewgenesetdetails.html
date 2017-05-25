@@ -67,6 +67,8 @@
         <h2 class="panel-title"><strong>GeneSet Information</strong></h2>
     </div>
 
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
     {% if 'deprecated' in geneset.status %}
         <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
@@ -358,6 +360,9 @@
 
         $(document).ready(function () {
 
+            $('#submitCurationRequest').attr('disabled', true).button('refresh');
+
+            var has_active_curation_assignment = {% if curation_assignment and curation_assignment.state != curation_assignment.REVIEWED %} true {% else %} false {% endif %};
             var gs_id = {{ geneset.geneset_id }};
 			var user_id = {{ user_id }};
 
@@ -373,6 +378,18 @@
 
             {% endif %}
 
+
+            function handleError(data) {
+                console.error("something bad happened: " + data.responseJSON.message);
+
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
 			// The right side button 'Add to Project'
             $('#addToProject').on('click', function (e) {
 
@@ -380,7 +397,6 @@
 				var npn = $('#newProjName').val();
 				var geneset = 'GS' + gs_id;
 
-				console.log(geneset);
 				// Alter the modal text a bit since we're only adding a single
 				// geneset, not several which is the default.
 				$('#addToProjectModal').find('.modal-title')
@@ -492,6 +508,53 @@
                 $("#delModal").modal('show');
             });
 
+            function validate_form () {
+                if ($('#curationNotes').val()) {
+                    $('#submitCurationRequest').attr('disabled', false).button('refresh');
+                }
+                else {
+                    $('#submitCurationRequest').attr('disabled', true).button('refresh');
+                }
+            }
+
+            $('#curationNotes').keyup(validate_form);
+
+            $('#requestCuration').on('click', function () {
+                if (has_active_curation_assignment) {
+                    $('#genericLabel').html("Geneset Already Assigned for Curation");
+                    $('#genericMessage').html("An active curation assignment was found for this geneset");
+                    $('#showGenericModal').modal('show');
+                }
+                else {
+                    $("#curationRequestModalLabel").html({{ geneset.geneset_id }});
+                    $('#curationNotes').val('');
+                    $("#requestCurationModal").modal('show');
+                }
+            });
+
+            $('#submitCurationRequest').on('click', function() {
+                var params = {
+                    "notes": $('#curationNotes').val(),
+                    "gs_id": {{ geneset.geneset_id }}
+                };
+
+
+                // since params["gs_ids"] is a list the server needs to use
+                // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+                $.post("{{ url_for('nominate_public_geneset_for_curation') }}", params, function (data) {
+                    has_active_curation_assignment = true;
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "GeneSet submitted for curation: {{ geneset.geneset_id }}",
+                            'priority': 'success'
+                        }
+                    ]);
+
+                }, "json").fail(handleError);
+
+            });
+
             $('#editGeneset').on('click', function (e) {
                 var gsid = {{ geneset.geneset_id }};
                 {% if curation_view == 'curator' %}
@@ -570,16 +633,6 @@
 
             });
 
-            function handleError(data) {
-                console.error("something bad happened: " + data.responseJSON.message);
-
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': data.responseJSON.message,
-                        'priority': 'danger'
-                    }
-                ]);
-            }
 
             {% if curation_view == 'reviewer' %}
                 $("input:radio[name='review']:checked").prop('checked', false).checkboxradio("refresh");
@@ -797,6 +850,10 @@
 {% include 'modal/addGenesetsToProjects.html' %}
 
 {% include 'modal/deleteGeneset.html' %}
+
+{% include 'modal/requestCuration.html' %}
+
+{% include 'modal/showGenericMessage.html' %}
 
 {% if curation_view == 'curation_leader' or curation_view == 'reviewer' %}
     <!-- only used by the curation_leader or reviewer view, don't

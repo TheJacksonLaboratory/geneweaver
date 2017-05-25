@@ -2,12 +2,16 @@ import celery.states as states
 import flask
 import json
 import uuid
+import config
 
 import geneweaverdb as gwdb
 import toolcommon as tc
+from decimal import Decimal
+
 
 TOOL_CLASSNAME = 'BooleanAlgebra'
 boolean_algebra_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+RESULTS_PATH = config.get('application', 'results')
 
 
 @boolean_algebra_blueprint.route('/Boolean-Algebra.html', methods=['POST'])
@@ -141,6 +145,12 @@ def run_tool_api(apikey, relation, genesets):
         return task_id
 
 
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
+
 @boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
 def view_result(task_id):
     # TODO need to check for read permissions on task
@@ -164,8 +174,14 @@ def view_result(task_id):
         for row in emphgenes:
             emphgeneids.append(str(row['ode_gene_id']))
 
+        # Open files and pass via template
+        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
+        json_results = f.readline()
+        f.close()
+
         return flask.render_template(
             'tool/BooleanAlgebra_result.html',
+            json_results=json.loads(json_results),
             async_result=json.loads(async_result.result),
             tool=tool,
             emphgeneids=emphgeneids)
