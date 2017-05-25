@@ -206,14 +206,15 @@ def status_json(task_id):
     async_result = tc.celery_app.AsyncResult(task_id)
 
     if async_result.state == states.PENDING:
-        ## We haven't given the tool enough time to setup
-        if not async_result.info:
-            progress = None
-            percent = None
-
-        else:
+        if async_result.info:
             progress = async_result.info['message']
             percent = async_result.info['percent']
+
+        ## For some reason the status request is made faster than the tool can
+        ## update the status, so the info field is missing
+        else:
+            progress = 'Reticulating splines...'
+            percent = ''
 
     elif async_result.state == states.FAILURE:
         progress = 'Failed'

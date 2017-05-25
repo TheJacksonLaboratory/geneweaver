@@ -50,118 +50,57 @@
     {
         width: 15%;
     }
-
-    .node circle {
-      cursor: pointer;
-    }
-
-
-    /* gene nodes */
-    .gene, line .gene {
-        fill: #cc00ff;
-        stroke: #cc00ff;
-    }
-
-    .gene:hover {
-        fill: #8f00b3;
-        stroke: #8f00b3;
-        opacity: .8;
-    }
-
-    /* cluster nodes */
-    .cluster, line .cluster{
-        fill: #0099ff;
-        stroke: #0099ff;
-    }
-
-    path{
-        stroke: #ffffff !important;
-    }
-
-
-    path[class=cluster]:hover{
-        fill: #b3e0ff;
-        stroke: #b3e0ff;
-    }
-
-    .collapsed-cluster, line .cluster {
-        fill: #004d80;
-        stroke: #004d80;
-    }
-
-    .node text {
-      font: 10px sans-serif;
-      pointer-events: none;
-      text-anchor: middle;
-    }
-
-    line.link {
-      fill: none;
-      stroke-width: 2px;
-    }
 </style>
 
 <div class="page-header">
-	<h1>{{ title }}: {{ async_result.method }}</h1>
+	<h1>{{ title }}</h1>
 </div>
-<p>Beta Tool: This tool is still under development, so it is not interactive at this time.</p>
 
 <div id="ui-container">
-        <form id="todo-id" class="form-horizontal" role="form" method="post">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
         <div class="row">
             <div class="col-md-12">
-                    <div class="panel panel-info">
-                    <div class="panel-heading" style="border-radius:4px;">
-					<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
-						<div class="panel-title" style="width:100%;">
-							Tool Options
-							<span class="caret"></span>
-						</div>
-					</a>
-                    </div>
-                    <div id="jcCollapse" class="panel-collapse collapse">
-						<div class="panel-body" style="border-radius:5px; border:1px solid #006400;">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="from-group">{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
-                                    <button class="btn btn-primary"
-                                        type='submit'
-                                        value='run'
-                                        onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
-                                        Run
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div id="show-tool-options" 
+                     style="color:#006400; cursor:pointer; font-weight:600; 
+                            text-decoration:underline;">
+                    Tool Options
+                    <i id="tool-options-caret" class="fa fa-caret-left"></i>
+                </div>
+                <div id="tool-options" 
+                     style="display:none; text-align:left; background-color:#efe;
+                            border-radius:5px; padding:15px; width:30%">
+                        <div >{{ macros.tool_param_radio(tool.params['JaccardClustering_Homology']) }}</div>
+                        <div >{{ macros.tool_param_select(tool.params['JaccardClustering_Method']) }}</div>
+                        <input type="hidden" name="genesets" value="{{async_result.gs_ids|join(' ') }}" />
+                        <button class="btn btn-primary"
+                            type='submit'
+                            value='run'
+                            onclick='this.form.action="{{ url_for('JaccardClustering.run_tool') }}";'>
+                            Run
+                        </button>
                 </div>
             </div>
         </div>
     </form>
-	<div class="panel panel-info" >
-		<div class="panel-heading bg-green" style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
-				<div class="panel-title" style="width:100%;">
-					Visualization Options
-					<span class="caret"></span>
-				</div>
-			</a>
-		</div>
-		<div id="viz-options" class="panel-collapse collapse" style="">
-			<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+    <br />
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-viz-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Visualization Options
+                <i id="viz-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="viz-options" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:30%">
 				<div class="row">
-					<div class="col-md-2">
+					<div class="col-md-4">
 						<p style="font-size:13px; font-weight:400;">
 							<b>Visualization Type:</b>
 						</p>
 					</div>
-					<div class="col-md-9">
+					<div class="col-md-8">
 						<form role="form" method="post">
 							<select id="visualizationType" name="visualizationType">
 							</select>
@@ -172,7 +111,10 @@
 				<div class="row">
 					<div class="col-md-3">
 						<div class="btn-group">
-							<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<button type="button" 
+                                    class="btn btn-primary dropdown-toggle" 
+                                    data-toggle="dropdown" aria-haspopup="true" 
+                                    aria-expanded="false">
 								Download as...
 								<span class="caret"></span>
 							</button>
@@ -184,50 +126,180 @@
 						</div>
 					</div>
 				</div>
-			</div>
-		</div>
-	</div>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-md-12">
+            <div id="show-help" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Help
+                <i id="help-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="help" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:30%">
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Graph Visualization
+                    </span>
+                    <p style="padding-left:8px">
+                        <b>Drag</b> nodes to rearrange the graph.
+                        <br />
+                        <b>Hover</b> over GeneSet nodes to display their full
+                        name.
+                        <br />
+                        <b>Hover</b> over cluster nodes to display the
+                        jaccard similarity value between nodes in the cluster.
+                        <br />
+                        <b>Right click</b> on a GeneSet node to open a new
+                        "GeneSet Details" window.
+                        <br />
+                        <b>Right click</b> on a cluster node to view the
+                        overlap between all GeneSets within the cluster.
+                        <br />
+                            
+                        
+                    </p>
+                </div>
+                <div style="color:#006400; font-family:'Open Sans', sans-serif;
+                            font-size:13px;">
+                    <span style="text-decoration:underline; font-weight:600;">
+                        Sunburst Visualization
+                    </span>
+                    <p style="padding-left:8px">
+                        <b>Hover</b> over cluster arcs to highlight members of
+                        the cluster and display the jaccard similarity value 
+                        between nodes in the cluster.
+                        <br />
+                        <b>Right click</b> on a GeneSet node to open a new
+                        "GeneSet Details" window.
+                        <br />
+                        <b>Right click</b> on a cluster node to view the
+                        overlap between all GeneSets within the cluster.
+                    </p>
+                </div>
+                <span style="color:#006400">
+                    Visit our 
+                    <a href="http://geneweaver.org/wiki/index.php?title=Clustering_(Beta_2.0)"
+                       style="color:#006400; font-weight:600;" 
+                       target="_blank">wiki</a>
+                    for more information.
+                </span>
+            </div>
+        </div>
+    </div>
     <div id="d3-container" class="d3">
         <div id="d3-legend" class="d3"></div>
         <div id="d3-visual" class="d3"></div>
     </div>
 </div>
 	<script type="text/javascript" src="../../static/d3/d3.min.js"></script>
-	<script type="text/javascript" src="../../static/tools/JaccardClustering.js"></script>
+    <!--
+	<script type="text/javascript" src="../../static/d3/d3.v4.min.js"></script>
+    -->
+	<script type="text/javascript" src="../../static/tools/ClusteringGraph.js"></script>
+	<script type="text/javascript" src="../../static/tools/ClusteringSunburst.js"></script>
     <script type="text/javascript">
-        if('{{ async_result.method }}' != 'Heatmap'){
-            $("select#visualizationType")
-                .append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>')
-                .append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
-                ;
-        }
-        else
-        {
-            $("select#visualizationType").append('<option label="heatmap" value="heatmap" selected="selected">Jaccard Heatmap</option>')
-        }
+        $("select#visualizationType")
+            .append('<option label="forceTree" value="forceTree" selected="selected">Directed Force Tree</option>')
+            .append('<option label="sunburst" value="sunburst">Partitioned Sunburst</option>')
+            ;
 
 		var jsonPath = '{{ cluster_data | safe }}';
+        var jsonData = null;
 
         //$(document).ready(visualize(jsonPath));
         $(document).ready(function() {
 
             d3.json(jsonPath, function(err, json) {
-                var clustering = jaccardClustering()
-                    //.jsonPath(jsonPath)
-                    .jsonData(json)
-                    .drawGraph()
-                    .drawLegend()
-                    ;
+                jsonData = json;
+
+                var clustering = clusteringGraph()
+                    .jsonData(jsonData)
+                    .draw()
+                    .drawLegend();
             });
 
+
+        $("select#visualizationType").change(function(event){
+
+            d3.select('#d3-visual').selectAll('*').remove();
+
+            if (event.target.value === 'sunburst') {
+
+                var clustering = clusteringSunburst()
+                    .jsonData(jsonData)
+                    .draw()
+                    .drawLegend()
+                    ;
+
+            } else {
+
+                // Has to be re-read from the json file otherwise the tree is
+                // generated outside the svg box. It's fucking weird.
+                d3.json(jsonPath, function(err, json) {
+
+                    var clustering = clusteringGraph()
+                        .jsonData(json)
+                        .draw()
+                        .drawLegend()
+                        ;
+                });
+            }
         });
 
-        $("select#visualizationType").change(function(){
-
-            //visualize(jsonPath);
         });
     </script>
 <script>
+
+    $(document).ready(function() {
+        $('#show-tool-options').on('click', function() {
+
+            $('#tool-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-viz-options').on('click', function() {
+
+            $('#viz-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-help').on('click', function() {
+
+            $('#help').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+    });
+
     $('.download-image').on('click', function(event) {
 
         var dlurl = '/downloadResult';
