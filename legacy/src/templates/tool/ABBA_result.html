@@ -6,921 +6,1067 @@
 
 <style>
 
+    [class*='col-'] {
+        float: left;
+        padding-right: 20px;
+    }
 
-  .nav-justified > li {
-    display: table-cell;
+    [class*='col-']:last-of-type {
+        padding-right: 0;
+    }
 
-    max-width: 10ch;
-    width: 1%;
-    padding-right: 1px;
-  }
-  .nav-justified > li > a  {
-    border-bottom: 1px solid #ddd !important;
-    border-radius: 4px 4px 0 0 !important;
-    margin-bottom: 0 !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .nav-tabs.nav-justified > .active > a,
-  .nav-tabs.nav-justified > .active > a:hover,
-  .nav-tabs.nav-justified > .active > a:focus {
-    border-bottom-color: #fff !important;
-  }
+    .col-1-8 {
+        width: 12.5%;
+        min-width: 120px;
+        border-radius: 5px;
+        margin: 10px;
+        padding: 20px;
+        font-size: 150%;
+        background-color: #fff;
+        color: #606060;
+    }
+
+    .grid:after{
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    *, *:after, *:before {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+    }
+
+    .grid-pad {
+        padding: 0;
+    }
 
 
-  .result-search-input{
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    width: 100%;
-  }
 
-  .progress {
-      position: relative;
-  }
+    .nav-justified > li {
+        display: table-cell;
 
-  .progress span {
-      position: absolute;
-      display: block;
-      width: 100%;
-      color: white;
+        max-width: 10ch;
+        width: 1%;
+        padding-right: 1px;
+    }
 
-   }
-  .title-col{
-      margin-bottom: 10px;
-  }
+    .nav-justified > li > a {
+        border-bottom: 1px solid #ddd !important;
+        border-radius: 4px 4px 0 0 !important;
+        margin-bottom: 0 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-  .extra-info-header{
-      margin-top: 0;
-  }
+    .nav-tabs.nav-justified > .active > a,
+    .nav-tabs.nav-justified > .active > a:hover,
+    .nav-tabs.nav-justified > .active > a:focus {
+        border-bottom-color: #fff !important;
+    }
 
-  .nav.nav-tabs>li>a{
-    background-color: #006400;
-    color: #EEEEEE;
-  }
+    .result-search-input {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        width: 100%;
+    }
 
-  .table-col{
-      padding-left: 0;
-  }
+    .progress {
+        position: relative;
+    }
 
-  .table-list-search th {
-    position: relative;
-    cursor: pointer;
-    text-transform: none;
-    padding-left: 10px;
-  }
+    .progress span {
+        position: absolute;
+        display: block;
+        width: 100%;
+        color: white;
 
-  .table-list-search th.desc:after {
-    border-top-color: #666;
-  }
+    }
 
-  .table-list-search th.asc:before {
-    border-bottom-color: #666;
-  }
+    .title-col {
+        margin-bottom: 10px;
+    }
 
-  .table-list-search th:after, .table-list-search th:before {
-    content: '';
-    display: block;
-    position: absolute;
-    right: 0;
-    border-color: transparent;
-    border-style: solid;
-    border-width: 5px;
-    width: 0;
-    height: 0;
-  }
+    .extra-info-header {
+        margin-top: 0;
+    }
 
-  .table-list-search th:after {
-    border-top-color: #ddd;
-    top: 20px;
-  }
+    .nav.nav-tabs > li > a {
+        background-color: #006400;
+        color: #EEEEEE;
+    }
 
-  .table-list-search th:before {
-    border-bottom-color: #ddd;
-    top: 6px;
-  }
+    .table-col {
+        padding-left: 0;
+    }
 
-  .table-list-search td{
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 10ch;
-    width:auto;
-  }
+    .table-list-search th {
+        position: relative;
+        cursor: pointer;
+        text-transform: none;
+        padding-left: 10px;
+    }
 
-  .no-margin {
-    margin: 0px;
-  }
-  .scroll-body {
-    height: 500px;
-    overflow-y: auto;
-    display: block;
-  }
+    .table-list-search th.desc:after {
+        border-top-color: #666;
+    }
 
-  .scroll-body tr{
-    width: 100%;
-    display: inline-table;
-    table-layout: fixed;
-  }
+    .table-list-search th.asc:before {
+        border-bottom-color: #666;
+    }
 
-  .headrow{
-    width:auto;
-  }
+    .table-list-search th:after, .table-list-search th:before {
+        content: '';
+        display: block;
+        position: absolute;
+        right: 0;
+        border-color: transparent;
+        border-style: solid;
+        border-width: 5px;
+        width: 0;
+        height: 0;
+    }
 
-  .result-row{
+    .table-list-search th:after {
+        border-top-color: #ddd;
+        top: 20px;
+    }
 
-  }
+    .table-list-search th:before {
+        border-bottom-color: #ddd;
+        top: 6px;
+    }
 
-  .table-striped>tbody>tr.result-row-active>td{
-    background-color: #7AC473;
-    -webkit-border-radius: 0px;
-    -moz-border-radius: 0px;
-    border-radius: 0px
-  }
+    .table-list-search td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 10ch;
+        width: auto;
+    }
 
-   #ABBA_head{
-     margin-top: 10px;
-     margin-bottom: 5px;
-   }
+    .no-margin {
+        margin: 0px;
+    }
 
-   .popover-content{
-    min-width: 250px;
-    width: auto;
-    box-shadow: 5px 5px 4px grey;
-    -moz-box-shadow: 5px 5px 4px grey;
-    -webkit-box-shadow: 5px 5px 4px grey;
-   }
+    .scroll-body {
+        height: 500px;
+        overflow-y: auto;
+        display: block;
+    }
+
+    .scroll-body tr {
+        width: 100%;
+        display: inline-table;
+        table-layout: fixed;
+    }
+
+    .headrow {
+        width: auto;
+    }
+
+    .result-row {
+
+    }
+
+    .table-striped > tbody > tr.result-row-active > td {
+        background-color: #7AC473;
+        -webkit-border-radius: 0px;
+        -moz-border-radius: 0px;
+        border-radius: 0px
+    }
+
+    #ABBA_head {
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+    .popover-content {
+        min-width: 250px;
+        width: auto;
+        box-shadow: 5px 5px 4px grey;
+        -moz-box-shadow: 5px 5px 4px grey;
+        -webkit-box-shadow: 5px 5px 4px grey;
+    }
 
 </style>
 
+{{ async_result }}
 
 <div class="container">
-  <div class="row">
-    <div class="col-md-12 title-col">
-      <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>
-      <button type="button" id="updateBtn" class="btn btn-primary pull-right"title="Update Search">Update</button>
-      <div id="update_form_wrapper" style="display: none;">
-          <form target="_blank" id="todo-id" class="form-horizontal" role="form" method="post">
-            {% if async_result.GenesOfInterestCount %}
-              {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
-            {% else %}
-              {% set genesOfInterestCnt=0 %}
-            {% endif %}
-            {% for gene in async_result.InputGenes %}
-          	<input type="text" id="genesOfInterestInputHidden" class="fieldname" name="ABBA_InputGenes" value="{{gene}}" data-count="{{genesOfInterestCnt}}" hidden/>
-          	{% endfor %}
-            <div class="panel-body">
+    <div class="row">
+        <div class="col-md-12 title-col">
+            <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>
+            <button type="button" id="updateBtn" class="btn btn-primary pull-right" title="Update Search">Update
+            </button>
+            <div id="update_form_wrapper" style="display: none;">
+                <form target="_blank" id="todo-id" class="form-horizontal" role="form" method="post">
+                    {% if async_result.GenesOfInterestCount %}
+                        {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
+                    {% else %}
+                        {% set genesOfInterestCnt=0 %}
+                    {% endif %}
+                    {% for gene in async_result.InputGenes %}
+                        <input type="text" id="genesOfInterestInputHidden" class="fieldname" name="ABBA_InputGenes"
+                               value="{{ gene }}" data-count="{{ genesOfInterestCnt }}" hidden/>
+                    {% endfor %}
+                    <div class="panel-body">
 
-              <br>
+                        <br>
 
-        			<div class="form-group">
-                    <label>
-                        Ignore Homology
-                        <input type="checkbox" name="ABBA_IgnHom" value="yes">
-                    </label>
-              </div>
-              <div class="form-group">
-                  <label>Minimum Genes:</label>
-                  <select id="genes-select" name="ABBA_MinGenes"  class="form-control">
-                      <option selected="selected">Auto</option>
-                  </select>
-              </div>
-              <div class="form-group">
-                  <label style="width:50%;">
-                      Minimum GeneSets:
-                  </label>
-                  <select name="ABBA_MinGenesets"  class="form-control">
-                      <option selected="selected">Auto</option>
-                      {% for i in range(50) %}
-                          <option>{{loop.index0+1}}</option>
-                      {% endfor %}
-                  </select>
-              </div>
-              <div class="form-group">
-                  <label style="width:50%;">
-                      Tierset:
-                  </label>
-                  <label>
-                      <input name="ABBA_Tierset" type="checkbox" value="1"/>
-                      Public Resources (Tier I)
-                  </label>
-                  <label>
-                      <input name="ABBA_Tierset" type="checkbox" value="2"/>
-                      Auto-curated (Tier II)
-                  </label>
-                  <label>
-                      <input name="ABBA_Tierset" type="checkbox" value="3"/>
-                      Curated (Tier III)
-                  </label>
-                  <label>
-                      <input name="ABBA_Tierset" type="checkbox" value="4"/>
-                      Provisional (Tier IV)
-                  </label>
-                  <label>
-                      <input name="ABBA_Tierset" type="checkbox" value="5"/>
-                      Private (Tier V)
-                  </label>
-              </div>
-                  <!-- Restrict Species Options-->
-              <div class="form-group">
-                  <label>
-                      Restrict Species:
-                  </label>
-                  <label class="radio-inline">
-                      <input type="radio" name="ABBA_RestrictOption" value="0" onclick="hideSelectSpecies();" checked="checked"> None<br>
-                  </label>
-                  <label class="radio-inline">
-                      <input type="radio" name="ABBA_RestrictOption" value="1" onclick="showSelectSpecies();"> Restrict<br>
-                  </label>
-              </div>
+                        <div class="form-group">
+                            <label>
+                                Ignore Homology
+                                <input type="checkbox" name="ABBA_IgnHom" value="yes">
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Genes:</label>
+                            <select id="genes-select" name="ABBA_MinGenes" class="form-control">
+                                <option selected="selected">Auto</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="width:50%;">
+                                Minimum GeneSets:
+                            </label>
+                            <select name="ABBA_MinGenesets" class="form-control">
+                                <option selected="selected">Auto</option>
+                                {% for i in range(50) %}
+                                    <option>{{ loop.index0+1}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="width:50%;">
+                                Tierset:
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="1" checked/>
+                                Public Resources (Tier I)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="2" checked/>
+                                Auto-curated (Tier II)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="3" checked/>
+                                Curated (Tier III)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="4"/>
+                                Provisional (Tier IV)
+                            </label>
+                            <label>
+                                <input name="ABBA_Tierset" type="checkbox" value="5"/>
+                                Private (Tier V)
+                            </label>
+                        </div>
+                        <!-- Restrict Species Options-->
+                        <div class="form-group">
+                            <label>
+                                Restrict Species:
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="ABBA_RestrictOption" value="0"
+                                       onclick="hideSelectSpecies();" checked="checked">All Species<br>
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="ABBA_RestrictOption" value="1" onclick="showSelectSpecies();">
+                                Restrict<br>
+                            </label>
+                        </div>
 
-              <div class="form-group" id="select-species" style="display: none;">
-                  <label>
-                      Select Species:
-                  </label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="1"/>Mus musculus</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="2"/>Homo sapiens</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="3"/>Rattus norvegicus</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="4"/>Danio rerio</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="5"/>Drosophila melanogaster</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="6"/>Macaca mulatta</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="8"/>Caenorhabditis elegans</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="9"/>Saccharomyces cerevisiae</label>
-                  <label><input name="ABBA_RestrictSpecies" type="checkbox" value="10"/>Gallus Gallus</label>
-              </div>
+                        <div class="form-group" id="select-species" style="display: none;">
+                            <label>
+                                Select Species:
+                            </label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="1"/>Mus musculus</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="2"/>Homo sapiens</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="3"/>Rattus
+                                norvegicus</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="4"/>Danio rerio</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="5"/>Drosophila melanogaster</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="6"/>Macaca mulatta</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="8"/>Caenorhabditis elegans</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="9"/>Saccharomyces
+                                cerevisiae</label>
+                            <label><input name="ABBA_RestrictSpecies" type="checkbox" value="10"/>Gallus Gallus</label>
+                        </div>
 
-        			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
-        		</div>
-          </form>
-      </div>
-    </div>
+                        <div class="form-group">{{ macros.tool_run_button(tool) }}</div>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-    <table class="table">
-        <tbody>
-          <tr>
-            <td>
-              <strong>Include Homology:&nbsp;</strong>{{async_result.IncludeHomology}}<br>
-              <strong>Minimum Genes:&nbsp;</strong>{{async_result.MinGenes}}<br>
-              <strong>Minimum Genesets:&nbsp;</strong>{{async_result.MinGenesets}}<br>
-              <strong>Curation Tiers:</strong>&nbsp;{{async_result.SelectedTierset}}<br>
-              <strong>Restricted to Species:&nbsp;</strong>{{async_result.RestrictSpecies}}<br>
-            </td>
-            <td>
-              <strong>User:&nbsp;</strong>{% if "user" in g %} {{ g.user.first_name|e }} {{ g.user.last_name|e }} {% else %} guest{% endif %}<br>
-              <strong>Date:&nbsp;</strong>
-                  <script>
-                  <!--
-                  var d = new Date();
-                  document.write(d.toLocaleDateString() + " " + d.toLocaleTimeString());
-                  //-->
-                  </script>
-              <br>
-              <br>
-              <strong>Available Genes:&nbsp;</strong>{{async_result.AvailableGenes}}<br>
-              <strong>Available Genesets:&nbsp;</strong>{{async_result.AvailableGenesets}}<br>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-  </div>
-
-
-  <div class="row">
-    <div class="col-md-12 title-col">
-      <ul class="nav nav-tabs nav-justified" role="tablist">
-        {% if async_result.GenesOfInterestCount %}
-          {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
-        {% else %}
-          {% set genesOfInterestCnt=0 %}
-        {% endif %}
-        <li class="active"><a href="#GenesOfInterest" aria-controls="GenesOfInterest" role="tab" data-toggle="tab">Genes of Interest ({{genesOfInterestCnt}})</a></li>
-
-        {% if async_result.GenesetResultsCount %}
-          {% set genesetCount=async_result.GenesetResultsCount %}
-        {% else %}
-          {% set genesetCount=0 %}
-        {% endif %}
-        <li><a href="#MatchingGenesets" aria-controls="MatchingGenesets" role="tab" data-toggle="tab">Matching Genesets ({{genesetCount}})</a></li>
-
-        {% if async_result.GeneResultsCount %}
-          {% set geneCount=async_result.GeneResultsCount %}
-        {% else %}
-          {% set geneCount=0 %}
-        {% endif %}
-        <li><a href="#ResultGenes" aria-controls="ResultGenes" role="tab" data-toggle="tab">Result Genes ({{async_result.GeneResultsCount}})</a></li>
-      </ul>
-    </div>
-
-    <div class="tab-content">
-
-      <div role="tabpanel" class="tab-pane active" id="GenesOfInterest">
-        <div class="col-md-4 table-col">
-          <input class="form-control result-search-input" id="system-searchGOI"  data-type="GOI" name="q" placeholder="Search..." required>
-          <table class="table table-striped table-list-search no-margin">
-            <thead>
-              <tr>
-                <th row-type="GOI" class="headrow">Gene<br></th>
-                <th row-type="GOI" class="headrow">Species<br></th>
-              </tr>
-            </thead>
-          </table>
-          <table class="table table-striped table-list-search scroll-body">
-
-        {% if async_result.GenesOfInterest %}
-        <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
-            {% for gene in async_result.GenesOfInterest %}
-            <tr class="result-row" row-type="GOI" data-id="{{gene[0]}}" data-type="gene">
-              <td>{{gene[1]}}<br></td>
-              <td>{{gene[2]}}<br></td>
+        <table class="table">
+            <tbody>
+            <tr>
+                <td>
+                    <strong>Include Homology:&nbsp;</strong>{{ async_result.IncludeHomology }}<br>
+                    <strong>Minimum Genes:&nbsp;</strong>{{ async_result.MinGenes }}<br>
+                    <strong>Minimum Genesets:&nbsp;</strong>{{ async_result.MinGenesets }}<br>
+                    <strong>Curation Tiers:</strong>&nbsp;{{ async_result.SelectedTierset }}<br>
+                </td>
+                <td>
+                    <strong>Restricted to Species:&nbsp;</strong>{{ async_result.RestrictSpecies }}<br>
+                    <strong>Date:&nbsp;</strong>
+                    <script>
+                        <!--
+                        var d = new Date();
+                        document.write(d.toLocaleDateString() + " " + d.toLocaleTimeString());
+                        //-->
+                    </script>
+                    <br>
+                    <strong>Available Genes:&nbsp;</strong>{{ async_result.AvailableGenes }}<br>
+                    <strong>Available Genesets:&nbsp;</strong>{{ async_result.AvailableGenesets }}<br>
+                </td>
             </tr>
-            {% endfor %}
-          </tbody>
-          {% endif %}
-          </table>
-        </div>
-        <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header">No Gene Selected</h2>
-          <br>
-        </div>
-      </div>
-
-      <div role="tabpanel" class="tab-pane" id="MatchingGenesets">
-        <div class="col-md-4 table-col">
-          <input class="form-control result-search-input" id="system-searchMG"  data-type="MG" name="q" placeholder="Search..." required>
-          <table class="table table-striped table-list-search no-margin">
-            <thead>
-              <tr>
-                <th row-type="MG" class="headrow">Geneset<br></th>
-                <th row-type="MG" class="headrow">Matches<br></th>
-              </tr>
-            </thead>
-          </table>
-          <table class="table table-striped table-list-search scroll-body">
-            {% if async_result.GenesetResults %}
-            <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
-              {% for geneset in async_result.GenesetResults %}
-              <tr class="result-row" row-type="MG" data-id="{{geneset[0]}}" data-type="geneset">
-                <td>{{geneset[1]}}<br></td>
-                <td>{{geneset[2]}}</td>
-              </tr>
-              {% endfor %}
             </tbody>
-            {% endif %}
-          </table>
-        </div>
-        <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header">No Geneset Selected</h2>
-          <br>
-        </div>
-      </div>
-
-      <!-- Add Geneset to Project Modal -->
-      {% include 'modal/addGenesetsToProjects.html' %}
-
-      <div role="tabpanel" class="tab-pane" id="ResultGenes">
-        <div class="col-md-4 table-col">
-          <input class="form-control result-search-input" id="system-searchRG" data-type="RG" name="q" placeholder="Search..." required>
-          <table class="table table-striped table-list-search no-margin">
-            <thead>
-              <tr> 
-                <th row-type="RG" class="headrow">Gene<br></th>
-                <th row-type="RG" class="headrow">Species<br></th>
-                <th row-type="RG" class="headrow">Genesets<br></th>
-              </tr>
-            </thead>
-          </table>
-          <table class="table table-striped table-list-search scroll-body">
-            {% if async_result.GeneResults %}
-            <tbody  class="scroll-tbody" id="ResultGenesTableBody">
-              {% for gene in async_result.GeneResults %}
-              <tr class="result-row" row-type="RG" data-id="{{gene[0]}}" data-type="gene">
-                <td>{{gene[1]}}<br></td>
-                <td>{{gene[2]}}<br></td>
-                <td>{{gene[4]}}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-            {% endif %}
-          </table>
-        </div>
-        <div data-type="InfoPane" class="col-md-8">
-          <h2 class="extra-info-header">No Gene Selected</h2>
-          <br>
-        </div>
-      </div>
+        </table>
 
     </div>
 
-  </div><!-- end row-->
+
+    {# list of seed genes. Colored by species. #}
+    <div class="row">
+        <div>
+            <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Seed Genes</strong></span>
+        </div>
+        <div id="seed-genes" style="display: block;">
+            {% for genes in async_result.GenesOfInterest | sort(attribute=1, reverse=True) | batch(6) -%}
+                <div class="grid grid-pad">
+                {%- for gene in genes -%}
+
+                    <div class="col-1-8" id="{{ gene[0] }}" data-attr="{{ gene[2] }}">
+                                    <strong>{{ gene[1] }}</strong>
+                    </div>
+
+                {%- endfor -%}
+                </div>
+            {%- endfor %}
+        </div>
+    </div>
+
+
+    <br><br>
+
+    <div class="row">
+        <div class="col-md-12 title-col">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+                {% if async_result.GenesOfInterestCount %}
+                    {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
+                {% else %}
+                    {% set genesOfInterestCnt=0 %}
+                {% endif %}
+                <li class="active"><a href="#GenesOfInterest" aria-controls="GenesOfInterest" role="tab"
+                                      data-toggle="tab">Genes of Interest ({{ genesOfInterestCnt }})</a></li>
+
+                {% if async_result.GenesetResultsCount %}
+                    {% set genesetCount=async_result.GenesetResultsCount %}
+                {% else %}
+                    {% set genesetCount=0 %}
+                {% endif %}
+                <li><a href="#MatchingGenesets" aria-controls="MatchingGenesets" role="tab" data-toggle="tab">Matching
+                    Genesets ({{ genesetCount }})</a></li>
+
+                {% if async_result.GeneResultsCount %}
+                    {% set geneCount=async_result.GeneResultsCount %}
+                {% else %}
+                    {% set geneCount=0 %}
+                {% endif %}
+                <li><a href="#ResultGenes" aria-controls="ResultGenes" role="tab" data-toggle="tab">Result Genes
+                    ({{ async_result.GeneResultsCount }})</a></li>
+            </ul>
+        </div>
+
+        <div class="tab-content">
+
+            <div role="tabpanel" class="tab-pane active" id="GenesOfInterest">
+                <div class="col-md-4 table-col">
+                    <input class="form-control result-search-input" id="system-searchGOI" data-type="GOI" name="q"
+                           placeholder="Search..." required>
+                    <table class="table table-striped table-list-search no-margin">
+                        <thead>
+                        <tr>
+                            <th row-type="GOI" class="headrow">Gene<br></th>
+                            <th row-type="GOI" class="headrow">Species<br></th>
+                        </tr>
+                        </thead>
+                    </table>
+                    <table class="table table-striped table-list-search scroll-body">
+
+                        {% if async_result.GenesOfInterest %}
+                            <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
+                            {% for gene in async_result.GenesOfInterest %}
+                                <tr class="result-row" row-type="GOI" data-id="{{ gene[0] }}" data-type="gene">
+                                    <td>{{ gene[1] }}<br></td>
+                                    <td>{{ gene[2] }}<br></td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        {% endif %}
+                    </table>
+                </div>
+                <div data-type="InfoPane" class="col-md-8">
+                    <h2 class="extra-info-header">No Gene Selected</h2>
+                    <br>
+                </div>
+            </div>
+
+            <div role="tabpanel" class="tab-pane" id="MatchingGenesets">
+                <div class="col-md-4 table-col">
+                    <input class="form-control result-search-input" id="system-searchMG" data-type="MG" name="q"
+                           placeholder="Search..." required>
+                    <table class="table table-striped table-list-search no-margin">
+                        <thead>
+                        <tr>
+                            <th row-type="MG" class="headrow">Geneset<br></th>
+                            <th row-type="MG" class="headrow">Matches<br></th>
+                        </tr>
+                        </thead>
+                    </table>
+                    <table class="table table-striped table-list-search scroll-body">
+                        {% if async_result.GenesetResults %}
+                            <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
+                            {% for geneset in async_result.GenesetResults %}
+                                <tr class="result-row" row-type="MG" data-id="{{ geneset[0] }}" data-type="geneset">
+                                    <td>{{ geneset[1] }}<br></td>
+                                    <td>{{ geneset[2] }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        {% endif %}
+                    </table>
+                </div>
+                <div data-type="InfoPane" class="col-md-8">
+                    <h2 class="extra-info-header">No Geneset Selected</h2>
+                    <br>
+                </div>
+            </div>
+
+            <!-- Add Geneset to Project Modal -->
+            {% include 'modal/addGenesetsToProjects.html' %}
+
+            <div role="tabpanel" class="tab-pane" id="ResultGenes">
+                <div class="col-md-4 table-col">
+                    <input class="form-control result-search-input" id="system-searchRG" data-type="RG" name="q"
+                           placeholder="Search..." required>
+                    <table class="table table-striped table-list-search no-margin">
+                        <thead>
+                        <tr>
+                            <th row-type="RG" class="headrow">Gene<br></th>
+                            <th row-type="RG" class="headrow">Species<br></th>
+                            <th row-type="RG" class="headrow">Genesets<br></th>
+                        </tr>
+                        </thead>
+                    </table>
+                    <table class="table table-striped table-list-search scroll-body">
+                        {% if async_result.GeneResults %}
+                            <tbody class="scroll-tbody" id="ResultGenesTableBody">
+                            {% for gene in async_result.GeneResults %}
+                                <tr class="result-row" row-type="RG" data-id="{{ gene[0] }}" data-type="gene">
+                                    <td>{{ gene[1] }}<br></td>
+                                    <td>{{ gene[2] }}<br></td>
+                                    <td>{{ gene[4] }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        {% endif %}
+                    </table>
+                </div>
+                <div data-type="InfoPane" class="col-md-8">
+                    <h2 class="extra-info-header">No Gene Selected</h2>
+                    <br>
+                </div>
+            </div>
+
+        </div>
+
+    </div><!-- end row-->
 
 </div><!-- end container -->
 
 
-
 <script type="text/javascript">
-$(document).ready(function() {
-  // Loading spinner because some search filters/options take a few seconds
-  jQuery.ajaxSetup({
-      beforeSend: function() {
-          $('#loader').show();
-      },
-      complete: function(){
-          $('#loader').hide();
-      },
-      success: function() {}
-  });
-
-  $('#updateBtn').click(function(){
-    $('#update_form_wrapper').toggle();
-  });
-  // Loading spinner because some search filters/options take a few seconds
-  jQuery.ajaxSetup({
-      beforeSend: function() {
-          $('#loader').show();
-      },
-      complete: function(){
-          $('#loader').hide();
-      },
-      success: function() {}
-  });
-
-  $('html').on('mouseup', function(e) {
-      if(!$(e.target).closest('.popover').length) {
-          $('.popover').each(function(){
-              $(this.previousSibling).popover('hide');
-          });
-      }
-  });
-
-  $(function () {
-    $('[data-toggle="popover"]').popover({
-      html: true,
-      placement: "bottom",
-      content: function(){
-        return $('#update_form_wrapper').html();
-      }
-    });
-  });
-
-  var activeSystemClass = $('.list-group-item.active');
-
-  var LightTableSorter = (function(Arr) {
-
-    var _th, _cellIndex, _order = '';
-
-    function _text(row) {
-      return row.cells.item(_cellIndex).textContent.toLowerCase();
-    }
-
-    function _sort(a, b) {
-      var va = _text(a), vb = _text(b), n = parseInt(va, 10);
-      if (n) {
-        va = n;
-        vb = parseInt(vb, 10);
-      }
-      return va > vb ? 1 : va < vb ? -1 : 0;
-    }
-
-    function _toggle() {
-      var c = _order !== 'asc' ? 'asc' : 'desc';
-      _th.className = (_th.className.replace(_order, '') + ' ' + c).trim();
-      _order = c;
-    }
-
-    function _reset() {
-      _th.className = _th.className.replace('asc', '').replace('desc', '');
-      _order = '';
-    }
-
-    function onClickEvent(e) {
-      var bodyID;
-      var workingTab = e.target.getAttribute("row-type");
-
-      if(workingTab == "GOI"){
-        bodyID = '#GenesOfInterestTableBody';
-      }else if(workingTab == "MG"){
-        bodyID = '#MatchingGenesetsTableBody';
-      }else if(workingTab == "RG"){
-        bodyID = '#ResultGenesTableBody';
-      }
-
-      if(_th && _th !== e.target){
-        _reset();
-      }
-      _th = e.target;
-      _cellIndex = _th.cellIndex;
-      var tbody = $(bodyID)[0];
-      var rows = tbody.rows;
-      var intialRowCount = rows.length;
-      for(var r=0; r<intialRowCount; r++){
-        if(!rows.item(r).hasAttribute("row-type")){
-          rows.item(r).remove();
-        }
-      }
-
-      if (rows) {
-        rows = Arr.sort.call(Arr.slice.call(rows, 0), _sort);
-        if (_order === 'asc') {
-          Arr.reverse.call(rows);
-        }
-        _toggle();
-        tbody.innerHtml = '';
-        Arr.forEach.call(rows, function(row) { tbody.appendChild(row); });
-      }
-    }
-
-    return {
-      init: function() {
-        var ths = $('.headrow')//document.getElementsByTagName('th');
-        Arr.forEach.call(ths, function(th) { th.onclick = onClickEvent; });
-      }
-    };
-  })(Array.prototype);
-  LightTableSorter.init();
-
-  //Change active result
-  $('.result-row').click(function() {
-    $('.result-row-active').switchClass('result-row-active', 'result-row');
-    $(this).switchClass('result-row', 'result-row-active');
-    updateInfoPane($(this));
-  });
-
-
-  function updateInfoPane(activeRow){
-    if(activeRow == null){
-      return;
-    }
-
-    var parentTab = activeRow.parent().closest('.tab-pane');
-    var infoPane = parentTab.children('div').last();
-    var headerText = activeRow.children('td').first().text();
-    var user_id = '{{ g.user.usr_id }}';
-    var id = activeRow.data('id')
-    var type = activeRow.data('type')
-    var url;
-
-    infoPane.empty(); //Clear the info pane HTML
-
-    infoPane.children('h2').closest('.extra-info-header').text(id);
-
-    var request = new XMLHttpRequest();
-
-    if(type != "gene" && type != "geneset"){
-      infoPane.children('h2').closest('.extra-info-header').text("ERROR PROCESSING REQUEST! Contact an Administrator.");
-      return;
-    }
-
-    if(type == "gene"){
-      url = '/api/get/gene/bygeneid/' + id + '/';
-      request.open("GET", url, false);
-      request.send();
-
-      formatGeneInfo(infoPane, activeRow, request.responseText);
-
-    } else if (type == "geneset") {
-      formatGenesetInfo(infoPane, activeRow);
-    }
-  }
-
-  function formatGeneInfo(infoPane, activeRow, responseText){
-    infoPane.empty();
-    var parser = JSON.parse(responseText)[0][0];
-    var species = activeRow.children('td').last().text();
-    var url = "/search/?searchbar="+ parser.gi_symbol +"&pagination_page=1&searchGenes=yes";
-
-    var html = '<a target="_blank" href="' + url + '">'
-    html += "<h3 class='panel-title' style='width:100%;'>G" + parser.ode_gene_id + " &bull; " + parser.gi_symbol;
-    if(parser.gi_name) html +=  " : " + parser.gi_name;
-    html += "</h2></a>";
-
-    // Assession
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>ACCESSION:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-    html += parser.gi_accession;
-    html += '  </div>';
-    html += '</div>';
-
-
-    // Description
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>DESCRIPTION:</strong>'
-    html +=   '<p></div>';
-    html +=   '<div class="col-md-10"><p>';
-        if(parser.gi_description) html += parser.gi_description;
-        else html += "No Description Available";
-    html +=   '</p></div>';
-    html += '</div>';
-
-    // Species Tag
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>SPECIES:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-    html += makeSpeciesTag(parser.sp_id);
-    html += '  </div>';
-    html += '</div>';
-
-    // Date Added
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>DATE ADDED:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-    html += parser.gi_date.split(' ')[0];
-    html += '  </div>';
-    html += '</div>';
-
-    // Type
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>TYPE:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-    html += parser.gi_type;
-    html += '  </div>';
-    html += '</div>';
-
-    // Chromosome
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>CHROMOSOME:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-      if(parser.gi_chromosome) html += parser.gi_chromosome;
-      else html += "N/A";
-    html += '  </div>';
-    html += '</div>';
-
-    // Strand
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>STRAND:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-      if(parser.gi_strand) html += parser.gi_strand;
-      else html += "N/A";
-    html += '  </div>';
-    html += '</div>';
-
-    // Start BP
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>START BASE PAIR:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-      if(parser.gi_start_bp) html += parser.gi_start_bp;
-      else html += "N/A";
-    html += '  </div>';
-    html += '</div>';
-
-    // End BP
-    html += '<div class="row">';
-    html +=   '<div class="col-md-2"><p class="text-right">'
-    html +=     '<strong>END BASE PAIR:</strong>'
-    html +=   '<p></div>';
-    html += '    <div class="col-md-10">';
-      if(parser.gi_end_bp) html += parser.gi_end_bp;
-      else html += "N/A";
-    html += '  </div>';
-    html += '</div>';
-
-    infoPane.append(html);
-
-    //Display geneset list
-    //TODO
-    /*
-    $.ajax({
-      url: url,
-      type: 'GET',
-      success: function(data) {
-        var doc = $(data).find("#search-genesets").find("#search-results");
-
-        html = '<div class="row">'
-        html += doc.html();
-        html += '</div>';
-
-        console.log(html);
-        infoPane.append(html);
-      },
-      error: function(xhr, status, error) {
-        var html = '<div class="row">';
-        html += '  <div class="alert bg-gray-light">GeneSet List not currently available for this Gene.</div>';
-        html += '</div>';
-        infoPane.append(html);
-      }
-    });
-    */
-  }
-  
-  function formatGenesetInfo(infoPane, activeRow){
-    var id = activeRow.data('id');
-    var url = '/viewgenesetdetails/' + id + '/meta';
-    console.log(url);
-    $.ajax({
-      url: url,
-      type: 'GET',
-      success: function(data) {
-        var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
-        html += $(data).find('#curIDBoxes').html();
-        html += "</a>"
-        html += $(data).find('#geneset-meta').html(); 
-      }
-      }); 
-  }
-
-  function formatGenesetInfo(infoPane, activeRow){
-    var id = activeRow.data('id');
-    //var url = '/viewgenesetdetails/' + id + '/meta';
-    var url = '/viewgenesetdetails/' + id;
-    console.log(url);
-    $.ajax({
-      url: url,
-      type: 'GET',
-      success: function(data) {
-        var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
-        html += $(data).find('#curIDBoxes').html();
-        html += "</a>"
-        html += $(data).find('#geneset-meta').html();
-
-        html += '<br><button type="button" class="btn btn-block btn-warning" id="addToProject" style="width: 30%">';
-        html += '<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project';
-        html += '</button>';
-
-        infoPane.append(html);
-
-        var species_div = document.getElementById("sp-tag");
-        var sp_id = species_div.childNodes[1].className.slice(-1); //Extract the species ID
-        var sp_tag = makeSpeciesTag(sp_id);
-        species_div.innerHTML = sp_tag;
-
-
-
-        /* Add Geneset to Project Modal */
-        $('#addToProject').click(function (e) {
-          console.log("CLICK!");
-          var geneset = 'GS' + id;
-          $('#addToProjectModal').find('.modal-title').html('Add GeneSet to Project(s)');
-          $("#myModalValue").val(geneset);
-          $("#modal-label").html(geneset);
-          $('#addToProjectModal').modal('show');
+    $(document).ready(function () {
+        // Loading spinner because some search filters/options take a few seconds
+        jQuery.ajaxSetup({
+            beforeSend: function () {
+                $('#loader').show();
+            },
+            complete: function () {
+                $('#loader').hide();
+            },
+            success: function () {
+            }
         });
 
-        // The 'add to selected projects' button on the modal
-        $('#addGenesetsToProjects').on('click', function (e) {
-            var checked = [];
-
-            $("input[name='options[]']:checked").each(function () {
-                checked.push(parseInt($(this).val()));
-            });
-
-            var option = JSON.stringify(checked);
-            var g = $('#myModalValue').val();
-            if ($('#newProjName').val().length > 0) {
-                var npn = $('#newProjName').val();
+        $('#updateBtn').click(function () {
+            $('#update_form_wrapper').toggle();
+        });
+        // Loading spinner because some search filters/options take a few seconds
+        jQuery.ajaxSetup({
+            beforeSend: function () {
+                $('#loader').show();
+            },
+            complete: function () {
+                $('#loader').hide();
+            },
+            success: function () {
             }
+        });
 
-            if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
-                $("#result").html('<div class="alert alert-danger fade in"> ' +
-                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                        '</button>No Projects Were Selected</div>');
-            } else {
-                $.ajax({
-                    type: "GET",
-                    url: "../addGenesetsToProjects",
-                    data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
-                    success: function (data) {
-                        $("#result").html('<div class="alert alert-success fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
-                    }
+        $('html').on('mouseup', function (e) {
+            if (!$(e.target).closest('.popover').length) {
+                $('.popover').each(function () {
+                    $(this.previousSibling).popover('hide');
                 });
             }
-
         });
 
-        // The button for this is found on the addGenesetsToProjects modal
-        $('#addNewProject').on('click', function () {
-          $('#reveal-if-active').toggle();
+        $(function () {
+            $('[data-toggle="popover"]').popover({
+                html: true,
+                placement: "bottom",
+                content: function () {
+                    return $('#update_form_wrapper').html();
+                }
+            });
         });
 
-      },
-      error: function(data) {
-        alert("FAIL"); //TODO Add correct error message in info panel
-      }
-    });
-  }
-
-
-  var makeSpeciesTag = function(spid) {
-    // The alist returned by the server should already be sorted
-    var splist = {{ species|tojson|safe }};
-    var spname = '';
-    // Extra element padding since sp_ids are not zero indexed
     var colors = [
-        '', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1',
-        '#f4dfff', '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'
+        '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc',
+        '#e5d8bd', '#fddaec', '#f2f2f2'
     ];
+
     var borders = [
-        '', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a',
-        '#b4d1fb', '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'
+        '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966',
+        '#7f7257', '#977486', '#8C8C8C'
     ];
 
-    for(var i = 0; i < splist.length; i++){
-      if(splist[i][0] == spid){
-        spid = splist[i][0];
-        spname = splist[i][1];
-        break;
-      }
+    var species = [
+      '', 'Drosophila melanogaster', 'Rattus norvegicus', 'Homo sapiens', 'Mus musculus', 'Macaca mulatta',
+        'Gallus gallus', 'Canis familiaris', 'Danio rerio'
+    ];
+
+    $(".col-1-8").each(function(n, m){
+        var s = species.indexOf($(this).data('attr'));
+        $("#"+m.id).css('background-color', colors[s]);
+        $("#"+m.id).css('border', '1px solid');
+        $("#"+m.id).css('border-color', borders[s]);
+    });
+/*
+
+var makeOntologyTags = function(onts) {
+
+    var colors = [
+        '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc',
+        '#e5d8bd', '#fddaec', '#f2f2f2'
+    ];
+
+    var borders = [
+        '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966',
+        '#7f7257', '#977486', '#8C8C8C'
+    ];
+
+    // Remove duplicate ontology IDs since we're getting a list of all
+    // annotations
+    onts = function(a) {
+        var seen = {};
+
+        return a.filter(function(elem) {
+            return seen.hasOwnProperty(elem.ontdb_id) ? false : (seen[elem.ontdb_id] = true);
+        });
+    }(onts);
+
+    for (var i = 0; i < onts.length; i++) {
+
+        var ontid = onts[i].ontdb_id;
+        var name = onts[i].dbname;
+
+        $('.ont-' + ontid).css('background-color', colors[ontid]);
+        $('.ont-' + ontid).css('border', '1px solid');
+        $('.ont-' + ontid).css('border-color', borders[ontid]);
+
+        var $key = $('<div>', {
+            class: 'ontology-tag',
+            text: name
+        });
+
+        $key.css('background-color', colors[ontid]);
+        $key.css('border', '1px solid');
+        $key.css('border-color', borders[ontid]);
+        $key.css('font-weight', 'bold');
+
+
+        $('#ont-key').append($key);
     }
+};
 
-    var tag = '<span class="group_name" style="background-color:' + colors[spid] +
-            '; border:1px solid ' + borders[spid] + '">' +
-            spname + '</span>';
-
-    return tag;
-  };
+*/
 
 
-  $('#system-searchGOI').keyup( function(e){
-    search_tab("GOI");
-  });
-  $('#system-searchMG').keyup( function(e){
-    search_tab("MG");
-  });
-  $('#system-searchRG').keyup( function(e){
-    search_tab("RG");
-  });
+
+        var activeSystemClass = $('.list-group-item.active');
+
+        var LightTableSorter = (function (Arr) {
+
+            var _th, _cellIndex, _order = '';
+
+            function _text(row) {
+                return row.cells.item(_cellIndex).textContent.toLowerCase();
+            }
+
+            function _sort(a, b) {
+                var va = _text(a), vb = _text(b), n = parseInt(va, 10);
+                if (n) {
+                    va = n;
+                    vb = parseInt(vb, 10);
+                }
+                return va > vb ? 1 : va < vb ? -1 : 0;
+            }
+
+            function _toggle() {
+                var c = _order !== 'asc' ? 'asc' : 'desc';
+                _th.className = (_th.className.replace(_order, '') + ' ' + c).trim();
+                _order = c;
+            }
+
+            function _reset() {
+                _th.className = _th.className.replace('asc', '').replace('desc', '');
+                _order = '';
+            }
+
+            function onClickEvent(e) {
+                var bodyID;
+                var workingTab = e.target.getAttribute("row-type");
+
+                if (workingTab == "GOI") {
+                    bodyID = '#GenesOfInterestTableBody';
+                } else if (workingTab == "MG") {
+                    bodyID = '#MatchingGenesetsTableBody';
+                } else if (workingTab == "RG") {
+                    bodyID = '#ResultGenesTableBody';
+                }
+
+                if (_th && _th !== e.target) {
+                    _reset();
+                }
+                _th = e.target;
+                _cellIndex = _th.cellIndex;
+                var tbody = $(bodyID)[0];
+                var rows = tbody.rows;
+                var intialRowCount = rows.length;
+                for (var r = 0; r < intialRowCount; r++) {
+                    if (!rows.item(r).hasAttribute("row-type")) {
+                        rows.item(r).remove();
+                    }
+                }
+
+                if (rows) {
+                    rows = Arr.sort.call(Arr.slice.call(rows, 0), _sort);
+                    if (_order === 'asc') {
+                        Arr.reverse.call(rows);
+                    }
+                    _toggle();
+                    tbody.innerHtml = '';
+                    Arr.forEach.call(rows, function (row) {
+                        tbody.appendChild(row);
+                    });
+                }
+            }
+
+            return {
+                init: function () {
+                    var ths = $('.headrow')//document.getElementsByTagName('th');
+                    Arr.forEach.call(ths, function (th) {
+                        th.onclick = onClickEvent;
+                    });
+                }
+            };
+        })(Array.prototype);
+        LightTableSorter.init();
+
+        //Change active result
+        $('.result-row').click(function () {
+            $('.result-row-active').switchClass('result-row-active', 'result-row');
+            $(this).switchClass('result-row', 'result-row-active');
+            updateInfoPane($(this));
+        });
 
 
-  function search_tab(workingTab) {
-     var workingTab;// = that.getAttribute("data-type");
+        function updateInfoPane(activeRow) {
+            if (activeRow == null) {
+                return;
+            }
 
-     var that;
-     var tableBody;
-     var tableRowsClass;
+            var parentTab = activeRow.parent().closest('.tab-pane');
+            var infoPane = parentTab.children('div').last();
+            var headerText = activeRow.children('td').first().text();
+            var user_id = '{{ g.user.usr_id }}';
+            var id = activeRow.data('id')
+            var type = activeRow.data('type')
+            var url;
 
-     if(workingTab == "GOI"){
-       that = $('#system-searchGOI');
-       tableBody = $('#GenesOfInterestTableBody');
-       tableRowsClass = $('#GenesOfInterestTableBody tr');
-     }else if(workingTab == "MG"){
-       that = $('#system-searchMG');
-       tableBody = $('#MatchingGenesetsTableBody');
-       tableRowsClass = $('#MatchingGenesetsTableBody tr');
-     }else if(workingTab == "RG"){
-       that = $('#system-searchRG');
-       tableBody = $('#ResultGenesTableBody');
-       tableRowsClass = $('#ResultGenesTableBody tr');
-     }
+            infoPane.empty(); //Clear the info pane HTML
 
-      $('.search-sf').remove();
-      tableRowsClass.each( function(i, val) {
+            infoPane.children('h2').closest('.extra-info-header').text(id);
 
-          //Lower text for case insensitive
-          var rowText = $(val).text().toLowerCase();
-          var inputText = $(that).val().toLowerCase();
-          if(inputText != '')
-          {
-              $('.search-query-sf').remove();
-              tableBody.prepend('<tr class="search-query-sf"><td colspan="6"><strong>Searching for: "'
-                  + $(that).val()
-                  + '"</strong></td></tr>');
-          }
-          else
-          {
-              $('.search-query-sf').remove();
-          }
+            var request = new XMLHttpRequest();
 
-          if( rowText.indexOf( inputText ) == -1 )
-          {
-              //hide rows
-              tableRowsClass.eq(i).hide();
+            if (type != "gene" && type != "geneset") {
+                infoPane.children('h2').closest('.extra-info-header').text("ERROR PROCESSING REQUEST! Contact an Administrator.");
+                return;
+            }
 
-          }
-          else
-          {
-              $('.search-sf').remove();
-              tableRowsClass.eq(i).show();
-          }
-      });
-      //all tr elements are hidden
-      if(tableRowsClass.children(':visible').length == 0)
-      {
-          tableBody.append('<tr class="search-sf"><td class="text-muted" colspan="6">No entries found.</td></tr>');
-      }
+            if (type == "gene") {
+                url = '/api/get/gene/bygeneid/' + id + '/';
+                request.open("GET", url, false);
+                request.send();
 
-      LightTableSorter.init();
-  };
+                formatGeneInfo(infoPane, activeRow, request.responseText);
 
-});
+            } else if (type == "geneset") {
+                formatGenesetInfo(infoPane, activeRow);
+            }
+        }
+
+        function formatGeneInfo(infoPane, activeRow, responseText) {
+            infoPane.empty();
+            var parser = JSON.parse(responseText)[0][0];
+            var species = activeRow.children('td').last().text();
+            var url = "/search/?searchbar=" + parser.gi_symbol + "&pagination_page=1&searchGenes=yes";
+
+            var html = '<a target="_blank" href="' + url + '">'
+            html += "<h3 class='panel-title' style='width:100%;'>G" + parser.ode_gene_id + " &bull; " + parser.gi_symbol;
+            if (parser.gi_name) html += " : " + parser.gi_name;
+            html += "</h2></a>";
+
+            // Assession
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>ACCESSION:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            html += parser.gi_accession;
+            html += '  </div>';
+            html += '</div>';
+
+
+            // Description
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>DESCRIPTION:</strong>'
+            html += '<p></div>';
+            html += '<div class="col-md-10"><p>';
+            if (parser.gi_description) html += parser.gi_description;
+            else html += "No Description Available";
+            html += '</p></div>';
+            html += '</div>';
+
+            // Species Tag
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>SPECIES:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            html += makeSpeciesTag(parser.sp_id);
+            html += '  </div>';
+            html += '</div>';
+
+            // Date Added
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>DATE ADDED:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            html += parser.gi_date.split(' ')[0];
+            html += '  </div>';
+            html += '</div>';
+
+            // Type
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>TYPE:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            html += parser.gi_type;
+            html += '  </div>';
+            html += '</div>';
+
+            // Chromosome
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>CHROMOSOME:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            if (parser.gi_chromosome) html += parser.gi_chromosome;
+            else html += "N/A";
+            html += '  </div>';
+            html += '</div>';
+
+            // Strand
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>STRAND:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            if (parser.gi_strand) html += parser.gi_strand;
+            else html += "N/A";
+            html += '  </div>';
+            html += '</div>';
+
+            // Start BP
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>START BASE PAIR:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            if (parser.gi_start_bp) html += parser.gi_start_bp;
+            else html += "N/A";
+            html += '  </div>';
+            html += '</div>';
+
+            // End BP
+            html += '<div class="row">';
+            html += '<div class="col-md-2"><p class="text-right">'
+            html += '<strong>END BASE PAIR:</strong>'
+            html += '<p></div>';
+            html += '    <div class="col-md-10">';
+            if (parser.gi_end_bp) html += parser.gi_end_bp;
+            else html += "N/A";
+            html += '  </div>';
+            html += '</div>';
+
+            infoPane.append(html);
+
+            //Display geneset list
+            //TODO
+            /*
+             $.ajax({
+             url: url,
+             type: 'GET',
+             success: function(data) {
+             var doc = $(data).find("#search-genesets").find("#search-results");
+
+             html = '<div class="row">'
+             html += doc.html();
+             html += '</div>';
+
+             console.log(html);
+             infoPane.append(html);
+             },
+             error: function(xhr, status, error) {
+             var html = '<div class="row">';
+             html += '  <div class="alert bg-gray-light">GeneSet List not currently available for this Gene.</div>';
+             html += '</div>';
+             infoPane.append(html);
+             }
+             });
+             */
+        }
+
+        function formatGenesetInfo(infoPane, activeRow) {
+            var id = activeRow.data('id');
+            var url = '/viewgenesetdetails/' + id + '/meta';
+            console.log(url);
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (data) {
+                    var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
+                    html += $(data).find('#curIDBoxes').html();
+                    html += "</a>"
+                    html += $(data).find('#geneset-meta').html();
+                }
+            });
+        }
+
+        function formatGenesetInfo(infoPane, activeRow) {
+            var id = activeRow.data('id');
+            //var url = '/viewgenesetdetails/' + id + '/meta';
+            var url = '/viewgenesetdetails/' + id;
+            console.log(url);
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (data) {
+                    var html = "<a target='_blank' href='/viewgenesetdetails/" + id + "'>"
+                    html += $(data).find('#curIDBoxes').html();
+                    html += "</a>"
+                    html += $(data).find('#geneset-meta').html();
+
+                    html += '<br><button type="button" class="btn btn-block btn-warning" id="addToProject" style="width: 30%">';
+                    html += '<i class="fa fa-folder-o pull-left"></i> Add Geneset to Project';
+                    html += '</button>';
+
+                    infoPane.append(html);
+
+                    var species_div = document.getElementById("sp-tag");
+                    var sp_id = species_div.childNodes[1].className.slice(-1); //Extract the species ID
+                    var sp_tag = makeSpeciesTag(sp_id);
+                    species_div.innerHTML = sp_tag;
+
+
+                    /* Add Geneset to Project Modal */
+                    $('#addToProject').click(function (e) {
+                        console.log("CLICK!");
+                        var geneset = 'GS' + id;
+                        $('#addToProjectModal').find('.modal-title').html('Add GeneSet to Project(s)');
+                        $("#myModalValue").val(geneset);
+                        $("#modal-label").html(geneset);
+                        $('#addToProjectModal').modal('show');
+                    });
+
+                    // The 'add to selected projects' button on the modal
+                    $('#addGenesetsToProjects').on('click', function (e) {
+                        var checked = [];
+
+                        $("input[name='options[]']:checked").each(function () {
+                            checked.push(parseInt($(this).val()));
+                        });
+
+                        var option = JSON.stringify(checked);
+                        var g = $('#myModalValue').val();
+                        if ($('#newProjName').val().length > 0) {
+                            var npn = $('#newProjName').val();
+                        }
+
+                        if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
+                            $("#result").html('<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>No Projects Were Selected</div>');
+                        } else {
+                            $.ajax({
+                                type: "GET",
+                                url: "../addGenesetsToProjects",
+                                data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
+                                success: function (data) {
+                                    $("#result").html('<div class="alert alert-success fade in"> ' +
+                                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                        '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
+                                }
+                            });
+                        }
+
+                    });
+
+                    // The button for this is found on the addGenesetsToProjects modal
+                    $('#addNewProject').on('click', function () {
+                        $('#reveal-if-active').toggle();
+                    });
+
+                },
+                error: function (data) {
+                    alert("FAIL"); //TODO Add correct error message in info panel
+                }
+            });
+        }
+
+
+        var makeSpeciesTag = function (spid) {
+            // The alist returned by the server should already be sorted
+            var splist = {{ species|tojson|safe }};
+            var spname = '';
+            // Extra element padding since sp_ids are not zero indexed
+            var colors = [
+                '', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1',
+                '#f4dfff', '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'
+            ];
+            var borders = [
+                '', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a',
+                '#b4d1fb', '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'
+            ];
+
+            for (var i = 0; i < splist.length; i++) {
+                if (splist[i][0] == spid) {
+                    spid = splist[i][0];
+                    spname = splist[i][1];
+                    break;
+                }
+            }
+
+            var tag = '<span class="group_name" style="background-color:' + colors[spid] +
+                '; border:1px solid ' + borders[spid] + '">' +
+                spname + '</span>';
+
+            return tag;
+        };
+
+
+        $('#system-searchGOI').keyup(function (e) {
+            search_tab("GOI");
+        });
+        $('#system-searchMG').keyup(function (e) {
+            search_tab("MG");
+        });
+        $('#system-searchRG').keyup(function (e) {
+            search_tab("RG");
+        });
+
+
+        function search_tab(workingTab) {
+            var workingTab;// = that.getAttribute("data-type");
+
+            var that;
+            var tableBody;
+            var tableRowsClass;
+
+            if (workingTab == "GOI") {
+                that = $('#system-searchGOI');
+                tableBody = $('#GenesOfInterestTableBody');
+                tableRowsClass = $('#GenesOfInterestTableBody tr');
+            } else if (workingTab == "MG") {
+                that = $('#system-searchMG');
+                tableBody = $('#MatchingGenesetsTableBody');
+                tableRowsClass = $('#MatchingGenesetsTableBody tr');
+            } else if (workingTab == "RG") {
+                that = $('#system-searchRG');
+                tableBody = $('#ResultGenesTableBody');
+                tableRowsClass = $('#ResultGenesTableBody tr');
+            }
+
+            $('.search-sf').remove();
+            tableRowsClass.each(function (i, val) {
+
+                //Lower text for case insensitive
+                var rowText = $(val).text().toLowerCase();
+                var inputText = $(that).val().toLowerCase();
+                if (inputText != '') {
+                    $('.search-query-sf').remove();
+                    tableBody.prepend('<tr class="search-query-sf"><td colspan="6"><strong>Searching for: "'
+                        + $(that).val()
+                        + '"</strong></td></tr>');
+                }
+                else {
+                    $('.search-query-sf').remove();
+                }
+
+                if (rowText.indexOf(inputText) == -1) {
+                    //hide rows
+                    tableRowsClass.eq(i).hide();
+
+                }
+                else {
+                    $('.search-sf').remove();
+                    tableRowsClass.eq(i).show();
+                }
+            });
+            //all tr elements are hidden
+            if (tableRowsClass.children(':visible').length == 0) {
+                tableBody.append('<tr class="search-sf"><td class="text-muted" colspan="6">No entries found.</td></tr>');
+            }
+
+            LightTableSorter.init();
+        };
+
+    });
 
 </script><!-- end table filter script-->
 
@@ -929,16 +1075,16 @@ $(document).ready(function() {
 <!-- Update Button Script -->
 <script>
     var goiCount = $("#genesOfInterestInputHidden").data('count');
-    for(var i=0; i<goiCount; i++){
-      min_genes_inc();  
+    for (var i = 0; i < goiCount; i++) {
+        min_genes_inc();
     }
 
-    $("#addGeneBtn").click(function() {
+    $("#addGeneBtn").click(function () {
         var intId = $("#inputGeneField div").length + 1;
         var fieldWrapper = $("<div class=\"fieldwrapper\" id=\"field" + intId + "\"/>");
         var fName = $('<input type="text" class="fieldname" name="ABBA_InputGenes" required/>');
         var removeButton = $('<input type="button" class="remove btn btn-primary btn-sm" value="x" />');
-        removeButton.click(function() {
+        removeButton.click(function () {
             $(this).parent().remove();
             min_genes_dec(); //Update min_genes option list
         });
@@ -959,8 +1105,8 @@ $(document).ready(function() {
 
     function min_genes_dec() {
         var cnt = document.getElementById("genes-select").length - 1;
-        if(document.getElementById("genes-select").selectedIndex == cnt){
-            document.getElementById("genes-select").selectedIndex=cnt-1;
+        if (document.getElementById("genes-select").selectedIndex == cnt) {
+            document.getElementById("genes-select").selectedIndex = cnt - 1;
         }
         document.getElementById("genes-select").options[cnt].remove();
     }
@@ -976,327 +1122,326 @@ $(document).ready(function() {
 </script>
 
 
-
 <script>
     (function ($) {
-    var
-    defaults = {
-        className: 'autosizejs',
-        id: 'autosizejs',
-        append: '\n',
-        callback: false,
-        resizeDelay: 10,
-        placeholder: true
-    },
-
-    // border:0 is unnecessary, but avoids a bug in Firefox on OSX
-    copy = '<textarea tabindex="-1" style="position:absolute; top:-999px; left:0; right:auto; bottom:auto; border:0; padding: 0; -moz-box-sizing:content-box; -webkit-box-sizing:content-box; box-sizing:content-box; word-wrap:break-word; height:0 !important; min-height:0 !important; overflow:hidden; transition:none; -webkit-transition:none; -moz-transition:none;"/>',
-
-    // line-height is conditionally included because IE7/IE8/old Opera do not return the correct value.
-    typographyStyles = [
-        'fontFamily',
-        'fontSize',
-        'fontWeight',
-        'fontStyle',
-        'letterSpacing',
-        'textTransform',
-        'wordSpacing',
-        'textIndent',
-        'whiteSpace'
-    ],
-
-    // to keep track which textarea is being mirrored when adjust() is called.
-    mirrored,
-
-    // the mirror element, which is used to calculate what size the mirrored element should be.
-    mirror = $(copy).data('autosize', true)[0];
-
-    // test that line-height can be accurately copied.
-    mirror.style.lineHeight = '99px';
-    if ($(mirror).css('lineHeight') === '99px') {
-        typographyStyles.push('lineHeight');
-    }
-    mirror.style.lineHeight = '';
-
-    $.fn.autosize = function (options) {
-        if (!this.length) {
-            return this;
-        }
-
-        options = $.extend({}, defaults, options || {});
-
-        if (mirror.parentNode !== document.body) {
-            $(document.body).append(mirror);
-        }
-
-        return this.each(function () {
-            var
-            ta = this,
-            $ta = $(ta),
-            maxHeight,
-            minHeight,
-            boxOffset = 0,
-            callback = $.isFunction(options.callback),
-            originalStyles = {
-                height: ta.style.height,
-                overflow: ta.style.overflow,
-                overflowY: ta.style.overflowY,
-                wordWrap: ta.style.wordWrap,
-                resize: ta.style.resize
+        var
+            defaults = {
+                className: 'autosizejs',
+                id: 'autosizejs',
+                append: '\n',
+                callback: false,
+                resizeDelay: 10,
+                placeholder: true
             },
-            timeout,
-            width = $ta.width(),
-            taResize = $ta.css('resize');
 
-            if ($ta.data('autosize')) {
-                // exit if autosize has already been applied, or if the textarea is the mirror element.
-                return;
+            // border:0 is unnecessary, but avoids a bug in Firefox on OSX
+            copy = '<textarea tabindex="-1" style="position:absolute; top:-999px; left:0; right:auto; bottom:auto; border:0; padding: 0; -moz-box-sizing:content-box; -webkit-box-sizing:content-box; box-sizing:content-box; word-wrap:break-word; height:0 !important; min-height:0 !important; overflow:hidden; transition:none; -webkit-transition:none; -moz-transition:none;"/>',
+
+            // line-height is conditionally included because IE7/IE8/old Opera do not return the correct value.
+            typographyStyles = [
+                'fontFamily',
+                'fontSize',
+                'fontWeight',
+                'fontStyle',
+                'letterSpacing',
+                'textTransform',
+                'wordSpacing',
+                'textIndent',
+                'whiteSpace'
+            ],
+
+            // to keep track which textarea is being mirrored when adjust() is called.
+            mirrored,
+
+            // the mirror element, which is used to calculate what size the mirrored element should be.
+            mirror = $(copy).data('autosize', true)[0];
+
+        // test that line-height can be accurately copied.
+        mirror.style.lineHeight = '99px';
+        if ($(mirror).css('lineHeight') === '99px') {
+            typographyStyles.push('lineHeight');
+        }
+        mirror.style.lineHeight = '';
+
+        $.fn.autosize = function (options) {
+            if (!this.length) {
+                return this;
             }
-            $ta.data('autosize', true);
 
-            if ($ta.css('box-sizing') === 'border-box' || $ta.css('-moz-box-sizing') === 'border-box' || $ta.css('-webkit-box-sizing') === 'border-box'){
-                boxOffset = $ta.outerHeight() - $ta.height();
+            options = $.extend({}, defaults, options || {});
+
+            if (mirror.parentNode !== document.body) {
+                $(document.body).append(mirror);
             }
 
-            // IE8 and lower return 'auto', which parses to NaN, if no min-height is set.
-            minHeight = Math.max(parseFloat($ta.css('minHeight')) - boxOffset || 0, $ta.height());
+            return this.each(function () {
+                var
+                    ta = this,
+                    $ta = $(ta),
+                    maxHeight,
+                    minHeight,
+                    boxOffset = 0,
+                    callback = $.isFunction(options.callback),
+                    originalStyles = {
+                        height: ta.style.height,
+                        overflow: ta.style.overflow,
+                        overflowY: ta.style.overflowY,
+                        wordWrap: ta.style.wordWrap,
+                        resize: ta.style.resize
+                    },
+                    timeout,
+                    width = $ta.width(),
+                    taResize = $ta.css('resize');
 
-            $ta.css({
-                overflow: 'hidden',
-                overflowY: 'hidden',
-                wordWrap: 'break-word' // horizontal overflow is hidden, so break-word is necessary for handling words longer than the textarea width
-            });
+                if ($ta.data('autosize')) {
+                    // exit if autosize has already been applied, or if the textarea is the mirror element.
+                    return;
+                }
+                $ta.data('autosize', true);
 
-            if (taResize === 'vertical') {
-                $ta.css('resize','none');
-            } else if (taResize === 'both') {
-                $ta.css('resize', 'horizontal');
-            }
-
-            // The mirror width must exactly match the textarea width, so using getBoundingClientRect because it doesn't round the sub-pixel value.
-            // window.getComputedStyle, getBoundingClientRect returning a width are unsupported, but also unneeded in IE8 and lower.
-            function setWidth() {
-                var width;
-                var style = window.getComputedStyle ? window.getComputedStyle(ta, null) : false;
-
-                if (style) {
-
-                    width = ta.getBoundingClientRect().width;
-
-                    if (width === 0 || typeof width !== 'number') {
-                        width = parseFloat(style.width);
-                    }
-
-                    $.each(['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'], function(i,val){
-                        width -= parseFloat(style[val]);
-                    });
-                } else {
-                    width = $ta.width();
+                if ($ta.css('box-sizing') === 'border-box' || $ta.css('-moz-box-sizing') === 'border-box' || $ta.css('-webkit-box-sizing') === 'border-box') {
+                    boxOffset = $ta.outerHeight() - $ta.height();
                 }
 
-                mirror.style.width = Math.max(width,0) + 'px';
-            }
+                // IE8 and lower return 'auto', which parses to NaN, if no min-height is set.
+                minHeight = Math.max(parseFloat($ta.css('minHeight')) - boxOffset || 0, $ta.height());
 
-            function initMirror() {
-                var styles = {};
-
-                mirrored = ta;
-                mirror.className = options.className;
-                mirror.id = options.id;
-                maxHeight = parseFloat($ta.css('maxHeight'));
-
-                // mirror is a duplicate textarea located off-screen that
-                // is automatically updated to contain the same text as the
-                // original textarea.  mirror always has a height of 0.
-                // This gives a cross-browser supported way getting the actual
-                // height of the text, through the scrollTop property.
-                $.each(typographyStyles, function(i,val){
-                    styles[val] = $ta.css(val);
+                $ta.css({
+                    overflow: 'hidden',
+                    overflowY: 'hidden',
+                    wordWrap: 'break-word' // horizontal overflow is hidden, so break-word is necessary for handling words longer than the textarea width
                 });
 
-                $(mirror).css(styles).attr('wrap', $ta.attr('wrap'));
-
-                setWidth();
-
-                // Chrome-specific fix:
-                // When the textarea y-overflow is hidden, Chrome doesn't reflow the text to account for the space
-                // made available by removing the scrollbar. This workaround triggers the reflow for Chrome.
-                if (window.chrome) {
-                    var width = ta.style.width;
-                    ta.style.width = '0px';
-                    var ignore = ta.offsetWidth;
-                    ta.style.width = width;
+                if (taResize === 'vertical') {
+                    $ta.css('resize', 'none');
+                } else if (taResize === 'both') {
+                    $ta.css('resize', 'horizontal');
                 }
-            }
 
-            // Using mainly bare JS in this function because it is going
-            // to fire very often while typing, and needs to very efficient.
-            function adjust() {
-                var height, original;
+                // The mirror width must exactly match the textarea width, so using getBoundingClientRect because it doesn't round the sub-pixel value.
+                // window.getComputedStyle, getBoundingClientRect returning a width are unsupported, but also unneeded in IE8 and lower.
+                function setWidth() {
+                    var width;
+                    var style = window.getComputedStyle ? window.getComputedStyle(ta, null) : false;
 
-                if (mirrored !== ta) {
-                    initMirror();
-                } else {
+                    if (style) {
+
+                        width = ta.getBoundingClientRect().width;
+
+                        if (width === 0 || typeof width !== 'number') {
+                            width = parseFloat(style.width);
+                        }
+
+                        $.each(['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'], function (i, val) {
+                            width -= parseFloat(style[val]);
+                        });
+                    } else {
+                        width = $ta.width();
+                    }
+
+                    mirror.style.width = Math.max(width, 0) + 'px';
+                }
+
+                function initMirror() {
+                    var styles = {};
+
+                    mirrored = ta;
+                    mirror.className = options.className;
+                    mirror.id = options.id;
+                    maxHeight = parseFloat($ta.css('maxHeight'));
+
+                    // mirror is a duplicate textarea located off-screen that
+                    // is automatically updated to contain the same text as the
+                    // original textarea.  mirror always has a height of 0.
+                    // This gives a cross-browser supported way getting the actual
+                    // height of the text, through the scrollTop property.
+                    $.each(typographyStyles, function (i, val) {
+                        styles[val] = $ta.css(val);
+                    });
+
+                    $(mirror).css(styles).attr('wrap', $ta.attr('wrap'));
+
                     setWidth();
-                }
 
-                if (!ta.value && options.placeholder) {
-                    // If the textarea is empty, copy the placeholder text into
-                    // the mirror control and use that for sizing so that we
-                    // don't end up with placeholder getting trimmed.
-                    mirror.value = ($ta.attr("placeholder") || '');
-                } else {
-                    mirror.value = ta.value;
-                }
-
-                mirror.value += options.append || '';
-                mirror.style.overflowY = ta.style.overflowY;
-                original = parseFloat(ta.style.height);
-
-                // Setting scrollTop to zero is needed in IE8 and lower for the next step to be accurately applied
-                mirror.scrollTop = 0;
-
-                mirror.scrollTop = 9e4;
-
-                // Using scrollTop rather than scrollHeight because scrollHeight is non-standard and includes padding.
-                height = mirror.scrollTop;
-
-                if (maxHeight && height > maxHeight) {
-                    ta.style.overflowY = 'scroll';
-                    height = maxHeight;
-                } else {
-                    ta.style.overflowY = 'hidden';
-                    if (height < minHeight) {
-                        height = minHeight;
+                    // Chrome-specific fix:
+                    // When the textarea y-overflow is hidden, Chrome doesn't reflow the text to account for the space
+                    // made available by removing the scrollbar. This workaround triggers the reflow for Chrome.
+                    if (window.chrome) {
+                        var width = ta.style.width;
+                        ta.style.width = '0px';
+                        var ignore = ta.offsetWidth;
+                        ta.style.width = width;
                     }
                 }
 
-                height += boxOffset;
+                // Using mainly bare JS in this function because it is going
+                // to fire very often while typing, and needs to very efficient.
+                function adjust() {
+                    var height, original;
 
-                if (original !== height) {
-                    ta.style.height = height + 'px';
-
-                    // Trigger a repaint for IE8 for when ta is nested 2 or more levels inside an inline-block
-                    mirror.className = mirror.className;
-
-                    if (callback) {
-                        options.callback.call(ta,ta);
+                    if (mirrored !== ta) {
+                        initMirror();
+                    } else {
+                        setWidth();
                     }
-                    $ta.trigger('autosize.resized');
+
+                    if (!ta.value && options.placeholder) {
+                        // If the textarea is empty, copy the placeholder text into
+                        // the mirror control and use that for sizing so that we
+                        // don't end up with placeholder getting trimmed.
+                        mirror.value = ($ta.attr("placeholder") || '');
+                    } else {
+                        mirror.value = ta.value;
+                    }
+
+                    mirror.value += options.append || '';
+                    mirror.style.overflowY = ta.style.overflowY;
+                    original = parseFloat(ta.style.height);
+
+                    // Setting scrollTop to zero is needed in IE8 and lower for the next step to be accurately applied
+                    mirror.scrollTop = 0;
+
+                    mirror.scrollTop = 9e4;
+
+                    // Using scrollTop rather than scrollHeight because scrollHeight is non-standard and includes padding.
+                    height = mirror.scrollTop;
+
+                    if (maxHeight && height > maxHeight) {
+                        ta.style.overflowY = 'scroll';
+                        height = maxHeight;
+                    } else {
+                        ta.style.overflowY = 'hidden';
+                        if (height < minHeight) {
+                            height = minHeight;
+                        }
+                    }
+
+                    height += boxOffset;
+
+                    if (original !== height) {
+                        ta.style.height = height + 'px';
+
+                        // Trigger a repaint for IE8 for when ta is nested 2 or more levels inside an inline-block
+                        mirror.className = mirror.className;
+
+                        if (callback) {
+                            options.callback.call(ta, ta);
+                        }
+                        $ta.trigger('autosize.resized');
+                    }
                 }
-            }
 
-            function resize () {
-                clearTimeout(timeout);
-                timeout = setTimeout(function(){
-                    var newWidth = $ta.width();
+                function resize() {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(function () {
+                        var newWidth = $ta.width();
 
-                    if (newWidth !== width) {
-                        width = newWidth;
-                        adjust();
-                    }
-                }, parseInt(options.resizeDelay,10));
-            }
-
-            if ('onpropertychange' in ta) {
-                if ('oninput' in ta) {
-                    // Detects IE9.  IE9 does not fire onpropertychange or oninput for deletions,
-                    // so binding to onkeyup to catch most of those occasions.  There is no way that I
-                    // know of to detect something like 'cut' in IE9.
-                    $ta.on('input.autosize keyup.autosize', adjust);
-                } else {
-                    // IE7 / IE8
-                    $ta.on('propertychange.autosize', function(){
-                        if(event.propertyName === 'value'){
+                        if (newWidth !== width) {
+                            width = newWidth;
                             adjust();
                         }
-                    });
+                    }, parseInt(options.resizeDelay, 10));
                 }
-            } else {
-                // Modern Browsers
-                $ta.on('input.autosize', adjust);
-            }
 
-            // Set options.resizeDelay to false if using fixed-width textarea elements.
-            // Uses a timeout and width check to reduce the amount of times adjust needs to be called after window resize.
+                if ('onpropertychange' in ta) {
+                    if ('oninput' in ta) {
+                        // Detects IE9.  IE9 does not fire onpropertychange or oninput for deletions,
+                        // so binding to onkeyup to catch most of those occasions.  There is no way that I
+                        // know of to detect something like 'cut' in IE9.
+                        $ta.on('input.autosize keyup.autosize', adjust);
+                    } else {
+                        // IE7 / IE8
+                        $ta.on('propertychange.autosize', function () {
+                            if (event.propertyName === 'value') {
+                                adjust();
+                            }
+                        });
+                    }
+                } else {
+                    // Modern Browsers
+                    $ta.on('input.autosize', adjust);
+                }
 
-            if (options.resizeDelay !== false) {
-                $(window).on('resize.autosize', resize);
-            }
+                // Set options.resizeDelay to false if using fixed-width textarea elements.
+                // Uses a timeout and width check to reduce the amount of times adjust needs to be called after window resize.
 
-            // Event for manual triggering if needed.
-            // Should only be needed when the value of the textarea is changed through JavaScript rather than user input.
-            $ta.on('autosize.resize', adjust);
+                if (options.resizeDelay !== false) {
+                    $(window).on('resize.autosize', resize);
+                }
 
-            // Event for manual triggering that also forces the styles to update as well.
-            // Should only be needed if one of typography styles of the textarea change, and the textarea is already the target of the adjust method.
-            $ta.on('autosize.resizeIncludeStyle', function() {
-                mirrored = null;
+                // Event for manual triggering if needed.
+                // Should only be needed when the value of the textarea is changed through JavaScript rather than user input.
+                $ta.on('autosize.resize', adjust);
+
+                // Event for manual triggering that also forces the styles to update as well.
+                // Should only be needed if one of typography styles of the textarea change, and the textarea is already the target of the adjust method.
+                $ta.on('autosize.resizeIncludeStyle', function () {
+                    mirrored = null;
+                    adjust();
+                });
+
+                $ta.on('autosize.destroy', function () {
+                    mirrored = null;
+                    clearTimeout(timeout);
+                    $(window).off('resize', resize);
+                    $ta
+                        .off('autosize')
+                        .off('.autosize')
+                        .css(originalStyles)
+                        .removeData('autosize');
+                });
+
+                // Call adjust in case the textarea already contains text.
                 adjust();
             });
-
-            $ta.on('autosize.destroy', function(){
-                mirrored = null;
-                clearTimeout(timeout);
-                $(window).off('resize', resize);
-                $ta
-                    .off('autosize')
-                    .off('.autosize')
-                    .css(originalStyles)
-                    .removeData('autosize');
-            });
-
-            // Call adjust in case the textarea already contains text.
-            adjust();
-        });
-    };
+        };
     }(jQuery || $)); // jQuery or jQuery-like library, such as Zepto
 
 
-    $(document).ready(function(){
+    $(document).ready(function () {
         $('textarea').autosize();
     });
 </script>
 
 <script type="text/javascript">
-makeInnerList();
-function makeInnerList() {
-	var a = {{async_result.GeneResultsCount}};
-	//var stuffString = "{{async_result  }}";
-	//stuffString = stuffString.replace(/&#39;/ig,'\"');
-	//var stuffString2 = '\''+stuffString+'\'';
-	//stuffString2 = stuffString2.replace(/u"/ig, '\"');
-	//stuffString2 = stuffString2.replace(/'/ig, '');
-	//modifiableData = JSON.parse(stuffString2);
-    modifiableData = JSON.parse('{{async_result | tojson | safe}}');
-};
+    makeInnerList();
+    function makeInnerList() {
+        var a = {{async_result.GeneResultsCount}};
+        //var stuffString = "{{async_result  }}";
+        //stuffString = stuffString.replace(/&#39;/ig,'\"');
+        //var stuffString2 = '\''+stuffString+'\'';
+        //stuffString2 = stuffString2.replace(/u"/ig, '\"');
+        //stuffString2 = stuffString2.replace(/'/ig, '');
+        //modifiableData = JSON.parse(stuffString2);
+        modifiableData = JSON.parse('{{async_result | tojson | safe}}');
+    };
 
-function removeGene(ogid) {
-	delete modifiableData.GeneResults[ogid];
-	var blah = modifiableData;
-};
+    function removeGene(ogid) {
+        delete modifiableData.GeneResults[ogid];
+        var blah = modifiableData;
+    };
 
-function toggle(id) {
- if( document.getElementById(id).style.display=='none' ){
-   document.getElementById(id).style.display = '';
- }else{
-   document.getElementById(id).style.display = 'none';
- }
-}
+    function toggle(id) {
+        if (document.getElementById(id).style.display == 'none') {
+            document.getElementById(id).style.display = '';
+        } else {
+            document.getElementById(id).style.display = 'none';
+        }
+    }
 
-function returnGSName(gsid){
-	document.getElementById(gsid).innerHTML = modifiableData.GSResults[gsid].gs_name;
-}
+    function returnGSName(gsid) {
+        document.getElementById(gsid).innerHTML = modifiableData.GSResults[gsid].gs_name;
+    }
 
-function newGeneset(){
-	var genes = [];
-	$('input:checkbox[name="g_id[]"]').each(function() {
-	if (this.checked) {
-	    genes.push(this.value);
-	}
-	});
-	window.location.href = "/uploadgenesetpre/"+genes.join("_")+".html";
-}
+    function newGeneset() {
+        var genes = [];
+        $('input:checkbox[name="g_id[]"]').each(function () {
+            if (this.checked) {
+                genes.push(this.value);
+            }
+        });
+        window.location.href = "/uploadgenesetpre/" + genes.join("_") + ".html";
+    }
 </script>
 <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 
