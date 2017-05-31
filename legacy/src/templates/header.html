@@ -385,3 +385,10 @@ messages = array of messages
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
         </div>
     </noscript>
+    <div class="alert alert-danger" role="alert">
+        <i class="fa fa-hourglass-half fa-2x" aria-hidden="true"></i>
+        <strong>Oh no!</strong> You're using a guest account. <br>
+        Unless you register as a full user all information associated with this session will be deleted within 24 hours.
+    </div>
+    {% if g.user.is_guest %}
+    {% endif %}
