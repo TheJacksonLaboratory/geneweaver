@@ -2423,9 +2423,6 @@ class User:
             self.__get_groups_by_user = get_groups_owned_by_user(self.user_id)
         return self.__get_groups_by_user
 
-    def __nonzero__(self):
-        return not self.is_guest
-
 
 def get_groups_owned_by_user(user_id):
     """
@@ -2435,6 +2432,7 @@ def get_groups_owned_by_user(user_id):
         cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, u.u2g_privileges AS priv FROM grp g, usr2grp u
                           WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
     return [Groups(row_dict) for row_dict in dictify_cursor(cursor)]
+
 
 def get_group_by_id(group_id):
     """

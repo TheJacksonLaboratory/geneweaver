@@ -277,7 +277,7 @@ messages = array of messages
                         </li>
                     {% endif %}
                     <!-- Logged in user -->
-                    {% if "user" in g %}
+                    {% if g.user and not g.user.is_guest %}
                         <li>
                             <a href="/accountsettings">
                                 <i class="glyph-icon flaticon-account"></i> Account Settings
@@ -288,8 +288,8 @@ messages = array of messages
                         </li>
                     {% endif %}
                     <!-- Not logged in user -->
-                    {% if "user" not in g %}
-                        <li {% if "user" in g %} style="display: none"{% endif %}>
+                    {% if not g.user or g.user.is_guest %}
+                        <li {% if g.user %} style="display: none"{% endif %}>
                             <a href="/login">
                                 <i class="fa fa-sign-in"></i> Sign In
                             </a>
@@ -385,10 +385,10 @@ messages = array of messages
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
         </div>
     </noscript>
-    <div class="alert alert-danger" role="alert">
-        <i class="fa fa-hourglass-half fa-2x" aria-hidden="true"></i>
-        <strong>Oh no!</strong> You're using a guest account. <br>
-        Unless you register as a full user all information associated with this session will be deleted within 24 hours.
-    </div>
-    {% if g.user.is_guest %}
+    {% if g.user and g.user.is_guest %}
+        <div class="alert alert-danger" role="alert">
+            <i class="fa fa-hourglass-half fa-2x" aria-hidden="true"></i>
+            <strong>Oh no!</strong> You're using a guest account. <br>
+            Unless you register as a full user all information associated with this session will be deleted within 24 hours.
+        </div>
     {% endif %}
