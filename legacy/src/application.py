@@ -46,6 +46,8 @@ from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
 
+from decorators import login_required, create_guest, restrict_to_current_user
+
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
 app.register_blueprint(combineblueprint.combine_blueprint)
@@ -157,6 +159,41 @@ HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#
 SPECIES_NAMES = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
                  'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
                  'Canis familiaris']
+
+
+@app.route('/register_or_login')
+def register_or_login():
+    return flask.render_template('register_or_login.html')
+
+
+@app.errorhandler(400)
+def bad_request(e):
+    return flask.render_template('error/400.html'), 400
+
+
+@app.errorhandler(401)
+def unauthorized(e):
+    return flask.render_template('error/401.html'), 401
+
+
+@app.errorhandler(403)
+def forbidden(e):
+    return flask.render_template('error/403.html'), 403
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return flask.render_template('error/404.html'), 404
+
+
+@app.errorhandler(405)
+def not_allowed(e):
+    return flask.render_template('error/405.html'), 405
+
+
+@app.errorhandler(500)
+def unexpected_error(e):
+    return flask.render_template('error/500.html'), 500
 
 
 @app.route('/results/<path:filename>')
