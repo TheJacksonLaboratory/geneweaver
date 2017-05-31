@@ -6,13 +6,14 @@ import re
 import batch
 import json
 import annotator as ann
-from flask import request
+from decorators import login_required, create_guest
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
 # gets species and gene identifiers for uploadgeneset page
 @geneset_blueprint.route('/uploadgeneset')
 @geneset_blueprint.route('/uploadgeneset/<genes>')
+@login_required()
 def render_uploadgeneset(genes=None):
     gidts = []
 
@@ -49,6 +50,7 @@ def render_uploadgeneset(genes=None):
             myGroups=my_groups)
 
 @geneset_blueprint.route('/batchupload')
+@login_required()
 def render_batchupload(genes=None):
     gidts = []
     for gene_id_type_record in geneweaverdb.get_gene_id_types():
@@ -68,6 +70,7 @@ def render_batchupload(genes=None):
     return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts)
 
 @geneset_blueprint.route('/createBatchGeneset', methods=['POST'])
+@login_required(json=True)
 def create_batch_geneset():
     """
     Attempts to parse a batch file and create a temporary GeneSet for review.
