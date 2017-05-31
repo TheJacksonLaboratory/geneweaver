@@ -208,10 +208,6 @@ def lookup_user_from_session():
     # lookup the current user if the user_id is found in the session
     flask.g.user = None
     user_id = flask.session.get('user_id')
-    print("###########################################################################################################")
-    print 'user' in flask.g
-    print flask.g.user.__dict__ if flask.g.user else None
-    print("###########################################################################################################")
     if user_id:
         if flask.request.remote_addr == flask.session.get('remote_addr'):
             flask.g.user = geneweaverdb.get_user(user_id)
