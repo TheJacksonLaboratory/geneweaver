@@ -3,15 +3,16 @@ import geneweaverdb
 import flask
 
 
-def login_required(json=False):
+def login_required(json=False, allow_guests=False):
     """
     A factory/decorator to handle login logic for both html and json routes.
     :param json: A boolean value indicating if the request is html or json.
+    :param allow_guests: A boolean indicating if this view allows users that are not registered
     :return: The decorator with the applicable json setting.
     """
     def decorator(f):
         def wrapped(*args, **kwargs):
-            if flask.g.user is None or flask.g.user.is_guest:
+            if flask.g.user is None or (flask.g.user.is_guest and allow_guests):
                 if json:
                     return flask.jsonify({"error": "You must be signed in to perform this action"})
                 else:
