@@ -23,10 +23,10 @@
 
 {%  macro tool_param_select(tool_param) %}
     <div class="form-group">
-        <div class="col-md-6" style="text-align:right;">
+        <div class="col-md-5" style="text-align:left;">
             <label for="{{ tool_param.name|e }}" class="control-label">{{ tool_param.label_name|e }}:</label>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-6">
             <select
                     class="form-control tooltip-enabled"
                     id="{{ tool_param.name|e }}"
@@ -44,7 +44,7 @@
 
 {% macro tool_param_radio(tool_param) %}
     <div class="form-group">
-        <div class="col-md-5" style="text-align:right;">
+        <div class="col-md-5" style="text-align:left;">
             <label for="{{ tool_param.name|e }}" class="control-label">{{ tool_param.label_name|e }}:</label>
         </div>
         <div class="col-md-6">
@@ -67,8 +67,10 @@
 
 {% macro tool_param_checkbox(tool_param) %}
     <div class="form-group">
-        <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
-        <div class="col-md-8">
+        <div class="col-md-5" style="text-align:left;">
+            <label for="{{ tool_param.name|e }}" class="col-md-4 control-label">{{ tool_param.label_name|e }}:</label>
+        </div>
+        <div class="col-md-6">
             {% for opt in tool_param.options %}
                 <div class="ui-checkbox">
                     <input
@@ -79,6 +81,8 @@
                         {{ opt|e }}
                 </div>
             {% endfor %}
+        </div>
+        <div class="col-md-1">
         </div>
     </div>
 {% endmacro %}

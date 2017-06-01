@@ -46,6 +46,7 @@ from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
+from psycopg2 import IntegrityError
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -461,6 +462,29 @@ def assign_genesets_to_curation_group():
 
     return response
 
+
+@app.route('/nominate_public_geneset.json', methods=['POST'])
+def nominate_public_geneset_for_curation():
+    if 'user_id' in flask.session:
+        gs_id = request.form.get('gs_id')
+        notes = request.form.get('notes')
+
+        try:
+            curation_assignments.nominate_public_gs(gs_id, notes)
+            response = flask.Response()
+        except IntegrityError as e:
+            response = flask.jsonify(message=e.message)
+            response.status_code = 400
+        except Exception as e:
+            response = flask.jsonify(message=e.message)
+            response.status_code = 500
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You must be logged in to perform this function')
+        response.status_code = 401
+
+    return response
 
 @app.route('/assign_genesets_to_curator.json', methods=['POST'])
 def assign_genesets_to_curator():
@@ -1991,7 +2015,8 @@ def create_geneset_meta():
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
-    return render_viewgeneset_main(gs_id)
+    assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+    return render_viewgeneset_main(gs_id, curation_assignment=assignment)
 
 
 @app.route('/curategeneset/<int:gs_id>', methods=['GET', 'POST'])
@@ -2128,7 +2153,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
     ## checked for, otherwise sad times ahead :(
-    if not geneset or (geneset and geneset.status == 'deleted'):
+    ## allow admins and curators to view deleted sets (like in classic GW)
+    if (not user_info.is_admin and not user_info.is_curator) and\
+       (not geneset or (geneset and geneset.status == 'deleted')):
         return flask.render_template(
             'viewgenesetdetails.html', 
             geneset=None,

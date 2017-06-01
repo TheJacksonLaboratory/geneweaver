@@ -2425,6 +2425,7 @@ def get_groups_owned_by_user(user_id):
                           WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
     return [Groups(row_dict) for row_dict in dictify_cursor(cursor)]
 
+
 def get_group_by_id(group_id):
     """
     Returns a Group by its ID
@@ -2438,6 +2439,22 @@ def get_group_by_id(group_id):
     return None if len(groups) == 0 else groups[0]
 
 
+def get_curation_group():
+    """
+
+    :return: Group object representing "core GW Curators group" (GeneWeaverCuration)
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
+                          WHERE g.grp_name=%s''', ("GeneWeaverCuration",))
+        groups = [Group(row_dict) for row_dict in dictify_cursor(cursor)]
+
+    # TODO -- this is a database configuration error if there are multiple
+    # groups named GeneWeaverCuration. We should throw an exception if
+    # len(groups) > 1
+    return None if len(groups) == 0 else groups[0]
+
+
 class Groups:
     """
     This class has a specific purpose for conveying user privleges on a given group
@@ -2446,6 +2463,7 @@ class Groups:
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
+
 
 class Group:
     """
