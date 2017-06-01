@@ -269,18 +269,26 @@ def send_mail(to, subject, body):
 
 
 def _form_register():
-    user = None
+    user = flask.g.user
+    user_id = user.user_id if user else None
+    is_guest = user.is_guest if user else None
+
     _logout()
 
     form = flask.request.form
     if 'usr_email' in form:
-        user = geneweaverdb.get_user_byemail(form['usr_email'])
-        if user is not None:
-            return None
+        existing_user = geneweaverdb.get_user_byemail(form['usr_email'])
+        if existing_user is not None:
+            user = None
+
+        elif user_id and is_guest:
+            user = geneweaverdb.register_user_from_guest(
+                form['usr_first_name'], form['usr_last_name'], form['usr_email'], form['usr_password'], user_id)
         else:
             user = geneweaverdb.register_user(
                 form['usr_first_name'], form['usr_last_name'], form['usr_email'], form['usr_password'])
-            return user
+
+        return user
 
 
 @app.route('/logout.json', methods=['GET', 'POST'])
