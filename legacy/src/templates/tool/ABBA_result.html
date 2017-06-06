@@ -102,9 +102,10 @@
     {# re-run options #}
     <div class="row">
         <div class="col-md-12 title-col">
-{#            <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>#}
-            <button type="button" id="updateBtn" class="btn btn-primary pull-right" title="Update Search">Update
-            </button>
+            <div class="pull-right" id="show-tool-options"
+                 style="color:#006400; cursor:pointer; font-weight:600; text-decoration:underline;">
+                <span id="updateBtn">Tool Options<i id="tool-options-caret" class="fa fa-caret-left"></i></span>
+            </div>
             <div id="update_form_wrapper" style="display: none;">
                 <form target="_blank" id="todo-id" class="form-horizontal" role="form" method="post">
                     {% if async_result.GenesOfInterestCount %}
@@ -477,7 +478,11 @@
                                 {% endif %}
                             </td>
                             <td style="vertical-align: middle" nowrap>
-                                {{ i[4] }}
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-success"
+                                         style="width: {{ (i[4] / 1000)*100 }}%;">{{ i[4] }}
+                                    </div>
+                                </div>
                             </td>
                         </tr>
 
