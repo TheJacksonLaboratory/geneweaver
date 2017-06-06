@@ -20,7 +20,7 @@
         min-width: 120px;
         border-radius: 5px;
         margin: 10px;
-        padding: 20px;
+        padding: 15px;
         font-size: 150%;
         background-color: #fff;
         color: #606060;
@@ -42,42 +42,43 @@
         padding: 0;
     }
 
-
-
-    .nav-justified > li {
-        display: table-cell;
-
-        max-width: 10ch;
-        width: 1%;
-        padding-right: 1px;
+    .clickable-genes {
+        cursor: pointer;
     }
 
-    .nav-justified > li > a {
-        border-bottom: 1px solid #ddd !important;
-        border-radius: 4px 4px 0 0 !important;
-        margin-bottom: 0 !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    .clickable-genesets {
+        cursor: pointer;
     }
 
-    .nav-tabs.nav-justified > .active > a,
-    .nav-tabs.nav-justified > .active > a:hover,
-    .nav-tabs.nav-justified > .active > a:focus {
-        border-bottom-color: #fff !important;
+    .clickable-info {
+        cursor: pointer;
     }
 
-    .result-search-input {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
-        width: 100%;
+    #clickableFontAwesome {
+        cursor: pointer;
     }
 
-    .progress {
+    #clickableFontAwesomeGenes {
+        cursor: pointer;
+    }
+
+    .plus:before {
         position: relative;
+        background-image: none !important;
+        display: inline-block;
+        font-family: FontAwesome;
+        content: "\f067";
+        cursor: pointer;
+        vertical-align: middle;
+        horiz-align: center;
     }
+
+    .minus .plus:before {
+        content: "\f068";
+    }
+
+
+
 
     .progress span {
         position: absolute;
@@ -87,120 +88,21 @@
 
     }
 
-    .title-col {
-        margin-bottom: 10px;
-    }
-
-    .extra-info-header {
-        margin-top: 0;
-    }
-
-    .nav.nav-tabs > li > a {
-        background-color: #006400;
-        color: #EEEEEE;
-    }
-
-    .table-col {
-        padding-left: 0;
-    }
-
-    .table-list-search th {
-        position: relative;
-        cursor: pointer;
-        text-transform: none;
-        padding-left: 10px;
-    }
-
-    .table-list-search th.desc:after {
-        border-top-color: #666;
-    }
-
-    .table-list-search th.asc:before {
-        border-bottom-color: #666;
-    }
-
-    .table-list-search th:after, .table-list-search th:before {
-        content: '';
-        display: block;
-        position: absolute;
-        right: 0;
-        border-color: transparent;
-        border-style: solid;
-        border-width: 5px;
-        width: 0;
-        height: 0;
-    }
-
-    .table-list-search th:after {
-        border-top-color: #ddd;
-        top: 20px;
-    }
-
-    .table-list-search th:before {
-        border-bottom-color: #ddd;
-        top: 6px;
-    }
-
-    .table-list-search td {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 10ch;
-        width: auto;
-    }
-
-    .no-margin {
-        margin: 0px;
-    }
-
-    .scroll-body {
-        height: 500px;
-        overflow-y: auto;
-        display: block;
-    }
-
-    .scroll-body tr {
-        width: 100%;
-        display: inline-table;
-        table-layout: fixed;
-    }
-
-    .headrow {
-        width: auto;
-    }
-
-    .result-row {
-
-    }
-
-    .table-striped > tbody > tr.result-row-active > td {
-        background-color: #7AC473;
-        -webkit-border-radius: 0px;
-        -moz-border-radius: 0px;
-        border-radius: 0px
-    }
-
-    #ABBA_head {
-        margin-top: 10px;
-        margin-bottom: 5px;
-    }
-
-    .popover-content {
-        min-width: 250px;
-        width: auto;
-        box-shadow: 5px 5px 4px grey;
-        -moz-box-shadow: 5px 5px 4px grey;
-        -webkit-box-shadow: 5px 5px 4px grey;
-    }
 
 </style>
 
-{{ async_result }}
+{#{{ async_result }}#}
 
 <div class="container">
+
+<div class="page-header" >
+    <h1>ABBA Gene-Centered Search Results</h1>
+</div>
+
+    {# re-run options #}
     <div class="row">
         <div class="col-md-12 title-col">
-            <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>
+{#            <h1 id="ABBA_head" class="pull-left">ABBA Gene-Centered Search Results</h1>#}
             <button type="button" id="updateBtn" class="btn btn-primary pull-right" title="Update Search">Update
             </button>
             <div id="update_form_wrapper" style="display: none;">
@@ -303,7 +205,16 @@
                 </form>
             </div>
         </div>
+    </div>
 
+
+
+    {# information about the current tool run #}
+    <div class="row">
+        <div class="clickable-info">
+            <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Run Information</strong></span>
+        </div>
+        <div id="run-info" style="display: none;">
         <table class="table">
             <tbody>
             <tr>
@@ -329,166 +240,261 @@
             </tr>
             </tbody>
         </table>
-
-    </div>
-
+        </div>
+    </div><br>
 
     {# list of seed genes. Colored by species. #}
     <div class="row">
-        <div>
+        <div class="clickable-genes">
             <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Seed Genes</strong></span>
         </div>
-        <div id="seed-genes" style="display: block;">
+        <div id="seed-genes" style="display: none;">
             {% for genes in async_result.GenesOfInterest | sort(attribute=1, reverse=True) | batch(6) -%}
                 <div class="grid grid-pad">
                 {%- for gene in genes -%}
 
-                    <div class="col-1-8" id="{{ gene[0] }}" data-attr="{{ gene[2] }}">
-                                    <strong>{{ gene[1] }}</strong>
+                    <div class="col-1-8" id="{{ gene[0] }}" data-attr="{{ gene[2] }}"
+                        {% if gene[1] | length > 9 %} style="font-size: 100%;" {% endif %}
+                        >
+                                    <strong>{{ gene[1] | truncate(15,true) }}</strong>
                     </div>
 
                 {%- endfor -%}
                 </div>
             {%- endfor %}
         </div>
+    </div><br>
+
+    {# Intermediate GeneSets #}
+    <div class="row">
+        <div class="clickable-genesets">
+            <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Highly Connected GeneSets</strong></span>
+        </div>
+        <div id="geneset-results" style="display: none;">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Top 50 GeneSets of Interest
+                    <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
+            </div>
+
+            {# Group by filter #}
+            <div class="col-xs-6 col-md-3 pull-right">
+                <div class="btn-group bootstrap-select form-control" style="padding-top: 10px;">
+                    <button type="button" class="btn btn-sm dropdown-toggle selectpicker btn-default" data-toggle="dropdown"
+                            title="Group">
+                        <span class="filter-option pull-left"><i class="fa fa-filter"></i> Sort Results</span>&nbsp;<span
+                            class="caret"></span></button>
+                    <div class="dropdown-menu open">
+                        <ul class="dropdown-menu inner selectpicker" role="menu">
+                            <li rel="0" class="selected"><a tabindex="0" class="" style=""><span class="text">None</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="1"><a tabindex="0" class="" style=""><span class="text">Sort By Tier</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="2"><a tabindex="0" class="" style=""><span class="text">Sort By Species</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                            <li rel="3"><a tabindex="0" class="" style=""><span class="text">Sort By Attribution</span><i
+                                    class="fa fa-check icon-ok check-mark"></i></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+
+                <form id="addSimGenesetsToProj" name="addSimGenesetsToProj" method="post" action="#"
+                      class="form-horizontal form-inline" novalidate="novalidate">
+                    <!-- TODO make the table sortable, show more gene details -->
+                    <table class="table table-hover" id="similarGenesets" cellpadding="0" cellspacing="0">
+                        <tbody>
+                        <tr>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>&nbsp;</th>
+                            <th>Matches</th>
+                            <th>GeneSet Title</th>
+                            <th>&nbsp;</th>
+                        </tr>
+
+                        {% for i in async_result.GenesetResults %}
+
+                            <tr>
+                                <td width="15" style="vertical-align: middle">
+                                    <span id="genesetExpand" class="toggler" data-prod="{{ i[0] }}">
+                                        <span class="plus"></span>
+                                        <span class="minus"></span>
+                                    </span>
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the tier - which is the curation id, Geneset.cur_id -->
+                                    {% if i[3] == 1 %}
+                                        <span class="tier1">Tier I</span>
+                                    {% endif %}
+                                    {% if i[3] == 2 %}
+                                        <span class="tier2">Tier II</span>
+                                    {% endif %}
+                                    {% if i[3] == 3 %}
+                                        <span class="tier3">Tier III</span>
+                                    {% endif %}
+                                    {% if i[3] == 4 %}
+                                        <span class="tier4">Tier IV</span>
+                                    {% endif %}
+                                    {% if i[3] == 5 %}
+                                        <span class="tier5">Tier V</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the species -->
+                                    {% if i[4] == 1 %}
+                                        <span class="mouse">Mouse</span>
+                                    {% endif %}
+                                    {% if i[4] == 2 %}
+                                        <span class="human">Human</span>
+                                    {% endif %}
+                                    {% if i[4] == 3 %}
+                                        <span class="rat">Rat</span>
+                                    {% endif %}
+                                    {% if i[4] == 4 %}
+                                        <span class="zebrafish">Zebrafish</span>
+                                    {% endif %}
+                                    {% if i[4] == 5 %}
+                                        <span class="fly">Fly</span>
+                                    {% endif %}
+                                    {% if i[4] == 6 %}
+                                        <span class="monkey">Monkey</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Label the attribution -->
+                                    {% if i[5] == 2 %}
+                                        <span class="ctd">CTD</span>
+                                    {% endif %}
+                                    {% if i[5] == 7 %}
+                                        <span class="drg">DRG</span>
+                                    {% endif %}
+                                    {% if i[5] == 8 %}
+                                        <span class="go">GO</span>
+                                    {% endif %}
+                                    {% if i[5] == 9 %}
+                                        <span class="mp">MP</span>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle" nowrap>
+                                    <!-- Show the geneset size -->
+                                    <span class="gs_size">{{ i[8] }} Genes</span>
+
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    <strong>{{ i[2] }}</strong>
+                                </td>
+                                <td style="vertical-align: middle; word-wrap: break-word;">
+                                    <a href="/viewgenesetdetails/{{ i[0] }}"><strong>GS{{ i[0] }}</strong>
+                                        <i class="fa fa-caret-right"></i> {{ i[1] }}</a>
+                                </td>
+
+                                <td width="10px" style="vertical-align: middle">
+                                    <div class="ui-checkbox" style="padding: 0; border: 0;">
+                                        <label for="addGeneset{{ i[0] }}">
+                                            <input type="checkbox" name="gsoptions[]" id="addGeneset{{ i[0] }}"
+                                                   value="{{ i[0] }}"/>
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="gsid{{ i[0] }}" style="display: none">
+                                <td colspan="6">&nbsp;</td>
+                                <td style="max-width: 300px; word-wrap: break-word;"><strong>LABEL:</strong> {{ i[6] }}<br>
+                                    <strong>DESCRIPTION:</strong> {{ i[7] }}
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+                    </table>
+                </form>
+        </div>
+    </div>
+
+    <br>
+
+    {# Genes of Interest #}
+    <div class="row">
+
+        <div id="gene-results">
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h3 class="panel-title">Top 50 Genes of Interest
+                    <span id="clickableFontAwesomeGenes" tabindex="0" data-trigger="focus">
+                        <i class="fa fa-info-circle"></i>
+                    </span>
+                </h3>
+            </div>
+
+            <form id="addGenesToNewGeneset" name="addGenesToNewGeneset" method="post" action="#"
+                  class="form-horizontal form-inline" novalidate="novalidate">
+                <!-- TODO make the table sortable, show more gene details -->
+                <table class="table table-hover" id="genesOfInterest" cellpadding="0" cellspacing="0">
+                    <tbody>
+                    <tr>
+                        <th>ode_gene_id</th>
+                        <th>symbol</th>
+                        <th>species</th>
+                        <th>cur</th>
+                        <th>number</th>
+                        <th>&nbsp;</th>
+                    </tr>
+
+                    {% for i in async_result.GeneResults %}
+
+                        <tr>
+                            <td style="vertical-align: middle" nowrap>
+                                <srong>{{ i[0] }}</srong>
+                            </td>
+                            <td style="vertical-align: middle" nowrap>
+                                {{ i[1] }}
+                            </td>
+                            <td style="vertical-align: middle" nowrap>
+                                {{ i[2] }}
+                            </td>
+                            <td style="vertical-align: middle" nowrap>
+                                <!-- Label the species -->
+                                {% if i[3] == 1 %}
+                                    <span class="mouse">Mouse</span>
+                                {% endif %}
+                                {% if i[3] == 2 %}
+                                    <span class="human">Human</span>
+                                {% endif %}
+                                {% if i[3] == 3 %}
+                                    <span class="rat">Rat</span>
+                                {% endif %}
+                                {% if i[3] == 4 %}
+                                    <span class="zebrafish">Zebrafish</span>
+                                {% endif %}
+                                {% if i[3] == 5 %}
+                                    <span class="fly">Fly</span>
+                                {% endif %}
+                                {% if i[3] == 6 %}
+                                    <span class="monkey">Monkey</span>
+                                {% endif %}
+                            </td>
+                            <td style="vertical-align: middle" nowrap>
+                                {{ i[4] }}
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </form>
+        </div>
     </div>
 
 
-    <br><br>
 
-    <div class="row">
-        <div class="col-md-12 title-col">
-            <ul class="nav nav-tabs nav-justified" role="tablist">
-                {% if async_result.GenesOfInterestCount %}
-                    {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
-                {% else %}
-                    {% set genesOfInterestCnt=0 %}
-                {% endif %}
-                <li class="active"><a href="#GenesOfInterest" aria-controls="GenesOfInterest" role="tab"
-                                      data-toggle="tab">Genes of Interest ({{ genesOfInterestCnt }})</a></li>
 
-                {% if async_result.GenesetResultsCount %}
-                    {% set genesetCount=async_result.GenesetResultsCount %}
-                {% else %}
-                    {% set genesetCount=0 %}
-                {% endif %}
-                <li><a href="#MatchingGenesets" aria-controls="MatchingGenesets" role="tab" data-toggle="tab">Matching
-                    Genesets ({{ genesetCount }})</a></li>
 
-                {% if async_result.GeneResultsCount %}
-                    {% set geneCount=async_result.GeneResultsCount %}
-                {% else %}
-                    {% set geneCount=0 %}
-                {% endif %}
-                <li><a href="#ResultGenes" aria-controls="ResultGenes" role="tab" data-toggle="tab">Result Genes
-                    ({{ async_result.GeneResultsCount }})</a></li>
-            </ul>
-        </div>
 
-        <div class="tab-content">
 
-            <div role="tabpanel" class="tab-pane active" id="GenesOfInterest">
-                <div class="col-md-4 table-col">
-                    <input class="form-control result-search-input" id="system-searchGOI" data-type="GOI" name="q"
-                           placeholder="Search..." required>
-                    <table class="table table-striped table-list-search no-margin">
-                        <thead>
-                        <tr>
-                            <th row-type="GOI" class="headrow">Gene<br></th>
-                            <th row-type="GOI" class="headrow">Species<br></th>
-                        </tr>
-                        </thead>
-                    </table>
-                    <table class="table table-striped table-list-search scroll-body">
-
-                        {% if async_result.GenesOfInterest %}
-                            <tbody class="scroll-tbody" id="GenesOfInterestTableBody">
-                            {% for gene in async_result.GenesOfInterest %}
-                                <tr class="result-row" row-type="GOI" data-id="{{ gene[0] }}" data-type="gene">
-                                    <td>{{ gene[1] }}<br></td>
-                                    <td>{{ gene[2] }}<br></td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        {% endif %}
-                    </table>
-                </div>
-                <div data-type="InfoPane" class="col-md-8">
-                    <h2 class="extra-info-header">No Gene Selected</h2>
-                    <br>
-                </div>
-            </div>
-
-            <div role="tabpanel" class="tab-pane" id="MatchingGenesets">
-                <div class="col-md-4 table-col">
-                    <input class="form-control result-search-input" id="system-searchMG" data-type="MG" name="q"
-                           placeholder="Search..." required>
-                    <table class="table table-striped table-list-search no-margin">
-                        <thead>
-                        <tr>
-                            <th row-type="MG" class="headrow">Geneset<br></th>
-                            <th row-type="MG" class="headrow">Matches<br></th>
-                        </tr>
-                        </thead>
-                    </table>
-                    <table class="table table-striped table-list-search scroll-body">
-                        {% if async_result.GenesetResults %}
-                            <tbody class="scroll-tbody" id="MatchingGenesetsTableBody">
-                            {% for geneset in async_result.GenesetResults %}
-                                <tr class="result-row" row-type="MG" data-id="{{ geneset[0] }}" data-type="geneset">
-                                    <td>{{ geneset[1] }}<br></td>
-                                    <td>{{ geneset[2] }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        {% endif %}
-                    </table>
-                </div>
-                <div data-type="InfoPane" class="col-md-8">
-                    <h2 class="extra-info-header">No Geneset Selected</h2>
-                    <br>
-                </div>
-            </div>
-
-            <!-- Add Geneset to Project Modal -->
-            {% include 'modal/addGenesetsToProjects.html' %}
-
-            <div role="tabpanel" class="tab-pane" id="ResultGenes">
-                <div class="col-md-4 table-col">
-                    <input class="form-control result-search-input" id="system-searchRG" data-type="RG" name="q"
-                           placeholder="Search..." required>
-                    <table class="table table-striped table-list-search no-margin">
-                        <thead>
-                        <tr>
-                            <th row-type="RG" class="headrow">Gene<br></th>
-                            <th row-type="RG" class="headrow">Species<br></th>
-                            <th row-type="RG" class="headrow">Genesets<br></th>
-                        </tr>
-                        </thead>
-                    </table>
-                    <table class="table table-striped table-list-search scroll-body">
-                        {% if async_result.GeneResults %}
-                            <tbody class="scroll-tbody" id="ResultGenesTableBody">
-                            {% for gene in async_result.GeneResults %}
-                                <tr class="result-row" row-type="RG" data-id="{{ gene[0] }}" data-type="gene">
-                                    <td>{{ gene[1] }}<br></td>
-                                    <td>{{ gene[2] }}<br></td>
-                                    <td>{{ gene[4] }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        {% endif %}
-                    </table>
-                </div>
-                <div data-type="InfoPane" class="col-md-8">
-                    <h2 class="extra-info-header">No Gene Selected</h2>
-                    <br>
-                </div>
-            </div>
-
-        </div>
-
-    </div><!-- end row-->
 
 </div><!-- end container -->
 
@@ -540,337 +546,67 @@
             });
         });
 
-    var colors = [
-        '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc',
-        '#e5d8bd', '#fddaec', '#f2f2f2'
-    ];
+        var colors = [
+            '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc',
+            '#e5d8bd', '#fddaec', '#f2f2f2'
+        ];
 
-    var borders = [
-        '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966',
-        '#7f7257', '#977486', '#8C8C8C'
-    ];
+        var borders = [
+            '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966',
+            '#7f7257', '#977486', '#8C8C8C'
+        ];
 
-    var species = [
-      '', 'Drosophila melanogaster', 'Rattus norvegicus', 'Homo sapiens', 'Mus musculus', 'Macaca mulatta',
-        'Gallus gallus', 'Canis familiaris', 'Danio rerio'
-    ];
+        var species = [
+            '', 'Drosophila melanogaster', 'Rattus norvegicus', 'Homo sapiens', 'Mus musculus', 'Macaca mulatta',
+            'Gallus gallus', 'Canis familiaris', 'Danio rerio'
+        ];
 
-    $(".col-1-8").each(function(n, m){
-        var s = species.indexOf($(this).data('attr'));
-        $("#"+m.id).css('background-color', colors[s]);
-        $("#"+m.id).css('border', '1px solid');
-        $("#"+m.id).css('border-color', borders[s]);
-    });
-/*
-
-var makeOntologyTags = function(onts) {
-
-    var colors = [
-        '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc',
-        '#e5d8bd', '#fddaec', '#f2f2f2'
-    ];
-
-    var borders = [
-        '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966',
-        '#7f7257', '#977486', '#8C8C8C'
-    ];
-
-    // Remove duplicate ontology IDs since we're getting a list of all
-    // annotations
-    onts = function(a) {
-        var seen = {};
-
-        return a.filter(function(elem) {
-            return seen.hasOwnProperty(elem.ontdb_id) ? false : (seen[elem.ontdb_id] = true);
-        });
-    }(onts);
-
-    for (var i = 0; i < onts.length; i++) {
-
-        var ontid = onts[i].ontdb_id;
-        var name = onts[i].dbname;
-
-        $('.ont-' + ontid).css('background-color', colors[ontid]);
-        $('.ont-' + ontid).css('border', '1px solid');
-        $('.ont-' + ontid).css('border-color', borders[ontid]);
-
-        var $key = $('<div>', {
-            class: 'ontology-tag',
-            text: name
+        $(".col-1-8").each(function (n, m) {
+            var s = species.indexOf($(this).data('attr'));
+            $("#" + m.id).css('background-color', colors[s]);
+            $("#" + m.id).css('border', '1px solid');
+            $("#" + m.id).css('border-color', borders[s]);
         });
 
-        $key.css('background-color', colors[ontid]);
-        $key.css('border', '1px solid');
-        $key.css('border-color', borders[ontid]);
-        $key.css('font-weight', 'bold');
-
-
-        $('#ont-key').append($key);
-    }
-};
-
-*/
-
-
-
-        var activeSystemClass = $('.list-group-item.active');
-
-        var LightTableSorter = (function (Arr) {
-
-            var _th, _cellIndex, _order = '';
-
-            function _text(row) {
-                return row.cells.item(_cellIndex).textContent.toLowerCase();
-            }
-
-            function _sort(a, b) {
-                var va = _text(a), vb = _text(b), n = parseInt(va, 10);
-                if (n) {
-                    va = n;
-                    vb = parseInt(vb, 10);
-                }
-                return va > vb ? 1 : va < vb ? -1 : 0;
-            }
-
-            function _toggle() {
-                var c = _order !== 'asc' ? 'asc' : 'desc';
-                _th.className = (_th.className.replace(_order, '') + ' ' + c).trim();
-                _order = c;
-            }
-
-            function _reset() {
-                _th.className = _th.className.replace('asc', '').replace('desc', '');
-                _order = '';
-            }
-
-            function onClickEvent(e) {
-                var bodyID;
-                var workingTab = e.target.getAttribute("row-type");
-
-                if (workingTab == "GOI") {
-                    bodyID = '#GenesOfInterestTableBody';
-                } else if (workingTab == "MG") {
-                    bodyID = '#MatchingGenesetsTableBody';
-                } else if (workingTab == "RG") {
-                    bodyID = '#ResultGenesTableBody';
-                }
-
-                if (_th && _th !== e.target) {
-                    _reset();
-                }
-                _th = e.target;
-                _cellIndex = _th.cellIndex;
-                var tbody = $(bodyID)[0];
-                var rows = tbody.rows;
-                var intialRowCount = rows.length;
-                for (var r = 0; r < intialRowCount; r++) {
-                    if (!rows.item(r).hasAttribute("row-type")) {
-                        rows.item(r).remove();
-                    }
-                }
-
-                if (rows) {
-                    rows = Arr.sort.call(Arr.slice.call(rows, 0), _sort);
-                    if (_order === 'asc') {
-                        Arr.reverse.call(rows);
-                    }
-                    _toggle();
-                    tbody.innerHtml = '';
-                    Arr.forEach.call(rows, function (row) {
-                        tbody.appendChild(row);
-                    });
-                }
-            }
-
-            return {
-                init: function () {
-                    var ths = $('.headrow')//document.getElementsByTagName('th');
-                    Arr.forEach.call(ths, function (th) {
-                        th.onclick = onClickEvent;
-                    });
-                }
-            };
-        })(Array.prototype);
-        LightTableSorter.init();
-
-        //Change active result
-        $('.result-row').click(function () {
-            $('.result-row-active').switchClass('result-row-active', 'result-row');
-            $(this).switchClass('result-row', 'result-row-active');
-            updateInfoPane($(this));
+        $('.clickable-genes').click(function () {
+            $('#seed-genes').toggle('1000');
+            $("i", this).toggleClass("fa-plus fa-minus");
         });
 
+        $('.clickable-info').click(function () {
+            $('#run-info').toggle('1000');
+            $("i", this).toggleClass("fa-plus fa-minus");
+        });
 
-        function updateInfoPane(activeRow) {
-            if (activeRow == null) {
-                return;
-            }
+        $('.clickable-genesets').click(function () {
+            $('#geneset-results').toggle('1000');
+            $("i", this).toggleClass("fa-plus fa-minus");
+        });
 
-            var parentTab = activeRow.parent().closest('.tab-pane');
-            var infoPane = parentTab.children('div').last();
-            var headerText = activeRow.children('td').first().text();
-            var user_id = '{{ g.user.usr_id }}';
-            var id = activeRow.data('id')
-            var type = activeRow.data('type')
-            var url;
+        $('#clickableFontAwesome').popover({
+            title: 'GeneSets', content: 'These GeneSets share the most genes in common with your seeded search.'
+        });
 
-            infoPane.empty(); //Clear the info pane HTML
+        $('#clickableFontAwesomeGenes').popover({
+            title: 'Genes', content: 'These Genes are the most highly connected genes to your seed genes with shared ' +
+            'gene sets.'
+        });
 
-            infoPane.children('h2').closest('.extra-info-header').text(id);
+        $(".toggler").click(function (e) {
+            e.preventDefault();
+            //the data stored in the data-prod
+            var gid = ($(this).attr("data-prod"));
+            //toggle the link clicked on
+            $(".gsid" + gid).toggle();
+            //select the parent and find the span so you can
+            //toggle the "plus" class
+            $(this).parent().find("span").toggleClass("plus");
+            //$(this).parent().find("span").toggleClass("minus");
+            //toggle the minus class
+            $(this).toggleClass("plus");
+            $(this).toggleClass("minus");
+        });
 
-            var request = new XMLHttpRequest();
-
-            if (type != "gene" && type != "geneset") {
-                infoPane.children('h2').closest('.extra-info-header').text("ERROR PROCESSING REQUEST! Contact an Administrator.");
-                return;
-            }
-
-            if (type == "gene") {
-                url = '/api/get/gene/bygeneid/' + id + '/';
-                request.open("GET", url, false);
-                request.send();
-
-                formatGeneInfo(infoPane, activeRow, request.responseText);
-
-            } else if (type == "geneset") {
-                formatGenesetInfo(infoPane, activeRow);
-            }
-        }
-
-        function formatGeneInfo(infoPane, activeRow, responseText) {
-            infoPane.empty();
-            var parser = JSON.parse(responseText)[0][0];
-            var species = activeRow.children('td').last().text();
-            var url = "/search/?searchbar=" + parser.gi_symbol + "&pagination_page=1&searchGenes=yes";
-
-            var html = '<a target="_blank" href="' + url + '">'
-            html += "<h3 class='panel-title' style='width:100%;'>G" + parser.ode_gene_id + " &bull; " + parser.gi_symbol;
-            if (parser.gi_name) html += " : " + parser.gi_name;
-            html += "</h2></a>";
-
-            // Assession
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>ACCESSION:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            html += parser.gi_accession;
-            html += '  </div>';
-            html += '</div>';
-
-
-            // Description
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>DESCRIPTION:</strong>'
-            html += '<p></div>';
-            html += '<div class="col-md-10"><p>';
-            if (parser.gi_description) html += parser.gi_description;
-            else html += "No Description Available";
-            html += '</p></div>';
-            html += '</div>';
-
-            // Species Tag
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>SPECIES:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            html += makeSpeciesTag(parser.sp_id);
-            html += '  </div>';
-            html += '</div>';
-
-            // Date Added
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>DATE ADDED:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            html += parser.gi_date.split(' ')[0];
-            html += '  </div>';
-            html += '</div>';
-
-            // Type
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>TYPE:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            html += parser.gi_type;
-            html += '  </div>';
-            html += '</div>';
-
-            // Chromosome
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>CHROMOSOME:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            if (parser.gi_chromosome) html += parser.gi_chromosome;
-            else html += "N/A";
-            html += '  </div>';
-            html += '</div>';
-
-            // Strand
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>STRAND:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            if (parser.gi_strand) html += parser.gi_strand;
-            else html += "N/A";
-            html += '  </div>';
-            html += '</div>';
-
-            // Start BP
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>START BASE PAIR:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            if (parser.gi_start_bp) html += parser.gi_start_bp;
-            else html += "N/A";
-            html += '  </div>';
-            html += '</div>';
-
-            // End BP
-            html += '<div class="row">';
-            html += '<div class="col-md-2"><p class="text-right">'
-            html += '<strong>END BASE PAIR:</strong>'
-            html += '<p></div>';
-            html += '    <div class="col-md-10">';
-            if (parser.gi_end_bp) html += parser.gi_end_bp;
-            else html += "N/A";
-            html += '  </div>';
-            html += '</div>';
-
-            infoPane.append(html);
-
-            //Display geneset list
-            //TODO
-            /*
-             $.ajax({
-             url: url,
-             type: 'GET',
-             success: function(data) {
-             var doc = $(data).find("#search-genesets").find("#search-results");
-
-             html = '<div class="row">'
-             html += doc.html();
-             html += '</div>';
-
-             console.log(html);
-             infoPane.append(html);
-             },
-             error: function(xhr, status, error) {
-             var html = '<div class="row">';
-             html += '  <div class="alert bg-gray-light">GeneSet List not currently available for this Gene.</div>';
-             html += '</div>';
-             infoPane.append(html);
-             }
-             });
-             */
-        }
 
         function formatGenesetInfo(infoPane, activeRow) {
             var id = activeRow.data('id');
@@ -998,79 +734,10 @@ var makeOntologyTags = function(onts) {
 
             return tag;
         };
+    })
 
+</script>
 
-        $('#system-searchGOI').keyup(function (e) {
-            search_tab("GOI");
-        });
-        $('#system-searchMG').keyup(function (e) {
-            search_tab("MG");
-        });
-        $('#system-searchRG').keyup(function (e) {
-            search_tab("RG");
-        });
-
-
-        function search_tab(workingTab) {
-            var workingTab;// = that.getAttribute("data-type");
-
-            var that;
-            var tableBody;
-            var tableRowsClass;
-
-            if (workingTab == "GOI") {
-                that = $('#system-searchGOI');
-                tableBody = $('#GenesOfInterestTableBody');
-                tableRowsClass = $('#GenesOfInterestTableBody tr');
-            } else if (workingTab == "MG") {
-                that = $('#system-searchMG');
-                tableBody = $('#MatchingGenesetsTableBody');
-                tableRowsClass = $('#MatchingGenesetsTableBody tr');
-            } else if (workingTab == "RG") {
-                that = $('#system-searchRG');
-                tableBody = $('#ResultGenesTableBody');
-                tableRowsClass = $('#ResultGenesTableBody tr');
-            }
-
-            $('.search-sf').remove();
-            tableRowsClass.each(function (i, val) {
-
-                //Lower text for case insensitive
-                var rowText = $(val).text().toLowerCase();
-                var inputText = $(that).val().toLowerCase();
-                if (inputText != '') {
-                    $('.search-query-sf').remove();
-                    tableBody.prepend('<tr class="search-query-sf"><td colspan="6"><strong>Searching for: "'
-                        + $(that).val()
-                        + '"</strong></td></tr>');
-                }
-                else {
-                    $('.search-query-sf').remove();
-                }
-
-                if (rowText.indexOf(inputText) == -1) {
-                    //hide rows
-                    tableRowsClass.eq(i).hide();
-
-                }
-                else {
-                    $('.search-sf').remove();
-                    tableRowsClass.eq(i).show();
-                }
-            });
-            //all tr elements are hidden
-            if (tableRowsClass.children(':visible').length == 0) {
-                tableBody.append('<tr class="search-sf"><td class="text-muted" colspan="6">No entries found.</td></tr>');
-            }
-
-            LightTableSorter.init();
-        };
-
-    });
-
-</script><!-- end table filter script-->
-
-<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 
 <!-- Update Button Script -->
 <script>
@@ -1120,330 +787,6 @@ var makeOntologyTags = function(onts) {
         document.getElementById("select-species").style.display = "block";
     }
 </script>
-
-
-<script>
-    (function ($) {
-        var
-            defaults = {
-                className: 'autosizejs',
-                id: 'autosizejs',
-                append: '\n',
-                callback: false,
-                resizeDelay: 10,
-                placeholder: true
-            },
-
-            // border:0 is unnecessary, but avoids a bug in Firefox on OSX
-            copy = '<textarea tabindex="-1" style="position:absolute; top:-999px; left:0; right:auto; bottom:auto; border:0; padding: 0; -moz-box-sizing:content-box; -webkit-box-sizing:content-box; box-sizing:content-box; word-wrap:break-word; height:0 !important; min-height:0 !important; overflow:hidden; transition:none; -webkit-transition:none; -moz-transition:none;"/>',
-
-            // line-height is conditionally included because IE7/IE8/old Opera do not return the correct value.
-            typographyStyles = [
-                'fontFamily',
-                'fontSize',
-                'fontWeight',
-                'fontStyle',
-                'letterSpacing',
-                'textTransform',
-                'wordSpacing',
-                'textIndent',
-                'whiteSpace'
-            ],
-
-            // to keep track which textarea is being mirrored when adjust() is called.
-            mirrored,
-
-            // the mirror element, which is used to calculate what size the mirrored element should be.
-            mirror = $(copy).data('autosize', true)[0];
-
-        // test that line-height can be accurately copied.
-        mirror.style.lineHeight = '99px';
-        if ($(mirror).css('lineHeight') === '99px') {
-            typographyStyles.push('lineHeight');
-        }
-        mirror.style.lineHeight = '';
-
-        $.fn.autosize = function (options) {
-            if (!this.length) {
-                return this;
-            }
-
-            options = $.extend({}, defaults, options || {});
-
-            if (mirror.parentNode !== document.body) {
-                $(document.body).append(mirror);
-            }
-
-            return this.each(function () {
-                var
-                    ta = this,
-                    $ta = $(ta),
-                    maxHeight,
-                    minHeight,
-                    boxOffset = 0,
-                    callback = $.isFunction(options.callback),
-                    originalStyles = {
-                        height: ta.style.height,
-                        overflow: ta.style.overflow,
-                        overflowY: ta.style.overflowY,
-                        wordWrap: ta.style.wordWrap,
-                        resize: ta.style.resize
-                    },
-                    timeout,
-                    width = $ta.width(),
-                    taResize = $ta.css('resize');
-
-                if ($ta.data('autosize')) {
-                    // exit if autosize has already been applied, or if the textarea is the mirror element.
-                    return;
-                }
-                $ta.data('autosize', true);
-
-                if ($ta.css('box-sizing') === 'border-box' || $ta.css('-moz-box-sizing') === 'border-box' || $ta.css('-webkit-box-sizing') === 'border-box') {
-                    boxOffset = $ta.outerHeight() - $ta.height();
-                }
-
-                // IE8 and lower return 'auto', which parses to NaN, if no min-height is set.
-                minHeight = Math.max(parseFloat($ta.css('minHeight')) - boxOffset || 0, $ta.height());
-
-                $ta.css({
-                    overflow: 'hidden',
-                    overflowY: 'hidden',
-                    wordWrap: 'break-word' // horizontal overflow is hidden, so break-word is necessary for handling words longer than the textarea width
-                });
-
-                if (taResize === 'vertical') {
-                    $ta.css('resize', 'none');
-                } else if (taResize === 'both') {
-                    $ta.css('resize', 'horizontal');
-                }
-
-                // The mirror width must exactly match the textarea width, so using getBoundingClientRect because it doesn't round the sub-pixel value.
-                // window.getComputedStyle, getBoundingClientRect returning a width are unsupported, but also unneeded in IE8 and lower.
-                function setWidth() {
-                    var width;
-                    var style = window.getComputedStyle ? window.getComputedStyle(ta, null) : false;
-
-                    if (style) {
-
-                        width = ta.getBoundingClientRect().width;
-
-                        if (width === 0 || typeof width !== 'number') {
-                            width = parseFloat(style.width);
-                        }
-
-                        $.each(['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'], function (i, val) {
-                            width -= parseFloat(style[val]);
-                        });
-                    } else {
-                        width = $ta.width();
-                    }
-
-                    mirror.style.width = Math.max(width, 0) + 'px';
-                }
-
-                function initMirror() {
-                    var styles = {};
-
-                    mirrored = ta;
-                    mirror.className = options.className;
-                    mirror.id = options.id;
-                    maxHeight = parseFloat($ta.css('maxHeight'));
-
-                    // mirror is a duplicate textarea located off-screen that
-                    // is automatically updated to contain the same text as the
-                    // original textarea.  mirror always has a height of 0.
-                    // This gives a cross-browser supported way getting the actual
-                    // height of the text, through the scrollTop property.
-                    $.each(typographyStyles, function (i, val) {
-                        styles[val] = $ta.css(val);
-                    });
-
-                    $(mirror).css(styles).attr('wrap', $ta.attr('wrap'));
-
-                    setWidth();
-
-                    // Chrome-specific fix:
-                    // When the textarea y-overflow is hidden, Chrome doesn't reflow the text to account for the space
-                    // made available by removing the scrollbar. This workaround triggers the reflow for Chrome.
-                    if (window.chrome) {
-                        var width = ta.style.width;
-                        ta.style.width = '0px';
-                        var ignore = ta.offsetWidth;
-                        ta.style.width = width;
-                    }
-                }
-
-                // Using mainly bare JS in this function because it is going
-                // to fire very often while typing, and needs to very efficient.
-                function adjust() {
-                    var height, original;
-
-                    if (mirrored !== ta) {
-                        initMirror();
-                    } else {
-                        setWidth();
-                    }
-
-                    if (!ta.value && options.placeholder) {
-                        // If the textarea is empty, copy the placeholder text into
-                        // the mirror control and use that for sizing so that we
-                        // don't end up with placeholder getting trimmed.
-                        mirror.value = ($ta.attr("placeholder") || '');
-                    } else {
-                        mirror.value = ta.value;
-                    }
-
-                    mirror.value += options.append || '';
-                    mirror.style.overflowY = ta.style.overflowY;
-                    original = parseFloat(ta.style.height);
-
-                    // Setting scrollTop to zero is needed in IE8 and lower for the next step to be accurately applied
-                    mirror.scrollTop = 0;
-
-                    mirror.scrollTop = 9e4;
-
-                    // Using scrollTop rather than scrollHeight because scrollHeight is non-standard and includes padding.
-                    height = mirror.scrollTop;
-
-                    if (maxHeight && height > maxHeight) {
-                        ta.style.overflowY = 'scroll';
-                        height = maxHeight;
-                    } else {
-                        ta.style.overflowY = 'hidden';
-                        if (height < minHeight) {
-                            height = minHeight;
-                        }
-                    }
-
-                    height += boxOffset;
-
-                    if (original !== height) {
-                        ta.style.height = height + 'px';
-
-                        // Trigger a repaint for IE8 for when ta is nested 2 or more levels inside an inline-block
-                        mirror.className = mirror.className;
-
-                        if (callback) {
-                            options.callback.call(ta, ta);
-                        }
-                        $ta.trigger('autosize.resized');
-                    }
-                }
-
-                function resize() {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(function () {
-                        var newWidth = $ta.width();
-
-                        if (newWidth !== width) {
-                            width = newWidth;
-                            adjust();
-                        }
-                    }, parseInt(options.resizeDelay, 10));
-                }
-
-                if ('onpropertychange' in ta) {
-                    if ('oninput' in ta) {
-                        // Detects IE9.  IE9 does not fire onpropertychange or oninput for deletions,
-                        // so binding to onkeyup to catch most of those occasions.  There is no way that I
-                        // know of to detect something like 'cut' in IE9.
-                        $ta.on('input.autosize keyup.autosize', adjust);
-                    } else {
-                        // IE7 / IE8
-                        $ta.on('propertychange.autosize', function () {
-                            if (event.propertyName === 'value') {
-                                adjust();
-                            }
-                        });
-                    }
-                } else {
-                    // Modern Browsers
-                    $ta.on('input.autosize', adjust);
-                }
-
-                // Set options.resizeDelay to false if using fixed-width textarea elements.
-                // Uses a timeout and width check to reduce the amount of times adjust needs to be called after window resize.
-
-                if (options.resizeDelay !== false) {
-                    $(window).on('resize.autosize', resize);
-                }
-
-                // Event for manual triggering if needed.
-                // Should only be needed when the value of the textarea is changed through JavaScript rather than user input.
-                $ta.on('autosize.resize', adjust);
-
-                // Event for manual triggering that also forces the styles to update as well.
-                // Should only be needed if one of typography styles of the textarea change, and the textarea is already the target of the adjust method.
-                $ta.on('autosize.resizeIncludeStyle', function () {
-                    mirrored = null;
-                    adjust();
-                });
-
-                $ta.on('autosize.destroy', function () {
-                    mirrored = null;
-                    clearTimeout(timeout);
-                    $(window).off('resize', resize);
-                    $ta
-                        .off('autosize')
-                        .off('.autosize')
-                        .css(originalStyles)
-                        .removeData('autosize');
-                });
-
-                // Call adjust in case the textarea already contains text.
-                adjust();
-            });
-        };
-    }(jQuery || $)); // jQuery or jQuery-like library, such as Zepto
-
-
-    $(document).ready(function () {
-        $('textarea').autosize();
-    });
-</script>
-
-<script type="text/javascript">
-    makeInnerList();
-    function makeInnerList() {
-        var a = {{async_result.GeneResultsCount}};
-        //var stuffString = "{{async_result  }}";
-        //stuffString = stuffString.replace(/&#39;/ig,'\"');
-        //var stuffString2 = '\''+stuffString+'\'';
-        //stuffString2 = stuffString2.replace(/u"/ig, '\"');
-        //stuffString2 = stuffString2.replace(/'/ig, '');
-        //modifiableData = JSON.parse(stuffString2);
-        modifiableData = JSON.parse('{{async_result | tojson | safe}}');
-    };
-
-    function removeGene(ogid) {
-        delete modifiableData.GeneResults[ogid];
-        var blah = modifiableData;
-    };
-
-    function toggle(id) {
-        if (document.getElementById(id).style.display == 'none') {
-            document.getElementById(id).style.display = '';
-        } else {
-            document.getElementById(id).style.display = 'none';
-        }
-    }
-
-    function returnGSName(gsid) {
-        document.getElementById(gsid).innerHTML = modifiableData.GSResults[gsid].gs_name;
-    }
-
-    function newGeneset() {
-        var genes = [];
-        $('input:checkbox[name="g_id[]"]').each(function () {
-            if (this.checked) {
-                genes.push(this.value);
-            }
-        });
-        window.location.href = "/uploadgenesetpre/" + genes.join("_") + ".html";
-    }
-</script>
-<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 
 
 {% include 'footer.html' %}
