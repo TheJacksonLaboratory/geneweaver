@@ -26,6 +26,16 @@
         color: #606060;
     }
 
+    .col-1-9 {
+        width: 12.5%;
+        min-width: 120px;
+        border-radius: 5px;
+        margin: 10px;
+        padding: 5px;
+        background-color: #fff;
+        color: #606060;
+    }
+
     .grid:after{
         content: "";
         display: table;
@@ -91,7 +101,7 @@
 
 </style>
 
-{#{{ async_result }}#}
+{{ async_result }}
 
 <div class="container">
 
@@ -250,6 +260,21 @@
             <span><i class="fa fa-plus"></i>&nbsp;<strong style="font-size: large">Seed Genes</strong></span>
         </div>
         <div id="seed-genes" style="display: none;">
+
+            {% for all_s in async_result.InputSpecies | sort(attribute=0, reverse=True) | batch(6) -%}
+                <div class="grid grid-pad">
+                {%- for s in all_s -%}
+
+                    <div class="col-1-9" id="{{ s[0][:3] }}" data-attr="{{ s[0] }}">
+                                    <strong>{{ s[0] | truncate(15,true) }}</strong>
+                    </div>
+
+                {%- endfor -%}
+                </div>
+            {%- endfor %}
+
+            <hr style="color: darkgray;"/>
+
             {% for genes in async_result.GenesOfInterest | sort(attribute=1, reverse=True) | batch(6) -%}
                 <div class="grid grid-pad">
                 {%- for gene in genes -%}
@@ -447,9 +472,17 @@
                     {% for i in async_result.GeneResults %}
 
                         <tr>
-                            <td style="vertical-align: middle" nowrap>
-                                <srong>{{ i[0] }}</srong>
+                            <td class="text-center">
+                                <div class="sparkline" data-sparkline-color="#7BB2B4" id="sparkline-{{ i[0] }}"
+                                     data-sparkline-value="[3,5,4,6,7]">
+{#                                    <canvas width="96" height="20" style="display: inline-block; width: 96px;#}
+{#                                        height: 20px; vertical-align: top;"></canvas>#}
+                                </div>
+{#                                {{ async_result.TierCounts[i[0]|string()] }}#}
                             </td>
+{#                            <td style="vertical-align: middle" nowrap>#}
+{#                                <srong>{{ i[0] }}</srong>#}
+{#                            </td>#}
                             <td style="vertical-align: middle" nowrap>
                                 {{ i[1] }}
                             </td>
@@ -480,7 +513,7 @@
                             <td style="vertical-align: middle" nowrap>
                                 <div class="progress">
                                     <div class="progress-bar progress-bar-success"
-                                         style="width: {{ (i[4] / 1000)*100 }}%;">{{ i[4] }}
+                                         style="width: {{ (i[4] / async_result.Max[0][0])*100 }}%;">{{ i[4] }}
                                     </div>
                                 </div>
                             </td>
@@ -503,6 +536,7 @@
 
 </div><!-- end container -->
 
+<script type="text/javascript" src="/static/pixit/admin/assets/plugins/charts-sparkline/sparkline.min.js"></script>
 
 <script type="text/javascript">
     $(document).ready(function () {
@@ -573,6 +607,13 @@
             $("#" + m.id).css('border-color', borders[s]);
         });
 
+        $(".col-1-9").each(function (n, m) {
+            var s = species.indexOf($(this).data('attr'));
+            $("#" + m.id).css('background-color', colors[s]);
+            $("#" + m.id).css('border', '1px solid');
+            $("#" + m.id).css('border-color', borders[s]);
+        });
+
         $('.clickable-genes').click(function () {
             $('#seed-genes').toggle('1000');
             $("i", this).toggleClass("fa-plus fa-minus");
@@ -612,6 +653,34 @@
             $(this).toggleClass("minus");
         });
 
+
+        //
+        //
+        // Perhaps erase
+        //
+        //
+        $(function() {
+            /** This code runs when everything has been loaded on the page */
+            /* Inline sparklines take their values from the contents of the tag */
+            $('.inlinesparkline').sparkline();
+
+            $('.sparkline').sparkline($(this).data('data-sparkline-value'), {
+                type: "bar",
+                tooltipSuffix: " widgets"
+            });
+
+            /* Sparklines can also take their values from the first argument
+            passed to the sparkline() function */
+            var myvalues = [10,8,5,7,4,4,1];
+            $('.dynamicsparkline').sparkline(myvalues);
+
+            /* The second argument gives options such as chart type */
+            $('.dynamicbar').sparkline(myvalues, {type: 'bar', barColor: 'green'} );
+
+            /* Use 'html' instead of an array of values to pass options
+            to a sparkline with data in the tag */
+            $('.inlinebar').sparkline('html', {type: 'bar', barColor: 'red'} );
+        });
 
         function formatGenesetInfo(infoPane, activeRow) {
             var id = activeRow.data('id');
