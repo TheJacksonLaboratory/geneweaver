@@ -87,8 +87,7 @@
         content: "\f068";
     }
 
-
-
+    .jqstooltip { box-sizing: content-box;}
 
     .progress span {
         position: absolute;
@@ -101,7 +100,7 @@
 
 </style>
 
-{{ async_result }}
+{#{{ async_result }}#}
 
 <div class="container">
 
@@ -444,6 +443,16 @@
     <br>
 
     {# Genes of Interest #}
+
+    {% if async_result.GeneResults | length == 0 %}
+        <div class="row">
+            <div class="alert alert-warning fade in">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                <strong>No Results Found!</strong> Check seed genes for proper format.
+            </div>
+        </div>
+    {% else %}
+
     <div class="row">
 
         <div id="gene-results">
@@ -461,35 +470,21 @@
                 <table class="table table-hover" id="genesOfInterest" cellpadding="0" cellspacing="0">
                     <tbody>
                     <tr>
-                        <th>ode_gene_id</th>
-                        <th>symbol</th>
-                        <th>species</th>
-                        <th>cur</th>
-                        <th>number</th>
+                        <th class="text-center" style="vertical-align: middle;">Gene Symbol</th>
+                        <th class="text-center" style="vertical-align: middle;">Species</th>
+                        <th class="text-center">Number of<br>Represented Gene Sets</th>
+                        <th class="text-center">Gene Sets by<br>Curation Tier</th>
+                        <th class="text-center">Gene Sets by<br>Species</th>
                         <th>&nbsp;</th>
                     </tr>
 
                     {% for i in async_result.GeneResults %}
 
                         <tr>
-                            <td class="text-center">
-                                <div class="sparkline" data-sparkline-color="#7BB2B4" id="sparkline-{{ i[0] }}"
-                                     data-sparkline-value="[3,5,4,6,7]">
-{#                                    <canvas width="96" height="20" style="display: inline-block; width: 96px;#}
-{#                                        height: 20px; vertical-align: top;"></canvas>#}
-                                </div>
-{#                                {{ async_result.TierCounts[i[0]|string()] }}#}
-                            </td>
-{#                            <td style="vertical-align: middle" nowrap>#}
-{#                                <srong>{{ i[0] }}</srong>#}
-{#                            </td>#}
                             <td style="vertical-align: middle" nowrap>
-                                {{ i[1] }}
+                                <strong>{{ i[1] }}</strong>
                             </td>
-                            <td style="vertical-align: middle" nowrap>
-                                {{ i[2] }}
-                            </td>
-                            <td style="vertical-align: middle" nowrap>
+                            <td class="text-center" style="vertical-align: middle" nowrap>
                                 <!-- Label the species -->
                                 {% if i[3] == 1 %}
                                     <span class="mouse">Mouse</span>
@@ -517,6 +512,34 @@
                                     </div>
                                 </div>
                             </td>
+                            <td class="text-center">
+                                <div class="sparkline" data-sparkline-color="#006644"
+                                     data-sparkline-value="{{ async_result.TierCounts[i[0]|string()] }}">
+                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;
+                                        height: 10px; vertical-align: bottom;"></canvas>
+                                </div>
+                            </td>
+{#                            <td style="vertical-align: middle" nowrap>#}
+{#                                <srong>{{ i[0] }}</srong>#}
+{#                            </td>#}
+
+                            <td class="text-center">
+                                <div class="sparkline" data-sparkline-color="#006644"
+                                     data-sparkline-value="{{ async_result.TierCounts[i[0]|string()] }}">
+                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;
+                                        height: 10px; vertical-align: bottom;"></canvas>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="ui-checkbox" style="padding: 0; border: 0;">
+                                    <label for="addGeneset{{ i[0] }}">
+                                        <input type="checkbox" name="gsoptions[]" id="addGeneset{{ i[0] }}"
+                                                   value="{{ i[0] }}"/>
+                                    </label>
+                                </div>
+                            </td>
+
                         </tr>
 
                     {% endfor %}
@@ -527,7 +550,7 @@
         </div>
     </div>
 
-
+    {% endif %}
 
 
 
@@ -659,28 +682,30 @@
         // Perhaps erase
         //
         //
-        $(function() {
-            /** This code runs when everything has been loaded on the page */
-            /* Inline sparklines take their values from the contents of the tag */
-            $('.inlinesparkline').sparkline();
 
-            $('.sparkline').sparkline($(this).data('data-sparkline-value'), {
-                type: "bar",
-                tooltipSuffix: " widgets"
+
+            $('.sparkline').each(function () {
+                $(this).sparkline(
+                    $(this).data("sparkline-value"), {
+                        type: $(this).data("sparkline-type") ? $(this).data("sparkline-type") : 'bar',
+                        barWidth: $(this).data("sparkline-bar-width") ? $(this).data("sparkline-bar-width") : 7,
+                        barSpacing: $(this).data("sparkline-bar-spacing") ? $(this).data("sparkline-bar-spacing") : 4,
+                        height: $(this).data("sparkline-height") ? $(this).data("sparkline-height") : '25px',
+                        barColor: $(this).data("sparkline-color") ? $(this).data("sparkline-color") : '#006644',
+                        enableTagOptions: true,
+                        tooltipFormat: '<span style="font-size: 150%;">\{\{offset:offset\}\}\n(\{\{value\}\} GeneSets)</span>',
+                        tooltipValueLookups: {
+                            'offset': {
+                                0: 'Tier I',
+                                1: 'Tier II',
+                                2: 'Tier III',
+                                3: 'Tier IV',
+                                4: 'Tier V'
+                            }
+                        }
+                    });
             });
 
-            /* Sparklines can also take their values from the first argument
-            passed to the sparkline() function */
-            var myvalues = [10,8,5,7,4,4,1];
-            $('.dynamicsparkline').sparkline(myvalues);
-
-            /* The second argument gives options such as chart type */
-            $('.dynamicbar').sparkline(myvalues, {type: 'bar', barColor: 'green'} );
-
-            /* Use 'html' instead of an array of values to pass options
-            to a sparkline with data in the tag */
-            $('.inlinebar').sparkline('html', {type: 'bar', barColor: 'red'} );
-        });
 
         function formatGenesetInfo(infoPane, activeRow) {
             var id = activeRow.data('id');
