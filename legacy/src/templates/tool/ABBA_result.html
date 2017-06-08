@@ -472,17 +472,19 @@
                     <tr>
                         <th class="text-center" style="vertical-align: middle;">Gene Symbol</th>
                         <th class="text-center" style="vertical-align: middle;">Species</th>
-                        <th class="text-center">Number of<br>Represented Gene Sets</th>
-                        <th class="text-center">Gene Sets by<br>Curation Tier</th>
-                        <th class="text-center">Gene Sets by<br>Species</th>
+                        <th class="text-center">Number of<br>Represented GeneSets</th>
+                        <th class="text-center">GeneSets by<br>Curation Tier</th>
+                        <th class="text-center">GeneSets by<br>Species</th>
                         <th>&nbsp;</th>
                     </tr>
 
                     {% for i in async_result.GeneResults %}
 
                         <tr>
-                            <td style="vertical-align: middle" nowrap>
-                                <strong>{{ i[1] }}</strong>
+                            <td class="text-center" style="vertical-align: middle" nowrap>
+                                <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">
+                                    <strong>{{ i[1] }}</strong>
+                                </a>
                             </td>
                             <td class="text-center" style="vertical-align: middle" nowrap>
                                 <!-- Label the species -->
@@ -524,8 +526,8 @@
 {#                            </td>#}
 
                             <td class="text-center">
-                                <div class="sparkline" data-sparkline-color="#006644"
-                                     data-sparkline-value="{{ async_result.TierCounts[i[0]|string()] }}">
+                                <div class="sparkline-2" data-sparkline-color="#7BB2B4"
+                                     data-sparkline-value="{{ async_result.SpeciesCounts[i[0]|string()] }}">
                                     <canvas width="96" height="10" style="display: inline-block; width: 96px;
                                         height: 10px; vertical-align: bottom;"></canvas>
                                 </div>
@@ -613,6 +615,10 @@
             '#e5d8bd', '#fddaec', '#f2f2f2'
         ];
 
+        // these are taken from application.py
+        var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6'];
+
         var borders = [
             '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966',
             '#7f7257', '#977486', '#8C8C8C'
@@ -677,34 +683,56 @@
         });
 
 
-        //
-        //
-        // Perhaps erase
-        //
-        //
+        $('.sparkline').each(function () {
+            $(this).sparkline(
+                $(this).data("sparkline-value"), {
+                    type: $(this).data("sparkline-type") ? $(this).data("sparkline-type") : 'bar',
+                    barWidth: $(this).data("sparkline-bar-width") ? $(this).data("sparkline-bar-width") : 8,
+                    barSpacing: $(this).data("sparkline-bar-spacing") ? $(this).data("sparkline-bar-spacing") : 4,
+                    height: $(this).data("sparkline-height") ? $(this).data("sparkline-height") : '30px',
+                    barColor: $(this).data("sparkline-color") ? $(this).data("sparkline-color") : '#006644',
+                    enableTagOptions: true,
+                    tooltipFormat: '<span style="font-size: 150%;">\{\{offset:offset\}\}\n(\{\{value\}\} GeneSets)</span>',
+                    tooltipValueLookups: {
+                        'offset': {
+                            0: 'Tier I',
+                            1: 'Tier II',
+                            2: 'Tier III',
+                            3: 'Tier IV',
+                            4: 'Tier V'
+                        }
+                    }
+                });
+        });
 
-
-            $('.sparkline').each(function () {
+        $('.sparkline-2').each(function () {
                 $(this).sparkline(
                     $(this).data("sparkline-value"), {
                         type: $(this).data("sparkline-type") ? $(this).data("sparkline-type") : 'bar',
-                        barWidth: $(this).data("sparkline-bar-width") ? $(this).data("sparkline-bar-width") : 7,
+                        barWidth: $(this).data("sparkline-bar-width") ? $(this).data("sparkline-bar-width") : 8,
                         barSpacing: $(this).data("sparkline-bar-spacing") ? $(this).data("sparkline-bar-spacing") : 4,
-                        height: $(this).data("sparkline-height") ? $(this).data("sparkline-height") : '25px',
+                        height: $(this).data("sparkline-height") ? $(this).data("sparkline-height") : '30px',
                         barColor: $(this).data("sparkline-color") ? $(this).data("sparkline-color") : '#006644',
                         enableTagOptions: true,
-                        tooltipFormat: '<span style="font-size: 150%;">\{\{offset:offset\}\}\n(\{\{value\}\} GeneSets)</span>',
+                        tooltipFormat: '<span style="font-size: 150%;">\{\{offset:offset\}\}\n(\{\{value.0\}\} GeneSets)</span>',
                         tooltipValueLookups: {
                             'offset': {
-                                0: 'Tier I',
-                                1: 'Tier II',
-                                2: 'Tier III',
-                                3: 'Tier IV',
-                                4: 'Tier V'
+                                0: 'M.m.',
+                                1: 'H.s.',
+                                2: 'R.n.',
+                                3: 'D.r',
+                                4: 'D.m',
+                                5: 'Mul.m',
+                                6: 'C.e.',
+                                7: 'S.c.',
+                                8: 'G.g.',
+                                9: 'C.f.'
                             }
-                        }
+                        },
+                        colorMap: hom_colors,
+                        numberFormatter: function(x) { return Math.round(Math.exp(x)); }
                     });
-            });
+        });
 
 
         function formatGenesetInfo(infoPane, activeRow) {
