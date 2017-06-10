@@ -92,7 +92,11 @@ var openGSModal = function(modalID, genesets, modalTitle) {
  */
 var submitGSModal = function(modalID, url) {
     return function() {
-        var selected = $(modalID+' select').val().map(Number);
+        //var selected = $(modalID+' select').val().map(Number);
+        var selected = $(modalID+' select').val();
+
+        if (selected)
+            selected = selected.map(Number);
 
         var option = JSON.stringify(selected);
         var g = $(modalID+'Value').val();

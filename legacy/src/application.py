@@ -3419,6 +3419,9 @@ def add_genesets_projects():
         projects = json.loads(request.args.get('option', type=str))
         new_project_name = request.args.get('npn', type=str)
 
+        if not projects:
+            projects = []
+
         if new_project_name:
             new_project_id = geneweaverdb.add_project(user_id, new_project_name)
             projects.append(new_project_id)
@@ -4237,7 +4240,7 @@ api.add_resource(ToolUpSetProjects,
 ## Config loading should occur outside __main__ when proxying requests through
 ## a web server like nginx. uWSGI doesn't load anything in the __main__ block
 app.secret_key = config.get('application', 'secret')
-app.debug = True
+#app.debug = True
 
 if __name__ == '__main__':
 
