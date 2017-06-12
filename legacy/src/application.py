@@ -369,7 +369,7 @@ def render_analyze_shared():
 
 
 @app.route('/projects')
-@login_required()
+@login_required(allow_guests=True)
 def render_projects():
     return flask.render_template('projects.html')
 
@@ -424,7 +424,7 @@ def render_shareprojects():
 
 
 @app.route('/analyze_new_project/<string:pj_name>.html')
-@login_required()
+@login_required(allow_guests=True)
 def render_analyze_new_project(pj_name):
     # print 'dbg analyze proj'
     args = flask.request.args
@@ -1662,28 +1662,28 @@ def update_group_admins():
 
 
 @app.route('/deleteProjectByID', methods=['GET'])
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def delete_projects():
     results = geneweaverdb.delete_project_by_id(flask.request.args['projids'])
     return json.dumps(results)
 
 
 @app.route('/addProjectByName', methods=['GET'])
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def add_projects():
     results = geneweaverdb.add_project_by_name(flask.request.args['name'], flask.request.args['comment'])
     return json.dumps(results)
 
 
 @app.route('/get_project_groups_by_user_id')
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def get_project_groups_by_user_id():
     results = geneweaverdb.get_project_groups()
     return json.dumps(results)
 
 
 @app.route('/changeProjectNameById', methods=['GET'])
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def rename_project():
     results = geneweaverdb.change_project_by_id(flask.request.args)
     return json.dumps(results)
@@ -1715,6 +1715,7 @@ def render_accountsettings():
 
 
 @app.route('/update_notification_pref.json', methods=['GET'])
+@login_required()
 @restrict_to_current_user
 def update_notification_pref():
     user_id = int(flask.request.args['user_id'])
@@ -3288,21 +3289,21 @@ def render_share_projects():
 
 
 @app.route('/addGenesetsToProjects')
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def add_genesets_projects():
     results = geneweaverdb.add_genesets_to_projects(request.args)
     return json.dumps(results)
 
 
 @app.route('/removeGenesetFromProject')
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def remove_geneset_from_project():
     results = geneweaverdb.remove_geneset_from_project(request.args)
     return json.dumps(results)
 
 
 @app.route('/removeGenesetsFromMultipleProjects')
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def remove_genesets_from_multiple_projects():
     results = geneweaverdb.remove_genesets_from_multiple_projects(request.args)
     return json.dumps(results)
