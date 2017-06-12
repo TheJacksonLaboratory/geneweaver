@@ -599,7 +599,23 @@ function initializeLayout(nodes) {
 //essentially switches the "active" children array with the
 // "hidden" _children array.
 function click(d) {
-    if (d3.event.defaultPrevented) return; // ignore drag
+    if (d3.event.defaultPrevented) 
+        return; // ignore drag
+
+    if (d3.event.shiftKey) {
+
+        var ids = d.Genesets.map(function(s) {
+            return s.slice(2);
+        });
+
+        if (ids.length > 1)
+            window.open('/viewgenesetoverlap/' + ids.join('+'), '_blank');
+        else
+            window.open('/viewgenesetdetails/' + ids[0], '_blank');
+
+        return;
+    }
+
     if (d.children.length > 0) {
         d._children = d.children;
         d.children = [];
