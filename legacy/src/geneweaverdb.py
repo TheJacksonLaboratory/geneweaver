@@ -2778,7 +2778,7 @@ def new_guest():
             '''INSERT INTO usr
                (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
                VALUES
-               (%('GUEST'), %('GUEST'), %('')s, '0', %('')s, NOW(), NOW()), 't')
+               ('GUEST', 'GUEST', '', '0', '', NOW(), NOW(), 't')
             ''', {}
         )
         cursor.connection.commit()
