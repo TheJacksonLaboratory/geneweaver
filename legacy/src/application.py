@@ -417,6 +417,7 @@ def remove_member(group_name, user_id):
 
 
 # This function should be deprecated
+@login_required(allow_guests=True)
 @app.route('/share_projects.html')
 def render_shareprojects():
     active_tools = geneweaverdb.get_active_tools()
@@ -3289,6 +3290,7 @@ def render_share_projects():
 
 
 @app.route('/addGenesetsToProjects')
+@create_guest
 @login_required(json=True, allow_guests=True)
 def add_genesets_projects():
     results = geneweaverdb.add_genesets_to_projects(request.args)
@@ -3358,7 +3360,7 @@ def cancel_edit_by_id():
 # nonexistant/null results.
 #
 @app.route('/checkResults.json', methods=['GET'])
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def check_results():
     runhash = request.args.get('runHash', type=str)
     resultpath = config.get('application', 'results')
@@ -3380,7 +3382,7 @@ def check_results():
 
 
 @app.route('/deleteResults')
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def delete_result():
     results = geneweaverdb.delete_results_by_runhash(request.args)
     runhash = request.args.get('runHash', type=str)
@@ -3404,14 +3406,14 @@ def delete_result():
 
 
 @app.route('/editResults')
-@login_required(json=True)
+@login_required(json=True, allow_guests=True)
 def edit_result():
     results = geneweaverdb.edit_results_by_runhash(request.args)
     return json.dumps(results)
 
 
 @app.route('/results')
-@login_required()
+@login_required(allow_guests=True)
 def render_user_results():
     table = 'production.result'
     if 'user_id' in flask.session:
@@ -3644,6 +3646,8 @@ def json_register_successful():
     return render_home()
 
 
+@create_guest
+@login_required(allow_guests=True)
 @app.route('/add_geneset_to_project/<string:project_id>/<string:geneset_id>.html', methods=['GET', 'POST'])
 def add_geneset_to_project(project_id, geneset_id):
     return str(geneweaverdb.insert_geneset_to_project(project_id, geneset_id))
