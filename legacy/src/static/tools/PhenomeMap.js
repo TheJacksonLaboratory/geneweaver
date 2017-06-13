@@ -229,6 +229,25 @@ var doThings = function(graphData) {
         .style('fill', 'black');
 };
 
+/**
+  * Controls right click behavior. Takes the user to the 
+  * /viewgenesetdetails page when a gene set node is clicked.
+  * Cluster nodes take the user to the /viewgenesetoverlap page.
+  */
+var onRightClick = function(d) {
+
+    // Prevent the stupid context menu from popping up
+    d3.event.preventDefault();
+
+    var ids = d.Genesets.map(function(s) {
+        return s.slice(2);
+    });
+
+    if (ids.length > 1)
+        window.open('/viewgenesetoverlap/' + ids.join('+'), '_blank');
+    else
+        window.open('/viewgenesetdetails/' + ids[0], '_blank');
+}
 
 //invoked once at the start,
 //and again when from 'click' method
@@ -279,6 +298,7 @@ function update() {
         .on('mousedown', function (d) {
             d3.event.stopPropagation();
         })
+        .on('contextmenu', onRightClick)
         .call(g.force.drag);
 
     // Circle for emphasis genes

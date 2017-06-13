@@ -1349,6 +1349,17 @@ def add_project(usr_id, pj_name):
 
 
 def add_geneset2project(pj_id, gs_id):
+    """ Function to associate a geneset with a project in the database.
+    
+    Args:
+        proj_id (int): The ID of the project to which geneset will be associated
+        gs_id (int): The ID of the geneset to associate with the project
+
+    Returns:
+        Nothing
+
+    """
+
     if gs_id[:2] == 'GS':
         gs_id = gs_id[2:]
     with PooledCursor() as cursor:
@@ -1360,28 +1371,6 @@ def add_geneset2project(pj_id, gs_id):
               ''', (pj_id, gs_id, pj_id, gs_id)
         )
         cursor.connection.commit()
-    return
-
-def add_genesets_to_projects(rargs):
-    usr_id = rargs.get('user_id', type=int)
-    ## Will occur when adding genesets to a project from search, since the
-    ## user ID isn't sent in the request
-    if not usr_id:
-        usr_id = flask.session['user_id']
-
-    npn = rargs.get('npn', type=str)
-    gs_ids = rargs.get('gs_id', type=str)
-    checked = json.loads(rargs.get('option', type=str))
-    if gs_ids is not None:
-        if npn:
-            new_pj_id = add_project(usr_id, npn)
-            checked.append(new_pj_id)
-        gs_id = gs_ids.split(',')
-        for pj_id in checked:
-            for g in gs_id:
-                g = g.strip()
-                add_geneset2project(pj_id, g)
-    return
 
 
 def get_selected_genesets_by_projects(gs_ids):
@@ -1420,7 +1409,6 @@ def remove_geneset_from_project(rargs):
         with PooledCursor() as cursor:
             cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
             cursor.connection.commit()
-            return
 
 def add_geneset_group(gs_id, grp_id):
     """
@@ -1430,6 +1418,9 @@ def add_geneset_group(gs_id, grp_id):
         gs_id: geneset ID
         group_id: group ID being added
     """
+
+    if not grp_id or not gs_id:
+        raise TypeError('Both gs_id and grp_id cannot be none.')
 
     grp_id = str(grp_id)
 
@@ -1443,12 +1434,15 @@ def add_geneset_group(gs_id, grp_id):
         groups = cursor.fetchone()
 
         if not groups:
-            return
-            
+            raise ValueError('No groups returned for gs_id')
+
         groups = groups[0].split(',')
 
-        if grp_id in groups:
-            return
+        if '-1' in groups:
+            groups = []             
+
+        if grp_id in groups or '0' in groups:
+            raise ValueError('Group exists, or geneset is public')
 
         groups.append(grp_id)
         groups = ','.join(groups)
@@ -1456,7 +1450,7 @@ def add_geneset_group(gs_id, grp_id):
         cursor.execute(
             '''UPDATE geneset
                SET gs_groups = %s
-               WHERE gs_id = %s;''', (gs_id, groups)
+               WHERE gs_id = %s;''', (groups, gs_id)
         )
 
 
