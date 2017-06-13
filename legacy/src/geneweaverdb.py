@@ -2782,7 +2782,7 @@ def new_guest():
             ''', {}
         )
         cursor.connection.commit()
-        return get_user(cursor.insert_id())
+        return get_user(cursor.lastrowid)
 
 
 def register_user(user_first_name, user_last_name, user_email, user_password):
