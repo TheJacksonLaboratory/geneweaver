@@ -301,6 +301,12 @@ var jaccardSimilarity = function() {
       */
     exports.erase = function() { 
         d3.select('#jaccard').selectAll('*').remove();
+        svg.remove();
+
+        // Reset these otherwise the viz will draw duplicates
+        vennCircles = [];
+        vennText = [];
+        vennLabels = [];
 
         return exports;
     };
