@@ -12,7 +12,7 @@ def login_required(json=False, allow_guests=False):
     """
     def decorator(f):
         def wrapped(*args, **kwargs):
-            if flask.g.user is None or (flask.g.user.is_guest and allow_guests):
+            if flask.g.user is None or (not allow_guests and flask.g.user.is_guest):
                 if json:
                     return flask.jsonify({"error": "You must be signed in to perform this action"})
                 else:

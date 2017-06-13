@@ -2767,7 +2767,6 @@ def get_user_byemail(user_email):
         return users[0] if len(users) == 1 else None
 
 
-# TODO: Finish Implementing This Method
 def new_guest():
     """
     Creates a new empty user to use as a guest account
@@ -2779,10 +2778,11 @@ def new_guest():
                (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
                VALUES
                ('GUEST', 'GUEST', '', '0', '', NOW(), NOW(), 't')
+               RETURNING usr_id
             ''', {}
         )
         cursor.connection.commit()
-        return get_user(cursor.lastrowid)
+        return get_user(cursor.fetchone()[0])
 
 
 def register_user(user_first_name, user_last_name, user_email, user_password):
@@ -2825,16 +2825,8 @@ def register_user_from_guest(user_first_name, user_last_name, user_email, user_p
         password_md5 = md5(user_password).hexdigest()
         cursor.execute(
             '''UPDATE usr SET
-               (usr_first_name, usr_last_name, usr_email, usr_admin, usr_password, usr_last_seen, usr_created, is_guest)
-               VALUES
-               (%(user_first_name)s, %(user_last_name)s, %(user_email)s, '0', %(user_password)s, NOW(), NOW(), 'f')
-               WHERE usr_id=guest_id''',
-            {
-                'user_first_name': user_first_name,
-                'user_last_name': user_last_name,
-                'user_email': user_email,
-                'user_password': password_md5
-            }
+               usr_first_name = %s, usr_last_name = %s, usr_email = %s, usr_admin = '0', usr_password = %s, usr_last_seen = NOW(), usr_created = NOW() , is_guest = 'f'
+               WHERE usr.usr_id = %s''', (user_first_name, user_last_name, user_email, password_md5, guest_id)
         )
         cursor.connection.commit()
         return get_user_byemail(user_email)
