@@ -2499,7 +2499,8 @@ def render_group_tasks(group_id):
     group_curators = []
     groups_member = []
     groups_owner = []
-    if 'user_id' in flask.session:
+    user = flask.g.user if 'user_id' in flask.session
+    if user and not user.is_guest:
         user_id = flask.session['user_id']
         columns = [
             {'name': 'full_name'},
