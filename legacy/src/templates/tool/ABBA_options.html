@@ -62,16 +62,26 @@
           <label style="width:50%;">
               Tierset:
           </label>
-          <select name="ABBA_Tierset"  class="form-control">
-              <option value="0" selected="selected">All</option>
-              <option value="4">Curated or Provisional (Tier I-IV)</option>
-              <option value="3">Curated (Tier I-III)</option>
-              <option value="2">Pro-curated (Tier I-II)</option>
-              <option value="1">Public Resource (Tier I)</option>
-              <option value="-1">Non-Resource (Tier II-V)</option>
-              <option value="-2">Curated Non-Resource (Tier II-III)</option>
-              <option value="-10">Private/Group Only (Tier V)</option>
-          </select>
+          <label>
+              <input name="ABBA_Tierset" type="checkbox" value="1" checked/>
+              Public Resources (Tier I)
+          </label>
+          <label>
+              <input name="ABBA_Tierset" type="checkbox" value="2" checked/>
+              Auto-curated (Tier II)
+          </label>
+          <label>
+              <input name="ABBA_Tierset" type="checkbox" value="3" checked/>
+              Curated (Tier III)
+          </label>
+          <label>
+              <input name="ABBA_Tierset" type="checkbox" value="4"/>
+              Provisional (Tier IV)
+          </label>
+          <label>
+              <input name="ABBA_Tierset" type="checkbox" value="5"/>
+              Private (Tier V)
+          </label>
       </div>
           <!-- Restrict Species Options-->
       <div class="form-group">
@@ -79,7 +89,8 @@
               Restrict Species:
           </label>
           <label class="radio-inline">
-              <input type="radio" name="ABBA_RestrictOption" value="0" onclick="hideSelectSpecies();" checked="checked"> None<br>
+              <input type="radio" name="ABBA_RestrictOption" value="0" onclick="hideSelectSpecies();" checked="checked">
+              All Species<br>
           </label>
           <label class="radio-inline">
               <input type="radio" name="ABBA_RestrictOption" value="1" onclick="showSelectSpecies();"> Restrict<br>
@@ -100,7 +111,6 @@
           <label><input name="ABBA_RestrictSpecies" type="checkbox" value="9"/>Saccharomyces cerevisiae</label>
           <label><input name="ABBA_RestrictSpecies" type="checkbox" value="10"/>Gallus Gallus</label>
       </div>
-
 			<div class="form-group">{{ macros.tool_run_button(tool) }}</div>
 		</div>
 	</div>

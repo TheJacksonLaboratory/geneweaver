@@ -151,15 +151,28 @@
 
             <div class="row">
                 <div class="col-md-2">
-                    Access Restrictions <strong>*</strong>:
+                    Access Restrictions <span id="accessRestrictions" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span> <strong>*</strong>:
                 </div>
-                <div class="col-xs-2">
+                <div class="col-xs-6 col-sm-4">
 
-                    <select name="permissions" class="form-control" required>
+                    <select id="permissions" name="permissions" class="form-control" required>
                         <option value="private" selected>Private</option>
                         <option value="public">Public</option>
                     </select>
 
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Group(s):
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select class="form-control" id="select_groups" name="select_groups" multiple>
+                        {% for group in myGroups %}
+                            <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
         </div>
@@ -403,8 +416,9 @@
 
     /*
      * Auto-populates the upload form with geneset title, description, species,
-     * gene identifier, and gene list data. This is only done using the 'add
-     * genes to geneset' function on the view geneset page. If any required
+     * gene identifier, and gene list data. 
+     * This is done using the boolean algebra tool or the 'add genes to 
+     * geneset' function on the view geneset page. If any required
      * values are missing, auto-population doesn't occur.
      */
     var autoPopulateForm = function() {
@@ -423,11 +437,27 @@
         if (uploadData.length < 5)
             return;
 
-        var title       = uploadData.shift(),
-            description = uploadData.shift(),
-            species     = uploadData.shift(),
-            geneType    = uploadData.shift(),
-            genes       = '';
+        // New set from the boolean algebra tool
+        if (uploadData[0] === 'algebra') {
+
+            // Get rid of 'algebra'
+            uploadData.shift();
+
+            var title       = uploadData.shift(),
+                description = uploadData.shift(),
+                species     = 0,
+                geneType    = 0,
+                genes       = '';
+
+        // New set from the view geneset page
+        } else {
+
+            var title       = uploadData.shift(),
+                description = uploadData.shift(),
+                species     = uploadData.shift(),
+                geneType    = uploadData.shift(),
+                genes       = '';
+        }
 
         for (var i = 0; i < uploadData.length; i += 2) {
 
@@ -512,6 +542,12 @@
                 //reader.onload = createReaderHandler(file[0].name);
                 //reader.readAsText(file[0]);
                 //alert(data['selected_file']);
+            }
+
+            var permissions = document.getElementById('permissions')
+            if(permissions.disabled) {
+                // If disabled, the permissions field will not be submitted with form
+                $('#permissions').prop("disabled", false).button("refresh");
             }
 
             var d = $("#upload-geneset-form").serialize();
@@ -622,6 +658,12 @@
     });
 
 
+    $('#accessRestrictions').popover({
+        title: 'Access Restrctions',
+        content: 'You can set the GeneSet access restriction to be Public, Private or select a private set of Groups.',
+        html: 'true'
+    });
+
     $('#clickableGenes').popover({
         title: 'Gene Information', content: 'Provide a list of genes to associate with this record. ' +
         'A full description of the gene set format can be found ' +
@@ -629,6 +671,16 @@
         '       <strong>here</strong></a>.',
         html: 'true'
     });
+
+    $('#select_groups').change(function() {
+        if ($('#select_groups').val()) {
+            $('#permissions').val("private");
+            $('#permissions').prop("disabled", true).button("refresh");
+        } else {
+            $('#permissions').prop("disabled", false).button("refresh");
+        }
+    });
+
 
     function formFocus($e) {
         $e.style.backgroundColor = "yellow";

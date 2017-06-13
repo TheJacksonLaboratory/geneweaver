@@ -59,19 +59,20 @@ services:
       postgres:
         condition: service_started
   postgres:
-    # build:
-    #  context: ../../database
-    #  dockerfile: Dockerfile
-    # image: geneweaver-db:latest
-    image: postgres:9.6.1
-    container_name: geneweaver-postgres
+    build:
+      context: ../../database
+      dockerfile: Dockerfile
+    image: geneweaver-db:latest
+    # image: postgres:9.6.1
     volumes_from:
      - container:naughty_swirles:rw
-    #healthcheck:
-    #  test: ["CMD-SHELL", "[ -f /var/lib/postgresql/data/pg_init.finished ]", "&&", "echo", "0", "||", "echo", "1"]
-    #  interval: 5m
-    #  timeout: 15s
-    #  retries: 10
+    ports:
+     - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /var/lib/postgresql/data/pg_init.finished ]", "&&", "echo", "0", "||", "echo", "1"]
+      interval: 5m
+      timeout: 15s
+      retries: 10
   celery:
     build:
       context: ../../tools

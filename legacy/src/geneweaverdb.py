@@ -1349,6 +1349,17 @@ def add_project(usr_id, pj_name):
 
 
 def add_geneset2project(pj_id, gs_id):
+    """ Function to associate a geneset with a project in the database.
+    
+    Args:
+        proj_id (int): The ID of the project to which geneset will be associated
+        gs_id (int): The ID of the geneset to associate with the project
+
+    Returns:
+        Nothing
+
+    """
+
     if gs_id[:2] == 'GS':
         gs_id = gs_id[2:]
     with PooledCursor() as cursor:
@@ -1360,28 +1371,6 @@ def add_geneset2project(pj_id, gs_id):
               ''', (pj_id, gs_id, pj_id, gs_id)
         )
         cursor.connection.commit()
-    return
-
-def add_genesets_to_projects(rargs):
-    usr_id = rargs.get('user_id', type=int)
-    ## Will occur when adding genesets to a project from search, since the
-    ## user ID isn't sent in the request
-    if not usr_id:
-        usr_id = flask.session['user_id']
-
-    npn = rargs.get('npn', type=str)
-    gs_ids = rargs.get('gs_id', type=str)
-    checked = json.loads(rargs.get('option', type=str))
-    if gs_ids is not None:
-        if npn:
-            new_pj_id = add_project(usr_id, npn)
-            checked.append(new_pj_id)
-        gs_id = gs_ids.split(',')
-        for pj_id in checked:
-            for g in gs_id:
-                g = g.strip()
-                add_geneset2project(pj_id, g)
-    return
 
 
 def get_selected_genesets_by_projects(gs_ids):
@@ -1420,7 +1409,6 @@ def remove_geneset_from_project(rargs):
         with PooledCursor() as cursor:
             cursor.execute('''DELETE FROM project2geneset WHERE pj_id=%s AND gs_id=%s''', (proj_id, gs_id,))
             cursor.connection.commit()
-            return
 
 def add_geneset_group(gs_id, grp_id):
     """
@@ -1430,6 +1418,9 @@ def add_geneset_group(gs_id, grp_id):
         gs_id: geneset ID
         group_id: group ID being added
     """
+
+    if not grp_id or not gs_id:
+        raise TypeError('Both gs_id and grp_id cannot be none.')
 
     grp_id = str(grp_id)
 
@@ -1443,12 +1434,15 @@ def add_geneset_group(gs_id, grp_id):
         groups = cursor.fetchone()
 
         if not groups:
-            return
-            
+            raise ValueError('No groups returned for gs_id')
+
         groups = groups[0].split(',')
 
-        if grp_id in groups:
-            return
+        if '-1' in groups:
+            groups = []             
+
+        if grp_id in groups or '0' in groups:
+            raise ValueError('Group exists, or geneset is public')
 
         groups.append(grp_id)
         groups = ','.join(groups)
@@ -1456,7 +1450,7 @@ def add_geneset_group(gs_id, grp_id):
         cursor.execute(
             '''UPDATE geneset
                SET gs_groups = %s
-               WHERE gs_id = %s;''', (gs_id, groups)
+               WHERE gs_id = %s;''', (groups, gs_id)
         )
 
 
@@ -2431,6 +2425,7 @@ def get_groups_owned_by_user(user_id):
                           WHERE u.usr_id=%s AND u.u2g_privileges=1 AND g.grp_id=u.grp_id''', (user_id, ))
     return [Groups(row_dict) for row_dict in dictify_cursor(cursor)]
 
+
 def get_group_by_id(group_id):
     """
     Returns a Group by its ID
@@ -2444,6 +2439,22 @@ def get_group_by_id(group_id):
     return None if len(groups) == 0 else groups[0]
 
 
+def get_curation_group():
+    """
+
+    :return: Group object representing "core GW Curators group" (GeneWeaverCuration)
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT g.grp_id AS grp_id, g.grp_name AS grp_name, g.grp_private AS private FROM grp g
+                          WHERE g.grp_name=%s''', ("GeneWeaverCuration",))
+        groups = [Group(row_dict) for row_dict in dictify_cursor(cursor)]
+
+    # TODO -- this is a database configuration error if there are multiple
+    # groups named GeneWeaverCuration. We should throw an exception if
+    # len(groups) > 1
+    return None if len(groups) == 0 else groups[0]
+
+
 class Groups:
     """
     This class has a specific purpose for conveying user privleges on a given group
@@ -2452,6 +2463,7 @@ class Groups:
         self.grp_id = grp_dict['grp_id']
         self.grp_name = grp_dict['grp_name']
         self.privileges = grp_dict['priv']
+
 
 class Group:
     """
@@ -3436,6 +3448,24 @@ def get_genes_by_gs_id(geneset_id):
     return genes
 
 
+def get_omicssoft(gs_id):
+    '''
+    Return data from the omicssoft table if any exists
+    :param gs_id: 
+    :return: dictionary
+    '''
+    omicssoft = {'project': 'N\A', 'tag': 'GeneWeaver', 'type': 'N\A'}
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT os_project, os_tag, os_source FROM production.omicsoft WHERE gs_id=%s''', (gs_id,))
+        res = cursor.fetchall()
+        if res is not None:
+            for r in res:
+                omicssoft['project'] = r[0] if r[0] is not None else 'N\A'
+                omicssoft['tag'] = r[1] if r[0] is not None else 'GeneWeaver'
+                omicssoft['type'] = r[2] if r[0] is not None else 'N\A'
+    return omicssoft
+
+
 def get_all_geneset_values(gs_id):
     '''
     Generic function to get all geneset values geneset_value.gs_values
@@ -4038,6 +4068,30 @@ def check_emphasis(gs_id, em_gene):
 
     return inGeneset
 
+def insert_omicssoft_metadata(gs_id, project, source, tag, otype):
+    """
+    Inserts metadata from OmicsSoft gene sets into the special OmicsSoft table.
+    This is additional GW functionality requested by Sanofi.
+
+    arguments
+        gs_id: gene set ID
+        project: the project field from an OmicsSoft gene set 
+        tag: the tag field from an OmicsSoft gene set 
+        source: the source field from an OmicsSoft gene set 
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO production.omicsoft
+                (gs_id, os_project, os_tag, os_source, os_type)
+            VALUES
+                (%s, %s, %s, %s, %s);
+            ''', (gs_id, project, tag, source, otype)
+        )
+
+        cursor.connection.commit()
 
 # sample api calls begin
 

@@ -57,7 +57,8 @@ def run_tool():
     if 'ABBA_MinGenesets' in form:
         params['ABBA_MinGenesets'] = form['ABBA_MinGenesets']
     if 'ABBA_Tierset' in form:
-        params['ABBA_Tierset'] = form['ABBA_Tierset']
+        #params['ABBA_Tierset'] = form['ABBA_Tierset']
+        params['ABBA_Tierset'] = form.getlist('ABBA_Tierset')
     if 'ABBA_RestrictOption' in form:
         params['ABBA_RestrictOption'] = form['ABBA_RestrictOption']    
     if 'ABBA_RestrictSpecies' in form:
@@ -146,7 +147,28 @@ def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
 
+    if async_result.state == states.PENDING:
+        ## We haven't given the tool enough time to setup
+        if not async_result.info:
+            progress = None
+            percent = None
+
+        else:
+            progress = async_result.info['message']
+            percent = async_result.info['percent']
+
+    elif async_result.state == states.FAILURE:
+        progress = 'Failed'
+        percent = ''
+
+    else:
+        progress = 'Done'
+        percent = ''
+
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
+        'progress': progress,
+        'percent': percent
     })
+
