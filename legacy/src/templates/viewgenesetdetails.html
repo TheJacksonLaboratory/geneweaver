@@ -67,6 +67,8 @@
         <h2 class="panel-title"><strong>GeneSet Information</strong></h2>
     </div>
 
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
+
     {% if 'deprecated' in geneset.status %}
         <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
@@ -305,6 +307,7 @@
 	</iframe>
 
     <script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+    <script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
 
@@ -358,77 +361,54 @@
 
         $(document).ready(function () {
 
+            $('#submitCurationRequest').attr('disabled', true).button('refresh');
+
+            var has_active_curation_assignment = {% if curation_assignment and curation_assignment.state != curation_assignment.REVIEWED %} true {% else %} false {% endif %};
             var gs_id = {{ geneset.geneset_id }};
-			var user_id = {{ user_id }};
+            var user_id = {{ user_id }};
 
             {% if 'deprecated' in geneset.status %}
 
                 var status = '{{ geneset.status | safe }}';
-                var gsId = status.split(':')[1];
+                var gsid = status.split(':')[1];
 
-                if (!gsid) {
+                if (!gsid)
                     $('#deprecated-message').hide();
                 else
-                    $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsId);
-                }
+                    $('#deprecated-link').attr('href', '/viewgenesetdetails/' + gsid);
 
             {% endif %}
 
-			// The right side button 'Add to Project'
-            $('#addToProject').on('click', function (e) {
 
-				var modal = $('#myModalValue').val();
-				var npn = $('#newProjName').val();
-				var geneset = 'GS' + gs_id;
+            function handleError(data) {
+                console.error("something bad happened: " + data.responseJSON.message);
 
-				console.log(geneset);
-				// Alter the modal text a bit since we're only adding a single
-				// geneset, not several which is the default.
-				$('#addToProjectModal').find('.modal-title')
-					.html('Add GeneSet to Project(s)');
-                $("#myModalValue").val(geneset);
-                $("#modal-label").html(geneset);
-				$('#addToProjectModal').modal('show');
+                $(document).trigger("add-alerts", [
+                    {
+                        'message': data.responseJSON.message,
+                        'priority': 'danger'
+                    }
+                ]);
+            }
+
+            // The 'Share Geneset(s) w/ Group' button
+            $('#shareWithGroup').on('click', openGSModal('#shareWithGroupsModal', [gs_id], 'Share GeneSet with Group(s)'));
+
+            // The 'Share with selected groups' button in the modal above
+            $('#shareGenesetsWithGroups').on('click', submitGSModal("#shareWithGroupsModal", "../shareGenesetsWithGroups"));
+
+            // The 'Add GeneSet(s) to Project' button
+            $('#addToProject').on('click', openGSModal('#addToProjectModal', [gs_id], 'Add GeneSet to Project(s)'));
+
+            // The 'add to selected projects' button in the modal above
+            $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
+
+            // The button for this is found on the addGenesetsToProjects modal
+            $('#addNewProject').on('click', function () {
+                    $('#reveal-if-active').toggle();
             });
 
-			// The 'add to selected projects' button on the modal
-            $('#addGenesetsToProjects').on('click', function (e) {
-                var checked = [];
-
-                $("input[name='options[]']:checked").each(function () {
-                    checked.push(parseInt($(this).val()));
-                });
-
-                var option = JSON.stringify(checked);
-                var g = $('#myModalValue').val();
-                if ($('#newProjName').val().length > 0) {
-                    var npn = $('#newProjName').val();
-                }
-
-                if ($.isEmptyObject(checked) && $.isEmptyObject(npn)){
-                    $("#result").html('<div class="alert alert-danger fade in"> ' +
-                            '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>No Projects Were Selected</div>');
-                } else {
-                    $.ajax({
-                        type: "GET",
-                        url: "../addGenesetsToProjects",
-                        data: {"user_id": user_id, "npn": npn, "gs_id": g, "option": option},
-                        success: function (data) {
-                            $("#result").html('<div class="alert alert-success fade in"> ' +
-                                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                    '</button>Geneset(s) Successfully Added to Selected Project(s)</div>');
-                        }
-                    });
-                }
-            });
-
-			// The button for this is found on the addGenesetsToProjects modal
-			$('#addNewProject').on('click', function () {
-				$('#reveal-if-active').toggle();
-			});
-
-			// Export OmicSoft version
+            // Export OmicSoft version
             $('#exportOmicsSoft').on('click', function() {
                 var gs_id = {{ geneset.geneset_id }};
                 window.location = '/exportOmicsSoft/' + gs_id;
@@ -437,8 +417,8 @@
                         '</button>Downloaded GeneSet in OmicsSoft Format Completed</div>');
             });
 
-			// Generates a text version of the gene/value list using the 
-			// currently selected alternate ID. 
+            // Generates a text version of the gene/value list using the 
+            // currently selected alternate ID. 
             $('#exportData').on('click', function (e) {
                 // window.open('../exportGeneList/' + gs_id);
 				var exports = '';
@@ -491,6 +471,53 @@
                 var gsid = {{ geneset.geneset_id }};
                 $("#myGenesetDeleteLabel").html(gsid);
                 $("#delModal").modal('show');
+            });
+
+            function validate_form () {
+                if ($('#curationNotes').val()) {
+                    $('#submitCurationRequest').attr('disabled', false).button('refresh');
+                }
+                else {
+                    $('#submitCurationRequest').attr('disabled', true).button('refresh');
+                }
+            }
+
+            $('#curationNotes').keyup(validate_form);
+
+            $('#requestCuration').on('click', function () {
+                if (has_active_curation_assignment) {
+                    $('#genericLabel').html("Geneset Already Assigned for Curation");
+                    $('#genericMessage').html("An active curation assignment was found for this geneset");
+                    $('#showGenericModal').modal('show');
+                }
+                else {
+                    $("#curationRequestModalLabel").html({{ geneset.geneset_id }});
+                    $('#curationNotes').val('');
+                    $("#requestCurationModal").modal('show');
+                }
+            });
+
+            $('#submitCurationRequest').on('click', function() {
+                var params = {
+                    "notes": $('#curationNotes').val(),
+                    "gs_id": {{ geneset.geneset_id }}
+                };
+
+
+                // since params["gs_ids"] is a list the server needs to use
+                // request.args.getlist('gs_ids') instead of request.args['gs_ids']
+                $.post("{{ url_for('nominate_public_geneset_for_curation') }}", params, function (data) {
+                    has_active_curation_assignment = true;
+
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "GeneSet submitted for curation: {{ geneset.geneset_id }}",
+                            'priority': 'success'
+                        }
+                    ]);
+
+                }, "json").fail(handleError);
+
             });
 
             $('#editGeneset').on('click', function (e) {
@@ -571,16 +598,6 @@
 
             });
 
-            function handleError(data) {
-                console.error("something bad happened: " + data.responseJSON.message);
-
-                $(document).trigger("add-alerts", [
-                    {
-                        'message': data.responseJSON.message,
-                        'priority': 'danger'
-                    }
-                ]);
-            }
 
             {% if curation_view == 'reviewer' %}
                 $("input:radio[name='review']:checked").prop('checked', false).checkboxradio("refresh");
@@ -795,9 +812,14 @@
 
 {% endif %}
 
-{% include 'modal/addGenesetsToProjects.html' %}
+{% include 'modal/addGenesetsToProjects_multiselect.html' %}
+{% include 'modal/shareGenesetWithGroup.html' %}
 
 {% include 'modal/deleteGeneset.html' %}
+
+{% include 'modal/requestCuration.html' %}
+
+{% include 'modal/showGenericMessage.html' %}
 
 {% if curation_view == 'curation_leader' or curation_view == 'reviewer' %}
     <!-- only used by the curation_leader or reviewer view, don't

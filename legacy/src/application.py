@@ -25,6 +25,7 @@ import os.path as path
 import re
 import urllib
 import urllib3
+import itertools
 from collections import OrderedDict, defaultdict
 from tools import abbablueprint
 from tools import booleanalgebrablueprint
@@ -45,6 +46,7 @@ from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
+from psycopg2 import IntegrityError
 
 app = flask.Flask(__name__)
 app.register_blueprint(abbablueprint.abba_blueprint)
@@ -460,6 +462,29 @@ def assign_genesets_to_curation_group():
 
     return response
 
+
+@app.route('/nominate_public_geneset.json', methods=['POST'])
+def nominate_public_geneset_for_curation():
+    if 'user_id' in flask.session:
+        gs_id = request.form.get('gs_id')
+        notes = request.form.get('notes')
+
+        try:
+            curation_assignments.nominate_public_gs(gs_id, notes)
+            response = flask.Response()
+        except IntegrityError as e:
+            response = flask.jsonify(message=e.message)
+            response.status_code = 400
+        except Exception as e:
+            response = flask.jsonify(message=e.message)
+            response.status_code = 500
+
+    else:
+        # user is not logged in
+        response = flask.jsonify(message='You must be logged in to perform this function')
+        response.status_code = 401
+
+    return response
 
 @app.route('/assign_genesets_to_curator.json', methods=['POST'])
 def assign_genesets_to_curator():
@@ -1678,6 +1703,35 @@ def update_project_groups():
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return json.dumps(results)
 
+@app.route('/shareGenesetsWithGroups')
+def update_genesets_groups():
+    """ Function to share a collection of genesets with a collection of groups.
+
+    Args:
+        request.args['gs_ids']: The genesets that will be added to projects
+        request.args['options']: The groups to which genesets will be added
+
+    Returns:
+        JSON Dict: {'error': 'None'} for successs, {'error': 'Error Message'} for error
+
+    """
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+        gs_ids = request.args.get('gs_id', type=str, default='').split(',')
+        groups = json.loads(request.args.get('option', type=str))
+
+        for product in itertools.product(gs_ids, groups):
+            try:
+                geneweaverdb.add_geneset_group(product[0].strip(), product[1])
+            except ValueError:
+                pass
+            except TypeError:
+                pass
+
+        return json.dumps({'error': 'None'})
+    else:
+        return json.dumps({'error': 'You must be logged in to share a geneset with a group'})
+
 
 @app.route('/updateStaredProject', methods=['GET'])
 def update_star_project():
@@ -1961,7 +2015,8 @@ def create_geneset_meta():
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 def render_viewgeneset(gs_id):
-    return render_viewgeneset_main(gs_id)
+    assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
+    return render_viewgeneset_main(gs_id, curation_assignment=assignment)
 
 
 @app.route('/curategeneset/<int:gs_id>', methods=['GET', 'POST'])
@@ -2098,7 +2153,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
     ## checked for, otherwise sad times ahead :(
-    if not geneset or (geneset and geneset.status == 'deleted'):
+    ## allow admins and curators to view deleted sets (like in classic GW)
+    if (not user_info.is_admin and not user_info.is_curator) and\
+       (not geneset or (geneset and geneset.status == 'deleted')):
         return flask.render_template(
             'viewgenesetdetails.html', 
             geneset=None,
@@ -3344,9 +3401,35 @@ def render_share_projects():
 
 @app.route('/addGenesetsToProjects')
 def add_genesets_projects():
+    """ Function to add a group of genesets to a group of projects.
+
+    Args:
+        request.args['gs_ids']: The genesets that will be added to projects
+        request.args['options']: The projects to which genesets will be added
+        request.args['npn'] (optional): The name of a new project to be created (if given)
+
+    Returns:
+        JSON Dict: {'error': 'None'} for successs, {'error': 'Error Message'} for error
+
+    """
+    
     if 'user_id' in flask.session:
-        results = geneweaverdb.add_genesets_to_projects(request.args)
-        return json.dumps(results)
+        user_id = flask.session['user_id']
+        gs_ids = request.args.get('gs_id', type=str, default='').split(',')
+        projects = json.loads(request.args.get('option', type=str))
+        new_project_name = request.args.get('npn', type=str)
+
+        if not projects:
+            projects = []
+
+        if new_project_name:
+            new_project_id = geneweaverdb.add_project(user_id, new_project_name)
+            projects.append(new_project_id)
+
+        for product in itertools.product(projects, gs_ids):
+            geneweaverdb.add_geneset2project(product[0], product[1].strip())
+
+        return json.dumps({'error': 'None'})
     else:
         return json.dumps({'error': 'You must be logged in to add a geneset to a project'})
 
@@ -4157,7 +4240,7 @@ api.add_resource(ToolUpSetProjects,
 ## Config loading should occur outside __main__ when proxying requests through
 ## a web server like nginx. uWSGI doesn't load anything in the __main__ block
 app.secret_key = config.get('application', 'secret')
-app.debug = True
+#app.debug = True
 
 if __name__ == '__main__':
 

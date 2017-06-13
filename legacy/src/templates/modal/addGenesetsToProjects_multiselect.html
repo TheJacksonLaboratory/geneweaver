@@ -1,0 +1,56 @@
+{# Actual modal that selects genesets and projects to add. Called from mygenesets #}
+
+<div class="modal fade" id="addToProjectModal">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="addGenesetsToProj" name="addGenesetsToProj" method="post" action="#"
+                  class="form-horizontal" novalidate="novalidate">
+
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">
+                        Add Selected GeneSets to Project(s)
+                    </h3>
+                </div>
+                <div class="modal-body">
+                    <div class="row" id="modalError"></div>
+
+                    <div class="row" style="text-align:center;">
+                        <h4>The following GeneSet(s) will be added:</h4>
+                    </div>
+                    <div class="row" style="text-align:center;">
+                        <strong>
+				<span class="rows" id="addToProjectModal-label" style="color: #006400;">
+				</span>
+			</strong>
+                    </div>
+                    <div class="row" id="reveal-if-active" style="display:none;">
+                        <label for="addToProjectModalNewName"><h4>New Project Name: </h4></label>
+                        <input type="text" id="addToProjectModalNewName" name="newProjName" class="form-control input-lg">
+                    </div>
+                    <div class="row" style="padding-top: 10px">
+                        <label for="sel2">Select which projects to add to (hold shift to select more than one):</label>
+                        <select multiple class="form-control" id="sel2"> 
+                            {% if g.user is defined %}
+                            {% for project in g.user.projects %}
+                                <option value="{{ project.project_id }}">{{ project.name}}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                        <input type="hidden" id="addToProjectModalValue" name="gs_id" value=""/>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success btn-transparent" id="addNewProject"style="padding-left:12px;padding-right:12px">
+                                <i class="fa fa-plus"></i> Add to New Project
+                        </button>
+                        <button type="button" class="btn btn-warning" id="addGenesetsToProjects" data-dismiss="modal"style="padding-left:12px;padding-right:12px">
+                                Add to Selected Project(s)
+                        </button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                                Close
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

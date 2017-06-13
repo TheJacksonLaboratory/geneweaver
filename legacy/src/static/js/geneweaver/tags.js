@@ -148,15 +148,25 @@ var getSpeciesColors = function(species) {
     return mapping;
 }
 
+/**
+ * Dynamically generates a set of colored ontology tags for the given set of
+ * annotations. For each ontology found in the set of annotations a color coded
+ * label key is made and attached to a special div (since this script is only
+ * called from /viewgenesetdetails or /editgenesetgenes). Then each annotation
+ * is colored according to the key and its element is modified to reflect this.
+ *
+ * arguments
+ *      onts: list of ontology annotations for a single geneset
+ */
 var makeOntologyTags = function(onts) {
 
     var colors = [
-        '', '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc', 
+        '#ccebc5', '#fbb4ae', '#decbe4', '#b3cde3', '#fed9a6', '#ffffcc', 
         '#e5d8bd', '#fddaec', '#f2f2f2'
     ];
 
     var borders = [
-        '', '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966', 
+        '#66855F', '#954E48', '#78657E', '#4D677D', '#987340', '#999966', 
         '#7f7257', '#977486', '#8C8C8C'
     ];
 
@@ -170,23 +180,36 @@ var makeOntologyTags = function(onts) {
         });
     }(onts);
 
+    var ontIndex = {};
+
+    // Normalizes the ontology IDs so they begin from zero and are sequential
+    // with no gaps inbetween
+    for (var i = 0; i < onts.length; i++) {
+
+        if (ontIndex.hasOwnProperty(onts[i].ontdb_id))
+            continue;
+
+        ontIndex[onts[i].ontdb_id] = Object.keys(ontIndex).length;
+    }
+
     for (var i = 0; i < onts.length; i++) {
 
         var ontid = onts[i].ontdb_id;
+        var index = ontIndex[onts[i].ontdb_id];
         var name = onts[i].dbname;
 
-        $('.ont-' + ontid).css('background-color', colors[ontid]);
+        $('.ont-' + ontid).css('background-color', colors[index]);
         $('.ont-' + ontid).css('border', '1px solid');
-        $('.ont-' + ontid).css('border-color', borders[ontid]);
+        $('.ont-' + ontid).css('border-color', borders[index]);
 
         var $key = $('<div>', {
             class: 'ontology-tag', 
             text: name
         });
 
-        $key.css('background-color', colors[ontid]);
+        $key.css('background-color', colors[index]);
         $key.css('border', '1px solid');
-        $key.css('border-color', borders[ontid]);
+        $key.css('border-color', borders[index]);
         $key.css('font-weight', 'bold');
 
         $('#ont-key').append($key);

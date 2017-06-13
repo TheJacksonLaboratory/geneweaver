@@ -14,10 +14,18 @@
         <button type="button" class="btn btn-block btn-warning" id="viewSimilarGenesets">
             <i class="fa fa-eye pull-left"></i> Similar GeneSets
         </button>
+        {% if geneset.cur_id in [1, 2, 3] %}
+        <button type="button" class="btn btn-block btn-warning" id="requestCuration">
+            <i class="fa fa-flag pull-left"></i> Request Curation
+        </button>
+        {% endif %}
 
         {% if g.user is defined %}
         <button type="button" class="btn btn-block btn-warning" id="addToProject">
             <i class="fa fa-folder-o pull-left"></i> Add Geneset to Project
+        </button>
+        <button type="button" class="btn btn-block btn-warning" id="shareWithGroup">
+            <i class="fa fa-folder-o pull-left"></i> Share Geneset w/ Group(s)
         </button>
         {% endif %}
 
