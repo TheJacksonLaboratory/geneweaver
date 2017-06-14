@@ -274,19 +274,19 @@ def _form_register():
     user = flask.g.user
     user_id = user.user_id if user else None
     is_guest = user.is_guest if user else None
-
-    _logout()
-
     form = flask.request.form
     if 'usr_email' in form:
         existing_user = geneweaverdb.get_user_byemail(form['usr_email'])
-        if existing_user is not None:
+        if existing_user and is_guest:
+            user = _form_login()
+        elif existing_user:
+            _logout()
             user = None
-
         elif user_id and is_guest:
             user = geneweaverdb.register_user_from_guest(
                 form['usr_first_name'], form['usr_last_name'], form['usr_email'], form['usr_password'], user_id)
         else:
+            _logout()
             user = geneweaverdb.register_user(
                 form['usr_first_name'], form['usr_last_name'], form['usr_email'], form['usr_password'])
 
@@ -317,7 +317,7 @@ def json_login():
 
 
 @app.route('/analyze')
-@login_required()
+@login_required(allow_guests=True)
 def render_analyze():
     grp2proj = OrderedDict()
     active_tools = geneweaverdb.get_active_tools()
@@ -2844,7 +2844,6 @@ def render_export_jac_genelist(gs_id):
 
 
 @app.route('/findPublications/<int:gs_id>')
-@login_required()
 def render_view_same_publications(gs_id):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
