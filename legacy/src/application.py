@@ -3380,7 +3380,9 @@ def add_genesets_projects():
     for product in itertools.product(projects, gs_ids):
         geneweaverdb.add_geneset2project(product[0], product[1].strip())
 
-    return json.dumps({'error': 'None'})
+    results = {'error': 'None', 'is_guest': 'True'} if flask.g.user.is_guest else {'error': 'None'}
+
+    return json.dumps(results)
 
 
 @app.route('/removeGenesetFromProject')

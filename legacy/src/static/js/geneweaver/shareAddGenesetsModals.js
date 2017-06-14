@@ -31,14 +31,19 @@ var submitGSModalAjax = function(url, data) {
             var v = JSON.parse(data);
             if (v["error"] != 'None') {
                 console.log("Error returned " + v['error']);
-                $("#result").html('<div class="alert alert-danger fade in"> ' +
+                $("#result").html('<div class="alert alert-danger fade in">' +
                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                     '</button>' + v['error'] + '</div>');
             } else {
                 console.log('no error');
-                $("#result").html('<div class="alert alert-success fade in"> ' +
-                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                $("#result").html('<div class="alert alert-success fade in">' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">' +
                     '</button>Geneset(s) submitted successfully.</div>');
+                if (v["is_guest"] == 'True') {
+                    $("#guest_warning").html('<div class="alert alert-danger fade in">' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">' +
+                    '</button>Now using GeneWeaver with a guest account.</div>');
+                }
             }
 
         },
