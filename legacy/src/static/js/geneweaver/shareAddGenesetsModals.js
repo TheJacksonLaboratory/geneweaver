@@ -37,12 +37,12 @@ var submitGSModalAjax = function(url, data) {
             } else {
                 console.log('no error');
                 $("#result").html('<div class="alert alert-success fade in">' +
-                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                     '</button>Geneset(s) submitted successfully.</div>');
                 if (v["is_guest"] == 'True') {
-                    $("#guest_warning").html('<div class="alert alert-danger fade in">' +
-                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">' +
-                    '</button>Now using GeneWeaver with a guest account.</div>');
+                    $("#guest_warning").html('<div class="alert alert-warning fade in">' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                    '</button>Genesets added to project on guest account. If you already have an account you cannot access these genesets from there.</div>');
                 }
             }
 
