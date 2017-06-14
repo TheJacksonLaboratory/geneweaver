@@ -3362,28 +3362,25 @@ def add_genesets_projects():
 
     """
     
-    if 'user_id' in flask.session:
-        user_id = flask.session['user_id']
-        gs_ids = request.args.get('gs_id', type=str, default='').split(',')
-        try:
-            projects = json.loads(request.args.get('option', type=str))
-        except TypeError:
-            projects = []
-        new_project_name = request.args.get('npn', type=str)
+    user_id = flask.session['user_id']
+    gs_ids = request.args.get('gs_id', type=str, default='').split(',')
+    try:
+        projects = json.loads(request.args.get('option', type=str))
+    except TypeError:
+        projects = []
+    new_project_name = request.args.get('npn', type=str)
 
-        if not projects:
-            projects = []
+    if not projects:
+        projects = []
 
-        if new_project_name:
-            new_project_id = geneweaverdb.add_project(user_id, new_project_name)
-            projects.append(new_project_id)
+    if new_project_name:
+        new_project_id = geneweaverdb.add_project(user_id, new_project_name)
+        projects.append(new_project_id)
 
-        for product in itertools.product(projects, gs_ids):
-            geneweaverdb.add_geneset2project(product[0], product[1].strip())
+    for product in itertools.product(projects, gs_ids):
+        geneweaverdb.add_geneset2project(product[0], product[1].strip())
 
-        return json.dumps({'error': 'None'})
-    else:
-        return json.dumps({'error': 'You must be logged in to add a geneset to a project'})
+    return json.dumps({'error': 'None'})
 
 
 @app.route('/removeGenesetFromProject')
