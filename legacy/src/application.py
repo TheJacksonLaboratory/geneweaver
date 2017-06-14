@@ -3366,7 +3366,10 @@ def add_genesets_projects():
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         gs_ids = request.args.get('gs_id', type=str, default='').split(',')
-        projects = json.loads(request.args.get('option', type=str))
+        try:
+            projects = json.loads(request.args.get('option', type=str))
+        except TypeError:
+            projects = []
         new_project_name = request.args.get('npn', type=str)
 
         if not projects:

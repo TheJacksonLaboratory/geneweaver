@@ -12,7 +12,15 @@
                     </h3>
                 </div>
                 <div class="modal-body">
-                    <div class="row" id="modalError"></div>
+                    <div class="row" id="modalError">
+                    </div>
+			{% if not g.user %}
+			<div class="alert alert-danger" role="alert">
+				<h4> Warning: You are not signed in. Adding these genestets to a project will create a guest account for you.</h4>
+				Guest accounts are temporary, and will be removed within 24 hours of creation. Guest accounts can be registered as full accounts, but you cannot associate a guest account with an existing account.
+				If you already have an account, you should sign into that account before proceeding.
+			</div>
+			{% endif %}
 
                     <div class="row" style="text-align:center;">
                         <h4>The following GeneSet(s) will be added:</h4>
@@ -23,23 +31,23 @@
 				</span>
 			</strong>
                     </div>
-                    <div class="row" id="reveal-if-active" style="display:none;">
+                    <div class="row" id="reveal-if-active" {% if g.user %}style="display:none;" {% endif %}>
                         <label for="addToProjectModalNewName"><h4>New Project Name: </h4></label>
                         <input type="text" id="addToProjectModalNewName" name="newProjName" class="form-control input-lg">
                     </div>
-                    <div class="row" style="padding-top: 10px">
+                    <div class="row" style="padding-top: 10px;{% if not g.user %}display:none;{% endif %}">
                         <label for="sel2">Select which projects to add to (hold shift to select more than one):</label>
-                        <select multiple class="form-control" id="sel2"> 
-                            {% if g.user is defined %}
+			<select multiple class="form-control" id="sel2"> 
+			    {% if g.user %}
                             {% for project in g.user.projects %}
                                 <option value="{{ project.project_id }}">{{ project.name}}</option>
                             {% endfor %}
-                            {% endif %}
-                        </select>
+			    {% endif %}
+			</select>
                         <input type="hidden" id="addToProjectModalValue" name="gs_id" value=""/>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-success btn-transparent" id="addNewProject"style="padding-left:12px;padding-right:12px">
+                        <button type="button" class="btn btn-success btn-transparent" id="addNewProject"style="padding-left:12px;padding-right:12px;{% if not g.user %}display:none;{% endif %}">
                                 <i class="fa fa-plus"></i> Add to New Project
                         </button>
                         <button type="button" class="btn btn-warning" id="addGenesetsToProjects" data-dismiss="modal"style="padding-left:12px;padding-right:12px">
