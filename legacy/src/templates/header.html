@@ -302,6 +302,11 @@ messages = array of messages
                         <li>
                             <a href="{{ url_for('render_register')|safe }}">Create Account</a>
                         </li>
+			{% if g.user.is_guest %}
+                        <li>
+                            <a id="logout-button"><i class="fa fa-power-off"></i> Logout</a>
+                        </li>
+			{% endif %}
                     {% endif %}
 
 
