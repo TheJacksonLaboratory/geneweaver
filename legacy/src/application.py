@@ -2854,7 +2854,6 @@ def render_view_same_publications(gs_id):
 
 
 @app.route('/emphasis', methods=['GET', 'POST'])
-@login_required()
 def render_emphasis():
     '''
     Emphasis_AddGene
