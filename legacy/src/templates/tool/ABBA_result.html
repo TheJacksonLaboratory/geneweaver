@@ -260,7 +260,7 @@
         </div>
         <div id="seed-genes" style="display: none;">
 
-            {% for all_s in json_result.InputSpecies | sort(attribute=0, reverse=True) | batch(6) -%}
+            {% for all_s in json_result.InputSpecies | sort(attribute=0, reverse=False) | batch(6) -%}
                 <div class="grid grid-pad">
                 {%- for s in all_s -%}
 
@@ -481,10 +481,17 @@
                     {% for i in json_result.GeneResults %}
 
                         <tr>
-                            <td class="text-center" style="vertical-align: middle" nowrap>
-                                <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">
-                                    <strong>{{ i[1] }}</strong>
-                                </a>
+                            <td class="text-center" style="vertical-align: middle" width="20%">
+                                <small>
+                                   {% for ode_name in json_result.OdeMapping[i[0]|string] %}
+                                       <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">
+                                        <strong>{{ ode_name }}</strong>
+                                       </a>
+                                    {% endfor %}
+                                </small>
+{#                                <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">#}
+{#                                    <strong>{{ i[1] }}</strong>#}
+{#                                </a>#}
                             </td>
                             <td class="text-center" style="vertical-align: middle" nowrap>
                                 <!-- Label the species -->
@@ -514,18 +521,18 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-center">
+                            <td class="text-center" style="vertical-align: middle !important;">
                                 <div class="sparkline" data-sparkline-color="#006644"
                                      data-sparkline-value="{{ json_result.TierCounts[i[0]|string()] }}">
-                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;
-                                        height: 10px; vertical-align: bottom;"></canvas>
+{#                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;#}
+{#                                        height: 10px; vertical-align: bottom;"></canvas>#}
                                 </div>
                             </td>
 {#                            <td style="vertical-align: middle" nowrap>#}
 {#                                <srong>{{ i[0] }}</srong>#}
 {#                            </td>#}
 
-                            <td class="text-center">
+                            <td class="text-center" style="vertical-align: middle !important;">
                                 <div class="sparkline-2" data-sparkline-color="#7BB2B4"
                                      data-sparkline-value="{{ json_result.SpeciesCounts[i[0]|string()] }}">
                                     <canvas width="96" height="10" style="display: inline-block; width: 96px;
