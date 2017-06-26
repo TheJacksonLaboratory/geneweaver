@@ -2,13 +2,14 @@ import celery.states as states
 import flask
 import json
 import uuid
-
+import config
 import geneweaverdb as gwdb
 import toolcommon as tc
 from collections import defaultdict, OrderedDict
 
 TOOL_CLASSNAME = 'ABBA'
 abba_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+RESULTS_PATH = config.get('application', 'results')
 
 
 @abba_blueprint.route('/run-abba.html', methods=['POST'])
@@ -125,16 +126,22 @@ def view_result(task_id):
 
     species = gwdb.get_all_species().items()
 
-
     for row in emphgenes:
         emphgeneids.append(int(row['ode_gene_id']))
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
     elif async_result.state in states.READY_STATES:
+
+        # Open files and pass via template
+        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
+        json_results = f.readline()
+        f.close()
+
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/ABBA_result.html',
+            json_result=json.loads(json_results),
             async_result=json.loads(async_result.result),
             tool=tool, emphgeneids=emphgeneids, species=species)
     else:

@@ -70,7 +70,7 @@
         <p class="lead">
             A system for the integration and analysis of heterogeneous functional genomics data.
             <br/>
-            {% if "user" not in g %}
+            {% if not g.user %}
                 You can <a href="{{ url_for('render_login')|safe }}">sign in</a>,
                 <a href="{{ url_for('render_register')|safe }}">create an account</a>, or continue to use GeneWeaver
                 anonymously.
