@@ -100,7 +100,7 @@
 
 </style>
 
-{#{{ async_result }}#}
+{#{{ json_result }}#}
 
 <div class="container">
 
@@ -117,12 +117,12 @@
             </div>
             <div id="update_form_wrapper" style="display: none;">
                 <form target="_blank" id="todo-id" class="form-horizontal" role="form" method="post">
-                    {% if async_result.GenesOfInterestCount %}
-                        {% set genesOfInterestCnt=async_result.GenesOfInterestCount %}
+                    {% if json_result.GenesOfInterestCount %}
+                        {% set genesOfInterestCnt=json_result.GenesOfInterestCount %}
                     {% else %}
                         {% set genesOfInterestCnt=0 %}
                     {% endif %}
-                    {% for gene in async_result.InputGenes %}
+                    {% for gene in json_result.InputGenes %}
                         <input type="text" id="genesOfInterestInputHidden" class="fieldname" name="ABBA_InputGenes"
                                value="{{ gene }}" data-count="{{ genesOfInterestCnt }}" hidden/>
                     {% endfor %}
@@ -229,13 +229,13 @@
             <tbody>
             <tr>
                 <td>
-                    <strong>Include Homology:&nbsp;</strong>{{ async_result.IncludeHomology }}<br>
-                    <strong>Minimum Genes:&nbsp;</strong>{{ async_result.MinGenes }}<br>
-                    <strong>Minimum Genesets:&nbsp;</strong>{{ async_result.MinGenesets }}<br>
-                    <strong>Curation Tiers:</strong>&nbsp;{{ async_result.SelectedTierset }}<br>
+                    <strong>Include Homology:&nbsp;</strong>{{ json_result.IncludeHomology }}<br>
+                    <strong>Minimum Genes:&nbsp;</strong>{{ json_result.MinGenes }}<br>
+                    <strong>Minimum Genesets:&nbsp;</strong>{{ json_result.MinGenesets }}<br>
+                    <strong>Curation Tiers:</strong>&nbsp;{{ json_result.SelectedTierset }}<br>
                 </td>
                 <td>
-                    <strong>Restricted to Species:&nbsp;</strong>{{ async_result.RestrictSpecies }}<br>
+                    <strong>Restricted to Species:&nbsp;</strong>{{ json_result.RestrictSpecies }}<br>
                     <strong>Date:&nbsp;</strong>
                     <script>
                         <!--
@@ -244,8 +244,8 @@
                         //-->
                     </script>
                     <br>
-                    <strong>Available Genes:&nbsp;</strong>{{ async_result.AvailableGenes }}<br>
-                    <strong>Available Genesets:&nbsp;</strong>{{ async_result.AvailableGenesets }}<br>
+                    <strong>Available Genes:&nbsp;</strong>{{ json_result.AvailableGenes }}<br>
+                    <strong>Available Genesets:&nbsp;</strong>{{ json_result.AvailableGenesets }}<br>
                 </td>
             </tr>
             </tbody>
@@ -260,7 +260,7 @@
         </div>
         <div id="seed-genes" style="display: none;">
 
-            {% for all_s in async_result.InputSpecies | sort(attribute=0, reverse=True) | batch(6) -%}
+            {% for all_s in json_result.InputSpecies | sort(attribute=0, reverse=False) | batch(6) -%}
                 <div class="grid grid-pad">
                 {%- for s in all_s -%}
 
@@ -274,7 +274,7 @@
 
             <hr style="color: darkgray;"/>
 
-            {% for genes in async_result.GenesOfInterest | sort(attribute=1, reverse=True) | batch(6) -%}
+            {% for genes in json_result.GenesOfInterest | sort(attribute=1, reverse=True) | batch(6) -%}
                 <div class="grid grid-pad">
                 {%- for gene in genes -%}
 
@@ -340,7 +340,7 @@
                             <th>&nbsp;</th>
                         </tr>
 
-                        {% for i in async_result.GenesetResults %}
+                        {% for i in json_result.GenesetResults %}
 
                             <tr>
                                 <td width="15" style="vertical-align: middle">
@@ -444,11 +444,11 @@
 
     {# Genes of Interest #}
 
-    {% if async_result.GeneResults | length == 0 %}
+    {% if json_result.GeneResults | length == 0 %}
         <div class="row">
             <div class="alert alert-warning fade in">
                 <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                <strong>No Results Found!</strong> Check seed genes for proper format.
+                <strong>No Results Found!</strong> Check your seed genes to ensure that they were found in GeneWeaver.
             </div>
         </div>
     {% else %}
@@ -478,13 +478,20 @@
                         <th>&nbsp;</th>
                     </tr>
 
-                    {% for i in async_result.GeneResults %}
+                    {% for i in json_result.GeneResults %}
 
                         <tr>
-                            <td class="text-center" style="vertical-align: middle" nowrap>
-                                <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">
-                                    <strong>{{ i[1] }}</strong>
-                                </a>
+                            <td class="text-center" style="vertical-align: middle" width="20%">
+                                <small>
+                                   {% for ode_name in json_result.OdeMapping[i[0]|string] %}
+                                       <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">
+                                        <strong>{{ ode_name }}</strong>
+                                       </a>
+                                    {% endfor %}
+                                </small>
+{#                                <a href="/search/?searchbar={{ i[1] }}&pagination_page=1&searchGenes=yes">#}
+{#                                    <strong>{{ i[1] }}</strong>#}
+{#                                </a>#}
                             </td>
                             <td class="text-center" style="vertical-align: middle" nowrap>
                                 <!-- Label the species -->
@@ -510,24 +517,24 @@
                             <td style="vertical-align: middle" nowrap>
                                 <div class="progress">
                                     <div class="progress-bar progress-bar-success"
-                                         style="width: {{ (i[4] / async_result.Max[0][0])*100 }}%;">{{ i[4] }}
+                                         style="width: {{ (i[4] / json_result.Max[0][0])*100 }}%;">{{ i[4] }}
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-center">
+                            <td class="text-center" style="vertical-align: middle !important;">
                                 <div class="sparkline" data-sparkline-color="#006644"
-                                     data-sparkline-value="{{ async_result.TierCounts[i[0]|string()] }}">
-                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;
-                                        height: 10px; vertical-align: bottom;"></canvas>
+                                     data-sparkline-value="{{ json_result.TierCounts[i[0]|string()] }}">
+{#                                    <canvas width="96" height="10" style="display: inline-block; width: 96px;#}
+{#                                        height: 10px; vertical-align: bottom;"></canvas>#}
                                 </div>
                             </td>
 {#                            <td style="vertical-align: middle" nowrap>#}
 {#                                <srong>{{ i[0] }}</srong>#}
 {#                            </td>#}
 
-                            <td class="text-center">
+                            <td class="text-center" style="vertical-align: middle !important;">
                                 <div class="sparkline-2" data-sparkline-color="#7BB2B4"
-                                     data-sparkline-value="{{ async_result.SpeciesCounts[i[0]|string()] }}">
+                                     data-sparkline-value="{{ json_result.SpeciesCounts[i[0]|string()] }}">
                                     <canvas width="96" height="10" style="display: inline-block; width: 96px;
                                         height: 10px; vertical-align: bottom;"></canvas>
                                 </div>
