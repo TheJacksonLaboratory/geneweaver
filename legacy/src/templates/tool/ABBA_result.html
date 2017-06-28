@@ -463,7 +463,7 @@
                     </span>
                 </h3>
                 <div class="row">
-                    <div class="col-xs-12 col-md-9">
+                    <div class="col-xs-6 col-md-9">
                         <div class="row">
                         </div>
                     </div>
@@ -487,7 +487,19 @@
                         <th class="text-center">Number of<br>Represented GeneSets</th>
                         <th class="text-center">GeneSets by<br>Curation Tier</th>
                         <th class="text-center">GeneSets by<br>Species</th>
-                        <th>&nbsp;</th>
+                        <th>
+                            <div class="ui-checkbox group-checkbox" id="group-allcheck"
+                                 style="padding:0; border:0; margin:0">
+                                    Select All
+                                <label for="group-{{ i }}" 
+                                    style="padding:0 0 0 40px; margin:0">
+                                    &nbsp;
+                                    <input type="checkbox"
+                                           name="group-{{ i }}"
+                                    />
+                                </label>
+                            </div>
+                        </th>
                     </tr>
 
                     {% for i in json_result.GeneResults %}
@@ -553,9 +565,10 @@
                             </td>
 
                             <td>
-                                <div class="ui-checkbox" style="padding: 0; border: 0;">
+                                <div class="ui-checkbox ui-gene-check" style="padding: 0; border: 0;">
                                     <label for="addGeneset-{{ i[0] }}">
                                         <input type="checkbox" name="gsoptions[]" id="addGeneset-{{ i[0] }}"
+                                            class="gene-check"
                                                    value="{{ json_result.PrefMapping[i[0] | string] }}"/>
                                     </label>
                                 </div>
@@ -946,6 +959,58 @@
             else {
                 window.alert("No checkboxes selected.")
             }
+        });
+
+        $('.group-checkbox').click(function (event) {
+
+            // Grabs the group ID for this checkbox. Format: group-#-checkbox
+            var groupCheck = $(this).find('input[type=checkbox]');
+            // Id for checkbox grouping
+            var groupCheckboxes = '.ui-gene-check';
+            var checks = $('.gene-check');
+            // Even when we mark the checkbox as checked the stupid UI doesn't
+            // get updated because of these weird ui button things
+            var btns = $(groupCheckboxes).find('.ui-btn');
+
+            // Opposite because by the time this code executes, the box is
+            // already checked
+            if (!groupCheck.attr('checked')) {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', false);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-on');
+                    $(this).addClass('ui-checkbox-off');
+                });
+
+            } else {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', true);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-off');
+                    $(this).addClass('ui-checkbox-on');
+                });
+            }
+        });
+
+        /**
+         * Ever since we added the select all checkbox, we now have to hook
+         * into these stupid ui-checkbox clicks otherwise the actual checkbox
+         * which lies underneath all the ui crap doesn't get (de)selected.
+         */
+        $('.ui-checkbox').on('click', function (event) {
+
+            var check = $(this).find('input[type=checkbox]');
+
+            if (check.attr('checked'))
+                check.attr('checked', false);
+            else
+                check.attr('checked', true);
         });
 
 
