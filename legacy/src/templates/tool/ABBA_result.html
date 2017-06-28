@@ -462,6 +462,18 @@
                         <i class="fa fa-info-circle"></i>
                     </span>
                 </h3>
+                <div class="row">
+                    <div class="col-xs-12 col-md-9">
+                        <div class="row">
+                        </div>
+                    </div>
+                    <div class="col-xs-6 col-md-3">
+                        <button type="button" class="btn btn-block btn-warning" id="addToNewGeneset"
+                                style="margin-bottom: 10px;">
+                            <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <form id="addGenesToNewGeneset" name="addGenesToNewGeneset" method="post" action="#"
@@ -542,9 +554,9 @@
 
                             <td>
                                 <div class="ui-checkbox" style="padding: 0; border: 0;">
-                                    <label for="addGeneset{{ i[0] }}">
-                                        <input type="checkbox" name="gsoptions[]" id="addGeneset{{ i[0] }}"
-                                                   value="{{ i[0] }}"/>
+                                    <label for="addGeneset-{{ i[0] }}">
+                                        <input type="checkbox" name="gsoptions[]" id="addGeneset-{{ i[0] }}"
+                                                   value="{{ json_result.PrefMapping[i[0] | string] }}"/>
                                     </label>
                                 </div>
                             </td>
@@ -872,6 +884,74 @@
 
 </script>
 
+<!-- Add to gene set features -->
+<script type="text/javascript">
+
+    $(document).ready(function () {
+
+        $("#addToNewGeneset").click(function (event) {
+
+            var checkedArray = [];
+
+            $("input:checkbox[name='gsoptions[]']:checked").each(function () {
+                checkedArray.push($(this).val());
+            });
+
+            if (checkedArray.length > 0) {
+
+                var inputSpecies = {{ json_result.InputSpecies | tojson | safe }};
+                var inputGenes = {{ json_result.GenesOfInterest | sort(attribute=1, reverse=True) | tojson | safe }};
+                var filtInputGenes = [];
+                var geneSpecies = null;
+
+                console.log(inputGenes);
+                for (var i = 0; i < inputGenes.length; i++) {
+
+                    var gene = inputGenes[i];
+
+                    if (geneSpecies === null)
+                        geneSpecies = gene[2];
+
+                    console.log(gene[2]);
+                    console.log(geneSpecies);
+                    if (gene[2] !== geneSpecies)
+                        continue
+
+                    filtInputGenes.push(gene[1]);
+                }
+
+                // The 1? is added so the entire string will appear in
+                // window.location.search. Without the 1? The string is
+                // truncated and missing the first sentence.
+                var getStr = '1?abba?' +
+                    'Genes found during a graph walk of GeneWeaver gene sets?' +
+                    'Top ' + checkedArray.length + ' genes from the result ' +
+                    'of an ABBA gene search. The search was performed using ' + 
+                    inputSpecies.join(', ') + ' as the input species and ' + 
+                    'seeded using the following genes: ' +  
+                    filtInputGenes.join(', ')
+                    ;
+
+                // add in all the checked boxes gene names
+                checkedArray.forEach(function (entry) {
+                    getStr += "?";
+                    getStr += entry;
+                    getStr += "?";
+                    getStr += "1";
+                });
+
+                // Load the new page with the extra url bit
+                window.open('/uploadgeneset/' + getStr, '_blank');
+            }
+            else {
+                window.alert("No checkboxes selected.")
+            }
+        });
+
+
+    });
+
+</script>
 
 <!-- Update Button Script -->
 <script>
