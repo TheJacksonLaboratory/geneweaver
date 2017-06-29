@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
 ## file: batch.py
-## desc: Batch file reader and writer. This is a variant of the batch parser
-##       found in the GW2 sauce. It works the same way but decouples most of
-##       the DB code and adds support for specifying tiers, attributions, 
-##       and user IDs in the batch file.
+## desc: Batch file reader.
 ## auth: Baker
 ##       TR
 #
@@ -12,11 +9,7 @@
 from collections import Counter as mset
 from collections import defaultdict as dd
 from copy import deepcopy
-import datetime
-import json
-import random
 import re
-import urllib2 as url2
 
 import geneweaverdb as gwdb
 from pubmedsvc import get_pubmed_info
@@ -100,17 +93,6 @@ class BatchReader(object):
         self._pub_map = None
         self._symbol_cache = dd(lambda: dd(int))
         self._annotation_cache = dd(int)
-
-    def __read_file(self, fp=None):
-        """
-        Reads a file and splits it into lines.
-        """
-
-        if not fp:
-            fp = self.filepath
-
-        with open(fp, 'r') as fl:
-            return fl.read().split('\n')
 
     def __reset_parsed_set(self):
         """
@@ -561,7 +543,6 @@ class BatchReader(object):
 
         conts = ''
 
-        ## Gene set values should be a list of tuples (symbol, value)
         for tup in genes:
             conts += '%s\t%s\n' % (tup[0], tup[1])
 
@@ -769,6 +750,9 @@ class BatchReader(object):
         if self.errors:
             return []
 
+        ## The attribution stuff can probably be safely removed b/c it's only 
+        ## used for up(load|dat)ing public resource data and users shouldn't be
+        ## able to specify at_ids
         #attributions = db.get_attributions()
         attributions = gwdb.get_all_attributions()
 

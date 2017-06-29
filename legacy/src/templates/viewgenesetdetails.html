@@ -771,7 +771,7 @@
 			// in an infinite loading loop. Any variable replaced by jinja
 			// should be safe'd and trimmed.
 			var gsData = 'Genes dervied from the GeneSet: ' + 
-                         "{{ geneset.name | safe | trim }}";
+                         {{ geneset.name | safe | trim | tojson }};
             var species = '{{ geneset.sp_id | safe }}';
             var geneType = {{ geneset.gene_id_type | safe }};
 
