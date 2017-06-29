@@ -83,7 +83,6 @@ def create_batch_geneset():
     batch_file = flask.request.form['batchFile']
 
     ## The data sent to us should be URL encoded
-    #batchFile = urllib2.unquote(request.args['batchFile'])
     batch_file = urllib2.unquote(batch_file)
     batch_file = batch_file.split('\n')
     batch_file = map(lambda s: s.encode('ascii', 'ignore'), batch_file)
