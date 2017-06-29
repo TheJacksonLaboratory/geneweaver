@@ -304,6 +304,7 @@ def get_unmapped_ids(gs_id, geneset, sp_id, gdb_id):
     """
     user_ids = []
     not_found = []
+    not_in = []
     file_contents = get_file_contents_by_gsid(gs_id)
     file = file_contents[0][0].strip('\r').split('\n')
     for f in file:

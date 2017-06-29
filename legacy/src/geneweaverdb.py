@@ -4173,7 +4173,7 @@ def get_gene_ids_by_spid_type(sp_id, gdb_id):
                 FROM    extsrc.gene
                 WHERE   sp_id = %s AND
                         gdb_id = %s AND
-                        ode_pref = 't'; AND
+                        ode_pref = 't';
                 ''',
                     (sp_id, gdb_id)
             )

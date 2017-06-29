@@ -97,6 +97,7 @@ def create_batch_geneset():
     ## Required later on when inserting OmicsSoft specific metadata
     is_omicssoft = False
 
+    ## Needs to be redone
     if batch.is_omicssoft(batch_file):
         batch_file = batch.parse_omicssoft(batch_file, user_id)
         batch_file = (batch_file, [], [])
@@ -108,40 +109,16 @@ def create_batch_geneset():
 
     ## Bad things happened during parsing...
     if not genesets:
-        errors = ''
-
-        for err in batch_reader.errors:
-            errors += e
-            errors += '\n'
-
-        return flask.jsonify({'error': errors})
+        return flask.jsonify({'error': batch_reader.errors})
 
     ## Publication info for gene sets that have PMIDs
-    batch_reader.get_pubmed_info()
+    batch_reader.get_geneset_pubmeds()
 
     ## Now try inserting everything into the DB. We bypass normal gene set
-    ## insertion using the create_geneset stored procedure so we can report 
+    ## insertion (the create_geneset stored procedure) so we can report 
     ## errors to the user and process any custom fields like ontology
     ## annotations
     new_ids = batch_reader.insert_genesets()
-
-    errors = ''
-    warns = ''
-
-    ## Warnings like unknown gene symbols, invalid thresholds, etc.
-    if batch_reader.warns:
-        for warn in batch_reader.warns:
-            warns += e
-            warns += '\n'
-
-    ## Errors that ocurred during post processing. These errors don't prevent
-    ## other gene sets from being uploaded, only the one in which the error
-    ## ocurred.
-    if batch_reader.errors:
-        for err in batch_reader.errors:
-            errors += e
-            errors += '\n'
-
 
     ## This will need to be redone
     if is_omicssoft:
@@ -157,8 +134,8 @@ def create_batch_geneset():
 
     return flask.jsonify({
         'genesets': new_ids, 
-        'warn': warns,
-        'error': errors
+        'warn': batch_reader.warns,
+        'error': batch_reader.errors
     })
 
 

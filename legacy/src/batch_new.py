@@ -35,7 +35,7 @@ def make_digrams(s):
     if len(s) <= 2:
         return [s]
 
-    b = makeDigrams(s[1:])
+    b = make_digrams(s[1:])
     b.insert(0, s[:2])
 
     return b
@@ -59,8 +59,8 @@ def calculate_str_similarity(s1, s2):
         a float indicating the percent similarity between two strings
     """
 
-    sd1 = makeDigrams(s1)
-    sd2 = makeDigrams(s2)
+    sd1 = make_digrams(s1)
+    sd2 = make_digrams(s2)
     intersect = list((mset(sd1) & mset(sd2)).elements())
 
     return (2 * len(intersect)) / float(len(sd1) + len(sd2))
@@ -70,7 +70,7 @@ class BatchReader(object):
     Class used to read and parse batch geneset files.
 
     public
-        contents:   batch file contents
+        contents:   list of lines in the batch file
         usr_id:     ID of the user uploading the batch file
         genesets:   list of dicts representing the parsed genesets, each dict
                     has fields corresponding to columns in the geneset table
@@ -91,7 +91,7 @@ class BatchReader(object):
 
     def __init__(self, contents, usr_id=0):
 
-        self.contents = ''
+        self.contents = contents
         self.usr_id = usr_id
         self.genesets = []
         self.errors = []
@@ -127,6 +127,9 @@ class BatchReader(object):
 
         if 'usr_id' not in self._parse_set:
             self._parse_set['usr_id'] = 0
+
+        if 'at_id' not in self._parse_set:
+            self._parse_set['at_id'] = None
 
         self._parse_set['gs_name'] = ''
         self._parse_set['gs_description'] = ''
@@ -278,7 +281,7 @@ class BatchReader(object):
             best = 0.70
 
             for plat, pid in platforms.items():
-                sim = calc_str_similarity(plat.lower(), original.lower())
+                sim = calculate_str_similarity(plat.lower(), original.lower())
 
                 if sim > best:
                     best = sim
@@ -537,7 +540,8 @@ class BatchReader(object):
                 )
 
         ## awwww shit, we're finally finished! Make the final parsed geneset.
-        self.genesets.append(self._parse_set)
+        if self.__check_parsed_set():
+            self.genesets.append(self._parse_set)
 
     def __insert_geneset_file(self, genes):
         """
@@ -558,7 +562,7 @@ class BatchReader(object):
         for tup in genes:
             conts += '%s\t%s\n' % (tup[0], tup[1])
 
-        return gwdb.insert_file(len(conts), conts, '')
+        return gwdb.insert_file(conts, '')
 
     def __map_ontology_annotations(self, gs):
         """
@@ -622,7 +626,8 @@ class BatchReader(object):
         elif gs['gs_gene_id_type'] < 0:
             ## A mapping of (symbols) ode_ref_ids -> ode_gene_ids. The
             ## ode_ref_ids returned by this function have all been lower cased.
-            ref2ode = gwdb.get_gene_ids_by_spid_type(sp_id, gene_type)
+            ## Remember gene_type is negative.
+            ref2ode = gwdb.get_gene_ids_by_spid_type(sp_id, -gene_type)
 
             self._symbol_cache[sp_id][gene_type] = dd(int, ref2ode)
 
@@ -651,9 +656,9 @@ class BatchReader(object):
             ## Platform handling
             if gs['gs_gene_id_type'] > 0:
                 prb_id = ref2ode[ref]
-                odes = ref2ode[prbid]
+                odes = ref2ode[prb_id]
 
-                if not prbid or not odes:
+                if not prb_id or not odes:
                     self.warns.append('No gene/locus data exists for %s' % ref)
                     continue
 
