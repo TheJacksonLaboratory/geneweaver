@@ -4313,6 +4313,8 @@ def insert_file(contents, comments):
                 (len(contents), contents, comments)
         )
 
+        cursor.connection.commit()
+
         return cursor.fetchone()[0]
 
 def insert_geneset_value(gs_id, gene_id, value, name, threshold):
@@ -4350,6 +4352,8 @@ def insert_geneset_value(gs_id, gene_id, value, name, threshold):
                 (gs_id, gene_id, value, [name], [float(value)], threshold)
         )
 
+        cursor.connection.commit()
+
         return cursor.fetchone()[0]
 
 def insert_publication(pub):
@@ -4382,6 +4386,8 @@ def insert_publication(pub):
             ''',
                 pub
         )
+
+        cursor.connection.commit()
 
         return cursor.fetchone()[0]
 
@@ -4428,6 +4434,8 @@ def insert_geneset(gs):
             ''',
                 gs
         )
+
+        cursor.connection.commit()
 
         return cursor.fetchone()[0]
 

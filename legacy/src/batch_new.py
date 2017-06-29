@@ -70,7 +70,8 @@ class BatchReader(object):
     Class used to read and parse batch geneset files.
 
     public
-        filepath:   string indicating the location of a batch file
+        contents:   batch file contents
+        usr_id:     ID of the user uploading the batch file
         genesets:   list of dicts representing the parsed genesets, each dict
                     has fields corresponding to columns in the geneset table
         errors:     list of strings indicating critical errors found during 
@@ -88,9 +89,10 @@ class BatchReader(object):
         _annotation_cache:  mapping of ontology term IDs -> ont_ids
     """
 
-    def __init__(self, filepath):
+    def __init__(self, contents, usr_id=0):
 
-        self.filepath = filepath
+        self.contents = ''
+        self.usr_id = usr_id
         self.genesets = []
         self.errors = []
         self.warns = []
@@ -122,6 +124,9 @@ class BatchReader(object):
 
         if 'pmid' not in self._parse_set:
             self._parse_set['pmid'] = ''
+
+        if 'usr_id' not in self._parse_set:
+            self._parse_set['usr_id'] = 0
 
         self._parse_set['gs_name'] = ''
         self._parse_set['gs_description'] = ''
@@ -725,29 +730,33 @@ class BatchReader(object):
                     gs['gs_id'], ont_id, 'GeneWeaver Primary Annotation'
                 )
 
-    def parse_batch_file(self):
+    def parse_batch_file(self, bs='', usr_id=0):
         """
         Parses a batch file to completion. 
 
         arguments
-            fp: a string, the filepath to a batch file
+            bs:     string containing the contents of the batch file
+            usr_id: ID of the user uploading the gene sets
 
         returns
             A list of gene set objects (dicts) with properly filled out fields,
             ready for insertion into the GW DB.
         """
 
+        ## errors that prevent further parsing
         self.errors = []
+        ## warnings generated during parsing
         self.warns = []
-
-        if not self.filepath:
-            self.errors('No batch file was provided.')
-            return []
-
         ## list of gs_ids successfully added to the db
         added = []  
 
-        self.__parse_batch_syntax(self.__read_file())
+        if not bs:
+            bs = self.contents
+
+        if not usr_id:
+            usr_id = self.usr_id
+
+        self.__parse_batch_syntax(bs)
 
         if self.errors:
             return []
@@ -761,9 +770,10 @@ class BatchReader(object):
                 attributions[abbrev.lower()] = at_id
 
         ## Geneset post-processing: mapping gene -> ode_gene_ids, attributions,
-        ## and annotations
+        ## annotations, and the user ID
         for gs in self.genesets:
 
+            gs['usr_id'] = usr_id
             gs['gs_count'] = self.__map_gene_identifiers(gs)
 
             if gs['at_id']:
