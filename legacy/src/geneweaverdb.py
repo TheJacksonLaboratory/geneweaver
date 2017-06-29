@@ -4196,21 +4196,17 @@ def get_gene_ids_by_spid_type(sp_id, gdb_id):
 
         return d
 
-def get_platform_probes(pf_id, refs):
+def get_platform_probes(pf_id):
     """
     Returns a mapping of probe names (prb_ref_ids from a particular microarray
     platform) to their IDs.
 
     arguments
         pf_id:  platform ID
-        refs:   a list of probe references/names
 
     returns
         a dict mapping prb_ref_ids -> prb_ids
     """
-
-    if type(refs) == list:
-        refs = tuple(refs)
 
     with PooledCursor() as cursor:
 
@@ -4218,10 +4214,9 @@ def get_platform_probes(pf_id, refs):
             '''
             SELECT  prb_ref_id, prb_id
             FROM    odestatic.probe
-            WHERE   pf_id = %s AND
-                    prb_ref_id IN %s;
+            WHERE   pf_id = %s;
             ''',
-                (pf_id, refs)
+                (pf_id,)
         )
 
         d = {}

@@ -1,14 +1,6 @@
 # This is an example batch upload file for GeneWeaver.
 # http://geneweaver.org
 #
-# The first three data sets represented in this file are from PubMed 
-# publication 19958391:
-#   Philip et al. High-throughput behavioral phenotyping in the
-#       expanded panel of BXD recombinant inbred strains. Genes,
-#       brain, and behavior. Sep 2009
-#
-# Comment lines begin with a '#'
-#
 # The format of this file is described online at:
 #    http://geneweaver.org/index.php?action=manage&cmd=batchgeneset
 # Which is the same page that it can be submitted to.

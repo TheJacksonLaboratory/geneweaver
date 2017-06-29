@@ -503,9 +503,20 @@ class BatchReader(object):
 
                 self._parse_set['annotations'].append(lns[i][1:].strip())
 
+            ## Lines beginning with '#' are comments
+            elif lns[i][:1] == '#':
+                continue
+
+            ## Skip blank lines
+            elif lns[i][:1] == '':
+                continue
+
             ## If the lines are tab separated, we assume it's the gene data that
-            ## will become part of the geneset_values
-            elif len(lns[i].split('\t')) == 2:
+            ## will become part of the geneset_values. Also (reluctantly)
+            ## support single spaces instead of tabs since people are gonna do
+            ## it anyway and some of our examples keep getting their tabs
+            ## converted.
+            elif len(lns[i].split('\t')) == 2 or len(lns[i].split()) == 2:
 
                 ## Check to see if all the required data was specified, if not
                 ## this set can't get uploaded. Let the user figure out what the
@@ -516,21 +527,13 @@ class BatchReader(object):
                     err = 'One or more of the required fields are missing.'
 
                     ## Otherwise this string will get appended a bajillion times
-                    if err not in errors:
+                    if err not in self.errors:
                         self.errors.append(err)
 
                 else:
-                    lns[i] = lns[i].split('\t')
+                    lns[i] = lns[i].split()
 
                     self._parse_set['values'].append((lns[i][0], lns[i][1]))
-
-            ## Lines beginning with '#' are comments
-            elif lns[i][:1] == '#':
-                continue
-
-            ## Skip blank lines
-            elif lns[i][:1] == '':
-                continue
 
             ## Who knows what the fuck this line is, just skip it
             else:
@@ -635,7 +638,7 @@ class BatchReader(object):
         else:
             ## This is a mapping of (symbols) prb_ref_ids -> prb_ids for the
             ## given platform
-            ref2prbid = gwdb.get_platform_probes(gene_type, gene_refs)
+            ref2prbid = gwdb.get_platform_probes(gene_type)
             ## This is a mapping of prb_ids -> ode_gene_ids
             prbid2ode = gwdb.get_probe2gene(ref2prbid.values())
 
