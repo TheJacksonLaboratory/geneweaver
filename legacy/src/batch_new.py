@@ -9,7 +9,6 @@
 ##       TR
 #
 
-## multisets because regular sets remove duplicates, requires python 2.7
 from collections import Counter as mset
 from collections import defaultdict as dd
 from copy import deepcopy
@@ -19,9 +18,8 @@ import random
 import re
 import urllib2 as url2
 
-from ncbi import get_pubmed_articles
-import db
-import util
+import geneweaverdb as gwdb
+from pubmedsvc import get_pubmed_info
 
 def make_digrams(s):
     """
@@ -66,9 +64,6 @@ def calculate_str_similarity(s1, s2):
     intersect = list((mset(sd1) & mset(sd2)).elements())
 
     return (2 * len(intersect)) / float(len(sd1) + len(sd2))
-
-        ## READER ##
-        ############
 
 class BatchReader(object):
     """
@@ -325,21 +320,30 @@ class BatchReader(object):
 
         self.__reset_parsed_set()
 
-        gene_types = db.get_gene_types()
-        species = db.get_species()
-        platforms = db.get_platform_names()
+        #gene_types = db.get_gene_types()
+        #species = db.get_species()
+        #platforms = db.get_platform_names()
+
+        type_list = gwdb.get_gene_id_types()
+        sp_dict = gwdb.get_all_species()
+        plat_list = gwdb.get_microarray_types()
+        gene_types = {}
+        species = {}
+        platforms = {}
 
         ## Provide lower cased keys for gene types, species, and expression
         ## platformrs. Otherwise batch files must use case sensitive fields
-        ## which would be annoying.
-        for gdb_name, gdb_id in gene_types.items():
-            gene_types[gdb_name.lower()] = gdb_id
+        ## which would be annoying. Also do some rearranging since the
+        ## geneweaverdb functions differ from mine.
+        #for gdb_name, gdb_id in gene_types.items():
+        for d in type_list:
+            gene_types[d['gdb_name'].lower()] = d['gdb_id']
 
-        for sp_name, sp_id in species.items():
+        for sp_id, sp_name in sp_dict.items():
             species[sp_name.lower()] = sp_id
 
-        for pf_name, pf_id in platforms.items():
-            platforms[pf_name.lower()] = pf_id
+        for d in plat_list:
+            platforms[d['pf_name'].lower()] = d['pf_id']
 
         for i in range(len(lns)):
             lns[i] = lns[i].strip()
@@ -549,7 +553,7 @@ class BatchReader(object):
         for tup in genes:
             conts += '%s\t%s\n' % (tup[0], tup[1])
 
-        return db.insert_file(len(conts), conts, '')
+        return gwdb.insert_file(len(conts), conts, '')
 
     def __map_ontology_annotations(self, gs):
         """
@@ -567,10 +571,11 @@ class BatchReader(object):
                 gs['ont_ids'].append(self._annotation_cache[anno])
 
             else:
-                ont_id = db.get_annotation_by_ref(anno)
+                #ont_id = db.get_annotation_by_ref(anno)
+                ont_id = gwdb.get_ontologies_by_refs([anno])
 
                 if ont_id:
-                    gs['ont_ids'].append(ont_id)
+                    gs['ont_ids'].append(ont_id[0])
 
                     self._annotation_cache[anno] = ont_id
 
@@ -612,7 +617,7 @@ class BatchReader(object):
         elif gs['gs_gene_id_type'] < 0:
             ## A mapping of (symbols) ode_ref_ids -> ode_gene_ids. The
             ## ode_ref_ids returned by this function have all been lower cased.
-            ref2ode = db.get_gene_ids_by_spid_type(sp_id, gene_type)
+            ref2ode = gwdb.get_gene_ids_by_spid_type(sp_id, gene_type)
 
             self._symbol_cache[sp_id][gene_type] = dd(int, ref2ode)
 
@@ -620,9 +625,9 @@ class BatchReader(object):
         else:
             ## This is a mapping of (symbols) prb_ref_ids -> prb_ids for the
             ## given platform
-            ref2prbid = db.get_platform_probes(gene_type, gene_refs)
+            ref2prbid = gwdb.get_platform_probes(gene_type, gene_refs)
             ## This is a mapping of prb_ids -> ode_gene_ids
-            prbid2ode = db.get_probe2gene(ref2prbid.values())
+            prbid2ode = gwdb.get_probe2gene(ref2prbid.values())
 
             ## Just throw everything in the same dict, shouldn't matter since
             ## the prb_refs will be strings and the prb_ids will be ints
@@ -694,17 +699,16 @@ class BatchReader(object):
 
     def __insert_geneset_values(self, gs):
         """
+        Inserts gene set values into the DB.
+
+        arguments
+            gs: gene set object
         """
 
         for ref, ode, value in gs['geneset_values']:
-            try:
-                db.insert_geneset_value(
-                    gs['gs_id'], ode, value, ref, gs['gs_threshold']
-                )
-            except Exception as e:
-                print e
-                print gs
-                exit()
+            gwdb.insert_geneset_value(
+                gs['gs_id'], ode, value, ref, gs['gs_threshold']
+            )
 
     def __insert_annotations(self, gs):
         """
@@ -716,7 +720,8 @@ class BatchReader(object):
 
         if 'ont_ids' in gs:
             for ont_id in set(gs['ont_ids']):
-                db.insert_geneset_ontology(
+                #db.insert_geneset_ontology(
+                gwdb.add_ont_to_geneset(
                     gs['gs_id'], ont_id, 'GeneWeaver Primary Annotation'
                 )
 
@@ -747,9 +752,10 @@ class BatchReader(object):
         if self.errors:
             return []
 
-        attributions = db.get_attributions()
+        #attributions = db.get_attributions()
+        attributions = gwdb.get_all_attributions()
 
-        for abbrev, at_id in attributions.items():
+        for at_id, abbrev in attributions.items():
             ## Fucking NULL row in the db, this needs to be removed
             if abbrev:
                 attributions[abbrev.lower()] = at_id
@@ -769,12 +775,18 @@ class BatchReader(object):
 
     def get_geneset_pubmeds(self):
         """
+        Retrieves publication info for all gene sets that have PMIDs attached.
+        If the PMID already exists in the DB that entry is used otherwise
+        publication data is downloaded from NCBI.
         """
 
+        ## PMID -> pub_id map
         if not self._pub_map:
-            self._pub_map = db.get_publication_mapping()
+            self._pub_map = gwdb.get_publication_mapping()
 
+        ## These publications already exist in the DB
         found = filter(lambda g: g['pmid'] in self._pub_map, self.genesets)
+        ## These don't
         not_found = filter(
             lambda g: g['pmid'] not in self._pub_map, self.genesets
         )
@@ -783,27 +795,34 @@ class BatchReader(object):
             gs['pub_id'] = self._pub_map[gs['pmid']]
             gs['pub'] = gs['pmid']
 
-        pubs = get_pubmed_articles(map(lambda g: g['pmid'], self.genesets))
+        #pubs = get_pubmed_articles(map(lambda g: g['pmid'], self.genesets))
+        for gs in not_found:
+            ## Check to see if the PMID has been added to the cache
+            if gs['pmid'] in self._pub_map:
+                gs['pub_id'] = self._pub_map[gs['pmid']]
+                gs['pub'] = gs['pmid']
 
-        for gs in self.genesets:
-            if gs['pmid'] not in pubs:
-                gs['pub_id'] = None
-                gs['pub'] = None
-
+            ## Get the info from NCBI
             else:
                 gs['pub_id'] = None
-                gs['pub'] = pubs[gs['pmid']]
 
-    def insert_genesets(self, genesets=None):
+                if gs['pmid']:
+                    gs['pub'] = get_pubmed_info(gs['pmid'])
+                else:
+                    gs['pub'] = None
+
+    def insert_genesets(self):
         """
+        Inserts parsed gene sets along with their files, values, and 
+        annotations into the DB.
+
+        returns
+            the gs_ids of the inserted sets
         """
 
         ids = []
 
-        if not genesets:
-            genesets = self.genesets
-
-        for gs in genesets:
+        for gs in self.genesets:
 
             if not gs['gs_count']:
 
@@ -815,10 +834,10 @@ class BatchReader(object):
                 continue
 
             if not gs['pub_id'] and gs['pub']:
-                gs['pub_id'] = db.insert_publication(gs['pub'])
+                gs['pub_id'] = gwdb.insert_publication(gs['pub'])
 
             gs['file_id'] = self.__insert_geneset_file(gs['values'])
-            gs['gs_id'] = db.insert_geneset(gs)
+            gs['gs_id'] = gwdb.insert_geneset(gs)
             self.__insert_geneset_values(gs)
             self.__insert_annotations(gs)
 

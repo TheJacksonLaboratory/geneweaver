@@ -850,7 +850,6 @@ def resolve_feature_id(sp_id, feature_id):
 
         return list(cursor)
 
-
 def get_gene_id_types(sp_id=0):
     with PooledCursor() as cursor:
         cursor.execute(
@@ -4133,6 +4132,305 @@ def insert_omicssoft_metadata(gs_id, project, source, tag, otype):
         )
 
         cursor.connection.commit()
+
+## These functions below were added for the new batch parser. If some variant
+## of them already exists elsewhere in this file (I looked and couldn't find 
+## them), please delete these and update batch.py accordingly.
+
+def get_gene_ids_by_spid_type(sp_id, gdb_id):
+    """
+    Returns a mapping of ode_ref_ids -> ode_gene_ids.
+
+    arguments
+        sp_id:  the species ID
+        gdb_id: the gene type ID
+
+    returns
+        a dict
+    """
+
+    ## There is an issue with gene symbols. Some species have duplicate symbols
+    ## with different ode_gene_ids. One is the correct entry, the other is an
+    ## entry for another gene with the same symbol (incorrectly attributed).
+    ## One e.g. is the mouse Ccr4 gene. There is the true entry for Ccr4, but
+    ## another gene (Cnot6) also has CCR4 as a gene symbol synonym which 
+    ## screws with our case insensitive searches. So, when symbols are
+    ## searched for the ode_pref_tag MUST be used.
+    #gene_types = get_short_gene_types()
+    gene_types = get_gene_id_types()
+    use_pref = False
+
+    for d in gene_types:
+        if d['gdb_shortname'] == 'symbol' and d['gdb_id'] == gdb_id:
+            use_pref = True
+
+    with PooledCursor() as cursor:
+
+        if use_pref:
+            cursor.execute(
+                '''
+                SELECT  lower(ode_ref_id), ode_gene_id
+                FROM    extsrc.gene
+                WHERE   sp_id = %s AND
+                        gdb_id = %s AND
+                        ode_pref = 't'; AND
+                ''',
+                    (sp_id, gdb_id)
+            )
+
+        else:
+            cursor.execute(
+                '''
+                SELECT  lower(ode_ref_id), ode_gene_id
+                FROM    extsrc.gene
+                WHERE   sp_id = %s AND
+                        gdb_id = %s;
+                ''',
+                    (sp_id, gdb_id)
+            )
+
+        d = {}
+
+        for ref_id, gene_id in cursor.fetchall():
+            d[ref_id] = gene_id
+
+        return d
+
+def get_platform_probes(pf_id, refs):
+    """
+    Returns a mapping of probe names (prb_ref_ids from a particular microarray
+    platform) to their IDs.
+
+    arguments
+        pf_id:  platform ID
+        refs:   a list of probe references/names
+
+    returns
+        a dict mapping prb_ref_ids -> prb_ids
+    """
+
+    if type(refs) == list:
+        refs = tuple(refs)
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            SELECT  prb_ref_id, prb_id
+            FROM    odestatic.probe
+            WHERE   pf_id = %s AND
+                    prb_ref_id IN %s;
+            ''',
+                (pf_id, refs)
+        )
+
+        d = {}
+
+        for ref_id, gene_id in cursor.fetchall():
+            d[ref_id] = gene_id
+
+        return d
+
+def get_probe2gene(prb_ids):
+    """
+    Returns a mapping of prb_ids -> ode_gene_ids for the given set of prb_ids.
+
+    arguments
+        prb_ids: a list of probe IDs
+
+    returns
+        a dict mapping of prb_id -> prb_ref_id
+    """
+
+    if type(prb_ids) == list:
+        prb_ids = tuple(prb_ids)
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            SELECT  prb_id, ode_gene_id
+            FROM    extsrc.probe2gene
+            WHERE   prb_id in %s;
+            ''',
+                (prb_ids,)
+        )
+
+        d = {}
+
+        for ref_id, gene_id in cursor.fetchall():
+            if ref_id in d:
+                d[ref_id].append(gene_id)
+
+            else:
+                d[ref_id] = [gene_id]
+
+        return d
+
+def get_publication_mapping():
+    """
+    Returns a mapping of PMID -> pub_id for all publications in the DB.
+
+    returns
+        a dict mapping PMIDs -> pub_ids
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            SELECT DISTINCT ON  (pub_pubmed) pub_pubmed, pub_id
+            FROM                production.publication
+            ORDER BY            pub_pubmed, pub_id;
+            '''
+        )
+
+        return OrderedDict(cursor)
+
+def insert_file(contents, comments):
+    """
+    Inserts a new file into the database.
+
+    arguments
+        contents:   file contents which MUST be in the format:
+                        gene\tvalue\n
+        comments:   misc. comments about this file
+
+    returns
+        a file_id
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO file
+                (file_size, file_contents, file_comments, file_created)
+            VALUES
+                (%s, %s, %s, NOW())
+            RETURNING file_id;
+            ''',
+                (len(contents), contents, comments)
+        )
+
+        return cursor.fetchone()[0]
+
+def insert_geneset_value(gs_id, gene_id, value, name, threshold):
+    """
+    Inserts a new geneset_value into the database.
+
+    arguments
+        gs_id:      gene set ID
+        gene_id:    ode_gene_id
+        value:      value associated with this gene
+        name:       a gene name or symbol (typically an ode_ref_id)
+        threshold:  a threshold value for the gene set
+
+    returns
+        the gs_id associated with this gene set value
+    """
+
+    threshold = 't' if value <= threshold else 'f'
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO geneset_value
+
+                (gs_id, ode_gene_id, gsv_value, gsv_source_list,
+                gsv_value_list, gsv_in_threshold, gsv_hits, gsv_date)
+
+            VALUES
+
+                (%s, %s, %s, %s, %s, %s, 0, NOW())
+
+            RETURNING gs_id;
+            ''',
+                (gs_id, gene_id, value, [name], [float(value)], threshold)
+        )
+
+        return cursor.fetchone()[0]
+
+def insert_publication(pub):
+    """
+    Inserts a new publication into the database.
+
+    arguments
+        pub: a dict with fields matching the columns in the publication table
+
+    returns
+        a pub_id
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO publication
+
+                (pub_authors, pub_title, pub_abstract, pub_journal,
+                pub_volume, pub_pages, pub_month, pub_year, pub_pubmed)
+
+            VALUES
+
+                (%(pub_authors)s, %(pub_title)s, %(pub_abstract)s,
+                %(pub_journal)s, %(pub_volume)s, %(pub_pages)s, %(pub_month)s,
+                %(pub_year)s, %(pub_pubmed)s)
+
+            RETURNING pub_id;
+            ''',
+                pub
+        )
+
+        return cursor.fetchone()[0]
+
+def insert_geneset(gs):
+    """
+    Inserts a new geneset into the database.
+
+    arguments
+        gs: a dict whose keys match the columns in the geneset table
+
+    returns
+        a gs_id
+    """
+
+    if ('gs_created' not in gs):
+        gs['gs_created'] = 'NOW()'
+
+    if ('pub_id' not in gs):
+        gs['pub_id'] = None
+
+    if 'gs_attribution' not in gs:
+        gs['gs_attribution'] = None
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO geneset
+
+                (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
+                gs_description, sp_id, gs_count, gs_threshold_type,
+                gs_threshold, gs_groups, gs_gene_id_type, gs_created,
+                gs_attribution)
+
+            VALUES
+
+                (%(usr_id)s, %(file_id)s, %(gs_name)s, %(gs_abbreviation)s,
+                %(pub_id)s, %(cur_id)s, %(gs_description)s, %(sp_id)s,
+                %(gs_count)s, %(gs_threshold_type)s, %(gs_threshold)s,
+                %(gs_groups)s, %(gs_gene_id_type)s, %(gs_created)s,
+                %(gs_attribution)s)
+
+            RETURNING gs_id;
+            ''',
+                gs
+        )
+
+        return cursor.fetchone()[0]
+
 
 # sample api calls begin
 
