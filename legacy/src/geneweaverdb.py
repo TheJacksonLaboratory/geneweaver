@@ -860,6 +860,19 @@ def get_gene_id_types(sp_id=0):
         return list(dictify_cursor(cursor))
 
 
+def get_ode_ref_id(value, sp_id):
+    value = value.lower()
+    ids = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' AND sp_id=%s''' % (value, sp_id,)
+        )
+    results = cursor.fetchall()
+    for res in results:
+        ids.append(res[0])
+    return ids
+
+
 def get_microarray_types(sp_id=0):
     """
     get all rows from the platform table with the given species identifier
