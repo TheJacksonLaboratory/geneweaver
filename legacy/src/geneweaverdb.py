@@ -864,9 +864,14 @@ def get_ode_ref_id(value, sp_id):
     value = value.lower()
     ids = []
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' AND sp_id=%s''' % (value, sp_id,)
-        )
+        if sp_id == 'None':
+            cursor.execute(
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' ''' % (value,)
+            )
+        else:
+            cursor.execute(
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' AND sp_id=%s''' % (value, sp_id,)
+            )
     results = cursor.fetchall()
     for res in results:
         ids.append(res[0])
