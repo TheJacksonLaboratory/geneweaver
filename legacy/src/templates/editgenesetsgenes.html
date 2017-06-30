@@ -478,6 +478,25 @@
             });
         });
 
+        $('#gene-newid').on('keyup', function(){
+            var value = $(this).val();
+            $.ajax({
+                url: "/get_gene_ref_ID.json",
+                data: {
+                  'search': value,
+                    'sp_id': {{ geneset.sp_id }}
+                },
+                dataType: 'json',
+                success: function (data) {
+                    var list = data.list;
+                    $('#gene-newid').autocomplete({
+                        source: list,
+                        minLength: 2,
+                        appendTo: $("#addGenesetGene")
+                    });
+                }
+            });
+        });
 
         $('#editSubmitIdentifier').on('click', function(e){
             var val = $('#identifier').children('#selectedIdentifier').text();

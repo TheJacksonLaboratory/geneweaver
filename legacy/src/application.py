@@ -1230,6 +1230,16 @@ def rerun_annotator():
     return flask.jsonify({'success': True})
 
 
+@app.route('/get_gene_ref_ID.json', methods=['GET'])
+def get_gene_ref_ID():
+    """
+    Returns a json list of genes that fit the query for auto complete
+    """
+    ids = geneweaverdb.get_ode_ref_id(flask.request.args['search'], flask.request.args['sp_id'])
+    data = {'list': ids}
+    return flask.jsonify(data)
+
+
 def get_ontology_terms(gsid):
     """
     Retrieves ontology terms and metadata for a particular gs_id. For each term
