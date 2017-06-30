@@ -29,7 +29,7 @@
                             {% endif %}
                         </ul>
                     </div>
-                    {% if "user" in g and g.user %}
+                    {% if "user" in g and g.user and not g.user.is_guest %}
                         <div class="col-md-2">
                             <h4>Manage Accounts</h4>
                             <hr>
@@ -41,7 +41,7 @@
                             </ul>
                         </div>
                     {% endif %}
-                    {% if "user" not in g or not g.user %}
+                    {% if "user" not in g or not g.user or g.user.is_guest == True %}
                         <div class="col-md-2">
                             <h4>Manage Accounts</h4>
                             <hr>
