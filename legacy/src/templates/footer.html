@@ -24,12 +24,12 @@
                         <ul class="analyzeGenesetLinks" role="menu">
                             <li><a href="/analyze">Analyze GeneSets</a></li>
                             <li><a href="/results">View Results</a></li>
-                            {% if "user" in g %}
+                            {% if "user" in g and g.user %}
                                 <li><a href="/emphasis">Emphasize Genes</a></li>
                             {% endif %}
                         </ul>
                     </div>
-                    {% if "user" in g %}
+                    {% if "user" in g and g.user %}
                         <div class="col-md-2">
                             <h4>Manage Accounts</h4>
                             <hr>
@@ -41,7 +41,7 @@
                             </ul>
                         </div>
                     {% endif %}
-                    {% if "user" not in g %}
+                    {% if "user" not in g or not g.user %}
                         <div class="col-md-2">
                             <h4>Manage Accounts</h4>
                             <hr>
