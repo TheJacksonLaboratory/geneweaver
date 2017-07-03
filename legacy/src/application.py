@@ -4179,7 +4179,7 @@ api.add_resource(ToolUpSetProjects,
 ## Config loading should occur outside __main__ when proxying requests through
 ## a web server like nginx. uWSGI doesn't load anything in the __main__ block
 app.secret_key = config.get('application', 'secret')
-#app.debug = True
+app.debug = True
 
 if __name__ == '__main__':
 
