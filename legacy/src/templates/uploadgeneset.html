@@ -437,8 +437,8 @@
         if (uploadData.length < 5)
             return;
 
-        // New set from the boolean algebra tool
-        if (uploadData[0] === 'algebra') {
+        // New set from the boolean algebra or ABBA tool
+        if (uploadData[0] === 'algebra' || uploadData[0] == 'abba') {
 
             // Get rid of 'algebra'
             uploadData.shift();
