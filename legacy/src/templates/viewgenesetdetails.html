@@ -236,7 +236,10 @@
                                 </td>
                                 <td class="gene-value">
                                     <strong>
+                                        {#
                                         {{ '%0.4f' % geneset_value.value|float }}
+                                        #}
+                                        {{ geneset_value.value|trim|float }}
                                     </strong>
                                 </td>
                                 <td>
