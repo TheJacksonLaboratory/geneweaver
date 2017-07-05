@@ -74,140 +74,54 @@ def render_batchupload(genes=None):
 def create_batch_geneset():
     """
     Attempts to parse a batch file and create a temporary GeneSet for review.
-
-    TODO: The batch upload module should use geneweaverdb functions instead of
-          its own database calls.
     """
 
     if not flask.request.form or not flask.request.form['batchFile']:
         return flask.jsonify({'error': 'No batch file was provided.'})
 
-    batchFile = flask.request.form['batchFile']
-
-    #if not request or not request.args or not request.args['batchFile']:
-    #    return flask.jsonify({'error': 'No batch file was provided.'})
+    batch_file = flask.request.form['batchFile']
 
     ## The data sent to us should be URL encoded
-    #batchFile = urllib2.unquote(request.args['batchFile'])
-    batchFile = urllib2.unquote(batchFile)
-    batchFile = batchFile.split('\n')
-    batchFile = map(lambda s: s.encode('ascii', 'ignore'), batchFile)
+    batch_file = urllib2.unquote(batch_file)
+    batch_file = batch_file.split('\n')
+    batch_file = map(lambda s: s.encode('ascii', 'ignore'), batch_file)
 
     user_id = flask.g.user.user_id if 'user' in flask.g else None
 
     if user_id == None:
         return flask.jsonify({"error": "You must be signed in to upload a GeneSet."})
 
+    batch_reader = batch_new.BatchReader(batch_file, user_id)
+
     ## Required later on when inserting OmicsSoft specific metadata
     is_omicssoft = False
 
-    if batch.is_omicssoft(batchFile):
-        batchFile = batch.parse_omicssoft(batchFile, user_id)
-        batchFile = (batchFile, [], [])
+    ## Needs to be redone
+    if batch.is_omicssoft(batch_file):
+        batch_file = batch.parse_omicssoft(batch_file, user_id)
+        batch_file = (batch_file, [], [])
         is_omicssoft = True
 
     else:
-        ## Returns a triplet (geneset list, warnings, errors)
-        batchFile = batch.parseBatchFile(batchFile, user_id)
+        ## List of gene set objects 
+        genesets = batch_reader.parse_batch_file()
 
-    batchErrors = ''
-    batchWarns = ''
+    ## Bad things happened during parsing...
+    if not genesets:
+        return flask.jsonify({'error': batch_reader.errors})
 
-    #return flask.jsonify({"Error": "Testing."})
+    ## Publication info for gene sets that have PMIDs
+    batch_reader.get_geneset_pubmeds()
 
-    ## Concatenate error/warning messages so we only return a single string
-    for e in batchFile[2]:
-        batchErrors += e
-        batchErrors += '\n'
+    ## Now try inserting everything into the DB. We bypass normal gene set
+    ## insertion (the create_geneset stored procedure) so we can report 
+    ## errors to the user and process any custom fields like ontology
+    ## annotations
+    new_ids = batch_reader.insert_genesets()
 
-    ## If there were critical errors, no need to continue on making genesets
-    if batchErrors:
-        return flask.jsonify({'error': batchErrors})
-
-    added = []
-    pub = None
-
-    for gs in batchFile[0]:
-
-        ## Empty genesets shouldn't get uploaded
-        if not gs['values']:
-            continue
-
-        ## If a PMID was provided, we get the info from NCBI
-        if gs['pub_id']:
-            pub = pubmedsvc.get_pubmed_info(gs['pub_id'])
-
-            if pub:
-                pub['pub_pubmed'] = gs['pub_id']
-                gs['pub_id'] = batch.db.insertPublication(pub)
-
-            else:
-                gs['pub_id'] = None
-
-        else:
-            gs['pub_id'] = None  # empty pub
-
-        ## Insert the data into the file table
-        gs['file_id'] = batch.buFile(gs['values'])
-        ## Insert new genesets and geneset_values
-        gs['gs_id'] = batch.db.insertGeneset(gs)
-        gsverr = batch.buGenesetValues(gs)
-
-        ## If no values were uploaded (empty set), return a critical error
-        if not gsverr[0]:
-            ce = ('The GeneSet "%s" has no valid genes/loci and could not be '
-                    'uploaded.\n' % gs['gs_name'])
-
-            batchFile[1].append(ce)
-            #return flask.jsonify({'error': ce})
-
-        ## Update gs_count if some geneset_values were found to be invalid
-        if gsverr[0] != len(gs['values']):
-            batch.db.updateGenesetCount(gs['gs_id'], gsverr[0])
-
-        added.append(gs['gs_id'])
-
-        ## Non-critical errors discovered during geneset_value creation
-        if gsverr[1]:
-            batchFile[1].extend(gsverr[1])
-
-        ## Add ontology annotations provided they exist
-        if 'annotations' in gs and gs['annotations']:
-            ont_ids = geneweaverdb.get_ontologies_by_refs(gs['annotations'])
-
-            for ont_id in ont_ids:
-                geneweaverdb.add_ont_to_geneset(
-                    gs['gs_id'], ont_id, 'Manual Association'
-                )
-
-        user = geneweaverdb.get_user(user_id)
-        user_prefs = json.loads(user.prefs)
-
-        # get the user's annotator preference.  if there isn't one in their user
-        # preferences, default to the monarch annotator
-        annotator = user_prefs.get('annotator', 'monarch')
-        ncbo = True
-        monarch = True
-        if annotator == 'ncbo':
-            monarch = False
-        elif annotator == 'monarch':
-            ncbo = False
-
-        with geneweaverdb.PooledCursor() as cursor:
-            if not pub:
-                abstract = ''
-            else:
-                abstract = pub['pub_abstract']
-
-            ## Annotate the geneset using the NCBO/MI services and insert new
-            ## annotations into the DB
-            ann.insert_annotations(cursor, gs['gs_id'], gs['gs_description'],
-                                   abstract, ncbo=ncbo, monarch=monarch)
-
-    batch.db.commit()
-
+    ## This will need to be redone
     if is_omicssoft:
-        for gs in batchFile[0]:
+        for gs in batch_file[0]:
             project = gs['project'] if 'project' in gs else ''
             source = gs['source'] if 'source' in gs else ''
             tag = gs['tag'] if 'tag' in gs else ''
@@ -217,17 +131,11 @@ def create_batch_geneset():
                 gs['gs_id'], project, source, tag, otype
             )
 
-    for w in batchFile[1]:
-        batchWarns += w
-        batchWarns += '\n'
-
-    if batchWarns:
-        return flask.jsonify({'genesets': added, 'warn': batchWarns})
-
-    else:
-        return flask.jsonify({'genesets': added})
-
-
+    return flask.jsonify({
+        'genesets': new_ids, 
+        'warn': batch_reader.warns,
+        'error': batch_reader.errors
+    })
 
 
 def tokenize_lines(candidate_sep_regexes, lines):
