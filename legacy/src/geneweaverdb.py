@@ -1100,7 +1100,7 @@ def update_geneset(usr_id, form):
 
     ## Should have already been checked but does't hurt to do it again I guess
     if ((get_user(usr_id).is_admin == False and\
-        get_user(usr_id).is_curator == False) or\
+        get_user(usr_id).is_curator == False) and\
         (user_is_owner(usr_id, gs_id) != 1) and not 
         user_is_assigned_curation(usr_id, gs_id)):
             return {

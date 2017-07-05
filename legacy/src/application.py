@@ -1166,7 +1166,7 @@ def rerun_annotator():
     user = geneweaverdb.get_user(user_id)
 
     # Only admins, curators, and owners can make changes
-    if ((not user.is_admin and not user.is_curator) or
+    if ((not user.is_admin and not user.is_curator) and
             (not geneweaverdb.user_is_owner(user_id, gs_id) and
                      not geneweaverdb.user_is_assigned_curation(user_id,
                                                                 gs_id))):
