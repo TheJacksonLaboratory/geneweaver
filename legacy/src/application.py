@@ -41,7 +41,6 @@ import sphinxapi
 import search
 import math
 # import cairosvg
-import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
@@ -1539,17 +1538,20 @@ def render_editgeneset_genes(gs_id, curation_view=False):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        symbol2ode = batch.db.getOdeGeneIds(geneset.sp_id, contents)
+        gene_refs = geneweaverdb.resolve_feature_ids(geneset.sp_id, contents)
+        symbol2ode = {}
+
+        for d in gene_refs:
+            symbol2ode[d['ode_ref_id']] = d['ode_gene_id']
+            ## Reverse to make our lives easier during templating
+            symbol2ode[d['ode_gene_id']] = d['ode_ref_id']
         #keys = [list(query) for query in symbol2ode.keys()]
         #symbol2ode = dict([(k[0], symbol2ode[tuple(k)][0]) for k in keys])
-        ## Reverse to make our lives easier during templating
-        for sym, ode in symbol2ode.items():
-            symbol2ode[ode] = sym
+        #for sym, ode in symbol2ode.items():
+        #    symbol2ode[ode] = sym
 
     else:
         symbol2ode = None
-
-    print symbol2ode
 
     return flask.render_template(
         'editgenesetsgenes.html',

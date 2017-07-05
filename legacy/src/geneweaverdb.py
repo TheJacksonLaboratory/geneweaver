@@ -850,6 +850,27 @@ def resolve_feature_id(sp_id, feature_id):
 
         return list(cursor)
 
+def resolve_feature_ids(sp_id, ref_ids):
+    """
+    For the given species and feature IDs get the corresponding ODE gene IDs
+    (which is our canonical ID type).
+    """
+
+    ref_ids = tuple(map(lambda r: r.lower(), ref_ids))
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT  ode_ref_id, ode_gene_id
+            FROM    extsrc.gene
+            WHERE   sp_id = %s AND
+                    lower(ode_ref_id) IN %s;
+            ''',
+                (sp_id, ref_ids)
+        )
+
+        return list(dictify_cursor(cursor))
+
 def get_gene_id_types(sp_id=0):
     with PooledCursor() as cursor:
         cursor.execute(

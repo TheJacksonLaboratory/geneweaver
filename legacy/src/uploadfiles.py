@@ -2,7 +2,6 @@ import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 from urlparse import parse_qs, urlparse
 from flask import session
-import batch
 import annotator as ann
 import json
 import psycopg2

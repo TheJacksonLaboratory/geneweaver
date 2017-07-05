@@ -4,7 +4,6 @@ import pubmedsvc
 import urllib2
 import re
 import batch
-import batch_new
 import json
 import annotator as ann
 from decorators import login_required, create_guest
