@@ -345,7 +345,9 @@
 			//$("#selectGeneDisplayType").modal('show');
         });
 
-
+        $('#export').on('click', function (e) {
+           $('#selectExportType').modal('show');
+        });
 
         function emphasize(id) {
             if (document.getElementById(id).checked) {
@@ -446,6 +448,7 @@
 
 			// Export OmicSoft version
             $('#exportOmicsSoft').on('click', function() {
+                $("#selectExportType").modal('hide');
                 var gs_id = {{ geneset.geneset_id }};
                 window.location = '/exportOmicsSoft/' + gs_id;
                 $("#result").html('<div class="alert alert-success fade in"> ' +
@@ -453,50 +456,24 @@
                         '</button>Downloaded GeneSet in OmicsSoft Format Completed</div>');
             });
 
-			// Generates a text version of the gene/value list using the 
-			// currently selected alternate ID. 
-            $('#exportData').on('click', function (e) {
-                // window.open('../exportGeneList/' + gs_id);
-				var exports = '';
-				var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>' 
+            // Export all gene values as a tab-delimited data set
+            $('#exportData').on('click', function (){
+                $("#selectExportType").modal('hide');
+                var gs_id = {{ geneset.geneset_id }};
+                window.location = '/exportgsid/' + gs_id;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded Genes Completed</div>');
+            });
 
-				$('.gene-list-row').each(function(){
-					var symbol = $(this).children('.gene-symbol').text();
-					var value = $(this).children('.gene-value').text();
-
-					symbol = $.trim(symbol);
-					value = $.trim(value);
-
-					// Tabs and newlines
-					exports += symbol + '%09' + value + '%0A';
-				});
-
-				exportURL += exports;
-
-				// Determines if the browser is some IE version, which doesn't
-				// support opening a new window with data: for "security" 
-				// reasons. Typecasts results to a bool. 
-				var isIE = !!navigator.appName.match(/Internet Explorer/);
-				var isIE11 = !!navigator.userAgent.match(/Trident/);
-
-				if (isIE || isIE11) {
-
-					exports = exports.replace(/%09/g, '\t');
-					exports = exports.replace(/%0A/g, '\r\n');
-
-					var iframe = document.getElementById('ie-export');
-					iframe = iframe.contentWindow || iframe.contentDocument;
-
-					iframe.document.open('text/html', 'replace');
-					iframe.document.write(exports);
-					iframe.document.close();
-					iframe.document.execCommand('SaveAs', true, 'data.tsv');
-
-				} else {
-
-					window.open(exportURL);
-				}
-
+            // Export all geneset information in a batch upload format
+            $('#exportComplete').on('click', function (){
+                $("#selectExportType").modal('hide');
+                var gs_id = {{ geneset.geneset_id }};
+                window.location = '/exportBatch/' + gs_id;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded GeneSet in GeneWeaver Batch Upload Format Completed</div>');
             });
 
             $('#viewSimilarGenesets').on('click', function (e) {
@@ -855,6 +832,8 @@
 {% include 'modal/requestCuration.html' %}
 
 {% include 'modal/showGenericMessage.html' %}
+
+{% include 'modal/selectExportGenes.html' %}
 
 {% if curation_view == 'curation_leader' or curation_view == 'reviewer' %}
     <!-- only used by the curation_leader or reviewer view, don't

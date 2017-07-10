@@ -2828,6 +2828,58 @@ def render_export_genelist(gs_id):
         return response
 
 
+@app.route('/exportBatch/<int:gs_id>')
+def render_export_batch(gs_id):
+    """
+    This will use functions developed as part of the batch-download script to populate a batch file associated with
+    a geneset
+    :param gs_id: 
+    :return: an extended batch string
+    """
+    title = 'gene_export_geneset_' + str(gs_id) + '_' + str(datetime.date.today()) + '.gw'
+    if 'user_id' in flask.session:
+        import export_batch
+        metadata = export_batch.metadata_batch(geneweaverdb.PooledCursor(), gs_id)
+        ontologydata = export_batch.ontology_batch(geneweaverdb.PooledCursor(), gs_id)
+        geneinfo = export_batch.geneinfo_batch(geneweaverdb.PooledCursor(), gs_id)
+        # build string
+        s = metadata + ontologydata + '\n' + geneinfo
+    else:
+        s = '## You must be logged in to generate a gene set report ##'
+    response = make_response(s)
+    response.headers["Content-Disposition"] = "attachment; filename=" + title
+    response.headers["Cache-Control"] = "must-revalidate"
+    response.headers["Pragma"] = "must-revalidate"
+    response.headers["Content-type"] = "text/plain"
+    return response
+
+
+@app.route('/exportgsid/<string:gs_id>')
+def render_export_genes(gs_id):
+    title = 'gene_export_geneset_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
+    if 'user_id' in flask.session:
+        export_list = geneweaverdb.get_all_gene_ids(gs_id)
+        gdb_names = geneweaverdb.get_gdb_names()
+        # create a tab-delimated string to write directly to the download file
+        export_string = '\t'.join(gdb_names)
+        export_string = 'GeneWeaver ID\t' + export_string + '\n'
+        for key, value in export_list.iteritems():
+            export_string = export_string + str(key) + '\t'
+            for g in gdb_names:
+                for k, v in value.iteritems():
+                    if g == k:
+                        export_string = export_string + str(v) + '\t'
+            export_string = export_string + '\n'
+    else:
+        export_string = '## You must be logged in to generate a gene set report ##'
+    response = make_response(export_string)
+    response.headers["Content-Disposition"] = "attachment; filename=" + title
+    response.headers["Cache-Control"] = "must-revalidate"
+    response.headers["Pragma"] = "must-revalidate"
+    response.headers["Content-type"] = "text/plain"
+    return response
+
+
 @app.route('/exportOmicsSoft/<string:gs_ids>')
 def render_export_omicssoft(gs_ids):
     if 'user_id' in flask.session:
