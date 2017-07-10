@@ -56,8 +56,7 @@ def fetch_ncbo_annotations(text, ncboids):
     ncboids = list(set(ncboids))
     ncboids = map(str, ncboids)
 
-    ## For some weird reason NCBO expects the Disease Ontology prefix to be
-    ## DOID instead of DO
+    ## Currently the DO prefix we use is DO instead of DOID
     for i in range(len(ncboids)):
         if ncboids[i] == 'DO':
             ncboids[i] = 'DOID'
@@ -166,10 +165,6 @@ def parse_ncbo_annotations(annots):
         ## to '_', so we convert back
         if ontid.find(u':'):
             ontid = ontid.replace(u'_', u':')
-
-        ## For the Disease Ontology we have to change DOID to DO
-        if len(ontid) >= 4 and ontid[:4] == 'DOID':
-            ontid = 'DO:' + ontid.split(':')[1]
 
         ## We have to add the 'EDAM_' prefix to all EDAM terms
         if ontid.find('data:') >= 0 or ontid.find('format:') >= 0 or\
