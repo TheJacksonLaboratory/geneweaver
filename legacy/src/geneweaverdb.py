@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from hashlib import md5
 import json
 import string
@@ -884,9 +884,14 @@ def get_ode_ref_id(value, sp_id):
     value = value.lower()
     ids = []
     with PooledCursor() as cursor:
-        cursor.execute(
-            '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' AND sp_id=%s''' % (value, sp_id,)
-        )
+        if sp_id == 'None':
+            cursor.execute(
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' ''' % (value,)
+            )
+        else:
+            cursor.execute(
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' AND sp_id=%s''' % (value, sp_id,)
+            )
     results = cursor.fetchall()
     for res in results:
         ids.append(res[0])
@@ -3923,6 +3928,54 @@ def export_results_by_gs_id(gs_id):
         for gid in cursor:
             gene[gid[0]] = str(gid[1])
     return gene
+
+
+def get_gdb_names():
+    """
+    get all names associated with gene databases, essentially all external resources for gene names
+    :return: 
+    """
+    gdb_names = []
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gdb_name FROM genedb ORDER BY gdb_id'''
+        )
+        for name in cursor:
+            gdb_names.append(name[0])
+    return gdb_names
+
+
+def get_all_gene_ids(gs_id):
+    """
+    this exports all gene symbols in a list
+    :param gs_id: 
+    :return: 
+    """
+    # Get all of the gdb_names for seeding the disctionary
+    gdb_names = get_gdb_names()
+    # perform query and loop over them to create a dictionary of dictionaries
+    data = defaultdict(dict)
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''SELECT gsv.ode_gene_id, g.ode_ref_id, gdb.gdb_name 
+                FROM gene g, genedb gdb, geneset_value gsv, geneset gs
+                 WHERE gs.gs_id=%s AND gs.sp_id=g.sp_id AND gs.gs_id=gsv.gs_id AND gsv.ode_gene_id=g.ode_gene_id 
+                 AND g.gdb_id=gdb.gdb_id ORDER BY g.ode_gene_id''' % (gs_id,)
+        )
+        results = cursor.fetchall()
+    # loop through results to build dictionary
+    for name in gdb_names:
+        for gid in results:
+            # initialize dict if name does not exist
+            if name not in data[gid[0]]:
+                data[gid[0]][name] = '-'
+            cur_value = data[gid[0]][name]
+            if str(gid[2]) == name:
+                if data[gid[0]][name] is '-':
+                    data[gid[0]][name] = str(gid[1])
+                else:
+                    data[gid[0]][name] = '|'.join((cur_value + '|' + str(gid[1])).split('|'))
+    return data
 
 
 def get_gene_sym_by_intersection(geneset_id1, geneset_id2):
