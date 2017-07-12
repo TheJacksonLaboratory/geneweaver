@@ -4,7 +4,5 @@
       {% for project in g.user.projects %}
         <option value="{{ project.project_id }}">{{ project.name}}</option>
       {% endfor %}
-    {% else %}
-	<div>You Are Not A User</div>
     {% endif %}
   </select>
