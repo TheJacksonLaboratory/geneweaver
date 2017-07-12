@@ -1724,7 +1724,7 @@ def delete_projects():
 
 
 @app.route('/addProjectByName', methods=['GET'])
-@login_required(json=True, allow_guests=True)
+@create_guest
 def add_projects():
     results = geneweaverdb.add_project_by_name(flask.request.args['name'], flask.request.args['comment'])
     return json.dumps(results)
@@ -3344,6 +3344,9 @@ def render_share_projects():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
+@app.route('/projectsmultiselect')
+def get_projects_multiselect():
+    return flask.render_template('htmlfragments/projectsMultiselect.html')
 
 @app.route('/addGenesetsToProjects')
 @create_guest

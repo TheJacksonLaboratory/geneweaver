@@ -1,0 +1,10 @@
+<label for="sel2">Select which projects to add to (hold shift to select more than one):</label>
+  <select multiple class="form-control" id="sel2">
+    {% if g.user %}
+      {% for project in g.user.projects %}
+        <option value="{{ project.project_id }}">{{ project.name}}</option>
+      {% endfor %}
+    {% else %}
+	<div>You Are Not A User</div>
+    {% endif %}
+  </select>

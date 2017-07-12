@@ -1,7 +1,7 @@
 {# This modal allows you to add a blank Project #}
 
 <div class="modal fade" id="addProjectModal">
-    <div class="modal-dialog">
+   <div class="modal-dialog">
         <div class="modal-content">
             <form id="addBlankProject" name="addBlankProject" method="post" action="#" class="form-horizontal"
                   novalidate="novalidate">
@@ -24,4 +24,50 @@
             </form>
         </div>
     </div>
-</div>
+    <script type="text/javascript">
+	$('#projectSubmit').on('click', function () {
+            var n = $('#projectName').val();
+            var c = $('#projectComment').val();
+            $.ajax({
+                type: "GET",
+                url: "/addProjectByName",
+                data: {"name": n, "comment": c},
+                success: function (data) {
+                    var v = JSON.parse(data);
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                    if (v["error"] == 'None') {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Project name added successfully.",
+                                'priority': 'success'
+                            }
+                        ]);
+		        if (typeof reload_projects === "function") {
+			    console.log('reloading');
+			    reload_projects();
+		        } else {
+			    location.reload();
+		        }
+                    }
+                    else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error Occurred. " + v["error"],
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                },
+                error: function (data) {
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+                    $(document).trigger("add-alerts", [
+                    {
+                        'message': "An Error occurred while adding new project.",
+                        'priority': 'danger'
+                    }
+                ]);
+                }
+            })
+        });
+    </script>
+ </div>
