@@ -2,7 +2,6 @@ import re
 from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
 from urlparse import parse_qs, urlparse
 from flask import session
-import batch
 import annotator as ann
 import json
 import psycopg2
@@ -304,6 +303,7 @@ def get_unmapped_ids(gs_id, geneset, sp_id, gdb_id):
     """
     user_ids = []
     not_found = []
+    not_in = []
     file_contents = get_file_contents_by_gsid(gs_id)
     file = file_contents[0][0].strip('\r').split('\n')
     for f in file:

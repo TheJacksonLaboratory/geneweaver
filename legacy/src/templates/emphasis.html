@@ -16,6 +16,12 @@
         border-bottom-color: #006400;
     }
 
+    .ui-autocomplete {
+        height: 200px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+
 
 </style>
 
@@ -88,7 +94,7 @@
                     <div class="input-group">
 
                         <input class="form-control" name="Emphasis_SearchGene" type="text"
-                               placeholder="Search for Gene"/>
+                               placeholder="Search for Gene" id="gene-newid"/>
                         <span class="input-group-btn">
                             <button class="btn btn-primary" type="submit">Go</button>
                         </span>
@@ -133,6 +139,27 @@
         title: 'What Are Emphasis Gene Sets?', content: 'The Emphasis Genes utility enables users to select genes ' +
         'or an entire set of genes that may be highlighted in various analysis tools. These can be added from this ' +
         'page or from the View Gene Set page.'
+    });
+
+
+    // autocomplete genes
+    $('#gene-newid').on('keyup', function(){
+        var value = $(this).val();
+        $.ajax({
+            url: "/get_gene_ref_ID.json",
+            data: {
+              'search': value,
+                'sp_id': 'None'
+            },
+            dataType: 'json',
+            success: function (data) {
+                var list = data.list;
+                $('#gene-newid').autocomplete({
+                    source: list,
+                    minLength: 2
+                });
+            }
+        });
     });
 
 </script>
