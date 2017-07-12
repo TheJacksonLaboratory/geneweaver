@@ -125,7 +125,7 @@
                            value="Review GeneSet Upload &raquo;"/>
                 </div>
                 <div class="md-col-6 pull-right">
-                    <a href="static/text/batch-geneset-a.txt"><i class="fa fa-file-text-o"></i> Sample File</a>
+                    <a href="static/text/batch_example.txt"><i class="fa fa-file-text-o"></i> Sample File</a>
                 </div>
             </div>
         </div>
@@ -360,37 +360,37 @@
                     $('#confirmUpload').modal('hide');
 
                     // The data is returned already parsed out of JSON
-                    if ('error' in data) {
+                    if ('error' in data && data.error.length > 0) {
 
-                        var error = data['error'].replace('\n', '<br />', 'mg');
-                        error = '<strong>There were some errors with your ' +
-                                'batch file.</strong><br />' + error;
+                        var errors = data.error.join('<br />');
+                        errors = '<strong>There were some errors with your ' +
+                                'batch file.</strong><br />' + errors;
 
                         var closeButton = '<button type="button" ' +
                             'class="close" data-dismiss="alert" ' +
                             'aria-hidden="true">x</button>';
 
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $('#upload-error-alert').html(closeButton + error);
+                        $('#upload-error-alert').html(closeButton + errors);
                         $('#upload-error').toggle(true);
                     }
 
-                    if ('warn' in data) {
+                    if ('warn' in data && data.warn.length > 0) {
 
-                        var warn = data['warn'].replace('\n', '<br />', 'mg');
-                        warn = '<strong>There were some non-critical issues ' +
-                                'with your batch file.</strong><br />' + warn;
+                        var warns = data.warn.join('<br />')
+                        warns = '<strong>There were some non-critical issues ' +
+                                'with your batch file.</strong><br />' + warns;
 
                         var closeButton = '<button type="button" ' +
                                 'class="close" data-dismiss="alert" ' +
                                 'aria-hidden="true">x</button>';
 
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $('#upload-warn-alert').html(closeButton + warn);
+                        $('#upload-warn-alert').html(closeButton + warns);
                         $('#upload-warn').toggle(true);
                     }
 
-                    if ('genesets' in data) {
+                    if ('genesets' in data && data.genesets.length > 0) {
 
                         var genesets = data['genesets'];
                         var success = '<strong>Success! Your GeneSets ' +

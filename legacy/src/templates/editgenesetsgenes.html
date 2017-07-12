@@ -42,6 +42,12 @@
         background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249, 249, 249);
     }
 
+    .ui-autocomplete {
+        height: 200px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+
 </style>
 
 {% if geneset.geneset_id is not defined or view != 'True' %}
@@ -478,6 +484,25 @@
             });
         });
 
+        $('#gene-newid').on('keyup', function(){
+            var value = $(this).val();
+            $.ajax({
+                url: "/get_gene_ref_ID.json",
+                data: {
+                  'search': value,
+                    'sp_id': {{ geneset.sp_id }}
+                },
+                dataType: 'json',
+                success: function (data) {
+                    var list = data.list;
+                    $('#gene-newid').autocomplete({
+                        source: list,
+                        minLength: 2,
+                        appendTo: $("#addGenesetGene")
+                    });
+                }
+            });
+        });
 
         $('#editSubmitIdentifier').on('click', function(e){
             var val = $('#identifier').children('#selectedIdentifier').text();
