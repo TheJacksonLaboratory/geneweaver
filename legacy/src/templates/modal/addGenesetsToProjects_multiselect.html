@@ -1,6 +1,17 @@
 {# Actual modal that selects genesets and projects to add. Called from mygenesets #}
 
 <div class="modal fade" id="addToProjectModal">
+    <script>
+            $('#addNewProject').on('click', function () {
+                    $('#reveal-if-active').toggle();
+            });	
+
+            var reload_projects = function() {
+                $('#available_projects').load('/projectsmultiselect');
+		$('#available_projects').show();
+            }
+
+    </script>
     <div class="modal-dialog">
         <div class="modal-content" style="overflow: auto">
             <form id="addGenesetsToProj" name="addGenesetsToProj" method="post" action="#"
@@ -13,6 +24,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="row" id="modalError">
+		    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
                     </div>
 			{% if not g.user %}
 			<div class="alert alert-danger" role="alert">
@@ -31,34 +43,19 @@
 				</span>
 			</strong>
                     </div>
-                    <div class="row" id="reveal-if-active" {% if g.user %}style="display:none;" {% endif %}>
-                        <label for="addToProjectModalNewName"><h4>New Project Name: </h4></label>
-                        <input type="text" id="addToProjectModalNewName" name="newProjName" class="form-control input-lg">
+                    <div class="row" style="padding-top: 10px;{% if not g.user %}display:none;{% endif %}" id="available_projects">
+		      {% include 'htmlfragments/projectsMultiselect.html' %}
                     </div>
-                    <div class="row" style="padding-top: 10px;{% if not g.user %}display:none;{% endif %}">
-                        <label for="sel2">Select which projects to add to (hold shift to select more than one):</label>
-			<select multiple class="form-control" id="sel2"> 
-			    {% if g.user %}
-                            {% for project in g.user.projects %}
-                                <option value="{{ project.project_id }}">{{ project.name}}</option>
-                            {% endfor %}
-			    {% endif %}
-			</select>
-                        <input type="hidden" id="addToProjectModalValue" name="gs_id" value=""/>
-                    </div>
+		    <input type="hidden" id="addToProjectModalValue" name="gs_id" value=""/>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-success btn-transparent" id="addNewProject"style="padding-left:12px;padding-right:12px;{% if not g.user %}display:none;{% endif %}">
-                                <i class="fa fa-plus"></i> Add to New Project
-                        </button>
-                        <button type="button" class="btn btn-warning" id="addGenesetsToProjects" data-dismiss="modal"style="padding-left:12px;padding-right:12px">
-                                Add to Selected Project(s)
-                        </button>
-                        <button type="button" class="btn btn-default" data-dismiss="modal">
-                                Close
-                        </button>
+			<button type="button" class="btn btn-success btn-transparent" data-toggle="modal" data-target="#addProjectModal">Create a New Project</button>
+		        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			<button type="submit" class="btn btn-warning" data-dismiss="modal" id="addGenesetsToProjects">Submit</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+{% include 'modal/addBlankProject.html' %}

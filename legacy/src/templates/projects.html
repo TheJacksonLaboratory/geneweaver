@@ -153,47 +153,6 @@
            $("#addProjectModal").modal('show');
         });
 
-        // Update project set to new name
-        $('#projectSubmit').on('click', function () {
-            var n = $('#projectName').val();
-            var c = $('#projectComment').val();
-            $.ajax({
-                type: "GET",
-                url: "/addProjectByName",
-                data: {"name": n, "comment": c},
-                success: function (data) {
-                    var v = JSON.parse(data);
-                $("html, body").animate({ scrollTop: 0 }, "slow");
-                    if (v["error"] == 'None') {
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "Project name added successfully.",
-                                'priority': 'success'
-                            }
-                        ]);
-                        location.reload()
-                    }
-                    else {
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "An Error Occurred. " + v["error"],
-                                'priority': 'danger'
-                            }
-                        ]);
-                    }
-                },
-                error: function (data) {
-                $("html, body").animate({ scrollTop: 0 }, "slow");
-                    $(document).trigger("add-alerts", [
-                    {
-                        'message': "An Error occurred while adding new project.",
-                        'priority': 'danger'
-                    }
-                ]);
-                }
-            })
-        });
-
         // Call modal for delete of all projects
         $('#callDeleteProjects').on('click', function () {
             var projid = [];
