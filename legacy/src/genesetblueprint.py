@@ -91,20 +91,20 @@ def create_batch_geneset():
     if user_id == None:
         return flask.jsonify({"error": "You must be signed in to upload a GeneSet."})
 
-    batch_reader = batch_new.BatchReader(batch_file, user_id)
+    batch_reader = batch.BatchReader(batch_file, user_id)
 
     ## Required later on when inserting OmicsSoft specific metadata
     is_omicssoft = False
 
     ## Needs to be redone
-    if batch.is_omicssoft(batch_file):
-        batch_file = batch.parse_omicssoft(batch_file, user_id)
-        batch_file = (batch_file, [], [])
-        is_omicssoft = True
+    #if batch.is_omicssoft(batch_file):
+    #    batch_file = batch.parse_omicssoft(batch_file, user_id)
+    #    batch_file = (batch_file, [], [])
+    #    is_omicssoft = True
 
-    else:
+    #else:
         ## List of gene set objects 
-        genesets = batch_reader.parse_batch_file()
+    genesets = batch_reader.parse_batch_file()
 
     ## Bad things happened during parsing...
     if not genesets:
