@@ -2,7 +2,7 @@
 ## uploaded genesets. For now, two separate annotation services (NCBO and the
 ## Monarch Initiative) are used since the latter is missing MA annotations.
 ## Separate stand-alone versions of these wrappers can be found, for now,
-## at git clone git@fin0c.net:gwp-curation-server
+## at bitbucket.org/geneweaver/curation
 
 import geneweaverdb
 import json
@@ -27,6 +27,17 @@ MONARCH_ANNOTATOR = MONARCH_URL + '/annotations/entities.json'
 ANNOTATORS = ['monarch', 'ncbo', 'both']
 DEFAULT_ANNOTATOR = 'monarch'
 
+def get_geneweaver_ontologies():
+    """
+    Returns a list of the ontologies currently supported by GeneWeaver.
+
+    :ret list: a list of ontology prefixes supported by GW
+    """
+
+    onts = geneweaverdb.get_all_ontologydb()
+
+    return map(lambda d: d.prefix.upper(), onts)
+
 
 def fetch_ncbo_annotations(text, ncboids):
     """
@@ -44,6 +55,12 @@ def fetch_ncbo_annotations(text, ncboids):
 
     ncboids = list(set(ncboids))
     ncboids = map(str, ncboids)
+
+    ## Currently the DO prefix we use is DO instead of DOID
+    for i in range(len(ncboids)):
+        if ncboids[i] == 'DO':
+            ncboids[i] = 'DOID'
+
     ncboids = ','.join(ncboids)
 
     params = {'apikey': API_KEY,
@@ -63,6 +80,7 @@ def fetch_ncbo_annotations(text, ncboids):
         except url2.HTTPError as e:
             print 'Failed to retrieve annotation data from NCBO:'
             print e
+            print e.read()
             continue
 
         except Exception, e:
@@ -77,7 +95,7 @@ def fetch_ncbo_annotations(text, ncboids):
     ## indicates success) then this statement is executed
     else:
         print 'Failed to retrieve annotation data after three attempts'
-        exit()
+        return []
 
     return json.loads(res)
 
@@ -147,6 +165,11 @@ def parse_ncbo_annotations(annots):
         ## to '_', so we convert back
         if ontid.find(u':'):
             ontid = ontid.replace(u'_', u':')
+
+        ## We have to add the 'EDAM_' prefix to all EDAM terms
+        if ontid.find('data:') >= 0 or ontid.find('format:') >= 0 or\
+           ontid.find('operation:') >= 0 or ontid.find('topic:') >= 0: 
+            ontid = 'EDAM_' + ontid
 
         ontids.append(ontid)
 
@@ -303,9 +326,13 @@ def insert_annotations(dbcur, gsid, desc, abstract, ncbo=False, monarch=True):
         else:
             continue
 
+        gw_ontologies = get_geneweaver_ontologies()
+
         ## ONT_IDS should eventually be changed to a DB call that retrieves a
         ## list of available ontologies instead of hardcoded values
-        (mi_annos, ncbo_annos) = annotate_text(text, ONT_IDS, ncbo=ncbo, monarch=monarch)
+        (mi_annos, ncbo_annos) = annotate_text(
+            text, gw_ontologies, ncbo=ncbo, monarch=monarch
+        )
 
         ## SQL taken from the curation_server to insert new annotations
         ## Should eventually be moved into geneweaverdb
@@ -366,8 +393,14 @@ def rerun_annotator(gs_id, publication, description, user_prefs={}):
         monarch = True
         ncbo = False
 
-    pub_annos = annotate_text(publication, ONT_IDS, ncbo=ncbo, monarch=monarch)
-    desc_annos = annotate_text(description, ONT_IDS, ncbo=ncbo, monarch=monarch)
+    gw_ontologies = get_geneweaver_ontologies()
+
+    pub_annos = annotate_text(
+        publication, gw_ontologies, ncbo=ncbo, monarch=monarch
+    )
+    desc_annos = annotate_text(
+        description, gw_ontologies, ncbo=ncbo, monarch=monarch
+    )
 
     # These are the only annotations we preserve
     assoc_annos =\

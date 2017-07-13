@@ -1,0 +1,33 @@
+{# Modal to select the type of export.#}
+
+<div class="modal fade" id="selectExportType">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-green">
+                <h3 class="modal-title" id="verifyLabel" style="color: #f5f5f5">Select Type of Data Export</h3>
+            </div>
+            <div class="row" style="text-align:center; margin-right: 5%; margin-left: 5%">
+                <h4>GeneWeaver offers several export options. The 'GeneSet Complete' format can be used as an upload
+                    file in GeneWeaver's batch upload function.</h4>
+            </div>
+
+            <div class="row" style="text-align:center;">
+                    <button type="button" class="btn btn-block btn-warning" id="exportData"
+                            style="width: 50%; margin-left: auto; margin-right: auto;">
+                        <i class="fa fa-download pull-left"></i> Export Genes
+                    </button>
+                    <button type="button" class="btn btn-block btn-warning" id="exportOmicsSoft"
+                            style="width: 50%; margin-left: auto; margin-right: auto;">
+                        <i class="fa fa-download pull-left"></i> Export OmicsSoft
+                    </button>
+                    <button type="button" class="btn btn-block btn-warning" id="exportComplete"
+                            style="width: 50%; margin-left: auto; margin-right: auto;">
+                        <i class="fa fa-download pull-left"></i> Export GeneSet Complete
+                    </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>

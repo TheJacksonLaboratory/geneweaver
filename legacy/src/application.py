@@ -41,7 +41,6 @@ import sphinxapi
 import search
 import math
 # import cairosvg
-import batch
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
@@ -1166,7 +1165,7 @@ def rerun_annotator():
     user = geneweaverdb.get_user(user_id)
 
     # Only admins, curators, and owners can make changes
-    if ((not user.is_admin and not user.is_curator) or
+    if ((not user.is_admin and not user.is_curator) and
             (not geneweaverdb.user_is_owner(user_id, gs_id) and
                      not geneweaverdb.user_is_assigned_curation(user_id,
                                                                 gs_id))):
@@ -1181,6 +1180,16 @@ def rerun_annotator():
     annotator.rerun_annotator(gs_id, publication, description, user_prefs)
 
     return flask.jsonify({'success': True})
+
+
+@app.route('/get_gene_ref_ID.json', methods=['GET'])
+def get_gene_ref_ID():
+    """
+    Returns a json list of genes that fit the query for auto complete
+    """
+    ids = geneweaverdb.get_ode_ref_id(flask.request.args['search'], flask.request.args['sp_id'])
+    data = {'list': ids}
+    return flask.jsonify(data)
 
 
 def get_ontology_terms(gsid):
@@ -1539,17 +1548,20 @@ def render_editgeneset_genes(gs_id, curation_view=False):
         contents = contents.split('\n')
         contents = map(lambda s: s.split('\t'), contents)
         contents = map(lambda t: t[0], contents)
-        symbol2ode = batch.db.getOdeGeneIds(geneset.sp_id, contents)
+        gene_refs = geneweaverdb.resolve_feature_ids(geneset.sp_id, contents)
+        symbol2ode = {}
+
+        for d in gene_refs:
+            symbol2ode[d['ode_ref_id']] = d['ode_gene_id']
+            ## Reverse to make our lives easier during templating
+            symbol2ode[d['ode_gene_id']] = d['ode_ref_id']
         #keys = [list(query) for query in symbol2ode.keys()]
         #symbol2ode = dict([(k[0], symbol2ode[tuple(k)][0]) for k in keys])
-        ## Reverse to make our lives easier during templating
-        for sym, ode in symbol2ode.items():
-            symbol2ode[ode] = sym
+        #for sym, ode in symbol2ode.items():
+        #    symbol2ode[ode] = sym
 
     else:
         symbol2ode = None
-
-    print symbol2ode
 
     return flask.render_template(
         'editgenesetsgenes.html',
@@ -1724,7 +1736,7 @@ def delete_projects():
 
 
 @app.route('/addProjectByName', methods=['GET'])
-@login_required(json=True, allow_guests=True)
+@create_guest
 def add_projects():
     results = geneweaverdb.add_project_by_name(flask.request.args['name'], flask.request.args['comment'])
     return json.dumps(results)
@@ -2795,6 +2807,58 @@ def render_export_genelist(gs_id):
         return response
 
 
+@app.route('/exportBatch/<int:gs_id>')
+def render_export_batch(gs_id):
+    """
+    This will use functions developed as part of the batch-download script to populate a batch file associated with
+    a geneset
+    :param gs_id: 
+    :return: an extended batch string
+    """
+    title = 'gene_export_geneset_' + str(gs_id) + '_' + str(datetime.date.today()) + '.gw'
+    if 'user_id' in flask.session:
+        import export_batch
+        metadata = export_batch.metadata_batch(geneweaverdb.PooledCursor(), gs_id)
+        ontologydata = export_batch.ontology_batch(geneweaverdb.PooledCursor(), gs_id)
+        geneinfo = export_batch.geneinfo_batch(geneweaverdb.PooledCursor(), gs_id)
+        # build string
+        s = metadata + ontologydata + '\n' + geneinfo
+    else:
+        s = '## You must be logged in to generate a gene set report ##'
+    response = make_response(s)
+    response.headers["Content-Disposition"] = "attachment; filename=" + title
+    response.headers["Cache-Control"] = "must-revalidate"
+    response.headers["Pragma"] = "must-revalidate"
+    response.headers["Content-type"] = "text/plain"
+    return response
+
+
+@app.route('/exportgsid/<string:gs_id>')
+def render_export_genes(gs_id):
+    title = 'gene_export_geneset_' + str(gs_id) + '_' + str(datetime.date.today()) + '.txt'
+    if 'user_id' in flask.session:
+        export_list = geneweaverdb.get_all_gene_ids(gs_id)
+        gdb_names = geneweaverdb.get_gdb_names()
+        # create a tab-delimated string to write directly to the download file
+        export_string = '\t'.join(gdb_names)
+        export_string = 'GeneWeaver ID\t' + export_string + '\n'
+        for key, value in export_list.iteritems():
+            export_string = export_string + str(key) + '\t'
+            for g in gdb_names:
+                for k, v in value.iteritems():
+                    if g == k:
+                        export_string = export_string + str(v) + '\t'
+            export_string = export_string + '\n'
+    else:
+        export_string = '## You must be logged in to generate a gene set report ##'
+    response = make_response(export_string)
+    response.headers["Content-Disposition"] = "attachment; filename=" + title
+    response.headers["Cache-Control"] = "must-revalidate"
+    response.headers["Pragma"] = "must-revalidate"
+    response.headers["Content-type"] = "text/plain"
+    return response
+
+
 @app.route('/exportOmicsSoft/<string:gs_ids>')
 def render_export_omicssoft(gs_ids):
     if 'user_id' in flask.session:
@@ -3344,6 +3408,9 @@ def render_share_projects():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
+@app.route('/projectsmultiselect')
+def get_projects_multiselect():
+    return flask.render_template('htmlfragments/projectsMultiselect.html')
 
 @app.route('/addGenesetsToProjects')
 @create_guest
@@ -4179,7 +4246,7 @@ api.add_resource(ToolUpSetProjects,
 ## Config loading should occur outside __main__ when proxying requests through
 ## a web server like nginx. uWSGI doesn't load anything in the __main__ block
 app.secret_key = config.get('application', 'secret')
-#app.debug = True
+app.debug = True
 
 if __name__ == '__main__':
 
