@@ -3,6 +3,7 @@ from hashlib import md5
 import json
 import string
 import random
+from psycopg2 import Error
 from psycopg2.pool import ThreadedConnectionPool
 from tools import toolcommon as tc
 import os
@@ -408,6 +409,26 @@ def get_other_visible_groups(usr_id):
         )
 
         return list(dictify_cursor(cursor))
+
+
+def add_user_to_public_groups(group_ids, user_id):
+    """
+
+    :param group_ids: list of group_ids
+    :param user_id: the user_id of the user to add to groups
+    :return:
+    """
+
+    with PooledCursor() as c:
+        c.execute(
+            '''
+            INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_comment, u2g_created)
+            VALUES (unnest(%s), %s, 0, 2, NULL, now());
+            ''',
+            (group_ids, user_id)
+        )
+        c.connection.commit()
+        return {'success': c.statusmessage, 'error': 'None'}
 
 
 # group_name is a string provided by user, group_private should be either true or false

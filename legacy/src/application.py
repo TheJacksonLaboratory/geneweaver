@@ -1756,13 +1756,27 @@ def rename_project():
     return json.dumps(results)
 
 
+@app.route('/addPublicGroupsToUser')
+@login_required()
+def add_public_groups_to_user():
+    user = flask.g.user
+    group_ids = json.loads(flask.request.args['projects'])
+    try:
+        result = geneweaverdb.add_user_to_public_groups(group_ids, user.user_id)
+    except geneweaverdb.Error:
+        result = {'error': True}
+    return json.dumps(result)
+
+
 @app.route('/accountsettings')
 @login_required()
 def render_accountsettings():
-    user = geneweaverdb.get_user(flask.session.get('user_id'))
-    groupsMemberOf = geneweaverdb.get_all_member_groups(flask.session.get('user_id'))
-    groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
-    groupsEmail = geneweaverdb.get_all_members_of_group(flask.session.get('user_id'))
+    user = flask.g.user
+    user_id = user.user_id
+    groupsMemberOf = geneweaverdb.get_all_member_groups(user_id)
+    groupsOwnerOf = geneweaverdb.get_all_owned_groups(user_id)
+    groupsEmail = geneweaverdb.get_all_members_of_group(user_id)
+    public_groups = geneweaverdb.get_other_visible_groups(user_id)
 
     groupAdmins = {}
     for group in groupsOwnerOf:
@@ -1778,6 +1792,7 @@ def render_accountsettings():
                                  groupsEmail=groupsEmail,
                                  groupAdmins=groupAdmins,
                                  emailNotifications=email_pref,
+                                 public_groups=public_groups,
                                  annotation_pref=annotation_pref)
 
 
