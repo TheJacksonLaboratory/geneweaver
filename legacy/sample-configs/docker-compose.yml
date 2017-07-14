@@ -64,8 +64,8 @@ services:
       dockerfile: Dockerfile
     image: geneweaver-db:latest
     # image: postgres:9.6.1
-    volumes_from:
-     - container:naughty_swirles:rw
+    # volumes_from:
+    # - container:naughty_swirles:rw
     ports:
      - "5432:5432"
     healthcheck:
