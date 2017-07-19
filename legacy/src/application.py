@@ -3710,22 +3710,14 @@ def reset_password():
 def render_success():
     return flask.render_template('password_reset.html')
 
-
 @app.route('/change_password', methods=['POST'])
 def change_password():
-    form = flask.request.form
-    if form is None:
-        return flask.render_template('accountsettings.html')
+    user = geneweaverdb.get_user(flask.session.get('user_id'))
+    if geneweaverdb.authenticate_user(user.email, request.form.get('curr_pass')) is None:
+        return "Fail"
     else:
-        user = geneweaverdb.get_user(flask.session.get('user_id'))
-
-        if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
-            return flask.render_template('accountsettings.html', user=user)
-        else:
-            success = geneweaverdb.change_password(
-                user.user_id, form['new_pass'])
-            return flask.render_template('accountsettings.html', user=user)
-
+        geneweaverdb.change_password(user.user_id, request.form.get('new_pass'))
+        return "Success"
 
 @app.route('/generate_api_key', methods=['POST'])
 def generate_api_key():
