@@ -3711,8 +3711,9 @@ def render_success():
     return flask.render_template('password_reset.html')
 
 @app.route('/change_password', methods=['POST'])
+@login_required(json=True)
 def change_password():
-    user = geneweaverdb.get_user(flask.session.get('user_id'))
+    user = flask.g.user
     if geneweaverdb.authenticate_user(user.email, request.form.get('curr_pass')) is None:
         return "Fail"
     else:
