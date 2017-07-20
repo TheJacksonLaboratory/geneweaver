@@ -24,7 +24,7 @@ services:
       rabbitmq:
         condition: service_started
       postgres:
-        condition: service_started
+        condition: service_healthy
       celery:
         condition: service_started
     restart: unless-stopped
@@ -46,7 +46,7 @@ services:
      - postgres
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
   rabbitmq:
     image: rabbitmq:3-management
     container_name: geneweaver-rabbitmq
@@ -57,17 +57,13 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
   postgres:
     build:
       context: ../../database
       dockerfile: Dockerfile
     image: geneweaver-db:latest
-    # image: postgres:9.6.1
-    # volumes_from:
-    # - container:naughty_swirles:rw
-    ports:
-     - "5432:5432"
+    container_name: geneweaver-postgres
     healthcheck:
       test: ["CMD-SHELL", "[ -f /var/lib/postgresql/data/pg_init.finished ]", "&&", "echo", "0", "||", "echo", "1"]
       interval: 5m
@@ -85,7 +81,7 @@ services:
       rabbitmq:
         condition: service_started
       postgres:
-        condition: service_started
+        condition: service_healthy
     volumes: 
      - 'results:/home/user/results'
 
