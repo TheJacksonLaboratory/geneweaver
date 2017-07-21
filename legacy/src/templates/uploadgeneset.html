@@ -123,7 +123,22 @@
             </div>
 
             <br>
-
+            <div class="row">
+                <div class="col-md-2">
+                    Score Type <strong>*</strong>:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select id="gs_threshold_type" class="form-control" name="gs_threshold_type" required>
+                        <option selected="selected" id="" label="default" value="" style="font-weight:bold;"></option>
+                        <option id="gs-tt-pvalue" label="p-value" value="1" style="font-weight:bold;">P-Value</option>
+                        <option id="gs-tt-qvalue" label="qvalue" value="2" style="font-weight:bold;">Q-Value</option>
+                        <option id="gs-tt-binary" label="binary" value="3" style="font-weight:bold;">Binary</option>
+                        <option id="gs-tt-correlation" label="correlation" value="4" style="font-weight:bold;">Correlation</option>
+                        <option id="gs-tt-effect" label="effect" value="5" style="font-weight:bold;">Effect</option>
+                    </select>
+                </div>
+            </div>
+            <br>
             <div class="row">
                 <div class="col-md-2">
                     GeneSet Description <strong>*</strong>:
@@ -148,7 +163,6 @@
         <div style="margin-left: 1em;">
             <br>
             <br>
-
             <div class="row">
                 <div class="col-md-2">
                     Access Restrictions <span id="accessRestrictions" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span> <strong>*</strong>:
@@ -309,7 +323,6 @@
 
         <div style="margin-left: 1em;">
             <br>
-
             <div class="row">
                 <div class="col-md-2">
                     Species <strong>*</strong>:
@@ -429,7 +442,7 @@
         if (!uploadData)
             return;
 
-        // Escpaed spaces
+        // Escaped spaces
         uploadData = uploadData.replace(/%20/g, ' ');
         // Skips the first '?'
         uploadData = uploadData.slice(1).split('?');
