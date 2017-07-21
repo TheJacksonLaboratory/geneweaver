@@ -2127,6 +2127,13 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Ontologies associated with this geneset
     ontology = get_ontology_terms(gs_id)
 
+    ## Ontology linkout mapping, ontdb_id -> url
+    ontdb = geneweaverdb.get_all_ontologydb()
+    ont_links = {}
+
+    for odb in ontdb:
+        ont_links[odb.ontologydb_id] = odb.linkout_url
+
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = []
 
@@ -2174,7 +2181,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curation_team=curation_team,
         curation_assignment=curation_assignment,
         curator_info=curator_info,
-        show_gene_list=show_gene_list
+        show_gene_list=show_gene_list,
+        ont_links=ont_links
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])

@@ -164,10 +164,24 @@
                 {% if ontology %}
                     {% for ont in ontology %}
                         <div class="ont-{{ont.ontdb_id}} group_name ontology-tag">
-                                <span style="color:#000">
-                                    <strong>{{ ont.name }}</strong>
+                            <span style="color:#000">
+                                <strong>{{ ont.name }}</strong>
+                            </span>
+                            {% if ont.ontdb_id in ont_links %}
+                                <a href=
+                                    "{{ ont_links[ont.ontdb_id] +
+                                    ont.reference_id }}"
+                                    target="_blank"
+                                    style="text-decoration:underline">
+                                <span style="color:#000;">
+                                    ({{ ont.reference_id }})
                                 </span>
-                                ({{ ont.reference_id }})
+                                </a>
+                            {% else %}
+                                <span style="color:#000;">
+                                    ({{ ont.reference_id }})
+                                </span>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 {% else %}
@@ -188,9 +202,21 @@
                         <ul style="list-style-type:disc; margin-left: 2em;">
                             {% for ont in ontology %}
                                 <li style="font-size:13px">
-                                    <span style="color:#000;">
-                                        {{ ont.reference_id }}:
-                                    </span>
+                                    {{ ont.ontdb_id }}
+                                    {{ ont_links[ont.ontdb_id] }}
+                                    {% if ont.ontdb_id in ont_links %}
+                                        <a href=
+                                            "{{ ont_links[ont.ontdb_id] +
+                                            ont.reference_id }}">
+                                        <span style="color:#000;">
+                                            {{ ont.reference_id }}:
+                                        </span>
+                                        </a>
+                                    {% else %}
+                                        <span style="color:#000;">
+                                            {{ ont.reference_id }}:
+                                        </span>
+                                    {% endif %}
                                     <span style="color:#000;font-weight:bold;">
                                         {{ ont.name }}
                                     </span>
