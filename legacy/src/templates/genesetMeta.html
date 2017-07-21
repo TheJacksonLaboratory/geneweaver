@@ -23,6 +23,19 @@
 
             <div class="row">
                 <div class="col-md-2">
+                    <p class="text-right"><strong>SCORE TYPE:</strong></p>
+                </div>
+                <div class="col-md-10">
+                    {% if geneset.threshold_type==1 %}<p>P-Value</p>{% endif %}
+                    {% if geneset.threshold_type==2 %}<p>Q-Value</p>{% endif %}
+                    {% if geneset.threshold_type==3 %}<p>Binary</p>{% endif %}
+                    {% if geneset.threshold_type==4 %}<p>Correlation</p>{% endif %}
+                    {% if geneset.threshold_type==5 %}<p>Effect</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-2">
                     <p class="text-right"><strong>DATE ADDED:</strong></p>
                 </div>
                 <div class="col-md-10">

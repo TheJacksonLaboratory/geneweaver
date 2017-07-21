@@ -32,7 +32,7 @@ class GeneWeaverThreadedConnectionPool(ThreadedConnectionPool):
 
         return conn
 
-# the global threaded connection pool that should be used for all DB 
+# the global threaded connection pool that should be used for all DB
 # connections in this application
 pool = GeneWeaverThreadedConnectionPool(
     5, 20,
@@ -1125,6 +1125,7 @@ def update_geneset(usr_id, form):
     gs_abbreviation = form.get('gs_abbreviation', '').strip()
     gs_description = form.get('gs_description', '').strip()
     gs_name = form.get('gs_name', '').strip()
+    gs_threshold_type = int(form.get('gs_threshold_type', 0))
     pub_authors = form.get('pub_authors', '').strip()
     pub_title = form.get('pub_title', '').strip()
     pub_abstract = form.get('pub_abstract', '').strip()
@@ -1139,7 +1140,7 @@ def update_geneset(usr_id, form):
     ## Should have already been checked but does't hurt to do it again I guess
     if ((get_user(usr_id).is_admin == False and\
         get_user(usr_id).is_curator == False) and\
-        (user_is_owner(usr_id, gs_id) != 1) and not 
+        (user_is_owner(usr_id, gs_id) != 1) and not
         user_is_assigned_curation(usr_id, gs_id)):
             return {
                 'success': False,
@@ -1167,8 +1168,8 @@ def update_geneset(usr_id, form):
                     FROM publication 
                     WHERE pub_pubmed = %s
                 );
-                ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
-                      pub_volume, pub_pages, pub_month, pub_year, pub_pubmed, 
+                ''', (pub_authors, pub_title, pub_abstract, pub_journal,
+                      pub_volume, pub_pages, pub_month, pub_year, pub_pubmed,
                       pub_pubmed)
             )
 
@@ -1205,7 +1206,7 @@ def update_geneset(usr_id, form):
                     FROM geneset 
                     WHERE publication.pub_id = geneset.pub_id AND
 						  geneset.gs_id = %s;
-                    ''', (pub_title, pub_abstract, pub_journal, pub_volume, 
+                    ''', (pub_title, pub_abstract, pub_journal, pub_volume,
                           pub_pages, pub_month, pub_year, pub_pubmed, gs_id,)
                 )
 
@@ -1223,7 +1224,7 @@ def update_geneset(usr_id, form):
                         %s, %s, %s, %s, %s, %s, %s, %s
                     ) 
                     RETURNING pub_id;
-                    ''', (pub_authors, pub_title, pub_abstract, pub_journal, 
+                    ''', (pub_authors, pub_title, pub_abstract, pub_journal,
                           pub_volume, pub_pages, pub_month, pub_year)
                 )
 
@@ -1236,9 +1237,9 @@ def update_geneset(usr_id, form):
         sql = cursor.mogrify('''
             UPDATE geneset 
             SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
-                gs_description = (%s)
+                gs_description = (%s), gs_threshold_type = (%s)
 			WHERE gs_id = %s;
-            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_id,)
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, gs_id,)
         )
 
         cursor.execute(sql)
@@ -1477,7 +1478,7 @@ def add_geneset_group(gs_id, grp_id):
         groups = groups[0].split(',')
 
         if '-1' in groups:
-            groups = []             
+            groups = []
 
         if grp_id in groups or '0' in groups:
             raise ValueError('Group exists, or geneset is public')
@@ -2771,7 +2772,7 @@ def get_results_by_runhash(runhash):
             ''',
                 (runhash,)
         )
-            
+
         result = cursor.fetchone()
         print result
 
