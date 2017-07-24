@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks, .clickable_message {
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks, .clickable_message, .pointer {
         cursor: pointer;
     }
 
@@ -268,8 +268,10 @@
                             {% endif %}
 
                         </div>
-
-
+				<div class="row">
+				    <p><span id="openJoinPublicGroupsModal" class="pointer" data-toggle="modal" data-target="#joinPublicGroupModal"><i class="fa fa-group"></i> Join Public Group</span></p>
+				</div>
+				{% include 'modal/addPublicGroups.html' %}
                     </div>
                 </div>
                 <div class="panel panel-primary">
