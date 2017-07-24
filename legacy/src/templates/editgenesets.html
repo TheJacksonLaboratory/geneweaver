@@ -137,6 +137,21 @@
             <br>
             <div class="row">
                 <div class="col-md-2">
+                    Score Type <strong>*</strong>:
+                </div>
+                <div class="col-xs-2">
+                    <select id="gs_threshold_type" class="form-control" name="gs_threshold_type" required>
+                        <option {% if geneset.threshold_type==1 %} selected="selected"{% endif %} id="gs-tt-pvalue" label="p-value" value="1" style="font-weight:bold;">P-Value</option>
+                        <option {% if geneset.threshold_type==2 %} selected="selected"{% endif %} id="gs-tt-qvalue" label="qvalue" value="2" style="font-weight:bold;">Q-Value</option>
+                        <option {% if geneset.threshold_type==3 %} selected="selected"{% endif %} id="gs-tt-binary" label="binary" value="3" style="font-weight:bold;">Binary</option>
+                        <option {% if geneset.threshold_type==4 %} selected="selected"{% endif %} id="gs-tt-correlation" label="correlation" value="4" style="font-weight:bold;">Correlation</option>
+                        <option {% if geneset.threshold_type==5 %} selected="selected"{% endif %} id="gs-tt-effect" label="effect" value="5" style="font-weight:bold;">Effect</option>
+                    </select>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
                     GeneSet Description <strong>*</strong>:
                 </div>
                 <div class="col-md-8">
