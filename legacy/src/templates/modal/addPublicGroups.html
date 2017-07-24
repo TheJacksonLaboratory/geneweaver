@@ -43,13 +43,13 @@
             if (selected)
                 selected = selected.map(Number);
 
-            selected = JSON.stringify(selected);
-            if ($.isEmptyObject(selected) && $.isEmptyObject(npn)){
-                $(document).trigger("set-alert-id-joinPublicGroupModal", [{
+            if ($.isEmptyObject(selected)) {
+                $(document).trigger("add-alerts", [{
                     'message': "No groups were selected.",
                     'priority': 'warning'
                 }]);
             } else {
+                selected = JSON.stringify(selected);
                 var data = {"projects": selected};
                 var url = "/addPublicGroupsToUser";
 
