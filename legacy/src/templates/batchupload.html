@@ -99,38 +99,83 @@
     <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="5000"></div>
 
 
-    <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST">
-
-            <div class="md-col-6 pull-left">
-                <div class="btn btn-warning btn-file">Batch Upload File
-                    <input id="file_data" type="file" name="selected_file" required="" accept=".bgf,text/plain"/>
+    <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST" class="form-horizontal">
+        <div class="row">
+            <div class="col-xs-6 col-sm-4">
+                    <label class="" for="exampleSelect2">Groups to which curation will be asigned.</label>
+                    <select multiple class="form-control selectpicker" id="curationgroups">
+                        <option>1</option>
+                        <option>2</option>
+                        <option>3</option>
+                        <option>4</option>
+                        <option>5</option>
+                    </select>
+                <div class="row">
+                    <div class="col-sm-6 pull-left">
+                        <button type="button" class="btn btn-success btn-transparent btn-sm" data-toggle="modal" data-target="#createNewGroupModal" style="margin-left:0">
+                            <i class="fa fa-group"></i> Create New Group
+                        </button>
+                        {% include 'modal/createNewGroup.html' %}
+                    </div>
+                    <div class="col-sm-6 pull-right">
+                        <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#joinPublicGroupModal">
+                            <i class="fa fa-group"></i> Join Public Group
+                        </button>
+                        {% include 'modal/addPublicGroups.html' %}
+                    </div>
                 </div>
             </div>
-            <span id="fileDisplayArea" style="color: #337700; vertical-align: middle; padding: 10px 0 0 10px;">
-                No file selected
-            </span>
-
-            <input id="fileContents" name="fileContents" type="hidden" />
-
-        <div class="row">
-            <div class="col-md-2"></div>
+            <div class="col-xs-6 col-sm-8">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <small id="fileHelp" class="form-text text-muted"><a href="static/text/batch_example.txt"><i class="fa fa-file-text-o"></i> Sample File</a></small>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="btn btn-warning btn-file">Batch Upload File
+                            <input id="file_data" type="file" name="selected_file" required="" accept=".bgf,text/plain"/>
+                            <input id="fileContents" name="fileContents" type="hidden" />
+                        </div>
+                        <span id="fileDisplayArea" style="color: #337700; vertical-align: middle; padding: 10px 0 0 10px;">No file selected</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12 btn-group">
+                        <div class='help-block'></div>
+                        <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
+                               value="Review GeneSet Upload &raquo;" disabled="true">
+                    </div>
+                </div>
+            </div>
         </div>
-
-
+                {#
         <div class="panel-heading panel-underline">
             <div class="row">
-                <div class="md-col-6 pull-left">
-                    {# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
-                    <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
-                           value="Review GeneSet Upload &raquo;"/>
+                <div class="col-md-4">
+                    {% include 'htmlfragments/selectCurationGroup.html' %}
                 </div>
-                <div class="md-col-6 pull-right">
-                    <a href="static/text/batch_example.txt"><i class="fa fa-file-text-o"></i> Sample File</a>
+                <div class="col-md-4">
+                    <div class="panel panel-primary"> 
+                        <div class=row style="margin-botton: 5px;">
+                            <a href="static/text/batch_example.txt"><i class="fa fa-file-text-o"></i> Sample File</a>
+                        </div>
+                        <div class=row>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="panel panel-primary"> 
+                #}
+                        {# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
+                {#
+                    </div>
                 </div>
             </div>
         </div>
-
-
+                #}
+    </form>
         <div style="">
             <br>
             {# Keep this indentation since <pre> preserves whitespace. #}
@@ -253,6 +298,23 @@
 
 <script>
     $(document).ready(function () {
+
+        $('#curationgroups').click(function(){
+            var groups_selected = $('#curationgroups option:selected').length;
+            var file_selected = $('input:file').val().length;
+            console.log( ((groups_selected < 1) || (file_selected < 1)) );
+    
+            $('#upload-geneset-button').prop('disabled', ((groups_selected < 1) || (file_selected < 1)));
+        });
+
+        $('input:file').on("change", function() {
+            var groups_selected = $('#curationgroups option:selected').length;
+            var file_selected = $('input:file').val().length;
+            console.log(groups_selected);
+            console.log(file_selected);
+            console.log( ((groups_selected < 1) || (file_selected < 1)) );
+            $('input:submit').prop('disabled', ((groups_selected < 1) || (file_selected < 1))); 
+        });
 
         $(function () {
             $("[data-toggle='tooltip']").tooltip();
