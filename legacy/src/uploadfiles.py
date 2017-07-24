@@ -191,7 +191,7 @@ def create_new_geneset(args):
 
     gs_count = len(formData['file_text'][0].split('\n'))
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
-    gs_threshold_type = int(3)
+    gs_threshold_type = formData['gs_threshold_type'][0]
     gs_threshold = str('0.5')
     gs_status = 'normal'
     gs_uri = str('')

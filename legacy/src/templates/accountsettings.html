@@ -13,7 +13,7 @@
         cursor: pointer;
     }
 
-    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks, .clickable_message {
+    .clickable, .clickable_delete, .clickable_edit, .clickable_addUsr, .clickable_setAdmins, .clickable_viewGroupTasks, .clickable_message, .pointer {
         cursor: pointer;
     }
 
@@ -268,8 +268,10 @@
                             {% endif %}
 
                         </div>
-
-
+				<div class="row">
+				    <p><span id="openJoinPublicGroupsModal" class="pointer" data-toggle="modal" data-target="#joinPublicGroupModal"><i class="fa fa-group"></i> Join Public Group</span></p>
+				</div>
+				{% include 'modal/addPublicGroups.html' %}
                     </div>
                 </div>
                 <div class="panel panel-primary">
@@ -356,10 +358,10 @@
                         <h2>Change Password</h2>
                     </div>
                     <div class="panel-body">
-                        <form method="post" action="{{ url_for('change_password') }}">
+                        <form method="post" action="{{ url_for('change_password') }}" id="change-password">
                             <div class="row">
                                 <label for="curr_pass"><h4>Current Password</h4></label>
-                                <input class="form-control input-lg" type="password" name="curr_pass">
+                                <input class="form-control input-lg" type="password" name="curr_pass" id="curr_pass">
                             </div>
                             <br>
                             <div class="row">
@@ -795,6 +797,48 @@
                 }
             });
         });
+
+        $('#change-password').submit(function (event) {
+                event.preventDefault();
+                var newpw = $("#password_1").val();
+                var curr_pass = $("#curr_pass").val();
+                $.ajax({
+                type: "POST",
+                url: "/change_password",
+                data: {"curr_pass": curr_pass, "new_pass": newpw},
+                success: function (data) {
+                    if(data ==  "Success") {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Your password has been updated successfully",
+                                'priority': 'success'
+                            }
+                        ]);
+                        window.scrollTo(0, 0);
+                    } else {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Your password was not updated: current password incorrect",
+                                'priority': 'danger'
+                            }
+                        ]);
+                        window.scrollTo(0,0);
+                    }
+                },
+                    error: function (data) {
+                    {
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "Something went wrong updating your password. Please contact GeneWeaver support",
+                                'priority': 'danger'
+                            }
+                        ]);
+                        window.scrollTo(0,0);
+                    }
+                }
+                });
+                document.getElementById("change-password").reset();
+            });
 
         $('.deleteMemberFromGroup').on('click', function () {
             var formID = $(this).attr("data-modal-id");
