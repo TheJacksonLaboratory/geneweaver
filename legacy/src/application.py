@@ -1756,13 +1756,27 @@ def rename_project():
     return json.dumps(results)
 
 
+@app.route('/addPublicGroupsToUser')
+@login_required()
+def add_public_groups_to_user():
+    user = flask.g.user
+    group_ids = json.loads(flask.request.args['projects'])
+    try:
+        result = geneweaverdb.add_user_to_public_groups(group_ids, user.user_id)
+    except geneweaverdb.Error:
+        result = {'error': True}
+    return json.dumps(result)
+
+
 @app.route('/accountsettings')
 @login_required()
 def render_accountsettings():
-    user = geneweaverdb.get_user(flask.session.get('user_id'))
-    groupsMemberOf = geneweaverdb.get_all_member_groups(flask.session.get('user_id'))
-    groupsOwnerOf = geneweaverdb.get_all_owned_groups(flask.session.get('user_id'))
-    groupsEmail = geneweaverdb.get_all_members_of_group(flask.session.get('user_id'))
+    user = flask.g.user
+    user_id = user.user_id
+    groupsMemberOf = geneweaverdb.get_all_member_groups(user_id)
+    groupsOwnerOf = geneweaverdb.get_all_owned_groups(user_id)
+    groupsEmail = geneweaverdb.get_all_members_of_group(user_id)
+    public_groups = geneweaverdb.get_other_visible_groups(user_id)
 
     groupAdmins = {}
     for group in groupsOwnerOf:
@@ -1778,6 +1792,7 @@ def render_accountsettings():
                                  groupsEmail=groupsEmail,
                                  groupAdmins=groupAdmins,
                                  emailNotifications=email_pref,
+                                 public_groups=public_groups,
                                  annotation_pref=annotation_pref)
 
 
@@ -3710,22 +3725,15 @@ def reset_password():
 def render_success():
     return flask.render_template('password_reset.html')
 
-
 @app.route('/change_password', methods=['POST'])
+@login_required(json=True)
 def change_password():
-    form = flask.request.form
-    if form is None:
-        return flask.render_template('accountsettings.html')
+    user = flask.g.user
+    if geneweaverdb.authenticate_user(user.email, request.form.get('curr_pass')) is None:
+        return "Fail"
     else:
-        user = geneweaverdb.get_user(flask.session.get('user_id'))
-
-        if (geneweaverdb.authenticate_user(user.email, form['curr_pass'])) is None:
-            return flask.render_template('accountsettings.html', user=user)
-        else:
-            success = geneweaverdb.change_password(
-                user.user_id, form['new_pass'])
-            return flask.render_template('accountsettings.html', user=user)
-
+        geneweaverdb.change_password(user.user_id, request.form.get('new_pass'))
+        return "Success"
 
 @app.route('/generate_api_key', methods=['POST'])
 def generate_api_key():
