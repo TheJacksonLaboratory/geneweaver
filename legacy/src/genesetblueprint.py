@@ -66,8 +66,10 @@ def render_batchupload(genes=None):
     gidts.append(('MicroArrays', microarray_id_sources))
 
     all_species = geneweaverdb.get_all_species()
+    user_id = flask.g.user.user_id
+    my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
 
-    return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts)
+    return flask.render_template('batchupload.html', gs=dict(), all_species=all_species, gidts=gidts, groups=my_groups)
 
 @geneset_blueprint.route('/createBatchGeneset', methods=['POST'])
 @login_required(json=True)
