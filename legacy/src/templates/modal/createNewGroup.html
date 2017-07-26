@@ -1,4 +1,4 @@
-{# Modal to allow user to join public groups #}
+{# Modal to allow user to create a group #}
 
 <div class="modal fade" id="createNewGroupModal">
     <div class="modal-dialog">
@@ -52,6 +52,11 @@
                             'priority': 'success'
                         }
                     ]);
+                    if (typeof reload_groups === "function") {
+                        reload_groups();
+                    } else {
+                        location.reload();
+                    }
                 },
                 error: function (jqXHR, textStatus, errorThrown ) {
 
