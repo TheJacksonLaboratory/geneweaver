@@ -7,6 +7,7 @@ import batch
 import json
 import annotator as ann
 from decorators import login_required, create_guest
+import curation_assignments
 
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
@@ -77,9 +78,18 @@ def create_batch_geneset():
     """
     Attempts to parse a batch file and create a temporary GeneSet for review.
     """
+    if not flask.request.form:
+        return flask.jsonify({'error': "Can't access upload form."})
 
-    if not flask.request.form or not flask.request.form['batchFile']:
+    batch_file = flask.request.form.get('batchFile')
+    if not batch_file:
         return flask.jsonify({'error': 'No batch file was provided.'})
+
+    curation_group = flask.request.form.get('curation_group')
+    if not curation_group:
+        return flask.jsonify({'error': 'No curation group selected'})
+    else:
+        curation_group = json.loads(curation_group)
 
     batch_file = flask.request.form['batchFile']
 
@@ -88,10 +98,8 @@ def create_batch_geneset():
     batch_file = batch_file.split('\n')
     batch_file = map(lambda s: s.encode('ascii', 'ignore'), batch_file)
 
-    user_id = flask.g.user.user_id if 'user' in flask.g else None
-
-    if user_id == None:
-        return flask.jsonify({"error": "You must be signed in to upload a GeneSet."})
+    user = flask.g.user
+    user_id = user.user_id
 
     batch_reader = batch.BatchReader(batch_file, user_id)
 
@@ -132,6 +140,10 @@ def create_batch_geneset():
             geneweaverdb.insert_omicssoft_metadata(
                 gs['gs_id'], project, source, tag, otype
             )
+
+    curation_note = "Geneset created in batch by {} {}".format(user.first_name, user.last_name)
+    for gs_id in new_ids:
+            curation_assignments.submit_geneset_for_curation(gs_id, curation_group, curation_note)
 
     return flask.jsonify({
         'genesets': new_ids, 
