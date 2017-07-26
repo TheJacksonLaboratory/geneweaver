@@ -102,7 +102,7 @@
     <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST" class="form-horizontal">
         <div class="row">
             <div class="col-xs-6 col-sm-4">
-                <label for="curationgroups">Select which groups to which curation will be assigned for these genesets:</label>
+                <label for="curationgroups">Select a group to curate these genesets.</label>
                 {% include 'htmlfragments/groups_multiselect_w_create_or_join.html' %}
             </div>
             <div class="col-xs-6 col-sm-8">
@@ -255,7 +255,6 @@
         $('#curationgroups').click(function(){
             var groups_selected = $('#curationgroups option:selected').length;
             var file_selected = $('input:file').val().length;
-            console.log( ((groups_selected < 1) || (file_selected < 1)) );
     
             $('#upload-geneset-button').prop('disabled', ((groups_selected < 1) || (file_selected < 1)));
         });
@@ -263,9 +262,6 @@
         $('input:file').on("change", function() {
             var groups_selected = $('#curationgroups option:selected').length;
             var file_selected = $('input:file').val().length;
-            console.log(groups_selected);
-            console.log(file_selected);
-            console.log( ((groups_selected < 1) || (file_selected < 1)) );
             $('input:submit').prop('disabled', ((groups_selected < 1) || (file_selected < 1))); 
         });
 
@@ -356,108 +352,118 @@
             // Encodes spaces, quotes, and other crap prior to sending
             batchFile = encodeURIComponent(batchFile);
 
-            // Let the user know we're in the process of uploading their
-            // geneset. Otherwise they might click the submit button 10 times.
-            $('#confirmUpload').modal('show');
+            var curation_group = $("#my_groups select").val();
 
-            $.ajax({
-                type: 'POST',
-                url: '../createBatchGeneset',
-                dataType: 'text',
-                data: {'batchFile': batchFile},
-                success: function (data) {
+            if ($.isEmptyObject(curation_group)) {
+                $(document).trigger("add-alerts", [{
+                    'message': "No groups were selected.",
+                    'priority': 'warning'
+                }]);
+            } else {
+                curation_group = JSON.stringify(curation_group);
 
-                    data = JSON.parse(data);
+                // Let the user know we're in the process of uploading their
+                // geneset. Otherwise they might click the submit button 10 times.
+                $('#confirmUpload').modal('show');
 
-                    // Hides confirmation after any kind of result (success or
-                    // error) is returned.
-                    $('#confirmUpload').modal('hide');
+                $.ajax({
+                    type: 'POST',
+                    url: '../createBatchGeneset',
+                    dataType: 'text',
+                    data: {'batchFile': batchFile, 'curation_group': curation_group},
+                    success: function (data) {
 
-                    // The data is returned already parsed out of JSON
-                    if ('error' in data && data.error.length > 0) {
+                        data = JSON.parse(data);
 
-                        var errors = data.error.join('<br />');
-                        errors = '<strong>There were some errors with your ' +
-                                'batch file.</strong><br />' + errors;
+                        // Hides confirmation after any kind of result (success or
+                        // error) is returned.
+                        $('#confirmUpload').modal('hide');
 
-                        var closeButton = '<button type="button" ' +
-                            'class="close" data-dismiss="alert" ' +
-                            'aria-hidden="true">x</button>';
+                        // The data is returned already parsed out of JSON
+                        if ('error' in data && data.error.length > 0) {
 
-                        $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $('#upload-error-alert').html(closeButton + errors);
-                        $('#upload-error').toggle(true);
-                    }
+                            var errors = data.error.join('<br />');
+                            errors = '<strong>There were some errors with your ' +
+                                    'batch file.</strong><br />' + errors;
 
-                    if ('warn' in data && data.warn.length > 0) {
-
-                        var warns = data.warn.join('<br />')
-                        warns = '<strong>There were some non-critical issues ' +
-                                'with your batch file.</strong><br />' + warns;
-
-                        var closeButton = '<button type="button" ' +
+                            var closeButton = '<button type="button" ' +
                                 'class="close" data-dismiss="alert" ' +
                                 'aria-hidden="true">x</button>';
 
-                        $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $('#upload-warn-alert').html(closeButton + warns);
-                        $('#upload-warn').toggle(true);
-                    }
-
-                    if ('genesets' in data && data.genesets.length > 0) {
-
-                        var genesets = data['genesets'];
-                        var success = '<strong>Success! Your GeneSets ' +
-                                'were uploaded: </strong><br />';
-
-                        for (var i = 0; i < genesets.length; i++)
-							success += generateEditLink(genesets[i], 'GS' + genesets[i]) + '<br />'
-                            //success += 'GS' + genesets[i] + '<br />';
-
-                        success = success + '<br /> <strong>You will be ' +
-                                'redirected to the edit GeneSet page shortly.' +
-                                '<br /> If you aren\'t redirected, check and ' +
-                                'reconfigure your pop-up blocker settings ' +
-                                'or click the GS links above.' +
-                                '</strong>';
-
-                        var closeButton = '<button type="button" ' +
-                                'class="close" data-dismiss="alert" ' +
-                                'aria-hidden="true">x</button>';
-
-                        $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $('#upload-success-alert').html(closeButton + success);
-                        $('#upload-success').toggle(true);
-
-                        // Redirect to the edit geneset page for each geneset,
-                        // wait a bit though so the user can read our message
-                        setTimeout(function() {
-
-                            for (var i = 0; i < genesets.length; i++) {
-
-                                var url = '../editgenesetgenes/' + genesets[i];
-
-                                window.open(url, '_blank');
-                            }
-
-                        }, 3000);
-                    }
-                },
-                error: function(){
-                    // Hides confirmation after any kind of result (success or
-                    // error) is returned.
-                    $('#confirmUpload').modal('hide');
-
-                    $('html, body').animate({ scrollTop: 0 }, 'slow');
-                    $(document).trigger("add-alerts", [
-                        {
-                            'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
-                            'priority': 'danger'
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#upload-error-alert').html(closeButton + errors);
+                            $('#upload-error').toggle(true);
                         }
-                    ]);
-                }
-            });
 
+                        if ('warn' in data && data.warn.length > 0) {
+
+                            var warns = data.warn.join('<br />')
+                            warns = '<strong>There were some non-critical issues ' +
+                                    'with your batch file.</strong><br />' + warns;
+
+                            var closeButton = '<button type="button" ' +
+                                    'class="close" data-dismiss="alert" ' +
+                                    'aria-hidden="true">x</button>';
+
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#upload-warn-alert').html(closeButton + warns);
+                            $('#upload-warn').toggle(true);
+                        }
+
+                        if ('genesets' in data && data.genesets.length > 0) {
+
+                            var genesets = data['genesets'];
+                            var success = '<strong>Success! Your GeneSets ' +
+                                    'were uploaded: </strong><br />';
+
+                            for (var i = 0; i < genesets.length; i++)
+                                                            success += generateEditLink(genesets[i], 'GS' + genesets[i]) + '<br />'
+                                //success += 'GS' + genesets[i] + '<br />';
+
+                            success = success + '<br /> <strong>You will be ' +
+                                    'redirected to the edit GeneSet page shortly.' +
+                                    '<br /> If you aren\'t redirected, check and ' +
+                                    'reconfigure your pop-up blocker settings ' +
+                                    'or click the GS links above.' +
+                                    '</strong>';
+
+                            var closeButton = '<button type="button" ' +
+                                    'class="close" data-dismiss="alert" ' +
+                                    'aria-hidden="true">x</button>';
+
+                            $('html, body').animate({ scrollTop: 0 }, 'slow');
+                            $('#upload-success-alert').html(closeButton + success);
+                            $('#upload-success').toggle(true);
+
+                            // Redirect to the edit geneset page for each geneset,
+                            // wait a bit though so the user can read our message
+                            setTimeout(function() {
+
+                                for (var i = 0; i < genesets.length; i++) {
+
+                                    var url = '../editgenesetgenes/' + genesets[i];
+
+                                    window.open(url, '_blank');
+                                }
+
+                            }, 3000);
+                        }
+                    },
+                    error: function(){
+                        // Hides confirmation after any kind of result (success or
+                        // error) is returned.
+                        $('#confirmUpload').modal('hide');
+
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                });
+            }
         });
 
     });
