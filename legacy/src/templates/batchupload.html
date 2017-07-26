@@ -102,28 +102,8 @@
     <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST" class="form-horizontal">
         <div class="row">
             <div class="col-xs-6 col-sm-4">
-                    <label class="" for="exampleSelect2">Groups to which curation will be asigned.</label>
-                    <select multiple class="form-control selectpicker" id="curationgroups">
-                        <option>1</option>
-                        <option>2</option>
-                        <option>3</option>
-                        <option>4</option>
-                        <option>5</option>
-                    </select>
-                <div class="row">
-                    <div class="col-sm-6 pull-left">
-                        <button type="button" class="btn btn-success btn-transparent btn-sm" data-toggle="modal" data-target="#createNewGroupModal" style="margin-left:0">
-                            <i class="fa fa-group"></i> Create New Group
-                        </button>
-                        {% include 'modal/createNewGroup.html' %}
-                    </div>
-                    <div class="col-sm-6 pull-right">
-                        <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#joinPublicGroupModal">
-                            <i class="fa fa-group"></i> Join Public Group
-                        </button>
-                        {% include 'modal/addPublicGroups.html' %}
-                    </div>
-                </div>
+                <label for="curationgroups">Select which groups to which curation will be assigned for these genesets:</label>
+                {% include 'htmlfragments/groups_multiselect_w_create_or_join.html' %}
             </div>
             <div class="col-xs-6 col-sm-8">
                 <div class="row">
@@ -298,6 +278,11 @@
 
 <script>
     $(document).ready(function () {
+/*
+        $('#joinPublicGroupModal').on('shown.bs.modal', function(e) {
+            $('#available_groups').load('/publicgroupsmultiselect');
+        });
+*/
 
         $('#curationgroups').click(function(){
             var groups_selected = $('#curationgroups option:selected').length;
@@ -319,7 +304,6 @@
         $(function () {
             $("[data-toggle='tooltip']").tooltip();
         });
-
 
         $('#clickableFontAwesome').popover({
             title: 'When to Use Batch Upload?', content: 'Use this page when you have many gene sets to ' +
