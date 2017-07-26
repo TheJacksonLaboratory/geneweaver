@@ -3423,6 +3423,17 @@ def render_share_projects():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
+@app.route('/mygroupsmultiselect')
+def my_groups_multiselect():
+    user_id = flask.g.user.user_id
+    my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
+    return flask.render_template('htmlfragments/groupsMultiselect.html', groups=my_groups)
+
+@app.route('/publicgroupsmultiselect')
+def public_groups_multiselect():
+    public_groups = geneweaverdb.get_other_visible_groups(flask.g.user.user_id)
+    return flask.render_template('htmlfragments/groupsMultiselect.html', groups=public_groups)
+
 @app.route('/projectsmultiselect')
 def get_projects_multiselect():
     return flask.render_template('htmlfragments/projectsMultiselect.html')
