@@ -3424,12 +3424,14 @@ def render_share_projects():
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
 @app.route('/mygroupselect')
+@login_required()
 def my_groups_multiselect():
     user_id = flask.g.user.user_id
     my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
     return flask.render_template('htmlfragments/groupSelect.html', groups=my_groups)
 
 @app.route('/publicgroupsmultiselect')
+@login_required()
 def public_groups_multiselect():
     public_groups = geneweaverdb.get_other_visible_groups(flask.g.user.user_id)
     return flask.render_template('htmlfragments/groupsMultiselect.html', groups=public_groups)
