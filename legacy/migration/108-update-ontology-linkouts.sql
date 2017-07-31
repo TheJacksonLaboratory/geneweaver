@@ -27,7 +27,7 @@ SET     ontdb_linkout_url = 'http://evidenceontology.org/term/'
 WHERE   ontdb_name = 'Evidence and Conclusion Ontology';
 
 UPDATE  odestatic.ontologydb 
-SET     ontdb_linkout_url = 'http://disease-ontology.org'
+SET     ontdb_linkout_url = 'http://disease-ontology.org/api/metadata/'
 WHERE   ontdb_name = 'Disease Ontology';
 
 UPDATE  odestatic.ontologydb 
