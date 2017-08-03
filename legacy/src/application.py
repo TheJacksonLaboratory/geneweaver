@@ -1683,8 +1683,18 @@ def update_genesets_groups():
         user_id = flask.session['user_id']
         gs_ids = request.args.get('gs_id', type=str, default='').split(',')
         groups = json.loads(request.args.get('option', type=str))
+        errors = set()
 
         for product in itertools.product(gs_ids, groups):
+
+            ## Prevent the user from sharing private, Tier 5 gene sets that
+            ## do not belong to them but they have access to (b/c those sets 
+            ## have been shared with them)
+            if geneweaverdb.get_geneset_tier(product[0]) == 5 and\
+               not geneweaverdb.user_is_owner(user_id, product[0]):
+                errors.add(product[0])
+                continue
+
             try:
                 geneweaverdb.add_geneset_group(product[0].strip(), product[1])
             except ValueError:
@@ -1692,7 +1702,17 @@ def update_genesets_groups():
             except TypeError:
                 pass
 
-        return json.dumps({'error': 'None'})
+        if not errors:
+            return json.dumps({'error': 'None'})
+
+        else:
+            errors = ','.join(map(lambda s: 'GS' + s, errors))
+
+            return json.dumps({
+                'error': ('The GeneSet(s) %s are private (Tier V) and can '
+                          'only be shared by their owners.' % errors)
+            })
+            
     else:
         return json.dumps({'error': 'You must be logged in to share a geneset with a group'})
 

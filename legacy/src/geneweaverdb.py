@@ -3015,6 +3015,32 @@ def update_annotation_pref(user_id, annotator):
     return {'error': 'unable to update user annotation'}
 
 
+def get_geneset_tier(gsid):
+    """
+    Returns the tier associated with the given gene set ID.
+
+    :param gsid:    the gene set ID
+    :return:        the tier (cur_id)
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT  cur_id
+            FROM    geneset
+            WHERE   gs_id = %s;
+            ''',
+                (gsid,)
+        )
+
+        result = cursor.fetchone()
+
+        if not result:
+            return None
+
+        return result[0]
+
+
 def get_geneset(geneset_id, user_id=None, temp=None):
     """
     Gets the Geneset if either the geneset is publicly visible or the user
