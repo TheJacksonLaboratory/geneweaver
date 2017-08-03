@@ -2474,8 +2474,32 @@ class User:
     @property
     def get_groups_by_user(self):
         if self.__get_groups_by_user is None:
-            self.__get_groups_by_user = get_groups_owned_by_user(self.user_id)
+            self.__get_groups_by_user = get_user_group_membership(self.user_id)
         return self.__get_groups_by_user
+
+
+def get_user_group_membership(usr_id):
+    """
+    Returns a list of Group objects for groups the user is a member of.
+    Almost a duplicate of "get_user_groups" and the two should probably be
+    merged at some point.
+
+    :param usr_id:	the user ID
+    :return:		The list of groups the user belongs to
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT  g.grp_id, g.grp_name, g.grp_private AS private
+            FROM    grp AS g, usr2grp AS u2g
+            WHERE   usr_id = %s AND
+                    g.grp_id = u2g.grp_id;
+            ''',
+                (usr_id,)
+        )
+
+        return [Group(row_dict) for row_dict in dictify_cursor(cursor)]
 
 
 def get_groups_owned_by_user(user_id):
