@@ -24,9 +24,7 @@
                         <ul class="analyzeGenesetLinks" role="menu">
                             <li><a href="/analyze">Analyze GeneSets</a></li>
                             <li><a href="/results">View Results</a></li>
-                            {% if "user" in g and g.user %}
-                                <li><a href="/emphasis">Emphasize Genes</a></li>
-                            {% endif %}
+                            <li><a href="/emphasis">Emphasize Genes</a></li>
                         </ul>
                     </div>
                     {% if "user" in g and g.user and not g.user.is_guest %}
