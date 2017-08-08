@@ -177,10 +177,25 @@
                 {% if ontology %}
                     {% for ont in ontology %}
                         <div class="ont-{{ont.ontdb_id}} group_name ontology-tag">
-                                <span style="color:#000">
-                                    <strong>{{ ont.name }}</strong>
+                            <span style="color:#000">
+                                <strong>{{ ont.name }}</strong>
+                            </span>
+                            {% if ont.ontdb_id in ont_links %}
+                                <a href=
+                                    "{{ ont_links[ont.ontdb_id] +
+                                    ont.reference_id }}"
+                                    class="ontology-linkout"
+                                    target="_blank"
+                                    style="text-decoration:underline; color:#000">
+                                <span style="color:#000;">
+                                    ({{ ont.reference_id }})
                                 </span>
-                                ({{ ont.reference_id }})
+                                </a>
+                            {% else %}
+                                <span style="color:#000;">
+                                    ({{ ont.reference_id }})
+                                </span>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 {% else %}
@@ -201,9 +216,21 @@
                         <ul style="list-style-type:disc; margin-left: 2em;">
                             {% for ont in ontology %}
                                 <li style="font-size:13px">
-                                    <span style="color:#000;">
-                                        {{ ont.reference_id }}:
-                                    </span>
+                                    {{ ont.ontdb_id }}
+                                    {{ ont_links[ont.ontdb_id] }}
+                                    {% if ont.ontdb_id in ont_links %}
+                                        <a href=
+                                            "{{ ont_links[ont.ontdb_id] +
+                                            ont.reference_id }}">
+                                        <span style="color:#000;">
+                                            {{ ont.reference_id }}:
+                                        </span>
+                                        </a>
+                                    {% else %}
+                                        <span style="color:#000;">
+                                            {{ ont.reference_id }}:
+                                        </span>
+                                    {% endif %}
                                     <span style="color:#000;font-weight:bold;">
                                         {{ ont.name }}
                                     </span>
@@ -218,6 +245,45 @@
             </div>
 
             <script>
+
+                /**
+                  * Escapes the ontology link outs. Currently required by two
+                  * ontologies that use the EBI ontology lookup service. EBI
+                  * will not correctly recognize URLs that haven't been escaped.
+                  */
+                $(function() {
+
+                    $('.ontology-linkout').attr('href', function(i, href) {
+                        
+                        // If we have matches then we're dealing with the EBI 
+                        // OLS service and the latter part of the URL must be 
+                        // modified to properly link to their service.
+                        var matches = href.match(/ebi\.ac\.uk\/ols/g);
+
+                        if (!matches)
+                            return href;
+
+                        // We have to do all this dumb manipulation b/c if we
+                        // just returned an encoded URI, jQuery prepends the
+                        // GeneWeaver URL to it
+                        var urls = href.split('http');
+
+                        urls.shift();
+
+                        if (urls.length !== 2)
+                            return href;
+
+                        // Replace the ':' in the ontology ID with a '_'. This
+                        // will match IDs in the format ONT:12345
+                        urls[1] = urls[1].replace(/(\w+):(\d+)/, '$1_$2');
+
+                        // If this is from the EDAM ontology, we remove the
+                        // EDAM_ prefix or the EBI OLS won't recognize the ID
+                        urls[1] = urls[1].replace(/EDAM_/, '');
+
+                        return 'http' + urls[0] + encodeURIComponent('http' + urls[1]);
+                    });
+                });
 
                 // Dynamically generates a colored species tag using an sp_id/sp_name
                 // association list from the DB. The function normalizes sp_id just in
