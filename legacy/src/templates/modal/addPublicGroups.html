@@ -65,9 +65,13 @@
                                 'message': "Successfully join public groups.",
                                 'priority': 'success'
                             }]);
-                            location.reload();
+                        
+                            if (typeof reload_groups === "function") {
+                                reload_groups();
+                            } else {
+                                location.reload();
+                            }
                         }
-
                     },
                     error: function (jqXHR, textStatus, errorThrown ) {
 

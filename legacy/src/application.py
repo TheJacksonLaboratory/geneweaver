@@ -3431,8 +3431,34 @@ def render_share_projects():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
+@app.route('/mygroupselect')
+@login_required()
+def my_groups_select():
+    """
+    An endpoint that renders an htmlfragment select element containing the groups the user is a memeber or admin of.
+    :return: (html): htmlfragments/groupselect.html
+    """
+    user_id = flask.g.user.user_id
+    my_groups = geneweaverdb.get_all_owned_groups(user_id) + geneweaverdb.get_all_member_groups(user_id)
+    return flask.render_template('htmlfragments/groupSelect.html', groups=my_groups)
+
+@app.route('/publicgroupsmultiselect')
+@login_required()
+def public_groups_multiselect():
+    """
+    An endpoint that renders an htmlfragment multiple select containing the public groups the user is not a member of.
+    :return: (html): htmlfragments/groupsMultiselect.html
+    """
+    public_groups = geneweaverdb.get_other_visible_groups(flask.g.user.user_id)
+    return flask.render_template('htmlfragments/groupsMultiselect.html', groups=public_groups)
+
 @app.route('/projectsmultiselect')
+@login_required()
 def get_projects_multiselect():
+    """
+    An endpoint that renders a htmlfragment multiple select containing all projects a user is a member of.
+    :return: (html): htmlfragments/projectsMultiselect.html
+    """
     return flask.render_template('htmlfragments/projectsMultiselect.html')
 
 @app.route('/addGenesetsToProjects')

@@ -1,0 +1,71 @@
+{# Modal to allow user to create a group #}
+
+<div class="modal fade" id="createNewGroupModal">
+    <div class="modal-dialog">
+        <div class="modal-content" style="overflow: auto">
+            <form id="addGenesetsToProj" name="addGenesetsToProj" method="post" action="#"
+                  class="form-horizontal" novalidate="novalidate">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" style="color: #f5f5f5">
+                        Create New Group
+                    </h3>
+                </div>
+                <div class="modal-body">
+                    <form id="createNewGroup">
+                        <div class="row">
+                            <label for="group_name"><h4>New Group Name: </h4></label>
+                            <input type="text" id="groupCreate" name="group_name" class="form-control input-lg">
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-6">
+                                <label><input type="checkbox" name="private_box" value="Private"
+                                              id="groupPrivate" checked>Private</label>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-warning" data-dismiss="modal" id="createGroup">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script type="text/javascript">
+        $('#createGroup').on('click', function () {
+            // In the case that the user includes "/" in the group name, it requires a double encode
+            // to avoid a 404 error.
+            // The server side will need to decode this to get back the "/"
+            var groupName = encodeURIComponent(encodeURIComponent($("#groupCreate").val()));
+            var isPrivate = 'Public';
+            if ($("#groupPrivate").is(':checked')) {
+                isPrivate = 'Private';
+            }
+            var userId = {{g.user.user_id}};
+            $.ajax({
+                type: "GET",
+                url: "/gwdb/create_group/" + groupName + "/" + isPrivate + "/" + userId + "/",
+                success: function (data) {
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "Group " + data + " Successfully Added.",
+                            'priority': 'success'
+                        }
+                    ]);
+                    if (typeof reload_groups === "function") {
+                        reload_groups();
+                    } else {
+                        location.reload();
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown ) {
+
+                    $(document).trigger("add-alerts", [{
+                        'message': "An Error (" + jqXHR + ") occurred while attemting to join group(s)",
+                        'priority': 'danger'
+                    }]);
+                }
+            });
+        });
+    </script>
+</div>
