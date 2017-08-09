@@ -1792,7 +1792,7 @@ def render_accountsettings():
                                  groupsEmail=groupsEmail,
                                  groupAdmins=groupAdmins,
                                  emailNotifications=email_pref,
-                                 public_groups=public_groups,
+                                 groups=public_groups,
                                  annotation_pref=annotation_pref)
 
 
