@@ -2567,9 +2567,8 @@ def render_group_tasks(group_id):
             elif len(groups_member) > 0:
                 group_id = groups_member[0]['grp_id']
             else:
-                response = flask.jsonify(success=False,
-                                         message='You are not a member of any groups.')
-                response.status_code = 403
+                public_groups = geneweaverdb.get_other_visible_groups(user_id)
+                response = flask.render_template('joinOrCreateGroups.html', groups=public_groups)
                 return response
 
         group = geneweaverdb.get_group_by_id(group_id)
