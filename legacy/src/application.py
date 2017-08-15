@@ -2153,14 +2153,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             else:
                 session['dir'] = 'ASC'
 
-        if 'page' in args:
-            page = args['page']
-            session['page'] = page
-        else:
-            page = 1
-            session['page'] = 1
-            #session.pop('page', None)
-
     emphgenes = {}
     emphgeneids = []
 
@@ -2281,12 +2273,13 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         if gtype['gdb_shortname'].lower() == 'symbol':
             symbol_type = gtype['gdb_id']
             break
-
+            
+    #this logic may need to go into the get_geneset_genes() method
     if symbol_type:
         if 'extsrc' not in session:
             session['extsrc'] = abs(geneset.gene_id_type)
 
-        ## This should be changed because the db functions shouldn't be 
+        ## This should be changed because the db functions shouldn't be
         ## accessing session variables
         old_type = session['extsrc']
         session['extsrc'] = symbol_type
