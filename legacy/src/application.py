@@ -2035,6 +2035,107 @@ def render_curategeneset(gs_id):
     #TODO this should go to some permission error page
     return render_viewgeneset_main(gs_id, False)
 
+@app.route('/geneset_values_ajax/<int:gs_id>', methods=['GET'])
+def render_get_geneset_values_ajax(gs_id):
+    return flask.render_template(
+        'htmlfragments/geneset_values_ajax.html',
+         gs_id=gs_id,
+         hom_colors=HOMOLOGY_BOX_COLORS,
+         species=SPECIES_NAMES
+    )
+
+@app.route('/get_geneset_values', methods=['GET'])
+#@login_required(json=True)
+def get_geneset_genes():
+    #return the list of genes associated with a geneset in json format
+    if 'user_id' in session:
+        user_id = session['user_id']
+    '''else:
+        return "Failure: you are not logged in"'''
+
+    args = flask.request.args
+    gs_id = args['gs_id']
+    print "gsid: {}".format(gs_id)
+
+    if 'sort' in args:
+        session['sort'] = args['sort']
+        session['dir'] = 'ASC'
+
+    if 'length' in args:
+        session['length'] = args['length']
+
+    if 'start' in args:
+        start = args['start']
+        session['start'] = start
+
+    search = "empty"
+    if 'search[value]' in args:
+        search = args['search[value]']
+        session['search'] = search
+
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    gsvs = geneset.geneset_values
+
+    '''self.gs_id = gsv_dict['gs_id']
+    self.ode_gene_id = gsv_dict['ode_gene_id']
+    self.value = gsv_dict['gsv_value']
+    self.hits = gsv_dict['gsv_hits']
+    self.source_list = gsv_dict['gsv_source_list']
+    self.value_list = gsv_dict['gsv_value_list']
+    self.is_in_threshold = gsv_dict['gsv_in_threshold']
+    self.date = gsv_dict['gsv_date']
+    # self.hom = list(set(gsv_dict['hom']))  # had to remove duplicates from list
+    self.hom_id = gsv_dict['hom_id']
+    self.hom = get_species_homologs(self.hom_id)
+    self.gene_rank = ((float(gsv_dict['gene_rank']) / 0.15) * 100)
+    # self.ode_ref = gsv_dict['ode_ref']
+    self.ode_ref = gsv_dict['ode_ref_id']
+    self.gdb_id = gsv_dict['gdb_id']'''
+
+    hom_colors = HOMOLOGY_BOX_COLORS
+    species_names = SPECIES_NAMES
+    totalRecords = geneweaverdb.get_genecount_in_geneset(gs_id)
+
+    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords,
+                 'hom_colors': hom_colors,
+                 'species_names': species_names,
+                 'search': search}
+
+    #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
+    for i in range(len(gsvs)):
+        gene = []
+        #gene.append(gsvs[i].gs_id)
+        gene.append(gsvs[i].ode_gene_id)
+        gene.append(str(round(gsvs[i].value, 3)))
+        #gene['hits'] = gsvs[i].hits
+        gene.append(str(gsvs[i].source_list[0]))
+        #gene['value_list'] = str(gsvs[i].value_list)
+        #gene['is_in_threshold'] = gsvs[i].is_in_threshold
+        #gene['date'] = gsvs[i].date
+        gene.append(sorted(gsvs[i].hom))
+        gene.append((float(gsvs[i].gene_rank) / 0.15) * 100)
+        #gene['hom'] = gsvs[i].hom
+        #gene['gene_rank'] = gsvs[i].gene_rank
+        gene.append(str(gsvs[i].ode_ref))
+        gene.append('Null')
+        gene.append('Null')
+        gene.append(gsvs[i].gdb_id)
+
+        print gene
+
+        gene_list['aaData'].append(gene)
+
+    return flask.jsonify(gene_list)
+    #return 'i did stuff'
+
+    '''for i in range(len(gs.geneset_values)):
+    gs.geneset_values[i].symbol = gs.geneset_values[i].ode_ref'''
+
+    #return flask.render_template('htmlfragments/geneset_values.html', geneset=geneset)
+
+    '''msg = "user id:%s, geneset id:%s, page:%s, sort:%s" % (user_id, gs_id, page, sort)
+    return msg'''
+
 
 def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None):
     # get values for sorting result columns
@@ -2052,6 +2153,13 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             else:
                 session['dir'] = 'ASC'
 
+        if 'page' in args:
+            page = args['page']
+            session['page'] = page
+        else:
+            page = 1
+            session['page'] = 1
+            #session.pop('page', None)
 
     emphgenes = {}
     emphgeneids = []
@@ -2061,11 +2169,21 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     else:
         user_id = 0
 
+    #for paging info and links
+    numgenes = geneweaverdb.get_genecount_in_geneset(gs_id)
+    totalPages = int(int(numgenes) / 30)
+    pageLinks = {}
+    if totalPages > 1:
+        sort = ""
+        if 'sort' in args:
+            sort = '&sort=' + args['sort']
+        for pageNum in range(1, totalPages + 1):
+            pageLinks[pageNum] = flask.request.base_url + '?page=' + str(pageNum) + sort
+
     user_info = geneweaverdb.get_user(user_id)
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
     # can the user see this geneset?
-
     ## User account
     if user_info:
         if not user_info.is_admin and not user_info.is_curator:
@@ -2181,7 +2299,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         session['extsrc'] = old_type
 
     return flask.render_template(
-        'viewgenesetdetails.html', 
+        'viewgenesetdetails.html',
+        gs_id=gs_id,
         geneset=geneset,
         emphgeneids=emphgeneids, 
         user_id=user_id,
