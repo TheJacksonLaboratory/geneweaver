@@ -3760,8 +3760,6 @@ def get_geneset_values(geneset_id):
         print session['search']
         search = " AND gsv.gsv_source_list[1] ~* '{}'".format(session['search'])
 
-    print search
-
     if 'sort' in session:
         d = session['dir']
         if session['sort'] == 'value':
@@ -3805,12 +3803,6 @@ def get_geneset_values(geneset_id):
                   END''' + s + limit, (geneset_id, ode_ref))
 
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
-
-        '''gsvs = []
-        for gsv_dict in dictify_cursor(cursor):
-            gsvs.append(gsv_dict)
-        return gsvs'''
-
 
 class ToolParam:
     def __init__(self, tool_param_dict):

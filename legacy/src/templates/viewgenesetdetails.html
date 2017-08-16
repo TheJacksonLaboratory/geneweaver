@@ -193,12 +193,6 @@
             </div>
         </div>
     </div>
-
-    {% for gene in emphgeneids %}
-        <script>
-            document.getElementById("{{gene}}").checked = true;
-        </script>
-    {% endfor %}
     {% else %}
         <div class="panel panel-default">
             <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -287,16 +281,33 @@
                         "type": "GET",
                         "data": {"gs_id": gs_id}
                     },
+                    "drawCallback" : function(settings) {
+                        /* once each page is done rendering, check for items in checkedArray object for
+                        'add genes to geneset selections, if it is populated, iterate through it
+                        and select checkboxes for the particular page you are on
+                         */
+                        var len = Object.keys(checkedArray).length;
+                        if (len > 0) {
+                            for (var key in checkedArray)  {
+                                if($('#addGeneset'+key).length != 0) {
+                                    $('#addGeneset'+key).prop('checked', true);
+                                }
+                            }
+                        }
+                    },
+                    "createdRow": function(row, data, index) {
+                        $(row).addClass("gene-list-row");
+                    },
                     "aoColumns": [
-                    {"mData": 0, "fnCreatedCell": gen_gene_name},
+                    {"mData": 0, "fnCreatedCell": gen_gene_name, className: "defaultSymbol"},
                     {"mData": 1, "fnCreatedCell": gen_symbol, "searchable": false},
                     {"mData": 2, "fnCreatedCell": gen_homology, "orderable": false, "searchable": false},
-                    {"mData": 3, "fnCreatedCell": gen_score, "searchable": false},
+                    {"mData": 3, "fnCreatedCell": gen_score, "searchable": false, className: "gene-value"},
                     {"mData": 4, "fnCreatedCell": gen_priority, "searchable": false},
                     {"mData": 5, "fnCreatedCell": gen_linkouts, "orderable": false, "searchable": false},
                     {"mData": 6, "fnCreatedCell": gen_emphasis, "orderable": false, "searchable": false},
                     {"mData": 7, "fnCreatedCell": gen_checkboxes, "orderable": false, "searchable": false}
-                    ],
+                    ]
                 });
 
             var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
@@ -305,29 +316,24 @@
                  'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
                  'Canis familiaris'];
 
-            function gen_geneID(nTd, sData, oData, iRow, iCol) {
-                $(nTd).empty();
-                $(nTd).append(oData[0]);
-            }
-
             function gen_priority(nTd, sData, oData, iRow, iCol) {
                 $(nTd).empty();
-                $(nTd).append(oData[4]);
+                $(nTd).append('<div class="progress">' + oData[4] + '</div>');
             }
 
             function gen_score(nTd, sData, oData, iRow, iCol) {
                 $(nTd).empty();
-                $(nTd).append(oData[1]);
+                $(nTd).append('<strong>' + oData[1] + '</strong>');
             }
 
             function gen_gene_name(nTd, sData, oData, iRow, iCol) {
                 $(nTd).empty();
-                $(nTd).append(oData[5]);
+                $(nTd).append('<strong><a href="/search/?searchbox=' + oData[5] + '&pagination_page=1&searchGenes=yes">' + oData[5] + '</a></strong>');
             }
 
             function gen_symbol(nTd, sData, oData, iRow, iCol) {
                 $(nTd).empty();
-                $(nTd).append(oData[2]);
+                $(nTd).append('<strong>' + oData[2] + '</strong>');
             }
 
             function gen_homology(nTd, sData, oData, iRow, iCol) {
@@ -375,9 +381,9 @@
 
             function gen_checkboxes(nTd, sData, oData, iRow, iCol) {
                         $(nTd).empty();
-                        $(nTd).append('<div class="ui-checkbox"><input name="gsoptions[]" \
+                        $(nTd).append('<div class="ui-checkbox"><input class="addGene" name="gsoptions[]" \
                         id="addGeneset' + oData[0] + '" value="' + oData[0] + '" \t' +
-                        'type="checkbox"></div>');
+                        'type="checkbox" onchange="updateCheckedArray(\'addGeneset' + oData[0] + '\');"></div>');
                 }
 
             $('#submitCurationRequest').attr('disabled', true).button('refresh');
@@ -744,22 +750,33 @@
     });
 
 
+
     /*
      * Extracts geneset metacontent and a user selected subset of the gene 
      * list to create a new geneset. 
      */
-	$('#addNewGeneset').on('click', function () {
 
-		var checkedArray = [];
+    var checkedArray = {};
 
-        // Grabs rows in the gene list that a user has selected
-		$("input:checkbox[name='gsoptions[]']:checked").each( function() {
-			checkedArray.push($(this).parents('.gene-list-row'));
-		});
+    function updateCheckedArray(id) {
+        /* add too or remove from checkedArray object when
+        add to geneset checkboxes are clicked */
+        var gID = $('#'+id).val();
+        if ($('#'+id).attr('checked')) {
+            var row = $('#'+id).parents('.gene-list-row');
+            checkedArray[gID] = row;
+        }
+        else {
+            delete checkedArray[gID];
+        }
+    }
 
-		if (typeof checkedArray != "undefined" && 
-            checkedArray != null && 
-            checkedArray.length > 0) {
+
+    $('#addNewGeneset').on('click', function () {
+        /* Grabs rows in the gene list that a user has selected */
+        var len = Object.keys(checkedArray).length;
+
+		if (len > 0) {
 
 			// Genesets with newlines cause js to shit the bed and get stuck
 			// in an infinite loading loop. Any variable replaced by jinja
@@ -781,13 +798,15 @@
                 gsData += '?' + 'ma_' + geneType;
 
 			// Gene names and scores
-			checkedArray.forEach(function (entry) {
-
-				gsData += "?";
-				gsData += $.trim($(entry).children('#defaultSymbol').text());
-				gsData += "?";
-				gsData += $.trim($(entry).children('.gene-value').text());
-			});
+			for (var key in checkedArray)  {
+                    item = checkedArray[key];
+                    var geneSymbol = $.trim($(item).children('.defaultSymbol').text());
+                    var geneValue = $.trim($(item).children('.gene-value').text());
+                    gsData += "?";
+                    gsData += geneSymbol;
+                    gsData += "?";
+                    gsData += geneValue
+			}
 
             // 'gsdata?' is needed otherwise the first section of the data
             // string is eaten by something (js?)
