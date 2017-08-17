@@ -22,6 +22,15 @@
         cursor: pointer;
     }
 
+    .right {
+        float: right;
+    }
+
+    .left {
+        float: left;
+        width: 100%;
+    }
+
     .popover {
         text-transform: none;
     }
@@ -113,13 +122,10 @@
                     <tbody>
                     <thead>
                     <tr>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=symbol"><i class="fa fa-sort"></i></a> Default</th>
+                        <th><i class="fa fa-sort"></i> Default</th>
                         <th>
-                            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt">
                                 <i class="fa fa-sort"></i>
-                            </a>
-							<span class="dropdown">
-	
+							    <span class="dropdown">
 								<span id="clickableGeneSymbol"
 									  data-toggle="dropdown" 
 									  aria-haspopup="true"
@@ -129,9 +135,7 @@
 										{{ altGeneSymbol }}
 									</span>
 									<i id="type-loading" class="fa fa-caret-down"></i>
-
 								</span>
-
 								{# 
 									TODO: Should be rewritten to dynamically
 									load gene types from the DB
@@ -174,10 +178,9 @@
                                 <i class="fa fa-info-circle"></i>
                             </span>
                         </th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Score</th>
+                        <th><i class="fa fa-sort"></i> Score</th>
                         <th>
-                            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority">
-                                <i class="fa fa-sort"></i></a> Priority
+                            <i class="fa fa-sort"></i> Priority
                             <span id="clickablePriority" data-trigger="focus" tabindex="0">
                                 <i class="fa fa-info-circle"></i>
                             </span>
@@ -275,7 +278,10 @@
                     "bLengthChange": true,
                     "processing": true,
                     "serverSide": true,
-                    "sDom": '<"top"lfp>rt<"bottom"sip><"clear">',
+                    "oLanguage": {
+                    "sSearch": "Filter Gene Symbol: "
+                    },
+                    "dom": '<"clear"l><"right"f><"left"ip><"bottom"rtip>',
                     "ajax": {
                         "url": "/get_geneset_values",
                         "type": "GET",

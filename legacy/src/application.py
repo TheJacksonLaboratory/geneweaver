@@ -2045,9 +2045,11 @@ def get_geneset_genes():
     args = flask.request.args
     gs_id = args['gs_id']
 
-    if 'sort' in args:
-        session['sort'] = args['sort']
-        session['dir'] = 'ASC'
+    if 'order[0][column]' in args:
+        orderBy = int(args['order[0][column]'])
+        columns = ['symbol', 'alt', '', 'value', 'priority']
+        session['sort'] = columns[orderBy]
+        session['dir'] = args['order[0][dir]']
 
     if 'length' in args:
         session['length'] = args['length']
@@ -2060,11 +2062,9 @@ def get_geneset_genes():
         session['search'] = args['search[value]']
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    gsvs = geneset.geneset_values
-
     totalRecords = geneweaverdb.get_genecount_in_geneset(gs_id)
-
     gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
+    gsvs = geneset.geneset_values
 
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
@@ -2107,7 +2107,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         user_id = 0
 
     numgenes = geneweaverdb.get_genecount_in_geneset(gs_id)
-    user_info = geneweaverdb.get_user(user_id)
+    user_info = flask.g.user
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
     # can the user see this geneset?
@@ -2149,7 +2149,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             if genedict.get(session['extsrc'], None):
                 altGeneSymbol = genedict[session['extsrc']]
                 alt_gdb_id = session['extsrc']
-
             else:
                 altGeneSymbol = genedict[abs(geneset.gene_id_type)]
                 alt_gdb_id = abs(geneset.gene_id_type)
@@ -2160,8 +2159,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         altGeneSymbol = None
         alt_gdb_id = None
         show_gene_list = False
-
-
 
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
@@ -2187,12 +2184,16 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Ontologies associated with this geneset
     ontology = get_ontology_terms(gs_id)
 
+    print ontology
+
     ## Ontology linkout mapping, ontdb_id -> url
-    ontdb = geneweaverdb.get_all_ontologydb()
+    '''ontdb = geneweaverdb.get_all_ontologydb()
     ont_links = {}
 
     for odb in ontdb:
         ont_links[odb.ontologydb_id] = odb.linkout_url
+
+    print ont_links'''
 
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = []
@@ -2201,6 +2202,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         species.append([sp_id, sp_name])
 
     ## Append the symbol to each geneset_value, required for ABA linkouts
+    ''' I dont think this is needed anymore...
     genetypes = geneweaverdb.get_gene_id_types()
     symbol_type = None
 
@@ -2209,7 +2211,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             symbol_type = gtype['gdb_id']
             break
 
-    #this logic may need to go into the get_geneset_genes() method
     if symbol_type:
         if 'extsrc' not in session:
             session['extsrc'] = abs(geneset.gene_id_type)
@@ -2224,7 +2225,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         for i in range(len(geneset.geneset_values)):
             geneset.geneset_values[i].symbol = gs.geneset_values[i].ode_ref
 
-        session['extsrc'] = old_type
+        session['extsrc'] = old_type'''
 
     return flask.render_template(
         'viewgenesetdetails.html',
@@ -2244,7 +2245,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curation_assignment=curation_assignment,
         curator_info=curator_info,
         show_gene_list=show_gene_list,
-        ont_links=ont_links,
         totalGenes=numgenes
     )
 
