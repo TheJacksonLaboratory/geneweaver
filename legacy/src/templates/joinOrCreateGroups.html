@@ -1,0 +1,44 @@
+{% set title="Curation Task Management" %}
+{% include 'header.html' %}
+{% import 'macros.html' as macros %}
+
+<style type="text/css">
+.centerbox {
+    display: flex;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+}
+</style>
+{% block body %}
+    <div id="maindiv" xmlns="http://www.w3.org/1999/html">
+        <div class="panel panel-default panel-heading bg-gray-light">
+            <h3 class="panel-title"><strong>Create a new group, or join a public one.</strong></h3>
+        </div>
+        <div class="row">
+            <div class="col-md-4 col-md-offset-4">
+                <button type="button" class="btn btn-success btn-transparent btn-block" data-toggle="modal" data-target="#createNewGroupModal" style="margin-left:0">
+                    <i class="fa fa-group"></i> Create New Group
+                </button>
+                {% include 'modal/createNewGroup.html' %}
+            </div>
+        </div>
+        <div class="help-block"></div>
+        <div class="row">
+            <div class="col-md-4 col-md-offset-4">
+                <button type="button" class="btn btn-success btn-block" data-toggle="modal" data-target="#joinPublicGroupModal">
+                    <i class="fa fa-group"></i>  Join Public Group
+                </button>
+                {% include 'modal/addPublicGroups.html' %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% include 'footer.html' %}
+
+<script>
+
+</script>
