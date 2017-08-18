@@ -55,6 +55,37 @@
             </div>
         </div>
     </form>
+
+    <br />
+    <div>
+        <div id="show-help" style="color:#006400; cursor:pointer; 
+             font-weight:600; text-decoration:underline;">
+            Help
+            <i id="help-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="help" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div style="color:#006400; font-family:'Open Sans',sans-serif;
+                 font-size:13px;">
+                <p style="padding-left:0px">
+                    <b>Left click</b> on gene node labels to search for that
+                    gene in a new window.
+                    <br />
+                    <b>Left click</b> on GeneSet node labels to view the
+                    details for that set in a new window.
+                    <br />
+                </p>
+            </div>
+            <span style="color:#006400">
+                Visit our 
+                <a href="http://geneweaver.org/wiki/index.php?title=GeneSet_Graph"
+                   style="color:#006400; font-weight:600;" 
+                   target="_blank">wiki</a>
+                for more information.
+            </span>
+        </div>
+    </div>
 </div>
 
 <div class="row">
@@ -102,6 +133,20 @@ $(function() {
     $('#show-tool-options').on('click', function() {
 
         $('#tool-options').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+    $('#show-help').on('click', function() {
+
+        $('#help').slideToggle();
 
         var caret = $(this).find('.fa-caret-left');
 
