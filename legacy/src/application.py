@@ -2109,16 +2109,11 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
 
 
     genetypes = geneweaverdb.get_gene_id_types()
-    plattypes = geneweaverdb.get_microarray_types()
     genedict = {}
-    platdict = {}
 
     for gtype in genetypes:
         genedict[gtype['gdb_id']] = gtype['gdb_name']
         genedict[gtype['gdb_name']] = gtype['gdb_id']
-
-    for ptype in plattypes:
-        platdict[ptype['pf_id']] = ptype['pf_shortname']
 
     show_gene_list = True
     # get value for the alt-gene-id column
