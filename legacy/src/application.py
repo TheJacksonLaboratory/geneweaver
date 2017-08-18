@@ -1681,6 +1681,7 @@ def update_project_groups():
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
             return flask.jsonify(success=True, results=results)
 
+
 @app.route('/shareGenesetsWithGroups')
 def update_genesets_groups():
     """ Function to share a collection of genesets with a collection of groups.
