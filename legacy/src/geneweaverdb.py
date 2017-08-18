@@ -3798,7 +3798,7 @@ def get_geneset_values(geneset_id):
                    gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
                    gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
             FROM geneset_value AS gsv
-            INNER JOIN homology AS h
+            LEFT OUTER JOIN homology AS h
             ON gsv.ode_gene_id = h.ode_gene_id
             INNER JOIN gene_info AS gi
             ON gsv.ode_gene_id = gi.ode_gene_id

@@ -2109,10 +2109,16 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
 
 
     genetypes = geneweaverdb.get_gene_id_types()
+    plattypes = geneweaverdb.get_microarray_types()
     genedict = {}
+    platdict = {}
 
     for gtype in genetypes:
         genedict[gtype['gdb_id']] = gtype['gdb_name']
+        genedict[gtype['gdb_name']] = gtype['gdb_id']
+
+    for ptype in plattypes:
+        platdict[ptype['pf_id']] = ptype['pf_shortname']
 
     show_gene_list = True
     # get value for the alt-gene-id column
@@ -2126,17 +2132,29 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                 alt_gdb_id = session['extsrc']
 
             else:
+                ## The genedict will not have references for expression 
+                ## platforms so if the gene_id_type is missing, it's 
+                ## probably a platform and we should handle it by setting
+                ## the default display to gene symbol
+                if geneset.gene_id_type not in genedict:
+                    alt_gdb_id = genedict['Gene Symbol']
+                    altGeneSymbol = genedict[alt_gdb_id]
+
+                else:
+                    altGeneSymbol = genedict[abs(geneset.gene_id_type)]
+                    alt_gdb_id = abs(geneset.gene_id_type)
+        else:
+            if geneset.gene_id_type not in genedict:
+                alt_gdb_id = genedict['Gene Symbol']
+                altGeneSymbol = genedict[alt_gdb_id]
+
+            else:
                 altGeneSymbol = genedict[abs(geneset.gene_id_type)]
                 alt_gdb_id = abs(geneset.gene_id_type)
-        else:
-            altGeneSymbol = genedict[abs(geneset.gene_id_type)]
-            alt_gdb_id = abs(geneset.gene_id_type)
     else:
         altGeneSymbol = None
         alt_gdb_id = None
         show_gene_list = False
-
-
 
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
