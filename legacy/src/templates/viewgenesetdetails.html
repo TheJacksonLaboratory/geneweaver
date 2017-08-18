@@ -37,15 +37,15 @@
 
     .loader {
         /* IE 8 */
-        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
         /* IE 5-7 */
-        filter: alpha(opacity=40);
+        filter: alpha(opacity=70);
         /* Netscape */
-        -moz-opacity: 0.4;
+        -moz-opacity: 0.7;
         /* Safari 1.x */
-        -khtml-opacity: 0.4;
+        -khtml-opacity: 0.7;
         /* Good browsers */
-        opacity: 0.4;
+        opacity: 0.7;
         position: fixed;
         left: 0px;
         top: 0px;
@@ -124,7 +124,6 @@
                     <tr>
                         <th><i class="fa fa-sort"></i> Default</th>
                         <th>
-                                <i class="fa fa-sort"></i>
 							    <span class="dropdown">
 								<span id="clickableGeneSymbol"
 									  data-toggle="dropdown" 
@@ -230,11 +229,7 @@
         });
 
         $("[name='g_id[]']").bootstrapSwitch();
-
-        $(window).on('load', function(e) {
-	        $(".loader").fadeOut("slow");
-        });
-
+        
         $(function () {
             $("[data-toggle='tooltip']").tooltip();
         });
@@ -279,7 +274,8 @@
                     "processing": true,
                     "serverSide": true,
                     "oLanguage": {
-                    "sSearch": "Filter Gene Symbol: "
+                    "sSearch": "Filter Gene Symbol: ",
+                    "sProcessing": ""
                     },
                     "dom": '<"clear"l><"right"f><"left"ip><"bottom"rtip>',
                     "ajax": {
@@ -300,13 +296,15 @@
                                 }
                             }
                         }
+                        //reset the second column header
+                        $('#altSymbolHeader').html('Gene Symbol');
                     },
                     "createdRow": function(row, data, index) {
                         $(row).addClass("gene-list-row");
                     },
                     "aoColumns": [
                     {"mData": 0, "fnCreatedCell": gen_gene_name, className: "defaultSymbol"},
-                    {"mData": 1, "fnCreatedCell": gen_symbol, "searchable": false},
+                    {"mData": 1, "fnCreatedCell": gen_symbol, "orderable": false, "searchable": false},
                     {"mData": 2, "fnCreatedCell": gen_homology, "orderable": false, "searchable": false},
                     {"mData": 3, "fnCreatedCell": gen_score, "searchable": false, className: "gene-value"},
                     {"mData": 4, "fnCreatedCell": gen_priority, "searchable": false},
@@ -315,6 +313,15 @@
                     {"mData": 7, "fnCreatedCell": gen_checkboxes, "orderable": false, "searchable": false}
                     ]
                 });
+
+            //override datatables processing indicator
+            $('#genes').on('processing.dt', function(e, settings, processing) {
+                //alert('event registered');
+                //throw new Error("i am stopping now");
+                $('#gene_processing').hide();
+                $('.loader').show();
+                $(".loader").fadeOut("slow");
+            }).dataTable();
 
             var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6'];
@@ -340,6 +347,9 @@
             function gen_symbol(nTd, sData, oData, iRow, iCol) {
                 $(nTd).empty();
                 $(nTd).append('<strong>' + oData[2] + '</strong>');
+                $(nTd).attr('id', 'altSymbol');
+                $(nTd).attr('class', 'gene-symbol');
+                $(nTd).attr('ode-gene-id', oData[0])
             }
 
             function gen_homology(nTd, sData, oData, iRow, iCol) {
@@ -568,6 +578,7 @@
             $('.gene-type').on('click', function (e) {
 
 				var geneType = $.trim($(this).text());
+				$('#altSymbolHeader').html(geneType);
 
 				$('#type-loading').attr('class', 'fa fa-cog fa-spin');
 
@@ -579,7 +590,6 @@
                         genesetValues = JSON.parse(genesetValues);
 
                         for (var i = 0; i < genesetValues.length; i++) {
-
                             var gsv = genesetValues[i];
                             var odeId = gsv['ode_gene_id'];
                             var gdbId = gsv['gdb_id'];
@@ -587,9 +597,6 @@
                             var altId = gsv['alt_gene_id'];
                             // Should check if this is null and handle
                             var altElement = $.find('[ode-gene-id="' + odeId + '"]')[0];
-
-                            $('#altSymbolHeader').html(geneType);
-
                             // Indicates an alternate ID type does exist for
                             // this particular gene
                             if (gdbId == altId)
@@ -741,8 +748,6 @@
                 });
 
             {% endif %}
-
-		    console.log('done loading?');
         });
 
         $( document.body ).on( 'click', '#geneSymbol li', function( event ) {

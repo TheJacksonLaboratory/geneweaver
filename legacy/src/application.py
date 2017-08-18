@@ -2069,15 +2069,23 @@ def get_geneset_genes():
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
         gene = []
+        #gene id
         gene.append(gsvs[i].ode_gene_id)
+        #score
         gene.append(str(round(gsvs[i].value, 3)))
+        #gene symbol
         gene.append(str(gsvs[i].source_list[0]))
+        #homology
         gene.append(sorted(gsvs[i].hom))
+        #priority
         gene.append((float(gsvs[i].gene_rank) / 0.15) * 100)
+        #gene name (column name: Default)
         gene.append(str(gsvs[i].ode_ref))
+        #blank columns for linkouts and 'add genes to geneset' checkboxes
         gene.append('Null')
         gene.append('Null')
-        gene.append(gsvs[i].gdb_id)
+        #I dont think this is used
+        #gene.append(gsvs[i].gdb_id)
         gene_list['aaData'].append(gene)
 
     return flask.jsonify(gene_list)
