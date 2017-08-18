@@ -325,31 +325,30 @@
                checked.push($(this).val());
             });
             var i = checked.join(",");
-                $.ajax({
-                    type: "GET",
-                    url: "../updateProjectGroups",
-                    data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": JSON.stringify(i) },
-                    success: function (data) {
+            $.ajax({
+                type: "GET",
+                url: "../updateProjectGroups",
+                data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": JSON.stringify(i) },
+                success: function (data) {
 
-                        if (data.success) {
+                    if (data.success) {
 
-                            $(document).trigger("add-alerts", [{
-                                'message': "Project Group permissions successfully updated.",
-                                'priority': 'success'
-                            }]);
-                           
-                            window.location.reload();
+                        $(document).trigger("add-alerts", [{
+                            'message': "Project Group permissions successfully updated.",
+                            'priority': 'success'
+                        }]);
+                       
+                        window.location.reload();
 
-                        } else {
+                    } else {
 
-                            $(document).trigger("add-alerts", [{
-                                'message': data.message,
-                                'priority': 'error'
-                            }]);
-                        }
+                        $(document).trigger("add-alerts", [{
+                            'message': data.message,
+                            'priority': 'error'
+                        }]);
                     }
-                });
-
+                }
+            });
         });
 
         // Update stared projects.
