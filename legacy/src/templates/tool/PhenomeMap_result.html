@@ -112,18 +112,18 @@
 
 <span id="lol-hack" style="display:none;">{{async_result.parameters.output_prefix}}</span>
 
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="panel panel-info">
-        <div class="panel-heading bg-green" style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
-				<div class="panel-title" style="width:100%;">
-					Tool Options
-					<span class="caret"></span>
-				</div>
-			</a>
-        </div>
-        <div id="jcCollapse" class="panel-collapse collapse" style="">
-            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+<div id="ui-container">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div>
+            <div id="show-tool-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Tool Options
+                <i id="tool-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="tool-options" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:100%">
                 <div class="row">
                     <div class="col-md-4">
                         {{ macros.tool_param_select(tool.params['PhenomeMap_DisableBootstrap']) }}
@@ -188,62 +188,129 @@
                 </div>
             </div>
         </div>
-    </div>
-</form>
+    </form>
 
+    <br />
 
-
-<div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
-			<div class="panel-title" style="width:100%;">
-				Visualization Options
-				<span class="caret"></span>
-			</div>
-		</a>
-	</div>
-	<div id="viz-options" class="panel-collapse collapse" style="">
-		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
-			<div class="row">
-				<div class="col-md-3">
-					{#
-						TODO: Highlighting entities should be done by gene name, not
-						by internal GW identifier.
-					#}
-					<p style="font-size:13px; font-weight:400;">
-						<b>Highlight Genes, GeneSets, or Species:</b>
-					</p>
-				</div>
-				<div class="col-md-9">
-					<div id="search"></div>
-				</div>
-			</div>
-			<br />
+    <div>
+        <div id="show-viz-options" style="color:#006400; cursor:pointer;
+             font-weight:600; text-decoration:underline;">
+            Visualization Options
+            <i id="viz-options-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="viz-options" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
             <div class="row">
-				<div class="col-md-3">
-					<div class="btn-group">
-						<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-							Download as...
-							<span class="caret"></span>
-						</button>
-						<ul class="dropdown-menu">
-							<li><a class="download-image" id="dl-pdf" href="">PDF</a></li>
-							<li><a class="download-image" id="dl-png" href="">PNG</a></li>
-							<li><a class="download-image" id="dl-svg" href="">SVG</a></li>
-							<li role="separator" class="divider"></li>
-							<li><a class="download-image" id="ol-png" href="">PNG (Classic HiSim)</a></li>
-							<li role="separator" class="divider"></li>
-							<li><a class="download-text" id="dl-csv" href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
-								CSV
-							</a></li>
-						</ul>
-					</div>
-				</div>
+                <div class="col-md-3">
+                    {#
+                        TODO: Highlighting entities should be done by gene 
+                        name, not by internal GW identifier.
+                    #}
+                    <p style="font-size:13px; font-weight:400;">
+                        <b>Highlight Genes, GeneSets, or Species:</b>
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <div id="search"></div>
+                </div>
             </div>
-		</div>
-	</div>
-</div>
 
+            <br />
+
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="btn-group">
+                        <button type="button" 
+                                class="btn btn-primary dropdown-toggle" 
+                                data-toggle="dropdown" aria-haspopup="true" 
+                                aria-expanded="false">
+                            Download as...
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="download-image" id="dl-pdf" href="">
+                                    PDF
+                                </a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-png" href="">
+                                    PNG
+                                </a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-svg" href="">
+                                    SVG
+                                </a>
+                            </li>
+                            <li role="separator" class="divider"></li>
+                            <li>
+                                <a class="download-image" id="ol-png" href="">
+                                    PNG (Classic HiSim)
+                                </a>
+                            </li>
+                            <li role="separator" class="divider"></li>
+                            <li>
+                                <a class="download-text" id="dl-csv" 
+                                   href="/PhenomeMap-result/{{ async_result.parameters.output_prefix }}.csv">
+                                    CSV
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br />
+
+    <div>
+        <div id="show-help" style="color:#006400; cursor:pointer; 
+             font-weight:600; text-decoration:underline;">
+            Help
+            <i id="help-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="help" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div style="color:#006400; font-family:'Open Sans',sans-serif;
+                 font-size:13px;">
+                <p style="padding-left:0px">
+                    <b>Hover</b> over nodes in the graph to display metadata
+                    about that node. The inormation shown includes GeneSet IDs
+                    and labels, the number of publications associated with the
+                    GeneSets in the given node, and the number (and possibly
+                    names) of genes in the given node.
+                    <br />
+                    <b>Left click</b> on intersection (grey) nodes to collapse
+                    the node.
+                    <br />
+                    <b>Right click</b> or <b>hold shift and left click</b> on 
+                    intersection (grey) nodes to view the overlap between 
+                    GeneSets involved in the intersection.
+                    <br />
+                    <b>Left click</b> on GeneSet nodes to highlight other
+                    nodes and edges in the graph that contain the given
+                    GeneSet.
+                    <br />
+                    <b>Right click</b> on a GeneSet node to open a new
+                    "GeneSet Details" window.
+                    <br />
+                </p>
+            </div>
+            <span style="color:#006400">
+                Visit our 
+                <a href="http://geneweaver.org/wiki/index.php?title=HiSim_Graph"
+                   style="color:#006400; font-weight:600;" 
+                   target="_blank">wiki</a>
+                for more information.
+            </span>
+        </div>
+    </div>
+
+</div>
 
 {#
     TEAM HISIM GRAPH NOTES:
@@ -369,6 +436,48 @@
 
 		doThings(graphData);
 		loadStats(graphStats);
+
+        $('#show-tool-options').on('click', function() {
+
+            $('#tool-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-viz-options').on('click', function() {
+
+            $('#viz-options').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
+
+        $('#show-help').on('click', function() {
+
+            $('#help').slideToggle();
+
+			var caret = $(this).find('.fa-caret-left');
+
+            // Rotate the caret depending on whether the options bar is toggled
+            if (caret.hasClass('fa-rotate-270'))
+				caret.attr('class', 'fa fa-caret-left');
+            else
+				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+        });
 
 	});
 </script>
