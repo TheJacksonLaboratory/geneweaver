@@ -11,18 +11,18 @@
     <h1>{{ title }}</h1>
 </div>
 
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="panel panel-info" >
-        <div class="panel-heading bg-green" style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
-				<div class="panel-title" style="width:100%;">
-					Tool Options
-					<span class="caret"></span>
-				</div>
-			</a>
-        </div>
-        <div id="jcCollapse" class="panel-collapse collapse" style="">
-            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+<div id="ui-container">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div>
+            <div id="show-tool-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Tool Options
+                <i id="tool-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="tool-options" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:100%">
                 <div class="row">
                     <div class="col-md-4">
                         {{ macros.tool_param_radio(tool.params['GeneSetViewer_Homology']) }}
@@ -36,7 +36,8 @@
                 </div>
                 <div class="row">
                     <div class="col-md-4">
-                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
+                        <input type="hidden" name="genesets" 
+                               value="{{ async_result.gs_ids|join(' ') }}"/>
                     </div>
                     <div class="col-md-8">
                     </div>
@@ -53,8 +54,8 @@
                 </div>
             </div>
         </div>
-    </div>
-</form>
+    </form>
+</div>
 
 <div class="row">
     <div class="col-md-12 link-panel" style="text-align: center;">
@@ -94,6 +95,23 @@ d3.xml(filePath).mimeType('image/svg+xml').get(function(error, xml) {
    	.node()
 	.appendChild(xml.documentElement);
 
+});
+
+$(function() {
+
+    $('#show-tool-options').on('click', function() {
+
+        $('#tool-options').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
 });
 
 </script>
