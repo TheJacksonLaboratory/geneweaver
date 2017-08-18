@@ -291,9 +291,9 @@ Edit the config with the appropriate information.
 If you need to upgrade an older version of the toolset running celery 3.x,
 follow these steps:
 
-    1. Pull the latest version of the `tools` and `website-py` repos.
-    2. Upgrade the package requirements using pip `$ pip install -r website-py/sample-configs/requirements.txt`.
-    3. Restart the tool and web applications.
+1. Pull the latest version of the `tools` and `website-py` repos.
+2. Upgrade the package requirements using pip `$ pip install -r website-py/sample-configs/requirements.txt`.
+3. Restart the tool and web applications.
 
 #### NOTE: The tool table may be incompatible with the celeryapp.py tool list. You may drop the tool table data and reload with ODE-data-only-tool.dump to correct.
 

@@ -1,5 +1,4 @@
-<label for="add">Select which projects to join:</label>
-<select multiple class="form-control" id="add">
+<select multiple class="form-control" id="curationgroups">
     {% for group in groups %}
         <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
     {% endfor %}
