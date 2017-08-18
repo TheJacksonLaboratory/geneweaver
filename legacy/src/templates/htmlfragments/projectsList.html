@@ -330,13 +330,23 @@
                     url: "../updateProjectGroups",
                     data: {"user_id": {{ g.user.user_id }}, "proj_id": projId, "groups": JSON.stringify(i) },
                     success: function (data) {
-                        $(document).trigger("add-alerts", [
-                            {
+
+                        if (data.success) {
+
+                            $(document).trigger("add-alerts", [{
                                 'message': "Project Group permissions successfully updated.",
                                 'priority': 'success'
-                            }
-                        ]);
-                        window.location.reload();
+                            }]);
+                           
+                            window.location.reload();
+
+                        } else {
+
+                            $(document).trigger("add-alerts", [{
+                                'message': data.message,
+                                'priority': 'error'
+                            }]);
+                        }
                     }
                 });
 

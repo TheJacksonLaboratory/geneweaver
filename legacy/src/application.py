@@ -1662,10 +1662,24 @@ def update_project_groups():
         else:
             groups = '-1'
 
+        ## Prevent the user from sharing a project containing a private gene
+        ## set that has been shared with them
+        genesets = geneweaverdb.get_genesets_for_project(proj_id, user_id)
+        genesets = filter(lambda g: g.cur_id == 5, genesets)
+
+        for gs in genesets:
+            if not geneweaverdb.user_is_owner(user_id, gs.geneset_id):
+                return flask.jsonify(
+                    success=False, 
+                    message=('You cannot share a private, Tier V GeneSet that '
+                             'you do not own. Please remove the GeneSet from '
+                             'this project before sharing it with others.')
+                )
+
         if geneweaverdb.get_user(user_id).is_admin != 'False' or \
                 geneweaverdb.user_is_project_owner(user_id, proj_id):
             results = geneweaverdb.update_project_groups(proj_id, groups, user_id)
-            return json.dumps(results)
+            return flask.jsonify(success=True, results=results)
 
 @app.route('/shareGenesetsWithGroups')
 def update_genesets_groups():
