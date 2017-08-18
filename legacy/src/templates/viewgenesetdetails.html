@@ -229,7 +229,7 @@
         });
 
         $("[name='g_id[]']").bootstrapSwitch();
-        
+
         $(function () {
             $("[data-toggle='tooltip']").tooltip();
         });
@@ -298,6 +298,9 @@
                         }
                         //reset the second column header
                         $('#altSymbolHeader').html('Gene Symbol');
+                        $('#gene_processing').hide();
+                        $('.loader').show();
+                        $(".loader").fadeOut("slow");
                     },
                     "createdRow": function(row, data, index) {
                         $(row).addClass("gene-list-row");
@@ -313,15 +316,6 @@
                     {"mData": 7, "fnCreatedCell": gen_checkboxes, "orderable": false, "searchable": false}
                     ]
                 });
-
-            //override datatables processing indicator
-            $('#genes').on('processing.dt', function(e, settings, processing) {
-                //alert('event registered');
-                //throw new Error("i am stopping now");
-                $('#gene_processing').hide();
-                $('.loader').show();
-                $(".loader").fadeOut("slow");
-            }).dataTable();
 
             var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6'];
