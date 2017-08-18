@@ -107,18 +107,18 @@
         {{ runhash }} </h1>
 </div>
 
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="panel panel-info" >
-        <div class="panel-heading bg-green" style="border-radius:4px;">
-			<a data-toggle="collapse" data-parent="#accordion" href="#jcCollapse"style="color:#FFFFFF; width:100%;">
-				<div class="panel-title" style="width:100%;">
-					Tool Options
-					<span class="caret"></span>
-				</div>
-			</a>
-        </div>
-        <div id="jcCollapse" class="panel-collapse collapse" style="">
-            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+<div id="ui-container">
+    <form id="todo-id" class="form-horizontal" role="form" method="post">
+        <div>
+            <div id="show-tool-options" 
+                 style="color:#006400; cursor:pointer; font-weight:600; 
+                        text-decoration:underline;">
+                Tool Options
+                <i id="tool-options-caret" class="fa fa-caret-left"></i>
+            </div>
+            <div id="tool-options" 
+                 style="display:none; text-align:left; background-color:#efe;
+                        border-radius:5px; padding:15px; width:100%">
                 <div class="row">
                     <div class="col-md-4">
                         {{ macros.tool_param_radio(tool.params['JaccardSimilarity_Homology']) }}
@@ -149,66 +149,136 @@
                 </div>
             </div>
         </div>
-    </div>
-</form>
+    </form>
 
-<div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#viz-options"style="color:#FFFFFF; width:100%;">
-			<div class="panel-title" style="width:100%;">
-				Visualization Options
-				<span class="caret"></span>
-			</div>
-		</a>
-	</div>
-	<div id="viz-options" class="panel-collapse collapse" style="">
-		<div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
+    <br />
+
+    <div>
+        <div id="show-viz-options" style="color:#006400; cursor:pointer;
+             font-weight:600; text-decoration:underline;">
+            Visualization Options
+            <i id="viz-options-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="viz-options" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
             <div class="row">
 				<div class="col-md-2">
                     <div class="btn-group">
-                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <button type="button" 
+                                class="btn btn-primary dropdown-toggle" 
+                                data-toggle="dropdown" aria-haspopup="true" 
+                                aria-expanded="false">
                             Download as...
                             <span class="caret"></span>
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="download-image" id="dl-pdf">PDF</a></li>
-                            <li><a class="download-image" id="dl-png">PNG</a></li>
-                            <li><a class="download-image" id="dl-svg">SVG</a></li>
+                            <li>
+                                <a class="download-image" id="dl-pdf">PDF</a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-png">PNG</a>
+                            </li>
+                            <li>
+                                <a class="download-image" id="dl-svg">SVG</a>
+                            </li>
                         </ul>
                     </div>
 				</div>
-
 				<div class="col-md-2">
                     <button type="button" value="Update" id="zoomButton" class="btn btn-primary">
                         Reset Zoom
                     </button>
                 </div>
             </div>
-
 		</div>
 	</div>
-</div>
 
-<div class="panel panel-info" >
-	<div class="panel-heading bg-green" style="border-radius:4px;">
-		<a data-toggle="collapse" data-parent="#accordion" href="#sim-matrix"style="color:#FFFFFF; width:100%;">
-			<div class="panel-title" style="width:100%;">
-				Similarity Matrix
-				<span class="caret"></span>
-			</div>
-		</a>
-	</div>
-	<div id="sim-matrix" class="panel-collapse collapse" style="">
-		<div align="center" class="panel-body" style="overflow:scroll; font-size:13px; border-radius:5px; border:1px solid #006400; text-align:center;">
-            <div id="matrix" align="center">
+    <br />
+
+    <div>
+        <div id="show-sim-matrix" style="color:#006400; cursor:pointer;
+             font-weight:600; text-decoration:underline;">
+            Similarity Matrix
+            <i id="sim-matrix-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="sim-matrix" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div align="center" class="panel-body" style="overflow:scroll; 
+                 font-size:13px; border-radius:5px; 
+                 border:1px solid #006400; text-align:center;">
+                <div id="matrix" align="center"></div>
+                <br />
+                <button align="center" type="button" class="btn btn-block btn-warning" id="addToProject" style="width:270px">
+                    <i class="fa fa-folder-o pull-left"></i> 
+                    Add GeneSet(s) to Project
+                </button>
             </div>
-            <br />
-            <button align="center" type="button" class="btn btn-block btn-warning" id="addToProject" style="width:270px">
-                <i class="fa fa-folder-o pull-left"></i> 
-                Add GeneSet(s) to Project
-            </button>
-		</div>
-	</div>
+        </div>
+    </div>
+
+    <br />
+
+    <div>
+        <div id="show-help" style="color:#006400; cursor:pointer; 
+             font-weight:600; text-decoration:underline;">
+            Help
+            <i id="help-caret" class="fa fa-caret-left"></i>
+        </div>
+        <div id="help" style="display:none; text-align:left; 
+             background-color:#efe; border-radius:5px; padding:15px;
+             width:100%">
+            <div style="color:#006400; font-family:'Open Sans',sans-serif;
+                 font-size:13px;">
+                <span style="text-decoration:underline; font-weight:600;">
+                    Venn Diagram Visualization
+                </span>
+                <p style="padding-left:8px">
+                    <b>Hover</b> over a venn diagram to view information about
+                    about the two GeneSets in that comparison.
+                    <br />
+                    <b>Left click</b> on a venn diagram to view detailed
+                    information about the overlap between two GeneSets.
+                    <br />
+                    <b>Hold left click and move the mouse</b> to change the
+                    position of the visualization.
+                    <br />
+                    <b>Scroll</b> the mouse wheel to zoom in and out of the
+                    visualization.
+                    <br />
+                    <b>Left click</b> on the <b>Reset Zoom</b> button under
+                    <b>Visualization Options</b> to reset the zoom and
+                    placement of the venn diagrams.
+                    <br />
+                    <b>Use</b> the P-value threshold slider at the bottom of
+                    the page to highlight GeneSet pairs with jaccard values
+                    that pass some significance threshold.
+                    <br />
+                </p>
+                <span style="text-decoration:underline; font-weight:600;">
+                    Similarity Matrix
+                </span>
+                <p style="padding-left:8px">
+                    <b>Left click</b> GeneSet IDs or labels at the top or left
+                    sides of the matrix to view GeneSet details.
+                    <br />
+                    <b>Left click</b> text inside a cell within the matrix to
+                    view detailed information about the overlap between two
+                    sets.
+                    <br />
+                </p>
+            </div>
+            <span style="color:#006400">
+                Visit our 
+                <a href="http://geneweaver.org/wiki/index.php?title=Jaccard_Similarity"
+                   style="color:#006400; font-weight:600;" 
+                   target="_blank">wiki</a>
+                for more information.
+            </span>
+        </div>
+    </div>
+
 </div>
 
 <br>
@@ -443,6 +513,65 @@ $('#what').popover({
         });
         });
 
+$(function() {
+
+    $('#show-tool-options').on('click', function() {
+
+        $('#tool-options').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+    $('#show-viz-options').on('click', function() {
+
+        $('#viz-options').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+    $('#show-sim-matrix').on('click', function() {
+
+        $('#sim-matrix').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+    $('#show-help').on('click', function() {
+
+        $('#help').slideToggle();
+
+        var caret = $(this).find('.fa-caret-left');
+
+        // Rotate the caret depending on whether the options bar is toggled
+        if (caret.hasClass('fa-rotate-270'))
+            caret.attr('class', 'fa fa-caret-left');
+        else
+            caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+
+    });
+
+});
 </script>
 
 {% if g.user is defined %}
