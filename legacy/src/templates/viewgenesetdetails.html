@@ -279,9 +279,12 @@
                     },
                     "dom": '<"clear"l><"right"f><"left"ip><"bottom"rtip>',
                     "ajax": {
+                        "beforeSend": function() {
+                            $('.loader').show();
+                        },
                         "url": "/get_geneset_values",
                         "type": "GET",
-                        "data": {"gs_id": gs_id}
+                        "data": {"gs_id": gs_id},
                     },
                     "drawCallback" : function(settings) {
                         /* once each page is done rendering, check for items in checkedArray object for
@@ -298,8 +301,8 @@
                         }
                         //reset the second column header
                         $('#altSymbolHeader').html('Gene Symbol');
+                        //override the processing indicator
                         $('#gene_processing').hide();
-                        $('.loader').show();
                         $(".loader").fadeOut("slow");
                     },
                     "createdRow": function(row, data, index) {
