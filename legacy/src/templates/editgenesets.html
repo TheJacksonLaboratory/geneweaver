@@ -618,6 +618,15 @@
             };
         }
 
+            $('#edit-genes').on('click', function (e) {
+                var gsid = {{ geneset.geneset_id }};
+                {% if curation_view == 'curator' %}
+                    window.location.href = '/curategenesetgenes/' +gsid;
+                {% else %}
+                    window.location.href = '../editgenesetgenes/' +gsid;
+                {% endif %}
+            });
+
         //Get Pubmed Data for ID
         $('#clickablePubmed').click(function() {
             var pmid = $("#pub_pubmed").val();
