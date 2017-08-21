@@ -2198,6 +2198,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Ontology linkout mapping, ontdb_id -> url
     ontdb = geneweaverdb.get_all_ontologydb()
 
+    ont_links = {}
+
     for odb in ontdb:
         #just in case the linkout_url is empty. if it is it breaks the template, so avoid
         if odb.linkout_url is not None:
