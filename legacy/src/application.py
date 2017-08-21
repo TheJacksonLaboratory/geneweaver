@@ -2193,16 +2193,15 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Ontologies associated with this geneset
     ontology = get_ontology_terms(gs_id)
 
-    print ontology
+    #print ontology
 
     ## Ontology linkout mapping, ontdb_id -> url
-    '''ontdb = geneweaverdb.get_all_ontologydb()
-    ont_links = {}
+    ontdb = geneweaverdb.get_all_ontologydb()
 
     for odb in ontdb:
-        ont_links[odb.ontologydb_id] = odb.linkout_url
-
-    print ont_links'''
+        #just in case the linkout_url is empty. if it is it breaks the template, so avoid
+        if odb.linkout_url is not None:
+            ont_links[odb.ontologydb_id] = odb.linkout_url
 
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = []
@@ -2246,7 +2245,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         tt=SPECIES_NAMES,
         altGeneSymbol=altGeneSymbol, 
         view=view,
-        ontology=ontology, 
+        ontology=ontology,
+        ont_links=ont_links,
         alt_gdb_id=alt_gdb_id,
         species=species, 
         curation_view=curation_view,
