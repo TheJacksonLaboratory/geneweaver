@@ -1982,6 +1982,7 @@ def create_geneset_meta():
 
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
+@login_required()
 def render_viewgeneset(gs_id):
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
     return render_viewgeneset_main(gs_id, curation_assignment=assignment)
