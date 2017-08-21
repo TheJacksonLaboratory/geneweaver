@@ -4101,6 +4101,11 @@ class DeleteGenesetFromProject(restful.Resource):
         return geneweaverdb.delete_geneset_from_project(apikey, projectid, genesetid)
 
 
+class AddGeneSetByUser(restful.Resource):
+    def post(self, apikey):
+        return uploadfiles.post_geneset_by_user(apikey, request.data)
+
+
 class GetGenesetByProjectId(restful.Resource):
     def get(self, apikey, projectid):
         return geneweaverdb.get_geneset_by_project_id(apikey, projectid)
@@ -4282,6 +4287,7 @@ api.add_resource(GetGeneDatabaseById, '/api/get/genedatabase/byid/<apikey>/<gene
 api.add_resource(AddProjectByUser, '/api/add/project/byuser/<apikey>/<project_name>/')
 api.add_resource(AddGenesetToProject, '/api/add/geneset/toproject/<apikey>/<projectid>/<genesetid>/')
 api.add_resource(DeleteGenesetFromProject, '/api/delete/geneset/fromproject/<apikey>/<projectid>/<genesetid>/')
+api.add_resource(AddGeneSetByUser,'/api/add/geneset/byuser/<apikey>/')
 
 # Tool Functions
 api.add_resource(ToolGetFile, '/api/tool/get/file/<apikey>/<task_id>/<file_type>/')

@@ -1,10 +1,11 @@
 import re
-from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name
+from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name, get_user_id_by_apikey
 from urlparse import parse_qs, urlparse
 from flask import session
 import annotator as ann
 import json
 import psycopg2
+import requests
 
 __author__ = 'baker'
 
@@ -86,6 +87,11 @@ def insert_new_contents_to_file(contents):
 
 
 def create_new_geneset(args):
+    user_id = session['user_id']
+    return create_new_geneset_for_user(args, user_id)
+
+
+def create_new_geneset_for_user(args, user_id):
     '''
     This function creates new geneset metadata with new data, including publication, and file data
     It also puts the gs_status='delayed', which can be updated later.
@@ -94,7 +100,6 @@ def create_new_geneset(args):
     '''
     urlString = '/?' + args['formData']
     formData = parse_qs(urlparse(urlString).query, keep_blank_values=True)
-    user_id = session['user_id']
 
     ##Create publication dictionary
     ## Insert into publication and return id
@@ -200,7 +205,7 @@ def create_new_geneset(args):
 
     try:
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT production.create_geneset(%s, %s, %s, %s, %s, %s, %s, %s, %s,
+            cursor.execute('''SELECT production.create_geneset2(%s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s)''', (user_id, cur_id, formData['sp_id'][0], gs_threshold_type, gs_threshold,
                                          gs_groups, gs_status, gs_count, gs_uri, gene_identifier,
                                          formData['gs_name'][0], formData['gs_abbreviation'][0],
@@ -543,5 +548,34 @@ def insert_into_geneset_value_by_gsid(gsid):
                     return {'error': 'None'}
         else:
             return {'error': 'Temp table does not contain GS' + gsid}
+
+
+def post_geneset_by_user(apikey, data):
+    jData = json.loads(data)
+
+    # All of the important fields except file_text and file_url
+    important_fields = ["gene_identifier", "gs_abbreviation", "gs_description",
+        "gs_name", "gs_threshold_type", "permissions", "pub_abstract",
+        "pub_authors", "pub_journal", "pub_month", "pub_pages", "pub_pubmed",
+        "pub_title", "pub_volume", "pub_year", "select_groups", "sp_id"]
+
+    formData = []
+    for field in important_fields:
+        value = jData[field] if field in jData else ""
+        formData.append(field + "=" + value)
+
+    file_text = jData["file_text"] if "file_text" in jData else ""
+
+    if ("file_url" in jData):
+        response = requests.get(jData["file_url"])
+        if (response.ok):
+            file_url_text = response.content
+            file_text = file_url_text if "file_text" not in jData else file_text + '\r' + file_url_text
+
+    formData.append("file_text=" + file_text)
+
+    args = {'formData': '&'.join(formData)}
+    user_id = get_user_id_by_apikey(apikey)
+    return create_new_geneset_for_user(args, user_id)
 
 
