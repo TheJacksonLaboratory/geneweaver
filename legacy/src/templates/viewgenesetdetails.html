@@ -291,13 +291,19 @@
                         }
                         //reset the second column header
                         $('#altSymbolHeader').html('Gene Symbol');
-                        //register the empahsis checkboxes as bootstrap switches
-                        $("[name='g_id[]']").bootstrapSwitch();
                         //register homology tooltips
                         $("[data-toggle='tooltip']").tooltip();
                         //override the processing indicator
                         $('#gene_processing').hide();
                         $(".loader").fadeOut("slow");
+                        {% for gene in emphgeneids %}
+                        if ($("#{{gene}}").length) {
+                            alert('{{gene}} is on the page');
+                            $("#{{gene}}").attr('checked', 'checked');
+                        }
+                        {% endfor %}
+                        //register the empahsis checkboxes as bootstrap switches
+                        $("[name='g_id[]']").bootstrapSwitch();
                     },
                     "createdRow": function(row, data, index) {
                         $(row).addClass("gene-list-row");
