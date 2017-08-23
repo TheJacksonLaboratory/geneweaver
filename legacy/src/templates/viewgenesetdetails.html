@@ -185,7 +185,11 @@
                             </span>
                         </th>
                         <th>LinkOuts</th>
-                        <th>Emphasis</th>
+                        <th>Emphasis
+                        <span id="clickableEmphasis" data-trigger="focus" tabindex="0">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th>&nbsp;</th>
                     </tr>
                     </thead>
@@ -226,6 +230,11 @@
 
             //makeOntologyTags({{ ontology | map(attribute='ontdb_id') | list }});
             makeOntologyTags({{ ontology | tojson | safe }});
+        });
+
+        $('#clickableEmphasis').popover({
+                title: 'Gene Emphasis', content: 'Toggle the switch to emphasize or de-emphasize a gene.' +
+            ' Please note that your changes will not be reflected across pages unless you refresh this page entirely.'
         });
 
         $('#clickableHomology').popover({
@@ -296,9 +305,9 @@
                         //override the processing indicator
                         $('#gene_processing').hide();
                         $(".loader").fadeOut("slow");
+                        //TODO: this needs to be redone to maintain state across paging
                         {% for gene in emphgeneids %}
                         if ($("#{{gene}}").length) {
-                            alert('{{gene}} is on the page');
                             $("#{{gene}}").attr('checked', 'checked');
                         }
                         {% endfor %}
