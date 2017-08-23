@@ -228,12 +228,6 @@
             makeOntologyTags({{ ontology | tojson | safe }});
         });
 
-        $("[name='g_id[]']").bootstrapSwitch();
-
-        $(function () {
-            $("[data-toggle='tooltip']").tooltip();
-        });
-
         $('#clickableHomology').popover({
                 title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
                 'within GeneWeaver. Mouseover the boxes to reveal species names.'
@@ -243,10 +237,6 @@
                 title: 'Percentile Priority Rank', content: 'All genes within GeneWeaver are ranked according to global ' +
                 'graph centrality. A full description can be found <a href="http://www.geneweaver.org/wiki">here</a>.',
                 html: 'true'
-        });
-
-        $('#clickableGeneSymbol').on('click', function (e) {
-			//$("#selectGeneDisplayType").modal('show');
         });
 
         $('#export').on('click', function (e) {
@@ -301,6 +291,10 @@
                         }
                         //reset the second column header
                         $('#altSymbolHeader').html('Gene Symbol');
+                        //register the empahsis checkboxes as bootstrap switches
+                        $("[name='g_id[]']").bootstrapSwitch();
+                        //register homology tooltips
+                        $("[data-toggle='tooltip']").tooltip();
                         //override the processing indicator
                         $('#gene_processing').hide();
                         $(".loader").fadeOut("slow");
@@ -384,12 +378,8 @@
 
             function gen_emphasis(nTd, sData, oData, iRow, iCol) {
                         $(nTd).empty();
-                        $(nTd).append('<div class="switch-toggle switch-off switch-mini switch-animate switch-id-' + oData[0] + '"><div> \
-                        <span class="switch-handle-on switch-primary">ON</span><label for="' + oData[0] + '">&nbsp;</label> \
-                        <span class="switch-handle-off switch-default">OFF</span> \
-                        <input type="checkbox" name="g_id[]" id="' + oData[0] + '" \
-                        onchange="emphasize(\'' + oData[0] + '\');" class="switch" data-size="mini" \
-                        style="padding: 0px; vertical-align: middle;"></div></div>');
+                        $(nTd).append('<input type="checkbox" name="g_id[]" id="' + oData[0] + '" \
+                        onchange="emphasize(\'' + oData[0] + '\');" data-size="mini" style="padding: 0px; vertical-align: middle;">');
                     }
 
             function gen_checkboxes(nTd, sData, oData, iRow, iCol) {
