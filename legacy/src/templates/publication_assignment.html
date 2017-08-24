@@ -510,13 +510,6 @@
         $('#assignPubToGroupModal').on('change', '#selectGroup', function(){
             $('#assignPubConfirm').prop("disabled", false).button("refresh");
         });
-/*
-        $("#selectGroup").change( function () {
-            // submit button will be disabled until the user selects a group
-            // selection
-            $('#assignPubConfirm').prop("disabled", false).button("refresh");
-        });
-*/
 
         {#  Functions to support publication generators #}
 
@@ -612,17 +605,7 @@
             console.log('change');
             validateGenModalFields();
         });
-/*
-        $("#genGroups").change(function() {
-            validateGenModalFields()
-        });
-        $("#generatorName").change( function() {
-            validateGenModalFields()
-        });
-        $("#generatorQuery").change(  function() {
-            validateGenModalFields()
-        });
-*/
+
         function validateGenModalFields() {
             // activate save button if all are populated with values
             if ($("#addOrEditGeneratorModal #selectGroup").val() && $("#generatorName").val() && $("#generatorQuery").val()) {
