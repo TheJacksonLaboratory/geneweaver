@@ -234,7 +234,7 @@
 
         $('#clickableEmphasis').popover({
                 title: 'Gene Emphasis', content: 'Toggle the switch to emphasize or de-emphasize a gene.' +
-            ' Please note that your changes will not be reflected across pages unless you refresh this page entirely.'
+            ' Please note that your changes will be recorded, but not reflected across paging unless you refresh this page entirely.'
         });
 
         $('#clickableHomology').popover({
@@ -275,6 +275,19 @@
                     "oLanguage": {
                     "sSearch": "Filter Gene Symbol: ",
                     "sProcessing": ""
+                    },
+                    "tableTools": {
+                    "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                    "sRowSelect": "multi",
+                    "aButtons": [
+                    "select_all",
+                    "select_none",
+                    "copy",
+                    "print",
+                    "pdf",
+                    "xls",
+                    "csv"
+                    ]
                     },
                     "dom": '<"clear"l><"right"f><"left"ip><"bottom"rtip>',
                     "ajax": {
