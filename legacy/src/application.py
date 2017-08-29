@@ -2628,7 +2628,7 @@ def render_group_tasks(group_id):
         except TypeError as error:
             print("TypeError while trying to match group id: {0}".format(error))
     else:
-        headerCols, user_id, columns = None, 0, None
+        headerCols, user_id, columns = [], 0, None
 
     return flask.render_template(
         'groupTasks.html',
