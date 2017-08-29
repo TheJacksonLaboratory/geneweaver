@@ -11,7 +11,13 @@ run on other distributions with minimal changes.
 
 To begin, you'll need the following application dependencies:
 
+RedHat/Fedora/CentOS:
+
     $ sudo yum install boost boost-devel cairo cairo-devel git graphviz libffi libffi-devel libpqxx libpqxx-devel postgresql-server postgresql-devel python2 rabbitmq-server sphinx
+	
+Debian/Ubuntu:
+
+	$ sudo apt-get install libboost-all-dev libcairo2 libcairo2-dev git graphviz libffi6 libffi-dev libpqxx-4.0 libpqxx-dev postgresql postgresql-server-dev-9.5 python2.7 rabbitmq-server sphinxsearch
 
 Ensure that the following applications meet these version requirements:
 
