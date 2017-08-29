@@ -1,4 +1,5 @@
-<select class="form-control" id="curationgroups">
+<select class="form-control" id="selectGroup">
+    <option value="">- select a group -</option>
     {% for group in groups %}
         <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
     {% endfor %}

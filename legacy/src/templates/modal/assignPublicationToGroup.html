@@ -22,15 +22,36 @@
 
                     <div class="form-group">
                     <label for="selectGroup" class="col-sm-3 col-form-label" align="right"><strong>Curation Group:</strong></label>
-                         <div class="col-sm-9">
-                            <select class="input-xlarge" id="selectGroup" name="selectGroup">
-                                <option value="">- select a group -</option>
-                                {% for group in myGroups %}
-                                    <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
-                                {% endfor %}
-                            </select>
+                         <div class="col-sm-9 updatable-my-groups" id="my_groups">
+                            {% with groups=myGroups %}
+                                {% include 'htmlfragments/groupSelect.html' %}
+                            {% endwith %}
                         </div>
                     </div>
+
+                    {% if myGroups|length < 1 %}
+
+                    <div class="join-or-create-groups-options alert alert-info">
+                        <h4><strong>You don't belong to any groups. Please join/create a group before continuing:</strong></h4>
+                        <div class="row">
+                            <div class="col-md-8 col-md-offset-2">
+                                <button type="button" class="btn btn-success btn-transparent btn-block" data-toggle="modal" data-target="#createNewGroupModal" style="margin-left:0">
+                                    <i class="fa fa-group"></i> Create New Group
+                                </button>
+                            </div>
+                        </div>
+                        <div class="help-block"></div>
+                        <div class="row">
+                            <div class="col-md-8 col-md-offset-2">
+                                <button type="button" class="btn btn-success btn-block" data-toggle="modal" data-target="#joinPublicGroupModal">
+                                    <i class="fa fa-group"></i>  Join Public Group
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% endif %}
+
 
                     <div class="form-group" style="padding: 10px">
                         <label for="publicationNotes" class="col-form-label"><strong>Notes:</strong></label>

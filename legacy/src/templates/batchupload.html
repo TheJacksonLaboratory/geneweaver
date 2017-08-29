@@ -102,7 +102,7 @@
     <form id="upload-geneset-form" name="uploadForm" enctype="multipart/form-data" method="POST" class="form-horizontal">
         <div class="row">
             <div class="col-xs-6 col-sm-4">
-                <label for="curationgroups">Select a group to curate these genesets.</label>
+                <label for="selectGroup">Select a group to curate these genesets.</label>
                 {% include 'htmlfragments/groups_multiselect_w_create_or_join.html' %}
             </div>
             <div class="col-xs-6 col-sm-8">
@@ -252,15 +252,15 @@
 
 <script>
     $(document).ready(function () {
-        $('#curationgroups').click(function(){
-            var groups_selected = $('#curationgroups option:selected').length;
+        $('#selectGroup').click(function(){
+            var groups_selected = $('#selectGroup option:selected').length;
             var file_selected = $('input:file').val().length;
     
             $('#upload-geneset-button').prop('disabled', ((groups_selected < 1) || (file_selected < 1)));
         });
 
         $('input:file').on("change", function() {
-            var groups_selected = $('#curationgroups option:selected').length;
+            var groups_selected = $('#selectGroup option:selected').length;
             var file_selected = $('input:file').val().length;
             $('input:submit').prop('disabled', ((groups_selected < 1) || (file_selected < 1))); 
         });
