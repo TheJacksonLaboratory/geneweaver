@@ -38,10 +38,10 @@ class TestViewGenesets(unittest.TestCase):
         ep_root = "/get_geneset_values?gs_id={}".format(self.gs_id)
         ep_test_page = ep_root + '&start=100&length=50'
         ep_search_page = ep_test_page + '&search[value]={}'.format(self.search_term)
-        print "testing route {}".format(ep_search_page)
         rqp = self.app.get(ep_test_page)
         self.assertEqual(rqp.status, '200 OK')
         self.assertEqual(self.check_JSON_response(rqp), True)
+        print "testing route {}".format(ep_search_page)
         rqs = self.app.get(ep_search_page)
         self.assertEqual(rqs.status, '200 OK')
         self.assertEqual(self.check_JSON_response(rqs), True)
