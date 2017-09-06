@@ -108,7 +108,7 @@ admin.add_view(
 admin.add_view(
     adminviews.Add(name='News Item', endpoint='newNewsItem', category='Add'))
 
-admin.add_link(MenuLink(name='My Account', url='/accountsettings.html'))
+admin.add_link(MenuLink(name='My Account', url='/accountsettings'))
 
 
 class ListConverter(BaseConverter):
