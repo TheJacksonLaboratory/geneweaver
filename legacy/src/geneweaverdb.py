@@ -3055,6 +3055,8 @@ def get_geneset(geneset_id, user_id=None, temp=None):
     if user_id is None:
         user_id = -1
 
+
+
     with PooledCursor() as cursor:
         cursor.execute(
                 '''
@@ -3553,6 +3555,8 @@ class GenesetValue:
         self.gdb_id = gsv_dict['gdb_id']
 
 
+
+
 class TempGenesetValue:
     def __init__(self, gsv_dict):
         self.gs_id = gsv_dict['gs_id']
@@ -3766,6 +3770,23 @@ def get_geneset_values_for_mset_small(pj_tg_id, pj_int_id):
 
         return cursor.fetchall()
 
+def get_genecount_in_geneset(geneset_id):
+    """
+    get a count of total number of genes associated with a geneset. this is used for paging
+    :param geneset_id:
+    :returns count of total genes in geneset
+    """
+
+    search = ''
+    if 'search' in session:
+        search = " AND gsv_source_list[1] ~* '{}'".format(session['search'])
+
+    with PooledCursor() as cursor:
+        stmt = '''SELECT count(*) FROM geneset_value WHERE gs_id = ''' + str(geneset_id) + search
+        cursor.execute(stmt)
+        return cursor.fetchone()[0]
+
+
 def get_geneset_values(geneset_id):
     """
     This geneset value query has been augmented to return a list of sp_ids that can be used
@@ -3775,6 +3796,19 @@ def get_geneset_values(geneset_id):
     :returns to geneset class.
     """
     s = ' ORDER BY gsv.gs_id ASC'
+
+    limit = " LIMIT 50"
+
+    if 'length' in session:
+        limit = " LIMIT " + session['length']
+
+    if 'start' in session:
+        limit = limit + " OFFSET " + session['start']
+
+    search = ''
+    if 'search' in session:
+        print session['search']
+        search = " AND gsv.gsv_source_list[1] ~* '{}'".format(session['search'])
 
     if 'sort' in session:
         d = session['dir']
@@ -3791,20 +3825,19 @@ def get_geneset_values(geneset_id):
     if 'extsrc' in session:
         ode_ref = session['extsrc']
 
-
     with PooledCursor() as cursor:
         cursor.execute('''
             SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
                    gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
                    gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
             FROM geneset_value AS gsv
-            INNER JOIN homology AS h
+            LEFT OUTER JOIN homology AS h
             ON gsv.ode_gene_id = h.ode_gene_id
             INNER JOIN gene_info AS gi
             ON gsv.ode_gene_id = gi.ode_gene_id
             INNER JOIN gene AS g
             ON gsv.ode_gene_id = g.ode_gene_id
-            WHERE gsv.gs_id = %s AND
+            WHERE gsv.gs_id = %s ''' + search + ''' AND
                   -- This checks to see if the alternate symbol the user wants to view actually exists
                   -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
                   -- returned then there would be missing genes on the view geneset page.
@@ -3817,10 +3850,9 @@ def get_geneset_values(geneset_id):
                   CASE WHEN g.gdb_id = 7
                   THEN g.ode_pref = 't'
                   ELSE true
-                  END''' + s, (geneset_id, ode_ref))
+                  END''' + s + limit, (geneset_id, ode_ref))
 
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
-
 
 class ToolParam:
     def __init__(self, tool_param_dict):

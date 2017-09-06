@@ -22,21 +22,30 @@
         cursor: pointer;
     }
 
+    .right {
+        float: right;
+    }
+
+    .left {
+        float: left;
+        width: 100%;
+    }
+
     .popover {
         text-transform: none;
     }
 
     .loader {
         /* IE 8 */
-        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
         /* IE 5-7 */
-        filter: alpha(opacity=40);
+        filter: alpha(opacity=70);
         /* Netscape */
-        -moz-opacity: 0.4;
+        -moz-opacity: 0.7;
         /* Safari 1.x */
-        -khtml-opacity: 0.4;
+        -khtml-opacity: 0.7;
         /* Good browsers */
-        opacity: 0.4;
+        opacity: 0.7;
         position: fixed;
         left: 0px;
         top: 0px;
@@ -91,10 +100,9 @@
     {% if show_geneset_list is not none %}
     <div class="panel panel-default">
         <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Gene List &bull; {{ geneset.geneset_values|length }} Genes</h3>
+            <h3 class="panel-title">Gene List &bull; {{ totalGenes }} Genes</h3>
         </div>
         <div class="panel-body" style="padding-top:10px;">
-
             <div class="row">
                 <div class="col-xs-12 col-md-9">
                     <div class="row">
@@ -108,20 +116,15 @@
 					{% endif %}
                 </div>
             </div>
-
             <div class="row">
                 <!-- TODO make the table sortable, show more gene details -->
-                <table class="table table-hover">
+                <table class="table table-hover" id="genes">
                     <tbody>
+                    <thead>
                     <tr>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=symbol"><i class="fa fa-sort"></i></a> Default</th>
+                        <th><i class="fa fa-sort"></i> Default</th>
                         <th>
-                            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=alt">
-                                <i class="fa fa-sort"></i>
-                            </a>
-
-							<span class="dropdown">
-	
+							    <span class="dropdown">
 								<span id="clickableGeneSymbol"
 									  data-toggle="dropdown" 
 									  aria-haspopup="true"
@@ -131,9 +134,7 @@
 										{{ altGeneSymbol }}
 									</span>
 									<i id="type-loading" class="fa fa-caret-down"></i>
-
 								</span>
-
 								{# 
 									TODO: Should be rewritten to dynamically
 									load gene types from the DB
@@ -176,121 +177,28 @@
                                 <i class="fa fa-info-circle"></i>
                             </span>
                         </th>
-                        <th><a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=value"><i class="fa fa-sort"></i></a> Score</th>
+                        <th><i class="fa fa-sort"></i> Score</th>
                         <th>
-                            <a href="/viewgenesetdetails/{{ geneset.geneset_id }}?sort=priority">
-                                <i class="fa fa-sort"></i></a> Priority
+                            <i class="fa fa-sort"></i> Priority
                             <span id="clickablePriority" data-trigger="focus" tabindex="0">
                                 <i class="fa fa-info-circle"></i>
                             </span>
                         </th>
                         <th>LinkOuts</th>
-                        <th>Emphasis</th>
+                        <th>Emphasis
+                        <span id="clickableEmphasis" data-trigger="focus" tabindex="0">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th>&nbsp;</th>
                     </tr>
-
-                    {% for geneset_value in geneset.geneset_values %}
-                            <tr class="gene-list-row">
-                                <td id="defaultSymbol">
-                                    <strong>
-                                        <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
-                                            {{ geneset_value.source_list[0] }}
-                                        </a>
-                                    </strong>
-                                </td>
-                                <td id="altSymbol" class="gene-symbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
-                                    {# If the alternate ID type the user selected doesn't match the one belonging
-                                       to the geneset_value, it means no alternate type exists for that gene and a
-                                       default was used instead. #}
-                                    {% if geneset_value.gdb_id == alt_gdb_id %}
-                                            <strong>
-                                                {{ geneset_value.ode_ref }}
-                                            </strong>
-                                    {% else %}
-                                        <strong>
-                                            None
-                                        </strong>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {# Make boxes for homology blocks #}
-                                    {# see application.py for the list of species and colors #}
-                                    {% for i in range(1,12) %}
-                                        {# skip elements that are empty #}
-                                        {% if tt[(i-1)] != 'empty' %}
-                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
-                                                  title="{{ tt[(i-1)] }}">
-                                            {% set exists = ['1'] %}
-                                            {% for h in geneset_value.hom|sort %}
-                                                {% if h == i %}
-                                                    <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
-                                                    {% if exists.append('1') %}{% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                            {% if exists|length == 1 %}
-                                                <div class="geneBox"></div>
-                                            {% endif %}
-                                            </span>
-                                        {% endif %}
-                                    {% endfor %}
-                                </td>
-                                <td class="gene-value">
-                                    <strong>
-                                        {#
-                                        {{ '%0.4f' % geneset_value.value|float }}
-                                        #}
-                                        {{ geneset_value.value|trim|float }}
-                                    </strong>
-                                </td>
-                                <td>
-                                    <div class="progress">
-                                        <div class="progress-bar progress-bar-success progress-bar-striped"
-                                             data-aria-valuetransitiongoal="{{ '%.0f' % geneset_value.gene_rank|float }}"
-                                             aria-valuenow="{{ '%.0f' % geneset_value.gene_rank|float }}"
-                                             style="width: {{ '%.0f' % geneset_value.gene_rank|float }}%;">
-                                            {{ '%.0f' % geneset_value.gene_rank|float }}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <!-- TODO Insert outside links here -->
-                                    {% set gene=geneset_value.source_list[0] %}
-                                    {% set symbol=geneset_value.symbol %}
-                                    {% include 'linkouts.html' %}
-                                </td>
-
-                                <td nowrap>
-                                    <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
-                                           onchange="emphasize('{{ geneset_value.ode_gene_id }}');"
-                                           class="switch" data-size="mini"
-                                           style="padding: 0px; vertical-align: middle;">
-
-                                </td>
-                                <td>
-                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                        <label for="addGeneset{{ geneset_value.source_list[0] }}"
-                                               style="margin: -6px; padding-right: 0;">
-                                            <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ geneset_value.source_list[0] }}"
-                                                   value="{{ geneset_value.source_list[0] }}"/>
-                                        </label>
-                                    </div>
-                                </td>
-                            </tr>
-
-                    {% endfor %}
-
+                    </thead>
+                   <!-- removed previous table rows and logic -->
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-
-    {% for gene in emphgeneids %}
-        <script>
-            document.getElementById("{{gene}}").checked = true;
-        </script>
-    {% endfor %}
     {% else %}
         <div class="panel panel-default">
             <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -324,14 +232,9 @@
             makeOntologyTags({{ ontology | tojson | safe }});
         });
 
-        $("[name='g_id[]']").bootstrapSwitch();
-
-        $(window).on('load', function(e) {
-	        $(".loader").fadeOut("slow");
-        });
-
-        $(function () {
-            $("[data-toggle='tooltip']").tooltip();
+        $('#clickableEmphasis').popover({
+                title: 'Gene Emphasis', content: 'Toggle the switch to emphasize or de-emphasize a gene.' +
+            ' Please note that your changes will be recorded, but not reflected across paging unless you refresh this page entirely.'
         });
 
         $('#clickableHomology').popover({
@@ -343,10 +246,6 @@
                 title: 'Percentile Priority Rank', content: 'All genes within GeneWeaver are ranked according to global ' +
                 'graph centrality. A full description can be found <a href="http://www.geneweaver.org/wiki">here</a>.',
                 html: 'true'
-        });
-
-        $('#clickableGeneSymbol').on('click', function (e) {
-			//$("#selectGeneDisplayType").modal('show');
         });
 
         $('#export').on('click', function (e) {
@@ -365,6 +264,158 @@
         }
 
         $(document).ready(function () {
+
+                var gs_id = {{ gs_id }};
+                $('#genes').DataTable( {
+                    "iDisplayLength": 25,
+                    "searchDelay": 1500,
+                    "bLengthChange": true,
+                    "processing": true,
+                    "serverSide": true,
+                    "oLanguage": {
+                    "sSearch": "Filter Gene Symbol: ",
+                    "sProcessing": ""
+                    },
+                    "tableTools": {
+                    "sSwfPath": "/static/pixit/admin/assets/plugins/datatables/swf/copy_csv_xls_pdf.swf",
+                    "sRowSelect": "multi",
+                    "aButtons": [
+                    "select_all",
+                    "select_none",
+                    "copy",
+                    "print",
+                    "pdf",
+                    "xls",
+                    "csv"
+                    ]
+                    },
+                    "dom": '<"clear"l><"right"f><"left"ip><"bottom"rtip>',
+                    "ajax": {
+                        "beforeSend": function() {
+                            $('.loader').show();
+                        },
+                        "url": "/get_geneset_values",
+                        "type": "GET",
+                        "data": {"gs_id": gs_id},
+                    },
+                    "drawCallback" : function(settings) {
+                        /* once each page is done rendering, check for items in checkedArray object for
+                        'add genes to geneset selections, if it is populated, iterate through it
+                        and select checkboxes for the particular page you are on
+                         */
+                        var len = Object.keys(checkedArray).length;
+                        if (len > 0) {
+                            for (var key in checkedArray)  {
+                                if($('#addGeneset'+key).length != 0) {
+                                    $('#addGeneset'+key).prop('checked', true);
+                                }
+                            }
+                        }
+                        //reset the second column header
+                        $('#altSymbolHeader').html('Gene Symbol');
+                        //register homology tooltips
+                        $("[data-toggle='tooltip']").tooltip();
+                        //override the processing indicator
+                        $('#gene_processing').hide();
+                        $(".loader").fadeOut("slow");
+                        //TODO: this needs to be redone to maintain state across paging
+                        {% for gene in emphgeneids %}
+                        if ($("#{{gene}}").length) {
+                            $("#{{gene}}").attr('checked', 'checked');
+                        }
+                        {% endfor %}
+                        //register the empahsis checkboxes as bootstrap switches
+                        $("[name='g_id[]']").bootstrapSwitch();
+                    },
+                    "createdRow": function(row, data, index) {
+                        $(row).addClass("gene-list-row");
+                    },
+                    "aoColumns": [
+                    {"mData": 0, "fnCreatedCell": gen_gene_name, className: "defaultSymbol"},
+                    {"mData": 1, "fnCreatedCell": gen_symbol, "orderable": false, "searchable": false},
+                    {"mData": 2, "fnCreatedCell": gen_homology, "orderable": false, "searchable": false},
+                    {"mData": 3, "fnCreatedCell": gen_score, "searchable": false, className: "gene-value"},
+                    {"mData": 4, "fnCreatedCell": gen_priority, "searchable": false},
+                    {"mData": 5, "fnCreatedCell": gen_linkouts, "orderable": false, "searchable": false, "width":"140px"},
+                    {"mData": 6, "fnCreatedCell": gen_emphasis, "orderable": false, "searchable": false},
+                    {"mData": 7, "fnCreatedCell": gen_checkboxes, "orderable": false, "searchable": false}
+                    ]
+                });
+
+            var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
+                       '#D93459', '#5E228B', '#698FC6'];
+            var species = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
+                 'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
+                 'Canis familiaris'];
+
+            function gen_priority(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<div class="progress">' + oData[4] + '</div>');
+            }
+
+            function gen_score(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<strong>' + oData[1] + '</strong>');
+            }
+
+            function gen_gene_name(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<strong><a href="/search/?searchbar=' + oData[2] + '&pagination_page=1&searchGenes=yes">' + oData[2] + '</a></strong>');
+            }
+
+            function gen_symbol(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<strong>' + oData[2] + '</strong>');
+                $(nTd).attr('id', 'altSymbol');
+                $(nTd).attr('class', 'gene-symbol');
+                $(nTd).attr('ode-gene-id', oData[0])
+            }
+
+            function gen_homology(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                var span = '<span data-placement="top" data-toggle="tooltip" data-rel="tooltip"';
+                var div = '<div class="geneBox"';
+                var homs = oData[3];
+                for (i = 1; i < 11; i++) {
+                    var color = "";
+                    if (homs.indexOf(i) > -1) {
+                        color = ' style="background-color: ' + hom_colors[i-1] +'"';
+                    }
+                    $(nTd).append(span + 'data-original-title="' + species[i-1] + '" title="' + species[i-1] + '">' + div + color + '></div>&nbsp;</span>');
+                }
+
+            }
+
+            function gen_linkouts(nTd, sData, oData, iRow, iCol) {
+                        $(nTd).empty();
+                        $(nTd).append('<a target="_blank" href="http://www.ncbi.nlm.nih.gov/gene/?term=' + oData[2] + '"> \
+                        <img src="/static/images/linkouts/entrez.png" title="Entrez"></a> \
+                        <a target="_blank" href="http://www.ensembl.org/Gene/Summary?g=' + oData[2] + '"> \
+                        <img src="/static/images/linkouts/ensembl.png" title="Ensembl"></a> &nbsp; \
+                        <a target="_blank" href="http://www.genenetwork.org/webqtl/WebQTL.py?cmd=search&amp;gene=' + oData[2] + '"> \
+                        <img src="/static/images/linkouts/genenetwork.png" title="Gene Network"></a> &nbsp; \
+                        <a target="_blank" href="http://string.embl.de/newstring_cgi/show_network_section.pl? \
+                        input_query_species=auto_detect&amp;network_flavor=confidence&amp;identifier=' + oData[2] + '"> \
+                        <img src="/static/images/linkouts/string.png" title="String"></a> &nbsp; \
+                        <a target="_blank" href="http://mouse.brain-map.org/search/show?search_term=' + oData[2] + '"> \
+                        <img src="/static/images/linkouts/allen brain atlas.png" title="Allen Brain Atlas"></a> &nbsp; \
+                        <a target="_blank" href="http://ctdbase.org/basicQuery.go?bqCat=gene&amp;bq=' + oData[2] + '"> \
+                        <img src="/static/images/linkouts/comparative toxicogenomics database.png" \
+                        title="Comparative Toxicogenomics Database"></a> &nbsp;');
+                    }
+
+            function gen_emphasis(nTd, sData, oData, iRow, iCol) {
+                        $(nTd).empty();
+                        $(nTd).append('<input type="checkbox" name="g_id[]" id="' + oData[0] + '" \
+                        onchange="emphasize(\'' + oData[0] + '\');" data-size="mini" style="padding: 0px; vertical-align: middle;">');
+                    }
+
+            function gen_checkboxes(nTd, sData, oData, iRow, iCol) {
+                        $(nTd).empty();
+                        $(nTd).append('<div class="ui-checkbox"><input class="addGene" name="gsoptions[]" \
+                        id="addGeneset' + oData[0] + '" value="' + oData[0] + '" \t' +
+                        'type="checkbox" onchange="updateCheckedArray(\'addGeneset' + oData[0] + '\');"></div>');
+                }
 
             $('#submitCurationRequest').attr('disabled', true).button('refresh');
 
@@ -542,6 +593,7 @@
             $('.gene-type').on('click', function (e) {
 
 				var geneType = $.trim($(this).text());
+				$('#altSymbolHeader').html(geneType);
 
 				$('#type-loading').attr('class', 'fa fa-cog fa-spin');
 
@@ -553,7 +605,6 @@
                         genesetValues = JSON.parse(genesetValues);
 
                         for (var i = 0; i < genesetValues.length; i++) {
-
                             var gsv = genesetValues[i];
                             var odeId = gsv['ode_gene_id'];
                             var gdbId = gsv['gdb_id'];
@@ -561,9 +612,6 @@
                             var altId = gsv['alt_gene_id'];
                             // Should check if this is null and handle
                             var altElement = $.find('[ode-gene-id="' + odeId + '"]')[0];
-
-                            $('#altSymbolHeader').html(geneType);
-
                             // Indicates an alternate ID type does exist for
                             // this particular gene
                             if (gdbId == altId)
@@ -715,8 +763,6 @@
                 });
 
             {% endif %}
-
-		    console.log('done loading?');
         });
 
         $( document.body ).on( 'click', '#geneSymbol li', function( event ) {
@@ -730,22 +776,33 @@
     });
 
 
+
     /*
      * Extracts geneset metacontent and a user selected subset of the gene 
      * list to create a new geneset. 
      */
-	$('#addNewGeneset').on('click', function () {
 
-		var checkedArray = [];
+    var checkedArray = {};
 
-        // Grabs rows in the gene list that a user has selected
-		$("input:checkbox[name='gsoptions[]']:checked").each( function() {
-			checkedArray.push($(this).parents('.gene-list-row'));
-		});
+    function updateCheckedArray(id) {
+        /* add too or remove from checkedArray object when
+        add to geneset checkboxes are clicked */
+        var gID = $('#'+id).val();
+        if ($('#'+id).attr('checked')) {
+            var row = $('#'+id).parents('.gene-list-row');
+            checkedArray[gID] = row;
+        }
+        else {
+            delete checkedArray[gID];
+        }
+    }
 
-		if (typeof checkedArray != "undefined" && 
-            checkedArray != null && 
-            checkedArray.length > 0) {
+
+    $('#addNewGeneset').on('click', function () {
+        /* Grabs rows in the gene list that a user has selected */
+        var len = Object.keys(checkedArray).length;
+
+		if (len > 0) {
 
 			// Genesets with newlines cause js to shit the bed and get stuck
 			// in an infinite loading loop. Any variable replaced by jinja
@@ -767,13 +824,15 @@
                 gsData += '?' + 'ma_' + geneType;
 
 			// Gene names and scores
-			checkedArray.forEach(function (entry) {
-
-				gsData += "?";
-				gsData += $.trim($(entry).children('#defaultSymbol').text());
-				gsData += "?";
-				gsData += $.trim($(entry).children('.gene-value').text());
-			});
+			for (var key in checkedArray)  {
+                    item = checkedArray[key];
+                    var geneSymbol = $.trim($(item).children('.defaultSymbol').text());
+                    var geneValue = $.trim($(item).children('.gene-value').text());
+                    gsData += "?";
+                    gsData += geneSymbol;
+                    gsData += "?";
+                    gsData += geneValue
+			}
 
             // 'gsdata?' is needed otherwise the first section of the data
             // string is eaten by something (js?)

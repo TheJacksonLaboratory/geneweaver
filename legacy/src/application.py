@@ -2017,6 +2017,7 @@ def create_geneset_meta():
 
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
+@login_required()
 def render_viewgeneset(gs_id):
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
     return render_viewgeneset_main(gs_id, curation_assignment=assignment)
@@ -2070,6 +2071,60 @@ def render_curategeneset(gs_id):
     #TODO this should go to some permission error page
     return render_viewgeneset_main(gs_id, False)
 
+@app.route('/get_geneset_values', methods=['GET'])
+def get_geneset_genes():
+    #return the list of genes associated with a geneset in json format
+    #this endpoint wil only get hit from a logged in page (viewgenesetdetails)
+    if 'user_id' in session:
+        user_id = session['user_id']
+
+    args = flask.request.args
+    gs_id = args['gs_id']
+
+    if 'order[0][column]' in args:
+        orderBy = int(args['order[0][column]'])
+        columns = ['symbol', 'alt', '', 'value', 'priority']
+        session['sort'] = columns[orderBy]
+        session['dir'] = args['order[0][dir]']
+
+    if 'length' in args:
+        session['length'] = args['length']
+
+    if 'start' in args:
+        start = args['start']
+        session['start'] = start
+
+    if 'search[value]' in args:
+        session['search'] = args['search[value]']
+
+    geneset = geneweaverdb.get_geneset(gs_id, user_id)
+    totalRecords = geneweaverdb.get_genecount_in_geneset(gs_id)
+    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
+    gsvs = geneset.geneset_values
+
+    #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
+    for i in range(len(gsvs)):
+        gene = []
+        #gene id
+        gene.append(gsvs[i].ode_gene_id)
+        #score
+        gene.append(str(round(gsvs[i].value, 3)))
+        #gene symbol
+        gene.append(str(gsvs[i].source_list[0]))
+        #homology
+        gene.append(sorted(gsvs[i].hom))
+        #priority
+        gene.append((float(gsvs[i].gene_rank) / 0.15) * 100)
+        #gene name (column name: Default)
+        gene.append(str(gsvs[i].ode_ref))
+        #blank columns for linkouts and 'add genes to geneset' checkboxes
+        gene.append('Null')
+        gene.append('Null')
+        #I dont think this is used
+        #gene.append(gsvs[i].gdb_id)
+        gene_list['aaData'].append(gene)
+
+    return flask.jsonify(gene_list)
 
 def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None):
     # get values for sorting result columns
@@ -2087,7 +2142,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             else:
                 session['dir'] = 'ASC'
 
-
     emphgenes = {}
     emphgeneids = []
 
@@ -2096,11 +2150,11 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     else:
         user_id = 0
 
-    user_info = geneweaverdb.get_user(user_id)
+    numgenes = geneweaverdb.get_genecount_in_geneset(gs_id)
+    user_info = flask.g.user
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
 
     # can the user see this geneset?
-
     ## User account
     if user_info:
         if not user_info.is_admin and not user_info.is_curator:
@@ -2140,7 +2194,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
             if genedict.get(session['extsrc'], None):
                 altGeneSymbol = genedict[session['extsrc']]
                 alt_gdb_id = session['extsrc']
-
             else:
                 ## The genedict will not have references for expression 
                 ## platforms so if the gene_id_type is missing, it's 
@@ -2190,12 +2243,17 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Ontologies associated with this geneset
     ontology = get_ontology_terms(gs_id)
 
+    #print ontology
+
     ## Ontology linkout mapping, ontdb_id -> url
     ontdb = geneweaverdb.get_all_ontologydb()
+
     ont_links = {}
 
     for odb in ontdb:
-        ont_links[odb.ontologydb_id] = odb.linkout_url
+        #just in case the linkout_url is empty. if it is it breaks the template, so avoid
+        if odb.linkout_url is not None:
+            ont_links[odb.ontologydb_id] = odb.linkout_url
 
     ## sp_id -> sp_name map so species tags can be dynamically generated
     species = []
@@ -2204,6 +2262,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         species.append([sp_id, sp_name])
 
     ## Append the symbol to each geneset_value, required for ABA linkouts
+    ''' I dont think this is needed anymore...
     genetypes = geneweaverdb.get_gene_id_types()
     symbol_type = None
 
@@ -2216,7 +2275,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         if 'extsrc' not in session:
             session['extsrc'] = abs(geneset.gene_id_type)
 
-        ## This should be changed because the db functions shouldn't be 
+        ## This should be changed because the db functions shouldn't be
         ## accessing session variables
         old_type = session['extsrc']
         session['extsrc'] = symbol_type
@@ -2226,10 +2285,11 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         for i in range(len(geneset.geneset_values)):
             geneset.geneset_values[i].symbol = gs.geneset_values[i].ode_ref
 
-        session['extsrc'] = old_type
+        session['extsrc'] = old_type'''
 
     return flask.render_template(
-        'viewgenesetdetails.html', 
+        'viewgenesetdetails.html',
+        gs_id=gs_id,
         geneset=geneset,
         emphgeneids=emphgeneids, 
         user_id=user_id,
@@ -2237,7 +2297,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         tt=SPECIES_NAMES,
         altGeneSymbol=altGeneSymbol, 
         view=view,
-        ontology=ontology, 
+        ontology=ontology,
+        ont_links=ont_links,
         alt_gdb_id=alt_gdb_id,
         species=species, 
         curation_view=curation_view,
@@ -2245,7 +2306,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curation_assignment=curation_assignment,
         curator_info=curator_info,
         show_gene_list=show_gene_list,
-        ont_links=ont_links
+        totalGenes=numgenes
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
