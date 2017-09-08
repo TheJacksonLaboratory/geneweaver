@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION production.geneset_is_readable(test_usr_id integer, test_gs_id bigint)
+CREATE OR REPLACE FUNCTION production.geneset_is_readable2(test_usr_id integer, test_gs_id bigint)
     RETURNS BOOLEAN AS $$
 
     SELECT  true
