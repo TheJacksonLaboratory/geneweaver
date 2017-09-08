@@ -318,12 +318,6 @@
                         //override the processing indicator
                         $('#gene_processing').hide();
                         $(".loader").fadeOut("slow");
-                        //TODO: this needs to be redone to maintain state across paging
-                        {% for gene in emphgeneids %}
-                        if ($("#{{gene}}").length) {
-                            $("#{{gene}}").attr('checked', 'checked');
-                        }
-                        {% endfor %}
                         //register the empahsis checkboxes as bootstrap switches
                         $("[name='g_id[]']").bootstrapSwitch();
                     },
@@ -342,25 +336,16 @@
                     ]
                 });
 
+            //TODO: should get loaded from db
             var hom_colors = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6'];
             var species = ['Mus musculus', 'Homo sapiens', 'Rattus norvegicus', 'Danio rerio', 'Drosophila melanogaster',
                  'Macaca mulatta', 'empty', 'Caenorhabditis elegans', 'Saccharomyces cerevisiae', 'Gallus gallus',
                  'Canis familiaris'];
 
-            function gen_priority(nTd, sData, oData, iRow, iCol) {
-                $(nTd).empty();
-                $(nTd).append('<div class="progress">' + oData[4] + '</div>');
-            }
-
-            function gen_score(nTd, sData, oData, iRow, iCol) {
-                $(nTd).empty();
-                $(nTd).append('<strong>' + oData[1] + '</strong>');
-            }
-
             function gen_gene_name(nTd, sData, oData, iRow, iCol) {
                 $(nTd).empty();
-                $(nTd).append('<strong><a href="/search/?searchbar=' + oData[2] + '&pagination_page=1&searchGenes=yes">' + oData[2] + '</a></strong>');
+                $(nTd).append('<strong><a href="/search/?searchbar=' + oData[1] + '&pagination_page=1&searchGenes=yes">' + oData[1] + '</a></strong>');
             }
 
             function gen_symbol(nTd, sData, oData, iRow, iCol) {
@@ -386,6 +371,16 @@
 
             }
 
+            function gen_score(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<strong>' + oData[4] + '</strong>');
+            }
+
+            function gen_priority(nTd, sData, oData, iRow, iCol) {
+                $(nTd).empty();
+                $(nTd).append('<div class="progress">' + oData[5] + '</div>');
+            }
+
             function gen_linkouts(nTd, sData, oData, iRow, iCol) {
                         $(nTd).empty();
                         $(nTd).append('<a target="_blank" href="http://www.ncbi.nlm.nih.gov/gene/?term=' + oData[2] + '"> \
@@ -405,16 +400,18 @@
                     }
 
             function gen_emphasis(nTd, sData, oData, iRow, iCol) {
+                        var checked = ""
+                        if(oData[7] == 'On') { checked = "checked"}
                         $(nTd).empty();
-                        $(nTd).append('<input type="checkbox" name="g_id[]" id="' + oData[0] + '" \
+                        $(nTd).append('<input type="checkbox" name="g_id[]" id="' + oData[0] + '"' + checked +'\
                         onchange="emphasize(\'' + oData[0] + '\');" data-size="mini" style="padding: 0px; vertical-align: middle;">');
                     }
 
             function gen_checkboxes(nTd, sData, oData, iRow, iCol) {
                         $(nTd).empty();
                         $(nTd).append('<div class="ui-checkbox"><input class="addGene" name="gsoptions[]" \
-                        id="addGeneset' + oData[0] + '" value="' + oData[0] + '" \t' +
-                        'type="checkbox" onchange="updateCheckedArray(\'addGeneset' + oData[0] + '\');"></div>');
+                        id="addGeneset' + oData[0] + '" value="' + oData[0] + '" \
+                        type="checkbox" onchange="updateCheckedArray(\'addGeneset' + oData[0] + '\');"></div>');
                 }
 
             $('#submitCurationRequest').attr('disabled', true).button('refresh');

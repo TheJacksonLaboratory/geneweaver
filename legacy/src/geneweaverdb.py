@@ -3555,8 +3555,6 @@ class GenesetValue:
         self.gdb_id = gsv_dict['gdb_id']
 
 
-
-
 class TempGenesetValue:
     def __init__(self, gsv_dict):
         self.gs_id = gsv_dict['gs_id']

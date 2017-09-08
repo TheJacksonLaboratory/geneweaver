@@ -1,7 +1,5 @@
-import unittest
-import geneweaverdb
-import application
-import json
+import unittest, json
+import geneweaverdb, application
 
 '''class for testing the paging on the view geneset details page'''
 class TestViewGenesets(unittest.TestCase):
@@ -16,7 +14,6 @@ class TestViewGenesets(unittest.TestCase):
         if not user:
             user = geneweaverdb.register_user(self.first, self.last, self.email, "pw")
         self.user_id = user.user_id
-        #print "user is {}".format(user.user_id)
         #set up flask test client
         application.app.config['DEBUG'] = True
         application.app.config['TESTING'] = True
@@ -24,15 +21,17 @@ class TestViewGenesets(unittest.TestCase):
         #set flask user session
         with self.app.session_transaction() as sess:
             sess['user_id'] = user.user_id
-
-    def tearDown(self):
-        pass
-
-    def test_get_geneset_genes(self):
-        '''test the json response from get_geneset_values'''
         #create temp geneset and populate it
         self.create_test_geneset()
         self.add_genes_to_geneset()
+
+
+    def tearDown(self):
+        #remove test data
+        self.remove_geneset_data()
+
+    def test_get_geneset_genes(self):
+        '''test the json response from get_geneset_values'''
         #get a search term
         self.get_search_term_from_geneset()
         ep_root = "/get_geneset_values?gs_id={}".format(self.gs_id)
@@ -45,31 +44,35 @@ class TestViewGenesets(unittest.TestCase):
         rqs = self.app.get(ep_search_page)
         self.assertEqual(rqs.status, '200 OK')
         self.assertEqual(self.check_JSON_response(rqs), True)
-        #remove test data
-        self.remove_geneset_data()
 
     def check_JSON_response(self, req):
+        '''make sure the length of the main json data is 50 elements long'''
         d = json.loads(req.data)
         if len(d['aaData']) == 50:
             return True
         else:
             return False
 
-    def _test_view_geneset_details(self):
+    def test_view_geneset_details(self):
         '''testing view geneset details page'''
         #this currently will fail  with a python error the way the temp geneset is getting created
         print "testing view geneset details page for gsid {}".format(self.gs_id)
         ep = "/viewgenesetdetails/{}".format(self.gs_id)
         rq = self.app.get(ep)
         assert '200 OK' in rq.status
+        self.assertIn('A GeneSet for Testing Paging', rq.data)
 
     def test_my_genesets(self):
         '''test that you are logged in and can see your genesets'''
         rq = self.app.get('/mygenesets')
         assert '200 OK' in rq.status
+        self.assertIn('My GeneSets', rq.data)
 
     def add_genes_to_geneset(self):
-        '''add a large geneset for testing'''
+        '''add a large geneset for testing
+        TODO: needs more column data - not sure which one yet.
+        this works for testing the paging backend but not for testing
+        the frontend of the app - viewgenesetdetails endpoint'''
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute('''insert into extsrc.geneset_value (gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list, 
                               gsv_value_list, gsv_in_threshold, gsv_date) (select %s, ode_gene_id, 1, 0, ARRAY[ode_ref_id], 
@@ -90,7 +93,7 @@ class TestViewGenesets(unittest.TestCase):
         '''get a substring to search on from a geneset.
         gets a 3 character string with the most occurrences in the gsv_source_list
         column of the geneset_value table.
-        -- this could probably be done with a more elegant query'''
+        -- this could probably be done with a more elegant query, but it runs pretty quickly'''
         with geneweaverdb.PooledCursor() as cursor:
             cursor.execute('''select substring(cast(gsv_source_list as varchar),2,3) 
                           as search_term from extsrc.geneset_value where gs_id = {}'''.format(self.gs_id))
