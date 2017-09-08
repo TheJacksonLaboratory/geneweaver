@@ -2140,7 +2140,6 @@ def get_geneset_genes():
 
 def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None):
     # get values for sorting result columns and saving these to a session variable
-    # probably not the correct format
     if flask.request.method == 'GET':
         args = flask.request.args
         if 'sort' in args:
