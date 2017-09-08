@@ -2102,33 +2102,44 @@ def get_geneset_genes():
     gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
     gsvs = geneset.geneset_values
 
+    emphgenes = {}
+    emphgeneids = []
+
+    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
+    for row in emphgenes:
+        emphgeneids.append(row['ode_gene_id'])
+
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
+        gene_id = gsvs[i].ode_gene_id
         gene = []
         #gene id
-        gene.append(gsvs[i].ode_gene_id)
-        #score
-        gene.append(str(round(gsvs[i].value, 3)))
-        #gene symbol
+        gene.append(gene_id)
+        #gene name (default symbol)
         gene.append(str(gsvs[i].source_list[0]))
+        #gene symbol
+        gene.append(str(gsvs[i].ode_ref))
         #homology
         gene.append(sorted(gsvs[i].hom))
+        #score
+        gene.append(str(round(gsvs[i].value, 3)))
         #priority
         gene.append((float(gsvs[i].gene_rank) / 0.15) * 100)
-        #gene name (column name: Default)
-        gene.append(str(gsvs[i].ode_ref))
-        #blank columns for linkouts and 'add genes to geneset' checkboxes
+        #blank column for linkouts - handled in DOM on page
         gene.append('Null')
+        #emphasis on/off flag.
+        if gene_id in emphgeneids:
+            gene.append('On')
+        else:
+            gene.append('Off')
+        #'add genes to geneset' checkbox - handled in DOM on page
         gene.append('Null')
-        #I dont think this is used
-        #gene.append(gsvs[i].gdb_id)
         gene_list['aaData'].append(gene)
 
     return flask.jsonify(gene_list)
 
 def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curation_assignment=None, curator_info=None):
-    # get values for sorting result columns
-    # i'm saving these to a session variable
+    # get values for sorting result columns and saving these to a session variable
     # probably not the correct format
     if flask.request.method == 'GET':
         args = flask.request.args
@@ -2141,9 +2152,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
                     session['dir'] = 'ASC'
             else:
                 session['dir'] = 'ASC'
-
-    emphgenes = {}
-    emphgeneids = []
 
     if 'user_id' in session:
         user_id = session['user_id']
@@ -2236,9 +2244,6 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         view = 'True' if user_info.is_admin or user_info.is_curator or geneset.user_id == user_id else None
     else:
         view = None
-    emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
-    for row in emphgenes:
-        emphgeneids.append(str(row['ode_gene_id']))
 
     ## Ontologies associated with this geneset
     ontology = get_ontology_terms(gs_id)
@@ -2261,37 +2266,10 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
-    ## Append the symbol to each geneset_value, required for ABA linkouts
-    ''' I dont think this is needed anymore...
-    genetypes = geneweaverdb.get_gene_id_types()
-    symbol_type = None
-
-    for gtype in genetypes:
-        if gtype['gdb_shortname'].lower() == 'symbol':
-            symbol_type = gtype['gdb_id']
-            break
-
-    if symbol_type:
-        if 'extsrc' not in session:
-            session['extsrc'] = abs(geneset.gene_id_type)
-
-        ## This should be changed because the db functions shouldn't be
-        ## accessing session variables
-        old_type = session['extsrc']
-        session['extsrc'] = symbol_type
-
-        gs = geneweaverdb.get_geneset(gs_id, user_id)
-
-        for i in range(len(geneset.geneset_values)):
-            geneset.geneset_values[i].symbol = gs.geneset_values[i].ode_ref
-
-        session['extsrc'] = old_type'''
-
     return flask.render_template(
         'viewgenesetdetails.html',
         gs_id=gs_id,
         geneset=geneset,
-        emphgeneids=emphgeneids, 
         user_id=user_id,
         colors=HOMOLOGY_BOX_COLORS, 
         tt=SPECIES_NAMES,
