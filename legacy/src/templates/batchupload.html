@@ -108,7 +108,7 @@
             <div class="col-xs-6 col-sm-8">
                 <div class="row">
                     <div class="col-sm-12">
-                        <small id="fileHelp" class="form-text text-muted"><a href="static/text/batch_example.txt"><i class="fa fa-file-text-o"></i> Sample File</a></small>
+                        <small id="fileHelp" class="form-text text-muted"><a href="static/text/batch_example.txt" target="_blank"><i class="fa fa-file-text-o"></i> Sample File</a></small>
                     </div>
                 </div>
                 <div class="row">
@@ -307,7 +307,20 @@
             // After reading the file, the filename and size are displayed
             // to the user. The contents goes under a hidden input for
             // submission later.
-			if (file.type.match('text.*')) {
+
+            //check for valid file extension
+            //extra work as the file upload dialog prevents all but these extensions
+            var valid_types = [".txt", ".bgf", ".gw"];
+            var fname = file.name;
+            var valid = 0;
+
+            for (var i=0; i < valid_types.length; i++) {
+			   var ext = valid_types[i];
+               var fext = fname.substr(fname.length - ext.length, ext.length);
+			   if(fext == ext) { valid = 1; }
+            }
+
+			if (valid == 1) {
 				var reader = new FileReader();
 
 				reader.onload = function(e) {
@@ -320,7 +333,7 @@
 				reader.readAsText(file);
 
 			} else {
-				// If the user uploads a binary file or something
+				// Not a valid file extension
 				fileDisplayArea.innerText = "File not supported!";
 			}
 		});
@@ -501,6 +514,7 @@
 
 
     //Get Pubmed Data for ID
+    //TODO: is this function duplicated across pages?
     $('#clickablePubmed').click(function () {
         var pmid = $("#pub_pubmed").val();
         if (!$.isNumeric(pmid)) {
