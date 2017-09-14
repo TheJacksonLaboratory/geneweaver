@@ -3111,23 +3111,23 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
         # I have simplified to return the top 150 of left and right ode_gene_ids. Worst case all are from
         # either partition of the list. I will clean up duplicates in the application.
         cursor.execute(
-                '''SELECT * FROM
-                ((SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
-                    WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
-                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150) UNION
-                (SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
-                    WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
-                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150)) as tmp
-                    ORDER BY ''' + order_by + ''' jac_value DESC;
-            ''',
+                '''
+                SELECT g.*, gj.jac_value, gj.gic_value
+                FROM   geneset AS g, geneset_jaccard AS gj
+                WHERE  ((gj.gs_id_right = %(geneset_id)s AND g.gs_id = gj.gs_id_left) OR
+                       (gj.gs_id_left = %(geneset_id)s AND g.gs_id = gj.gs_id_right)) AND
+                       geneset_is_readable(%(user_id)s, g.gs_id) AND
+                       geneset_is_readable(%(user_id)s, %(geneset_id)s) AND
+                       gs_status NOT LIKE 'de%%'
+                ORDER BY ''' + order_by + ''' gj.jac_value DESC
+                LIMIT  150;
+                ''',
                 {
                     'geneset_id': geneset_id,
                     'user_id': user_id,
-                    'geneset_id': geneset_id,
-                    'geneset_id': geneset_id,
-                    'user_id': user_id,
-                    'geneset_id': geneset_id,
                 }
+                
+                
         )
         simgc = [SimGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
         return simgc
