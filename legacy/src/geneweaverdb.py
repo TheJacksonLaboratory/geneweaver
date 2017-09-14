@@ -167,7 +167,7 @@ def get_genesets_for_project(project_id, auth_user_id):
             WHERE
                 -- security check: make sure the authenticated user has the
                 -- right to view the geneset
-                geneset_is_readable(%(auth_user_id)s, gs.gs_id);
+                geneset_is_readable2(%(auth_user_id)s, gs.gs_id);
             ''',
                 {
                     'project_id': project_id,
@@ -3051,7 +3051,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
                         user has read permission, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is None:
         user_id = -1
 
@@ -3065,7 +3065,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
             LEFT OUTER JOIN gs_to_pub_assignment ON geneset.gs_id = gs_to_pub_assignment.gs_id
-            WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable2(%(user_id)s, %(geneset_id)s);
             ''',
                 {
                     'geneset_id': geneset_id,
@@ -3091,7 +3091,7 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
                         user has read permission, with jac_value, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is 0:
         user_id = -1
 
@@ -3113,10 +3113,10 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
         cursor.execute(
                 '''SELECT * FROM
                 ((SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
-                    WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
+                    WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s AND geneset_is_readable2(%(user_id)s, %(geneset_id)s)
                     AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150) UNION
                 (SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
-                    WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
+                    WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable2(%(user_id)s, %(geneset_id)s)
                     AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150)) as tmp
                     ORDER BY ''' + order_by + ''' jac_value DESC;
             ''',
@@ -3143,7 +3143,7 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
     """
     gs_ids = []
     gs_ids_clean = []
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is 0:
         user_id = -1
     # print geneset_id
@@ -3155,7 +3155,7 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
             gs_ids.append(r[0])
 
         for gs_id in gs_ids:
-            cursor.execute('''SELECT geneset_is_readable(%s, %s)''', (user_id, gs_id))
+            cursor.execute('''SELECT geneset_is_readable2(%s, %s)''', (user_id, gs_id))
             a = cursor.fetchone()[0]
             if a:
                 gs_ids_clean.append(gs_id)
@@ -3181,7 +3181,7 @@ def get_genesets_for_publication(pub_id, user_id):
     gs_ids_readable = []
     genesets = []
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is 0:
         user_id = -1
 
@@ -3195,7 +3195,7 @@ def get_genesets_for_publication(pub_id, user_id):
 
         # now find out which of those are readable to the user
         for gs_id in gs_ids:
-            cursor.execute('''SELECT geneset_is_readable(%s, %s)''', (user_id, gs_id))
+            cursor.execute('''SELECT geneset_is_readable2(%s, %s)''', (user_id, gs_id))
             a = cursor.fetchone()[0]
             if a:
                 gs_ids_readable.append(gs_id)
@@ -3346,7 +3346,7 @@ def get_geneset_brief(geneset_id, user_id=None):
                         user has read permission, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is None:
         user_id = -1
 
@@ -3355,7 +3355,7 @@ def get_geneset_brief(geneset_id, user_id=None):
                 '''
             SELECT geneset.cur_id, geneset.sp_id, geneset.gs_abbreviation, geneset.gs_count, geneset.gs_status, geneset.gs_id, geneset.gs_name
             FROM geneset
-            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            WHERE gs_id=%(geneset_id)s AND geneset_is_readable2(%(user_id)s, %(geneset_id)s);
             ''',
                 {
                     'geneset_id': geneset_id,
@@ -3374,7 +3374,7 @@ def get_genesets_by_user_id(user_id):
     """
 
     # TODO not sure if we really need to convert to -1 here. The
-    # geneset_is_readable function may be able to handle None
+    # geneset_is_readable2 function may be able to handle None
     # if user_id is None:
     #	 user_id = -1
 
