@@ -1906,12 +1906,13 @@ def download_result():
         img = Image(filename=classicpath, format='svg', resolution=dpi)
 
     else:
-        img = Image(filename=svg, format='svg', resolution=dpi)
+        img = Image(file=svg, format='svg', resolution=dpi)
 
     img.format = filetype
-    img.save(file=imgout)
+    img.save(file=imgstream)
+    img.close()
 
-    return imgout.getvalue().encode('base64')
+    return imgstream.getvalue().encode('base64')
 
 
 @app.route('/viewStoredResults', methods=['GET'])
