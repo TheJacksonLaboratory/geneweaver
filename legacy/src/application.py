@@ -1901,6 +1901,9 @@ def download_result():
     imgstream = StringIO()
     dpi = 600
 
+    if filetype == 'svg':
+        return svg.getvalue().encoded('base64')
+
     if 'version' in form and form['version']:
         classicpath = os.path.join(results, form['version'])
         img = Image(filename=classicpath, format='svg', resolution=dpi)
