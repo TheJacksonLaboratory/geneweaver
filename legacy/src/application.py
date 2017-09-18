@@ -40,7 +40,7 @@ from tools import tricliqueblueprint
 import sphinxapi
 import search
 import math
-# import cairosvg
+from wand.image import Image
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
@@ -1883,18 +1883,23 @@ def download_result():
     """
 
     form = flask.request.form
-    svg = form['svg'].strip()
+    svg = StringIO(form['svg'].strip())
     filetype = form['filetype'].lower().strip()
     svgout = StringIO()
     imgout = StringIO()
     resultpath = config.get('application', 'results')
     dpi = 600
 
-    if 'oldver' in form:
+    if 'oldver' in form and form['oldver']:
         with open(os.path.join(resultpath, form['oldver']), 'r') as fl:
             svg = fl.read()
 
         dpi = 300
+
+    with Image(file=svg, format='svg') as img:
+
+        img.format = 'png'
+        img.save(file=imgout)
 
     ## This is incredibly stupid, but must be done. cairosvg (for some
     ## awful, unknown reason) will not scale any SVG produced by d3. So
@@ -1903,16 +1908,16 @@ def download_result():
     ## Also, if any fonts are rendering incorrectly, it's because cairosvg
     ## doesn't parse CSS attributes correctly and you need to append each
     ## font attribute to the text element itself.
-    cairosvg.svg2svg(bytestring=svg, write_to=svgout)
+    #cairosvg.svg2svg(bytestring=svg, write_to=svgout)
 
-    if filetype == 'pdf':
-        cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
+    #if filetype == 'pdf':
+    #    cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
 
-    elif filetype == 'png':
-        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
+    #elif filetype == 'png':
+    #    cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
 
-    else:
-        imgout = svgout
+    #else:
+    #    imgout = svgout
 
     return imgout.getvalue().encode('base64')
 
