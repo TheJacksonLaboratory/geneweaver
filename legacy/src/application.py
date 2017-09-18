@@ -1876,48 +1876,40 @@ def render_forgotpass():
 def download_result():
     """
     Used when a user requests to download a hi-res result image. The SVG data
-    is posted to the server, upscaled, converted to a PNG, and sent back to the
-    user.
+    is posted to the server, upscaled, converted to a PNG or other image format, 
+    and sent back to the user.
 
-    :ret str: base64 encoded image
+    args
+        request.form['svg']:        String containing the SVG XML that will be
+                                    converted into another image format
+        request.form['filetype']:   The filetype extension (e.g. PNG, PDF) for
+                                    the final image
+        request.form['version']:    A filepath to a classic (GW1) version of
+                                    the visualization. Only set when the user 
+                                    requests the classic version otherwise this 
+                                    is always null. Currently only used for the
+                                    HiSim graph tool.
+        
+    returns
+        the rendered image as a Base64 encoded blob
     """
 
     form = flask.request.form
-    svg = StringIO(form['svg'].strip())
     filetype = form['filetype'].lower().strip()
-    svgout = StringIO()
-    imgout = StringIO()
-    resultpath = config.get('application', 'results')
+    svg = StringIO(form['svg'].strip())
+    results = config.get('application', 'results')
+    imgstream = StringIO()
     dpi = 600
 
-    if 'oldver' in form and form['oldver']:
-        with open(os.path.join(resultpath, form['oldver']), 'r') as fl:
-            svg = fl.read()
+    if 'version' in form and form['version']:
+        classicpath = os.path.join(results, form['version'])
+        img = Image(filename=classicpath, format='svg', resolution=dpi)
 
-        dpi = 300
+    else:
+        img = Image(filename=svg, format='svg', resolution=dpi)
 
-    with Image(file=svg, format='svg') as img:
-
-        img.format = 'png'
-        img.save(file=imgout)
-
-    ## This is incredibly stupid, but must be done. cairosvg (for some
-    ## awful, unknown reason) will not scale any SVG produced by d3. So
-    ## we convert our d3js produced SVG to an SVG...then convert to PNG
-    ## with a reasonably high DPI.
-    ## Also, if any fonts are rendering incorrectly, it's because cairosvg
-    ## doesn't parse CSS attributes correctly and you need to append each
-    ## font attribute to the text element itself.
-    #cairosvg.svg2svg(bytestring=svg, write_to=svgout)
-
-    #if filetype == 'pdf':
-    #    cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
-
-    #elif filetype == 'png':
-    #    cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
-
-    #else:
-    #    imgout = svgout
+    img.format = filetype
+    img.save(file=imgout)
 
     return imgout.getvalue().encode('base64')
 

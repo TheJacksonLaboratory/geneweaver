@@ -837,7 +837,7 @@ $('.download-image').on('click', function(event) {
        var oldver = '';
     }
 
-    $.post(dlurl, {svg: html, filetype: filetype, oldver: oldver}).done(function(data) {
+    $.post(dlurl, {svg: html, filetype: filetype, version: oldver}).done(function(data) {
 
         if (filetype == 'png')
             var png = 'data:image/png;base64,' + data;
