@@ -1899,14 +1899,16 @@ def download_result():
     svg = StringIO(form['svg'].strip())
     results = config.get('application', 'results')
     imgstream = StringIO()
-    dpi = 600
+    dpi = 400
 
     if filetype == 'svg':
-        return svg.getvalue().encoded('base64')
+        return svg.getvalue().encode('base64')
 
     if 'version' in form and form['version']:
         classicpath = os.path.join(results, form['version'])
-        img = Image(filename=classicpath, format='svg', resolution=dpi)
+        ## For some reason the DPI for this image needs to be low otherwise it
+        ## takes forever to render. It's also very clear even at low DPI
+        img = Image(filename=classicpath, format='svg', resolution=150)
 
     else:
         img = Image(file=svg, format='svg', resolution=dpi)
