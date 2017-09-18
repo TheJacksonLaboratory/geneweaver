@@ -56,6 +56,20 @@
 	<h1>{{ title }}</h1>
 </div>
 
+{# Displayed when the image download AJAX code encounters an error #}
+<div id="img-alert" class="alert alert-danger fade in" style="display:none">
+    <button id="img-close" type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <strong>
+        The following error was encountered while rendering and retrieving 
+        your image:
+        <span id="img-error"></span>.
+        If this continues, please contact a GeneWeaver admin or submit an issue
+        to the issue tracker.
+    </strong>
+</div>
+
 <div id="ui-container">
     <form id="todo-id" class="form-horizontal" role="form" method="post">
         <div class="row">
@@ -340,58 +354,38 @@
                 .attr("xmlns", "http://www.w3.org/2000/svg")
                 .node().parentNode.innerHTML;
 
-            $.ajax({
-                type: 'POST',
-                url: dlurl,
-                data: {svg: html, filetype: filetype},
-                success: function(result, status) {
+        $.ajax({
+            type: 'POST',
+            url: dlurl,
+            data: {svg: html, filetype: filetype},
+            success: function(result, status) {
 
-                    if (filetype == 'png')
-                        var png = 'data:image/png;base64,' + result;
+                if (filetype == 'png')
+                    var png = 'data:image/png;base64,' + result;
 
-                    else if (filetype == 'pdf')
-                        var png = 'data:application/pdf;base64,' + result;
+                else if (filetype == 'pdf')
+                    var png = 'data:application/pdf;base64,' + result;
 
-                    else
-                        var png = 'data:xml/svg;base64,' + result;
+                else
+                    var png = 'data:xml/svg;base64,' + result;
 
-                    var a = document.createElement("a");
-                    a.download = 'result.' + filetype;
-                    a.href = png;
+                var a = document.createElement("a");
+                a.download = 'result.' + filetype;
+                a.href = png;
 
-                    document.body.appendChild(a);
+                document.body.appendChild(a);
 
-                    a.click();
+                a.click();
 
-                    changeDownloadIcon();
-                },
-                error: function(xml, status, error) {
-                    console.log(status);
-                    console.log(error);
-                    changeDownloadIcon();
-                }
-            });
-            /*
-        $.post(dlurl, {svg: html, filetype: filetype}).done(function(data) {
+                changeDownloadIcon();
+            },
+            error: function(xml, status, error) {
+                changeDownloadIcon();
 
-            if (filetype == 'png')
-                var png = 'data:image/png;base64,' + data;
-
-            else if (filetype == 'pdf')
-                var png = 'data:application/pdf;base64,' + data;
-
-            else
-                var png = 'data:xml/svg;base64,' + data;
-
-            var a = document.createElement("a");
-            a.download = 'result.' + filetype;
-            a.href = png;
-
-            document.body.appendChild(a);
-
-            a.click();
+                $('#img-error').text(error);
+                $('#img-alert').show();
+            }
         });
-        */
     });
 </script>
 

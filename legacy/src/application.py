@@ -1904,10 +1904,12 @@ def download_result():
     if filetype == 'svg':
         return svg.getvalue().encode('base64')
 
+    ## The user wants the classic HiSim image
     if 'version' in form and form['version']:
         classicpath = os.path.join(results, form['version'])
         ## For some reason the DPI for this image needs to be low otherwise it
-        ## takes forever to render. It's also very clear even at low DPI
+        ## takes forever to render (and may cause ImageMagick to crash). It's 
+        ## also very clear even at low DPI.
         img = Image(filename=classicpath, format='svg', resolution=150)
 
     else:
