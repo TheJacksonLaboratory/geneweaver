@@ -186,8 +186,7 @@
                         </th>
                         <th>LinkOuts</th>
                         <th>Emphasis
-                        <span id="clickableEmphasis" data-trigger="focus" tabindex="0">
-                                <i class="fa fa-info-circle"></i>
+                        <span id="Emphasis" data-trigger="focus" tabindex="0">
                             </span>
                         </th>
                         <th>&nbsp;</th>
@@ -231,12 +230,7 @@
             //makeOntologyTags({{ ontology | map(attribute='ontdb_id') | list }});
             makeOntologyTags({{ ontology | tojson | safe }});
         });
-
-        $('#clickableEmphasis').popover({
-                title: 'Gene Emphasis', content: 'Toggle the switch to emphasize or de-emphasize a gene.' +
-            ' Please note that your changes will be recorded, but not reflected across paging unless you refresh this page entirely.'
-        });
-
+        
         $('#clickableHomology').popover({
                 title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
                 'within GeneWeaver. Mouseover the boxes to reveal species names.'
