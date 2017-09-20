@@ -1084,9 +1084,15 @@ def edit_geneset_id_value_by_id(rargs):
             return
 
 def update_geneset_values(gs_id):
-    '''update file_contents column in file table with values from
+    '''
+    update file_contents column in file table with values from
     production.temp_geneset_values data, and run reparse_geneset_values
-    stored procedure to update geneset data'''
+    stored procedure to update geneset data
+
+    :param gs_id (geneset id)
+    :return
+
+    '''
     file_contents = ""
     with PooledCursor() as cursor:
         #get the file_id row in file table to update
@@ -1108,6 +1114,7 @@ def update_geneset_values(gs_id):
         rgf = "select production.reparse_geneset_file({})".format(gs_id)
         cursor.execute(rgf)
         cursor.connection.commit()
+        return
 
 
 def add_geneset_gene_to_temp(rargs):
