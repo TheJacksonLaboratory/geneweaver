@@ -1041,6 +1041,7 @@ def delete_geneset_value_by_id(rargs):
         cursor.execute('''DELETE from temp_geneset_value WHERE gs_id=%s AND src_id =%s''', (gs_id, gene_id,))
         # print cursor.statusmessage
         cursor.connection.commit()
+        update_geneset_values(gs_id)
         return
 
 
@@ -1079,7 +1080,41 @@ def edit_geneset_id_value_by_id(rargs):
             cursor.execute('''UPDATE temp_geneset_value SET src_id=%s, src_value=%s WHERE gs_id=%s AND src_id=%s''',
                            (gene_id, value, gs_id, gene_old,))
             cursor.connection.commit()
+            update_geneset_values(gs_id)
             return
+
+def update_geneset_values(gs_id):
+    '''
+    update file_contents column in file table with values from
+    production.temp_geneset_values data, and run reparse_geneset_values
+    stored procedure to update geneset data
+
+    :param gs_id (geneset id)
+    :return
+
+    '''
+    file_contents = ""
+    with PooledCursor() as cursor:
+        #get the file_id row in file table to update
+        fsql = "select file_id from production.geneset where gs_id = {}".format(gs_id)
+        cursor.execute(fsql)
+        file_id = cursor.fetchone()[0]
+        '''get all gene data from temp_geneset values table and 
+                create a tab delimited string with newline characters
+                for each gene / value pair'''
+        sql = "select src_value, src_id from production.temp_geneset_value where gs_id = {}".format(gs_id)
+        cursor.execute(sql)
+        for row in cursor:
+            file_contents += "{}\t{}\n".format(str(row[1]), row[0])
+        #update the file_contents field in the file table
+        udsql = "update production.file set file_contents = '{}' where file_id={}".format(file_contents, file_id)
+        cursor.execute(udsql)
+        cursor.connection.commit()
+        #run the reparse_geneset_file() stored procedure
+        rgf = "select production.reparse_geneset_file({})".format(gs_id)
+        cursor.execute(rgf)
+        cursor.connection.commit()
+        return
 
 
 def add_geneset_gene_to_temp(rargs):
@@ -1106,6 +1141,7 @@ def add_geneset_gene_to_temp(rargs):
             cursor.execute('''INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id)
 							  VALUES (%s, %s, %s, %s)''', (gs_id, ode_gene_id, value, gene_id,))
             cursor.connection.commit()
+            update_geneset_values(gs_id)
             return {'error': 'None'}
 
 
@@ -3805,7 +3841,6 @@ def get_geneset_values(geneset_id):
 
     search = ''
     if 'search' in session:
-        print session['search']
         search = " AND gsv.gsv_source_list[1] ~* '{}'".format(session['search'])
 
     if 'sort' in session:
