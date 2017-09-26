@@ -79,7 +79,7 @@
                                 <h4>Groups That I Administer</h4>
                             </div>
                             {% if groupsOwnerOf | length > 0 %}
-                                <table class="table table-striped">
+                                <table class="table table-striped" id="groupsowned">
 
                                     {% for grpO in groupsOwnerOf %}
                                         <tr>
@@ -212,7 +212,7 @@
 
                             {% if groupsMemberOf | length > 0 %}
 
-                                <table class="table table-striped">
+                                <table class="table table-striped" id="groupsmember">
                                     {% for grpM in groupsMemberOf %}
                                         <tr>
                                         <td><span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
