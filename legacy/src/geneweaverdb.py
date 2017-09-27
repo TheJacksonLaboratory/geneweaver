@@ -3149,8 +3149,8 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
             FROM   geneset AS g, geneset_jaccard AS gj
             WHERE  ((gj.gs_id_right = %(geneset_id)s AND g.gs_id = gj.gs_id_left) OR
                    (gj.gs_id_left = %(geneset_id)s AND g.gs_id = gj.gs_id_right)) AND
-                   geneset_is_readable(%(user_id)s, g.gs_id) AND
-                   geneset_is_readable(%(user_id)s, %(geneset_id)s) AND
+                   geneset_is_readable2(%(user_id)s, g.gs_id) AND
+                   geneset_is_readable2(%(user_id)s, %(geneset_id)s) AND
                    gs_status NOT LIKE 'de%%'
             ORDER BY ''' + order_by + ''' gj.jac_value DESC
             LIMIT  150;
