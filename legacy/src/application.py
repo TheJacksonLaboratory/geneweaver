@@ -3518,7 +3518,7 @@ def render_share_projects():
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
 @app.route('/mygroupselect')
-@login_required()
+@login_required(allow_guests=True)
 def my_groups_select():
     """
     An endpoint that renders an htmlfragment select element containing the groups the user is a memeber or admin of.
@@ -3529,7 +3529,7 @@ def my_groups_select():
     return flask.render_template('htmlfragments/groupSelect.html', groups=my_groups)
 
 @app.route('/publicgroupsmultiselect')
-@login_required()
+@login_required(allow_guests=True)
 def public_groups_multiselect():
     """
     An endpoint that renders an htmlfragment multiple select containing the public groups the user is not a member of.
@@ -3539,7 +3539,7 @@ def public_groups_multiselect():
     return flask.render_template('htmlfragments/groupsMultiselect.html', groups=public_groups)
 
 @app.route('/projectsmultiselect')
-@login_required()
+@login_required(allow_guests=True)
 def get_projects_multiselect():
     """
     An endpoint that renders a htmlfragment multiple select containing all projects a user is a member of.
