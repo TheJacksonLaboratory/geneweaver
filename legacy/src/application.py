@@ -2098,9 +2098,9 @@ def get_geneset_genes():
         session['search'] = args['search[value]']
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    totalRecords = geneweaverdb.get_genecount_in_geneset(gs_id)
-    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
     gsvs = geneset.geneset_values
+    totalRecords = len(gsvs)
+    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
 
     emphgenes = {}
     emphgeneids = []

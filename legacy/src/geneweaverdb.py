@@ -3770,17 +3770,14 @@ def get_geneset_values_for_mset_small(pj_tg_id, pj_int_id):
 
 def get_genecount_in_geneset(geneset_id):
     """
-    get a count of total number of genes associated with a geneset. this is used for paging
+    get a count of total number of genes associated with a geneset.
     :param geneset_id:
     :returns count of total genes in geneset
     """
 
-    search = ''
-    if 'search' in session:
-        search = " AND gsv_source_list[1] ~* '{}'".format(session['search'])
+    stmt = '''SELECT count(*) FROM geneset_value WHERE gs_id = {}'''.format(geneset_id)
 
     with PooledCursor() as cursor:
-        stmt = '''SELECT count(*) FROM geneset_value WHERE gs_id = ''' + str(geneset_id) + search
         cursor.execute(stmt)
         return cursor.fetchone()[0]
 
