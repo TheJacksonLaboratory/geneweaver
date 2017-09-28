@@ -361,14 +361,21 @@ def update_species_by_gsid(rargs):
         create_temp_geneset()
         with PooledCursor() as cursor:
             sp_id = get_species_id_by_name(altSpecies)
-            cursor.execute('''SELECT gdb_id FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
-            gdb_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
+            #cursor.execute('''SELECT gdb_id FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
+            #gdb_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
             cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
                               temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
+            #this updates the temp_geneset_meta table but the edit geneset genes table uses the genset sp_id.
+            #need to update that as well
             cursor.execute('''UPDATE temp_geneset_meta SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id,))
-            cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
+            cursor.execute('''UPDATE geneset SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id))
+            #why would this table be cleared?
+            #cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
-            reparse_file_contents_simple(gs_id, sp_id, gdb_id)
+            #this should not run here - only on 'save updates' on edit geneset genes page.
+            #all we're doing in this function is updating the species
+            #this errors out here anyway.
+            #reparse_file_contents_simple(gs_id, sp_id, gdb_id)
             cursor.connection.commit()
             return {'error': 'None'}
     else:
