@@ -366,7 +366,7 @@ def update_species_by_gsid(rargs):
             cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
                               temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
             # this updates the temp_geneset_meta table (is that data used anywhere?)
-            # but the edit geneset genes page uses the genset sp_id.
+            # but the edit geneset page uses the geneset_values sp_id.
             #need to update that as well
             cursor.execute('''UPDATE temp_geneset_meta SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id,))
             cursor.execute('''UPDATE geneset SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id))
