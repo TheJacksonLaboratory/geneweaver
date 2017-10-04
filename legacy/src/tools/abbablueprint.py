@@ -131,7 +131,27 @@ def view_result(task_id):
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
+
+    elif async_result.state == states.FAILURE:
+        
+        results = json.loads(async_result.result)
+
+        if results['error']:
+            flask.flash(results['error'])
+        else:
+            flask.flash(
+                'An unkown error occurred. Please contact a GeneWeaver admin.'
+            )
+
+            return flask.redirect('analyze')
+
     elif async_result.state in states.READY_STATES:
+        results = json.loads(async_result.result)
+
+        if 'error' in results and results['error']:
+            flask.flash(results['error'])
+
+            return flask.redirect('analyze')
 
         # Open files and pass via template
         f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
@@ -142,7 +162,7 @@ def view_result(task_id):
         return flask.render_template(
             'tool/ABBA_result.html',
             json_result=json.loads(json_results),
-            async_result=json.loads(async_result.result),
+            async_result=results,
             tool=tool, emphgeneids=emphgeneids, species=species)
     else:
         # render a page telling their results are pending

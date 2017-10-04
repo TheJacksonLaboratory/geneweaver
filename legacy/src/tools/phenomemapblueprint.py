@@ -280,15 +280,18 @@ def view_result(task_id):
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     resultpath = config.get('application', 'results')
 
-    ## If HiSim fails, it's most likely because no bicliques were found but
-    ## doing this is really, REALLY shady. The exception handling for this
-    ## tool seriously needs to be rewritten.
     if async_result.state == states.FAILURE:
-        return flask.render_template(
-            'tool/PhenomeMap_result.html',
-            state='FAILURE', 
-            tool=tool,
-            async_result=json.loads(async_result.result))
+        
+        results = json.loads(async_result.result)
+
+        if results['error']:
+            flask.flash(results['error'])
+        else:
+            flask.flash(
+                'An unkown error occurred. Please contact a GeneWeaver admin.'
+            )
+
+            return flask.redirect('analyze')
 
     elif async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
@@ -297,7 +300,7 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         result_data = json.loads(async_result.result)
 
-        if result_data['error']:
+        if 'error' in results and results['error']:
             flask.flash(result_data['error'])
 
             return flask.redirect('analyze')

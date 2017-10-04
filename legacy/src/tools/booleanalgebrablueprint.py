@@ -163,8 +163,26 @@ def view_result(task_id):
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
+
+    elif async_result.state == states.FAILURE:
+        results = json.loads(async_result.result)
+
+        if results['error']:
+            flask.flash(results['error'])
+        else:
+            flask.flash(
+                'An unkown error occurred. Please contact a GeneWeaver admin.'
+            )
+
+            return flask.redirect('analyze')
+
     elif async_result.state in states.READY_STATES:
-        # results are ready. render the page for the user
+        results = json.loads(async_result.result)
+
+        if results['error']:
+            flask.flash(results['error'])
+
+            return flask.redirect('analyze')
 
         # added emphgeneids for the table in the boolean algebra result html file
         emphgeneids = []
@@ -182,7 +200,7 @@ def view_result(task_id):
         return flask.render_template(
             'tool/BooleanAlgebra_result.html',
             json_results=json.loads(json_results),
-            async_result=json.loads(async_result.result),
+            async_result=results,
             tool=tool,
             emphgeneids=emphgeneids)
     else:
