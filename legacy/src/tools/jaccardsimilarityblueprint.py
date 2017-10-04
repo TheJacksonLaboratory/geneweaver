@@ -197,7 +197,7 @@ def view_result(task_id):
         # results are ready. render the page for the user
         return flask.render_template(
             'tool/JaccardSimilarity_result.html',
-            data = data,
+            data=async_result.result,
             async_result=results,
             tool=tool, list=gwdb.get_all_projects(user_id))
     else:

@@ -298,10 +298,10 @@ def view_result(task_id):
         raise Exception('error while processing: ' + tool.name)
 
     elif async_result.state in states.READY_STATES:
-        result_data = json.loads(async_result.result)
+        results = json.loads(async_result.result)
 
         if 'error' in results and results['error']:
-            flask.flash(result_data['error'])
+            flask.flash(results['error'])
 
             return flask.redirect('analyze')
 
@@ -315,7 +315,7 @@ def view_result(task_id):
         return flask.render_template(
             'tool/PhenomeMap_result.html',
             data=json_result,
-            async_result=json.loads(async_result.result),
+            async_result=results,
             tool=tool)
     else:
         # render a page telling their results are pending

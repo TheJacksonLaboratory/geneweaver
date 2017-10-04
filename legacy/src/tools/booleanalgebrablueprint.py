@@ -179,7 +179,7 @@ def view_result(task_id):
     elif async_result.state in states.READY_STATES:
         results = json.loads(async_result.result)
 
-        if results['error']:
+        if 'error' in results and results['error']:
             flask.flash(results['error'])
 
             return flask.redirect('analyze')
