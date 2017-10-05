@@ -73,6 +73,8 @@ var openGSModal = function(modalID, genesets, modalTitle) {
         // If not an array, get gs_ids from Object.keys
         if (!Array.isArray(genesets)){
             modal_genesets = Object.keys(genesets);
+        } else {
+            modal_genesets = genesets;
         }
 
         // Update the modal title if specified
