@@ -1,0 +1,232 @@
+import celery.states as states
+import flask
+import json
+import uuid
+import config
+
+import geneweaverdb as gwdb
+import toolcommon as tc
+from decimal import Decimal
+from flask import request
+
+TOOL_CLASSNAME = 'SimilarGenesets'
+
+similar_genesets_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+
+@similar_genesets_blueprint.route('/runSimilarGenesets.json', methods=['GET'])
+def run_tool():
+    """
+    Runs a similarity analysis--calculates jaccard coefficients between the
+    given gene set and all others in the database using a stored procedure.
+
+    args
+        request.args['gs_id']: gene set ID
+    """
+    gs_id = request.args.get('gs_id')
+    task_id = str(uuid.uuid4())
+    tool = TOOL_CLASSNAME
+    user_id = flask.session['user_id']
+    desc = '{} on {}'.format(tool, 'GS' + str(gs_id))
+
+    gwdb.insert_result(
+        user_id,
+        task_id,
+        [gs_id],
+        json.dumps({}),
+        'Jaccard Similarity',
+        desc,
+        desc
+    )
+
+    async_result = tc.celery_app.send_task(
+        tc.fully_qualified_name(TOOL_CLASSNAME),
+        kwargs={
+            'gsids': [gs_id],
+            'output_prefix': task_id,
+            'params': {},
+        },
+        task_id=task_id
+    )
+
+    return flask.jsonify({'error': None})
+
+    """
+    # pull out the selected geneset IDs
+    selected_geneset_ids = tc.selected_geneset_ids(form)
+
+    if len(selected_geneset_ids) < 2:
+        flask.flash(('You need to select at least 2 genesets as input for '
+                    'this tool.'))
+
+        return flask.redirect('analyze')
+    
+    if 'BooleanAlgebra_Relation' not in form:
+        flask.flash(('You need to select a boolean algebra relation for '
+                    'this tool.'))
+
+        return flask.redirect('analyze')
+
+    else:
+
+        params = {}
+        for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+            params[tool_param.name] = form[tool_param.name]
+            params['at_least'] = form["BooleanAlgebra_min_sets"]
+
+        # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
+
+        # insert result for this run
+        user_id = None
+        if 'user_id' in flask.session:
+            user_id = flask.session['user_id']
+        else:
+            flask.flash('Please log in to run the tool.')
+
+            return flask.redirect('analyze')
+
+
+        # render the status page and perform a 303 redirect to the
+        # URL that uniquely identifies this run
+        new_location = flask.url_for(TOOL_CLASSNAME + '.view_result', task_id=task_id)
+        response = flask.make_response(tc.render_tool_pending(async_result, tool))
+        response.status_code = 303
+        response.headers['location'] = new_location
+
+        return response
+    """
+
+"""
+def run_tool_api(apikey, relation, genesets):
+    # TODO need to check for read permissions on genesets
+
+    user_id = gwdb.get_user_id_by_apikey(apikey)
+
+    # pull out the selected geneset IDs
+    selected_geneset_ids = genesets.split(':')
+    if len(selected_geneset_ids) < 2:
+        # TODO add nice error message about missing genesets
+        # there needs to be a min of 2, is there a max?
+        raise Exception('there must be at least two GeneSets selected to run this tool')
+
+    else:
+        relationEnd = relation.split(':')
+        params = {}
+        if len(relationEnd) > 1:
+            try:
+                int(relationEnd[1])
+                params['at_least'] = relationEnd[1]
+            except ValueError:
+                params['at_least'] = '2'
+            for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+                if tool_param.name.endswith('_Relation'):
+                    params[tool_param.name] = 'Intersect at least'
+        else:
+            params['at_least'] = '0'
+            for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
+                if tool_param.name.endswith('_Relation'):
+                    params[tool_param.name] = relation
+                    if params[tool_param.name] not in ['Union', 'Intersect', 'Except']:
+                        params[tool_param.name] = 'Union'
+
+        # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
+
+        # insert result for this run
+        task_id = str(uuid.uuid4())
+        tool = gwdb.get_tool(TOOL_CLASSNAME)
+        desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
+        gwdb.insert_result(
+            user_id,
+            task_id,
+            selected_geneset_ids,
+            json.dumps(params),
+            tool.name,
+            desc,
+            desc, 't')
+
+        async_result = tc.celery_app.send_task(
+            tc.fully_qualified_name(TOOL_CLASSNAME),
+            kwargs={
+                'gsids': selected_geneset_ids,
+                'output_prefix': task_id,
+                'params': params,
+            },
+            task_id=task_id)
+
+        return task_id
+
+
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+"""
+"""
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-result/<task_id>.html', methods=['GET', 'POST'])
+def view_result(task_id):
+    # TODO need to check for read permissions on task
+    async_result = tc.celery_app.AsyncResult(task_id)
+    tool = gwdb.get_tool(TOOL_CLASSNAME)
+    # C: May need to update path to result to the location of the json file
+    if 'user_id' in flask.session:
+        user_id = flask.session['user_id']
+
+    if async_result.state in states.PROPAGATE_STATES:
+        # TODO render a real descriptive error page not just an exception
+        raise Exception('error while processing: ' + tool.name)
+    elif async_result.state in states.READY_STATES:
+        # results are ready. render the page for the user
+
+        # added emphgeneids for the table in the boolean algebra result html file
+        emphgeneids = []
+
+        user_id = flask.session['user_id']
+        emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
+        for row in emphgenes:
+            emphgeneids.append(str(row['ode_gene_id']))
+
+        # Open files and pass via template
+        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
+        json_results = f.readline()
+        f.close()
+
+        return flask.render_template(
+            'tool/BooleanAlgebra_result.html',
+            json_results=json.loads(json_results),
+            async_result=json.loads(async_result.result),
+            tool=tool,
+            emphgeneids=emphgeneids)
+    else:
+        # render a page telling their results are pending
+        return tc.render_tool_pending(async_result, tool)
+
+
+@boolean_algebra_blueprint.route('/' + TOOL_CLASSNAME + '-status/<task_id>.json')
+def status_json(task_id):
+    # TODO need to check for read permissions on task
+    async_result = tc.celery_app.AsyncResult(task_id)
+
+    if async_result.state == states.PENDING:
+        ## We haven't given the tool enough time to setup
+        if not async_result.info:
+            progress = None
+            percent = None
+
+        else:
+            progress = async_result.info['message']
+            percent = async_result.info['percent']
+
+    elif async_result.state == states.FAILURE:
+        progress = 'Failed'
+        percent = ''
+
+    else:
+        progress = 'Done'
+        percent = ''
+
+    return flask.jsonify({
+        'isReady': async_result.state in states.READY_STATES,
+        'state': async_result.state,
+        'progress': progress,
+        'percent': percent
+    })
+"""

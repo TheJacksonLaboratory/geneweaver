@@ -37,6 +37,7 @@ from tools import jaccardsimilarityblueprint
 from tools import msetblueprint
 from tools import phenomemapblueprint
 from tools import tricliqueblueprint
+from tools import similargenesetsblueprint
 import sphinxapi
 import search
 import math
@@ -61,6 +62,7 @@ app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 app.register_blueprint(msetblueprint.mset_blueprint)
+app.register_blueprint(similargenesetsblueprint.similar_genesets_blueprint)
 
 # *************************************
 
@@ -2785,6 +2787,19 @@ def render_sim_genesets(gs_id, grp_by):
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
+    ## Checks to see if the jaccard cache has been built for this set, if not
+    ## allows the user to calculate jaccard coefficients for the gene set
+    set_info = geneweaverdb.get_geneset_info(gs_id)
+    sim_status = 0
+
+    ## The cache has never been built
+    if not set_info.jac_started:
+        sim_status = 1
+
+    ## The cache is currently building
+    elif set_info.jac_started and not set_info.jac_completed:
+        sim_status = 2
+
     return flask.render_template(
         'similargenesets.html',
         geneset=geneset,
@@ -2794,6 +2809,7 @@ def render_sim_genesets(gs_id, grp_by):
         d3Data=d3Data,
         max=max,
         d3BarChart=d3BarChart,
+        sim_status=sim_status,
         species=species
     )
 

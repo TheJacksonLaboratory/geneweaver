@@ -90,6 +90,34 @@
     <div class="panel panel-default panel-heading bg-gray-light">
         <h2 class="panel-title"><strong>View Similar Genesets</strong></h2>
     </div>
+    
+    {% if sim_status == 1 %}
+        <div class="alert alert-warning fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                x
+            </button>
+            <strong>
+                We have not run a similarity analysis on this GeneSet yet.
+                <a id="run-similarity" href="#">Click here to start now.</a>
+                Depending on the database load and GeneSet size, this may take
+                up to 15 minutes. Once you start the process you may navigate
+                away from this page and return at a later time.
+            </strong>
+        </div>
+
+    {% elif sim_status == 2 %}
+
+        <div class="alert alert-warning fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                x
+            </button>
+            <strong>
+                The similarity analysis is currently running. This may take
+                some time depending on the complexity of the data.
+            </strong>
+        </div>
+
+    {% endif %}
 
 
     <div class="panel panel-default">
@@ -515,6 +543,28 @@
                             }
                         });
                     }
+                });
+
+                $('#run-similarity').on('click', function (e) {
+
+                    // Prevents the link from redirecting
+                    e.preventDefault();
+
+                    console.log('wut');
+                    var gs_id = {{ geneset.geneset_id }};
+                    console.log(gs_id);
+
+                    $.ajax({
+                        type: 'GET',
+                        url: '/runSimilarGenesets.json',
+                        data: {'gs_id': gs_id},
+                        success: function (data) {
+                            //$("#result").html('<div class="alert alert-success fade in"> ' +
+                            //'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                            //'</button>Genesets Successfully Added to Selected Projects</div>');
+                            window.location.reload();
+                        }
+                    });
                 });
 
             });

@@ -2818,7 +2818,7 @@ class GenesetInfo:
         self.last_sim = gi_dict['gsi_last_sim']
         self.last_ann = gi_dict['gsi_last_ann']
         self.jac_started = gi_dict['gsi_jac_started']
-        self.jac_completed = gi_dict['gsi_jac_started']
+        self.jac_completed = gi_dict['gsi_jac_completed']
 
 def authenticate_user(email, password):
     """
@@ -4337,6 +4337,26 @@ def check_emphasis(gs_id, em_gene):
 
     return inGeneset
 
+
+def run_calculate_jaccard(gs_id):
+    """
+    Runs the calculate_jaccard stored procedure for the given gene set ID.
+    This stored procedure will calculate jaccard coefficients between the
+    given gene set and all other sets in the DB.
+
+    args
+        gs_id: gene set ID
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            SELECT calculate_jaccard(%s);
+            ''',
+                (gs_id,)
+        )
+
 def get_geneset_info(gs_id):
     """
     Retrieves the geneset_info entry for the given gene set ID. If an entry for
@@ -4349,6 +4369,7 @@ def get_geneset_info(gs_id):
     returns
         a GenesetInfo object
     """
+
     with PooledCursor() as cursor:
 
         cursor.execute(
@@ -4368,7 +4389,8 @@ def get_geneset_info(gs_id):
             return get_geneset_info(gs_id)
 
         else:
-            return GenesetInfo(dictify_cursor(cursor))
+            return [GenesetInfo(d) for d in dictify_cursor(cursor)][0]
+            #return GenesetInfo(dictify_cursor(cursor))
 
 
 def update_geneset_jaccard_start(gs_id):
