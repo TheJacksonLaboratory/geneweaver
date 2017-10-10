@@ -2808,6 +2808,17 @@ class Ontologydb:
         self.linkout_url = ontdb_dict['ontdb_linkout_url']
         self.ncbo_vid = ontdb_dict['ontdb_ncbo_vid']
 
+class GenesetInfo:
+    def __init__(self, gi_dict):
+        self.geneset_id = gi_dict['gs_id']
+        self.page_views = gi_dict['gsi_pageviews']
+        self.referers = gi_dict['gsi_referers']
+        self.analyses = gi_dict['gsi_analyses']
+        self.resource_id = gi_dict['gsi_resource_id']
+        self.last_sim = gi_dict['gsi_last_sim']
+        self.last_ann = gi_dict['gsi_last_ann']
+        self.jac_started = gi_dict['gsi_jac_started']
+        self.jac_completed = gi_dict['gsi_jac_started']
 
 def authenticate_user(email, password):
     """
@@ -4325,6 +4336,105 @@ def check_emphasis(gs_id, em_gene):
         inGeneset = True
 
     return inGeneset
+
+def get_geneset_info(gs_id):
+    """
+    Retrieves the geneset_info entry for the given gene set ID. If an entry for
+    the gene set does not exist in the geneset_info table, a new one is created
+    and the new instance is returned.
+
+    args
+        gs_id: gene set ID
+
+    returns
+        a GenesetInfo object
+    """
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            SELECT  *
+            FROM    production.geneset_info
+            WHERE   gs_id = %s
+            LIMIT   1;
+            ''',
+                (gs_id,)
+        )
+
+        if not cursor.rowcount:
+            insert_geneset_info(gs_id)
+
+            ## I hope there's no way for this to cause a recursion loop...
+            return get_geneset_info(gs_id)
+
+        else:
+            return GenesetInfo(dictify_cursor(cursor))
+
+
+def update_geneset_jaccard_start(gs_id):
+    """
+    Updates the jaccard start time (used by view similar gene sets) for the
+    given gene set ID.
+
+    args
+        gs_id: gene set ID
+    """
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            UPDATE  production.geneset_info
+            SET     gsi_jac_started = NOW()
+            WHERE   gs_id = %s;
+            ''',
+                (gs_id,)
+        )
+        
+
+def update_geneset_jaccard_complete(gs_id):
+    """
+    Updates the jaccard completed time (used by view similar gene sets) for the
+    given gene set ID.
+
+    args
+        gs_id: gene set ID
+    """
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            UPDATE  production.geneset_info
+            SET     gsi_jac_completed = NOW()
+            WHERE   gs_id = %s;
+            ''',
+                (gs_id,)
+        )
+
+
+def insert_geneset_info(gs_id):
+    """
+    Inserts a new entry into the geneset_info table for the given gene set ID.
+    This function does not check to make sure an entry already exists, that is
+    up to the caller.
+
+    args
+        gs_id: gene set ID
+
+    returns
+        a GenesetInfo object
+    """
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO production.geneset_info (gs_id)
+            VALUES      (%s);
+            ''',
+                (gs_id,)
+        )
+
+        cursor.connection.commit()
+
 
 def insert_omicssoft_metadata(gs_id, project, source, tag, otype):
     """
