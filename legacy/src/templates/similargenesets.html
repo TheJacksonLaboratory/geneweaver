@@ -91,6 +91,15 @@
         <h2 class="panel-title"><strong>View Similar Genesets</strong></h2>
     </div>
     
+    {# 
+        sim_status indicates whether or not similarity analysis has been run for
+        the currently viewed gene set.
+
+        status == 1 indicates no analysis has been run and the jaccard cache
+        has not been built.
+        status == 2 indicates the analysis is running.
+        status == 0 indicates the analysis is complete.
+    #}
     {% if sim_status == 1 %}
         <div class="alert alert-warning fade in" style="text-align:center">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
