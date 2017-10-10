@@ -2825,7 +2825,7 @@ def get_pubmed_data():
 
     return json.dumps(pubmedValues)
 
-
+# TODO: should this be removed?
 # @app.route('/getPubmed', methods=['GET', 'POST'])
 # def get_pubmed_data():
 #     pubmedValues = []
