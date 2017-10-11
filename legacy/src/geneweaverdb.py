@@ -3802,7 +3802,6 @@ def get_geneset_values(geneset_id):
 
     search = ''
     if 'search' in session:
-        print session['search']
         search = " AND g.ode_ref_id ~* '{}'".format(session['search'])
 
     if 'sort' in session:
