@@ -311,6 +311,10 @@
                         $("[data-toggle='tooltip']").tooltip();
                         //override the processing indicator
                         $('#gene_processing').hide();
+                        //dont show pagination if only one page
+                        if (Math.ceil((this.fnSettings().fnRecordsDisplay()) / this.fnSettings()._iDisplayLength) > 1) {
+                            $('.pagination').css("display", "block");
+                        } else { $('.pagination').css("display", "none"); }
                         $(".loader").fadeOut("slow");
                         //register the empahsis checkboxes as bootstrap switches
                         $("[name='g_id[]']").bootstrapSwitch();
