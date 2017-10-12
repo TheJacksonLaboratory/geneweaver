@@ -192,7 +192,6 @@
                         <th>&nbsp;</th>
                     </tr>
                     </thead>
-                   <!-- removed previous table rows and logic -->
                     </tbody>
                 </table>
             </div>
@@ -212,7 +211,6 @@
     {% endif %}
 
 
-    <!-- <body onload="myFunction()"> -->
 	<iframe id="ie-export" style="display:none;">
 	</iframe>
 
@@ -227,7 +225,6 @@
                 makeSpeciesTags();
             {% endif %}
 
-            //makeOntologyTags({{ ontology | map(attribute='ontdb_id') | list }});
             makeOntologyTags({{ ontology | tojson | safe }});
         });
         
