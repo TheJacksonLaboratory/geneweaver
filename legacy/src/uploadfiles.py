@@ -520,6 +520,9 @@ def insert_into_geneset_value_by_gsid(gsid):
     :return: 'True' or error msg
     '''
     with PooledCursor() as cursor:
+        ## get the latest count of genes from the temp table for updating main table at end of process
+        cursor.execute('''select count(*) from production.temp_geneset_value where gs_id = %s;''' % (gsid,))
+        gs_count = cursor.fetchone()[0]
         cursor.execute('''SELECT gs_id FROM production.temp_geneset_value WHERE gs_id=%s''', (gsid,))
         g = cursor.fetchone()
         if g is not None:
@@ -545,6 +548,10 @@ def insert_into_geneset_value_by_gsid(gsid):
                     ## Update 'delayed' values to 'normal'
                     cursor.execute('''UPDATE geneset SET gs_status='normal' WHERE gs_id=%s;''', (gsid,))
                     cursor.connection.commit()
+                    # update the main geneset table with the new count
+                    cursor.execute('''update production.geneset set gs_count = %s where gs_id = %s;''' % (gs_count, gsid))
+                    cursor.connection.commit()
+
                     return {'error': 'None'}
         else:
             return {'error': 'Temp table does not contain GS' + gsid}
