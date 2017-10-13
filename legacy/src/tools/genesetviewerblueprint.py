@@ -157,12 +157,33 @@ def view_result(task_id):
     if async_result.state in states.PROPAGATE_STATES:
         # TODO render a real descriptive error page not just an exception
         raise Exception('error while processing: ' + tool.name)
+
+    if async_result.state == states.FAILURE:
+
+        results = json.loads(async_result.result)
+
+        if results['error']:
+            flask.flash(results['error'])
+        else:
+            flask.flash(
+                'An unkown error occurred. Please contact a GeneWeaver admin.'
+            )
+
+            return flask.redirect('analyze')
+
     elif async_result.state in states.READY_STATES:
-        # results are ready. render the page for the user
+        results = json.loads(async_result.result)
+
+        if 'error' in results and results['error']:
+            flask.flash(results['error'])
+
+            return flask.redirect('analyze')
+
         return flask.render_template(
             'tool/GeneSetViewer_result.html',
-            async_result=json.loads(async_result.result),
+            async_result=results,
             tool=tool)
+
     else:
         # render a page telling their results are pending
         return tc.render_tool_pending(async_result, tool)

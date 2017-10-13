@@ -67,10 +67,14 @@ var submitGSModalAjax = function(url, data) {
  */
 var openGSModal = function(modalID, genesets, modalTitle) {
     return function() {
+    
+        var modal_genesets;
 
         // If not an array, get gs_ids from Object.keys
         if (!Array.isArray(genesets)){
-            genesets = Object.keys(genesets);
+            modal_genesets = Object.keys(genesets);
+        } else {
+            modal_genesets = genesets;
         }
 
         // Update the modal title if specified
@@ -79,12 +83,12 @@ var openGSModal = function(modalID, genesets, modalTitle) {
         }
 
         // If no genesets selected, display geneneric error modal.
-        if (genesets.length === 0) {
+        if (modal_genesets.length === 0) {
             showErrorModal('You must first select Genesets to add.');
         } else {
-            var gsString = genesets.map(function(s){ return 'GS' + s; }).join(', ');
+            var gsString = modal_genesets.map(function(s){ return 'GS' + s; }).join(', ');
             $(modalID).find(modalID+'-label').html(gsString);
-            $(modalID).find(modalID+'Value').val(genesets.join(','));
+            $(modalID).find(modalID+'Value').val(modal_genesets.join(','));
             $(modalID).modal('show');
         }
     }

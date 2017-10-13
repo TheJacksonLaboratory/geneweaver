@@ -330,8 +330,8 @@
                 <div class="col-xs-6 col-sm-4">
                     <select class="form-control" name="sp_id" required>
                         {% for spec in all_species %}
-                            <option id="sp-{{spec}}" 
-                                    label="{{ all_species[spec] }}" 
+                            <option id="sp-{{spec}}"
+                                    label="{{ all_species[spec] }}"
                                     value="{{ spec }}"
                                     style="font-weight:bold;">
                                 {{ all_species[spec] }}
@@ -364,7 +364,7 @@
                 </div>
             </div>
             <br>
-        
+
 
             <div class="row">
                 <div class="col-md-2">
@@ -412,8 +412,8 @@
         <div class="panel-heading">
             <div class="pull-right">
 				{# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
-				<input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
-					   value="Review GeneSet Upload &raquo;"/>
+				<input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file "
+					   value="Review GeneSet Upload &raquo;" onclick="ProcessForm();"/>
             </div>
         </div>
 
@@ -429,8 +429,8 @@
 
     /*
      * Auto-populates the upload form with geneset title, description, species,
-     * gene identifier, and gene list data. 
-     * This is done using the boolean algebra tool or the 'add genes to 
+     * gene identifier, and gene list data.
+     * This is done using the boolean algebra tool or the 'add genes to
      * geneset' function on the view geneset page. If any required
      * values are missing, auto-population doesn't occur.
      */
@@ -539,113 +539,6 @@
 				fileDisplayArea.innerText = "File not supported!";
 			}
 		});
-
-        //Function to upload genesets
-        //Ths AJAX POST loading is not working...leaving me perplexed. I stripped the text from the
-        //div and passed it to application via get
-        $('#upload-geneset-form').submit(function (event) {
-            event.preventDefault();
-            var fileDisplayArea = document.getElementById('fileDisplayArea');
-            var fileSelect = document.getElementById('file_data');
-            //var reader = new FileReader();
-            if (!fileSelect.disabled) {
-                //var file = fileSelect.files;
-                var fileData = fileDisplayArea.innerText;
-                //data.append('selected_file', file[0], file[0].name);
-                //reader.onload = createReaderHandler(file[0].name);
-                //reader.readAsText(file[0]);
-                //alert(data['selected_file']);
-            }
-
-            var permissions = document.getElementById('permissions')
-            if(permissions.disabled) {
-                // If disabled, the permissions field will not be submitted with form
-                $('#permissions').prop("disabled", false).button("refresh");
-            }
-
-            var d = $("#upload-geneset-form").serialize();
-            var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
-            var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
-
-            // Let the user know we're in the process of uploading their
-            // geneset. Otherwise they might click the submit button 10 times.
-            $('#confirmUpload').modal('show');
-
-            $.ajax({
-                type: "GET",
-                url: "../createtempgeneset",
-                data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
-                success: function (data) {
-                    // Hides confirmation after any kind of result (success or
-                    // error) is returned.
-                    $('#confirmUpload').modal('hide');
-
-                    var v = JSON.parse(data);
-
-                    if (v["error"] == 'None') {
-						// Make a URL to the edit geneset page in case the 
-						// user is never redirected. Happens with Jason's 
-						// desktop :(
-						var editPage = location.protocol + '//' + location.host;
-						editPage = '<a href="' + editPage + '/editgenesetgenes/' +
-								 v['gs_id'] + '">here.</a>';
-                        var success = '<strong>Success! Your GeneSets ' +
-                                'were uploaded: </strong><br />';
-                        success += 'GS' + v['gs_id'] + '<br />';
-                        success = success + '<br /> <strong>You will be ' +
-                                'redirected to the edit GeneSet page shortly.' +
-                                '<br /> If you aren\'t redirected, check and ' +
-                                'reconfigure your pop-up blocker settings ' +
-								'or just click ' + editPage + '</strong>';
-                        var closeButton = '<button type="button" ' +
-                                'class="close" data-dismiss="alert" ' +
-                                'aria-hidden="true">x</button>';
-
-                        $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $('#upload-success-alert').html(closeButton + success);
-                        $(document).trigger("add-alerts", [{
-                            'message': success,
-                            'priority': 'success',
-                            'fade': 0
-                        }]);
-
-                        // Redirect to the edit geneset page for each geneset,
-                        // wait a bit though so the user can read our message
-                        setTimeout(function() {
-
-                            var url = '../editgenesetgenes/' + v['gs_id'];
-
-                            window.open(url, '_blank');
-
-                        }, 3000);
-                        //window.location.href = '../editgenesetgenes/' + v["gs_id"];
-                    }
-                    else {
-                        $('html, body').animate({ scrollTop: 0 }, 'slow');
-                        $(document).trigger("add-alerts", [
-                            {
-                                'message': "An Error Occurred. " + v["error"],
-                                'priority': 'danger'
-                            }
-                        ]);
-                    }
-                    },
-                error: function(){
-                    // Hides confirmation after any kind of result (success or
-                    // error) is returned.
-                    $('#confirmUpload').modal('hide');
-
-                    $('html, body').animate({ scrollTop: 0 }, 'slow');
-                    $(document).trigger("add-alerts", [
-                        {
-                            'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
-                            'priority': 'danger'
-                        }
-                    ]);
-                }
-            });
-
-        });
 
         //function createReaderHandler(name) {
         //    return function (ev) {
@@ -803,6 +696,112 @@
             return !$(this).prop('disabled')
         })
     }
+
+        //Function to upload genesets
+        //Ths AJAX POST loading is not working...leaving me perplexed. I stripped the text from the
+        //div and passed it to application via get
+        function ProcessForm() {
+            var fileDisplayArea = document.getElementById('fileDisplayArea');
+            var fileSelect = document.getElementById('file_data');
+            //var reader = new FileReader();
+            if (!fileSelect.disabled) {
+                //var file = fileSelect.files;
+                var fileData = fileDisplayArea.innerText;
+                //data.append('selected_file', file[0], file[0].name);
+                //reader.onload = createReaderHandler(file[0].name);
+                //reader.readAsText(file[0]);
+                //alert(data['selected_file']);
+            }
+
+            var permissions = document.getElementById('permissions')
+            if(permissions.disabled) {
+                // If disabled, the permissions field will not be submitted with form
+                $('#permissions').prop("disabled", false).button("refresh");
+            }
+
+            var d = $("#upload-geneset-form").serialize();
+            var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
+            var gdb_id = $("#upload-geneset-form").find('select[name="gene_identifier"]').val();
+            // Let the user know we're in the process of uploading their
+            // geneset. Otherwise they might click the submit button 10 times.
+            $('#confirmUpload').modal('show');
+
+            $.ajax({
+                type: "GET",
+                url: "../createtempgeneset",
+                data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
+                success: function (data) {
+                    // Hides confirmation after any kind of result (success or
+                    // error) is returned.
+                    $('#confirmUpload').modal('hide');
+
+                    var v = JSON.parse(data);
+
+                    if (v["error"] == 'None') {
+						// Make a URL to the edit geneset page in case the
+						// user is never redirected. Happens with Jason's
+						// desktop :(
+						var editPage = location.protocol + '//' + location.host;
+						editPage = '<a href="' + editPage + '/editgenesetgenes/' +
+								 v['gs_id'] + '">here.</a>';
+                        var success = '<strong>Success! Your GeneSets ' +
+                                'were uploaded: </strong><br />';
+                        success += 'GS' + v['gs_id'] + '<br />';
+                        success = success + '<br /> <strong>You will be ' +
+                                'redirected to the edit GeneSet page shortly.' +
+                                '<br /> If you aren\'t redirected, check and ' +
+                                'reconfigure your pop-up blocker settings ' +
+								'or just click ' + editPage + '</strong>';
+                        var closeButton = '<button type="button" ' +
+                                'class="close" data-dismiss="alert" ' +
+                                'aria-hidden="true">x</button>';
+
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $('#upload-success-alert').html(closeButton + success);
+                        $(document).trigger("add-alerts", [{
+                            'message': success,
+                            'priority': 'success',
+                            'fade': 0
+                        }]);
+
+                        // Redirect to the edit geneset page for each geneset,
+                        // wait a bit though so the user can read our message
+                        setTimeout(function() {
+
+                            var url = '../editgenesetgenes/' + v['gs_id'];
+
+                            window.open(url, '_blank');
+
+                        }, 3000);
+                        //window.location.href = '../editgenesetgenes/' + v["gs_id"];
+                    }
+                    else {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [
+                            {
+                                'message': "An Error Occurred. " + v["error"],
+                                'priority': 'danger'
+                            }
+                        ]);
+                    }
+                    },
+                error: function(){
+                    // Hides confirmation after any kind of result (success or
+                    // error) is returned.
+                    $('#confirmUpload').modal('hide');
+
+                    $('html, body').animate({ scrollTop: 0 }, 'slow');
+                    $(document).trigger("add-alerts", [
+                        {
+                            'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
+                            'priority': 'danger'
+                        }
+                    ]);
+                }
+            });
+
+        }
+
 
 </script>
 
