@@ -2793,11 +2793,11 @@ def render_sim_genesets(gs_id, grp_by):
     sim_status = 0
 
     ## The cache has never been built
-    if not set_info.jac_started:
+    if set_info and not set_info.jac_started:
         sim_status = 1
 
     ## The cache is currently building
-    elif set_info.jac_started and not set_info.jac_completed:
+    elif set_info and set_info.jac_started and not set_info.jac_completed:
         sim_status = 2
 
     return flask.render_template(

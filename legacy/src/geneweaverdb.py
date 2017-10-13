@@ -3158,7 +3158,6 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
             WHERE  ((gj.gs_id_right = %(geneset_id)s AND g.gs_id = gj.gs_id_left) OR
                    (gj.gs_id_left = %(geneset_id)s AND g.gs_id = gj.gs_id_right)) AND
                    geneset_is_readable2(%(user_id)s, g.gs_id) AND
-                   geneset_is_readable2(%(user_id)s, %(geneset_id)s) AND
                    gs_status NOT LIKE 'de%%'
             ORDER BY ''' + order_by + ''' gj.jac_value DESC
             LIMIT  150;
@@ -4338,25 +4337,6 @@ def check_emphasis(gs_id, em_gene):
     return inGeneset
 
 
-def run_calculate_jaccard(gs_id):
-    """
-    Runs the calculate_jaccard stored procedure for the given gene set ID.
-    This stored procedure will calculate jaccard coefficients between the
-    given gene set and all other sets in the DB.
-
-    args
-        gs_id: gene set ID
-    """
-
-    with PooledCursor() as cursor:
-
-        cursor.execute(
-            '''
-            SELECT calculate_jaccard(%s);
-            ''',
-                (gs_id,)
-        )
-
 def get_geneset_info(gs_id):
     """
     Retrieves the geneset_info entry for the given gene set ID. If an entry for
@@ -4377,7 +4357,6 @@ def get_geneset_info(gs_id):
             SELECT  *
             FROM    production.geneset_info
             WHERE   gs_id = %s
-            LIMIT   1;
             ''',
                 (gs_id,)
         )
@@ -4389,48 +4368,13 @@ def get_geneset_info(gs_id):
             return get_geneset_info(gs_id)
 
         else:
-            return [GenesetInfo(d) for d in dictify_cursor(cursor)][0]
-            #return GenesetInfo(dictify_cursor(cursor))
+            gi_list = [GenesetInfo(d) for d in dictify_cursor(cursor)]
 
+            if gi_list:
+                return gi_list[0]
 
-def update_geneset_jaccard_start(gs_id):
-    """
-    Updates the jaccard start time (used by view similar gene sets) for the
-    given gene set ID.
-
-    args
-        gs_id: gene set ID
-    """
-    with PooledCursor() as cursor:
-
-        cursor.execute(
-            '''
-            UPDATE  production.geneset_info
-            SET     gsi_jac_started = NOW()
-            WHERE   gs_id = %s;
-            ''',
-                (gs_id,)
-        )
-        
-
-def update_geneset_jaccard_complete(gs_id):
-    """
-    Updates the jaccard completed time (used by view similar gene sets) for the
-    given gene set ID.
-
-    args
-        gs_id: gene set ID
-    """
-    with PooledCursor() as cursor:
-
-        cursor.execute(
-            '''
-            UPDATE  production.geneset_info
-            SET     gsi_jac_completed = NOW()
-            WHERE   gs_id = %s;
-            ''',
-                (gs_id,)
-        )
+            else:
+                return None
 
 
 def insert_geneset_info(gs_id):
