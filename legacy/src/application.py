@@ -2098,9 +2098,9 @@ def get_geneset_genes():
         session['search'] = args['search[value]']
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    totalRecords = geneweaverdb.get_genecount_in_geneset(gs_id)
-    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
     gsvs = geneset.geneset_values
+    totalRecords = len(gsvs)
+    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
 
     emphgenes = {}
     emphgeneids = []
@@ -2824,83 +2824,6 @@ def get_pubmed_data():
                                  pub['pub_year'], pub['pub_month'], pub['pub_abstract']))
 
     return json.dumps(pubmedValues)
-
-
-# @app.route('/getPubmed', methods=['GET', 'POST'])
-# def get_pubmed_data():
-#     pubmedValues = []
-#     http = urllib3.PoolManager()
-#     if flask.request.method == 'GET':
-#         args = flask.request.args
-#         if 'pmid' in args:
-#             pmid = args['pmid']
-#             PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
-#             # response = http.urlopen('GET', PM_DATA % (','.join([str(x) for x in pmid]),)).read()
-#             response = http.urlopen('GET', PM_DATA % (pmid), preload_content=False).read()
-#
-#             for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
-#                 article_ids = {}
-#                 abstract = ''
-#                 fulltext_link = None
-#
-#                 article = match.group(1)
-#                 articleid_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>', article, re.S)
-#                 abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>', article, re.S)
-#                 articletitle = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>', article, re.S).group(1).strip()
-#
-#                 for amatch in articleid_matches:
-#                     article_ids[amatch.group(1).strip()] = amatch.group(2).strip()
-#                 for amatch in abstract_matches:
-#                     abstract += amatch.group(2).strip() + ' '
-#
-#                 if 'pmc' in article_ids:
-#                     fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
-#                 elif 'doi' in article_ids:
-#                     fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
-#                 pmid = article_ids['pubmed'].strip()
-#
-#                 author_matches = re.finditer('<Author[^>]*>(.*?)</Author>', article, re.S)
-#                 authors = []
-#                 for match in author_matches:
-#                     name = ''
-#                     try:
-#                         name = re.search('<LastName>([^<]*)</LastName>', match.group(1), re.S).group(1).strip()
-#                         name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', match.group(1), re.S).group(
-#                             1).strip()
-#                     except:
-#                         pass
-#                     authors.append(name)
-#
-#                 authors = ', '.join(authors)
-#                 v = re.search('<Volume>([^<]*)</Volume>', article, re.S)
-#                 if v:
-#                     vol = v.group(1).strip()
-#                 else:
-#                     vol = ''
-#                 p = re.search('<MedlinePgn>([^<]*)</MedlinePgn>', article, re.S)
-#                 if p:
-#                     pages = p.group(1).strip()
-#                 else:
-#                     pages = ''
-#                 pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
-#                 year = pubdate.group(1).strip()
-#                 journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
-#                 # year month journal
-#                 tomonthname = {
-#                     '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
-#                     '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
-#                 }
-#                 pm = pubdate.group(2).strip()
-#                 if pm in tomonthname:
-#                     pm = tomonthname[pm]
-#
-#                 pubmedValues.extend((articletitle, authors, journal, vol, pages, year, pm, abstract))
-#
-#         else:
-#             response = 'false'
-#     else:
-#         response = 'false'
-#     return json.dumps(pubmedValues)
 
 
 @app.route('/exportGeneList/<int:gs_id>')

@@ -192,7 +192,6 @@
                         <th>&nbsp;</th>
                     </tr>
                     </thead>
-                   <!-- removed previous table rows and logic -->
                     </tbody>
                 </table>
             </div>
@@ -212,7 +211,6 @@
     {% endif %}
 
 
-    <!-- <body onload="myFunction()"> -->
 	<iframe id="ie-export" style="display:none;">
 	</iframe>
 
@@ -227,7 +225,6 @@
                 makeSpeciesTags();
             {% endif %}
 
-            //makeOntologyTags({{ ontology | map(attribute='ontdb_id') | list }});
             makeOntologyTags({{ ontology | tojson | safe }});
         });
         
@@ -311,6 +308,10 @@
                         $("[data-toggle='tooltip']").tooltip();
                         //override the processing indicator
                         $('#gene_processing').hide();
+                        //dont show pagination if only one page
+                        if (Math.ceil((this.fnSettings().fnRecordsDisplay()) / this.fnSettings()._iDisplayLength) > 1) {
+                            $('.pagination').css("display", "block");
+                        } else { $('.pagination').css("display", "none"); }
                         $(".loader").fadeOut("slow");
                         //register the empahsis checkboxes as bootstrap switches
                         $("[name='g_id[]']").bootstrapSwitch();

@@ -1041,7 +1041,6 @@ def delete_geneset_value_by_id(rargs):
         cursor.execute('''DELETE from temp_geneset_value WHERE gs_id=%s AND src_id =%s''', (gs_id, gene_id,))
         # print cursor.statusmessage
         cursor.connection.commit()
-        update_geneset_values(gs_id)
         return
 
 
@@ -1080,7 +1079,6 @@ def edit_geneset_id_value_by_id(rargs):
             cursor.execute('''UPDATE temp_geneset_value SET src_id=%s, src_value=%s WHERE gs_id=%s AND src_id=%s''',
                            (gene_id, value, gs_id, gene_old,))
             cursor.connection.commit()
-            update_geneset_values(gs_id)
             return
 
 def update_geneset_values(gs_id):
@@ -1141,7 +1139,6 @@ def add_geneset_gene_to_temp(rargs):
             cursor.execute('''INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id)
 							  VALUES (%s, %s, %s, %s)''', (gs_id, ode_gene_id, value, gene_id,))
             cursor.connection.commit()
-            update_geneset_values(gs_id)
             return {'error': 'None'}
 
 
@@ -3803,17 +3800,14 @@ def get_geneset_values_for_mset_small(pj_tg_id, pj_int_id):
 
 def get_genecount_in_geneset(geneset_id):
     """
-    get a count of total number of genes associated with a geneset. this is used for paging
+    get a count of total number of genes associated with a geneset.
     :param geneset_id:
     :returns count of total genes in geneset
     """
 
-    search = ''
-    if 'search' in session:
-        search = " AND gsv_source_list[1] ~* '{}'".format(session['search'])
+    stmt = '''SELECT count(*) FROM geneset_value WHERE gs_id = {}'''.format(geneset_id)
 
     with PooledCursor() as cursor:
-        stmt = '''SELECT count(*) FROM geneset_value WHERE gs_id = ''' + str(geneset_id) + search
         cursor.execute(stmt)
         return cursor.fetchone()[0]
 
@@ -3838,7 +3832,7 @@ def get_geneset_values(geneset_id):
 
     search = ''
     if 'search' in session:
-        search = " AND gsv.gsv_source_list[1] ~* '{}'".format(session['search'])
+        search = " AND g.ode_ref_id ~* '{}'".format(session['search'])
 
     if 'sort' in session:
         d = session['dir']

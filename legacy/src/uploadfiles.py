@@ -85,12 +85,13 @@ def insert_new_contents_to_file(contents):
         print 'New File_id: ' + str(file_id)
         return file_id
 
-
+# TODO: why is this extra function needed?
 def create_new_geneset(args):
     user_id = session['user_id']
     return create_new_geneset_for_user(args, user_id)
 
 
+# TODO: should probably reomve all commented out code?
 def create_new_geneset_for_user(args, user_id):
     '''
     This function creates new geneset metadata with new data, including publication, and file data
@@ -201,7 +202,7 @@ def create_new_geneset_for_user(args, user_id):
     gs_status = 'normal'
     gs_uri = str('')
     gs_attribution = 1
-    print formData['file_text'][0].strip('\r')
+    gene_data = process_gene_list(formData['file_text'][0].strip('\r'))
 
     try:
         with PooledCursor() as cursor:
@@ -210,7 +211,7 @@ def create_new_geneset_for_user(args, user_id):
                                          gs_groups, gs_status, gs_count, gs_uri, gene_identifier,
                                          formData['gs_name'][0], formData['gs_abbreviation'][0],
                                          formData['gs_description'][0], gs_attribution,
-                                         formData['file_text'][0].strip('\r'),))
+                                         gene_data,))
             gs_id = cursor.fetchone()[0]
             cursor.connection.commit()
             print 'gs_id inserted as: ' + str(gs_id)
@@ -251,7 +252,7 @@ def create_new_geneset_for_user(args, user_id):
         ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
                                pubDict['pub_abstract'], ncbo=ncbo,
                                monarch=monarch)
-    ## TODO
+    ##
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
     # vals = batch.buGenesetValues(gs)
@@ -260,6 +261,25 @@ def create_new_geneset_for_user(args, user_id):
 
     return {'error': 'None', 'gs_id': gs_id}
 
+
+def process_gene_list(gene_list):
+    '''
+    iterate through submitted gene list and assign a value of 1
+    to entries with no value
+    :param gene_list:
+    :return: str
+    '''
+    out_str = ''
+    gene_file = str(gene_list).split('\n')
+
+    for line in gene_file:
+        vals = line.split('\t')
+        if len(vals) == 1:
+            vals[0] = vals[0].strip('\r')
+            vals.append('1\r')
+        out_str += vals[0] + '\t' + vals[1] + '\n'
+
+    return out_str
 
 def create_temp_geneset_from_value(gsid):
     '''
@@ -361,14 +381,12 @@ def update_species_by_gsid(rargs):
         create_temp_geneset()
         with PooledCursor() as cursor:
             sp_id = get_species_id_by_name(altSpecies)
-            cursor.execute('''SELECT gdb_id FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
-            gdb_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
             cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
                               temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
             cursor.execute('''UPDATE temp_geneset_meta SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id,))
-            cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gs_id,))
+            # the edit geneset page uses the species id in the geneset table
+            cursor.execute('''UPDATE geneset SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id))
             cursor.connection.commit()
-            reparse_file_contents_simple(gs_id, sp_id, gdb_id)
             cursor.connection.commit()
             return {'error': 'None'}
     else:
