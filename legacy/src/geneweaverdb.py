@@ -486,10 +486,6 @@ def edit_group_name(group_name, group_id, group_private, user_id):
         return {'error': 'User does not have permission'}
 
 
-# adds a user to the group specified.
-# permission should be passed as 0 if it is a normal user
-# permission should be passed as 1 if it is an admin
-# permission is defaulted to 0
 def add_user_to_group(group_id, owner_id, usr_email, permission=0):
     """
     Adds a user to a group.
