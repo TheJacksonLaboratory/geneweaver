@@ -185,8 +185,7 @@
 <tr id="genesetdetails_{{ gs.geneset_id }}" style="display: none;">
     <td colspan="100%">
 
-        <table class="table table-hover table-striped" id="nestedTable"
-            style="table-layout:fixed; width:100%;">
+        <table class="table table-hover table-striped">
 
             <tr>
                 <th style="width: 25%;">Figure Label:</th>
@@ -194,14 +193,20 @@
             </tr>
 
             <tr>
-                <th style="width:25%;">Description:</th>
-                <td style="width:75%; max-width:inherit; word-break:normal">{{ gs.description }}</td>
+                <th>Description:</th>
+                <td id="desc_{{gs.geneset_id}}">
+                    {{ gs.description }}
+                </td>
             </tr>
 
             <!-- TODO account for null authors, get Publication info -->
             <tr>
                 <th>Authors:</th>
-                <td><i>{% if gs.publication is defined and gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
+                <td><i>
+                    {% if gs.publication is defined and gs.publication.authors is defined %} 
+                        {{ gs.publication.authors }} 
+                    {% else %}None{% endif %}
+                </i></td>
             </tr>
 
         </table>
@@ -329,42 +334,22 @@
 
 			event.stopImmediatePropagation();
 
-            console.log('expanding');
-
             var childId = $(this).parents("tr").prop("id");
-            var hidden = $("#genesetdetails_" + childId).is(":visible");
+
+            // So for some reason this class is added to the 
+            // <td colspan="100%"> element that's part of the GS metacontent
+            // row. BUT, this only happens on the search page. It's what is
+            // causing the text/content to overflow out of the search results
+            // borders. Idk why it's getting added so this doesn't solve the 
+            // root of the problem but fixes the overflow bug.
+            $("#genesetdetails_" + childId)
+                .children('td')
+                .removeClass('force-table-responsive');
 
             $("#genesetdetails_" + childId).toggle();
 			$("#offGenesetPlus_" + child).toggle();
 			$("#onGenesetMinus_" + child).toggle();
-
-            /*
-            if (hidden) {
-                $("#onGenesetChevron_" + childId).toggle();
-                $("#offGenesetChevron_" + childId).toggle();
-            }
-            else {
-                $("#offGenesetChevron_" + childId).toggle();
-                $("#onGenesetChevron_" + childId).toggle();
-            }
-            */
         });
-
-        $(".rExpand").on('click', function (event) {
-
-			// Because this page is injected into analyze/search/projects/etc,
-            // this script will get written to that page multiple times, 
-            // resulting in multiple click handlers. We must stop propagation 
-            // of additional events otherwise bad things happen.
-			event.stopImmediatePropagation();
-
-            var child = $(this).parents("tr").prop("id");
-
-			$("#genesetdetails_" + child).toggle();
-			$("#offGenesetPlus_" + child).toggle();
-			$("#onGenesetMinus_" + child).toggle();
-        });
-
     });
 
     //Wanted to display the number of checked boxes. Not playing nicely with select all from project
