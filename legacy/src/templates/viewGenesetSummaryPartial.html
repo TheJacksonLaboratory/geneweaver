@@ -346,9 +346,24 @@
                 .children('td')
                 .removeClass('force-table-responsive');
 
+            var visible = $("#genesetdetails_" + childId).is(":visible");
+
             $("#genesetdetails_" + childId).toggle();
-			$("#offGenesetPlus_" + child).toggle();
-			$("#onGenesetMinus_" + child).toggle();
+			$("#offGenesetPlus_" + childId).toggle();
+			$("#onGenesetMinus_" + childId).toggle();
+
+            if (!visible) {
+
+                $('#offGenesetPlus_' + childId)
+                    .parent()
+                    .attr('data-original-title', 'Less Information');
+                        
+            } else {
+
+                $('#offGenesetPlus_' + childId)
+                    .parent()
+                    .attr('data-original-title', 'More Information');
+            }
         });
     });
 
