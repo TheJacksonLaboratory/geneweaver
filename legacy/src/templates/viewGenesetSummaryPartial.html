@@ -185,7 +185,8 @@
 <tr id="genesetdetails_{{ gs.geneset_id }}" style="display: none;">
     <td colspan="100%">
 
-        <table class="table table-hover table-striped" id="nestedTable">
+        <table class="table table-hover table-striped" id="nestedTable"
+            style="table-layout:fixed; width:100%;">
 
             <tr>
                 <th style="width: 25%;">Figure Label:</th>
@@ -193,8 +194,8 @@
             </tr>
 
             <tr>
-                <th>Description:</th>
-                <td>{{ gs.description }}</td>
+                <th style="width:25%;">Description:</th>
+                <td style="width:75%; max-width:inherit; word-break:normal">{{ gs.description }}</td>
             </tr>
 
             <!-- TODO account for null authors, get Publication info -->
@@ -351,10 +352,10 @@
 
         $(".rExpand").on('click', function (event) {
 
-			// Because this page is injected into analyze.html, this script 
-			// will get written to that page multiple times, resulting in
-			// multiple click handlers. We must stop propagation of additional
-			// events otherwise bad things happen.
+			// Because this page is injected into analyze/search/projects/etc,
+            // this script will get written to that page multiple times, 
+            // resulting in multiple click handlers. We must stop propagation 
+            // of additional events otherwise bad things happen.
 			event.stopImmediatePropagation();
 
             var child = $(this).parents("tr").prop("id");
