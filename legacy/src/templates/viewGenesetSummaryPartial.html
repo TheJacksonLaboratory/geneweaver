@@ -148,17 +148,24 @@
 
     <td>
 
+        {#
         {% if proj is defined %}
+        #}
 
-            <span class="rExpand" data-placement="top" data-toggle="tooltip"
-							data-rel="tooltip" data-original-title="View More Information"
-							title="More Information" style="margin: 2px; padding: 0px 2px;">
-				<span id="onGenesetMinus_{{ gs.geneset_id }}" style="display: none; color: #808080;">
-                    <i class="fa fa-minus"></i></span>
-				<span id="offGenesetPlus_{{ gs.geneset_id }}" style="color: #808080;">
-                    <i class="fa fa-plus"></i></span>
+            <span class="rowExpand" data-placement="top" data-toggle="tooltip"
+				  data-rel="tooltip" data-original-title="View More Information"
+				  title="More Information" style="margin: 2px; padding: 0px 2px;">
+                <span id="onGenesetMinus_{{ gs.geneset_id }}" 
+                      style="display: none; color: #808080;">
+                    <i class="fa fa-minus"></i>
+                </span>
+				<span id="offGenesetPlus_{{ gs.geneset_id }}" 
+                      style="color: #808080;">
+                    <i class="fa fa-plus"></i>
+                </span>
 			</span>
 
+            {#
         {% else %}
 
             <span class="rowExpand">
@@ -169,6 +176,7 @@
 			</span>
 
         {% endif %}
+        #}
     </td>
 
 </tr>
@@ -316,11 +324,20 @@
 
     $(document).ready(function () {
 
-        $(".rowExpand").on('click', function () {
+        $(".rowExpand").on('click', function (event) {
+
+			event.stopImmediatePropagation();
+
+            console.log('expanding');
 
             var childId = $(this).parents("tr").prop("id");
             var hidden = $("#genesetdetails_" + childId).is(":visible");
+
             $("#genesetdetails_" + childId).toggle();
+			$("#offGenesetPlus_" + child).toggle();
+			$("#onGenesetMinus_" + child).toggle();
+
+            /*
             if (hidden) {
                 $("#onGenesetChevron_" + childId).toggle();
                 $("#offGenesetChevron_" + childId).toggle();
@@ -329,6 +346,7 @@
                 $("#offGenesetChevron_" + childId).toggle();
                 $("#onGenesetChevron_" + childId).toggle();
             }
+            */
         });
 
         $(".rExpand").on('click', function (event) {
