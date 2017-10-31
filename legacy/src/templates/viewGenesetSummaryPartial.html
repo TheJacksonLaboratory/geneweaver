@@ -319,6 +319,12 @@
 
     $(document).ready(function () {
 
+        /**
+          * Handles the expansion of the element containing GeneSet 
+          * metacontent on the search, projects, and analyze pages.
+          * When the '+' icon next to a set is clicked, this function is called
+          * and reveals the metacontent and updates the +/- icons. 
+          */
         $(".rowExpand").on('click', function (event) {
 
             event.stopImmediatePropagation();
