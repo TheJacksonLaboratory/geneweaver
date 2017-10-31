@@ -148,13 +148,14 @@
 
     <td>
 
-        {#
-        {% if proj is defined %}
-        #}
-
-            <span class="rowExpand" data-placement="top" data-toggle="tooltip"
-				  data-rel="tooltip" data-original-title="View More Information"
-				  title="More Information" style="margin: 2px; padding: 0px 2px;">
+            <span class="rowExpand" 
+            {% if proj is defined %}
+                  data-placement="top" data-toggle="tooltip"
+				  data-rel="tooltip" 
+                  data-original-title="View More Information"
+				  title="More Information" 
+            {% endif %}
+                  style="margin: 2px; padding: 0px 2px;">
                 <span id="onGenesetMinus_{{ gs.geneset_id }}" 
                       style="display: none; color: #808080;">
                     <i class="fa fa-minus"></i>
@@ -165,18 +166,6 @@
                 </span>
 			</span>
 
-            {#
-        {% else %}
-
-            <span class="rowExpand">
-				<span id="onGenesetChevron_{{ gs.geneset_id }}" style="display: none; color: #808080;">
-                    <i class="fa fa-minus"></i></span>
-				<span id="offGenesetChevron_{{ gs.geneset_id }}" style="color: #808080;">
-                    <i class="fa fa-plus"></i></span>
-			</span>
-
-        {% endif %}
-        #}
     </td>
 
 </tr>
