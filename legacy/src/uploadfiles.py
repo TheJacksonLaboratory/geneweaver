@@ -202,6 +202,8 @@ def create_new_geneset_for_user(args, user_id):
     gs_status = 'normal'
     gs_uri = str('')
     gs_attribution = 1
+
+    # This line removes non-ascii characters which seem to break the process_gene_list function
     ascii_gene_list = ''.join([i if ord(i) < 128 else ' ' for i in formData['file_text'][0].strip('\r')])
     gene_data = process_gene_list(ascii_gene_list)
 
