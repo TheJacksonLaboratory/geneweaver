@@ -2193,6 +2193,18 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         genedict[gtype['gdb_id']] = gtype['gdb_name']
         genedict[gtype['gdb_name']] = gtype['gdb_id']
 
+    uploaded_as = 'Gene Symbol'
+    gene_type = abs(geneset.gene_id_type)
+
+    ## Get the original identifier type used during the upload of this gene
+    ## set. Normal identifiers are negative, expression platforms are positive.
+    if geneset.gene_id_type < 0:
+        uploaded_as = genedict[gene_type]
+    else:
+        for plat in geneweaverdb.get_microarray_types():
+            if plat['pf_id'] == gene_type:
+                uploaded_as = plat['pf_name']
+
     show_gene_list = True
     # get value for the alt-gene-id column
     # if this is a 'stub' geneset.gene_id_type might not be valid,
@@ -2285,7 +2297,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curation_assignment=curation_assignment,
         curator_info=curator_info,
         show_gene_list=show_gene_list,
-        totalGenes=numgenes
+        totalGenes=numgenes,
+        uploaded_as=uploaded_as
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])

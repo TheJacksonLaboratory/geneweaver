@@ -122,7 +122,12 @@
                     <tbody>
                     <thead>
                     <tr>
-                        <th><i class="fa fa-sort"></i> Default</th>
+                        <th>
+                            <i class="fa fa-sort"></i> Uploaded As
+                            <span id="defaultIdHelp" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th>
 							    <span class="dropdown">
 								<span id="clickableGeneSymbol"
@@ -237,6 +242,20 @@
                 title: 'Percentile Priority Rank', content: 'All genes within GeneWeaver are ranked according to global ' +
                 'graph centrality. A full description can be found <a href="http://www.geneweaver.org/wiki">here</a>.',
                 html: 'true'
+        });
+
+        $('#defaultIdHelp').popover({
+                title: 'Original Gene Identifiers', 
+                content: 'The symbols in this column represent the original ' +
+                         'identifiers used when uploading this GeneSet. ' +
+                         'This set was uploaded using "{{uploaded_as}}" ' +
+                         'identifiers'
+        });
+
+        // Stops the column from sorting when a user clicks the info icon.
+        $('#defaultIdHelp').on('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
         });
 
         $('#export').on('click', function (e) {
