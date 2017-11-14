@@ -266,7 +266,6 @@ function load_cytoscape() {
 		//Open Node's URL
 		function openLink(event){
 			var evt = event.target;
-            console.log(evt.data);
 			window.open( evt.data.URL );
 		}
         // Disable double click since there's no easy way to get the GSIDs in
