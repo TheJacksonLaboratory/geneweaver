@@ -3855,9 +3855,12 @@ def get_geneset_values(geneset_id):
         elif session['sort'] == 'alt':
             s = ' ORDER BY g.ode_ref_id ' + d
 
-    ode_ref = '1'
+    sp_id = get_sp_id_by_gsid(geneset_id)[0]['sp_id']
+
+    ode_ref = '7'
     if 'extsrc' in session:
         ode_ref = session['extsrc']
+
 
     with PooledCursor() as cursor:
         cursor.execute('''
@@ -3867,24 +3870,67 @@ def get_geneset_values(geneset_id):
             FROM geneset_value AS gsv
             LEFT OUTER JOIN homology AS h
             ON gsv.ode_gene_id = h.ode_gene_id
+            INNER JOIN homology AS h2
+            ON h.hom_id = h2.hom_id
             INNER JOIN gene_info AS gi
             ON gsv.ode_gene_id = gi.ode_gene_id
             INNER JOIN gene AS g
-            ON gsv.ode_gene_id = g.ode_gene_id
-            WHERE gsv.gs_id = %s ''' + search + ''' AND
+            -- ON gsv.ode_gene_id = g.ode_gene_id
+            ON h2.ode_gene_id = g.ode_gene_id
+            WHERE gsv.gs_id =%s ''' + search + ''' AND
+                  -- This section was added to enhance the coalesce section below. It will not return symbols where
+                  -- there are no available gdb_id, but it will return values from other species. Additional changes
+                  -- include the homology h2 join and the h2.ode_gene_id join instead of the gsv.ode_gene_id
+              g.gdb_id = (SELECT COALESCE (
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+                  ))
+                  
+                  AND CASE WHEN (SELECT sp_id FROM genedb WHERE gdb_id = %s) = 0
+                                        THEN h2.sp_id = %s
+                                        ELSE h2.sp_id = (SELECT sp_id FROM genedb WHERE gdb_id = %s)
+                                        END
                   -- This checks to see if the alternate symbol the user wants to view actually exists
                   -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
                   -- returned then there would be missing genes on the view geneset page.
-                  g.gdb_id = (SELECT COALESCE (
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
-                  ))
+--                   g.gdb_id = (SELECT COALESCE (
+--                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 10 LIMIT 1),
+--                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+--                   ))
                   AND
                   -- When viewing symbols, always pick the preferred gene symbol
                   CASE WHEN g.gdb_id = 7
                   THEN g.ode_pref = 't'
                   ELSE true
-                  END''' + s + limit, (geneset_id, ode_ref))
+                  END''' + s + limit, (geneset_id, ode_ref, ode_ref, sp_id, ode_ref,))
+
+
+
+
+            # SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
+            #        gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
+            #        gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
+            # FROM geneset_value AS gsv
+            # LEFT OUTER JOIN homology AS h
+            # ON gsv.ode_gene_id = h.ode_gene_id
+            # INNER JOIN gene_info AS gi
+            # ON gsv.ode_gene_id = gi.ode_gene_id
+            # INNER JOIN gene AS g
+            # ON gsv.ode_gene_id = g.ode_gene_id
+            # WHERE gsv.gs_id = %s ''' + search + ''' AND
+            #       -- This checks to see if the alternate symbol the user wants to view actually exists
+            #       -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
+            #       -- returned then there would be missing genes on the view geneset page.
+            #       g.gdb_id = (SELECT COALESCE (
+            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+            #       ))
+            #       AND
+            #       -- When viewing symbols, always pick the preferred gene symbol
+            #       CASE WHEN g.gdb_id = 7
+            #       THEN g.ode_pref = 't'
+            #       ELSE true
+            #       END''' + s + limit, (geneset_id, ode_ref))
 
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
@@ -4049,6 +4095,29 @@ def get_sp_id():
         cursor.execute('''SELECT sp_id FROM species WHERE sp_id > 0 ORDER BY sp_id ASC;''')
         sp_id = list(dictify_cursor(cursor))
     return sp_id
+
+def get_sp_id_by_gsid(gs_id):
+    """
+    Returns the sp_id associated with a geneset
+    :param gs_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM geneset WHERE gs_id=%s;''', (gs_id,))
+        sp_id = list(dictify_cursor(cursor))
+    return sp_id
+
+
+def get_gdb_sp(ode_ref):
+    """
+    Returns the sp_id associated with a geneset
+    :param gs_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM genedb WHERE gdb_id=%s;''', (ode_ref,))
+        gdb_sp = list(dictify_cursor(cursor))
+    return gdb_sp
 
 
 def export_results_by_gs_id(gs_id):
