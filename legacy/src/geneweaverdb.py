@@ -3152,16 +3152,23 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
-            SELECT g.*, gj.jac_value, gj.gic_value
-            FROM   geneset AS g, geneset_jaccard AS gj
-            WHERE  ((gj.gs_id_right = %(geneset_id)s AND g.gs_id = gj.gs_id_left) OR
-                   (gj.gs_id_left = %(geneset_id)s AND g.gs_id = gj.gs_id_right)) AND
-                   geneset_is_readable2(%(user_id)s, g.gs_id) AND
-                   gs_status NOT LIKE 'de%%'
-            ORDER BY ''' + order_by + ''' gj.jac_value DESC
-            LIMIT  150;
-            ''',
+            '''SELECT a.* FROM (
+                   (SELECT geneset.*,jac_value,gic_value 
+                       FROM geneset, geneset_jaccard gj
+                       WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s 
+                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                         AND gs_status NOT LIKE 'de%%' 
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                     ) 
+                     UNION
+                   (SELECT geneset.*,jac_value,gic_value 
+                       FROM geneset, geneset_jaccard gj 
+                       WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s 
+                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                         AND gs_status NOT LIKE 'de%%' 
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                     ) 
+                 ) AS a LIMIT 150''',
             {
                 'geneset_id': geneset_id,
                 'user_id': user_id,
