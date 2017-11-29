@@ -1234,7 +1234,22 @@ def get_ontology_terms(gsid):
 @login_required(json=True)
 def get_geneset_annotations():
     """
-    Returns a list of annotations for the given gene set.
+    Returns a list of terms that have been annotated to the given gene set.
+
+    args
+        request.args['gs_id']: gene set ID to use when retrieving annotations
+
+    returns
+        a list of JSON serialized annotation objects with the following fields:
+
+        {
+            reference_id: the external identifier for the term (e.g. GO:123456)
+            name:         the ontology term name (e.g. death)
+            dbname:       ontology this term comes from (e.g. GO)
+            ontdb_id:     internal GW identifier for the ontology
+            ont_id:       internal GW identifier for this term
+            ref_type:     the type of association that produced this annotation
+        }
     """
 
     args = flask.request.args
@@ -1263,7 +1278,28 @@ def search_ontology_terms():
     user. Used for ontology term autocomplete on the edit gene set page.
     """
 
-    return flask.jsonify({})
+    args = flask.request.args
+
+    if 'search' not in args:
+        return flask.json({'error': 'No search text provided', 'terms': []})
+
+    search = args['search']
+    terms = []
+
+    for ont in geneweaverdb.search_ontology_terms(search):
+        ref_id = ont['ont_ref_id']
+        name = ont['ont_name']
+        ontdb_name = ont['ontdb_name']
+
+        terms.append({
+            'label': '%s: %s (%s)' % (ref_id, name, ontdb_name),
+            'value': '',
+            'name': name,
+            'ont_id': ont['ont_id']
+        })
+
+    return flask.jsonify({'terms': terms})
+
 
 @app.route('/initOntTree')
 def init_ont_tree():

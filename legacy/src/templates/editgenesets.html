@@ -316,7 +316,7 @@
         </div>
 
         <div style="margin-left: 1em;">
-            <br>
+            <br />
 
             <table class="table table-hover" id="annotation-list">
                 <thead>
@@ -338,6 +338,8 @@
                 <tbody style="font-size:13px">
                 </tbody>
             </table>
+
+            <br />
 
             <div class="row">
                 <div class="col-xs-3">
@@ -379,95 +381,97 @@
 
         var gsID = {{ geneset.geneset_id | safe }};
 
-        var getGenesetAnnotations = function() {
-
-            $('#annotation-list').DataTable({
-                'paging': false,
-                'searching': false,
-                'sAjaxDataProp': 'annotations',
-                'ajax': {
-                    type: 'GET',
-                    url: '/getGenesetAnnotations.json',
-                    data: {gsid: gsID}
-                },
-                'columns': [
-                    {data: 'name'},
-                    {data: 'reference_id'},
-                    {data: 'ref_type'},
-                    {data: null, defaultContent: ''}
-                ],
-                'aoColumnDefs': [
-                    {
-                        'aTargets': [3],
-                        'fnCreatedCell': function(nTd, _, oData, _, _) {
-                            var removeLink = 
-                                $('<a style="cursor:pointer">Remove</a>');
-
-                            removeLink.on('click', function() {
-
-                                $.ajax({
-                                    url: '/updateGenesetOntologyDB',
-                                    type: 'GET',
-                                    data: {
-                                        key: oData.ont_id,
-                                        flag: false,
-                                        universe: 'Manual Association',
-                                        gs_id: gsID
-                                    },
-                                    success: function() {
-                                        $('#annotation-list').DataTable()
-                                            .ajax
-                                            .reload();
-                                    }
-                                });
-
-                            });
-
-                            $(nTd).append(removeLink);
-                        }
-                    }
-                    //url: "/updateGenesetOntologyDB",
-                    //data: {
-                    //    key: node.data.key,
-                    //    flag: false,
-                    //    universe: "Manual Association",
-                    //    gs_id: $(location).attr("href").split('/').pop()
-                    //},
-                    //success: function(data){}
-                ]
-            });
-                            
-                /*
-            $.ajax({
+        // DataTable initialization for the list of gene set annotations
+        $('#annotation-list').DataTable({
+            'paging': false,
+            'searching': false,
+            'info': false,
+            'sAjaxDataProp': 'annotations',
+            'ajax': {
                 type: 'GET',
                 url: '/getGenesetAnnotations.json',
-                data: {gsid: gsID},
-                success: function(result) {
+                data: {gsid: gsID}
+            },
+            'columns': [
+                {data: 'name'},
+                {data: 'reference_id'},
+                {data: 'ref_type'},
+                {data: null, defaultContent: ''}
+            ],
+            'aoColumnDefs': [{
+                // The last column is a link that allows users to
+                // remove a gene set annotation
+                'aTargets': [3],
+                'fnCreatedCell': function(nTd, _, oData, _, _) {
+                    var removeLink = 
+                        $('<a style="cursor:pointer">Remove</a>');
 
-                    if (result.error)
-                        return;
+                    // Removes the annotation and reloads the data
+                    // table when a user clicks the 'Remove' link
+                    removeLink.on('click', function() {
 
-                    // Clears the current contents of the annotation table
-                    $('#annotation-list > tbody').children().remove();
+                        $.ajax({
+                            url: '/updateGenesetOntologyDB',
+                            type: 'GET',
+                            data: {
+                                key: oData.ont_id,
+                                flag: false,
+                                universe: 'Manual Association',
+                                gs_id: gsID
+                            },
+                            success: function() {
+                                $('#annotation-list').DataTable()
+                                    .ajax
+                                    .reload();
+                            }
+                        });
 
-                    result.annotations.forEach(function(an) {
-                        var term = an.name;
-                        var sauce = an.ref_type;
-                        var elem = '<tr><td>' + term + '</td><td>' + sauce + 
-                                   '</td></tr>';
-
-                        $('#annotation-list > tbody').append(elem);
                     });
 
-                },
-                error: function(result) {
+                    $(nTd).append(removeLink);
+                }
+            }]
+        });
 
+        $('#add-annotation').on('keyup', function() {
+
+            var value = $(this).val();
+
+            if (value.length < 3)
+                return;
+
+            $.ajax({
+                url: '/ontologyTermSearch.json',
+                data: {search: value},
+                dataType: 'json',
+                success: function(result) {
+                    var terms = result.terms;
+
+                    $('#add-annotation').autocomplete({
+                        source: terms,
+                        minLength: 3,
+                        select: function(event, ui) {
+                            event.preventDefault();
+
+                            $.ajax({
+                                url: "/updateGenesetOntologyDB",
+                                data: {
+                                    key: ui.item.ont_id,
+                                    flag: true,
+                                    universe: "Manual Association",
+                                    gs_id: gsID
+                                },
+                                success: function() {
+                                    $('#annotation-list').DataTable()
+                                        .ajax
+                                        .reload();
+                                }
+                            })
+                        }
+                    });
                 }
             });
-            */
-        };
-
-        getGenesetAnnotations();
+        });
     });
 </script>
 

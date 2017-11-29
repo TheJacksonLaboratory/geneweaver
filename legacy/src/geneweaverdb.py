@@ -5144,6 +5144,33 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
     return ontology
 
 
+def search_ontology_terms(search):
+    """
+    Returns a list of ontology terms (as Ontology objects) that match a given
+    search string.
+    """
+
+    with PooledCursor() as cursor:
+        ## Wildcards have to be part of the substituted string or a syntax
+        ## error will get thrown
+        search = '%%' + search + '%%'
+
+        cursor.execute(
+            '''
+            SELECT  *
+            FROM        extsrc.ontology AS o
+            INNER JOIN  odestatic.ontologydb AS odb
+            ON          o.ontdb_id = odb.ontdb_id
+            WHERE       ont_name ILIKE %s OR 
+                        ont_ref_id ILIKE %s
+            LIMIT       30;
+            ''',
+                (search, search)
+        )
+
+        return dictify_cursor(cursor)
+
+
 def get_all_ontologies_by_geneset_and_db(gs_id, ontdb_id):
     with PooledCursor() as cursor:
         cursor.execute(
