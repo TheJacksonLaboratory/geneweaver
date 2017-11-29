@@ -317,35 +317,55 @@
 
         <div style="margin-left: 1em;">
             <br>
-            <div class="row">
-                <div class="row">
-                    <div class="col-xs-3";>
-                        <select name="ontology_db" id="ontology_db"
-                                class="form-control"
-                                style="margin-bottom: 20px;" required>
-                            {% for ont in ont_dbs %}
-                                <option value="{{ ont.ontologydb_id }}">
-                                    {{ ont.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div id="genesetOntologyAlert"
-                         class="alert alert-warning fade in col-xs-3"
-                         style="width:400px; text-align:center;">
-                            <button type="button" class="close"
-                                    data-dismiss="alert" aria-hidden="true">
-                                x
-                            </button>
-                            <strong>
-                                Annotation changes persist on (de)selection.
-                            </strong>
-                    </div>
-                </div>
 
-                <div style="border: 1px solid #afafaf;">
-                    <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
+            <table class="table table-hover" id="annotation-list">
+                <thead>
+                    <tr class="header">
+                        <th>Ontology Term</th>
+                        <th>Ontology ID</th>
+                        <th>Association Source</th>
+                        <th>Action</th>
+                    </tr>
+                    <tr>
+                        <th colspan="4">
+                            Add new term:
+                            <input id="add-annotation" name="add-annotation"
+                                   type="text" />
+                            (start typing to search ontologies)
+                        </th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:13px">
+                </tbody>
+            </table>
+
+            <div class="row">
+                <div class="col-xs-3">
+                    <select name="ontology_db" id="ontology_db"
+                            class="form-control"
+                            style="margin-bottom: 20px;" required>
+                        {% for ont in ont_dbs %}
+                            <option value="{{ ont.ontologydb_id }}">
+                                {{ ont.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
+                <div id="genesetOntologyAlert"
+                     class="alert alert-warning fade in col-xs-3"
+                     style="width:400px; text-align:center;">
+                        <button type="button" class="close"
+                                data-dismiss="alert" aria-hidden="true">
+                            x
+                        </button>
+                        <strong>
+                            Annotation changes persist on (de)selection.
+                        </strong>
+                </div>
+            </div>
+
+            <div style="border: 1px solid #afafaf;">
+                <div id="tree" name="selNodes" style="overflow:auto; max-height:600px"></div>
             </div>
         </div>
 
@@ -353,6 +373,103 @@
     </form>
 
 {% endif %}
+
+<script>
+    $(function(){
+
+        var gsID = {{ geneset.geneset_id | safe }};
+
+        var getGenesetAnnotations = function() {
+
+            $('#annotation-list').DataTable({
+                'paging': false,
+                'searching': false,
+                'sAjaxDataProp': 'annotations',
+                'ajax': {
+                    type: 'GET',
+                    url: '/getGenesetAnnotations.json',
+                    data: {gsid: gsID}
+                },
+                'columns': [
+                    {data: 'name'},
+                    {data: 'reference_id'},
+                    {data: 'ref_type'},
+                    {data: null, defaultContent: ''}
+                ],
+                'aoColumnDefs': [
+                    {
+                        'aTargets': [3],
+                        'fnCreatedCell': function(nTd, _, oData, _, _) {
+                            var removeLink = 
+                                $('<a style="cursor:pointer">Remove</a>');
+
+                            removeLink.on('click', function() {
+
+                                $.ajax({
+                                    url: '/updateGenesetOntologyDB',
+                                    type: 'GET',
+                                    data: {
+                                        key: oData.ont_id,
+                                        flag: false,
+                                        universe: 'Manual Association',
+                                        gs_id: gsID
+                                    },
+                                    success: function() {
+                                        $('#annotation-list').DataTable()
+                                            .ajax
+                                            .reload();
+                                    }
+                                });
+
+                            });
+
+                            $(nTd).append(removeLink);
+                        }
+                    }
+                    //url: "/updateGenesetOntologyDB",
+                    //data: {
+                    //    key: node.data.key,
+                    //    flag: false,
+                    //    universe: "Manual Association",
+                    //    gs_id: $(location).attr("href").split('/').pop()
+                    //},
+                    //success: function(data){}
+                ]
+            });
+                            
+                /*
+            $.ajax({
+                type: 'GET',
+                url: '/getGenesetAnnotations.json',
+                data: {gsid: gsID},
+                success: function(result) {
+
+                    if (result.error)
+                        return;
+
+                    // Clears the current contents of the annotation table
+                    $('#annotation-list > tbody').children().remove();
+
+                    result.annotations.forEach(function(an) {
+                        var term = an.name;
+                        var sauce = an.ref_type;
+                        var elem = '<tr><td>' + term + '</td><td>' + sauce + 
+                                   '</td></tr>';
+
+                        $('#annotation-list > tbody').append(elem);
+                    });
+
+                },
+                error: function(result) {
+
+                }
+            });
+            */
+        };
+
+        getGenesetAnnotations();
+    });
+</script>
 
 <script>
 
@@ -429,7 +546,6 @@
     };
 
     $(function(){
-        console.log('HELLO!');
         //Initialize dynatree data and functions
         $("#tree").dynatree({
             checkbox: true,
@@ -456,7 +572,6 @@
 
 			// Does nothing but needs to be present for nodes to be unselected.
             onClick: function (node, event) {
-                console.log(node);
 			},
 
 			/**
@@ -645,7 +760,6 @@
                     data: {"pmid": pmid},
                     success: function(data)
                     {
-                        console.log(data);
                         $(document).trigger("add-alerts", [
                             {
                                 'message': "PubMed ID " + pmid + " successfully loaded",

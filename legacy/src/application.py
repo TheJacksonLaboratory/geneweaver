@@ -1221,13 +1221,49 @@ def get_ontology_terms(gsid):
             'reference_id': ont.reference_id, 
             'name': ont.name,
             'dbname': ontdbdict[ont.ontdb_id].name,
-            'ontdb_id': ont.ontdb_id
+            'ontdb_id': ont.ontdb_id,
+            'ont_id': ont.ontology_id
         }
 
         ontret.append(o)
 
     return ontret
 
+
+@app.route('/getGenesetAnnotations.json', methods=['GET'])
+@login_required(json=True)
+def get_geneset_annotations():
+    """
+    Returns a list of annotations for the given gene set.
+    """
+
+    args = flask.request.args
+
+    if 'gsid' not in args:
+        return flask.jsonify({'error': 'Missing gs_id'})
+
+    gsid = args['gsid']
+    annos = get_ontology_terms(gsid)
+
+    for an in annos:
+        ref_type = geneweaverdb.get_geneset_annotation_reference(
+            gsid, an['ont_id']
+        )
+
+        an['ref_type'] = ref_type
+
+    return flask.jsonify({'annotations': annos})
+
+
+@app.route('/ontologyTermSearch.json', methods=['GET'])
+@login_required(allow_guests=True, json=True)
+def search_ontology_terms():
+    """
+    Returns a list of ontology terms that match a given string typed in by the
+    user. Used for ontology term autocomplete on the edit gene set page.
+    """
+
+    return flask.jsonify({})
 
 @app.route('/initOntTree')
 def init_ont_tree():
