@@ -1295,7 +1295,9 @@ def search_ontology_terms():
             'label': '%s: %s (%s)' % (ref_id, name, ontdb_name),
             'value': '',
             'name': name,
-            'ont_id': ont['ont_id']
+            'ont_id': ont['ont_id'],
+            'ontdb_name': ontdb_name,
+            'ref_id': ref_id
         })
 
     return flask.jsonify({'terms': terms})

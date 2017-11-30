@@ -318,6 +318,12 @@
         <div style="margin-left: 1em;">
             <br />
 
+            <div>
+                Add new term:
+                <input id="add-annotation" name="add-annotation"
+                       type="text" />
+                (start typing to search ontologies)
+            </div>
             <table class="table table-hover" id="annotation-list">
                 <thead>
                     <tr class="header">
@@ -325,14 +331,6 @@
                         <th>Ontology ID</th>
                         <th>Association Source</th>
                         <th>Action</th>
-                    </tr>
-                    <tr>
-                        <th colspan="4">
-                            Add new term:
-                            <input id="add-annotation" name="add-annotation"
-                                   type="text" />
-                            (start typing to search ontologies)
-                        </th>
                     </tr>
                 </thead>
                 <tbody style="font-size:13px">
@@ -382,7 +380,7 @@
         var gsID = {{ geneset.geneset_id | safe }};
 
         // DataTable initialization for the list of gene set annotations
-        $('#annotation-list').DataTable({
+        var table = $('#annotation-list').DataTable({
             'paging': false,
             'searching': false,
             'info': false,
@@ -433,6 +431,28 @@
             }]
         });
 
+        // Change the way the autocomplete menu is rendered
+        $.widget('ui.autocomplete', $.ui.autocomplete, {
+            _renderItem: function(ul, item) {
+                var termlabel = item.ref_id + ': ' + item.name;
+                var ontology = item.ontdb_name;
+                
+                return $('<li style="list-style:none;font-size:11px;"></li>')
+                    //.data( "item.autocomplete", item )
+                    //.append( "<a>" + termlabel + "&nbsp;<span style=\"color:#0000ff;float:right;\">(" + ontology + ")</span></a>" )
+                    .append( "<a>")
+                    .append(termlabel) 
+                    .append("&nbsp;<span style=\"color:#0000ff;float:right;\">(" + ontology + ")</span></a>" )
+                    //.append( "<a>" + termlabel + "&nbsp;<span style=\"color:#0000ff;float:right;\">(" + ontology + ")</span></a>" )
+                    .appendTo( ul );
+
+            //return $('<li>')
+            //    .append(term)
+            //    .append(ontology)
+            //    .appendTo(ul);
+        }
+        });
+
         $('#add-annotation').on('keyup', function() {
 
             var value = $(this).val();
@@ -440,6 +460,7 @@
             if (value.length < 3)
                 return;
 
+            // Callback hell :(
             $.ajax({
                 url: '/ontologyTermSearch.json',
                 data: {search: value},
@@ -450,6 +471,7 @@
                     $('#add-annotation').autocomplete({
                         source: terms,
                         minLength: 3,
+                        // Custom function for handling selection events
                         select: function(event, ui) {
                             event.preventDefault();
 
@@ -467,7 +489,7 @@
                                         .reload();
                                 }
                             })
-                        }
+                        },
                     });
                 }
             });
