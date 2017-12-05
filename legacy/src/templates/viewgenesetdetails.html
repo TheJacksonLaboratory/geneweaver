@@ -287,7 +287,7 @@
                         },
                         "url": "/get_geneset_values",
                         "type": "GET",
-                        "data": {"gs_id": gs_id},
+                        "data": {"gs_id": gs_id, "gs_len": {{ totalGenes }}},
                     },
                     "drawCallback" : function(settings) {
                         /* once each page is done rendering, check for items in checkedArray object for
@@ -309,7 +309,8 @@
                         //override the processing indicator
                         $('#gene_processing').hide();
                         //dont show pagination if only one page
-                        if (Math.ceil((this.fnSettings().fnRecordsDisplay()) / this.fnSettings()._iDisplayLength) > 1) {
+                        var totalGenes = {{ totalGenes }};
+                        if ((totalGenes / this.fnSettings()._iDisplayLength) > 1) {
                             $('.pagination').css("display", "block");
                         } else { $('.pagination').css("display", "none"); }
                         $(".loader").fadeOut("slow");
