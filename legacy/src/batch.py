@@ -700,6 +700,17 @@ class BatchReader(object):
         """
         Checks to see whether or not the gene set values fall within the score
         threshold associated with the set.
+
+        arguments
+            ttype:      integer indicating the gene set threshold type
+            threshold:  value representing the threshold; depending on the
+                        threshold type this may be a single numeric value, or a
+                        list of two numeric values ([min, max])
+            value:      probably a string representing the gene value
+
+        returns
+            A boolean indicating whether or not the value falls within the
+            range specified by the threshold
         """
 
         value = float(value)
