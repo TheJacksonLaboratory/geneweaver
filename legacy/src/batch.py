@@ -113,6 +113,10 @@ class BatchReader(object):
         if 'at_id' not in self._parse_set:
             self._parse_set['at_id'] = None
 
+        if 'cur_id' not in self._parse_set:
+            self._parse_set['cur_id'] = 5
+            self._parse_set['gs_groups'] = '-1'
+
         self._parse_set['gs_name'] = ''
         self._parse_set['gs_description'] = ''
         self._parse_set['gs_abbreviation'] = ''
@@ -564,11 +568,12 @@ class BatchReader(object):
                 gs['ont_ids'].append(self._annotation_cache[anno])
 
             else:
-                #ont_id = db.get_annotation_by_ref(anno)
+                ## Will return a single element list, get rid of the list part
                 ont_id = gwdb.get_ontologies_by_refs([anno])
+                ont_id = ont_id[0]
 
                 if ont_id:
-                    gs['ont_ids'].append(ont_id[0])
+                    gs['ont_ids'].append(ont_id)
 
                     self._annotation_cache[anno] = ont_id
 
