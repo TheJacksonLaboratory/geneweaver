@@ -4688,13 +4688,11 @@ def insert_geneset_value(gs_id, gene_id, value, name, threshold):
         gene_id:    ode_gene_id
         value:      value associated with this gene
         name:       a gene name or symbol (typically an ode_ref_id)
-        threshold:  a threshold value for the gene set
+        threshold:  boolean indicating if the value is within the threshold
 
     returns
         the gs_id associated with this gene set value
     """
-
-    threshold = 't' if value <= threshold else 'f'
 
     with PooledCursor() as cursor:
 
