@@ -628,6 +628,16 @@
                 $(nodeSpan).attr('title', node.data.ref);
 			},
 
+            // Prevents the tree from fully expanding immediately after loading
+            // but still doesn't stop the damn page from automatically
+            // scrolling to the tree.
+            onPostInit: function(isReloading, isError) {
+
+                $("#tree").dynatree("getRoot").visit(function(n) {
+                    n.expand(false);
+                });
+            },
+
             // Updates the database based on the ontology terms a user selects.
             onSelect: termSelectionHandler
         });
