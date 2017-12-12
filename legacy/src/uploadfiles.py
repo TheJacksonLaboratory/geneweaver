@@ -195,7 +195,11 @@ def create_new_geneset_for_user(args, user_id):
     #       'values': gs_values_lower,
     #       'gs_threshold': 1}
 
-    gs_count = len(formData['file_text'][0].split('\n'))
+    gs_data = formData['file_text'][0].split('\n')
+    # look for a blank line at end of file data, remove last element if a match is made
+    if re.match(r'^\s*$', gs_data[-1]):
+        gs_data = gs_data[:len(gs_data) - 1]
+    gs_count = len(gs_data)
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
     gs_threshold_type = formData['gs_threshold_type'][0]
     gs_threshold = str('0.5')
