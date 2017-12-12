@@ -1065,6 +1065,121 @@
     function showSelectSpecies() {
         document.getElementById("select-species").style.display = "block";
     }
+
+    /**
+      * This function selects default tool options using the user's original
+      * run parameters. It iterates over the parameter object returned from the
+      * tool's output and selects the settings used to run the tool.
+      */
+	$(function() {
+        var parameters = {{ async_result.parameters | tojson }};
+
+        // The ABBA tool doesn't return tool settings like all the other tools,
+        // so we just set some of them up manually like this.
+        // Setup the species options.
+        if (parameters['ABBA_RestrictOption'] === '1') {
+
+            $("[name='ABBA_RestrictOption']").each(function() {
+
+                if ($(this).attr('value') === '1') {
+
+                    $(this).attr('checked', 'checked');
+                    $(this).siblings().removeClass('ui-radio-off');
+                    $(this).siblings().addClass('ui-radio-on');
+                } else {
+
+                    $(this).removeAttr('checked');
+                    $(this).siblings().removeClass('ui-radio-on');
+                    $(this).siblings().addClass('ui-radio-off');
+                }
+            });
+
+            showSelectSpecies();
+
+            $("[name='ABBA_RestrictSpecies']").each(function() {
+
+                var spValue = $(this).attr('value');
+
+                if (parameters['ABBA_RestrictSpecies'].includes(spValue)) {
+
+                    $(this).attr('checked', 'checked');
+                    $(this).siblings().removeClass('ui-checkbox-off');
+                    $(this).siblings().addClass('ui-checkbox-on');
+                } else {
+
+                    $(this).removeAttr('checked');
+                    $(this).siblings().removeClass('ui-checkbox-on');
+                    $(this).siblings().addClass('ui-checkbox-off');
+                }
+            });
+        }
+
+        for (param in parameters) {
+
+            // Grabs each HTML input element for this tool
+            $("[name='" + param + "']").each(function() {
+         
+                // Save the type of element e.g. input
+                var elemType = this.nodeName;
+
+                // Update settings for each tool option based on form 
+                // element type. Most are drop down selections.
+                if (elemType === 'SELECT') {
+
+                    $(this).children('option').attr('selected', function() {
+
+                            if ($(this).attr('label') === parameters[param])
+                                return 'selected';
+                            else
+                                return null;
+                    });
+                }
+
+                // Input types could be one of many things. The ABBA tool
+                // doesn't return settings like all the other tools, so we have to
+                // do weird things here.
+                if (elemType == 'INPUT') {
+
+                    if ($(this).attr('type') === 'checkbox' && 
+                        param === 'ABBA_Tierset') {
+
+                        // The tierset paramters are just a list of numbers, so
+                        // we have to match them up with the right input elements
+                        if (parameters[param].includes($(this).attr('value'))) {
+
+                            $(this).attr('checked', 'checked');
+                            $(this).siblings().removeClass('ui-checkbox-off');
+                            $(this).siblings().addClass('ui-checkbox-on');
+                        } else {
+
+                            $(this).removeAttr('checked');
+                            $(this).siblings().removeClass('ui-checkbox-on');
+                            $(this).siblings().addClass('ui-checkbox-off');
+                        }
+
+                    } else if (param === 'ABBA_RestrictOption' || 
+                               param === 'ABBA_RestrictSpecies') {
+                        // do nothing
+
+                    } else if ($(this).attr('type') == 'checkbox'){
+
+                        $(this).removeAttr('checked');
+                        
+                        if ($(this).attr('type') === 'radio') {
+
+                            $(this).siblings().removeClass('ui-radio-on');
+                            $(this).siblings().addClass('ui-radio-off');
+                        } else {
+
+                            $(this).siblings().removeClass('ui-checkbox-on');
+                            $(this).siblings().addClass('ui-checkbox-off');
+                        }
+                    }
+
+                }
+            });
+        }
+    });
 </script>
 
 

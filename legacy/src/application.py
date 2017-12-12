@@ -2082,6 +2082,7 @@ def get_geneset_genes():
 
     args = flask.request.args
     gs_id = args['gs_id']
+    total_records = int(args['gs_len'])
 
     if 'order[0][column]' in args:
         orderBy = int(args['order[0][column]'])
@@ -2101,8 +2102,8 @@ def get_geneset_genes():
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     gsvs = geneset.geneset_values
-    totalRecords = len(gsvs)
-    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
+    # not sure why you have to give datatables both of these as the same value, but that's what it wants...
+    gene_list = {'aaData': [], 'iTotalDisplayRecords': total_records, 'iTotalRecords': total_records}
 
     emphgenes = {}
     emphgeneids = []
