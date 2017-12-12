@@ -148,27 +148,24 @@
 
     <td>
 
-        {% if proj is defined %}
-
-            <span class="rExpand" data-placement="top" data-toggle="tooltip"
-							data-rel="tooltip" data-original-title="View More Information"
-							title="More Information" style="margin: 2px; padding: 0px 2px;">
-				<span id="onGenesetMinus_{{ gs.geneset_id }}" style="display: none; color: #808080;">
-                    <i class="fa fa-minus"></i></span>
-				<span id="offGenesetPlus_{{ gs.geneset_id }}" style="color: #808080;">
-                    <i class="fa fa-plus"></i></span>
+            <span class="rowExpand" 
+            {% if proj is defined %}
+                  data-placement="top" data-toggle="tooltip"
+				  data-rel="tooltip" 
+                  data-original-title="View More Information"
+				  title="More Information" 
+            {% endif %}
+                  style="margin: 2px; padding: 0px 2px;">
+                <span id="onGenesetMinus_{{ gs.geneset_id }}" 
+                      style="display: none; color: #808080;">
+                    <i class="fa fa-minus"></i>
+                </span>
+				<span id="offGenesetPlus_{{ gs.geneset_id }}" 
+                      style="color: #808080;">
+                    <i class="fa fa-plus"></i>
+                </span>
 			</span>
 
-        {% else %}
-
-            <span class="rowExpand">
-				<span id="onGenesetChevron_{{ gs.geneset_id }}" style="display: none; color: #808080;">
-                    <i class="fa fa-minus"></i></span>
-				<span id="offGenesetChevron_{{ gs.geneset_id }}" style="color: #808080;">
-                    <i class="fa fa-plus"></i></span>
-			</span>
-
-        {% endif %}
     </td>
 
 </tr>
@@ -177,7 +174,7 @@
 <tr id="genesetdetails_{{ gs.geneset_id }}" style="display: none;">
     <td colspan="100%">
 
-        <table class="table table-hover table-striped" id="nestedTable">
+        <table class="table table-hover table-striped">
 
             <tr>
                 <th style="width: 25%;">Figure Label:</th>
@@ -186,13 +183,19 @@
 
             <tr>
                 <th>Description:</th>
-                <td>{{ gs.description }}</td>
+                <td id="desc_{{gs.geneset_id}}">
+                    {{ gs.description }}
+                </td>
             </tr>
 
             <!-- TODO account for null authors, get Publication info -->
             <tr>
                 <th>Authors:</th>
-                <td><i>{% if gs.publication is defined and gs.publication.authors is defined %} {{ gs.publication.authors }} {% else %}None{% endif %}</i></td>
+                <td><i>
+                    {% if gs.publication is defined and gs.publication.authors is defined %} 
+                        {{ gs.publication.authors }} 
+                    {% else %}None{% endif %}
+                </i></td>
             </tr>
 
         </table>
@@ -316,36 +319,47 @@
 
     $(document).ready(function () {
 
-        $(".rowExpand").on('click', function () {
+        /**
+          * Handles the expansion of the element containing GeneSet 
+          * metacontent on the search, projects, and analyze pages.
+          * When the '+' icon next to a set is clicked, this function is called
+          * and reveals the metacontent and updates the +/- icons. 
+          */
+        $(".rowExpand").on('click', function (event) {
+
+            event.stopImmediatePropagation();
 
             var childId = $(this).parents("tr").prop("id");
-            var hidden = $("#genesetdetails_" + childId).is(":visible");
+
+            // So for some reason this class is added to the 
+            // <td colspan="100%"> element that's part of the GS metacontent
+            // row. BUT, this only happens on the search page. It's what is
+            // causing the text/content to overflow out of the search results
+            // borders. Idk why it's getting added so this doesn't solve the 
+            // root of the problem but fixes the overflow bug.
+            $("#genesetdetails_" + childId)
+                .children('td')
+                .removeClass('force-table-responsive');
+
+            var visible = $("#genesetdetails_" + childId).is(":visible");
+
             $("#genesetdetails_" + childId).toggle();
-            if (hidden) {
-                $("#onGenesetChevron_" + childId).toggle();
-                $("#offGenesetChevron_" + childId).toggle();
-            }
-            else {
-                $("#offGenesetChevron_" + childId).toggle();
-                $("#onGenesetChevron_" + childId).toggle();
+			$("#offGenesetPlus_" + childId).toggle();
+			$("#onGenesetMinus_" + childId).toggle();
+
+            if (!visible) {
+
+                $('#offGenesetPlus_' + childId)
+                    .parent()
+                    .attr('data-original-title', 'Less Information');
+                        
+            } else {
+
+                $('#offGenesetPlus_' + childId)
+                    .parent()
+                    .attr('data-original-title', 'More Information');
             }
         });
-
-        $(".rExpand").on('click', function (event) {
-
-			// Because this page is injected into analyze.html, this script 
-			// will get written to that page multiple times, resulting in
-			// multiple click handlers. We must stop propagation of additional
-			// events otherwise bad things happen.
-			event.stopImmediatePropagation();
-
-            var child = $(this).parents("tr").prop("id");
-
-			$("#genesetdetails_" + child).toggle();
-			$("#offGenesetPlus_" + child).toggle();
-			$("#onGenesetMinus_" + child).toggle();
-        });
-
     });
 
     //Wanted to display the number of checked boxes. Not playing nicely with select all from project

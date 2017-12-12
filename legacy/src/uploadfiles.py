@@ -202,16 +202,30 @@ def create_new_geneset_for_user(args, user_id):
     gs_status = 'normal'
     gs_uri = str('')
     gs_attribution = 1
-    gene_data = process_gene_list(formData['file_text'][0].strip('\r'))
+
+    # This line removes non-ascii characters which seem to break the process_gene_list function
+    ascii_gene_list = ''.join([i if ord(i) < 128 else ' ' for i in formData['file_text'][0].strip('\r')])
+    gene_data = process_gene_list(ascii_gene_list)
 
     try:
         with PooledCursor() as cursor:
             cursor.execute('''SELECT production.create_geneset2(%s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s)''', (user_id, cur_id, formData['sp_id'][0], gs_threshold_type, gs_threshold,
-                                         gs_groups, gs_status, gs_count, gs_uri, gene_identifier,
-                                         formData['gs_name'][0], formData['gs_abbreviation'][0],
-                                         formData['gs_description'][0], gs_attribution,
-                                         gene_data,))
+            %s, %s, %s, %s, %s, %s)''', (int(user_id),
+                                         int(cur_id),
+                                         int(formData['sp_id'][0]),
+                                         int(gs_threshold_type),
+                                         str(gs_threshold),
+                                         str(gs_groups),
+                                         str(gs_status),
+                                         int(gs_count),
+                                         str(gs_uri),
+                                         int(gene_identifier),
+                                         str(formData['gs_name'][0]),
+                                         str(formData['gs_abbreviation'][0]),
+                                         str(formData['gs_description'][0]),
+                                         int(gs_attribution),
+                                         str(gene_data)
+                                         ))
             gs_id = cursor.fetchone()[0]
             cursor.connection.commit()
             print 'gs_id inserted as: ' + str(gs_id)
@@ -230,7 +244,9 @@ def create_new_geneset_for_user(args, user_id):
         if cursor.fetchone()[0] < 1:
             cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
-            error_string = 'No Genes in your GeneSet could be uploaded. Please check the Identifier type and Species'
+            error_string = ('No Genes in your GeneSet could be uploaded. '
+                            'Please check the Identifier type and Species, '
+                            ' and that your genes exist and are valid.')
             return{'error': error_string}
 
 
