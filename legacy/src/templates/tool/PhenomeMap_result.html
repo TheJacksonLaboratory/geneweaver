@@ -215,6 +215,26 @@
                     <div id="search"></div>
                 </div>
             </div>
+				<div class="row">
+					<div class="col-md-3">
+						<p style="font-size:13px; font-weight:400;">
+							<b>Visualization Type:</b>
+						</p>
+					</div>
+					<div class="col-md-6">
+						<form role="form" method="post">
+							<select id="visualizationType" name="visualizationType">
+                                <option label="classic" value="classic">
+                                    Classic HiSim
+                                </option>
+                                <option label="modern" value="modern"
+                                        selected="selected">
+                                    Modern HiSim
+                                </option>
+							</select>
+						</form>
+					</div>
+				</div>
 
             <br />
 
@@ -324,16 +344,17 @@
 	they fail. Checks to see if the results have a key, 'failed', which
 	contains the error message for the failure.
 #}
-{#{% if not async_result.failed %}
-<div id="PhenomeMap_cyt" style="position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
+{% if not async_result.failed %}
+<div id="PhenomeMap_cyt" 
+     style="display:hidden; position: relative; margin: 10px auto; height: 600px; width: 95%; border-style: solid;">
     <br/>
     <br/>
     Loading Hierarchical Similarity Graph...<br/>
     <br/>
     <br/>
-</div>
 <a href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.pdf') }}">Export Graph as a PDF</a> |
 <a target="_blank" href="{{ url_for('static_results', filename=async_result.parameters.output_prefix + '.svg') }}">Open in Static View</a>
+</div>
 
 {% else %}
 	<div class="panel-body bg-red p-15" style="text-align:center">
@@ -343,7 +364,7 @@
 		</strong>
 	</div>
 {% endif %}
-#}
+{##}
 
 
 <div id="viz2">
@@ -431,8 +452,12 @@
 <script type="text/javascript" src="../../static/tools/PhenomeMap.js"></script>
 <script>
 	$(function() {
+        // Initially hide the classic HiSim display
+        $('#PhenomeMap_cyt').hide();
+
 		var graphData = {{data | safe}};
 		var graphStats = {{async_result | tojson}};
+        console.log(graphStats);
 
 		doThings(graphData);
 		loadStats(graphStats);
@@ -479,6 +504,94 @@
 
         });
 
+        /**
+          * Allows the user to select between classic and modern HiSim
+          * displays.
+          */
+        $("select#visualizationType").change(function(event){
+
+            if (event.target.value === 'classic') {
+
+                $('#viz2').hide();
+                $('#PhenomeMap_cyt').show();
+
+            } else {
+
+                $('#PhenomeMap_cyt').hide();
+                $('#viz2').show();
+            }
+        });
+
 	});
+    
+    /**
+      * This function selects default tool options using the user's original
+      * run parameters. It iterates over the parameter object returned from the
+      * tool's output and selects the settings used to run the tool.
+      */
+	$(function() {
+        var parameters = {{ async_result.parameters | tojson }};
+
+        for (param in parameters) {
+
+            // Grabs each HTML input element for this tool
+            $("[name='" + param + "']").each(function() {
+         
+                // Save the type of element e.g. input
+                var elemType = this.nodeName;
+
+                // Update settings for each tool option based on form 
+                // element type. Most are drop down selections.
+                if (elemType === 'SELECT') {
+
+                    $(this).children('option').attr('selected', function() {
+
+                            if ($(this).attr('label') === parameters[param])
+                                return 'selected';
+                            else
+                                return null;
+                    });
+                }
+
+                // Input types could be one of many things.
+                if (elemType == 'INPUT') {
+
+                    // Maybe it's a radio button or checkbox, both of which
+                    // use the same type of default selection attribute
+                    if ($(this).attr('type') === 'radio') {
+
+                        if ($(this).attr('value') === parameters[param]) {
+
+                            $(this).attr('checked', 'checked');
+                            // The styling for this stupid element is in a
+                            // neighboring node
+                            $(this).siblings().removeClass('ui-radio-off');
+                            $(this).siblings().addClass('ui-radio-on');
+
+                        } else {
+
+                            $(this).removeAttr('checked');
+                            
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-on');
+                                $(this).siblings().addClass('ui-radio-off');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-on');
+                                $(this).siblings().addClass('ui-checkbox-off');
+                            }
+                        }
+                    }
+                }
+
+            });
+        }
+    });
 </script>
+
+<!-- Old HiSim dependencies -->
+<script type="text/javascript" src="../../static/js/cytoscape/AC_OETags.min.js"></script>
+<script type="text/javascript" src="../../static/js/cytoscape/cytoscapeweb.min.js"></script>
+<script type="text/javascript" src="../../static/js/cytoscape/PhenomeMap.js"></script>
 

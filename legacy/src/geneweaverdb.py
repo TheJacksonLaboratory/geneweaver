@@ -486,51 +486,81 @@ def edit_group_name(group_name, group_id, group_private, user_id):
         return {'error': 'User does not have permission'}
 
 
-# adds a user to the group specified.
-# permission should be passed as 0 if it is a normal user
-# permission should be passed as 1 if it is an admin
-# permission is defaulted to 0
 def add_user_to_group(group_id, owner_id, usr_email, permission=0):
+    """
+    Adds a user to a group.
+
+    args
+        group_id:   the grp_id of the group the user is being added to
+        owner_id:   the usr_id of the user that owns the group
+        usr_email:  the email of the user being added to the group
+        permission: flag indicating whether or not the user being added is an
+                    admin. For normal users permission == 0, admins it is == 1.
+
+    returns
+        a dict containing a single field, 'error' that indicates if any errors
+        were encountered while adding the user to the group.
+    """
+
+    usr_email = str(usr_email).lower()
+    email_from_db = ''
+
     with PooledCursor() as cursor:
-        # convert email to lower
-        usr_email = str(usr_email).lower()
-        print usr_email
-        cursor.execute('''SELECT usr_email FROM usr WHERE LOWER(usr_email)=%s''', (usr_email,))
+
+        cursor.execute(
+            '''
+            SELECT  usr_email 
+            FROM    usr 
+            WHERE   LOWER(usr_email) = %s
+            ''', 
+                (usr_email,)
+        )
+
         if cursor.rowcount == 0:
             return {'error': 'No User'}
         else:
-            email_from_db = list(dictify_cursor(cursor))[0]['usr_email']
-            # First check if user is already in group
-            cursor.execute('''SELECT u.usr_id FROM usr u, usr2grp ug WHERE LOWER(u.usr_email)=%s and u.usr_id = ug.usr_id''', (usr_email,))
-            if cursor.rowcount > 0:
-                return {'error': 'Already belongs to group'}
-            else:
-                cursor.execute(
-                        '''
-                    INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
-                    VALUES ((SELECT grp_id
-                             FROM production.usr2grp
-                             WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
-                            (SELECT usr_id
-                             FROM production.usr
-                             WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
-                    RETURNING grp_id;
-                    ''',
-                        (group_id, owner_id, usr_email, permission,)
-                )
-                cursor.connection.commit()
-                # return the primary ID for the insert that we just performed
-                # grp_id = cursor.fetchone()[0]
+            email_from_db = cursor.fetchone()[0]
+        
+        cursor.execute(
+            '''
+            SELECT  u.usr_id 
+            FROM    usr u, usr2grp ug 
+            WHERE   LOWER(u.usr_email) = %s AND 
+                    u.usr_id = ug.usr_id AND
+                    ug.grp_id = %s;
+            ''', (usr_email, group_id)
+        )
 
-                #send user a notification that they have been added to the group
+        if cursor.rowcount > 0:
+            return {'error': 'Already belongs to group'}
 
-                group_name = get_group_name(group_id)
-                owner = get_user(owner_id)
-                owner_name = owner.first_name + " " + owner.last_name
-                notifications.send_usr_notification(email_from_db, "Added to Group",
-                                                    "You have been added to the group {} by {}".format(group_name, owner_name),
-                                                    True)
-                return {'error': 'None'}
+        cursor.execute(
+            '''
+            INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
+            VALUES ((SELECT grp_id
+                     FROM production.usr2grp
+                     WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
+                    (SELECT usr_id
+                     FROM production.usr
+                     WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
+            RETURNING grp_id;
+            ''',
+                (group_id, owner_id, usr_email, permission,)
+        )
+
+        cursor.connection.commit()
+
+        group_name = get_group_name(group_id)
+        owner = get_user(owner_id)
+        owner_name = owner.first_name + " " + owner.last_name
+        notifications.send_usr_notification(
+            email_from_db, 
+            "Added to Group",
+            "You have been added to the group {} by {}".format(group_name, owner_name),
+            True
+        )
+
+        return {'error': 'None'}
 
 
 def remove_user_from_group(group_name, owner_id, usr_email):
@@ -3152,16 +3182,23 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
 
     with PooledCursor() as cursor:
         cursor.execute(
-            '''
-            SELECT g.*, gj.jac_value, gj.gic_value
-            FROM   geneset AS g, geneset_jaccard AS gj
-            WHERE  ((gj.gs_id_right = %(geneset_id)s AND g.gs_id = gj.gs_id_left) OR
-                   (gj.gs_id_left = %(geneset_id)s AND g.gs_id = gj.gs_id_right)) AND
-                   geneset_is_readable2(%(user_id)s, g.gs_id) AND
-                   gs_status NOT LIKE 'de%%'
-            ORDER BY ''' + order_by + ''' gj.jac_value DESC
-            LIMIT  150;
-            ''',
+            '''SELECT a.* FROM (
+                   (SELECT geneset.*,jac_value,gic_value 
+                       FROM geneset, geneset_jaccard gj
+                       WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s 
+                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                         AND gs_status NOT LIKE 'de%%' 
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                     ) 
+                     UNION
+                   (SELECT geneset.*,jac_value,gic_value 
+                       FROM geneset, geneset_jaccard gj 
+                       WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s 
+                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                         AND gs_status NOT LIKE 'de%%' 
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                     ) 
+                 ) AS a LIMIT 150''',
             {
                 'geneset_id': geneset_id,
                 'user_id': user_id,
@@ -3855,9 +3892,12 @@ def get_geneset_values(geneset_id):
         elif session['sort'] == 'alt':
             s = ' ORDER BY g.ode_ref_id ' + d
 
-    ode_ref = '1'
+    sp_id = get_sp_id_by_gsid(geneset_id)[0]['sp_id']
+
+    ode_ref = '7'
     if 'extsrc' in session:
         ode_ref = session['extsrc']
+
 
     with PooledCursor() as cursor:
         cursor.execute('''
@@ -3867,24 +3907,67 @@ def get_geneset_values(geneset_id):
             FROM geneset_value AS gsv
             LEFT OUTER JOIN homology AS h
             ON gsv.ode_gene_id = h.ode_gene_id
+            INNER JOIN homology AS h2
+            ON h.hom_id = h2.hom_id
             INNER JOIN gene_info AS gi
             ON gsv.ode_gene_id = gi.ode_gene_id
             INNER JOIN gene AS g
-            ON gsv.ode_gene_id = g.ode_gene_id
-            WHERE gsv.gs_id = %s ''' + search + ''' AND
+            -- ON gsv.ode_gene_id = g.ode_gene_id
+            ON h2.ode_gene_id = g.ode_gene_id
+            WHERE gsv.gs_id =%s ''' + search + ''' AND
+                  -- This section was added to enhance the coalesce section below. It will not return symbols where
+                  -- there are no available gdb_id, but it will return values from other species. Additional changes
+                  -- include the homology h2 join and the h2.ode_gene_id join instead of the gsv.ode_gene_id
+              g.gdb_id = (SELECT COALESCE (
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+                  ))
+                  
+                  AND CASE WHEN (SELECT sp_id FROM genedb WHERE gdb_id = %s) = 0
+                                        THEN h2.sp_id = %s
+                                        ELSE h2.sp_id = (SELECT sp_id FROM genedb WHERE gdb_id = %s)
+                                        END
                   -- This checks to see if the alternate symbol the user wants to view actually exists
                   -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
                   -- returned then there would be missing genes on the view geneset page.
-                  g.gdb_id = (SELECT COALESCE (
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
-                  ))
+--                   g.gdb_id = (SELECT COALESCE (
+--                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 10 LIMIT 1),
+--                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+--                   ))
                   AND
                   -- When viewing symbols, always pick the preferred gene symbol
                   CASE WHEN g.gdb_id = 7
                   THEN g.ode_pref = 't'
                   ELSE true
-                  END''' + s + limit, (geneset_id, ode_ref))
+                  END''' + s + limit, (geneset_id, ode_ref, ode_ref, sp_id, ode_ref,))
+
+
+
+
+            # SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
+            #        gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
+            #        gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
+            # FROM geneset_value AS gsv
+            # LEFT OUTER JOIN homology AS h
+            # ON gsv.ode_gene_id = h.ode_gene_id
+            # INNER JOIN gene_info AS gi
+            # ON gsv.ode_gene_id = gi.ode_gene_id
+            # INNER JOIN gene AS g
+            # ON gsv.ode_gene_id = g.ode_gene_id
+            # WHERE gsv.gs_id = %s ''' + search + ''' AND
+            #       -- This checks to see if the alternate symbol the user wants to view actually exists
+            #       -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
+            #       -- returned then there would be missing genes on the view geneset page.
+            #       g.gdb_id = (SELECT COALESCE (
+            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+            #       ))
+            #       AND
+            #       -- When viewing symbols, always pick the preferred gene symbol
+            #       CASE WHEN g.gdb_id = 7
+            #       THEN g.ode_pref = 't'
+            #       ELSE true
+            #       END''' + s + limit, (geneset_id, ode_ref))
 
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
@@ -4049,6 +4132,29 @@ def get_sp_id():
         cursor.execute('''SELECT sp_id FROM species WHERE sp_id > 0 ORDER BY sp_id ASC;''')
         sp_id = list(dictify_cursor(cursor))
     return sp_id
+
+def get_sp_id_by_gsid(gs_id):
+    """
+    Returns the sp_id associated with a geneset
+    :param gs_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM geneset WHERE gs_id=%s;''', (gs_id,))
+        sp_id = list(dictify_cursor(cursor))
+    return sp_id
+
+
+def get_gdb_sp(ode_ref):
+    """
+    Returns the sp_id associated with a geneset
+    :param gs_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM genedb WHERE gdb_id=%s;''', (ode_ref,))
+        gdb_sp = list(dictify_cursor(cursor))
+    return gdb_sp
 
 
 def export_results_by_gs_id(gs_id):

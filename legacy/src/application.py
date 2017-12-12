@@ -2082,6 +2082,7 @@ def get_geneset_genes():
 
     args = flask.request.args
     gs_id = args['gs_id']
+    total_records = int(args['gs_len'])
 
     if 'order[0][column]' in args:
         orderBy = int(args['order[0][column]'])
@@ -2101,8 +2102,8 @@ def get_geneset_genes():
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     gsvs = geneset.geneset_values
-    totalRecords = len(gsvs)
-    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
+    # not sure why you have to give datatables both of these as the same value, but that's what it wants...
+    gene_list = {'aaData': [], 'iTotalDisplayRecords': total_records, 'iTotalRecords': total_records}
 
     emphgenes = {}
     emphgeneids = []
@@ -2110,6 +2111,31 @@ def get_geneset_genes():
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(row['ode_gene_id'])
+
+    ## Force linkouts to use gene symbols rather than whatever identifier is
+    ## currently present on the page. First get the gene type list.
+    genetypes = geneweaverdb.get_gene_id_types()
+    genedict = {}
+
+    for gtype in genetypes:
+        genedict[gtype['gdb_name']] = gtype['gdb_id']
+
+    ## The get_geneset_values function requires a session variable (should be
+    ## be updated so this is no longer necessary)
+    if 'extsrc' not in session:
+        alt_gene_id = genedict['Gene Symbol']
+    else:
+        alt_gene_id = session['extsrc']
+
+    session['extsrc'] = genedict['Gene Symbol']
+
+    ## Retrieves the set with symbol identifiers
+    gs = geneweaverdb.get_geneset(gs_id, user_id)
+    symbols = []
+    session['extsrc'] = alt_gene_id
+
+    for gsv in gs.geneset_values:
+        symbols.append(gsv.ode_ref)
 
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
@@ -2136,6 +2162,12 @@ def get_geneset_genes():
             gene.append('Off')
         #'add genes to geneset' checkbox - handled in DOM on page
         gene.append('Null')
+        ## Add the symbol to the list for the linkouts
+        if i < len(symbols):
+            gene.append(symbols[i])
+        else:
+            gene.append(str(gsvs[i].ode_ref))
+
         gene_list['aaData'].append(gene)
 
     return flask.jsonify(gene_list)
