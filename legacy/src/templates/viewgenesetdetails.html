@@ -122,7 +122,12 @@
                     <tbody>
                     <thead>
                     <tr>
-                        <th><i class="fa fa-sort"></i> Default</th>
+                        <th>
+                            <i class="fa fa-sort"></i> Uploaded As
+                            <span id="defaultIdHelp" tabindex="0" data-trigger="focus">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </th>
                         <th>
 							    <span class="dropdown">
 								<span id="clickableGeneSymbol"
@@ -239,6 +244,20 @@
                 html: 'true'
         });
 
+        $('#defaultIdHelp').popover({
+                title: 'Original Gene Identifiers', 
+                content: 'The symbols in this column represent the original ' +
+                         'identifiers used when uploading this GeneSet. ' +
+                         'This set was uploaded using "{{uploaded_as}}" ' +
+                         'identifiers.'
+        });
+
+        // Stops the column from sorting when a user clicks the info icon.
+        $('#defaultIdHelp').on('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+
         $('#export').on('click', function (e) {
            $('#selectExportType').modal('show');
         });
@@ -302,8 +321,6 @@
                                 }
                             }
                         }
-                        //reset the second column header
-                        $('#altSymbolHeader').html('Gene Symbol');
                         //register homology tooltips
                         $("[data-toggle='tooltip']").tooltip();
                         //override the processing indicator
@@ -379,18 +396,18 @@
 
             function gen_linkouts(nTd, sData, oData, iRow, iCol) {
                         $(nTd).empty();
-                        $(nTd).append('<a target="_blank" href="http://www.ncbi.nlm.nih.gov/gene/?term=' + oData[2] + '"> \
+                        $(nTd).append('<a target="_blank" href="http://www.ncbi.nlm.nih.gov/gene/?term=' + oData[9] + '"> \
                         <img src="/static/images/linkouts/entrez.png" title="Entrez"></a> \
-                        <a target="_blank" href="http://www.ensembl.org/Gene/Summary?g=' + oData[2] + '"> \
+                        <a target="_blank" href="http://www.ensembl.org/Gene/Summary?g=' + oData[9] + '"> \
                         <img src="/static/images/linkouts/ensembl.png" title="Ensembl"></a> &nbsp; \
-                        <a target="_blank" href="http://www.genenetwork.org/webqtl/WebQTL.py?cmd=search&amp;gene=' + oData[2] + '"> \
+                        <a target="_blank" href="http://www.genenetwork.org/webqtl/WebQTL.py?cmd=search&amp;gene=' + oData[9] + '"> \
                         <img src="/static/images/linkouts/genenetwork.png" title="Gene Network"></a> &nbsp; \
                         <a target="_blank" href="http://string.embl.de/newstring_cgi/show_network_section.pl? \
-                        input_query_species=auto_detect&amp;network_flavor=confidence&amp;identifier=' + oData[2] + '"> \
+                        input_query_species=auto_detect&amp;network_flavor=confidence&amp;identifier=' + oData[9] + '"> \
                         <img src="/static/images/linkouts/string.png" title="String"></a> &nbsp; \
-                        <a target="_blank" href="http://mouse.brain-map.org/search/show?search_term=' + oData[2] + '"> \
+                        <a target="_blank" href="http://mouse.brain-map.org/search/show?search_term=' + oData[9] + '"> \
                         <img src="/static/images/linkouts/allen brain atlas.png" title="Allen Brain Atlas"></a> &nbsp; \
-                        <a target="_blank" href="http://ctdbase.org/basicQuery.go?bqCat=gene&amp;bq=' + oData[2] + '"> \
+                        <a target="_blank" href="http://ctdbase.org/basicQuery.go?bqCat=gene&amp;bq=' + oData[9] + '"> \
                         <img src="/static/images/linkouts/comparative toxicogenomics database.png" \
                         title="Comparative Toxicogenomics Database"></a> &nbsp;');
                     }

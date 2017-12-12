@@ -1221,12 +1221,86 @@ def get_ontology_terms(gsid):
             'reference_id': ont.reference_id, 
             'name': ont.name,
             'dbname': ontdbdict[ont.ontdb_id].name,
-            'ontdb_id': ont.ontdb_id
+            'ontdb_id': ont.ontdb_id,
+            'ont_id': ont.ontology_id
         }
 
         ontret.append(o)
 
     return ontret
+
+
+@app.route('/getGenesetAnnotations.json', methods=['GET'])
+@login_required(json=True)
+def get_geneset_annotations():
+    """
+    Returns a list of terms that have been annotated to the given gene set.
+
+    args
+        request.args['gs_id']: gene set ID to use when retrieving annotations
+
+    returns
+        a list of JSON serialized annotation objects with the following fields:
+
+        {
+            reference_id: the external identifier for the term (e.g. GO:123456)
+            name:         the ontology term name (e.g. death)
+            dbname:       ontology this term comes from (e.g. GO)
+            ontdb_id:     internal GW identifier for the ontology
+            ont_id:       internal GW identifier for this term
+            ref_type:     the type of association that produced this annotation
+        }
+    """
+
+    args = flask.request.args
+
+    if 'gsid' not in args:
+        return flask.jsonify({'error': 'Missing gs_id'})
+
+    gsid = args['gsid']
+    annos = get_ontology_terms(gsid)
+
+    for an in annos:
+        ref_type = geneweaverdb.get_geneset_annotation_reference(
+            gsid, an['ont_id']
+        )
+
+        an['ref_type'] = ref_type
+
+    return flask.jsonify({'annotations': annos})
+
+
+@app.route('/ontologyTermSearch.json', methods=['GET'])
+@login_required(allow_guests=True, json=True)
+def search_ontology_terms():
+    """
+    Returns a list of ontology terms that match a given string typed in by the
+    user. Used for ontology term autocomplete on the edit gene set page.
+    """
+
+    args = flask.request.args
+
+    if 'search' not in args:
+        return flask.json({'error': 'No search text provided', 'terms': []})
+
+    search = args['search']
+    terms = []
+
+    for ont in geneweaverdb.search_ontology_terms(search):
+        ref_id = ont['ont_ref_id']
+        name = ont['ont_name']
+        ontdb_name = ont['ontdb_name']
+
+        terms.append({
+            'label': '%s: %s (%s)' % (ref_id, name, ontdb_name),
+            'value': '',
+            'name': name,
+            'ont_id': ont['ont_id'],
+            'ontdb_name': ontdb_name,
+            'ref_id': ref_id
+        })
+
+    return flask.jsonify({'terms': terms})
 
 
 @app.route('/initOntTree')
@@ -2112,6 +2186,31 @@ def get_geneset_genes():
     for row in emphgenes:
         emphgeneids.append(row['ode_gene_id'])
 
+    ## Force linkouts to use gene symbols rather than whatever identifier is
+    ## currently present on the page. First get the gene type list.
+    genetypes = geneweaverdb.get_gene_id_types()
+    genedict = {}
+
+    for gtype in genetypes:
+        genedict[gtype['gdb_name']] = gtype['gdb_id']
+
+    ## The get_geneset_values function requires a session variable (should be
+    ## be updated so this is no longer necessary)
+    if 'extsrc' not in session:
+        alt_gene_id = genedict['Gene Symbol']
+    else:
+        alt_gene_id = session['extsrc']
+
+    session['extsrc'] = genedict['Gene Symbol']
+
+    ## Retrieves the set with symbol identifiers
+    gs = geneweaverdb.get_geneset(gs_id, user_id)
+    symbols = []
+    session['extsrc'] = alt_gene_id
+
+    for gsv in gs.geneset_values:
+        symbols.append(gsv.ode_ref)
+
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
         gene_id = gsvs[i].ode_gene_id
@@ -2137,6 +2236,12 @@ def get_geneset_genes():
             gene.append('Off')
         #'add genes to geneset' checkbox - handled in DOM on page
         gene.append('Null')
+        ## Add the symbol to the list for the linkouts
+        if i < len(symbols):
+            gene.append(symbols[i])
+        else:
+            gene.append(str(gsvs[i].ode_ref))
+
         gene_list['aaData'].append(gene)
 
     return flask.jsonify(gene_list)
@@ -2193,6 +2298,18 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     for gtype in genetypes:
         genedict[gtype['gdb_id']] = gtype['gdb_name']
         genedict[gtype['gdb_name']] = gtype['gdb_id']
+
+    uploaded_as = 'Gene Symbol'
+    gene_type = abs(geneset.gene_id_type)
+
+    ## Get the original identifier type used during the upload of this gene
+    ## set. Normal identifiers are negative, expression platforms are positive.
+    if geneset.gene_id_type < 0:
+        uploaded_as = genedict[gene_type]
+    else:
+        for plat in geneweaverdb.get_microarray_types():
+            if plat['pf_id'] == gene_type:
+                uploaded_as = plat['pf_name']
 
     show_gene_list = True
     # get value for the alt-gene-id column
@@ -2286,7 +2403,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curation_assignment=curation_assignment,
         curator_info=curator_info,
         show_gene_list=show_gene_list,
-        totalGenes=numgenes
+        totalGenes=numgenes,
+        uploaded_as=uploaded_as
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])

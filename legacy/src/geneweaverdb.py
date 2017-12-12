@@ -486,51 +486,81 @@ def edit_group_name(group_name, group_id, group_private, user_id):
         return {'error': 'User does not have permission'}
 
 
-# adds a user to the group specified.
-# permission should be passed as 0 if it is a normal user
-# permission should be passed as 1 if it is an admin
-# permission is defaulted to 0
 def add_user_to_group(group_id, owner_id, usr_email, permission=0):
+    """
+    Adds a user to a group.
+
+    args
+        group_id:   the grp_id of the group the user is being added to
+        owner_id:   the usr_id of the user that owns the group
+        usr_email:  the email of the user being added to the group
+        permission: flag indicating whether or not the user being added is an
+                    admin. For normal users permission == 0, admins it is == 1.
+
+    returns
+        a dict containing a single field, 'error' that indicates if any errors
+        were encountered while adding the user to the group.
+    """
+
+    usr_email = str(usr_email).lower()
+    email_from_db = ''
+
     with PooledCursor() as cursor:
-        # convert email to lower
-        usr_email = str(usr_email).lower()
-        print usr_email
-        cursor.execute('''SELECT usr_email FROM usr WHERE LOWER(usr_email)=%s''', (usr_email,))
+
+        cursor.execute(
+            '''
+            SELECT  usr_email 
+            FROM    usr 
+            WHERE   LOWER(usr_email) = %s
+            ''', 
+                (usr_email,)
+        )
+
         if cursor.rowcount == 0:
             return {'error': 'No User'}
         else:
-            email_from_db = list(dictify_cursor(cursor))[0]['usr_email']
-            # First check if user is already in group
-            cursor.execute('''SELECT u.usr_id FROM usr u, usr2grp ug WHERE LOWER(u.usr_email)=%s and u.usr_id = ug.usr_id''', (usr_email,))
-            if cursor.rowcount > 0:
-                return {'error': 'Already belongs to group'}
-            else:
-                cursor.execute(
-                        '''
-                    INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
-                    VALUES ((SELECT grp_id
-                             FROM production.usr2grp
-                             WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
-                            (SELECT usr_id
-                             FROM production.usr
-                             WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
-                    RETURNING grp_id;
-                    ''',
-                        (group_id, owner_id, usr_email, permission,)
-                )
-                cursor.connection.commit()
-                # return the primary ID for the insert that we just performed
-                # grp_id = cursor.fetchone()[0]
+            email_from_db = cursor.fetchone()[0]
+        
+        cursor.execute(
+            '''
+            SELECT  u.usr_id 
+            FROM    usr u, usr2grp ug 
+            WHERE   LOWER(u.usr_email) = %s AND 
+                    u.usr_id = ug.usr_id AND
+                    ug.grp_id = %s;
+            ''', (usr_email, group_id)
+        )
 
-                #send user a notification that they have been added to the group
+        if cursor.rowcount > 0:
+            return {'error': 'Already belongs to group'}
 
-                group_name = get_group_name(group_id)
-                owner = get_user(owner_id)
-                owner_name = owner.first_name + " " + owner.last_name
-                notifications.send_usr_notification(email_from_db, "Added to Group",
-                                                    "You have been added to the group {} by {}".format(group_name, owner_name),
-                                                    True)
-                return {'error': 'None'}
+        cursor.execute(
+            '''
+            INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
+            VALUES ((SELECT grp_id
+                     FROM production.usr2grp
+                     WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
+                    (SELECT usr_id
+                     FROM production.usr
+                     WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
+            RETURNING grp_id;
+            ''',
+                (group_id, owner_id, usr_email, permission,)
+        )
+
+        cursor.connection.commit()
+
+        group_name = get_group_name(group_id)
+        owner = get_user(owner_id)
+        owner_name = owner.first_name + " " + owner.last_name
+        notifications.send_usr_notification(
+            email_from_db, 
+            "Added to Group",
+            "You have been added to the group {} by {}".format(group_name, owner_name),
+            True
+        )
+
+        return {'error': 'None'}
 
 
 def remove_user_from_group(group_name, owner_id, usr_email):
@@ -5147,6 +5177,33 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
             )
     ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return ontology
+
+
+def search_ontology_terms(search):
+    """
+    Returns a list of ontology terms (as Ontology objects) that match a given
+    search string.
+    """
+
+    with PooledCursor() as cursor:
+        ## Wildcards have to be part of the substituted string or a syntax
+        ## error will get thrown
+        search = '%%' + search + '%%'
+
+        cursor.execute(
+            '''
+            SELECT  *
+            FROM        extsrc.ontology AS o
+            INNER JOIN  odestatic.ontologydb AS odb
+            ON          o.ontdb_id = odb.ontdb_id
+            WHERE       ont_name ILIKE %s OR 
+                        ont_ref_id ILIKE %s
+            LIMIT       30;
+            ''',
+                (search, search)
+        )
+
+        return dictify_cursor(cursor)
 
 
 def get_all_ontologies_by_geneset_and_db(gs_id, ontdb_id):
