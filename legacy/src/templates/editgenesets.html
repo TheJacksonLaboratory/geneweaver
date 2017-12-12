@@ -576,6 +576,8 @@
         $("#tree").dynatree({
             checkbox: true,
             selectMode: 2,
+            // Prevents the page from focusing and auto scrolling to the tree
+            autoFocus: false,
             initAjax: {
                 url: "/initOntTree",
                 data: {
