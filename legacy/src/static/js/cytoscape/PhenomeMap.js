@@ -33,6 +33,7 @@ function updateGeneList() {
 
 	vis.updateNodeStyles();
 };
+/*
 $(document).ready(function() {
     // fetch projects
     $('#projList').load('/index.php?ajax_req=analyze&cmd=toolprojects');
@@ -54,6 +55,7 @@ $(document).ready(function() {
 
 
 });
+*/
 
 function load_cytoscape() {
     // check that both the document has loaded and that our AJAX request is done
@@ -266,7 +268,9 @@ function load_cytoscape() {
 			var evt = event.target;
 			window.open( evt.data.URL );
 		}
-		vis.addListener("dblclick", "nodes", openLink );
+        // Disable double click since there's no easy way to get the GSIDs in
+        // this old viz format.
+		//vis.addListener("dblclick", "nodes", openLink );
 
 		//Zoom with mouse **
 		vis.addListener("dblclick", function(e){
