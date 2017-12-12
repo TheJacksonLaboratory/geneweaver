@@ -2122,7 +2122,11 @@ def get_geneset_genes():
 
     ## The get_geneset_values function requires a session variable (should be
     ## be updated so this is no longer necessary)
-    alt_gene_id = session['extsrc']
+    if 'extsrc' not in session:
+        alt_gene_id = genedict['Gene Symbol']
+    else:
+        alt_gene_id = session['extsrc']
+
     session['extsrc'] = genedict['Gene Symbol']
 
     ## Retrieves the set with symbol identifiers
