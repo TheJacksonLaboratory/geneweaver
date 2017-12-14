@@ -1,8 +1,8 @@
 import unittest
 from werkzeug.datastructures import MultiDict
-import curation_assignments
 import geneweaverdb
 import pub_assignments
+import curation_assignments
 
 
 class GroupTasks(unittest.TestCase):
