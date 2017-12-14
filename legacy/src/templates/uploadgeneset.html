@@ -576,11 +576,11 @@
 
                     if (v["error"] == 'None') {
                         // Make a URL to the edit geneset page in case the
-						// user is never redirected. Happens with Jason's
-						// desktop :(
+                        // user is never redirected. Happens with Jason's
+                        // desktop :(
                         var editPage = location.protocol + '//' + location.host;
-						editPage = '<a href="' + editPage + '/editgenesetgenes/' +
-								 v['gs_id'] + '">here.</a>';
+                        editPage = '<a href="' + editPage + '/editgenesetgenes/' +
+                                v['gs_id'] + '">here.</a>';
                         var success = '<strong>Success! Your GeneSets ' +
                                 'were uploaded: </strong><br />';
                         success += 'GS' + v['gs_id'] + '<br />';
