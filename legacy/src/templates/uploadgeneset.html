@@ -545,14 +545,8 @@
             event.preventDefault();
             var fileDisplayArea = document.getElementById('fileDisplayArea');
             var fileSelect = document.getElementById('file_data');
-            //var reader = new FileReader();
             if (!fileSelect.disabled) {
-                //var file = fileSelect.files;
                 var fileData = fileDisplayArea.innerText;
-                //data.append('selected_file', file[0], file[0].name);
-                //reader.onload = createReaderHandler(file[0].name);
-                //reader.readAsText(file[0]);
-                //alert(data['selected_file']);
             }
 
             var permissions = document.getElementById('permissions')
@@ -581,10 +575,10 @@
                     var v = JSON.parse(data);
 
                     if (v["error"] == 'None') {
-						// Make a URL to the edit geneset page in case the
+                        // Make a URL to the edit geneset page in case the
 						// user is never redirected. Happens with Jason's
 						// desktop :(
-						var editPage = location.protocol + '//' + location.host;
+                        var editPage = location.protocol + '//' + location.host;
 						editPage = '<a href="' + editPage + '/editgenesetgenes/' +
 								 v['gs_id'] + '">here.</a>';
                         var success = '<strong>Success! Your GeneSets ' +
@@ -594,7 +588,7 @@
                                 'redirected to the edit GeneSet page shortly.' +
                                 '<br /> If you aren\'t redirected, check and ' +
                                 'reconfigure your pop-up blocker settings ' +
-								'or just click ' + editPage + '</strong>';
+                                'or just click ' + editPage + '</strong>';
                         var closeButton = '<button type="button" ' +
                                 'class="close" data-dismiss="alert" ' +
                                 'aria-hidden="true">x</button>';
@@ -610,13 +604,9 @@
                         // Redirect to the edit geneset page for each geneset,
                         // wait a bit though so the user can read our message
                         setTimeout(function() {
-
                             var url = '../editgenesetgenes/' + v['gs_id'];
-
                             window.open(url, '_blank');
-
                         }, 3000);
-                        //window.location.href = '../editgenesetgenes/' + v["gs_id"];
                     }
                     else {
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
