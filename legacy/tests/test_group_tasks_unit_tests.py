@@ -3,6 +3,7 @@ from werkzeug.datastructures import MultiDict
 import geneweaverdb
 import pub_assignments
 import curation_assignments
+import xmlrunner
 
 
 class GroupTasks(unittest.TestCase):
@@ -208,4 +209,4 @@ class GroupTasks(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='reports/test-group-tasks'))
