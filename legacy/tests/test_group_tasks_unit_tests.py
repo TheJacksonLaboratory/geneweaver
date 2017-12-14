@@ -129,7 +129,7 @@ class GroupTasks(unittest.TestCase):
         assert data
         self.assertEqual(self.geneset_id, data[0][1])
 
-    def test_grouptasks_with_pubassign(self):
+    def _test_grouptasks_with_pubassign(self):
         # Given a valid pubmed id
         pubmed_id = '27988283'
         # and a resulting publication object in geneweaver
