@@ -192,12 +192,21 @@
 
                                     <!-- Used to preserve sort ordering when the user applies other
                                     filters -->
-                                    <input type="hidden" name="sortBy" id="sortBy"
-                                            {% if sort_by is not defined %}
-                                           value="geneset" />
-                                            {% else %}
-                                                value="{{ sort_by }}" />
-                                            {% endif %}
+                                    {%if sort_by is not defined %}
+                                        <input type="hidden" name="sortBy"
+                                               id="sortBy" value="geneset" />
+                                    {% else %}
+                                        <input type="hidden" name="sortBy"
+                                               id="sortBy" value="{{ sort_by }}" />
+                                    {% endif %}
+
+                                    {%if sort_ascending is not defined %}
+                                        <input type="hidden" name="sortAscending"
+                                               id="sortAscending" value="True">
+                                    {% else %}
+                                        <input type="hidden" name="sortAscending"
+                                               id="sortAscending" value="{{ sort_ascending }}">
+                                    {% endif %}
 
                                     <div class="filter-title">Global Filters</div>
                                     <br/>

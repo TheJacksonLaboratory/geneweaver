@@ -3137,7 +3137,8 @@ def render_search_json():
         userValues['pagination_page'], 
         userValues['search_fields'],
         userValues['userFilters'], 
-        userValues['sort_by']
+        userValues['sort_by'],
+        userValues['sort_ascending']
     )
 
     ## Used to dynamically generate species tags
@@ -3156,7 +3157,8 @@ def render_search_json():
         searchFilters=search_values['searchFilters'],
         userFilters=userValues['userFilters'],
         filterLabels=search_values['filterLabels'],
-        sort_by=userValues['sort_by'], 
+        sort_by=userValues['sort_by'],
+        sort_ascending=userValues['sort_ascending'],
         species=species,
         attribs=attribs)
 

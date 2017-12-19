@@ -145,12 +145,16 @@ def getUserFiltersFromApplicationRequest(form):
     ## Check to see if the user wants to sort search results
     if (form.get('sortBy')):
         sort_by = form.get('sortBy')
+        if (form.get('sortAscending')):
+            sort_ascending = form.get('sortAscending')
+        else:
+            sort_ascending = None
     else:
         sort_by = None
 
     return {'userFilters': userFilters, 'search_term': search_term,
             'pagination_page': pagination_page, 'search_fields': search_fields,
-            'field_list': field_list, 'sort_by': sort_by}
+            'field_list': field_list, 'sort_by': sort_by, 'sort_ascending': sort_ascending}
 
 
 def apply_user_restrictions(client, select=''):
@@ -495,13 +499,14 @@ def buildFilterSelectStatementSetFilters(userFilters, client):
 #### Sorts the set of search results using user given criteria. Results can be
 #### sorted by tier, species, geneset size, or relevance (default). 
 ##
-def sortSearchResults(client, sortby):
+def sortSearchResults(client, sortby=None, ascending=True):
+    direction = sphinxapi.SPH_SORT_ATTR_ASC if ascending else sphinxapi.SPH_SORT_ATTR_DESC
     if sortby == 'tier':
-        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'cur_id')
+        client.SetSortMode(direction, 'cur_id')
     elif sortby == 'species':
-        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'common_name')
+        client.SetSortMode(direction, 'common_name')
     elif sortby == 'size':
-        client.SetSortMode(sphinxapi.SPH_SORT_ATTR_ASC, 'gs_count')
+        client.SetSortMode(direction, 'gs_count')
     else:
         client.SetSortMode(sphinxapi.SPH_SORT_RELEVANCE)
 
@@ -519,7 +524,7 @@ search.html and associated files in templates/search/
 
 def keyword_paginated_search(terms, pagination_page,
                              search_fields='name,description,label,genes,pub_authors,pub_title,pub_abstract,pub_journal,ontologies,gs_id,gsid_prefixed,species,taxid',
-                             userFilters={}, sortby=None):
+                             userFilters={}, sortby=None, sortAscending=True):
     '''
     Set up initial search connection and build queries
     TODO make this work with multiple query boxes (Will have to do multiple queries and combine results)
@@ -571,7 +576,7 @@ def keyword_paginated_search(terms, pagination_page,
     '''
 
     ## Default sort (sortby = None) uses relevance
-    sortSearchResults(client, sortby)
+    sortSearchResults(client, sortby, sortAscending)
 
     # Check to see if the user has applied any filters (ie if this is not a search from the home page or initial search)
     # if(userFilters):
