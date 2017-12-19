@@ -146,7 +146,7 @@ def getUserFiltersFromApplicationRequest(form):
     if (form.get('sortBy')):
         sort_by = form.get('sortBy')
         if (form.get('sortAscending')):
-            sort_ascending = form.get('sortAscending')
+            sort_ascending = (form.get('sortAscending') == 'true')
         else:
             sort_ascending = None
     else:
