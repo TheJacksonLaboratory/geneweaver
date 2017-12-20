@@ -40,19 +40,11 @@
 
             // Sort arrow ID; this tells us how to sort
             var sortby = $(this).attr('id');
-            var direction = $(this).data('sort-ascending');
-            $(this).data('sort-ascending', !direction);
-            console.log(direction);
-            console.log($(this).data('sort-ascending'));
+            var direction = !$(this).data('sort-ascending');
             $('#sortBy').val(sortby);
             $('#sortAscending').val(direction);
-            console.log(sortby);
             // Gotta grab filter and search data prior to sending our sort data
             var data = serializeForms(sortby);
-            console.log('sorts');
-            console.log(data);
-            console.log(url);
-
             $.post(url, data).done(function (data) {
 
                 $('#replaceConentsOnUpdatedSeach').html(data).trigger('create');

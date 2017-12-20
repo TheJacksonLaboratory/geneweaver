@@ -3160,7 +3160,7 @@ def render_search_json():
         userFilters=userValues['userFilters'],
         filterLabels=search_values['filterLabels'],
         sort_by=userValues['sort_by'],
-        sort_ascending= not userValues['sort_ascending'],
+        sort_ascending=userValues['sort_ascending'],
         species=species,
         attribs=attribs)
 
