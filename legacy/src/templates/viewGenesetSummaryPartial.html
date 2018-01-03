@@ -98,12 +98,22 @@
 
                     var dep = '{{gs.status}}';
 
-                    if (dep.slice(0, 2) === 'de') {
+                    if (dep.slice(0, 3) === 'dep') {
 
                         $(this).attr('class', 'gs_deprecated');
-                        $(this).attr('title', 'This GeneSet has been marked ' +
-                        'as deprecated.');
+                        $(this).attr('title', 
+                            'This GeneSet has been marked as deprecated.'
+                        );
                         $(this).html('Deprecated');
+
+                    } else if (dep.slice(0, 3) === 'del') {
+
+                        $(this).attr('class', 'gs_deleted');
+                        $(this).attr(
+                            'title', 
+                            'This GeneSet has been permanently deleted.'
+                        );
+                        $(this).html('Deleted');
                     }
                 });
             </script>
