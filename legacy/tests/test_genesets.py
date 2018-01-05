@@ -1,5 +1,6 @@
 import unittest, json
 import geneweaverdb, application
+import xmlrunner
 
 '''class for testing the paging on the view geneset details page'''
 class TestViewGenesets(unittest.TestCase):
@@ -35,15 +36,18 @@ class TestViewGenesets(unittest.TestCase):
         #get a search term
         self.get_search_term_from_geneset()
         ep_root = "/get_geneset_values?gs_id={}".format(self.gs_id)
-        ep_test_page = ep_root + '&start=100&length=50'
-        ep_search_page = ep_test_page + '&search[value]={}'.format(self.search_term)
+        ep_test_page = ep_root + '&start=100&gs_len=50'
+        ep_search_page = ep_root + '&start=1&gs_len=10' + '&search[value]={}'.format(self.search_term)
+        print "testing route {}".format(ep_test_page)
         rqp = self.app.get(ep_test_page)
         self.assertEqual(rqp.status, '200 OK')
         self.assertEqual(self.check_JSON_response(rqp), True)
         print "testing route {}".format(ep_search_page)
         rqs = self.app.get(ep_search_page)
         self.assertEqual(rqs.status, '200 OK')
-        self.assertEqual(self.check_JSON_response(rqs), True)
+        json_resp = json.loads(rqs.data)
+        # check we get at least one result
+        self.assertGreater(len(json_resp['aaData']), 1)
 
     def check_JSON_response(self, req):
         '''make sure the length of the main json data is 50 elements long'''
@@ -130,4 +134,4 @@ class TestViewGenesets(unittest.TestCase):
             self.gs_id = gs_id
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='reports/test-genesets'))

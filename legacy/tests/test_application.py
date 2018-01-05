@@ -1,8 +1,9 @@
 from __future__ import print_function
 import unittest
-from src import application
-from src import geneweaverdb
-from src import publication_generator
+import xmlrunner
+import application
+import geneweaverdb
+import publication_generator
 
 
 class HomeTestCase(unittest.TestCase):
@@ -238,4 +239,4 @@ class PublicationAssignment(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='reports/test-application'))
