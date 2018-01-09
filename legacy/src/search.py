@@ -508,7 +508,7 @@ def sortSearchResults(client, sortby=None, ascending=True):
     elif sortby == 'size':
         client.SetSortMode(direction, 'gs_count')
     elif sortby == 'geneset':
-        client.SetSortMode(direction, 'gs_id')
+        client.SetSortMode(direction, 'gs_id_attr')
     else:
         client.SetSortMode(sphinxapi.SPH_SORT_RELEVANCE)
 
