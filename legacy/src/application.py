@@ -3173,7 +3173,8 @@ def render_searchFromHome():
     if flask.request.method == 'GET':
         args = flask.request.args
     # pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
-    pagination_page = int(request.args.get('pagination_page'))
+    raw_pagination_page = request.args.get('pagination_page')
+    pagination_page = int(raw_pagination_page) if raw_pagination_page else 1
     # Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
     # Associate the correct fields with each option given by the user
     field_list = {'searchGenesets': False, 'searchGenes': False, 'searchAbstracts': False, 'searchOntologies': False}
@@ -3229,6 +3230,7 @@ def render_searchFromHome():
         field_list=field_list,
         searchFilters=search_values['searchFilters'],
         filterLabels=search_values['filterLabels'],
+        sort_ascending='true',
         species=species,
         attribs=attribs,
         userFilters=default_filters
@@ -3256,7 +3258,8 @@ def render_search_json():
         userValues['pagination_page'], 
         userValues['search_fields'],
         userValues['userFilters'], 
-        userValues['sort_by']
+        userValues['sort_by'],
+        userValues['sort_ascending']
     )
 
     ## Used to dynamically generate species tags
@@ -3275,7 +3278,8 @@ def render_search_json():
         searchFilters=search_values['searchFilters'],
         userFilters=userValues['userFilters'],
         filterLabels=search_values['filterLabels'],
-        sort_by=userValues['sort_by'], 
+        sort_by=userValues['sort_by'],
+        sort_ascending=userValues['sort_ascending'],
         species=species,
         attribs=attribs)
 
