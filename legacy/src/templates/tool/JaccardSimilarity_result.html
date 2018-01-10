@@ -325,7 +325,6 @@ $(document).ready(function() {
         .diagramPadding(150)
         .draw()
         .drawLegend();
-        ;
 
     // Draws the jaccard similarity table
     var jsm = jaccardSimilarityMatrix()
@@ -366,11 +365,14 @@ $(document).ready(function() {
         $('input[name="matrix-checkbox"]:checked').each(function() {
 
             // Removes "check-"
+            console.log($(this).attr('id'));
             var gsID = $(this).attr('id').slice(6);
             gsID = 'GS' + gsID;
 
             checked.push(gsID);
         });
+
+        console.log(checked);
 
 
         if (!checked.length) {
@@ -380,6 +382,7 @@ $(document).ready(function() {
         } else {
 
             var ids = checked.join(', ');
+            console.log(ids);
 
             $('#myModalLabel').html(ids);
             $('#myModalValue').val(ids);
