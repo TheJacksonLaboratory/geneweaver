@@ -564,8 +564,8 @@
             $('#confirmUpload').modal('show');
 
             $.ajax({
-                type: "GET",
-                url: "../createtempgeneset",
+                type: "POST",
+                url: "../createtempgeneset_original",
                 data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
                 success: function (data) {
                     // Hides confirmation after any kind of result (success or
