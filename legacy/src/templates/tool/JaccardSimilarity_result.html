@@ -312,6 +312,7 @@
 <br>
 
 <script src="/static/tools/JaccardSimilarity.js" charset="utf-8"></script>
+<script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
 <script type="text/javascript">
 
 var js;
@@ -372,68 +373,14 @@ $(document).ready(function() {
             checked.push(gsID);
         });
 
-        console.log(checked);
-
-
         if (!checked.length) {
-
           $('#myAlert').modal('show');  
-
         } else {
-
-            var ids = checked.join(', ');
-            console.log(ids);
-
-            $('#modal-label').html(ids);
-            $('#myModalValue').val(ids);
-            $('#addToProjectModal').modal('show');
+            openGSModal('#addToProjectModal', checked)();
         }
     });
+    $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
 
-    // The "Add GeneSets to Project" modal dialog. Should probably be moved to the
-    // modal fragment itself because this code is duplicated in a number of areas.
-    $('#addGenesetsToProjects').on('click', function(e) {
-
-        var checked = [];
-
-        $('input[name="options[]"]:checked').each(function () {
-            checked.push(parseInt($(this).val()));
-        });
-
-        var projectIds = JSON.stringify(checked);
-        var newProject = $('#newProjName').val();
-        var g = $('#myModalValue').val();
-        var user_id = '{{ g.user.user_id | safe }}';
-
-        if (!checked.length && !newProject) {
-            $('#result')
-                .html('<div class="alert alert-danger fade in"> ' +
-                      '<button type="button" class="close" ' +
-                      'data-dismiss="alert" aria-hidden="true">x' +
-                      '</button>No Projects Were Selected</div>');
-
-        // TODO: add alert indicating adding to projects was successful
-        } else {
-            $.ajax({
-                type: 'GET',
-                url: '../addGenesetsToProjects',
-                data: {
-                    'user_id': user_id, 
-                    'npn': newProject, 
-                    'gs_id': g, 
-                    'option': projectIds
-                },
-                success: function (data) {
-                    $("#result")
-                        .html('<div class="alert alert-success fade in"> ' +
-                              '<button type="button" class="close" ' +
-                              'data-dismiss="alert" aria-hidden="true">x' +
-                              '</button>GeneSets Successfully Added to ' +
-                              'Selected Projects</div>');
-                }
-            });
-        }
-    });
 });
 </script>
 
@@ -651,7 +598,7 @@ $(function() {
 </script>
 
 {% if g.user is defined %}
-    {% include 'modal/addGenesetsToProjects.html' %}
+    {% include 'modal/addGenesetsToProjects_multiselect.html' %}
 {% endif %}
 
 {% include 'modal/addGenesetsToProjectsAlert.html' %}
