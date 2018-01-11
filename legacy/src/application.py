@@ -3838,7 +3838,7 @@ def update_geneset_identifier():
         return json.dumps(results)
 
 
-@app.route('/help.html')
+@app.route('/help/')
 def render_help():
     return flask.render_template('help.html')
 
