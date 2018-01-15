@@ -520,13 +520,16 @@
             }
         });
 
-        //Display uploaded file to page
-        var fileInput = document.getElementById('file_data');
-		var fileDisplayArea = document.getElementById('fileDisplayArea');
-        var fileContents = $('#fileContents');
+        /**
+          * Executed when the user clicks the "select tab-delimited plain text
+          * file" button. This function reads the file in, appends the contents
+          * to a hidden input element, and informs the user that the file has
+          * been loaded.
+          */
+        $('#file_data').on('change', function(e) {
 
-		fileInput.addEventListener('change', function(e) {
-			var file = fileInput.files[0];
+            var fileDisplayArea = $('#fileDisplayArea');
+			var file = this.files[0];
 			var textType = /text.*/;
 
 			if (file.type.match(textType)) {
@@ -538,7 +541,7 @@
 
 					fileDisplayArea.innerText = 
                         "Loaded '" + file.name + "' (" + size + ")";
-                    fileContents.val(reader.result);
+                    $('#fileContents').val(reader.result);
 				};
 
 				reader.readAsText(file);
@@ -547,23 +550,30 @@
 			}
 		});
 
-        //Function to upload genesets
-        //Ths AJAX POST loading is not working...leaving me perplexed. I stripped the text from the
-        //div and passed it to application via get
+        /**
+          * Function used to submit the contents of the gene set upload form to
+          * the server. Checks to see whether the user used the text box or
+          * file upload forms and adds this content accordingly. Submits the
+          * AJAX upload request and informs the user of failure or success.
+          */
         $('#upload-geneset-form').submit(function (event) {
+
             event.preventDefault();
-            var fileDisplayArea = document.getElementById('fileDisplayArea');
-            var fileSelect = document.getElementById('file_data');
+
+            var fileDisplayArea = $('#fileDisplayArea');
+            var fileSelect = $('#file_data');
+
+            // User selected the file upload option
             if (!fileSelect.disabled) {
-                //var fileData = fileDisplayArea.innerText;
                 var fileData = $('#fileContents').val();
             }
 
-            var permissions = document.getElementById('permissions')
-            if(permissions.disabled) {
-                // If disabled, the permissions field will not be submitted with form
-                $('#permissions').prop("disabled", false).button("refresh");
-            }
+            var permissions = $('#permissions')
+
+            // If disabled, the permissions field will not be submitted with 
+            // form
+            if (permissions.disabled)
+                permissions.prop("disabled", false).button("refresh");
 
             var d = $("#upload-geneset-form").serialize();
             var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
@@ -637,7 +647,8 @@
                     $(document).trigger("add-alerts", [
                         {
                             'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
-                            'priority': 'danger'
+                            'priority': 'danger',
+                            'fade': 0
                         }
                     ]);
                 }
