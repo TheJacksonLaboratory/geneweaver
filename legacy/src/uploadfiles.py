@@ -195,11 +195,19 @@ def create_new_geneset_for_user(args, user_id):
     #       'values': gs_values_lower,
     #       'gs_threshold': 1}
 
-    gs_data = formData['file_text'][0].split('\n')
+    ## If the user is using the file option for the upload, then file_text
+    ## won't exist. It is replaced by file_data in the passed arguments.
+    if 'file_text' in formData:
+        gene_data = formData['file_text'][0]
+    elif 'fileData' in args:
+        gene_data = args['fileData']
+    else:
+        gene_data = []
+
     # look for a blank line at end of file data, remove last element if a match is made
-    if re.match(r'^\s*$', gs_data[-1]):
-        gs_data = gs_data[:len(gs_data) - 1]
-    gs_count = len(gs_data)
+    #if re.match(r'^\s*$', gs_data[-1]):
+    #    gs_data = gs_data[:len(gs_data) - 1]
+    #gs_count = len(gs_data)
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
     gs_threshold_type = formData['gs_threshold_type'][0]
     gs_threshold = str('0.5')
@@ -208,8 +216,11 @@ def create_new_geneset_for_user(args, user_id):
     gs_attribution = 1
 
     # This line removes non-ascii characters which seem to break the process_gene_list function
-    ascii_gene_list = ''.join([i if ord(i) < 128 else ' ' for i in formData['file_text'][0].strip('\r')])
-    gene_data = process_gene_list(ascii_gene_list)
+    #ascii_gene_list = ''.join([i if ord(i) < 128 else ' ' for i in formData['file_text'][0].strip('\r')])
+    gene_data = ''.join([i if ord(i) < 128 else ' ' for i in gene_data.strip('\r')])
+    ## This count may not reflect the true number of genes
+    gs_count = len(gene_data.split('\n'))
+    gene_data = process_gene_list(gene_data)
 
     try:
         with PooledCursor() as cursor:
@@ -227,7 +238,8 @@ def create_new_geneset_for_user(args, user_id):
                                          str(formData['gs_name'][0]),
                                          str(formData['gs_abbreviation'][0]),
                                          str(formData['gs_description'][0]),
-                                         int(gs_attribution),
+                                         #int(gs_attribution),
+                                         None,
                                          str(gene_data)
                                          ))
             gs_id = cursor.fetchone()[0]

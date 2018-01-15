@@ -384,26 +384,25 @@
 
                 </div>
                 <div id="file_uploader" class="col-md-8" style="display: none">
-                    <span id="clickableManual" onclick="toggle_pasting()"><strong>Switch to Manual Upload <i class="fa fa-keyboard-o"></i>
-                        </strong></span>
+                    <span id="clickableManual" onclick="toggle_pasting()">
+                        <strong>
+                            Switch to Manual Upload 
+                            <i class="fa fa-keyboard-o"></i>
+                        </strong>
+                    </span>
 
-                    <br><br>
+                    <br>
+                    <br>
+
                     <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
                         <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
+                        <input id="fileContents" name="fileContents" type="hidden" />
                     </span>
                     <span id="fileDisplayArea" style="color:#337700; 
                           vertical-align:middle; padding:10px 0 0 10px;">
                     </span>
                 </div>
-
-
             </div>
-            {#
-                <div class="row">
-                    <div class="col-md-2"></div>
-                    <div id="fileDisplayArea" class="col-md-4" style="color: grey; padding-top: 2em;"></div>
-                </div>
-                #}
 
         </div>
         <br>
@@ -524,6 +523,7 @@
         //Display uploaded file to page
         var fileInput = document.getElementById('file_data');
 		var fileDisplayArea = document.getElementById('fileDisplayArea');
+        var fileContents = $('#fileContents');
 
 		fileInput.addEventListener('change', function(e) {
 			var file = fileInput.files[0];
@@ -533,10 +533,12 @@
 				var reader = new FileReader();
 
 				reader.onload = function(e) {
+
                     var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
-					//fileDisplayArea.innerText = reader.result;
+
 					fileDisplayArea.innerText = 
                         "Loaded '" + file.name + "' (" + size + ")";
+                    fileContents.val(reader.result);
 				};
 
 				reader.readAsText(file);
@@ -553,7 +555,8 @@
             var fileDisplayArea = document.getElementById('fileDisplayArea');
             var fileSelect = document.getElementById('file_data');
             if (!fileSelect.disabled) {
-                var fileData = fileDisplayArea.innerText;
+                //var fileData = fileDisplayArea.innerText;
+                var fileData = $('#fileContents').val();
             }
 
             var permissions = document.getElementById('permissions')
