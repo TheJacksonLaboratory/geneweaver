@@ -383,7 +383,7 @@
                     {% endif %}
 
                 </div>
-                <div id="file_uploader" class="col-md-4" style="display: none">
+                <div id="file_uploader" class="col-md-8" style="display: none">
                     <span id="clickableManual" onclick="toggle_pasting()"><strong>Switch to Manual Upload <i class="fa fa-keyboard-o"></i>
                         </strong></span>
 
@@ -391,15 +391,19 @@
                     <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
                         <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
                     </span>
-
+                    <span id="fileDisplayArea" style="color:#337700; 
+                          vertical-align:middle; padding:10px 0 0 10px;">
+                    </span>
                 </div>
 
 
             </div>
+            {#
                 <div class="row">
                     <div class="col-md-2"></div>
                     <div id="fileDisplayArea" class="col-md-4" style="color: grey; padding-top: 2em;"></div>
                 </div>
+                #}
 
         </div>
         <br>
@@ -529,7 +533,10 @@
 				var reader = new FileReader();
 
 				reader.onload = function(e) {
-					fileDisplayArea.innerText = reader.result;
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
+					//fileDisplayArea.innerText = reader.result;
+					fileDisplayArea.innerText = 
+                        "Loaded '" + file.name + "' (" + size + ")";
 				};
 
 				reader.readAsText(file);
