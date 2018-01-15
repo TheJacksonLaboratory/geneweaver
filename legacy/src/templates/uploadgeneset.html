@@ -564,15 +564,14 @@
             var fileSelect = $('#file_data');
 
             // User selected the file upload option
-            if (!fileSelect.disabled) {
+            if (!fileSelect.disabled)
                 var fileData = $('#fileContents').val();
-            }
 
             var permissions = $('#permissions')
 
-            // If disabled, the permissions field will not be submitted with 
-            // form
-            if (permissions.disabled)
+            // If disabled due to selected groups, the permissions field will 
+            // not be submitted with form
+            if (permissions.prop('disabled'))
                 permissions.prop("disabled", false).button("refresh");
 
             var d = $("#upload-geneset-form").serialize();
