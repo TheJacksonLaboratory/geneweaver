@@ -2,10 +2,6 @@
 {% include 'header.html' %}
 {% import 'macros.html' as macros %}
 
-
-<body onload="myFunction('{{ gidts }}');">
-
-
 <style type="text/css">
 
     #clickablePubmed {
@@ -67,7 +63,7 @@
         <h2 class="panel-title"><strong>Upload GeneSet</strong></h2>
     </div>
 
-    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="0"></div>
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="10000"></div>
 
 
     <div class="row">
@@ -328,10 +324,12 @@
                     Species <strong>*</strong>:
                 </div>
                 <div class="col-xs-6 col-sm-4">
+                    <!-- species and gene identifiers dropdowns are listed as required
+                    but for some reason the js form validation isn't occurring for these dropdowns -->
                     <select class="form-control" name="sp_id" required>
                         {% for spec in all_species %}
-                            <option id="sp-{{spec}}" 
-                                    label="{{ all_species[spec] }}" 
+                            <option id="sp-{{spec}}"
+                                    label="{{ all_species[spec] }}"
                                     value="{{ spec }}"
                                     style="font-weight:bold;">
                                 {{ all_species[spec] }}
@@ -364,7 +362,7 @@
                 </div>
             </div>
             <br>
-        
+
 
             <div class="row">
                 <div class="col-md-2">
@@ -429,8 +427,8 @@
 
     /*
      * Auto-populates the upload form with geneset title, description, species,
-     * gene identifier, and gene list data. 
-     * This is done using the boolean algebra tool or the 'add genes to 
+     * gene identifier, and gene list data.
+     * This is done using the boolean algebra tool or the 'add genes to
      * geneset' function on the view geneset page. If any required
      * values are missing, auto-population doesn't occur.
      */
@@ -547,14 +545,8 @@
             event.preventDefault();
             var fileDisplayArea = document.getElementById('fileDisplayArea');
             var fileSelect = document.getElementById('file_data');
-            //var reader = new FileReader();
             if (!fileSelect.disabled) {
-                //var file = fileSelect.files;
                 var fileData = fileDisplayArea.innerText;
-                //data.append('selected_file', file[0], file[0].name);
-                //reader.onload = createReaderHandler(file[0].name);
-                //reader.readAsText(file[0]);
-                //alert(data['selected_file']);
             }
 
             var permissions = document.getElementById('permissions')
@@ -583,12 +575,12 @@
                     var v = JSON.parse(data);
 
                     if (v["error"] == 'None') {
-						// Make a URL to the edit geneset page in case the 
-						// user is never redirected. Happens with Jason's 
-						// desktop :(
-						var editPage = location.protocol + '//' + location.host;
-						editPage = '<a href="' + editPage + '/editgenesetgenes/' +
-								 v['gs_id'] + '">here.</a>';
+                        // Make a URL to the edit geneset page in case the
+                        // user is never redirected. Happens with Jason's
+                        // desktop :(
+                        var editPage = location.protocol + '//' + location.host;
+                        editPage = '<a href="' + editPage + '/editgenesetgenes/' +
+                                v['gs_id'] + '">here.</a>';
                         var success = '<strong>Success! Your GeneSets ' +
                                 'were uploaded: </strong><br />';
                         success += 'GS' + v['gs_id'] + '<br />';
@@ -596,7 +588,7 @@
                                 'redirected to the edit GeneSet page shortly.' +
                                 '<br /> If you aren\'t redirected, check and ' +
                                 'reconfigure your pop-up blocker settings ' +
-								'or just click ' + editPage + '</strong>';
+                                'or just click ' + editPage + '</strong>';
                         var closeButton = '<button type="button" ' +
                                 'class="close" data-dismiss="alert" ' +
                                 'aria-hidden="true">x</button>';
@@ -612,13 +604,9 @@
                         // Redirect to the edit geneset page for each geneset,
                         // wait a bit though so the user can read our message
                         setTimeout(function() {
-
                             var url = '../editgenesetgenes/' + v['gs_id'];
-
                             window.open(url, '_blank');
-
                         }, 3000);
-                        //window.location.href = '../editgenesetgenes/' + v["gs_id"];
                     }
                     else {
                         $('html, body').animate({ scrollTop: 0 }, 'slow');

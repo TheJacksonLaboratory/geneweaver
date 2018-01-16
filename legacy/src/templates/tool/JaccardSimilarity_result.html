@@ -312,6 +312,7 @@
 <br>
 
 <script src="/static/tools/JaccardSimilarity.js" charset="utf-8"></script>
+<script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
 <script type="text/javascript">
 
 var js;
@@ -325,7 +326,6 @@ $(document).ready(function() {
         .diagramPadding(150)
         .draw()
         .drawLegend();
-        ;
 
     // Draws the jaccard similarity table
     var jsm = jaccardSimilarityMatrix()
@@ -372,65 +372,14 @@ $(document).ready(function() {
             checked.push(gsID);
         });
 
-
         if (!checked.length) {
-
           $('#myAlert').modal('show');  
-
         } else {
-
-            var ids = checked.join(', ');
-
-            $('#myModalLabel').html(ids);
-            $('#myModalValue').val(ids);
-            $('#addToProjectModal').modal('show');
+            openGSModal('#addToProjectModal', checked)();
         }
     });
+    $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
 
-    // The "Add GeneSets to Project" modal dialog. Should probably be moved to the
-    // modal fragment itself because this code is duplicated in a number of areas.
-    $('#addGenesetsToProjects').on('click', function(e) {
-
-        var checked = [];
-
-        $('input[name="options[]"]:checked').each(function () {
-            checked.push(parseInt($(this).val()));
-        });
-
-        var projectIds = JSON.stringify(checked);
-        var newProject = $('#newProjName').val();
-        var g = $('#myModalValue').val();
-        var user_id = '{{ g.user.user_id | safe }}';
-
-        if (!checked.length && !newProject) {
-            $('#result')
-                .html('<div class="alert alert-danger fade in"> ' +
-                      '<button type="button" class="close" ' +
-                      'data-dismiss="alert" aria-hidden="true">x' +
-                      '</button>No Projects Were Selected</div>');
-
-        // TODO: add alert indicating adding to projects was successful
-        } else {
-            $.ajax({
-                type: 'GET',
-                url: '../addGenesetsToProjects',
-                data: {
-                    'user_id': user_id, 
-                    'npn': newProject, 
-                    'gs_id': g, 
-                    'option': projectIds
-                },
-                success: function (data) {
-                    $("#result")
-                        .html('<div class="alert alert-success fade in"> ' +
-                              '<button type="button" class="close" ' +
-                              'data-dismiss="alert" aria-hidden="true">x' +
-                              '</button>GeneSets Successfully Added to ' +
-                              'Selected Projects</div>');
-                }
-            });
-        }
-    });
 });
 </script>
 
@@ -572,10 +521,83 @@ $(function() {
     });
 
 });
+
+    /**
+      * This function selects default tool options using the user's original
+      * run parameters. It iterates over the parameter object returned from the
+      * tool's output and selects the settings used to run the tool.
+      */
+	$(function() {
+        var parameters = {{ async_result.parameters | tojson }};
+
+        for (param in parameters) {
+
+            // Grabs each HTML input element for this tool
+            $("[name='" + param + "']").each(function() {
+         
+                // Save the type of element e.g. input
+                var elemType = this.nodeName;
+
+                // Update settings for each tool option based on form 
+                // element type. Most are drop down selections.
+                if (elemType === 'SELECT') {
+
+                    $(this).children('option').attr('selected', function() {
+
+                            if ($(this).attr('label') === parameters[param])
+                                return 'selected';
+                            else
+                                return null;
+                    });
+                }
+
+                // Input types could be one of many things.
+                if (elemType == 'INPUT') {
+
+                    // Maybe it's a radio button or checkbox, both of which
+                    // use the same type of default selection attribute
+                    if ($(this).attr('type') === 'radio' || 
+                        $(this).attr('type') === 'checkbox') {
+
+                        if ($(this).attr('value') === parameters[param]) {
+
+                            $(this).attr('checked', 'checked');
+                            // The styling for this stupid element is in a
+                            // neighboring node
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-off');
+                                $(this).siblings().addClass('ui-radio-on');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-off');
+                                $(this).siblings().addClass('ui-checkbox-on');
+                            }
+
+                        } else {
+
+                            $(this).removeAttr('checked');
+                            
+                            if ($(this).attr('type') === 'radio') {
+
+                                $(this).siblings().removeClass('ui-radio-on');
+                                $(this).siblings().addClass('ui-radio-off');
+                            } else {
+
+                                $(this).siblings().removeClass('ui-checkbox-on');
+                                $(this).siblings().addClass('ui-checkbox-off');
+                            }
+                        }
+                    }
+                }
+
+            });
+        }
+    });
 </script>
 
 {% if g.user is defined %}
-    {% include 'modal/addGenesetsToProjects.html' %}
+    {% include 'modal/addGenesetsToProjects_multiselect.html' %}
 {% endif %}
 
 {% include 'modal/addGenesetsToProjectsAlert.html' %}

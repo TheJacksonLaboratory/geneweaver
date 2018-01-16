@@ -40,12 +40,11 @@
 
             // Sort arrow ID; this tells us how to sort
             var sortby = $(this).attr('id');
+            var direction = !$(this).data('sort-ascending');
             $('#sortBy').val(sortby);
+            $('#sortAscending').val(direction);
             // Gotta grab filter and search data prior to sending our sort data
             var data = serializeForms(sortby);
-            //console.log('sorts');
-            //console.log(data);
-
             $.post(url, data).done(function (data) {
 
                 $('#replaceConentsOnUpdatedSeach').html(data).trigger('create');
@@ -78,6 +77,10 @@
 
 	{% endif %}
 
+{% endif %}
+
+{% if sort_ascending == None %}
+    {% set sort_ascending = true %}
 {% endif %}
 
 {% if paginationValues != None %}
@@ -157,7 +160,7 @@
                             <th>
                                 <nobr>
                                     <a id="tier" href="#">
-                                        <i id="tier" class="fa fa-sort"></i>
+                                        <i id="tier" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
                                     </a>
                                     Tier
                                 </nobr>
@@ -165,7 +168,7 @@
                             <th>
                                 <nobr>
                                     <a id="species" href="#">
-                                        <i id="species" class="fa fa-sort"></i>
+                                        <i id="species" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
                                     </a>
                                     Species
                                 </nobr>
@@ -173,7 +176,7 @@
                             <th>
                                 <nobr>
                                     <a id="size" href="#">
-                                        <i id="size" class="fa fa-sort"></i>
+                                        <i id="size" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
                                     </a>
                                     Size
                                 </nobr>
@@ -186,7 +189,7 @@
                             <th>
                                 <nobr>
                                     <a id="geneset" href="#">
-                                        <i id="geneset" class="fa fa-sort"></i>
+                                        <i id="geneset" class="fa fa-sort" data-sort-ascending="{{ sort_ascending|lower() }}"></i>
                                     </a>
                                     GeneSet
                                 </nobr>

@@ -298,7 +298,9 @@
 
     <div class="alert alert-warning" style="display: inline-block; width: 100%">
         <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
-        <strong>Warning:</strong> Updates are not permanent until saved.
+        <strong>Warning:</strong> Please Note: Edits to this page <i>(other than  Species and Identifier)</i>
+        will not persist to your GeneSet unless you click 'Save Updates'. Also, If you click 'Cancel Edit',
+        any changes on this page will be reverted.
     </div>
 
     </div>
@@ -486,22 +488,25 @@
 
         $('#gene-newid').on('keyup', function(){
             var value = $(this).val();
-            $.ajax({
-                url: "/get_gene_ref_ID.json",
-                data: {
-                  'search': value,
-                    'sp_id': {{ geneset.sp_id }}
-                },
-                dataType: 'json',
-                success: function (data) {
-                    var list = data.list;
-                    $('#gene-newid').autocomplete({
-                        source: list,
-                        minLength: 2,
-                        appendTo: $("#addGenesetGene")
-                    });
-                }
-            });
+            var checkVal = value.substring(0,3).toLowerCase();
+            if (checkVal != "mgi") {
+                $.ajax({
+                    url: "/get_gene_ref_ID.json",
+                    data: {
+                      'search': value,
+                        'sp_id': {{ geneset.sp_id }}
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        var list = data.list;
+                        $('#gene-newid').autocomplete({
+                            source: list,
+                            minLength: 2,
+                            appendTo: $("#addGenesetGene")
+                        });
+                    }
+                });
+            }
         });
 
         $('#editSubmitIdentifier').on('click', function(e){

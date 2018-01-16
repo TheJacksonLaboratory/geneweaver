@@ -113,6 +113,10 @@ class BatchReader(object):
         if 'at_id' not in self._parse_set:
             self._parse_set['at_id'] = None
 
+        if 'cur_id' not in self._parse_set:
+            self._parse_set['cur_id'] = 5
+            self._parse_set['gs_groups'] = '-1'
+
         self._parse_set['gs_name'] = ''
         self._parse_set['gs_description'] = ''
         self._parse_set['gs_abbreviation'] = ''
@@ -175,14 +179,14 @@ class BatchReader(object):
 
         ## Binary threshold is left at the default of 1
         if s.lower() == 'binary':
-            stype = '3'
+            stype = 3
             thresh = '1'
 
         elif s.lower().find('p-value') != -1:
             ## All the regexs used in this function are taken from the
             ## original GW1 code
             m = re.search(r"([0-9.-]{2,})", s.lower())
-            stype = '1'
+            stype = 1
 
             if m:
                 thresh = m.group(1)
@@ -191,7 +195,7 @@ class BatchReader(object):
 
         elif s.lower().find('q-value') != -1:
             m = re.search(r"([0-9.-]{2,})", s.lower())
-            stype = '2'
+            stype = 2
 
             if m:
                 thresh = m.group(1)
@@ -205,7 +209,7 @@ class BatchReader(object):
             ## Too lazy to change it though since this score type isn't widely
             ## used.
             m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
-            stype = '4'
+            stype = 4
 
             if m:
                 thresh = m.group(1) + ',' + m.group(2)
@@ -219,7 +223,7 @@ class BatchReader(object):
         elif s.lower().find('effect') != -1:
             ## Same comments as the correlation regex
             m = re.search(r"([0-9.-]{2,})[^0-9.-]*([0-9.-]{2,})", s.lower())
-            stype = '5'
+            stype = 5
 
             if m:
                 thresh = m.group(1) + ',' + m.group(2)
@@ -564,11 +568,12 @@ class BatchReader(object):
                 gs['ont_ids'].append(self._annotation_cache[anno])
 
             else:
-                #ont_id = db.get_annotation_by_ref(anno)
+                ## Will return a single element list, get rid of the list part
                 ont_id = gwdb.get_ontologies_by_refs([anno])
+                ont_id = ont_id[0]
 
                 if ont_id:
-                    gs['ont_ids'].append(ont_id[0])
+                    gs['ont_ids'].append(ont_id)
 
                     self._annotation_cache[anno] = ont_id
 
@@ -691,6 +696,42 @@ class BatchReader(object):
 
         return len(gs['geneset_values'])
 
+    def __check_thresholds(self, ttype, threshold, value):
+        """
+        Checks to see whether or not the gene set values fall within the score
+        threshold associated with the set.
+
+        arguments
+            ttype:      integer indicating the gene set threshold type
+            threshold:  value representing the threshold; depending on the
+                        threshold type this may be a single numeric value, or a
+                        list of two numeric values ([min, max])
+            value:      probably a string representing the gene value
+
+        returns
+            A boolean indicating whether or not the value falls within the
+            range specified by the threshold
+        """
+
+        value = float(value)
+
+        ## P and Q values
+        if ttype == 1 or ttype == 2:
+            if value <= threshold:
+                return True
+
+        ## Correlation and effect scores
+        elif ttype == 4 or ttype == 5:
+            if value >= threshold[0] and value <= threshold[1]:
+                return True
+
+        ## Binary
+        else:
+            if value >= threshold:
+                return True
+
+        return False
+
     def __insert_geneset_values(self, gs):
         """
         Inserts gene set values into the DB.
@@ -699,9 +740,23 @@ class BatchReader(object):
             gs: gene set object
         """
 
+        ttype = gs['gs_threshold_type']
+        thresh = None
+
+        if ttype == 1 or ttype == 2 or ttype == 3:
+            thresh = float(gs['gs_threshold'])
+
+        elif ttype == 4 or ttype == 5:
+            thresh = map(float, gs['gs_threshold'].split(','))
+
+        ## This should never happen
+        else:
+            thresh = 1.0
+
         for ref, ode, value in gs['geneset_values']:
             gwdb.insert_geneset_value(
-                gs['gs_id'], ode, value, ref, gs['gs_threshold']
+                gs['gs_id'], ode, value, ref, 
+                self.__check_thresholds(ttype, thresh, value)
             )
 
     def __insert_annotations(self, gs):
@@ -714,7 +769,6 @@ class BatchReader(object):
 
         if 'ont_ids' in gs:
             for ont_id in set(gs['ont_ids']):
-                #db.insert_geneset_ontology(
                 gwdb.add_ont_to_geneset(
                     gs['gs_id'], ont_id, 'GeneWeaver Primary Annotation'
                 )

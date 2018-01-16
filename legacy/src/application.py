@@ -37,6 +37,7 @@ from tools import jaccardsimilarityblueprint
 from tools import msetblueprint
 from tools import phenomemapblueprint
 from tools import tricliqueblueprint
+from tools import similargenesetsblueprint
 import sphinxapi
 import search
 import math
@@ -61,6 +62,7 @@ app.register_blueprint(jaccardsimilarityblueprint.jaccardsimilarity_blueprint)
 app.register_blueprint(booleanalgebrablueprint.boolean_algebra_blueprint)
 app.register_blueprint(tricliqueblueprint.triclique_viewer_blueprint)
 app.register_blueprint(msetblueprint.mset_blueprint)
+app.register_blueprint(similargenesetsblueprint.similar_genesets_blueprint)
 
 # *************************************
 
@@ -1219,12 +1221,86 @@ def get_ontology_terms(gsid):
             'reference_id': ont.reference_id, 
             'name': ont.name,
             'dbname': ontdbdict[ont.ontdb_id].name,
-            'ontdb_id': ont.ontdb_id
+            'ontdb_id': ont.ontdb_id,
+            'ont_id': ont.ontology_id
         }
 
         ontret.append(o)
 
     return ontret
+
+
+@app.route('/getGenesetAnnotations.json', methods=['GET'])
+@login_required(json=True)
+def get_geneset_annotations():
+    """
+    Returns a list of terms that have been annotated to the given gene set.
+
+    args
+        request.args['gs_id']: gene set ID to use when retrieving annotations
+
+    returns
+        a list of JSON serialized annotation objects with the following fields:
+
+        {
+            reference_id: the external identifier for the term (e.g. GO:123456)
+            name:         the ontology term name (e.g. death)
+            dbname:       ontology this term comes from (e.g. GO)
+            ontdb_id:     internal GW identifier for the ontology
+            ont_id:       internal GW identifier for this term
+            ref_type:     the type of association that produced this annotation
+        }
+    """
+
+    args = flask.request.args
+
+    if 'gsid' not in args:
+        return flask.jsonify({'error': 'Missing gs_id'})
+
+    gsid = args['gsid']
+    annos = get_ontology_terms(gsid)
+
+    for an in annos:
+        ref_type = geneweaverdb.get_geneset_annotation_reference(
+            gsid, an['ont_id']
+        )
+
+        an['ref_type'] = ref_type
+
+    return flask.jsonify({'annotations': annos})
+
+
+@app.route('/ontologyTermSearch.json', methods=['GET'])
+@login_required(allow_guests=True, json=True)
+def search_ontology_terms():
+    """
+    Returns a list of ontology terms that match a given string typed in by the
+    user. Used for ontology term autocomplete on the edit gene set page.
+    """
+
+    args = flask.request.args
+
+    if 'search' not in args:
+        return flask.json({'error': 'No search text provided', 'terms': []})
+
+    search = args['search']
+    terms = []
+
+    for ont in geneweaverdb.search_ontology_terms(search):
+        ref_id = ont['ont_ref_id']
+        name = ont['ont_name']
+        ontdb_name = ont['ontdb_name']
+
+        terms.append({
+            'label': '%s: %s (%s)' % (ref_id, name, ontdb_name),
+            'value': '',
+            'name': name,
+            'ont_id': ont['ont_id'],
+            'ontdb_name': ontdb_name,
+            'ref_id': ref_id
+        })
+
+    return flask.jsonify({'terms': terms})
 
 
 @app.route('/initOntTree')
@@ -2085,6 +2161,7 @@ def get_geneset_genes():
 
     args = flask.request.args
     gs_id = args['gs_id']
+    total_records = int(args['gs_len'])
 
     if 'order[0][column]' in args:
         orderBy = int(args['order[0][column]'])
@@ -2103,9 +2180,9 @@ def get_geneset_genes():
         session['search'] = args['search[value]']
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    totalRecords = geneweaverdb.get_genecount_in_geneset(gs_id)
-    gene_list = {'aaData': [], 'recordsFiltered': totalRecords, 'iTotalRecords': totalRecords}
     gsvs = geneset.geneset_values
+    # not sure why you have to give datatables both of these as the same value, but that's what it wants...
+    gene_list = {'aaData': [], 'iTotalDisplayRecords': total_records, 'iTotalRecords': total_records}
 
     emphgenes = {}
     emphgeneids = []
@@ -2113,6 +2190,31 @@ def get_geneset_genes():
     emphgenes = geneweaverdb.get_gene_and_species_info_by_user(user_id)
     for row in emphgenes:
         emphgeneids.append(row['ode_gene_id'])
+
+    ## Force linkouts to use gene symbols rather than whatever identifier is
+    ## currently present on the page. First get the gene type list.
+    genetypes = geneweaverdb.get_gene_id_types()
+    genedict = {}
+
+    for gtype in genetypes:
+        genedict[gtype['gdb_name']] = gtype['gdb_id']
+
+    ## The get_geneset_values function requires a session variable (should be
+    ## be updated so this is no longer necessary)
+    if 'extsrc' not in session:
+        alt_gene_id = genedict['Gene Symbol']
+    else:
+        alt_gene_id = session['extsrc']
+
+    session['extsrc'] = genedict['Gene Symbol']
+
+    ## Retrieves the set with symbol identifiers
+    gs = geneweaverdb.get_geneset(gs_id, user_id)
+    symbols = []
+    session['extsrc'] = alt_gene_id
+
+    for gsv in gs.geneset_values:
+        symbols.append(gsv.ode_ref)
 
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
@@ -2139,6 +2241,12 @@ def get_geneset_genes():
             gene.append('Off')
         #'add genes to geneset' checkbox - handled in DOM on page
         gene.append('Null')
+        ## Add the symbol to the list for the linkouts
+        if i < len(symbols):
+            gene.append(symbols[i])
+        else:
+            gene.append(str(gsvs[i].ode_ref))
+
         gene_list['aaData'].append(gene)
 
     return flask.jsonify(gene_list)
@@ -2196,6 +2304,18 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         genedict[gtype['gdb_id']] = gtype['gdb_name']
         genedict[gtype['gdb_name']] = gtype['gdb_id']
 
+    uploaded_as = 'Gene Symbol'
+    gene_type = abs(geneset.gene_id_type)
+
+    ## Get the original identifier type used during the upload of this gene
+    ## set. Normal identifiers are negative, expression platforms are positive.
+    if geneset.gene_id_type < 0:
+        uploaded_as = genedict[gene_type]
+    else:
+        for plat in geneweaverdb.get_microarray_types():
+            if plat['pf_id'] == gene_type:
+                uploaded_as = plat['pf_name']
+
     show_gene_list = True
     # get value for the alt-gene-id column
     # if this is a 'stub' geneset.gene_id_type might not be valid,
@@ -2234,8 +2354,9 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     ## Nothing is ever deleted but that doesn't mean users should be able
     ## to see them. Some sets have a NULL status so that MUST be
     ## checked for, otherwise sad times ahead :(
-    ## allow admins and curators to view deleted sets (like in classic GW)
-    if (not user_info.is_admin and not user_info.is_curator) and\
+    ## allow admins, curators, and gene set owners to view deleted sets 
+    ## (like in classic GW)
+    if (not user_info.is_admin and not user_info.is_curator and user_id != geneset.user_id) and\
        (not geneset or (geneset and geneset.status == 'deleted')):
         return flask.render_template(
             'viewgenesetdetails.html', 
@@ -2288,7 +2409,8 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
         curation_assignment=curation_assignment,
         curator_info=curator_info,
         show_gene_list=show_gene_list,
-        totalGenes=numgenes
+        totalGenes=numgenes,
+        uploaded_as=uploaded_as
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
@@ -2790,6 +2912,19 @@ def render_sim_genesets(gs_id, grp_by):
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
+    ## Checks to see if the jaccard cache has been built for this set, if not
+    ## allows the user to calculate jaccard coefficients for the gene set
+    set_info = geneweaverdb.get_geneset_info(gs_id)
+    sim_status = 0
+
+    ## The cache has never been built
+    if set_info and not set_info.jac_started:
+        sim_status = 1
+
+    ## The cache is currently building
+    elif set_info and set_info.jac_started and not set_info.jac_completed:
+        sim_status = 2
+
     return flask.render_template(
         'similargenesets.html',
         geneset=geneset,
@@ -2799,6 +2934,7 @@ def render_sim_genesets(gs_id, grp_by):
         d3Data=d3Data,
         max=max,
         d3BarChart=d3BarChart,
+        sim_status=sim_status,
         species=species
     )
 
@@ -2829,83 +2965,6 @@ def get_pubmed_data():
                                  pub['pub_year'], pub['pub_month'], pub['pub_abstract']))
 
     return json.dumps(pubmedValues)
-
-
-# @app.route('/getPubmed', methods=['GET', 'POST'])
-# def get_pubmed_data():
-#     pubmedValues = []
-#     http = urllib3.PoolManager()
-#     if flask.request.method == 'GET':
-#         args = flask.request.args
-#         if 'pmid' in args:
-#             pmid = args['pmid']
-#             PM_DATA = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml'
-#             # response = http.urlopen('GET', PM_DATA % (','.join([str(x) for x in pmid]),)).read()
-#             response = http.urlopen('GET', PM_DATA % (pmid), preload_content=False).read()
-#
-#             for match in re.finditer('<PubmedArticle>(.*?)</PubmedArticle>', response, re.S):
-#                 article_ids = {}
-#                 abstract = ''
-#                 fulltext_link = None
-#
-#                 article = match.group(1)
-#                 articleid_matches = re.finditer('<ArticleId IdType="([^"]*)">([^<]*?)</ArticleId>', article, re.S)
-#                 abstract_matches = re.finditer('<AbstractText([^>]*)>([^<]*)</AbstractText>', article, re.S)
-#                 articletitle = re.search('<ArticleTitle[^>]*>([^<]*)</ArticleTitle>', article, re.S).group(1).strip()
-#
-#                 for amatch in articleid_matches:
-#                     article_ids[amatch.group(1).strip()] = amatch.group(2).strip()
-#                 for amatch in abstract_matches:
-#                     abstract += amatch.group(2).strip() + ' '
-#
-#                 if 'pmc' in article_ids:
-#                     fulltext_link = 'http://www.ncbi.nlm.nih.gov/pmc/articles/%s/' % (article_ids['pmc'],)
-#                 elif 'doi' in article_ids:
-#                     fulltext_link = 'http://dx.crossref.org/%s' % (article_ids['doi'],)
-#                 pmid = article_ids['pubmed'].strip()
-#
-#                 author_matches = re.finditer('<Author[^>]*>(.*?)</Author>', article, re.S)
-#                 authors = []
-#                 for match in author_matches:
-#                     name = ''
-#                     try:
-#                         name = re.search('<LastName>([^<]*)</LastName>', match.group(1), re.S).group(1).strip()
-#                         name = name + ' ' + re.search('<Initials>([^<]*)</Initials>', match.group(1), re.S).group(
-#                             1).strip()
-#                     except:
-#                         pass
-#                     authors.append(name)
-#
-#                 authors = ', '.join(authors)
-#                 v = re.search('<Volume>([^<]*)</Volume>', article, re.S)
-#                 if v:
-#                     vol = v.group(1).strip()
-#                 else:
-#                     vol = ''
-#                 p = re.search('<MedlinePgn>([^<]*)</MedlinePgn>', article, re.S)
-#                 if p:
-#                     pages = p.group(1).strip()
-#                 else:
-#                     pages = ''
-#                 pubdate = re.search('<PubDate>.*?<Year>([^<]*)</Year>.*?<Month>([^<]*)</Month>', article, re.S)
-#                 year = pubdate.group(1).strip()
-#                 journal = re.search('<MedlineTA>([^<]*)</MedlineTA>', article, re.S).group(1).strip()
-#                 # year month journal
-#                 tomonthname = {
-#                     '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
-#                     '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
-#                 }
-#                 pm = pubdate.group(2).strip()
-#                 if pm in tomonthname:
-#                     pm = tomonthname[pm]
-#
-#                 pubmedValues.extend((articletitle, authors, journal, vol, pages, year, pm, abstract))
-#
-#         else:
-#             response = 'false'
-#     else:
-#         response = 'false'
-#     return json.dumps(pubmedValues)
 
 
 @app.route('/exportGeneList/<int:gs_id>')
@@ -3119,7 +3178,8 @@ def render_searchFromHome():
     if flask.request.method == 'GET':
         args = flask.request.args
     # pagination_page is a hidden value that indicates which page of results to go to. Start at page one.
-    pagination_page = int(request.args.get('pagination_page'))
+    raw_pagination_page = request.args.get('pagination_page')
+    pagination_page = int(raw_pagination_page) if raw_pagination_page else 1
     # Build a list of search fields selected by the user (checkboxes) passed in as URL parameters
     # Associate the correct fields with each option given by the user
     field_list = {'searchGenesets': False, 'searchGenes': False, 'searchAbstracts': False, 'searchOntologies': False}
@@ -3175,6 +3235,7 @@ def render_searchFromHome():
         field_list=field_list,
         searchFilters=search_values['searchFilters'],
         filterLabels=search_values['filterLabels'],
+        sort_ascending='true',
         species=species,
         attribs=attribs,
         userFilters=default_filters
@@ -3202,7 +3263,8 @@ def render_search_json():
         userValues['pagination_page'], 
         userValues['search_fields'],
         userValues['userFilters'], 
-        userValues['sort_by']
+        userValues['sort_by'],
+        userValues['sort_ascending']
     )
 
     ## Used to dynamically generate species tags
@@ -3221,7 +3283,8 @@ def render_search_json():
         searchFilters=search_values['searchFilters'],
         userFilters=userValues['userFilters'],
         filterLabels=search_values['filterLabels'],
-        sort_by=userValues['sort_by'], 
+        sort_by=userValues['sort_by'],
+        sort_ascending=userValues['sort_ascending'],
         species=species,
         attribs=attribs)
 
@@ -3523,7 +3586,7 @@ def render_share_projects():
     return flask.render_template('share_projects.html', active_tools=active_tools)
 
 @app.route('/mygroupselect')
-@login_required()
+@login_required(allow_guests=True)
 def my_groups_select():
     """
     An endpoint that renders an htmlfragment select element containing the groups the user is a memeber or admin of.
@@ -3534,7 +3597,7 @@ def my_groups_select():
     return flask.render_template('htmlfragments/groupSelect.html', groups=my_groups)
 
 @app.route('/publicgroupsmultiselect')
-@login_required()
+@login_required(allow_guests=True)
 def public_groups_multiselect():
     """
     An endpoint that renders an htmlfragment multiple select containing the public groups the user is not a member of.
@@ -3544,7 +3607,7 @@ def public_groups_multiselect():
     return flask.render_template('htmlfragments/groupsMultiselect.html', groups=public_groups)
 
 @app.route('/projectsmultiselect')
-@login_required()
+@login_required(allow_guests=True)
 def get_projects_multiselect():
     """
     An endpoint that renders a htmlfragment multiple select containing all projects a user is a member of.
@@ -3780,7 +3843,7 @@ def update_geneset_identifier():
         return json.dumps(results)
 
 
-@app.route('/help.html')
+@app.route('/help/')
 def render_help():
     return flask.render_template('help.html')
 

@@ -167,7 +167,7 @@ def get_genesets_for_project(project_id, auth_user_id):
             WHERE
                 -- security check: make sure the authenticated user has the
                 -- right to view the geneset
-                geneset_is_readable(%(auth_user_id)s, gs.gs_id);
+                geneset_is_readable2(%(auth_user_id)s, gs.gs_id);
             ''',
                 {
                     'project_id': project_id,
@@ -486,51 +486,81 @@ def edit_group_name(group_name, group_id, group_private, user_id):
         return {'error': 'User does not have permission'}
 
 
-# adds a user to the group specified.
-# permission should be passed as 0 if it is a normal user
-# permission should be passed as 1 if it is an admin
-# permission is defaulted to 0
 def add_user_to_group(group_id, owner_id, usr_email, permission=0):
+    """
+    Adds a user to a group.
+
+    args
+        group_id:   the grp_id of the group the user is being added to
+        owner_id:   the usr_id of the user that owns the group
+        usr_email:  the email of the user being added to the group
+        permission: flag indicating whether or not the user being added is an
+                    admin. For normal users permission == 0, admins it is == 1.
+
+    returns
+        a dict containing a single field, 'error' that indicates if any errors
+        were encountered while adding the user to the group.
+    """
+
+    usr_email = str(usr_email).lower()
+    email_from_db = ''
+
     with PooledCursor() as cursor:
-        # convert email to lower
-        usr_email = str(usr_email).lower()
-        print usr_email
-        cursor.execute('''SELECT usr_email FROM usr WHERE LOWER(usr_email)=%s''', (usr_email,))
+
+        cursor.execute(
+            '''
+            SELECT  usr_email 
+            FROM    usr 
+            WHERE   LOWER(usr_email) = %s
+            ''', 
+                (usr_email,)
+        )
+
         if cursor.rowcount == 0:
             return {'error': 'No User'}
         else:
-            email_from_db = list(dictify_cursor(cursor))[0]['usr_email']
-            # First check if user is already in group
-            cursor.execute('''SELECT u.usr_id FROM usr u, usr2grp ug WHERE LOWER(u.usr_email)=%s and u.usr_id = ug.usr_id''', (usr_email,))
-            if cursor.rowcount > 0:
-                return {'error': 'Already belongs to group'}
-            else:
-                cursor.execute(
-                        '''
-                    INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
-                    VALUES ((SELECT grp_id
-                             FROM production.usr2grp
-                             WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
-                            (SELECT usr_id
-                             FROM production.usr
-                             WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
-                    RETURNING grp_id;
-                    ''',
-                        (group_id, owner_id, usr_email, permission,)
-                )
-                cursor.connection.commit()
-                # return the primary ID for the insert that we just performed
-                # grp_id = cursor.fetchone()[0]
+            email_from_db = cursor.fetchone()[0]
+        
+        cursor.execute(
+            '''
+            SELECT  u.usr_id 
+            FROM    usr u, usr2grp ug 
+            WHERE   LOWER(u.usr_email) = %s AND 
+                    u.usr_id = ug.usr_id AND
+                    ug.grp_id = %s;
+            ''', (usr_email, group_id)
+        )
 
-                #send user a notification that they have been added to the group
+        if cursor.rowcount > 0:
+            return {'error': 'Already belongs to group'}
 
-                group_name = get_group_name(group_id)
-                owner = get_user(owner_id)
-                owner_name = owner.first_name + " " + owner.last_name
-                notifications.send_usr_notification(email_from_db, "Added to Group",
-                                                    "You have been added to the group {} by {}".format(group_name, owner_name),
-                                                    True)
-                return {'error': 'None'}
+        cursor.execute(
+            '''
+            INSERT INTO production.usr2grp (grp_id, usr_id, u2g_privileges, u2g_status, u2g_created)
+            VALUES ((SELECT grp_id
+                     FROM production.usr2grp
+                     WHERE grp_id = %s AND usr_id = %s AND u2g_privileges = 1),
+                    (SELECT usr_id
+                     FROM production.usr
+                     WHERE LOWER(usr_email) = %s LIMIT 1), %s, 2, now())
+            RETURNING grp_id;
+            ''',
+                (group_id, owner_id, usr_email, permission,)
+        )
+
+        cursor.connection.commit()
+
+        group_name = get_group_name(group_id)
+        owner = get_user(owner_id)
+        owner_name = owner.first_name + " " + owner.last_name
+        notifications.send_usr_notification(
+            email_from_db, 
+            "Added to Group",
+            "You have been added to the group {} by {}".format(group_name, owner_name),
+            True
+        )
+
+        return {'error': 'None'}
 
 
 def remove_user_from_group(group_name, owner_id, usr_email):
@@ -1080,6 +1110,39 @@ def edit_geneset_id_value_by_id(rargs):
                            (gene_id, value, gs_id, gene_old,))
             cursor.connection.commit()
             return
+
+def update_geneset_values(gs_id):
+    '''
+    update file_contents column in file table with values from
+    production.temp_geneset_values data, and run reparse_geneset_values
+    stored procedure to update geneset data
+
+    :param gs_id (geneset id)
+    :return
+
+    '''
+    file_contents = ""
+    with PooledCursor() as cursor:
+        #get the file_id row in file table to update
+        fsql = "select file_id from production.geneset where gs_id = {}".format(gs_id)
+        cursor.execute(fsql)
+        file_id = cursor.fetchone()[0]
+        '''get all gene data from temp_geneset values table and 
+                create a tab delimited string with newline characters
+                for each gene / value pair'''
+        sql = "select src_value, src_id from production.temp_geneset_value where gs_id = {}".format(gs_id)
+        cursor.execute(sql)
+        for row in cursor:
+            file_contents += "{}\t{}\n".format(str(row[1]), row[0])
+        #update the file_contents field in the file table
+        udsql = "update production.file set file_contents = '{}' where file_id={}".format(file_contents, file_id)
+        cursor.execute(udsql)
+        cursor.connection.commit()
+        #run the reparse_geneset_file() stored procedure
+        rgf = "select production.reparse_geneset_file({})".format(gs_id)
+        cursor.execute(rgf)
+        cursor.connection.commit()
+        return
 
 
 def add_geneset_gene_to_temp(rargs):
@@ -2775,6 +2838,17 @@ class Ontologydb:
         self.linkout_url = ontdb_dict['ontdb_linkout_url']
         self.ncbo_vid = ontdb_dict['ontdb_ncbo_vid']
 
+class GenesetInfo:
+    def __init__(self, gi_dict):
+        self.geneset_id = gi_dict['gs_id']
+        self.page_views = gi_dict['gsi_pageviews']
+        self.referers = gi_dict['gsi_referers']
+        self.analyses = gi_dict['gsi_analyses']
+        self.resource_id = gi_dict['gsi_resource_id']
+        self.last_sim = gi_dict['gsi_last_sim']
+        self.last_ann = gi_dict['gsi_last_ann']
+        self.jac_started = gi_dict['gsi_jac_started']
+        self.jac_completed = gi_dict['gsi_jac_completed']
 
 def authenticate_user(email, password):
     """
@@ -3051,7 +3125,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
                         user has read permission, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is None:
         user_id = -1
 
@@ -3065,7 +3139,7 @@ def get_geneset(geneset_id, user_id=None, temp=None):
             LEFT OUTER JOIN publication ON geneset.pub_id = publication.pub_id
             LEFT OUTER JOIN curation_assignments ON geneset.gs_id = curation_assignments.gs_id
             LEFT OUTER JOIN gs_to_pub_assignment ON geneset.gs_id = gs_to_pub_assignment.gs_id
-            WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            WHERE geneset.gs_id=%(geneset_id)s AND geneset_is_readable2(%(user_id)s, %(geneset_id)s);
             ''',
                 {
                     'geneset_id': geneset_id,
@@ -3091,7 +3165,7 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
                         user has read permission, with jac_value, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is 0:
         user_id = -1
 
@@ -3107,29 +3181,32 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
         order_by = ' gs_attribution ASC, '
 
     with PooledCursor() as cursor:
-        # This SQL is a bit sketchy. The old GW code calls for a sorted list of jac and gic values
-        # I have simplified to return the top 150 of left and right ode_gene_ids. Worst case all are from
-        # either partition of the list. I will clean up duplicates in the application.
         cursor.execute(
-                '''SELECT * FROM
-                ((SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
-                    WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
-                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150) UNION
-                (SELECT geneset.*, jac_value, gic_value FROM geneset, geneset_jaccard
-                    WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s)
-                    AND gs_status NOT LIKE 'de%%' ORDER BY jac_value DESC LIMIT 150)) as tmp
-                    ORDER BY ''' + order_by + ''' jac_value DESC;
-            ''',
-                {
-                    'geneset_id': geneset_id,
-                    'user_id': user_id,
-                    'geneset_id': geneset_id,
-                    'geneset_id': geneset_id,
-                    'user_id': user_id,
-                    'geneset_id': geneset_id,
-                }
+            '''SELECT a.* FROM (
+                   (SELECT geneset.*,jac_value,gic_value 
+                       FROM geneset, geneset_jaccard gj
+                       WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s 
+                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                         AND gs_status NOT LIKE 'de%%' 
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                     ) 
+                     UNION
+                   (SELECT geneset.*,jac_value,gic_value 
+                       FROM geneset, geneset_jaccard gj 
+                       WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s 
+                         AND geneset_is_readable(%(user_id)s, gs_id) 
+                         AND gs_status NOT LIKE 'de%%' 
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                     ) 
+                 ) AS a LIMIT 150''',
+            {
+                'geneset_id': geneset_id,
+                'user_id': user_id,
+            }
         )
+
         simgc = [SimGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
+
         return simgc
 
 
@@ -3143,7 +3220,7 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
     """
     gs_ids = []
     gs_ids_clean = []
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is 0:
         user_id = -1
     # print geneset_id
@@ -3155,7 +3232,7 @@ def get_similar_genesets_by_publication(geneset_id, user_id):
             gs_ids.append(r[0])
 
         for gs_id in gs_ids:
-            cursor.execute('''SELECT geneset_is_readable(%s, %s)''', (user_id, gs_id))
+            cursor.execute('''SELECT geneset_is_readable2(%s, %s)''', (user_id, gs_id))
             a = cursor.fetchone()[0]
             if a:
                 gs_ids_clean.append(gs_id)
@@ -3181,7 +3258,7 @@ def get_genesets_for_publication(pub_id, user_id):
     gs_ids_readable = []
     genesets = []
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is 0:
         user_id = -1
 
@@ -3195,7 +3272,7 @@ def get_genesets_for_publication(pub_id, user_id):
 
         # now find out which of those are readable to the user
         for gs_id in gs_ids:
-            cursor.execute('''SELECT geneset_is_readable(%s, %s)''', (user_id, gs_id))
+            cursor.execute('''SELECT geneset_is_readable2(%s, %s)''', (user_id, gs_id))
             a = cursor.fetchone()[0]
             if a:
                 gs_ids_readable.append(gs_id)
@@ -3346,7 +3423,7 @@ def get_geneset_brief(geneset_id, user_id=None):
                         user has read permission, None otherwise
     """
 
-    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable function may be able to handle None
+    # TODO not sure if we really need to convert to -1 here. The geneset_is_readable2 function may be able to handle None
     if user_id is None:
         user_id = -1
 
@@ -3355,7 +3432,7 @@ def get_geneset_brief(geneset_id, user_id=None):
                 '''
             SELECT geneset.cur_id, geneset.sp_id, geneset.gs_abbreviation, geneset.gs_count, geneset.gs_status, geneset.gs_id, geneset.gs_name
             FROM geneset
-            WHERE gs_id=%(geneset_id)s AND geneset_is_readable(%(user_id)s, %(geneset_id)s);
+            WHERE gs_id=%(geneset_id)s AND geneset_is_readable2(%(user_id)s, %(geneset_id)s);
             ''',
                 {
                     'geneset_id': geneset_id,
@@ -3374,7 +3451,7 @@ def get_genesets_by_user_id(user_id):
     """
 
     # TODO not sure if we really need to convert to -1 here. The
-    # geneset_is_readable function may be able to handle None
+    # geneset_is_readable2 function may be able to handle None
     # if user_id is None:
     #	 user_id = -1
 
@@ -3770,17 +3847,14 @@ def get_geneset_values_for_mset_small(pj_tg_id, pj_int_id):
 
 def get_genecount_in_geneset(geneset_id):
     """
-    get a count of total number of genes associated with a geneset. this is used for paging
+    get a count of total number of genes associated with a geneset.
     :param geneset_id:
     :returns count of total genes in geneset
     """
 
-    search = ''
-    if 'search' in session:
-        search = " AND gsv_source_list[1] ~* '{}'".format(session['search'])
+    stmt = '''SELECT count(*) FROM geneset_value WHERE gs_id = {}'''.format(geneset_id)
 
     with PooledCursor() as cursor:
-        stmt = '''SELECT count(*) FROM geneset_value WHERE gs_id = ''' + str(geneset_id) + search
         cursor.execute(stmt)
         return cursor.fetchone()[0]
 
@@ -3805,8 +3879,7 @@ def get_geneset_values(geneset_id):
 
     search = ''
     if 'search' in session:
-        print session['search']
-        search = " AND gsv.gsv_source_list[1] ~* '{}'".format(session['search'])
+        search = " AND g.ode_ref_id ~* '{}'".format(session['search'])
 
     if 'sort' in session:
         d = session['dir']
@@ -3819,9 +3892,12 @@ def get_geneset_values(geneset_id):
         elif session['sort'] == 'alt':
             s = ' ORDER BY g.ode_ref_id ' + d
 
-    ode_ref = '1'
+    sp_id = get_sp_id_by_gsid(geneset_id)[0]['sp_id']
+
+    ode_ref = '7'
     if 'extsrc' in session:
         ode_ref = session['extsrc']
+
 
     with PooledCursor() as cursor:
         cursor.execute('''
@@ -3831,24 +3907,67 @@ def get_geneset_values(geneset_id):
             FROM geneset_value AS gsv
             LEFT OUTER JOIN homology AS h
             ON gsv.ode_gene_id = h.ode_gene_id
+            INNER JOIN homology AS h2
+            ON h.hom_id = h2.hom_id
             INNER JOIN gene_info AS gi
             ON gsv.ode_gene_id = gi.ode_gene_id
             INNER JOIN gene AS g
-            ON gsv.ode_gene_id = g.ode_gene_id
-            WHERE gsv.gs_id = %s ''' + search + ''' AND
+            -- ON gsv.ode_gene_id = g.ode_gene_id
+            ON h2.ode_gene_id = g.ode_gene_id
+            WHERE gsv.gs_id =%s ''' + search + ''' AND
+                  -- This section was added to enhance the coalesce section below. It will not return symbols where
+                  -- there are no available gdb_id, but it will return values from other species. Additional changes
+                  -- include the homology h2 join and the h2.ode_gene_id join instead of the gsv.ode_gene_id
+              g.gdb_id = (SELECT COALESCE (
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+                  ))
+                  
+                  AND CASE WHEN (SELECT sp_id FROM genedb WHERE gdb_id = %s) = 0
+                                        THEN h2.sp_id = %s
+                                        ELSE h2.sp_id = (SELECT sp_id FROM genedb WHERE gdb_id = %s)
+                                        END
                   -- This checks to see if the alternate symbol the user wants to view actually exists
                   -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
                   -- returned then there would be missing genes on the view geneset page.
-                  g.gdb_id = (SELECT COALESCE (
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
-                  ))
+--                   g.gdb_id = (SELECT COALESCE (
+--                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 10 LIMIT 1),
+--                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+--                   ))
                   AND
                   -- When viewing symbols, always pick the preferred gene symbol
                   CASE WHEN g.gdb_id = 7
                   THEN g.ode_pref = 't'
                   ELSE true
-                  END''' + s + limit, (geneset_id, ode_ref))
+                  END''' + s + limit, (geneset_id, ode_ref, ode_ref, sp_id, ode_ref,))
+
+
+
+
+            # SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
+            #        gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
+            #        gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
+            # FROM geneset_value AS gsv
+            # LEFT OUTER JOIN homology AS h
+            # ON gsv.ode_gene_id = h.ode_gene_id
+            # INNER JOIN gene_info AS gi
+            # ON gsv.ode_gene_id = gi.ode_gene_id
+            # INNER JOIN gene AS g
+            # ON gsv.ode_gene_id = g.ode_gene_id
+            # WHERE gsv.gs_id = %s ''' + search + ''' AND
+            #       -- This checks to see if the alternate symbol the user wants to view actually exists
+            #       -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
+            #       -- returned then there would be missing genes on the view geneset page.
+            #       g.gdb_id = (SELECT COALESCE (
+            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
+            #       ))
+            #       AND
+            #       -- When viewing symbols, always pick the preferred gene symbol
+            #       CASE WHEN g.gdb_id = 7
+            #       THEN g.ode_pref = 't'
+            #       ELSE true
+            #       END''' + s + limit, (geneset_id, ode_ref))
 
         return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
@@ -4013,6 +4132,29 @@ def get_sp_id():
         cursor.execute('''SELECT sp_id FROM species WHERE sp_id > 0 ORDER BY sp_id ASC;''')
         sp_id = list(dictify_cursor(cursor))
     return sp_id
+
+def get_sp_id_by_gsid(gs_id):
+    """
+    Returns the sp_id associated with a geneset
+    :param gs_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM geneset WHERE gs_id=%s;''', (gs_id,))
+        sp_id = list(dictify_cursor(cursor))
+    return sp_id
+
+
+def get_gdb_sp(ode_ref):
+    """
+    Returns the sp_id associated with a geneset
+    :param gs_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_id FROM genedb WHERE gdb_id=%s;''', (ode_ref,))
+        gdb_sp = list(dictify_cursor(cursor))
+    return gdb_sp
 
 
 def export_results_by_gs_id(gs_id):
@@ -4297,6 +4439,72 @@ def check_emphasis(gs_id, em_gene):
 
     return inGeneset
 
+
+def get_geneset_info(gs_id):
+    """
+    Retrieves the geneset_info entry for the given gene set ID. If an entry for
+    the gene set does not exist in the geneset_info table, a new one is created
+    and the new instance is returned.
+
+    args
+        gs_id: gene set ID
+
+    returns
+        a GenesetInfo object
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            SELECT  *
+            FROM    production.geneset_info
+            WHERE   gs_id = %s
+            ''',
+                (gs_id,)
+        )
+
+        if not cursor.rowcount:
+            insert_geneset_info(gs_id)
+
+            ## I hope there's no way for this to cause a recursion loop...
+            return get_geneset_info(gs_id)
+
+        else:
+            gi_list = [GenesetInfo(d) for d in dictify_cursor(cursor)]
+
+            if gi_list:
+                return gi_list[0]
+
+            else:
+                return None
+
+
+def insert_geneset_info(gs_id):
+    """
+    Inserts a new entry into the geneset_info table for the given gene set ID.
+    This function does not check to make sure an entry already exists, that is
+    up to the caller.
+
+    args
+        gs_id: gene set ID
+
+    returns
+        a GenesetInfo object
+    """
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            INSERT INTO production.geneset_info (gs_id)
+            VALUES      (%s);
+            ''',
+                (gs_id,)
+        )
+
+        cursor.connection.commit()
+
+
 def insert_omicssoft_metadata(gs_id, project, source, tag, otype):
     """
     Inserts metadata from OmicsSoft gene sets into the special OmicsSoft table.
@@ -4510,13 +4718,11 @@ def insert_geneset_value(gs_id, gene_id, value, name, threshold):
         gene_id:    ode_gene_id
         value:      value associated with this gene
         name:       a gene name or symbol (typically an ode_ref_id)
-        threshold:  a threshold value for the gene set
+        threshold:  boolean indicating if the value is within the threshold
 
     returns
         the gs_id associated with this gene set value
     """
-
-    threshold = 't' if value <= threshold else 'f'
 
     with PooledCursor() as cursor:
 
@@ -4971,6 +5177,33 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
             )
     ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return ontology
+
+
+def search_ontology_terms(search):
+    """
+    Returns a list of ontology terms (as Ontology objects) that match a given
+    search string.
+    """
+
+    with PooledCursor() as cursor:
+        ## Wildcards have to be part of the substituted string or a syntax
+        ## error will get thrown
+        search = '%%' + search + '%%'
+
+        cursor.execute(
+            '''
+            SELECT  *
+            FROM        extsrc.ontology AS o
+            INNER JOIN  odestatic.ontologydb AS odb
+            ON          o.ontdb_id = odb.ontdb_id
+            WHERE       ont_name ILIKE %s OR 
+                        ont_ref_id ILIKE %s
+            LIMIT       30;
+            ''',
+                (search, search)
+        )
+
+        return dictify_cursor(cursor)
 
 
 def get_all_ontologies_by_geneset_and_db(gs_id, ontdb_id):

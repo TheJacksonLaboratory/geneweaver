@@ -15,7 +15,7 @@ var showErrorModal = function(message) {
     $('#showGenericModal').find('.modal-title').html('Error!');
     $('#showGenericModal').find('#genericMessage').html(message);
     $('#showGenericModal').modal('show');
-}
+};
 
 /**
  * Submit the modal information for 'Share w Group' and 'Add t' via AJAX
@@ -56,21 +56,25 @@ var submitGSModalAjax = function(url, data) {
         }
 
     });
-}
+};
 
 /**
  * Open a geneset modal and update selected genesets label
  * @param  {String} modalID     The ID of the modal to open
- * @param  {Object} or {Array}  A collection of genesets to add
+ * @param  {Object} | {Array} genesets  A collection of genesets to add
  *                                if Object, will use keys to build array
  * @param  {String} modalTitle  Title to replace default modal title with
  */
 var openGSModal = function(modalID, genesets, modalTitle) {
     return function() {
+    
+        var modal_genesets;
 
         // If not an array, get gs_ids from Object.keys
         if (!Array.isArray(genesets)){
-            genesets = Object.keys(genesets);
+            modal_genesets = Object.keys(genesets);
+        } else {
+            modal_genesets = genesets;
         }
 
         // Update the modal title if specified
@@ -79,16 +83,16 @@ var openGSModal = function(modalID, genesets, modalTitle) {
         }
 
         // If no genesets selected, display geneneric error modal.
-        if (genesets.length === 0) {
+        if (modal_genesets.length === 0) {
             showErrorModal('You must first select Genesets to add.');
         } else {
-            var gsString = genesets.map(function(s){ return 'GS' + s; }).join(', ');
+            var gsString = modal_genesets.map(function(s){ return 'GS' + s; }).join(', ');
             $(modalID).find(modalID+'-label').html(gsString);
-            $(modalID).find(modalID+'Value').val(genesets.join(','));
+            $(modalID).find(modalID+'Value').val(modal_genesets.join(','));
             $(modalID).modal('show');
         }
     }
-}
+};
 
 /**
  * Collect data from modal for ajax call, or display error if needed
@@ -107,7 +111,7 @@ var submitGSModal = function(modalID, url) {
         var g = $(modalID+'Value').val();
         var npn = null;
 
-        var newNameElement = $(modalID+'NewName')
+        var newNameElement = $(modalID+'NewName');
 
         if (newNameElement.length && newNameElement.val().length > 0) {
             npn = $(modalID+'NewName').val();
@@ -118,8 +122,8 @@ var submitGSModal = function(modalID, url) {
                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                     '</button>No Projects Were Selected</div>');
         } else {
-            var data = {"npn": npn, "gs_id": g, "option": option}
+            var data = {"npn": npn, "gs_id": g, "option": option};
             submitGSModalAjax(url, data);
         }
     }
-}
+};
