@@ -2081,14 +2081,14 @@ def rerun_tool():
     return json.dumps({'tool': tool, 'parameters': params, 'gs_ids': gs_ids})
 
 
-@app.route('/createtempgeneset', methods=["POST", "GET"])
+@app.route('/createtempgeneset_original', methods=["POST"])
 @login_required(json=True)
 def create_geneset_meta():
-    if int(request.args['sp_id']) == 0:
+    if int(request.form['sp_id']) == 0:
         return json.dumps({'error': 'You must select a species.'})
-    if str(request.args['gdb_id']) == '0':
+    if str(request.form['gdb_id']) == '0':
         return json.dumps({'error': 'You must select an identifier.'})
-    results = uploadfiles.create_new_geneset(request.args)
+    results = uploadfiles.create_new_geneset(request.form)
     return json.dumps(results)
 
 
