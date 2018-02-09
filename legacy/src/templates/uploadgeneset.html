@@ -539,8 +539,9 @@
 
                     var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
 
-					fileDisplayArea.innerText = 
-                        "Loaded '" + file.name + "' (" + size + ")";
+					fileDisplayArea.text(
+                        "Loaded '" + file.name + "' (" + size + ")"
+                    );
                     $('#fileContents').val(reader.result);
 				};
 
