@@ -428,6 +428,34 @@
 <script>
     // this script was added to auto-populate the form from Boolean Algebra to make a new geneset
 
+    var autoPopulateFromBoolean = function() {
+
+        var uploadData = '{{tool_data | safe}}';
+
+        if (!uploadData)
+            return;
+
+        var json = JSON.parse(uploadData);
+
+        if (json.tool !== 'boolean')
+            return;
+
+        var genes = json.genes.split(',');
+        var geneText = '';
+
+        for (var i = 0; i < genes.length; i++) {
+
+            geneText += genes[i];
+            geneText += '\t';
+            geneText += '1';
+            geneText += '\n';
+        }
+
+        $('#genesetName').val(json.name);
+        $('#genesetDescription').val(json.description);
+        $('#file_text').val(geneText);
+    };
+
     /*
      * Auto-populates the upload form with geneset title, description, species,
      * gene identifier, and gene list data.
@@ -491,6 +519,7 @@
     $(document).ready(function () {
 
         autoPopulateForm();
+        autoPopulateFromBoolean();
 
         // Color species options
         colorMap = getSpeciesColors({{ all_species | tojson | safe }});

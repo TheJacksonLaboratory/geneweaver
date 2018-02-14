@@ -53,7 +53,8 @@
             </div>
         </div>
         <div class="col-xs-6 col-md-3">
-            <button type="button" class="btn btn-block btn-warning" onclick="addNewGS()" id="addToNewGeneset"
+            <button type="button" class="btn btn-block btn-warning"
+                onclick="newGeneSet()" id="addToNewGeneset"
                     style="margin-bottom: 10px;">
                 <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
             </button>
@@ -510,6 +511,63 @@
     {# Functionality for the "Add to New GeneSets Button.
        All the checked checkboxes are loaded and sent with a Query String
        to the 'Batch Upload Geneset' Page #}
+
+    function newGeneSet() {
+
+        var checkedArray = [];
+        
+        // Retrieves genes that have been check marked
+        $("input:checkbox[name='gsoptions[]']:checked").each(function () {
+            checkedArray.push($(this).val());
+        });
+
+        if (typeof checkedArray != "undefined" && 
+            checkedArray != null && 
+            checkedArray.length > 0) {
+
+            var as = {{ json_results | tojson | safe}};
+            var gsids = as['gsids'];
+            var numGS = as['numGS'];
+            var boolType = as['type'];
+            var name = 'The ' + boolType + ' of ' + numGS + ' GeneSets.';
+            var description = 'The Boolean Algebra tool was used to find ' +
+                'the ' + boolType + ' of ' + numGS + ' sets: ' + 
+                gsids.join(',');
+            var genes = checkedArray;
+
+            var form = $('<form></form>', {
+                id: 'uploadform',
+                name: 'uploadform',
+                method: 'post',
+                action: '/uploadgeneset',
+                target: '_blank',
+                type: 'hidden'
+            });
+
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'name', 
+                value: name
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'description', 
+                value: description
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'genes', 
+                value: genes
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'tool', 
+                value: 'boolean'
+            }));
+
+            form.appendTo('body').submit();
+        }
+    };
 
     function addNewGS() {
 
