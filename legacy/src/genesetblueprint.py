@@ -12,7 +12,6 @@ import curation_assignments
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
 # gets species and gene identifiers for uploadgeneset page
-#@geneset_blueprint.route('/uploadgeneset', methods=['POST', 'GET'])
 @geneset_blueprint.route('/uploadgeneset', methods=['POST', 'GET'])
 @geneset_blueprint.route('/uploadgeneset/<genes>', methods=['POST', 'GET'])
 @login_required()

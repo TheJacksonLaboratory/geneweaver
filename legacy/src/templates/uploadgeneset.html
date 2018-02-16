@@ -428,6 +428,11 @@
 <script>
     // this script was added to auto-populate the form from Boolean Algebra to make a new geneset
 
+    /**
+      * Auto-populates the upload form with geneset title, description, and
+      * gene list data. This occurs only when creating a new gene set from 
+      * the boolean algebra page. 
+      */
     var autoPopulateFromBoolean = function() {
 
         var uploadData = '{{tool_data | safe}}';
@@ -459,9 +464,8 @@
     /*
      * Auto-populates the upload form with geneset title, description, species,
      * gene identifier, and gene list data.
-     * This is done using the boolean algebra tool or the 'add genes to
-     * geneset' function on the view geneset page. If any required
-     * values are missing, auto-population doesn't occur.
+     * This is done using the 'add genes to geneset' function on the view geneset 
+     * page. If any required values are missing, auto-population doesn't occur.
      */
     var autoPopulateForm = function() {
 
