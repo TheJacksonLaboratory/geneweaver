@@ -345,7 +345,7 @@
                     Gene Identifiers <strong>*</strong>:
                 </div>
                 <div class="col-xs-6 col-sm-4">
-                    <select name="gene_identifier" class="form-control" required>
+                    <select id="gene_identifier" name="gene_identifier" class="form-control" required>
                         <option value="0"></option>
                         {% for id in gidts %}
                             {% if id[0] != "MicroArrays" %}
@@ -459,6 +459,11 @@
         $('#genesetName').val(json.name);
         $('#genesetDescription').val(json.description);
         $('#file_text').val(geneText);
+        // If score or gene type IDs ever change, these must be changed too
+        // Binary score type
+        $('#gs_threshold_type').val('3');
+        // Gene identifier type
+        $('#gene_identifier').val('gene_7')
     };
 
     /*
