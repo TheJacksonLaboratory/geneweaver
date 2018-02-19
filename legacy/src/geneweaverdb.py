@@ -2793,7 +2793,8 @@ class Geneset:
     @property
     def geneset_values(self):
         if self.__geneset_values is None:
-            self.__geneset_values = get_geneset_values(self.geneset_id)
+            self.__geneset_values = get_geneset_values2(self.geneset_id)
+            #self.__geneset_values = get_geneset_values(self.geneset_id)
         return self.__geneset_values
 
 
@@ -3858,6 +3859,75 @@ def get_genecount_in_geneset(geneset_id):
         cursor.execute(stmt)
         return cursor.fetchone()[0]
 
+def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort=''):
+    """
+    Updated version of the get_geneset_values function designed to remove
+    dependence on sessionn variables and fix several bugs: 1) genes without
+    homologs don't show up in the gene list, 2) paralogs for all genes show up
+    in the gene list, 3) genes with more than one of the same identifier 
+    types prevent other identifiers from showing up.
+    The original function was a nightmare to debug so this is split into
+    a separate component for retrieving IDs across species.
+    """
+
+    sp_id = get_sp_id_by_gsid(gs_id)[0]['sp_id']
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
+                   gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
+                   gsv.gsv_date, h.hom_id, gi.gene_rank, gsv.ode_ref_id, gsv.gdb_id
+            --
+            -- Use a subquery here so we can prevent duplicate gene identifiers
+            -- of the same type from being returned (the DISTINCT ON section) 
+            -- otherwise when we try to change identifier types from the view 
+            -- GS page, duplicate entries screw things up
+            --
+            FROM (
+                SELECT DISTINCT ON (g.ode_gene_id, g.gdb_id) 
+                        gsv.*, g.ode_ref_id, g.gdb_id, g.ode_pref
+                FROM    geneset_value as gsv, gene as g 
+                WHERE   gsv.gs_id = %s AND 
+                        g.ode_gene_id = gsv.ode_gene_id AND
+                        g.gdb_id = (SELECT COALESCE (
+                            (SELECT gdb_id 
+                             FROM   gene AS g2 
+                             WHERE g2.ode_gene_id = gsv.ode_gene_id AND 
+                                   g2.gdb_id = %s 
+                             LIMIT 1),
+                            (SELECT gdb_id 
+                             FROM   gene AS g2 
+                             WHERE g2.ode_gene_id = gsv.ode_gene_id AND 
+                                   g2.gdb_id = 7 
+                             LIMIT 1)
+                        )) AND
+                        g.ode_ref_id ~* %s AND
+                        --
+                        -- When viewing symbols, always pick the preferred gene symbol
+                        --
+                        CASE 
+                            WHEN g.gdb_id = 7 THEN g.ode_pref = 't'
+                            ELSE true
+                        END
+            ) gsv
+            INNER JOIN  gene_info AS gi
+            ON          gsv.ode_gene_id = gi.ode_gene_id
+            --
+            -- Have to use a left join because some genes may not have homologs
+            --
+            LEFT JOIN   homology AS h
+            ON          gsv.ode_gene_id = h.ode_gene_id
+            ORDER BY 
+                CASE %s
+                    WHEN 'value' THEN gsv.gsv_value :: character varying
+                    WHEN 'alt' THEN gsv.ode_ref_id 
+                    ELSE gsv.gsv_source_list :: character varying
+                END
+            LIMIT %s OFFSET %s
+            ''' + s, (gs_id, gdb_id, search, sort, limit, offset))
+
+        return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 def get_geneset_values(geneset_id):
     """

@@ -2175,7 +2175,7 @@ def get_geneset_genes():
         session['search'] = args['search[value]']
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    gsvs = geneset.geneset_values
+    #gsvs = geneset.geneset_values
     # not sure why you have to give datatables both of these as the same value, but that's what it wants...
     gene_list = {'aaData': [], 'iTotalDisplayRecords': total_records, 'iTotalRecords': total_records}
 
@@ -2202,6 +2202,9 @@ def get_geneset_genes():
         alt_gene_id = session['extsrc']
 
     session['extsrc'] = genedict['Gene Symbol']
+
+    gsvs = geneweaverdb.get_geneset_values2(gs_id, session['extsrc'],
+    session['length'], session['start'], session['search'])
 
     ## Retrieves the set with symbol identifiers
     gs = geneweaverdb.get_geneset(gs_id, user_id)
@@ -3811,9 +3814,13 @@ def update_alternate_gene_symbol():
 
     ## Retrieves the geneset but using the new alternate symbol ID
     gs = geneweaverdb.get_geneset(gs_id, user_id)
+    gsvs = geneweaverdb.get_geneset_values2(
+        gs.geneset_id, session['extsrc'], session['length'], session['start']
+    )
     geneset_values = []
 
-    for gsv in gs.geneset_values:
+    #for gsv in gs.geneset_values:
+    for gsv in gsvs:
         geneset_values.append({'ode_gene_id': gsv.ode_gene_id,
                                'ode_ref_id': gsv.ode_ref,
                                'gdb_id': gsv.gdb_id,
