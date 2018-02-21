@@ -592,14 +592,15 @@
 		});
 
         $('#file_text').keyup(function(e) {
-            var tval = $('textarea').val(),
+            var tval = $('#file_text').val(),
                 tlength = tval.length;
                 warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
                            '<a href=/batchupload> Batch Upload Page </a>.';
             if (tlength >= 5000){
+                $(document).trigger("clear-alerts");
                 $(document).trigger("set-alert-id-genelist", [{
                             'message': warnMesg,
-                            'priority': 'warn',
+                            'priority': 'warning',
                             'fade': 0
                         }]);
             } else {
