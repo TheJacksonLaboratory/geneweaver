@@ -3188,7 +3188,7 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
                        WHERE gs_id=gs_id_right AND gs_id_left=%(geneset_id)s 
                          AND geneset_is_readable(%(user_id)s, gs_id) 
                          AND gs_status NOT LIKE 'de%%' 
-                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 250
                      ) 
                      UNION
                    (SELECT geneset.*,jac_value,gic_value 
@@ -3196,9 +3196,9 @@ def get_similar_genesets(geneset_id, user_id, grp_by):
                        WHERE gs_id=gs_id_left AND gs_id_right=%(geneset_id)s 
                          AND geneset_is_readable(%(user_id)s, gs_id) 
                          AND gs_status NOT LIKE 'de%%' 
-                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 150
+                           ORDER BY ''' + order_by + ''' gj.jac_value DESC LIMIT 250
                      ) 
-                 ) AS a LIMIT 150''',
+                 ) AS a ORDER BY a.jac_value DESC LIMIT 250''',
             {
                 'geneset_id': geneset_id,
                 'user_id': user_id,
