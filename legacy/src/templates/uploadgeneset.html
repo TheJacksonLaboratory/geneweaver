@@ -317,6 +317,8 @@
             </h2>
         </div>
 
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="genelist" data-fade="10000"></div>
+
         <div style="margin-left: 1em;">
             <br>
             <div class="row">
@@ -588,6 +590,22 @@
 				fileDisplayArea.innerText = "File not supported!";
 			}
 		});
+
+        $('#file_text').keyup(function(e) {
+            var tval = $('textarea').val(),
+                tlength = tval.length;
+                warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
+                           '<a href=/batchupload> Batch Upload Page </a>.';
+            if (tlength >= 5000){
+                $(document).trigger("set-alert-id-genelist", [{
+                            'message': warnMesg,
+                            'priority': 'warn',
+                            'fade': 0
+                        }]);
+            } else {
+                $(document).trigger("clear-alerts");
+            }
+        });
 
         /**
           * Function used to submit the contents of the gene set upload form to
