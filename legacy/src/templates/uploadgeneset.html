@@ -593,7 +593,7 @@
 
         $('#file_text').keyup(function(e) {
             var tval = $('#file_text').val(),
-                tlength = tval.length;
+                tlength = tval.split("\n").length;
                 warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
                            '<a href=/batchupload> Batch Upload Page </a>.';
             if (tlength >= 5000){
