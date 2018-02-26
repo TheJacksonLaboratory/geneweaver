@@ -3859,6 +3859,42 @@ def get_genecount_in_geneset(geneset_id):
         cursor.execute(stmt)
         return cursor.fetchone()[0]
 
+def get_gene_homolog_ids(ode_gene_ids, gdb_id):
+    """
+    Maps genes in a given gene set to their homolog IDs, then uses those
+    homolog IDs to retrieve MOD gene identifiers for another species.
+    Used when for e.g. a user is viewing a human gene set but wants to see
+    equivalent genes using MGI or ZFIN identifiers.
+
+    arguments
+        gsid
+
+    returns
+    """
+
+    ode_gene_ids = tuple(ode_gene_ids)
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT      h.ode_gene_id, g.ode_ref_id 
+            FROM        homology AS h 
+            INNER JOIN  homology AS h2 
+            ON          h.hom_id = h2.hom_id 
+            INNER JOIN  gene AS g
+            ON          g.ode_gene_id = h2.ode_gene_id 
+            WHERE       h.ode_gene_id in %s AND
+                        g.gdb_id = %s;
+            ''', (ode_gene_ids, gdb_id)
+        )
+
+        ode2ref = {}
+
+        for row in cursor.fetchall():
+            ode2ref[row[0]] = row[1]
+
+        return ode2ref
+
 def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort=''):
     """
     Updated version of the get_geneset_values function designed to remove
@@ -3871,6 +3907,15 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
     """
 
     sp_id = get_sp_id_by_gsid(gs_id)[0]['sp_id']
+    ## stupid return value for this function needs to be changed
+    gdb_spid = get_gdb_sp(gdb_id)[0]['sp_id']
+
+    ## The user wants to convert identifiers to another species' MOD IDs. We
+    ## temporarily set gdb_id to symbols (7) otherwise the query below won't 
+    ## return anything since the original gdb_id is for a different species
+    if gdb_spid != 0 and gdb_spid != sp_id:
+        original_gdb_id = gdb_id
+        gdb_id = 7
 
     with PooledCursor() as cursor:
         cursor.execute(
@@ -3902,7 +3947,16 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
                                    g2.gdb_id = 7 
                              LIMIT 1)
                         )) AND
-                        g.ode_ref_id ~* %s AND
+
+                        --
+                        -- When the user provides a gene to search for in the
+                        -- gene list. If no search query is provided, skip it.
+                        --
+                        CASE %s
+                            WHEN '' THEN true
+                            ELSE g.ode_ref_id ~* %s 
+                        END AND
+ 
                         --
                         -- When viewing symbols, always pick the preferred gene symbol
                         --
@@ -3925,9 +3979,24 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
                     ELSE gsv.gsv_source_list :: character varying
                 END
             LIMIT %s OFFSET %s
-            ''' + s, (gs_id, gdb_id, search, sort, limit, offset))
+            ''', (gs_id, gdb_id, search, search, sort, limit, offset))
 
-        return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+        gsvs = [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+        if gdb_spid != 0 and gdb_spid != sp_id:
+            ode2ref = get_gene_homolog_ids(
+                map(lambda v: v.ode_gene_id, gsvs), original_gdb_id
+            )
+            for gsv in gsvs:
+                if gsv.ode_gene_id in ode2ref:
+                    gsv.ode_ref = ode2ref[gsv.ode_gene_id]
+                else:
+                    gsv.ode_ref = 'None'
+
+                gsv.gdb_id = original_gdb_id
+
+        return gsvs
+        #return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 def get_geneset_values(geneset_id):
     """
