@@ -442,7 +442,7 @@
 
         var json = JSON.parse(uploadData);
 
-        if (json.tool !== 'boolean')
+        if (json.tool !== 'boolean' && json.tool != 'abba')
             return;
 
         var genes = json.genes.split(',');

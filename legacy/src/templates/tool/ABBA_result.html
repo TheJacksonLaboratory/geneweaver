@@ -917,7 +917,6 @@
                 var filtInputGenes = [];
                 var geneSpecies = null;
 
-                console.log(inputGenes);
                 for (var i = 0; i < inputGenes.length; i++) {
 
                     var gene = inputGenes[i];
@@ -925,39 +924,57 @@
                     if (geneSpecies === null)
                         geneSpecies = gene[2];
 
-                    console.log(gene[2]);
-                    console.log(geneSpecies);
                     if (gene[2] !== geneSpecies)
                         continue
 
                     filtInputGenes.push(gene[1]);
                 }
 
-                // The 1? is added so the entire string will appear in
-                // window.location.search. Without the 1? The string is
-                // truncated and missing the first sentence.
-                var getStr = '1?abba?' +
-                    'Genes found during a graph walk of GeneWeaver gene sets?' +
-                    'Top ' + checkedArray.length + ' genes from the result ' +
-                    'of an ABBA gene search. The search was performed using ' + 
-                    inputSpecies.join(', ') + ' as the input species and ' + 
-                    'seeded using the following genes: ' +  
-                    filtInputGenes.join(', ')
-                    ;
+                var name = 'Genes found during a graph walk of GeneWeaver ' + 
+                    'GeneSets';
+                var description = 'Top ' + checkedArray.length + ' genes ' + 
+                    'from the result of an ABBA gene search. The search was ' +
+                    'performed using ' + inputSpecies.join(', ') + ' as the ' +
+                    'input species and seeded using the following genes: ' + 
+                    filtInputGenes.join(', ');
+                var genes = checkedArray;
 
-                // add in all the checked boxes gene names
-                checkedArray.forEach(function (entry) {
-                    getStr += "?";
-                    getStr += entry;
-                    getStr += "?";
-                    getStr += "1";
+                // Generates a hidden form that is used to submit data to the
+                // upload page
+                var form = $('<form></form>', {
+                    id: 'uploadform',
+                    name: 'uploadform',
+                    method: 'post',
+                    action: '/uploadgeneset',
+                    target: '_blank',
+                    type: 'hidden'
                 });
 
-                // Load the new page with the extra url bit
-                window.open('/uploadgeneset/' + getStr, '_blank');
-            }
-            else {
-                window.alert("No checkboxes selected.")
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'name', 
+                    value: name
+                }));
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'description', 
+                    value: description
+                }));
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'genes', 
+                    value: genes
+                }));
+                form.append($('<input>', {
+                    type: 'hidden', 
+                    name: 'tool', 
+                    value: 'abba'
+                }));
+
+                form.appendTo('body').submit();
+
+            } else {
+                window.alert("No genes were selected selected.")
             }
         });
 
