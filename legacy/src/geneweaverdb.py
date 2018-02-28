@@ -3895,7 +3895,9 @@ def get_gene_homolog_ids(ode_gene_ids, gdb_id):
 
         return ode2ref
 
-def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort=''):
+def get_geneset_values2(
+    gs_id, gdb_id='7', limit=50, offset=0, search='', sort='', direct='asc'
+):
     """
     Updated version of the get_geneset_values function designed to remove
     dependence on sessionn variables and fix several bugs: 1) genes without
@@ -3917,13 +3919,14 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
         original_gdb_id = gdb_id
         gdb_id = 7
 
-    d = session['dir']
     with PooledCursor() as cursor:
         cursor.execute(
             '''
             SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
-                   gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
-                   gsv.gsv_date, h.hom_id, gi.gene_rank, gsv.ode_ref_id, gsv.gdb_id
+                   gsv.gsv_source_list, gsv.gsv_value_list, 
+                   gsv.gsv_in_threshold, gsv.gsv_date, h.hom_id, gi.gene_rank,
+                   gsv.ode_ref_id, gsv.gdb_id
+                   
             --
             -- Use a subquery here so we can prevent duplicate gene identifiers
             -- of the same type from being returned (the DISTINCT ON section) 
@@ -3966,8 +3969,13 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
                             ELSE true
                         END
             ) gsv
+
+            --
+            -- gene_info necessary for the priority scores
+            --
             INNER JOIN  gene_info AS gi
             ON          gsv.ode_gene_id = gi.ode_gene_id
+
             --
             -- Have to use a left join because some genes may not have homologs
             --
@@ -3991,14 +3999,19 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
                 ELSE ''
                 END desc
             LIMIT %s OFFSET %s
-            ''', (gs_id, gdb_id, search, search, d, sort, d, sort, limit, offset))
+            ''', 
+            (gs_id, gdb_id, search, search, direct, sort, direct, sort, limit, offset)
+        )
 
         gsvs = [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
+        ## We are converting IDs from this set to identifiers belonging to a
+        ## separate species. e.g. human symbols to MGI IDs
         if gdb_spid != 0 and gdb_spid != sp_id:
             ode2ref = get_gene_homolog_ids(
                 map(lambda v: v.ode_gene_id, gsvs), original_gdb_id
             )
+
             for gsv in gsvs:
                 if gsv.ode_gene_id in ode2ref:
                     gsv.ode_ref = ode2ref[gsv.ode_gene_id]
