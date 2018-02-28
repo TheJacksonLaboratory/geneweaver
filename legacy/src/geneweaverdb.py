@@ -3917,6 +3917,7 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
         original_gdb_id = gdb_id
         gdb_id = 7
 
+    d = session['dir']
     with PooledCursor() as cursor:
         cursor.execute(
             '''
@@ -3973,13 +3974,24 @@ def get_geneset_values2(gs_id, gdb_id='7', limit=50, offset=0, search='', sort='
             LEFT JOIN   homology AS h
             ON          gsv.ode_gene_id = h.ode_gene_id
             ORDER BY 
-                CASE %s
-                    WHEN 'value' THEN gsv.gsv_value :: character varying
-                    WHEN 'alt' THEN gsv.ode_ref_id 
-                    ELSE gsv.gsv_source_list :: character varying
-                END
+                CASE WHEN %s = 'asc' THEN
+                    CASE %s
+                        WHEN 'value' THEN gsv.gsv_value :: character varying
+                        WHEN 'alt' THEN gsv.ode_ref_id 
+                        ELSE gsv.gsv_source_list :: character varying
+                    END
+                ELSE ''
+                END asc,
+                CASE WHEN %s = 'desc' THEN
+                    CASE %s
+                        WHEN 'value' THEN gsv.gsv_value :: character varying
+                        WHEN 'alt' THEN gsv.ode_ref_id 
+                        ELSE gsv.gsv_source_list :: character varying
+                    END
+                ELSE ''
+                END desc
             LIMIT %s OFFSET %s
-            ''', (gs_id, gdb_id, search, search, sort, limit, offset))
+            ''', (gs_id, gdb_id, search, search, d, sort, d, sort, limit, offset))
 
         gsvs = [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 

@@ -2204,7 +2204,7 @@ def get_geneset_genes():
     session['extsrc'] = genedict['Gene Symbol']
 
     gsvs = geneweaverdb.get_geneset_values2(gs_id, alt_gene_id,
-    session['length'], session['start'], session['search'])
+    session['length'], session['start'], session['search'], session['sort'])
 
     ## Retrieves the set with symbol identifiers
     gs = geneweaverdb.get_geneset(gs_id, user_id)
