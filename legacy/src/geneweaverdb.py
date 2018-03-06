@@ -3858,118 +3858,193 @@ def get_genecount_in_geneset(geneset_id):
         cursor.execute(stmt)
         return cursor.fetchone()[0]
 
-
-def get_geneset_values(geneset_id):
+def get_gene_homolog_ids(ode_gene_ids, gdb_id):
     """
-    This geneset value query has been augmented to return a list of sp_ids that can be used
-    on the geneset information page.
-    Also, augmented to add a session call for sorting
-    :param geneset_id:
-    :returns to geneset class.
+    Maps genes in a given gene set to their homolog IDs, then uses those
+    homolog IDs to retrieve MOD gene identifiers for another species.
+    Used when for e.g. a user is viewing a human gene set but wants to see
+    equivalent genes using MGI or ZFIN identifiers.
+
+    arguments
+        ode_gene_ids:   list of ode_gene_ids in the gene set
+        gdb_id:         ID of the different gene type the user wants to see
+
+    returns
+        a mapping of ode_gene_ids to ode_ref_ids. 
+        The ode_gene_ids in this case are the originals provided in the first 
+        argument of this function. The ode_ref_ids are the reference IDs to
+        some other MOD, mapped across species.
     """
-    s = ' ORDER BY gsv.gs_id ASC'
 
-    limit = " LIMIT 50"
-
-    if 'length' in session:
-        limit = " LIMIT " + session['length']
-
-    if 'start' in session:
-        limit = limit + " OFFSET " + session['start']
-
-    search = ''
-    if 'search' in session:
-        search = " AND g.ode_ref_id ~* '{}'".format(session['search'])
-
-    if 'sort' in session:
-        d = session['dir']
-        if session['sort'] == 'value':
-            s = ' ORDER BY gsv.gsv_value ' + d
-        elif session['sort'] == 'priority':
-            s = ' ORDER BY gi.gene_rank ' + d
-        elif session['sort'] == 'symbol':
-            s = ' ORDER BY gsv.gsv_source_list ' + d
-        elif session['sort'] == 'alt':
-            s = ' ORDER BY g.ode_ref_id ' + d
-
-    sp_id = get_sp_id_by_gsid(geneset_id)[0]['sp_id']
-
-    ode_ref = '7'
-    if 'extsrc' in session:
-        ode_ref = session['extsrc']
-
+    ode_gene_ids = tuple(ode_gene_ids)
 
     with PooledCursor() as cursor:
-        cursor.execute('''
+        cursor.execute(
+            '''
+            SELECT      h.ode_gene_id, g.ode_ref_id 
+            FROM        homology AS h 
+            INNER JOIN  homology AS h2 
+            ON          h.hom_id = h2.hom_id 
+            INNER JOIN  gene AS g
+            ON          g.ode_gene_id = h2.ode_gene_id 
+            WHERE       h.ode_gene_id in %s AND
+                        g.gdb_id = %s;
+            ''', (ode_gene_ids, gdb_id)
+        )
+
+        ode2ref = {}
+
+        for row in cursor.fetchall():
+            ode2ref[row[0]] = row[1]
+
+        return ode2ref
+
+def get_geneset_values(
+    gs_id, gdb_id='7', limit=50, offset=0, search='', sort='', direct='asc'
+):
+    """
+    Retrieves the list of gene set values for the given gene set.
+    Updated version of the get_geneset_values function designed to remove
+    dependence on session variables and fix several bugs: 1) genes without
+    homologs don't show up in the gene list, 2) paralogs for all genes show up
+    in the gene list, 3) genes with more than one of the same identifier 
+    types prevent other identifiers from showing up.
+    The original function was a nightmare to debug so this is split into
+    a separate component for retrieving IDs across species.
+
+    arguments
+        gs_id:  gene set ID for the values being retrieved
+        gdb_id: gene type (genedb) ID to use when retrieving gene set genes
+        limit:  number of rows to return
+        offset: used in conjuction w/ limit to paginate the returned results
+        search: gene symbol string to filter results with
+        sort:   string specifying how the results should be sorted, this can be
+                one of several values:
+                    value:  sort by the gene score
+                    alt:    sort by the currently displayed gene identifier
+                    otherwise the default sort is the originally uploaded gene
+                    identifier
+        direct: specifies the direction of the sort, either 'asc' or 'desc'
+
+    returns
+        a list of GenesetValue objects
+    """
+
+    sp_id = get_sp_id_by_gsid(gs_id)[0]['sp_id']
+    ## stupid return value for this function needs to be changed
+    gdb_spid = get_gdb_sp(gdb_id)[0]['sp_id']
+
+    ## The user wants to convert identifiers to another species' MOD IDs. We
+    ## temporarily set gdb_id to symbols (7) otherwise the query below won't 
+    ## return anything since the original gdb_id is for a different species
+    if gdb_spid != 0 and gdb_spid != sp_id:
+        original_gdb_id = gdb_id
+        gdb_id = 7
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
             SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
-                   gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
-                   gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
-            FROM geneset_value AS gsv
-            LEFT OUTER JOIN homology AS h
-            ON gsv.ode_gene_id = h.ode_gene_id
-            INNER JOIN homology AS h2
-            ON h.hom_id = h2.hom_id
-            INNER JOIN gene_info AS gi
-            ON gsv.ode_gene_id = gi.ode_gene_id
-            INNER JOIN gene AS g
-            -- ON gsv.ode_gene_id = g.ode_gene_id
-            ON h2.ode_gene_id = g.ode_gene_id
-            WHERE gsv.gs_id =%s ''' + search + ''' AND
-                  -- This section was added to enhance the coalesce section below. It will not return symbols where
-                  -- there are no available gdb_id, but it will return values from other species. Additional changes
-                  -- include the homology h2 join and the h2.ode_gene_id join instead of the gsv.ode_gene_id
-              g.gdb_id = (SELECT COALESCE (
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
-                    (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = h2.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
-                  ))
-                  
-                  AND CASE WHEN (SELECT sp_id FROM genedb WHERE gdb_id = %s) = 0
-                                        THEN h2.sp_id = %s
-                                        ELSE h2.sp_id = (SELECT sp_id FROM genedb WHERE gdb_id = %s)
-                                        END
-                  -- This checks to see if the alternate symbol the user wants to view actually exists
-                  -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
-                  -- returned then there would be missing genes on the view geneset page.
---                   g.gdb_id = (SELECT COALESCE (
---                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 10 LIMIT 1),
---                     (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
---                   ))
-                  AND
-                  -- When viewing symbols, always pick the preferred gene symbol
-                  CASE WHEN g.gdb_id = 7
-                  THEN g.ode_pref = 't'
-                  ELSE true
-                  END''' + s + limit, (geneset_id, ode_ref, ode_ref, sp_id, ode_ref,))
+                   gsv.gsv_source_list, gsv.gsv_value_list, 
+                   gsv.gsv_in_threshold, gsv.gsv_date, h.hom_id, gi.gene_rank,
+                   gsv.ode_ref_id, gsv.gdb_id
+                   
+            --
+            -- Use a subquery here so we can prevent duplicate gene identifiers
+            -- of the same type from being returned (the DISTINCT ON section) 
+            -- otherwise when we try to change identifier types from the view 
+            -- GS page, duplicate entries screw things up
+            --
+            FROM (
+                SELECT DISTINCT ON (g.ode_gene_id, g.gdb_id) 
+                        gsv.*, g.ode_ref_id, g.gdb_id, g.ode_pref
+                FROM    geneset_value as gsv, gene as g 
+                WHERE   gsv.gs_id = %s AND 
+                        g.ode_gene_id = gsv.ode_gene_id AND
+                        g.gdb_id = (SELECT COALESCE (
+                            (SELECT gdb_id 
+                             FROM   gene AS g2 
+                             WHERE g2.ode_gene_id = gsv.ode_gene_id AND 
+                                   g2.gdb_id = %s 
+                             LIMIT 1),
+                            (SELECT gdb_id 
+                             FROM   gene AS g2 
+                             WHERE g2.ode_gene_id = gsv.ode_gene_id AND 
+                                   g2.gdb_id = 7 
+                             LIMIT 1)
+                        )) AND
 
+                        --
+                        -- When the user provides a gene to search for in the
+                        -- gene list. If no search query is provided, skip it.
+                        --
+                        CASE %s
+                            WHEN '' THEN true
+                            ELSE g.ode_ref_id ~* %s 
+                        END AND
+ 
+                        --
+                        -- When viewing symbols, always pick the preferred gene symbol
+                        --
+                        CASE 
+                            WHEN g.gdb_id = 7 THEN g.ode_pref = 't'
+                            ELSE true
+                        END
+            ) gsv
 
+            --
+            -- gene_info necessary for the priority scores
+            --
+            INNER JOIN  gene_info AS gi
+            ON          gsv.ode_gene_id = gi.ode_gene_id
 
+            --
+            -- Have to use a left join because some genes may not have homologs
+            --
+            LEFT JOIN   homology AS h
+            ON          gsv.ode_gene_id = h.ode_gene_id
+            ORDER BY 
+                CASE WHEN %s = 'asc' THEN
+                    CASE %s
+                        WHEN 'value' THEN gsv.gsv_value :: character varying
+                        WHEN 'alt' THEN gsv.ode_ref_id 
+                        ELSE gsv.gsv_source_list :: character varying
+                    END
+                ELSE ''
+                END asc,
+                CASE WHEN %s = 'desc' THEN
+                    CASE %s
+                        WHEN 'value' THEN gsv.gsv_value :: character varying
+                        WHEN 'alt' THEN gsv.ode_ref_id 
+                        ELSE gsv.gsv_source_list :: character varying
+                    END
+                ELSE ''
+                END desc
+            LIMIT %s OFFSET %s
+            ''', 
+            (gs_id, gdb_id, search, search, direct, sort, direct, sort, limit, offset)
+        )
 
-            # SELECT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
-            #        gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
-            #        gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
-            # FROM geneset_value AS gsv
-            # LEFT OUTER JOIN homology AS h
-            # ON gsv.ode_gene_id = h.ode_gene_id
-            # INNER JOIN gene_info AS gi
-            # ON gsv.ode_gene_id = gi.ode_gene_id
-            # INNER JOIN gene AS g
-            # ON gsv.ode_gene_id = g.ode_gene_id
-            # WHERE gsv.gs_id = %s ''' + search + ''' AND
-            #       -- This checks to see if the alternate symbol the user wants to view actually exists
-            #       -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
-            #       -- returned then there would be missing genes on the view geneset page.
-            #       g.gdb_id = (SELECT COALESCE (
-            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
-            #         (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)
-            #       ))
-            #       AND
-            #       -- When viewing symbols, always pick the preferred gene symbol
-            #       CASE WHEN g.gdb_id = 7
-            #       THEN g.ode_pref = 't'
-            #       ELSE true
-            #       END''' + s + limit, (geneset_id, ode_ref))
+        gsvs = [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
-        return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+        ## We are converting IDs from this set to identifiers belonging to a
+        ## separate species. e.g. human symbols to MGI IDs
+        if gdb_spid != 0 and gdb_spid != sp_id:
+            ode2ref = get_gene_homolog_ids(
+                map(lambda v: v.ode_gene_id, gsvs), original_gdb_id
+            )
+
+            for gsv in gsvs:
+                if gsv.ode_gene_id in ode2ref:
+                    gsv.ode_ref = ode2ref[gsv.ode_gene_id]
+                else:
+                    gsv.ode_ref = 'None'
+
+                gsv.gdb_id = original_gdb_id
+
+        return gsvs
+        #return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
 
 class ToolParam:
     def __init__(self, tool_param_dict):
