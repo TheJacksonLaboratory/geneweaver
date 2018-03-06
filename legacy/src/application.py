@@ -2170,7 +2170,7 @@ def get_geneset_genes():
     if 'length' in args:
         session['length'] = args['length']
     else:
-        session['length'] = 25
+        session['length'] = 50
 
     if 'start' in args:
         start = args['start']
@@ -3833,7 +3833,7 @@ def update_alternate_gene_symbol():
     if 'dir' not in session:
         session['dir'] = 'ASC'
     if 'length' not in session:
-        session['length'] = 25
+        session['length'] = 50
     if 'start' not in session:
         session['start'] = 0
     if 'search' not in session:
