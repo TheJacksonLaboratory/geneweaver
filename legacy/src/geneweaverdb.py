@@ -3941,6 +3941,18 @@ def get_geneset_values(
         original_gdb_id = gdb_id
         gdb_id = 7
 
+    ## Not supposed to do this 'cause potential SQL injection vector but 
+    ## ORDER BY CASE doesn't work with mixed types (varchar and int in our
+    ## case)
+    if sort == 'value':
+        sort = 'gsv.gsv_value'
+    elif sort == 'alt':
+        sort = 'gsv.ode_ref_id'
+    elif sort == 'priority':
+        sort = 'gi.gene_rank'
+    else:
+        sort = 'gsv.gsv_source_list'
+
     with PooledCursor() as cursor:
         cursor.execute(
             '''
@@ -4004,25 +4016,31 @@ def get_geneset_values(
             LEFT JOIN   homology AS h
             ON          gsv.ode_gene_id = h.ode_gene_id
             ORDER BY 
-                CASE WHEN %s = 'asc' THEN
-                    CASE %s
-                        WHEN 'value' THEN gsv.gsv_value :: character varying
-                        WHEN 'alt' THEN gsv.ode_ref_id 
-                        ELSE gsv.gsv_source_list :: character varying
-                    END
-                ELSE ''
-                END asc,
-                CASE WHEN %s = 'desc' THEN
-                    CASE %s
-                        WHEN 'value' THEN gsv.gsv_value :: character varying
-                        WHEN 'alt' THEN gsv.ode_ref_id 
-                        ELSE gsv.gsv_source_list :: character varying
-                    END
-                ELSE ''
-                END desc
+            ''' + sort + ' ' + direct +
+            '''
             LIMIT %s OFFSET %s
-            ''', 
-            (gs_id, gdb_id, search, search, direct, sort, direct, sort, limit, offset)
+            ''',
+            (gs_id, gdb_id, search, search, limit, offset)
+            #ORDER BY 
+            #    CASE WHEN %s = 'asc' THEN
+            #        CASE %s
+            #            WHEN 'value' THEN gsv.gsv_value :: character varying
+            #            WHEN 'alt' THEN gsv.ode_ref_id 
+            #            ELSE gsv.gsv_source_list :: character varying
+            #        END
+            #    ELSE ''
+            #    END asc,
+            #    CASE WHEN %s = 'desc' THEN
+            #        CASE %s
+            #            WHEN 'value' THEN gsv.gsv_value :: character varying
+            #            WHEN 'alt' THEN gsv.ode_ref_id 
+            #            ELSE gsv.gsv_source_list :: character varying
+            #        END
+            #    ELSE ''
+            #    END desc
+            #LIMIT %s OFFSET %s
+            #''', 
+            #(gs_id, gdb_id, search, search, direct, sort, direct, sort, limit, offset)
         )
 
         gsvs = [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
