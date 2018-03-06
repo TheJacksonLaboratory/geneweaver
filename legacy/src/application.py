@@ -2163,16 +2163,25 @@ def get_geneset_genes():
         columns = ['symbol', 'alt', '', 'value', 'priority']
         session['sort'] = columns[orderBy]
         session['dir'] = args['order[0][dir]']
+    else:
+        session['sort'] = ''
+        session['dir'] = 'ASC'
 
     if 'length' in args:
         session['length'] = args['length']
+    else:
+        session['length'] = 25
 
     if 'start' in args:
         start = args['start']
         session['start'] = start
+    else:
+        session['start'] = 0
 
     if 'search[value]' in args:
         session['search'] = args['search[value]']
+    else:
+        session['search'] = ''
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     #gsvs = geneset.geneset_values
@@ -3818,6 +3827,17 @@ def update_alternate_gene_symbol():
     else:
         session['extsrc'] = 1
         alt_gene_id = session['extsrc']
+
+    if 'sort' not in session:
+        session['sort'] = ''
+    if 'dir' not in session:
+        session['dir'] = 'ASC'
+    if 'length' not in session:
+        session['length'] = 25
+    if 'start' not in session:
+        session['start'] = 0
+    if 'search' not in session:
+        session['search'] = ''
 
     ## Retrieves the geneset but using the new alternate symbol ID
     gs = geneweaverdb.get_geneset(gs_id, user_id)
