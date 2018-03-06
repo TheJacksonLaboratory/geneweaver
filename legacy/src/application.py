@@ -2203,7 +2203,7 @@ def get_geneset_genes():
 
     session['extsrc'] = genedict['Gene Symbol']
 
-    gsvs = geneweaverdb.get_geneset_values2(gs_id, alt_gene_id,
+    gsvs = geneweaverdb.get_geneset_values(gs_id, alt_gene_id,
     session['length'], session['start'], session['search'], session['sort'])
 
     ## Retrieves the set with symbol identifiers
@@ -3814,7 +3814,7 @@ def update_alternate_gene_symbol():
 
     ## Retrieves the geneset but using the new alternate symbol ID
     gs = geneweaverdb.get_geneset(gs_id, user_id)
-    gsvs = geneweaverdb.get_geneset_values2(
+    gsvs = geneweaverdb.get_geneset_values(
         gs.geneset_id, session['extsrc'], session['length'], session['start']
     )
     geneset_values = []
