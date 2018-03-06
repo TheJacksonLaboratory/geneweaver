@@ -2793,8 +2793,7 @@ class Geneset:
     @property
     def geneset_values(self):
         if self.__geneset_values is None:
-            self.__geneset_values = get_geneset_values2(self.geneset_id)
-            #self.__geneset_values = get_geneset_values(self.geneset_id)
+            self.__geneset_values = get_geneset_values(self.geneset_id)
         return self.__geneset_values
 
 
