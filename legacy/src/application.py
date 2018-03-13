@@ -3880,7 +3880,8 @@ def update_geneset_identifier():
 
 @app.route('/help/')
 def render_help():
-    return flask.render_template('help.html')
+    help_url = config.get('application', 'help_url')
+    return flask.render_template('help.html', help_url=help_url)
 
 
 @app.route('/about')
