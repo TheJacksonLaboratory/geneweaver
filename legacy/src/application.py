@@ -2639,13 +2639,27 @@ def render_viewgenesetoverlap(gs_ids):
 
     ## Pairwise comparison so we provide additional data for the venn diagram
     if len(genesets) == 2:
-        venn = venn_circles(genesets[0].count, genesets[1].count, len(intersects), 300)
+        #venn = venn_circles(genesets[0].count, genesets[1].count, len(intersects), 300)
+        gslen1 = len(
+            list(geneweaverdb.get_geneset_values_simple(genesets[0].geneset_id))
+        )
+        gslen2 = len(
+            list(geneweaverdb.get_geneset_values_simple(genesets[1].geneset_id))
+        )
+        venn = venn_circles(
+            gslen1, 
+            gslen2, 
+            len(intersects), 
+            300
+        )
         venn_text = {'tx': venn['tx'], 'ty': venn['ty']}
         venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
                 {'cx': venn['c2x'], 'cy': venn['c2y'], 'r': venn['r2']}];
 
-        left_count = genesets[0].count - len(intersects)
-        right_count = genesets[1].count - len(intersects)
+        #left_count = genesets[0].count - len(intersects)
+        #right_count = genesets[1].count - len(intersects)
+        left_count = gslen1 - len(intersects)
+        right_count = gslen2 - len(intersects)
 
         venn_text['text'] = '(%s (%s) %s)' % (left_count, len(intersects), right_count)
 

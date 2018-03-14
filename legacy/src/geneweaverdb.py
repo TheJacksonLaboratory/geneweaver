@@ -4064,6 +4064,31 @@ def get_geneset_values(
         #return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
 
 
+def get_geneset_values_simple(gsid):
+    """
+    Returns all geneset_values for the given gsid without selecting based on
+    homology, gene ID types, or any of the complicated stuff get_geneset_values
+    does.
+
+    arguments
+        gsid: gene set ID
+
+    returns
+        a list of dicts for each geneset_value
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT *
+            FROM   geneset_value
+            WHERE  gs_id = %s;
+            ''', (gsid,)
+        )
+
+        return dictify_cursor(cursor)
+
+
 class ToolParam:
     def __init__(self, tool_param_dict):
         self.tool_classname = tool_param_dict['tool_classname']
