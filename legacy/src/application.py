@@ -2494,12 +2494,10 @@ def render_viewgenesetoverlap(gs_ids):
             if gs_intersects[gs_id1][gs_id2] or gs_intersects[gs_id2][gs_id1]:
                 continue
 
-            ## get_intersect* returns a tuple with a list of gene symbols and
-            ## a list of homology ids
             if use_homology:
                 intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
             else:
-                intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
+                intersect = geneweaverdb.get_geneset_intersect(gs_id1, gs_id2)
 
             gs_intersects[gs_id1][gs_id2] = intersect
             gs_intersects[gs_id2][gs_id1] = intersect

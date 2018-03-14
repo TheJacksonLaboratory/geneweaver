@@ -4418,76 +4418,6 @@ def get_intersect_by_homology(gsid1, gsid2):
         )
 
         return dictify_cursor(cursor)
-    """
-        cursor.execute(
-                '''SELECT ode_gene_id
-               FROM extsrc.geneset_value
-               where gs_id = %s;
-            ''', (geneset_id1,))
-        for gid in cursor:
-            gene_id1.append(gid[0])
-        cursor.execute(
-                '''SELECT ode_gene_id
-               FROM extsrc.geneset_value
-               where gs_id = %s;
-            ''', (geneset_id2,))
-        for gid in cursor:
-            gene_id2.append(gid[0])
-        # Get only those genes that are in both genesets
-        intersect_id = list(set(gene_id1).intersection(set(gene_id2)))
-
-        homology1 = {}
-        homology2 = {}
-    # Find all homology ids within both genesets
-    for gid in gene_id1:
-        cursor.execute(
-                '''SELECT hom_id
-               FROM extsrc.homology
-               where ode_gene_id = %s;
-            ''', (gid,))
-        hom_id = cursor.fetchone()
-        if hom_id:
-            # If the homology id wasn't found in the geneset and not already added, add
-            # That id to the homology dictionary
-            if hom_id not in homology1:
-                homology1[hom_id[0]] = []
-                homology1[hom_id[0]].append(gid)
-            else:
-                homology1[hom_id[0]].append(gid)
-
-    for gid in gene_id2:
-        cursor.execute(
-                '''SELECT hom_id
-               FROM extsrc.homology
-               where ode_gene_id = %s;
-            ''', (gid,))
-        hom_id = cursor.fetchone()
-        if hom_id:
-            # If the homology id wasn't found in the geneset and not already added, add
-            # That id to the homology dictionary
-            if hom_id not in homology2:
-                homology2[hom_id[0]] = []
-                homology2[hom_id[0]].append(gid)
-            else:
-                homology2[hom_id[0]].append(gid)
-
-    homology_genes = []
-    # Creates the list for the homology ids found in both genesets
-    for key in homology1:
-        if key in homology2:
-            homology_genes = homology_genes + homology1[key] + homology2[key]
-    # Creates a dictionary of ode_ref_ids for the homologous genes
-    for gene_id in homology_genes:
-        cursor.execute(
-                '''SELECT gi_symbol
-               FROM extsrc.gene_info
-               where ode_gene_id = %s;
-            ''', (gene_id,))
-        for gid in cursor:
-            intersect_sym.append(gid[0])
-
-    return intersect_sym, homology_genes
-    """
 
 
 def get_geneset_intersect(gsid1, gsid2):
@@ -4509,8 +4439,6 @@ def get_geneset_intersect(gsid1, gsid2):
     genes = []
 
     with PooledCursor() as cursor:
-        ## Retrieves gene set values for each gene set then finds genes at the
-        ## intersection of both sets using homology IDs
         cursor.execute(
             '''
             SELECT  gv.ode_gene_id, gi.gi_symbol
@@ -4531,7 +4459,6 @@ def get_geneset_intersect(gsid1, gsid2):
         )
 
         return dictify_cursor(cursor)
-
 
 # function to check whether an emphasis gene is found in a geneset
 def check_emphasis(gs_id, em_gene):
