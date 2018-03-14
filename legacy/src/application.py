@@ -2607,6 +2607,9 @@ def render_viewgenesetoverlap(gs_ids):
         r1=r1*scale
         r2=r2*scale
 
+        c1y += 30
+        c2y += 30
+
         return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2, 'tx': tx, 'ty': ty}
 
 
@@ -2650,7 +2653,7 @@ def render_viewgenesetoverlap(gs_ids):
             gslen1, 
             gslen2, 
             len(intersects), 
-            300
+            200
         )
         venn_text = {'tx': venn['tx'], 'ty': venn['ty']}
         venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
