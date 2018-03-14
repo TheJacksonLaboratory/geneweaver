@@ -2495,9 +2495,9 @@ def render_viewgenesetoverlap(gs_ids):
             gs_intersects[gs_id2][gs_id1] = intersect
 
             ## Keep track of gene-genesets for sorting and ease of display
-            for gene in intersect[0]:
-                gene_intersects[gene].add(gs_id1)
-                gene_intersects[gene].add(gs_id2)
+            for i in intersect:
+                gene_intersects[i['gi_symbol']].add(gs_id1)
+                gene_intersects[i['gi_symbol']].add(gs_id2)
 
     intersects = []
 

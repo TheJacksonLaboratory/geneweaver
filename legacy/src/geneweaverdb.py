@@ -4373,15 +4373,52 @@ def if_gene_has_homology(gene_id):
             return 0
 
 
-def get_intersect_by_homology(geneset_id1, geneset_id2):
+def get_intersect_by_homology(gsid1, gsid2):
     """
-    Return all genes within intersecting genesets including homology
+    Returns genes found in the intersection of two gene sets while including
+    homologous relationships. If a gene has no homologs, it is not returned.
+
+    arguments
+        gsid1: gene set ID for the first set
+        gsid2: gene set ID for the second set
+
+    returns
     """
     gene_id1 = []
     gene_id2 = []
     intersect_sym = []
+    genes = []
     # Get all gene ids from both genesets
     with PooledCursor() as cursor:
+        ## Retrieves gene set values for each gene set then finds genes at the
+        ## intersection of both sets using homology IDs
+        cursor.execute(
+            '''
+            SELECT g1.gi_symbol, g1.ode_gene_id, g1.hom_id 
+            FROM   (
+                SELECT      gv.ode_gene_id, gi.gi_symbol, h.hom_id
+                FROM        extsrc.geneset_value AS gv 
+                INNER JOIN  homology AS h 
+                USING       (ode_gene_id) 
+                INNER JOIN  gene_info AS gi 
+                USING       (ode_gene_id) 
+                WHERE       gs_id = %s
+            ) g1
+            INNER JOIN (
+                SELECT      gv.ode_gene_id, gi.gi_symbol, h.hom_id
+                FROM        extsrc.geneset_value AS gv 
+                INNER JOIN  homology AS h 
+                USING       (ode_gene_id) 
+                INNER JOIN  gene_info AS gi 
+                USING       (ode_gene_id) 
+                WHERE       gs_id = %s
+            ) g2
+            ON g1.hom_id = g2.hom_id;
+            ''', (gsid1, gsid2)
+        )
+
+        return dictify_cursor(cursor)
+    """
         cursor.execute(
                 '''SELECT ode_gene_id
                FROM extsrc.geneset_value
@@ -4450,6 +4487,7 @@ def get_intersect_by_homology(geneset_id1, geneset_id2):
             intersect_sym.append(gid[0])
 
     return intersect_sym, homology_genes
+    """
 
 
 def get_geneset_intersect(geneset_id1, geneset_id2):
