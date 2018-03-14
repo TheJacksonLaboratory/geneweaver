@@ -2470,6 +2470,13 @@ def render_viewgenesetoverlap(gs_ids):
     gene_intersects = defaultdict(set)
     ## Maps gs_ids to geneset data
     gs_map = {}
+    ## Homology is only used if sets from multiple species are present
+    sp_ids = list(set(map(lambda g: g.sp_id, genesets)))
+
+    if len(sp_ids) > 1:
+        use_homology = True
+    else:
+        use_homology = False
 
     for gs in genesets:
         gs_map[gs.geneset_id] = gs
@@ -2489,7 +2496,10 @@ def render_viewgenesetoverlap(gs_ids):
 
             ## get_intersect* returns a tuple with a list of gene symbols and
             ## a list of homology ids
-            intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
+            if use_homology:
+                intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
+            else:
+                intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
 
             gs_intersects[gs_id1][gs_id2] = intersect
             gs_intersects[gs_id2][gs_id1] = intersect
