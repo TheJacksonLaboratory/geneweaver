@@ -4068,7 +4068,12 @@ def get_geneset_values_simple(gsid):
     """
     Returns all geneset_values for the given gsid without selecting based on
     homology, gene ID types, or any of the complicated stuff get_geneset_values
-    does.
+    does. 
+    This function only returns genes that have an entry in the gene table. Many
+    gene sets have defunct or singular ode_gene_ids used to represent genes
+    that may not exist or are unknown (microarray probes, riken clones, etc).
+    This is done to match the results returned by our tools, namely Jaccard
+    similarity.
 
     arguments
         gsid: gene set ID
@@ -4080,9 +4085,12 @@ def get_geneset_values_simple(gsid):
     with PooledCursor() as cursor:
         cursor.execute(
             '''
-            SELECT *
-            FROM   geneset_value
-            WHERE  gs_id = %s;
+            SELECT DISTINCT ON (gv.ode_gene_id) gv.*
+            FROM        geneset_value gv
+            INNER JOIN  gene g
+            USING       (ode_gene_id)
+            WHERE  gs_id = %s AND
+                   g.ode_pref;
             ''', (gsid,)
         )
 
