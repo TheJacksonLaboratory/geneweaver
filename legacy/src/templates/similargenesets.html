@@ -524,13 +524,12 @@
                 var r='<select><option value=""></option>', i, iLen=aData.length;
                 for ( i=0 ; i<iLen ; i++ )
                 {
-                    console.log(aData[i]);
                     r += '<option value="'+aData[i]+'">'+aData[i]+'</option>';
                 }
                 return r+'</select>';
             }
 
-            // Add event listener for opening and closing details
+            // Function to create the html that is placed in a detail row
             function fnFormatDetails ( oTable, nTr ) {
                 var aData = oTable.fnGetData( nTr );
                 var sOut = '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">';
@@ -626,15 +625,15 @@
                     "aaSorting": [[1, 'asc']]
                 });
 
-                /* Add a select menu for each TH element in the table footer */
+                /* Add a select menu for each element with class filterable */
                 $(".filterable").each( function ( i ) {
                     this.innerHTML = fnCreateSelect( oTable.fnGetColumnData(i+1) );
                     $('select', this).change( function () {
-                        console.log($(this).val());
                         oTable.fnFilter( $(this).val(), i+1 );
                     } );
                 } );
 
+                // An event listener to open and close the detail row
                 $('.toggler').live('click', function (e) {
                     e.preventDefault();
                     var nTr = $(this).parents('tr')[0];
