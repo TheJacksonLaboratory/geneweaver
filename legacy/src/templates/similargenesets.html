@@ -107,7 +107,7 @@
             </button>
             <strong>
                 We have not run a similarity analysis on this GeneSet yet.
-                <a id="run-similarity" href="#">Click here to start now.</a>
+                <a class="run-similarity" href="#">Click here to start now.</a>
                 Depending on the database load and GeneSet size, this may take
                 up to 15 minutes. Once you start the process you may navigate
                 away from this page and return at a later time.
@@ -182,6 +182,9 @@
                     </button>
                     <button type="button" class="btn btn-block btn-warning" id="addToProject">
                         <i class="fa fa-folder-o pull-left"></i> Add to Projects
+                    </button >
+                    <button type="button" class="btn btn-block btn-warning run-similarity">
+                        <i class="fa fa-refresh pull-left"></i> Refresh Similar GeneSets
                     </button>
 
                 </div>
@@ -554,7 +557,7 @@
                     }
                 });
 
-                $('#run-similarity').on('click', function (e) {
+                $('.run-similarity').on('click', function (e) {
 
                     // Prevents the link from redirecting
                     e.preventDefault();
