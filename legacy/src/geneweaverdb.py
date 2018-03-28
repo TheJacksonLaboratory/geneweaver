@@ -3858,6 +3858,7 @@ def get_genecount_in_geneset(geneset_id):
         cursor.execute(stmt)
         return cursor.fetchone()[0]
 
+
 def get_gene_homolog_ids(ode_gene_ids, gdb_id):
     """
     Maps genes in a given gene set to their homolog IDs, then uses those
@@ -3876,6 +3877,7 @@ def get_gene_homolog_ids(ode_gene_ids, gdb_id):
         some other MOD, mapped across species.
     """
 
+    ode_gene_ids = list(set(ode_gene_ids))
     ode_gene_ids = tuple(ode_gene_ids)
 
     with PooledCursor() as cursor:
@@ -3887,9 +3889,9 @@ def get_gene_homolog_ids(ode_gene_ids, gdb_id):
             ON          h.hom_id = h2.hom_id 
             INNER JOIN  gene AS g
             ON          g.ode_gene_id = h2.ode_gene_id 
-            WHERE       h.ode_gene_id in %s AND
+            WHERE       h.ode_gene_id in %s AND 
                         g.gdb_id = %s;
-            ''', (ode_gene_ids, gdb_id)
+            ''', (ode_gene_ids, gdb_id,)
         )
 
         ode2ref = {}
@@ -3982,7 +3984,7 @@ def get_geneset_values(
                             (SELECT gdb_id 
                              FROM   gene AS g2 
                              WHERE g2.ode_gene_id = gsv.ode_gene_id AND 
-                                   g2.gdb_id = 7 
+                                   g2.gdb_id = 7
                              LIMIT 1)
                         )) AND
 
@@ -4011,10 +4013,13 @@ def get_geneset_values(
             ON          gsv.ode_gene_id = gi.ode_gene_id
 
             --
-            -- Have to use a left join because some genes may not have homologs
+            -- Have to use a left outer join because some genes may not have homologs
             --
-            LEFT JOIN   homology AS h
-            ON          gsv.ode_gene_id = h.ode_gene_id
+            LEFT OUTER JOIN homology AS h
+            ON          gsv.ode_gene_id = h.ode_gene_id 
+             
+            WHERE h.hom_source_name = 'Homologene'
+            
             ORDER BY 
             ''' + sort + ' ' + direct +
             '''
@@ -4047,6 +4052,7 @@ def get_geneset_values(
 
         ## We are converting IDs from this set to identifiers belonging to a
         ## separate species. e.g. human symbols to MGI IDs
+
         if gdb_spid != 0 and gdb_spid != sp_id:
             ode2ref = get_gene_homolog_ids(
                 map(lambda v: v.ode_gene_id, gsvs), original_gdb_id
