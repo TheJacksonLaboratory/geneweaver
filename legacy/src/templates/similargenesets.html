@@ -218,112 +218,93 @@
                     <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
             </div>
 
-            {# Group by filter #}
-            <div class="col-xs-6 col-md-3 pull-right">
-                <div class="btn-group bootstrap-select form-control" style="padding-top: 10px;">
-                    <button type="button" class="btn btn-sm dropdown-toggle selectpicker btn-default" data-toggle="dropdown"
-                            title="Group">
-                        <span class="filter-option pull-left"><i class="fa fa-filter"></i> Sort Results</span>&nbsp;<span
-                            class="caret"></span></button>
-                    <div class="dropdown-menu open">
-                        <ul class="dropdown-menu inner selectpicker" role="menu">
-                            <li rel="0" class="selected"><a tabindex="0" class="" style=""><span class="text">None</span><i
-                                    class="fa fa-check icon-ok check-mark"></i></a></li>
-                            <li rel="1"><a tabindex="0" class="" style=""><span class="text">Sort By Tier</span><i
-                                    class="fa fa-check icon-ok check-mark"></i></a></li>
-                            <li rel="2"><a tabindex="0" class="" style=""><span class="text">Sort By Species</span><i
-                                    class="fa fa-check icon-ok check-mark"></i></a></li>
-                            <li rel="3"><a tabindex="0" class="" style=""><span class="text">Sort By Attribution</span><i
-                                    class="fa fa-check icon-ok check-mark"></i></a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="panel-body similargenesets">
+            <div class="similargenesets">
                 <form id="addSimGenesetsToProj" name="addSimGenesetsToProj" method="post" action="#"
                       class="form-horizontal form-inline" novalidate="novalidate">
                     <!-- TODO make the table sortable, show more gene details -->
                     <table class="table table-hover" id="similarGenesets" cellpadding="0" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>&nbsp;</th>
+                                <th>Tier</th>
+                                <th>Species</th>
+                                <th>Attr.</th>
+                                <th>Genes</th>
+                                <th>GeneSet Title</th>
+                                <th>Jaccard</th>
+                                <th>hidden_geneset_id</th>
+                                <th>hidden_abbreviation</th>
+                                <th>hidden_description</th>
+                                <th>&nbsp;</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                        <tr>
-                            <th>&nbsp;</th>
-                            <th>&nbsp;</th>
-                            <th>&nbsp;</th>
-                            <th>&nbsp;</th>
-                            <th>&nbsp;</th>
-                            <th>GeneSet Title</th>
-                            <th>Jaccard</th>
-                            <th>&nbsp;</th>
-                        </tr>
-
                         {% for i in simgs %}
-                            <a name="gsid{{ i.geneset_id }}"></a>
+                            <!--<a name="gsid{{ i.geneset_id }}"></a>-->
 
                             <tr>
                                 <td width="15" style="vertical-align: middle">
-                            <span id="genesetExpand" class="toggler" data-prod="{{ i.geneset_id }}">
-                                <span class="plus"></span>
-                                <span class="minus"></span>
-                            </span>
+                                    <span id="genesetExpand" class="toggler" data-prod="{{ i.geneset_id }}">
+                                        <span class="plus"></span>
+                                        <span class="minus"></span>
+                                    </span>
                                 </td>
+                                <!-- Label the tier - which is the curation id, Geneset.cur_id -->
                                 <td style="vertical-align: middle" nowrap>
-                                    <!-- Label the tier - which is the curation id, Geneset.cur_id -->
                                     {% if i.cur_id == 1 %}
-                                        <span class="tier1">Tier I</span>
+                                        Tier I
                                     {% endif %}
                                     {% if i.cur_id == 2 %}
-                                        <span class="tier2">Tier II</span>
+                                        Tier III
                                     {% endif %}
                                     {% if i.cur_id == 3 %}
-                                        <span class="tier3">Tier III</span>
+                                        Tier III
                                     {% endif %}
                                     {% if i.cur_id == 4 %}
-                                        <span class="tier4">Tier IV</span>
+                                        Tier IV
                                     {% endif %}
                                     {% if i.cur_id == 5 %}
-                                        <span class="tier5">Tier V</span>
+                                        Tier V
                                     {% endif %}
                                 </td>
+                                <!-- Label the species -->
                                 <td style="vertical-align: middle" nowrap>
-                                    <!-- Label the species -->
                                     {% if i.sp_id == 1 %}
-                                        <span class="mouse">Mouse</span>
+                                        Mouse
                                     {% endif %}
                                     {% if i.sp_id == 2 %}
-                                        <span class="human">Human</span>
+                                        Human
                                     {% endif %}
                                     {% if i.sp_id == 3 %}
-                                        <span class="rat">Rat</span>
+                                        Rat
                                     {% endif %}
                                     {% if i.sp_id == 4 %}
-                                        <span class="zebrafish">Zebrafish</span>
+                                        Zebrafish
                                     {% endif %}
                                     {% if i.sp_id == 5 %}
-                                        <span class="fly">Fly</span>
+                                        Fly
                                     {% endif %}
                                     {% if i.sp_id == 6 %}
-                                        <span class="monkey">Monkey</span>
+                                        Monkey
                                     {% endif %}
                                 </td>
+                                <!-- Label the attribution -->
                                 <td style="vertical-align: middle" nowrap>
-                                    <!-- Label the attribution -->
                                     {% if i.attribution == 2 %}
-                                        <span class="ctd">CTD</span>
+                                        CTD
                                     {% endif %}
                                     {% if i.attribution == 7 %}
-                                        <span class="drg">DRG</span>
+                                        DRG
                                     {% endif %}
                                     {% if i.attribution == 8 %}
-                                        <span class="go">GO</span>
+                                        GO
                                     {% endif %}
                                     {% if i.attribution == 9 %}
-                                        <span class="mp">MP</span>
+                                        MP
                                     {% endif %}
                                 </td>
+                                <!-- Show the geneset size -->
                                 <td style="vertical-align: middle" nowrap>
-                                    <!-- Show the geneset size -->
                                     <span class="gs_size">{{ i.count }} Genes</span>
 
                                 </td>
@@ -334,6 +315,15 @@
                                 <td style="vertical-align: middle" align="center">
                                     <strong>{{ '%0.4f' % i.jac_value|float }}</strong>
                                 </td>
+                                <td style="vertical-align: middle" align="center">
+                                    {{ i.geneset_id }}
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    {{ i.abbreviation }}
+                                </td>
+                                <td style="vertical-align: middle" align="center">
+                                    {{ i.description }}
+                                </td>
                                 <td width="10px" style="vertical-align: middle">
                                     <div class="ui-checkbox" style="padding: 0; border: 0;">
                                         <label for="addGeneset{{ i.geneset_id }}">
@@ -343,16 +333,23 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr class="gsid{{ i.geneset_id }}" style="display: none">
-                                <td colspan="5">&nbsp;</td>
-                                <td><strong>LABEL:</strong> {{ i.abbreviation }}<br>
-                                    <strong>DESCRIPTION:</strong> {{ i.description }}
-                                </td>
-                            </tr>
 
                         {% endfor %}
 
                         </tbody>
+                        <tfoot>
+                            <th></th>
+                            <th class="filterable"></th>
+                            <th class="filterable"></th>
+                            <th class="filterable"></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tfoot>
                     </table>
                 </form>
             </div>
@@ -468,10 +465,192 @@
                 }
             }
 
-            // Add event listener for opening and closing details
+            (function($) {
+                /**
+                 * Function: fnGetColumnData
+                 * Purpose:  Return an array of table values from a particular column.
+                 * Returns:  array string: 1d data array
+                 * Inputs:   object:oSettings - dataTable settings object. This is always the last argument past to the function
+                 *           int:iColumn - the id of the column to extract the data from
+                 *           bool:bUnique - optional - if set to false duplicated values are not filtered out
+                 *           bool:bFiltered - optional - if set to false all the table data is used (not only the filtered)
+                 *           bool:bIgnoreEmpty - optional - if set to false empty values are not filtered from the result array
+                 * Author:   Benedikt Forchhammer <b.forchhammer /AT\ mind2.de>
+                 */
+                $.fn.dataTableExt.oApi.fnGetColumnData = function ( oSettings, iColumn, bUnique, bFiltered, bIgnoreEmpty ) {
+                    // check that we have a column id
+                    if ( typeof iColumn == "undefined" ) return new Array();
+
+                    // by default we only want unique data
+                    if ( typeof bUnique == "undefined" ) bUnique = true;
+
+                    // by default we do want to only look at filtered data
+                    if ( typeof bFiltered == "undefined" ) bFiltered = true;
+
+                    // by default we do not want to include empty values
+                    if ( typeof bIgnoreEmpty == "undefined" ) bIgnoreEmpty = true;
+
+                    // list of rows which we're going to loop through
+                    var aiRows;
+
+                    // use only filtered rows
+                    if (bFiltered == true) aiRows = oSettings.aiDisplay;
+                    // use all rows
+                    else aiRows = oSettings.aiDisplayMaster; // all row numbers
+
+                    // set up data array
+                    var asResultData = new Array();
+
+                    for (var i=0,c=aiRows.length; i<c; i++) {
+                        iRow = aiRows[i];
+                        var aData = this.fnGetData(iRow);
+                        var sValue = aData[iColumn];
+
+                        // ignore empty values?
+                        if (bIgnoreEmpty == true && sValue.length == 0) continue;
+
+                        // ignore unique values?
+                        else if (bUnique == true && jQuery.inArray(sValue, asResultData) > -1) continue;
+
+                        // else push the value onto the result data array
+                        else asResultData.push(sValue);
+                    }
+
+                    return asResultData;
+                }}(jQuery));
+
+            function fnCreateSelect( aData )
+            {
+                var r='<select><option value=""></option>', i, iLen=aData.length;
+                for ( i=0 ; i<iLen ; i++ )
+                {
+                    r += '<option value="'+aData[i]+'">'+aData[i]+'</option>';
+                }
+                return r+'</select>';
+            }
+
+            // Function to create the html that is placed in a detail row
+            function fnFormatDetails ( oTable, nTr ) {
+                var aData = oTable.fnGetData( nTr );
+                var sOut = '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">';
+                sOut += '<tr class="gsid'+aData[7]+'">';
+                sOut += '<td colspan="5">&nbsp;</td>';
+                sOut += '<td><strong>LABEL:</strong>'+aData[8]+'<br>';
+                sOut += '<strong>DESCRIPTION:</strong>'+aData[9];
+                sOut += '</td></tr>';
+                sOut += '</table>';
+                return sOut
+            }
 
             $(document).ready(function () {
+                /* Similar Genesets DataTables */
+
+                /*
+                 * Initialse DataTables, with no sorting on the 'details' column
+                 */
+                var oTable = $('#similarGenesets').dataTable( {
+                    "aoColumnDefs": [
+                        { "bSortable": false, "aTargets": [ 0 ] },
+                        { "aTargets":[1], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
+                            $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
+                            switch(sData) {
+                                case 'Tier I':
+                                    $(nTd).find("span").addClass('tier1');
+                                    break;
+                                case 'Tier II':
+                                    $(nTd).find("span").addClass('tier2');
+                                    break;
+                                case 'Tier III':
+                                    $(nTd).find("span").addClass('tier3');
+                                    break;
+                                case 'Tier IV':
+                                    $(nTd).find("span").addClass('tier4');
+                                    break;
+                                case 'Tier V':
+                                    $(nTd).find("span").addClass('tier5');
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }},
+                        { "aTargets":[2], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
+                            $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
+                            switch(sData) {
+                                case 'Mouse':
+                                    $(nTd).find("span").addClass('mouse');
+                                    break;
+                                case 'Human':
+                                    $(nTd).find("span").addClass('human');
+                                    break;
+                                case 'Rat':
+                                    $(nTd).find("span").addClass('rat');
+                                    break;
+                                case 'Zebrafish':
+                                    $(nTd).find("span").addClass('zebrafish');
+                                    break;
+                                case 'Fly':
+                                    $(nTd).find("span").addClass('fly');
+                                    break;
+                                case 'Monkey':
+                                    $(nTd).find("span").addClass('monkey');
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }},
+                        { "aTargets":[3], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
+                            $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
+                            switch(sData) {
+                                case 'CTD':
+                                    $(nTd).find("span").addClass('ctd');
+                                    break;
+                                case 'DRG':
+                                    $(nTd).find("span").addClass('drg');
+                                    break;
+                                case 'GO':
+                                    $(nTd).find("span").addClass('go');
+                                    break;
+                                case 'MP':
+                                    $(nTd).find("span").addClass('mp');
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }},
+                        { "bSortable": false, "bVisible": false, "aTargets": [ 7 ] },
+                        { "bSortable": false, "bVisible": false, "aTargets": [ 8 ] },
+                        { "bSortable": false, "bVisible": false, "aTargets": [ 9 ] },
+                        { "bSortable": false, "aTargets": [ 10 ] }
+                    ],
+                    "aaSorting": [[1, 'asc']]
+                });
+
+                /* Add a select menu for each element with class filterable */
+                $(".filterable").each( function ( i ) {
+                    this.innerHTML = fnCreateSelect( oTable.fnGetColumnData(i+1) );
+                    $('select', this).change( function () {
+                        oTable.fnFilter( $(this).val(), i+1 );
+                    } );
+                } );
+
+                // An event listener to open and close the detail row
+                $('.toggler').live('click', function (e) {
+                    e.preventDefault();
+                    var nTr = $(this).parents('tr')[0];
+                    if ( oTable.fnIsOpen(nTr) ) {
+                        /* This row is already open - close it */
+                        oTable.fnClose( nTr );
+                    } else {
+                        /* Open this row */
+                        oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
+                    }
+                    $(this).parent().find("span").toggleClass("plus");
+                    $(this).toggleClass("plus");
+                    $(this).toggleClass("minus");
+                } );
+
                 var gs_id = {{ geneset.geneset_id }};
+
                 $('#exportData').on('click', function (e) {
                     window.open('/exportJacGeneList/' + gs_id);
                 });
@@ -484,21 +663,6 @@
                     var rel = $(this).attr("rel");
                     var gs_id = {{ geneset.geneset_id }};
                     window.open('../' + gs_id + '/' + rel, "_self");
-                });
-
-                $(".toggler").click(function (e) {
-                    e.preventDefault();
-                    //the data stored in the data-prod
-                    var gid = ($(this).attr("data-prod"));
-                    //toggle the link clicked on
-                    $(".gsid" + gid).toggle();
-                    //select the parent and find the span so you can
-                    //toggle the "plus" class
-                    $(this).parent().find("span").toggleClass("plus");
-                    //$(this).parent().find("span").toggleClass("minus");
-                    //toggle the minus class
-                    $(this).toggleClass("plus");
-                    $(this).toggleClass("minus");
                 });
 
                 $('#addToProject').on('click', function () {
@@ -575,7 +739,6 @@
                         }
                     });
                 });
-
             });
 
             $('#clickableFontAwesome').popover({
@@ -617,7 +780,6 @@
 
 				$('#sp-tag').html(tag);
 			});
-
 
         </script>
 
