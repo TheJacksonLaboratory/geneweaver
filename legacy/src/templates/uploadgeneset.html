@@ -317,6 +317,8 @@
             </h2>
         </div>
 
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="genelist" data-fade="10000"></div>
+
         <div style="margin-left: 1em;">
             <br>
             <div class="row">
@@ -345,7 +347,7 @@
                     Gene Identifiers <strong>*</strong>:
                 </div>
                 <div class="col-xs-6 col-sm-4">
-                    <select name="gene_identifier" class="form-control" required>
+                    <select id="gene_identifier" name="gene_identifier" class="form-control" required>
                         <option value="0"></option>
                         {% for id in gidts %}
                             {% if id[0] != "MicroArrays" %}
@@ -383,23 +385,26 @@
                     {% endif %}
 
                 </div>
-                <div id="file_uploader" class="col-md-4" style="display: none">
-                    <span id="clickableManual" onclick="toggle_pasting()"><strong>Switch to Manual Upload <i class="fa fa-keyboard-o"></i>
-                        </strong></span>
-
-                    <br><br>
-                    <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
-                        <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
+                <div id="file_uploader" class="col-md-8" style="display: none">
+                    <span id="clickableManual" onclick="toggle_pasting()">
+                        <strong>
+                            Switch to Manual Upload 
+                            <i class="fa fa-keyboard-o"></i>
+                        </strong>
                     </span>
 
+                    <br>
+                    <br>
+
+                    <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
+                        <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
+                        <input id="fileContents" name="fileContents" type="hidden" />
+                    </span>
+                    <span id="fileDisplayArea" style="color:#337700; 
+                          vertical-align:middle; padding:10px 0 0 10px;">
+                    </span>
                 </div>
-
-
             </div>
-                <div class="row">
-                    <div class="col-md-2"></div>
-                    <div id="fileDisplayArea" class="col-md-4" style="color: grey; padding-top: 2em;"></div>
-                </div>
 
         </div>
         <br>
@@ -425,12 +430,49 @@
 <script>
     // this script was added to auto-populate the form from Boolean Algebra to make a new geneset
 
+    /**
+      * Auto-populates the upload form with geneset title, description, and
+      * gene list data. This occurs only when creating a new gene set from 
+      * the boolean algebra page. 
+      */
+    var autoPopulateFromBoolean = function() {
+
+        var uploadData = '{{tool_data | safe}}';
+
+        if (!uploadData)
+            return;
+
+        var json = JSON.parse(uploadData);
+
+        if (json.tool !== 'boolean')
+            return;
+
+        var genes = json.genes.split(',');
+        var geneText = '';
+
+        for (var i = 0; i < genes.length; i++) {
+
+            geneText += genes[i];
+            geneText += '\t';
+            geneText += '1';
+            geneText += '\n';
+        }
+
+        $('#genesetName').val(json.name);
+        $('#genesetDescription').val(json.description);
+        $('#file_text').val(geneText);
+        // If score or gene type IDs ever change, these must be changed too
+        // Binary score type
+        $('#gs_threshold_type').val('3');
+        // Gene identifier type
+        $('#gene_identifier').val('gene_7')
+    };
+
     /*
      * Auto-populates the upload form with geneset title, description, species,
      * gene identifier, and gene list data.
-     * This is done using the boolean algebra tool or the 'add genes to
-     * geneset' function on the view geneset page. If any required
-     * values are missing, auto-population doesn't occur.
+     * This is done using the 'add genes to geneset' function on the view geneset 
+     * page. If any required values are missing, auto-population doesn't occur.
      */
     var autoPopulateForm = function() {
 
@@ -488,6 +530,7 @@
     $(document).ready(function () {
 
         autoPopulateForm();
+        autoPopulateFromBoolean();
 
         // Color species options
         colorMap = getSpeciesColors({{ all_species | tojson | safe }});
@@ -517,19 +560,29 @@
             }
         });
 
-        //Display uploaded file to page
-        var fileInput = document.getElementById('file_data');
-		var fileDisplayArea = document.getElementById('fileDisplayArea');
+        /**
+          * Executed when the user clicks the "select tab-delimited plain text
+          * file" button. This function reads the file in, appends the contents
+          * to a hidden input element, and informs the user that the file has
+          * been loaded.
+          */
+        $('#file_data').on('change', function(e) {
 
-		fileInput.addEventListener('change', function(e) {
-			var file = fileInput.files[0];
+            var fileDisplayArea = $('#fileDisplayArea');
+			var file = this.files[0];
 			var textType = /text.*/;
 
 			if (file.type.match(textType)) {
 				var reader = new FileReader();
 
 				reader.onload = function(e) {
-					fileDisplayArea.innerText = reader.result;
+
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
+
+					fileDisplayArea.text(
+                        "Loaded '" + file.name + "' (" + size + ")"
+                    );
+                    $('#fileContents').val(reader.result);
 				};
 
 				reader.readAsText(file);
@@ -538,22 +591,46 @@
 			}
 		});
 
-        //Function to upload genesets
-        //Ths AJAX POST loading is not working...leaving me perplexed. I stripped the text from the
-        //div and passed it to application via get
-        $('#upload-geneset-form').submit(function (event) {
-            event.preventDefault();
-            var fileDisplayArea = document.getElementById('fileDisplayArea');
-            var fileSelect = document.getElementById('file_data');
-            if (!fileSelect.disabled) {
-                var fileData = fileDisplayArea.innerText;
+        $('#file_text').keyup(function(e) {
+            var tval = $('#file_text').val(),
+                tlength = tval.split("\n").length;
+                warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
+                           '<a href=/batchupload> Batch Upload Page </a>.';
+            if (tlength >= 5000){
+                $(document).trigger("clear-alerts");
+                $(document).trigger("set-alert-id-genelist", [{
+                            'message': warnMesg,
+                            'priority': 'warning',
+                            'fade': 0
+                        }]);
+            } else {
+                $(document).trigger("clear-alerts");
             }
+        });
 
-            var permissions = document.getElementById('permissions')
-            if(permissions.disabled) {
-                // If disabled, the permissions field will not be submitted with form
-                $('#permissions').prop("disabled", false).button("refresh");
-            }
+        /**
+          * Function used to submit the contents of the gene set upload form to
+          * the server. Checks to see whether the user used the text box or
+          * file upload forms and adds this content accordingly. Submits the
+          * AJAX upload request and informs the user of failure or success.
+          */
+        $('#upload-geneset-form').submit(function (event) {
+
+            event.preventDefault();
+
+            var fileDisplayArea = $('#fileDisplayArea');
+            var fileSelect = $('#file_data');
+
+            // User selected the file upload option
+            if (!fileSelect.disabled)
+                var fileData = $('#fileContents').val();
+
+            var permissions = $('#permissions')
+
+            // If disabled due to selected groups, the permissions field will 
+            // not be submitted with form
+            if (permissions.prop('disabled'))
+                permissions.prop("disabled", false).button("refresh");
 
             var d = $("#upload-geneset-form").serialize();
             var sp_id = $("#upload-geneset-form").find('select[name="sp_id"]').val();
@@ -564,8 +641,8 @@
             $('#confirmUpload').modal('show');
 
             $.ajax({
-                type: "GET",
-                url: "../createtempgeneset",
+                type: "POST",
+                url: "../createtempgeneset_original",
                 data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
                 success: function (data) {
                     // Hides confirmation after any kind of result (success or
@@ -627,7 +704,8 @@
                     $(document).trigger("add-alerts", [
                         {
                             'message': "We could not upload your GeneSet at this time. Please contact GeneWeaver.",
-                            'priority': 'danger'
+                            'priority': 'danger',
+                            'fade': 0
                         }
                     ]);
                 }

@@ -12,8 +12,8 @@ import curation_assignments
 geneset_blueprint = flask.Blueprint('geneset', 'geneset')
 
 # gets species and gene identifiers for uploadgeneset page
-@geneset_blueprint.route('/uploadgeneset')
-@geneset_blueprint.route('/uploadgeneset/<genes>')
+@geneset_blueprint.route('/uploadgeneset', methods=['POST', 'GET'])
+@geneset_blueprint.route('/uploadgeneset/<genes>', methods=['POST', 'GET'])
 @login_required()
 def render_uploadgeneset(genes=None):
     gidts = []
@@ -41,6 +41,16 @@ def render_uploadgeneset(genes=None):
             all_species=geneweaverdb.get_all_species(),
             gidts=gidts,
             genes=genes)
+    elif flask.request.form and flask.request.form['tool']:
+        return flask.render_template(
+            'uploadgeneset.html',
+            gs=dict(),
+            all_species=geneweaverdb.get_all_species(),
+            gidts=gidts,
+            genes=genes,
+            myGroups=my_groups,
+            tool_data=json.dumps(flask.request.form)
+            )
     else:
         return flask.render_template(
             'uploadgeneset.html',

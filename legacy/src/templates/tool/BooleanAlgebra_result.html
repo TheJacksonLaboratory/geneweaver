@@ -53,7 +53,8 @@
             </div>
         </div>
         <div class="col-xs-6 col-md-3">
-            <button type="button" class="btn btn-block btn-warning" onclick="addNewGS()" id="addToNewGeneset"
+            <button type="button" class="btn btn-block btn-warning"
+                onclick="newGeneSet()" id="addToNewGeneset"
                     style="margin-bottom: 10px;">
                 <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
             </button>
@@ -507,86 +508,74 @@
         }
     }
 
-    {# Functionality for the "Add to New GeneSets Button.
-       All the checked checkboxes are loaded and sent with a Query String
-       to the 'Batch Upload Geneset' Page #}
-
-    function addNewGS() {
+    /**
+      * Creates a new gene set from the bool alg. page. Determines the genes
+      * the user has selected then packages everything in a POST request to the
+      * upload gene set page.
+      */
+    function newGeneSet() {
 
         var checkedArray = [];
+        
+        // Retrieves genes that have been check marked
         $("input:checkbox[name='gsoptions[]']:checked").each(function () {
             checkedArray.push($(this).val());
         });
 
-        if (typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
+        if (typeof checkedArray != "undefined" && 
+            checkedArray != null && 
+            checkedArray.length > 0) {
 
+            // Bool alg. tool data
             var as = {{ json_results | tojson | safe}};
+            // List of GS IDs used for tool input
             var gsids = as['gsids'];
-            var numGS = as['numGS'];
+            var numGS = gsids.length;
+            // Type of boolean operation performed (except, intersect, union)
+            var boolType = as['type'];
+            // New gene set name
+            var name = 'The ' + boolType + ' of ' + numGS + ' GeneSets.';
+            // New gene set description
+            var description = 'The Boolean Algebra tool was used to find ' +
+                'the ' + boolType + ' of ' + numGS + ' sets: ' + 
+                gsids.join(',');
+            var genes = checkedArray;
 
-            // The 1? is added so the entire string will appear in
-            // window.location.search. Without the 1? The string is
-            // truncated and missing the first sentence.
-            var getStr = '1?algebra?' +
-                'The {{ json_results.type }} of {{ json_results.numGS }}' +
-                ' GeneSets.?' +
-                'The Boolean Algebra tool was used to find the ' +
-                '{{ json_results.type }} of ' + numGS + ' sets: ' +
-                gsids.join(', ');
-
-            // add in all the checked boxes gene names
-            checkedArray.forEach(function (entry) {
-                getStr += "?";
-                getStr += entry;
-                getStr += "?";
-
-                // grab the value
-                var tmpString = "{{ json_results.valueLookup }}";
-                // conver the string to an array by looping
-                var values = [];
-                var t_length = tmpString.length;
-                for (var i = 0; i < t_length; i++) {
-                    var tmpName = "";
-                    var tmpValue = "";
-                    while (tmpString[i] !== '?' && i < t_length) {
-                        tmpName += tmpString[i];
-                        i++;
-                    }
-                    tmpName = String(tmpName);
-                    values.push(tmpName);
-                    // skip over '?'
-                    i++;
-                    while (tmpString[i] !== '?' && i < t_length) {
-                        tmpValue += tmpString[i];
-                        i++;
-                    }
-                    tmpValue = parseInt(tmpValue);
-                    values.push(tmpValue);
-                }
-                var currVal = 1;
-                // find the current value we need
-                var arrayLen = values.length;
-                for (var j = 0; j < arrayLen;) {
-                    if (values[j] === entry) {
-                        j = (j + 1);
-                        currVal = values[j];
-                    }
-                    j = (j + 1);
-                }
-                // assign the current value for the gene name
-                getStr += currVal;
-
+            // Generates a hidden form that is used to submit data to the
+            // upload page
+            var form = $('<form></form>', {
+                id: 'uploadform',
+                name: 'uploadform',
+                method: 'post',
+                action: '/uploadgeneset',
+                target: '_blank',
+                type: 'hidden'
             });
 
-            // Load the new page with the extra url bit
-            window.open('/uploadgeneset/' + getStr, '_blank');
-        }
-        else {
-            window.alert("No checkboxes selected.")
-        }
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'name', 
+                value: name
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'description', 
+                value: description
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'genes', 
+                value: genes
+            }));
+            form.append($('<input>', {
+                type: 'hidden', 
+                name: 'tool', 
+                value: 'boolean'
+            }));
 
-    }
-
+            form.appendTo('body').submit();
+        }
+    };
 
 </script>
 
