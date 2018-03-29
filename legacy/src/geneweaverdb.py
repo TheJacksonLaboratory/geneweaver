@@ -2879,6 +2879,48 @@ def authenticate_user(email, password):
             except:
                 return None
 
+def update_user_seen(usr_id):
+    """
+    Updates the usr_last_seen date for a given user.
+
+    arguments
+        usr_id: the user ID to update
+    """
+
+    if not usr_id:
+        return
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            UPDATE  usr
+            SET     usr_last_seen = NOW()
+            WHERE   usr_id = %s;
+            ''',
+                (usr_id,)
+        )
+
+def get_recent_users():
+    """
+    Retrieves the 100 most recent users.
+
+    arguments
+        usr_id: the user ID to update
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT   usr_id, usr_email, usr_last_seen
+            FROM     production.usr
+            WHERE    usr_last_seen IS NOT NULL AND
+                     is_guest = FALSE
+            ORDER BY usr_last_seen DESC
+            LIMIT    100;
+            '''
+        )
+
+    return dictify_cursor(cursor)
 
 ## There's a similarly titled get_result_by_runhash, but it's API function.
 def get_results_by_runhash(runhash):

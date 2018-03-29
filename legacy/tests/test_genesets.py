@@ -46,6 +46,7 @@ class TestViewGenesets(unittest.TestCase):
         rqs = self.app.get(ep_search_page)
         self.assertEqual(rqs.status, '200 OK')
         json_resp = json.loads(rqs.data)
+        print json_resp
         # check we get at least one result
         self.assertGreater(len(json_resp['aaData']), 1)
 

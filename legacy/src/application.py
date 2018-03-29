@@ -71,6 +71,8 @@ admin = Admin(app, name='GeneWeaver', index_view=adminviews.AdminHome(
 
 admin.add_view(
     adminviews.Viewers(name='Users', endpoint='viewUsers', category='User Tools'))
+admin.add_view(
+    adminviews.Viewers(name='Recent Users', endpoint='viewRecentUsers', category='User Tools'))
 admin.add_view(adminviews.Viewers(
     name='Publications', endpoint='viewPublications', category='User Tools'))
 admin.add_view(adminviews.Viewers(
@@ -247,14 +249,19 @@ def _form_login():
         # TODO deal with login failure
         user = geneweaverdb.authenticate_user(
             form['usr_email'], form['usr_password'])
+
         if user is not None:
             flask.session['user_id'] = user.user_id
             remote_addr = flask.request.remote_addr
+
             if remote_addr:
                 flask.session['remote_addr'] = remote_addr
 
+            geneweaverdb.update_user_seen(user.user_id)
+
     flask.g.user = user
     return user
+
 
 
 def send_mail(to, subject, body):
@@ -314,6 +321,34 @@ def json_login():
         json_result['usr_email'] = user.email
 
     # return flask.jsonify(json_result)
+    return flask.redirect('/')
+
+@app.route('/login_as/<int:as_user_id>', methods=['GET'])
+def login_as(as_user_id):
+    #args = flask.request.args
+
+    #if 'user_id' not in args:
+    #    return flask.jsonify({'error': ''})
+    if not as_user_id:
+        return flask.jsonify({'error': ''})
+
+    if 'user' not in flask.g:
+        return flask.jsonify({'error': ''})
+
+    user = flask.g.user
+
+    if not user.is_admin:
+        return flask.jsonify({'error': ''})
+
+    as_user = geneweaverdb.get_user(as_user_id)
+
+    if not as_user:
+        return flask.jsonify({'error': ''})
+
+
+    flask.session['user_id'] = as_user.user_id
+    flask.g.user = as_user
+
     return flask.redirect('/')
 
 

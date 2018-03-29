@@ -32,6 +32,35 @@ class Viewers(Authentication, BaseView):
             return self.render('admin/adminViewer.html', jcolumns=jcolumns, columns=columns, route="newUser",
                                table=table)
 
+        elif self.endpoint == 'viewRecentUsers':
+            table = 'production.usr'
+            dbcols = geneweaverdb.get_all_columns(table)
+            columns = []
+
+            columns.append({'name': 'User ID'})
+            columns.append({'name': 'Email'})
+            columns.append({'name': 'Last Seen'})
+            columns.append({'name': 'Login As'})
+
+            recents = list(geneweaverdb.get_recent_users())
+
+            for r in recents:
+                r['usr_last_seen'] = r['usr_last_seen'].strftime('%Y-%m-%d %H:%M:%S')
+
+            #for col in dbcols:
+            #    columns.append({'name': col['column_name']})
+
+            jcolumns = json.dumps(columns)
+            return self.render(
+                'admin/adminViewer.html', 
+                jcolumns=jcolumns, 
+                columns=columns, 
+                route="loginAs",
+                table=table,
+                is_login_as=True,
+                recent_users=json.dumps(recents)
+            )
+
         elif self.endpoint == 'viewPublications':
             table = 'production.publication'
             dbcols = geneweaverdb.get_all_columns(table)
