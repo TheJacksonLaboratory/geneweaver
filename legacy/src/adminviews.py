@@ -47,9 +47,6 @@ class Viewers(Authentication, BaseView):
             for r in recents:
                 r['usr_last_seen'] = r['usr_last_seen'].strftime('%Y-%m-%d %H:%M:%S')
 
-            #for col in dbcols:
-            #    columns.append({'name': col['column_name']})
-
             jcolumns = json.dumps(columns)
             return self.render(
                 'admin/adminViewer.html', 

@@ -19,7 +19,6 @@ var editor;
         var columns = {{jcolumns | safe}};
         var numCols = columns.length	
         var table = '{{table}}';
-        console.log('shit');
 
         var table = $('#adminViewer').dataTable( {
             "processing": true,
@@ -69,16 +68,8 @@ var editor;
         });	
 
     } else {
-        console.log('here');
-        console.log('here2');
         var recentUsers = '{{recent_users | safe}}';
         recentUsers = JSON.parse(recentUsers);
-
-        console.log(recentUsers);
-
-        console.log(recentUsers[0].usr_id);
-        console.log(recentUsers[0].usr_email);
-        console.log(recentUsers[0].usr_last_seen);
 
         var table = $('#adminViewer').dataTable({
             'iDisplayLength': 30,
@@ -95,22 +86,11 @@ var editor;
                         return '<a href="/login_as/' + data + '">[login as]</a>';
                     }
                 }
-                //{ name: 'usr_id' }
             ],
             'columnDefs': [
-                //{ defaultContent: '-', targets: '_all' },
                 { data: 'usr_id', name: 'usr_id' },
                 { data: 'usr_email', name: 'usr_email' },
                 { data: 'usr_last_seen', name: 'usr_last_seen' }
-                //{ name: 'User Email', targets: 'usr_email' }//,
-                //{ name: 'Last Seen', targets: 'usr_last_seen' }//,
-                //{ 
-                //    name: 'Login As', 
-                //    targets: 'usr_id'
-                //    //render: function(data, type, row) {
-                //    //    return '<a href="/login_as/' + data + '">[login as]</a>';
-                //    //}
-                //}
             ]
         });   	    
 
