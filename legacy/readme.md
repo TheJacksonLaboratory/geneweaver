@@ -13,7 +13,7 @@ To begin, you'll need the following application dependencies:
 
 RedHat/Fedora/CentOS:
 
-    $ sudo yum install boost boost-devel cairo cairo-devel git graphviz libffi libffi-devel libpqxx libpqxx-devel postgresql-server postgresql-devel python2 rabbitmq-server sphinx
+    $ sudo yum install boost boost-devel cairo cairo-devel git graphviz libffi libffi-devel libpqxx libpqxx-devel postgresql-server postgresql-devel python2 rabbitmq-server sphinx ImageMagick ImageMagick-devel
 	
 Debian/Ubuntu:
 
