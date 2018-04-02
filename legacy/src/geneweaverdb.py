@@ -259,9 +259,9 @@ def get_all_projects(usr_id):
             ''',
                 {'usr_id': usr_id}
         )
-        list = [Project(d) for d in dictify_cursor(cursor)]
-        newlist = sorted(list, key=lambda x: x.name, reverse=False)
-        return newlist
+
+        return [Project(d) for d in dictify_cursor(cursor)]
+
 
 def get_shared_projects(usr_id):
     """

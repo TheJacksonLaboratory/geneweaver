@@ -94,7 +94,7 @@
 
             {% for proj in g.user.projects %}
                 <tr>
-                    {# checkbox #}
+                    <!-- checkbox -->
                     <td width="18">
                         <div class="ui-checkbox proj-checkbox">
                             <label for="proj-{{ proj.project_id }}-allcheck">
@@ -104,14 +104,14 @@
                             </label>
                         </div>
                     </td>
-                    {# expand button #}
+                    <!-- expand button -->
                     <td width="15">
                         <span id="proj-{{ proj.project_id }}" class="toggler" data-prod="{{ proj.project_id }}">
                             <span class="plus"></span>
                             <span class="minus"></span>
                         </span>
                     </td>
-                    {# Project Name #}
+                    <!-- Project Name -->
                     <td>
                         <strong>{{ proj.name }}</strong>
                         <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
@@ -123,20 +123,20 @@
                             </span>
                         </span>
                     </td>
-                    {# Size #}
+                    <!-- Size -->
                     <td style="text-align: center;">
                         <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                               data-original-title="Genesets" type="button" title="{{ proj.count }} Gene Sets">
                             {{ proj.count }}
                         </span>
                     </td>
-                    {# Dated Project Created #}
+                    <!-- Dated Project Created -->
                     <td style="text-align: center;">
                         {% if proj.created != None %}
                             {{ proj.created }}
                         {% endif %}
                     </td>
-                    {# Shared #}
+                    <!-- Shared -->
                     <td>
                         {% if proj.group_id != '-1' %}
                             <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
@@ -148,7 +148,7 @@
                         {% endif %}
                         {% include 'modal/viewProjectGroups.html' %}
                     </td>
-                    {# Icon to Share Project #}
+                    <!-- Icon to Share Project -->
                     <td>
                         <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                               data-original-title="Share" type="button" title="Share Project">
@@ -160,7 +160,7 @@
                         </span>
                         {% include 'modal/addProjectToGroup.html' %}
                     </td>
-                    {# remove #}
+                    <!-- remove -->
                     <td>
                         <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                               data-original-title="Delete" type="button" title="Delete Project">
@@ -171,7 +171,7 @@
                             </span>
                         </span>
                     </td>
-                    {# star #}
+                    <!-- star -->
                     <td>
                         <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                               data-original-title="Star" type="button" title="Star Project">
@@ -303,7 +303,7 @@
                             text += '<tr>';
                             text += "<td>" + v[i]['grp_name'] + "</td>";
                             text += "<td>" + v[i]['usr_email'] + "</td>";
-                            if ((v[i]['grp_private']).toString() === 'true') {
+                            if (v[i]['grp_private'] && (v[i]['grp_private']).toString() === 'true') {
                                 text += "<td><span class=\"label label-danger\">Private</span></td>";
                             } else {
                                 text += "<td><span class=\"label label-info\">Public</span></td>";
