@@ -405,6 +405,34 @@ def render_analyze_shared():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze_shared.html', active_tools=active_tools, grp2proj=grp2proj)
 
+@app.route('/get_user_projects.json')
+@login_required(allow_guests=True)
+def get_user_projects():
+
+    if 'user' in flask.g:
+        projects = []
+
+        for p in flask.g.user.projects:
+            projects.append({
+                'name': p.name,
+                'project_id': p.project_id,
+                'group_id': p.group_id,
+                'created': p.created,
+                'notes': p.notes,
+                'star': p.star,
+                'count': p.count,
+                'group_name': p.group_name,
+                'owner': p.owner
+            })
+
+        return flask.jsonify(projects)
+    else:
+        return flask.jsonify([])
+        #return flask.jsonify({
+        #    'error': 'You must be logged in to use this page'
+        #})
+
+    #return flask.render_template('projects.html')
 
 @app.route('/projects')
 @login_required(allow_guests=True)
@@ -4541,7 +4569,7 @@ api.add_resource(ToolUpSetProjects,
 ## Config loading should occur outside __main__ when proxying requests through
 ## a web server like nginx. uWSGI doesn't load anything in the __main__ block
 app.secret_key = config.get('application', 'secret')
-app.debug = False
+app.debug = True
 
 if __name__ == '__main__':
 

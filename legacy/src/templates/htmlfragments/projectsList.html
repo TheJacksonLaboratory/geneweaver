@@ -79,19 +79,21 @@
           class="form-horizontal form-inline" novalidate="novalidate">
         <!-- TODO make the table sortable, show more gene details -->
         <table class="table table-hover" id="allProjects" cellpadding="0" cellspacing="0">
-            <tbody>
-            <tr style="background: #ececec;">
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-                <th>Project Name</th>
-                <th style="text-align: center;">Size</th>
-                <th style="text-align: center;">Date</th>
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-                <th>&nbsp;</th>
-            </tr>
+            <thead>
+                <tr style="background: #ececec;">
+                    <th>&nbsp;</th>
+                    <th>&nbsp;</th>
+                    <th>Project Name</th>
+                    <th style="text-align: center;">Size</th>
+                    <th style="text-align: center;">Date</th>
+                    <th>&nbsp;</th>
+                    <th>&nbsp;</th>
+                    <th>&nbsp;</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
 
+            {#
             {% for proj in g.user.projects %}
                 <tr>
                     <!-- checkbox -->
@@ -198,8 +200,8 @@
                 </tr>
 
             {% endfor %}
+            #}
 
-            </tbody>
         </table>
     </form>
 </div>
@@ -217,6 +219,280 @@
 {% include 'modal/editProjectName.html' %}
 
 <script type="text/javascript">
+
+{#
+                    <!-- checkbox -->
+                    <td width="18">
+                        <div class="ui-checkbox proj-checkbox">
+                            <label for="proj-{{ proj.project_id }}-allcheck">
+                                <input type="checkbox" data-project="{{ proj.project_id }}"
+                                       data-project-name="{{ proj.name }}"
+                                       id="proj-{{ proj.project_id }}-allcheck"/>
+                            </label>
+                        </div>
+                    </td>
+                    <!-- expand button -->
+                    <td width="15">
+                        <span id="proj-{{ proj.project_id }}" class="toggler" data-prod="{{ proj.project_id }}">
+                            <span class="plus"></span>
+                            <span class="minus"></span>
+                        </span>
+                    </td>
+                    <td>
+                        {% if proj.group_id != '-1' %}
+                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                                  data-original-title="Shared" type="button" title="Shared">
+                                <span class="showProjectGroups" data-proj-id="{{ proj.project_id }}">
+                                    <i class="fa fa-group"></i>
+                                </span>
+                            </span>
+                        {% endif %}
+                        {% include 'modal/viewProjectGroups.html' %}
+                    </td>
+                    <!-- Icon to Share Project -->
+                    <td>
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Share" type="button" title="Share Project">
+                            <span class="clickableShare" id="share-{{ proj.project_id }}"
+                                  data-proj-name="{{ proj.name }}"
+                                  data-proj-id="{{ proj.project_id }}" data-proj-grp="{{ proj.group_id }}">
+                                <i class="fa fa-share-alt"></i>
+                            </span>
+                        </span>
+                        {% include 'modal/addProjectToGroup.html' %}
+                    </td>
+                    <!-- remove -->
+                    <td>
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Delete" type="button" title="Delete Project">
+                            <span class="clickableDelete" id="delete-{{ proj.project_id }}"
+                                  data-proj-name="{{ proj.name }}"
+                                  data-proj-id="{{ proj.project_id }}">
+                                <i class="fa fa-trash-o"></i>
+                            </span>
+                        </span>
+                    </td>
+                    <!-- star -->
+                    <td>
+                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
+                              data-original-title="Star" type="button" title="Star Project">
+                            {% if proj.star == 'f' %}
+                            <span id="projstar-{{ proj.project_id }}" class="starToggler" data-prod="{{ proj.project_id }}">
+                                <span class="openstar"></span>
+                                <span class="closedstar" style="display: none;"></span>
+                            </span>
+                            {% else %}
+                            <span id="projstar-{{ proj.project_id }}" class="starToggler" data-prod="{{ proj.project_id }}">
+                                <span class="openstar" style="display: none;"></span>
+                                <span class="closedstar"></span>
+                            </span>
+                            {% endif %}
+                        </span>
+                    </td>
+#}
+    var drawStarCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Star',
+            type: 'button',
+            title: 'Star Project'
+        });
+
+        var inner = $('<span/>', {
+            class: 'starToggler',
+            id: 'projstar-' + rowData.project_id,
+            'data-proj-id': rowData.project_id,
+            'data-prod': rowData.project_id,
+            'data-proj-name': rowData.name
+        });
+
+        var openStar = $('<span/>', {
+            class: 'openstar'
+        });
+
+        var closedStar = $('<span/>', {
+            class: 'closedStar'
+        });
+
+        if (!rowData.star)
+            closedStar.css('display', 'none');
+        else
+            openStar.css('display', 'none');
+
+        inner.append(openStar);
+        inner.append(closedStar);
+
+        $(ntd).append(wrap.append(inner));
+    };
+    var drawDeleteCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Delete',
+            type: 'button',
+            title: 'Delete Project'
+        });
+        var inner = $('<span/>', {
+            class: 'clickableDelete',
+            id: 'delete-' + rowData.project_id,
+            'data-proj-id': rowData.project_id,
+            'data-proj-name': rowData.name
+        });
+        var icon = $('<i/>', {
+            class: 'fa fa-trash-o'
+        });
+
+        $(ntd).append(wrap.append(inner.append(icon)));
+    };
+    var drawShareCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Share',
+            type: 'button',
+            title: 'Share Project'
+        });
+        var inner = $('<span/>', {
+            class: 'clickableShare',
+            id: 'share-' + rowData.project_id,
+            'data-proj-id': rowData.project_id,
+            'data-proj-grp': rowData.group_id
+        });
+        var icon = $('<i/>', {
+            class: 'fa fa-share-alt'
+        });
+
+        $(ntd).append(wrap.append(inner.append(icon)));
+    };
+    var drawGroupCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        if (rowData.group_id == -1)
+            return;
+
+        var wrap = $('<span/>', {
+            'data-placement': 'top',
+            'data-toggle': 'tooltip',
+            'data-rel': 'tooltip',
+            'data-original-title': 'Shared',
+            type: 'button',
+            title: 'Shared'
+        });
+        var inner = $('<span/>', {
+            class: 'showProjectGroups',
+            'data-proj-id': rowData.project_id
+        });
+        var icon = $('<i/>', {
+            class: 'fa fa-group'
+        });
+
+        $(ntd).append(wrap.append(inner.append(icon)));
+    };
+    var drawCheckboxCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var wrap = $('<div/>', {
+            class: 'ui-checkbox proj-checkbox'
+        });
+        var label = $('<label/>', {
+            for: 'proj-' + rowData.project_id + '-allcheck'
+        });
+        var input = $('<input/>', {
+            type: 'checkbox',
+            'data-project': rowData.project_id,
+            'data-project-name': rowData.name,
+            id: 'proj-' + rowData.project_id + '-allcheck'
+        });
+
+        $(ntd).append(wrap.append(label.append(input)));
+        //return ''
+    };
+
+    var drawExpandCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+        var span = $('<span/>', {
+            id: 'proj-' + rowData.project_id,
+            class: 'toggler',
+            'data-prod': rowData.project_id
+        });
+        var plus = $('<span/>', {
+            class: 'plus'
+        });
+        var minus = $('<span/>', {
+            class: 'minus'
+        });
+
+        span.append(plus);
+        span.append(minus);
+
+        $(ntd).append(span);
+    };
+
+    var drawDateCell = function(ntd, _, _, _, _) { 
+        $(ntd).css('text-align', 'center');
+    };
+
+    $(function() {
+
+        var projectTable = $('#allProjects').dataTable({
+            processing: false,
+            serverside: false,
+            sort: false,
+            displayLength: 100,
+            ajax: {
+                dataSrc: '',
+                url: '/get_user_projects.json',
+                type: 'GET'
+            },
+            columnDefs: [
+                { targets: 0, data: null, defaultContent: ' ', createdCell: drawCheckboxCell},
+                { targets: 1, data: null, defaultContent: ' ', createdCell: drawExpandCell},
+                { targets: 2, data: 'name', defaultContent: ' '},
+                { targets: 3, data: 'count', defaultContent: ' '},
+                { targets: 4, data: 'created', defaultContent: ' ', createdCell: drawDateCell},
+                { targets: 5, data: null, defaultContent: ' ', createdCell: drawGroupCell},
+                { targets: 6, data: null, defaultContent: ' ', createdCell: drawShareCell},
+                { targets: 7, data: null, defaultContent: ' ', createdCell: drawDeleteCell},
+                { targets: 8, data: null, defaultContent: ' ', createdCell: drawStarCell},
+            ]
+        });
+
+        var viewSets = function(table, tr) {
+
+
+            return '<table><tr><td>blah</td></tr><tr><td>blah2</td></tr>';
+        };
+
+        $('#allProjects tbody').on('click', 'td span.toggler', function() {
+            var tr = $(this).parents('tr')[0];
+
+            if (projectTable.fnIsOpen(tr)) {
+
+                $(this).removeClass('open');
+                projectTable.fnClose(tr);
+
+            } else {
+                $(this).addClass('open');
+
+                projectTable.fnOpen(tr, viewSets(projectTable, tr), 'sets');
+            }
+        });
 
     // Update project set to new name
         $('.clickableEdit').on('click', function () {
@@ -350,9 +626,55 @@
                 }
             });
         });
+        $('.toggler').click(function (e) {
+            console.log('yeah');
+            e.preventDefault();
+            //the data stored in the data-prod
+            var pid = ($(this).attr("data-prod"));
+            var pbid = '#project-body-' + pid;
+            var data = {'project': pid};
+
+            console.log('yeah');
+            // Check to see if we've already made an AJAX call for this project
+            if ($(pbid).children().length !== 0) {
+                $(".gsid" + pid).toggle();
+                    //select the parent and find the span so you can
+                    //toggle the "plus" class
+                    $(this).parent().find("span").toggleClass("plus");
+                    //toggle the minus class
+                    $(this).toggleClass("plus");
+                    $(this).toggleClass("minus");
+                return;
+            }
+
+            // Flask should return the rendered HTML, inject it into the DOM
+            $.get(url, data).done(function (data) {
+
+                var tbody = pbid + ' tbody';
+                $(pbid).append(data);
+                //toggle the link clicked on
+                $(".gsid" + pid).toggle();
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $('#proj-'+pid).toggleClass("minus");
+
+                var allclass = '#proj-' + pid + '-allcheck';
+                var chkclass = '.proj-' + pid + '-check';
+
+                // Now start checking to see if we need to mark the checkboxes
+                // under this particular project
+                if ($(allclass).attr('checked')) {
+
+                    $(chkclass).each(function (index) {
+                        $(this).attr('checked', true);
+                    });
+                }
+            });
+        });
 
         // Update stared projects.
         $('.starToggler').click(function (e) {
+            console.log('yeah');
             e.preventDefault();
             var pid = ($(this).attr("data-prod"));
 
@@ -373,6 +695,7 @@
                 });
         });
 
+    });
 
 
     </script>

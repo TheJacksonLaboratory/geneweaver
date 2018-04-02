@@ -447,6 +447,7 @@
             var pbid = '#project-body-' + pid;
             var data = {'project': pid};
 
+            console.log('yeah');
             // Check to see if we've already made an AJAX call for this project
             if ($(pbid).children().length !== 0) {
                 $(".gsid" + pid).toggle();
