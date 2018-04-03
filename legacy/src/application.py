@@ -3392,11 +3392,9 @@ def render_search_json():
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
 
-
 @app.route('/projectGenesets.json', methods=['GET'])
 def render_project_genesets():
     uid = flask.session.get('user_id')
-    # Project (ID) that the user wants to view
     pid = flask.request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
 

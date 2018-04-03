@@ -450,7 +450,9 @@
 
     $(function() {
 
-        var projectTable = $('#allProjects').dataTable({
+        var setCache = {};
+
+        var projectTable = $('#allProjects').DataTable({
             processing: false,
             serverside: false,
             sort: false,
@@ -470,27 +472,122 @@
                 { targets: 6, data: null, defaultContent: ' ', createdCell: drawShareCell},
                 { targets: 7, data: null, defaultContent: ' ', createdCell: drawDeleteCell},
                 { targets: 8, data: null, defaultContent: ' ', createdCell: drawStarCell},
-            ]
+            ],
+            // Attach the project ID to each row
+            createdRow: function(row, data, dex) { 
+                $(row).attr('id', data.project_id);
+            }
         });
 
-        var viewSets = function(table, tr) {
+        var viewProjectGenesets = function(tr, callback) {
 
+            var url = 'cthulu/projectGenesets.json';
+            console.log('yeah');
+            // Grabs the project ID which is attached to this row
+            var pid = $(tr).attr('id');
+            console.log(tr);
+            //var pbid = '#project-body-' + pid;
+            //var data = {'project': pid};
 
-            return '<table><tr><td>blah</td></tr><tr><td>blah2</td></tr>';
+            // Check to see if we've already made an AJAX call for this project
+            if (pid in setCache) {
+                console.log('filler');
+                callback(setCache[pid]).show();
+                return;
+            }
+
+            // We haven't retrieved the gene sets associated with this project
+            // yet, so we do it now
+            $.ajax({
+                //url: url,
+                type: 'GET',
+                url: '../projectGenesets.json',
+                data: {project: pid},
+                error: function(e) {
+                    console.log(e);
+                },
+                success: function(data) {
+
+                    var genesetTable = $('<table/>');
+                    genesetTable.append(data);
+                //toggle the link clicked on
+                $(".gsid" + pid).toggle();
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $('#proj-'+pid).toggleClass("minus");
+
+                var allclass = '#proj-' + pid + '-allcheck';
+                var chkclass = '.proj-' + pid + '-check';
+
+                console.log('checks');
+                console.log(allclass);
+                console.log(chkclass);
+                console.log($(allclass).attr('checked'));
+                console.log($(allclass).is(':checked'));
+
+                // Now start checking to see if we need to mark the checkboxes
+                // under this particular project
+                if ($(allclass).attr('checked')) {
+
+                    console.log('checking');
+                    //console.log($(genesetTable).find(chkclass));
+                    //console.log($(chkclass, genesetTable));
+                    $(chkclass, genesetTable).each(function (index) {
+                        console.log('still checking');
+                        $(this).attr('checked', true);
+                    });
+                }
+                /*
+                */
+                    setCache[pid] = genesetTable;
+
+                    callback(genesetTable).show();
+                    //tr.addClass('shown');
+                //return genesetTable;
+                }
+            });
+
+            /*
+            // Check to see if we've already made an AJAX call for this project
+            if ($(pbid).children().length !== 0) {
+                $(".gsid" + pid).toggle();
+                    //select the parent and find the span so you can
+                    //toggle the "plus" class
+                    $(this).parent().find("span").toggleClass("plus");
+                    //toggle the minus class
+                    $(this).toggleClass("plus");
+                    $(this).toggleClass("minus");
+                return;
+            }
+            */
+
+            // Flask should return the rendered HTML, inject it into the DOM
+
+            console.log('nope');
+            //return setCache[pid];
         };
 
         $('#allProjects tbody').on('click', 'td span.toggler', function() {
-            var tr = $(this).parents('tr')[0];
+            //var tr = $(this).parents('tr')[0];
+            var tr = $(this).parents('tr');
 
-            if (projectTable.fnIsOpen(tr)) {
+            //if (projectTable.isOpen(tr)) {
+            if (projectTable.row(tr).child.isShown()) {
 
-                $(this).removeClass('open');
-                projectTable.fnClose(tr);
+                projectTable.row(tr).child.hide();
+
+                tr.removeClass('shown');
 
             } else {
-                $(this).addClass('open');
+                //$(this).addClass('open');
 
-                projectTable.fnOpen(tr, viewSets(projectTable, tr), 'sets');
+                //projectTable.fnOpen(tr, viewProjectGenesets(projectTable, tr), 'sets');
+                //projectTable.row(tr).child(
+                //    viewProjectGenesets(projectTable, tr)
+                //).show();
+                viewProjectGenesets(tr, projectTable.row(tr).child);
+                tr.addClass('shown');
+                //$(this).addClass('shown');
             }
         });
 
@@ -566,7 +663,8 @@
         });
 
         // Call modal to show groups associated with projects
-        $('.showProjectGroups').on('click', function () {
+        //$('.showProjectGroups').on('click', function () {
+        $('#allProjects tbody').on('click', 'td span.showProjectGroups', function() {
            var projId = $(this).attr('data-proj-id');
             $.ajax({
                     type: "GET",
