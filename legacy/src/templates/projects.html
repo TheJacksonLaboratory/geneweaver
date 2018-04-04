@@ -148,8 +148,6 @@
 
     $(document).ready(function () {
 
-        var url = '/projectGenesets.json';
-
         // Call New Blank Project
         $('#newProject').on('click', function () {
            $("#addProjectModal").modal('show');
@@ -396,96 +394,7 @@
                 $('#help-text').hide("slide", { direction: "right" }, 1000);
             else
                 $('#help-text').show("slide", { direction: "right" }, 1000);
-            });
-
-        // All selector checkbox
-        $('.proj-checkbox').on('click', function (event) {
-
-            var check = $(this).find('input[type=checkbox]');
-            var allcheck = '#' + check.attr('id');
-            var pid = allcheck.split('-')[1];
-            var pbid = '#project-body-' + pid;
-            var gscheck = '.proj-' + pid + '-check';
-			var chkclass = '.proj-' + pid + '-check';
-
-			if ($(pbid).children().length === 0) {
-
-				var data = {'project': pid};
-
-				$.get(url, data).done(function (data) {
-					$(pbid).append(data);
-
-					$(chkclass).each(function (index) {
-						$(this).attr('checked', true);
-					});
-				});
-
-			} else {
-
-                if ($(allcheck).attr('checked')) {
-
-                    $(gscheck).each(function (index) {
-                        $(this).attr('checked', false);
-                    });
-
-                } else {
-
-                    $(gscheck).each(function (index) {
-                        $(this).attr('checked', true);
-                    });
-                }
-            }
         });
-
-
-        // Project genesets are only loaded when necessary (i.e. when a user
-        // clicks on the project link.
-        $('.toggler').click(function (e) {
-            e.preventDefault();
-            //the data stored in the data-prod
-            var pid = ($(this).attr("data-prod"));
-            var pbid = '#project-body-' + pid;
-            var data = {'project': pid};
-
-            console.log('yeah');
-            // Check to see if we've already made an AJAX call for this project
-            if ($(pbid).children().length !== 0) {
-                $(".gsid" + pid).toggle();
-                    //select the parent and find the span so you can
-                    //toggle the "plus" class
-                    $(this).parent().find("span").toggleClass("plus");
-                    //toggle the minus class
-                    $(this).toggleClass("plus");
-                    $(this).toggleClass("minus");
-                return;
-            }
-
-            // Flask should return the rendered HTML, inject it into the DOM
-            $.get(url, data).done(function (data) {
-
-                var tbody = pbid + ' tbody';
-                $(pbid).append(data);
-                //toggle the link clicked on
-                $(".gsid" + pid).toggle();
-                //select the parent and find the span so you can
-                //toggle the "plus" class
-                $('#proj-'+pid).toggleClass("minus");
-
-                var allclass = '#proj-' + pid + '-allcheck';
-                var chkclass = '.proj-' + pid + '-check';
-
-                // Now start checking to see if we need to mark the checkboxes
-                // under this particular project
-                if ($(allclass).attr('checked')) {
-
-                    $(chkclass).each(function (index) {
-                        $(this).attr('checked', true);
-                    });
-                }
-            });
-        });
-
-
     });
 
 </script>

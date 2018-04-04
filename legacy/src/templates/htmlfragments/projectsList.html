@@ -151,7 +151,6 @@
                                 </span>
                             </span>
                         {% endif %}
-                        {% include 'modal/viewProjectGroups.html' %}
                     </td>
                     <!-- Icon to Share Project -->
                     <td>
@@ -163,7 +162,6 @@
                                 <i class="fa fa-share-alt"></i>
                             </span>
                         </span>
-                        {% include 'modal/addProjectToGroup.html' %}
                     </td>
                     <!-- remove -->
                     <td>
@@ -209,6 +207,16 @@
     </form>
 </div>
 
+{#
+    It's easier to just render these modals like this than to
+    rewrite everything for data tables. But they should be rewritten to use
+    something like datatables because rendering them is slow for users with
+    many projects.
+#}
+{% for proj in g.user.projects %}
+    {% include 'modal/viewProjectGroups.html' %}
+    {% include 'modal/addProjectToGroup.html' %}
+{% endfor %}
 {% else %}
 
     <div class="alert alert-warning fade in">
@@ -490,15 +498,59 @@
                 type: 'GET'
             },
             columnDefs: [
-                { targets: 0, data: null, defaultContent: ' ', createdCell: drawCheckboxCell},
-                { targets: 1, data: null, defaultContent: ' ', createdCell: drawExpandCell},
-                { targets: 2, data: 'name', defaultContent: ' ', createdCell: drawNameCell},
-                { targets: 3, data: 'count', defaultContent: ' '},
-                { targets: 4, data: 'created', defaultContent: ' ', createdCell: drawDateCell},
-                { targets: 5, data: null, defaultContent: ' ', createdCell: drawGroupCell},
-                { targets: 6, data: null, defaultContent: ' ', createdCell: drawShareCell},
-                { targets: 7, data: null, defaultContent: ' ', createdCell: drawDeleteCell},
-                { targets: 8, data: null, defaultContent: ' ', createdCell: drawStarCell},
+                { 
+                    targets: 0, 
+                    data: null, 
+                    defaultContent: ' ', 
+                    createdCell: drawCheckboxCell
+                },
+                { 
+                    targets: 1,
+                    data: null, 
+                    defaultContent: ' ', 
+                    createdCell: drawExpandCell
+                },
+                { 
+                    targets: 2, 
+                    data: 'name', 
+                    defaultContent: ' ', 
+                    createdCell: drawNameCell
+                },
+                {   
+                    targets: 3,
+                    data: 'count',
+                    defaultContent: ' '
+				},
+                { 
+                    targets: 4,
+                    data: 'created',
+                    defaultContent: ' ',
+                    createdCell: drawDateCell
+				},
+                { 
+                    targets: 5,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawGroupCell
+				},
+                { 
+                    targets: 6,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawShareCell
+				},
+                { 
+                    targets: 7,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawDeleteCell
+				},
+                { 
+                    targets: 8,
+                    data: null,
+                    defaultContent: ' ',
+                    createdCell: drawStarCell
+				},
             ],
             // Attach the project ID to each row
             createdRow: function(row, data, dex) { 
@@ -506,6 +558,17 @@
             }
         });
 
+        /**
+          * Called when a user wants to view the gene sets associated with a
+          * project. Retrieves gene set metadata using an AJAX call and stores it
+          * in a cache. The cache is used whenever a user wishes to view the sets
+          * again.
+          * 
+          * arguments
+          *     tr:       the jquery object for the current project row
+          *     callback: must be the jquery child object for this row, see the
+          *               span.toggler handler below
+          */
         var viewProjectGenesets = function(tr, callback) {
 
             // Grabs the project ID which is attached to this row
@@ -581,8 +644,12 @@
             });
         };
 
-        // All selector checkbox
-        //$('.proj-checkbox').on('click', function (event) {
+        /**
+          * Triggered when a user clicks a project's checkbox. This will
+          * attempt to load all the gene sets associated with a project (if 
+          * they haven't been loaded already) and select the checkboxes of 
+          * all those sets.
+          */
         $('#allProjects tbody').on('click', 'td div.proj-checkbox', function() {
 
             // The row contains the project ID
@@ -664,6 +731,51 @@
         });
 
         /**
+          * This handler is triggered when a user clicks the share icon.
+          */
+        $('#allProjects tbody').on('click', 'td span.clickableShare', function() {
+
+            var projId = $(this).attr('data-proj-id');
+            var projName = $(this).attr('data-proj-name');
+            var projGrp = $(this).attr('data-proj-grp');
+
+            $("#myProjName").html(projName);
+            $("#myProjId").val(projId);
+            $("#myProjGrp").html(projGrp);
+            $("#addProjToGroup-" + projId).modal('show');
+        });
+
+        /**
+          * This handler is triggered when a user clicks the groups icon.
+          */
+        $('#allProjects tbody').on('click', 'td span.showProjectGroups', function() {
+           var projId = $(this).attr('data-proj-id');
+            $.ajax({
+                    type: "GET",
+                    url: "../getProjectGroups.json",
+                    data: {"proj_id": projId},
+                    success: function (data) {
+                        var v = JSON.parse(data);
+                        text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
+                        for (var i in v) {
+                            text += '<tr>';
+                            text += "<td>" + v[i]['grp_name'] + "</td>";
+                            text += "<td>" + v[i]['usr_email'] + "</td>";
+                            if (v[i]['grp_private'] && (v[i]['grp_private']).toString() === 'true') {
+                                text += "<td><span class=\"label label-danger\">Private</span></td>";
+                            } else {
+                                text += "<td><span class=\"label label-info\">Public</span></td>";
+                            }
+                            text += "</tr>";
+                        }
+                        text += "</table>";
+                        $("#groups-"+projId).html(text);
+                        $("#groupsModal-"+projId).modal('show');
+                    }
+                });
+        });
+
+        /**
           * Activated when the user clicks the trash icon. Allows the user to
           * delete the project.
           */
@@ -741,46 +853,6 @@
                 ]);
                 }
             })
-        });
-
-        // Call modal to share selected projects
-        $('.clickableShare').on('click', function () {
-            var projId = $(this).attr('data-proj-id');
-            var projName = $(this).attr('data-proj-name');
-            var projGrp = $(this).attr('data-proj-grp');
-            $("#myProjName").html(projName);
-            $("#myProjId").val(projId);
-            $("#myProjGrp").html(projGrp);
-            $("#addProjToGroup-" + projId).modal('show');
-        });
-
-        // Call modal to show groups associated with projects
-        //$('.showProjectGroups').on('click', function () {
-        $('#allProjects tbody').on('click', 'td span.showProjectGroups', function() {
-           var projId = $(this).attr('data-proj-id');
-            $.ajax({
-                    type: "GET",
-                    url: "../getProjectGroups.json",
-                    data: {"proj_id": projId},
-                    success: function (data) {
-                        var v = JSON.parse(data);
-                        text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
-                        for (var i in v) {
-                            text += '<tr>';
-                            text += "<td>" + v[i]['grp_name'] + "</td>";
-                            text += "<td>" + v[i]['usr_email'] + "</td>";
-                            if (v[i]['grp_private'] && (v[i]['grp_private']).toString() === 'true') {
-                                text += "<td><span class=\"label label-danger\">Private</span></td>";
-                            } else {
-                                text += "<td><span class=\"label label-info\">Public</span></td>";
-                            }
-                            text += "</tr>";
-                        }
-                        text += "</table>";
-                        $("#groups-"+projId).html(text);
-                        $("#groupsModal-"+projId).modal('show');
-                    }
-                });
         });
 
         //Process usr to group
