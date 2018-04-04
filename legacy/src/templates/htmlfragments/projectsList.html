@@ -272,6 +272,17 @@
 
         $(ntd).append(wrap.append(inner));
     };
+
+    /**
+      * Renders the delete cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
     var drawDeleteCell = function(ntd, cellData, rowData, row, col) {
 
         $(ntd).empty();
@@ -296,6 +307,17 @@
 
         $(ntd).append(wrap.append(inner.append(icon)));
     };
+
+    /**
+      * Renders the sharing cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
     var drawShareCell = function(ntd, cellData, rowData, row, col) {
 
         $(ntd).empty();
@@ -320,6 +342,18 @@
 
         $(ntd).append(wrap.append(inner.append(icon)));
     };
+
+    /**
+      * Renders the group cell for a row in the data table if the project has
+      * been shared with > 1 groups.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
     var drawGroupCell = function(ntd, cellData, rowData, row, col) {
 
         $(ntd).empty();
@@ -345,6 +379,17 @@
 
         $(ntd).append(wrap.append(inner.append(icon)));
     };
+
+    /**
+      * Renders the checkbox cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
     var drawCheckboxCell = function(ntd, cellData, rowData, row, col) {
 
         $(ntd).empty();
@@ -387,6 +432,16 @@
         $(ntd).append(span);
     };
     
+    /**
+      * Renders the project name cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
     var drawNameCell = function(ntd, cellData, rowData, row, col) {
 
         $(ntd).empty();
@@ -428,6 +483,7 @@
             paginate: false,
             sort: false,
             displayLength: 100,
+            language: { emptyTable: "You haven't created any projects!" },
             ajax: {
                 dataSrc: '',
                 url: '/get_user_projects.json',

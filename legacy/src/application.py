@@ -413,6 +413,10 @@ def get_user_projects():
         projects = []
 
         for p in flask.g.user.projects:
+            ## Format datetime object to string
+            if p.created:
+                p.created = p.created.strftime('%Y-%m-%d')
+
             projects.append({
                 'name': p.name,
                 'project_id': p.project_id,
@@ -425,14 +429,11 @@ def get_user_projects():
                 'owner': p.owner
             })
 
+        print p.created
+        print type(p.created)
         return flask.jsonify(projects)
     else:
         return flask.jsonify([])
-        #return flask.jsonify({
-        #    'error': 'You must be logged in to use this page'
-        #})
-
-    #return flask.render_template('projects.html')
 
 @app.route('/projects')
 @login_required(allow_guests=True)
