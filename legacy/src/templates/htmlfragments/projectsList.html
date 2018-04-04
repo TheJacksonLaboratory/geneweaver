@@ -43,6 +43,9 @@
         cursor: pointer;
         color: #d3d3d3;
     }
+    .clickableDelete {
+        cursor: pointer;
+    }
 
     .clickableShare {
         cursor: pointer;
@@ -220,76 +223,16 @@
 
 <script type="text/javascript">
 
-{#
-                    <!-- checkbox -->
-                    <td width="18">
-                        <div class="ui-checkbox proj-checkbox">
-                            <label for="proj-{{ proj.project_id }}-allcheck">
-                                <input type="checkbox" data-project="{{ proj.project_id }}"
-                                       data-project-name="{{ proj.name }}"
-                                       id="proj-{{ proj.project_id }}-allcheck"/>
-                            </label>
-                        </div>
-                    </td>
-                    <!-- expand button -->
-                    <td width="15">
-                        <span id="proj-{{ proj.project_id }}" class="toggler" data-prod="{{ proj.project_id }}">
-                            <span class="plus"></span>
-                            <span class="minus"></span>
-                        </span>
-                    </td>
-                    <td>
-                        {% if proj.group_id != '-1' %}
-                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                  data-original-title="Shared" type="button" title="Shared">
-                                <span class="showProjectGroups" data-proj-id="{{ proj.project_id }}">
-                                    <i class="fa fa-group"></i>
-                                </span>
-                            </span>
-                        {% endif %}
-                        {% include 'modal/viewProjectGroups.html' %}
-                    </td>
-                    <!-- Icon to Share Project -->
-                    <td>
-                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                              data-original-title="Share" type="button" title="Share Project">
-                            <span class="clickableShare" id="share-{{ proj.project_id }}"
-                                  data-proj-name="{{ proj.name }}"
-                                  data-proj-id="{{ proj.project_id }}" data-proj-grp="{{ proj.group_id }}">
-                                <i class="fa fa-share-alt"></i>
-                            </span>
-                        </span>
-                        {% include 'modal/addProjectToGroup.html' %}
-                    </td>
-                    <!-- remove -->
-                    <td>
-                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                              data-original-title="Delete" type="button" title="Delete Project">
-                            <span class="clickableDelete" id="delete-{{ proj.project_id }}"
-                                  data-proj-name="{{ proj.name }}"
-                                  data-proj-id="{{ proj.project_id }}">
-                                <i class="fa fa-trash-o"></i>
-                            </span>
-                        </span>
-                    </td>
-                    <!-- star -->
-                    <td>
-                        <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                              data-original-title="Star" type="button" title="Star Project">
-                            {% if proj.star == 'f' %}
-                            <span id="projstar-{{ proj.project_id }}" class="starToggler" data-prod="{{ proj.project_id }}">
-                                <span class="openstar"></span>
-                                <span class="closedstar" style="display: none;"></span>
-                            </span>
-                            {% else %}
-                            <span id="projstar-{{ proj.project_id }}" class="starToggler" data-prod="{{ proj.project_id }}">
-                                <span class="openstar" style="display: none;"></span>
-                                <span class="closedstar"></span>
-                            </span>
-                            {% endif %}
-                        </span>
-                    </td>
-#}
+    /**
+      * Renders the star cell for a row in the data table.
+      *
+      * arguments
+      *     ntd:        the cell element as jquery object
+      *     cellData:   any data associated with this cell
+      *     rowData:    data associated with this row (a project object)
+      *     row:        index of the current row
+      *     col:        index of the current column
+      */
     var drawStarCell = function(ntd, cellData, rowData, row, col) {
 
         $(ntd).empty();
@@ -316,7 +259,7 @@
         });
 
         var closedStar = $('<span/>', {
-            class: 'closedStar'
+            class: 'closedstar'
         });
 
         if (!rowData.star)
@@ -443,6 +386,32 @@
 
         $(ntd).append(span);
     };
+    
+    var drawNameCell = function(ntd, cellData, rowData, row, col) {
+
+        $(ntd).empty();
+
+        var nameWrap = $('<strong/>').text(cellData);
+        var editButton = $('<span/>', {
+            class: 'clickableEdit',
+            'data-original-title': 'edit',
+            'data-placement': 'top',
+            'data-proj-name': rowData.name,
+            'data-proj-id': rowData.project_id,
+            'data-rel': 'tooltip',
+            'data-toggle': 'tooltip',
+            id: 'edit-' + rowData.project_id,
+            title: 'Edit Name',
+            type: 'button'
+        });
+        var editIcon = $('<i/>', { 
+            class: 'fa fa-pencil', 
+            style: 'margin: 0 0 0 5px'
+        });
+
+        $(ntd).append(nameWrap);
+        $(ntd).append(editButton.append(editIcon));
+    };
 
     var drawDateCell = function(ntd, _, _, _, _) { 
         $(ntd).css('text-align', 'center');
@@ -455,6 +424,8 @@
         var projectTable = $('#allProjects').DataTable({
             processing: false,
             serverside: false,
+            pageLength: -1,
+            paginate: false,
             sort: false,
             displayLength: 100,
             ajax: {
@@ -465,7 +436,7 @@
             columnDefs: [
                 { targets: 0, data: null, defaultContent: ' ', createdCell: drawCheckboxCell},
                 { targets: 1, data: null, defaultContent: ' ', createdCell: drawExpandCell},
-                { targets: 2, data: 'name', defaultContent: ' '},
+                { targets: 2, data: 'name', defaultContent: ' ', createdCell: drawNameCell},
                 { targets: 3, data: 'count', defaultContent: ' '},
                 { targets: 4, data: 'created', defaultContent: ' ', createdCell: drawDateCell},
                 { targets: 5, data: null, defaultContent: ' ', createdCell: drawGroupCell},
@@ -481,134 +452,199 @@
 
         var viewProjectGenesets = function(tr, callback) {
 
-            var url = 'cthulu/projectGenesets.json';
-            console.log('yeah');
             // Grabs the project ID which is attached to this row
             var pid = $(tr).attr('id');
-            console.log(tr);
-            //var pbid = '#project-body-' + pid;
-            //var data = {'project': pid};
 
-            // Check to see if we've already made an AJAX call for this project
+            // Check to see if we've already made an AJAX call for this
+            // project. If we have, the gene set HTML is cached.
             if (pid in setCache) {
-                console.log('filler');
-                callback(setCache[pid]).show();
+
+                // Change expansion icon to a minus symbol
+                //$('#proj-'+pid).toggleClass('minus');
+
+                if (callback)
+                    callback(setCache[pid]).show();
+
+                // This is the checkbox ID for the project
+                var allclass = '#proj-' + pid + '-allcheck';
+                // This is the checkbox class for each gene set associated
+                // with the project
+                var chkclass = '.proj-' + pid + '-check';
+
+                // If this project's checkbox is checked, we should check
+                // all of the gene set checkboxes associated with it too
+                // under this particular project
+                if ($(allclass).attr('checked')) {
+
+                    $(chkclass, setCache[pid]).each(function (index) {
+                        $(this).attr('checked', true);
+                    });
+                }
+
                 return;
             }
 
             // We haven't retrieved the gene sets associated with this project
             // yet, so we do it now
             $.ajax({
-                //url: url,
                 type: 'GET',
-                url: '../projectGenesets.json',
+                url: 'projectGenesets.json',
                 data: {project: pid},
-                error: function(e) {
-                    console.log(e);
-                },
                 success: function(data) {
 
-                    var genesetTable = $('<table/>');
-                    genesetTable.append(data);
-                //toggle the link clicked on
-                $(".gsid" + pid).toggle();
-                //select the parent and find the span so you can
-                //toggle the "plus" class
-                $('#proj-'+pid).toggleClass("minus");
+                    // This is the table element that will store gene set names
+                    // and metadata
+                    var genesetTable = $('<table/>').append(data);
 
-                var allclass = '#proj-' + pid + '-allcheck';
-                var chkclass = '.proj-' + pid + '-check';
+                    // Clicking the expansion icon should change the plus to
+                    // minus
+                    //$('#proj-'+pid).toggleClass("minus");
 
-                console.log('checks');
-                console.log(allclass);
-                console.log(chkclass);
-                console.log($(allclass).attr('checked'));
-                console.log($(allclass).is(':checked'));
+                    // This is the checkbox ID for the project
+                    var allclass = '#proj-' + pid + '-allcheck';
+                    // This is the checkbox class for each gene set associated
+                    // with the project
+                    var chkclass = '.proj-' + pid + '-check';
 
-                // Now start checking to see if we need to mark the checkboxes
-                // under this particular project
-                if ($(allclass).attr('checked')) {
+                    // If this project's checkbox is checked, we should check
+                    // all of the gene set checkboxes associated with it too
+                    // under this particular project
+                    if ($(allclass).attr('checked')) {
 
-                    console.log('checking');
-                    //console.log($(genesetTable).find(chkclass));
-                    //console.log($(chkclass, genesetTable));
-                    $(chkclass, genesetTable).each(function (index) {
-                        console.log('still checking');
-                        $(this).attr('checked', true);
-                    });
-                }
-                /*
-                */
+                        $(chkclass, genesetTable).each(function (index) {
+                            $(this).attr('checked', true);
+                        });
+                    }
+
+                    // Add this project's gene sets to the cache
                     setCache[pid] = genesetTable;
 
-                    callback(genesetTable).show();
-                    //tr.addClass('shown');
-                //return genesetTable;
+                    if (callback)
+                        callback(genesetTable).show();
                 }
             });
-
-            /*
-            // Check to see if we've already made an AJAX call for this project
-            if ($(pbid).children().length !== 0) {
-                $(".gsid" + pid).toggle();
-                    //select the parent and find the span so you can
-                    //toggle the "plus" class
-                    $(this).parent().find("span").toggleClass("plus");
-                    //toggle the minus class
-                    $(this).toggleClass("plus");
-                    $(this).toggleClass("minus");
-                return;
-            }
-            */
-
-            // Flask should return the rendered HTML, inject it into the DOM
-
-            console.log('nope');
-            //return setCache[pid];
         };
 
+        // All selector checkbox
+        //$('.proj-checkbox').on('click', function (event) {
+        $('#allProjects tbody').on('click', 'td div.proj-checkbox', function() {
+
+            // The row contains the project ID
+            var pid = $(this).parents('tr').attr('id');
+
+            var checkbox = $(this).find('input[type=checkbox]');
+            var gscheck = '.proj-' + pid + '-check';
+            var allcheck = '#proj-' + pid + '-allcheck';
+
+            // If this project hasn't been loaded before, we call the function
+            // to do so
+            if (!(pid in setCache)) {
+                viewProjectGenesets($(this).parents('tr'), null);
+            }
+
+            // The checked check is reversed because by the time we query the
+            // checkbox, it's already marked as checked
+            if ($(allcheck).attr('checked')) {
+
+                $(gscheck).each(function (index) {
+                    console.log(index);
+                    $(this).attr('checked', true);
+                });
+
+            } else {
+
+                $(gscheck).each(function (index) {
+                    console.log(index);
+                    $(this).attr('checked', false);
+                });
+            }
+        });
+
+        /**
+          * This handler is triggered when a user clicks the '+' icon to expand
+          * a project and display the gene sets associated with the project.
+          * When the plus icon is clicked, this function calls
+          * viewProjectGenesets which uses AJAX to retrieve the gene set
+          * metadata and embeds the data as HTML under the project.
+          */
         $('#allProjects tbody').on('click', 'td span.toggler', function() {
-            //var tr = $(this).parents('tr')[0];
+
             var tr = $(this).parents('tr');
 
-            //if (projectTable.isOpen(tr)) {
             if (projectTable.row(tr).child.isShown()) {
 
                 projectTable.row(tr).child.hide();
 
                 tr.removeClass('shown');
 
-            } else {
-                //$(this).addClass('open');
+                // We're hiding the gene set metadata, so remove the minus
+                // symbol for the project and change it back to a plus
+                tr.find('.toggler').toggleClass('minus');
 
-                //projectTable.fnOpen(tr, viewProjectGenesets(projectTable, tr), 'sets');
-                //projectTable.row(tr).child(
-                //    viewProjectGenesets(projectTable, tr)
-                //).show();
+            } else {
+
                 viewProjectGenesets(tr, projectTable.row(tr).child);
+
                 tr.addClass('shown');
-                //$(this).addClass('shown');
+                tr.find('.toggler').toggleClass("minus");
             }
         });
 
-    // Update project set to new name
-        $('.clickableEdit').on('click', function () {
+        /**
+          * This handler is triggered when a user clicks the pencil icon next
+          * to a project name. A modal is activated allowing the user to change
+          * the name of their project.
+          */
+        $('#allProjects tbody').on('click', 'td span.clickableEdit', function() {
+
            var projId = $(this).attr('data-proj-id');
-            var projName = $(this).attr('data-proj-name');
-            var editComment = $(this).attr('data-proj-notes');
+           var projName = $(this).attr('data-proj-name');
+           var editComment = $(this).attr('data-proj-notes');
+
             $("#projName").val(projName);
             $("#projId").val(projId);
             $("#editComment").val(editComment);
             $("#editModal").modal('show');
         });
 
-    // Delete Individual Project
-        $('.clickableDelete').on('click', function () {
+        /**
+          * Activated when the user clicks the trash icon. Allows the user to
+          * delete the project.
+          */
+        $('#allProjects tbody').on('click', 'td span.clickableDelete', function() {
             var projId = $(this).attr('data-proj-id');
             var projName = $(this).attr('data-proj-name');
+
             $("#myModalLabel").html(projName);
             $("#myModalValue").val(projId);
             $("#delProjects").modal('show');
+        });
+
+        /**
+          * Activated when the user clicks the star icon. 
+          */
+        $('#allProjects tbody').on('click', 'td span.starToggler', function() {
+
+            var pid = ($(this).attr('data-proj-id'));
+            var starElement = '#projstar-' + pid;
+
+            $.ajax({
+                type: "GET",
+                url: "../updateStaredProject",
+                data: {"user_id": {{ g.user.user_id }}, "proj_id": pid},
+                success: function (data) {
+
+                    if ($(starElement).find('.openstar').is(":hidden")) {
+
+                        $(starElement).find('.openstar').show();
+                        $(starElement).find('.closedstar').hide();
+                    } else {
+                    
+                        $(starElement).find('.openstar').hide();
+                        $(starElement).find('.closedstar').show();
+                    }
+                }
+            });
         });
 
     // Process the project name change
@@ -724,74 +760,7 @@
                 }
             });
         });
-        $('.toggler').click(function (e) {
-            console.log('yeah');
-            e.preventDefault();
-            //the data stored in the data-prod
-            var pid = ($(this).attr("data-prod"));
-            var pbid = '#project-body-' + pid;
-            var data = {'project': pid};
 
-            console.log('yeah');
-            // Check to see if we've already made an AJAX call for this project
-            if ($(pbid).children().length !== 0) {
-                $(".gsid" + pid).toggle();
-                    //select the parent and find the span so you can
-                    //toggle the "plus" class
-                    $(this).parent().find("span").toggleClass("plus");
-                    //toggle the minus class
-                    $(this).toggleClass("plus");
-                    $(this).toggleClass("minus");
-                return;
-            }
-
-            // Flask should return the rendered HTML, inject it into the DOM
-            $.get(url, data).done(function (data) {
-
-                var tbody = pbid + ' tbody';
-                $(pbid).append(data);
-                //toggle the link clicked on
-                $(".gsid" + pid).toggle();
-                //select the parent and find the span so you can
-                //toggle the "plus" class
-                $('#proj-'+pid).toggleClass("minus");
-
-                var allclass = '#proj-' + pid + '-allcheck';
-                var chkclass = '.proj-' + pid + '-check';
-
-                // Now start checking to see if we need to mark the checkboxes
-                // under this particular project
-                if ($(allclass).attr('checked')) {
-
-                    $(chkclass).each(function (index) {
-                        $(this).attr('checked', true);
-                    });
-                }
-            });
-        });
-
-        // Update stared projects.
-        $('.starToggler').click(function (e) {
-            console.log('yeah');
-            e.preventDefault();
-            var pid = ($(this).attr("data-prod"));
-
-            $.ajax({
-                    type: "GET",
-                    url: "../updateStaredProject",
-                    data: {"user_id": {{ g.user.user_id }}, "proj_id": pid},
-                    success: function (data) {
-                        if ($('#projstar-'+pid).find('.openstar').is(":hidden")) {
-                            $('#projstar-'+pid).find('.openstar').show();
-                            $('#projstar-'+pid).find('.closedstar').hide();
-                        }
-                        else {
-                            $('#projstar-'+pid).find('.openstar').hide();
-                            $('#projstar-'+pid).find('.closedstar').show();
-                        }
-                    }
-                });
-        });
 
     });
 
