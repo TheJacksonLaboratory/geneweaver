@@ -208,14 +208,17 @@
 </div>
 
 {#
+    If a user has > 100 projects rendering these modals
     It's easier to just render these modals like this than to
     rewrite everything for data tables. But they should be rewritten to use
     something like datatables because rendering them is slow for users with
     many projects.
 #}
 {% for proj in g.user.projects %}
+    {#
     {% include 'modal/viewProjectGroups.html' %}
     {% include 'modal/addProjectToGroup.html' %}
+    #}
 {% endfor %}
 {% else %}
 
@@ -670,14 +673,12 @@
             if ($(allcheck).attr('checked')) {
 
                 $(gscheck).each(function (index) {
-                    console.log(index);
                     $(this).attr('checked', true);
                 });
 
             } else {
 
                 $(gscheck).each(function (index) {
-                    console.log(index);
                     $(this).attr('checked', false);
                 });
             }
@@ -739,40 +740,69 @@
             var projName = $(this).attr('data-proj-name');
             var projGrp = $(this).attr('data-proj-grp');
 
-            $("#myProjName").html(projName);
-            $("#myProjId").val(projId);
-            $("#myProjGrp").html(projGrp);
-            $("#addProjToGroup-" + projId).modal('show');
+            $.ajax({
+                type: "GET",
+                url: "get_add_project_group_modal",
+                data: {"project": projId},
+                success: function(data) {
+                    
+                    var addProjectModal = $(data);
+
+                    $('body').append(addProjectModal);
+                    $("#myProjName").html(projName);
+                    $("#myProjId").val(projId);
+                    $("#myProjGrp").html(projGrp);
+                    $("#addProjToGroup-" + projId).modal('show');
+                }
+            });
         });
 
         /**
           * This handler is triggered when a user clicks the groups icon.
+          * To prevent the template engine from slowing page loading to a
+          * crawl, we no longer let it render modals for every single shared
+          * project. Instead, we have flask render the shared group modal,
+          * retrieve it through AJAX, then embed it into the page.
           */
         $('#allProjects tbody').on('click', 'td span.showProjectGroups', function() {
            var projId = $(this).attr('data-proj-id');
+            // Retrieve rendered groups modal
             $.ajax({
-                    type: "GET",
-                    url: "../getProjectGroups.json",
-                    data: {"proj_id": projId},
-                    success: function (data) {
-                        var v = JSON.parse(data);
-                        text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
-                        for (var i in v) {
-                            text += '<tr>';
-                            text += "<td>" + v[i]['grp_name'] + "</td>";
-                            text += "<td>" + v[i]['usr_email'] + "</td>";
-                            if (v[i]['grp_private'] && (v[i]['grp_private']).toString() === 'true') {
-                                text += "<td><span class=\"label label-danger\">Private</span></td>";
-                            } else {
-                                text += "<td><span class=\"label label-info\">Public</span></td>";
+                type: "GET",
+                url: "get_project_groups_modal",
+                data: {"project": projId},
+                success: function(data) {
+
+                    var projectModal = $(data);
+
+                    $.ajax({
+                        type: "GET",
+                        url: "../getProjectGroups.json",
+                        data: {"proj_id": projId},
+                        success: function (data) {
+                            var v = JSON.parse(data);
+                            text = '<table class=\"table table-striped\"><th>Group Name</th><th>Owner</th><th>&nbsp;</th>';
+                            for (var i in v) {
+                                text += '<tr>';
+                                text += "<td>" + v[i]['grp_name'] + "</td>";
+                                text += "<td>" + v[i]['usr_email'] + "</td>";
+                                if (v[i]['grp_private'] && (v[i]['grp_private']).toString() === 'true') {
+                                    text += "<td><span class=\"label label-danger\">Private</span></td>";
+                                } else {
+                                    text += "<td><span class=\"label label-info\">Public</span></td>";
+                                }
+                                text += "</tr>";
                             }
-                            text += "</tr>";
+                            text += "</table>";
+                            // Append the flask rendered modal to the
+                            // body so it can be shown
+                            $('body').append(projectModal);
+                            $("#groups-"+projId).html(text);
+                            $("#groupsModal-"+projId).modal('show');
                         }
-                        text += "</table>";
-                        $("#groups-"+projId).html(text);
-                        $("#groupsModal-"+projId).modal('show');
-                    }
-                });
+                    });
+                }
+            });
         });
 
         /**
@@ -856,7 +886,21 @@
         });
 
         //Process usr to group
-        $('.addProjToGroup').on('click', function () {
+        //$('.addProjToGroup').on('click', function () {
+        //$('#addProjectsToGroups').on('click', function () {
+
+        /**
+          * This handler is triggered when after a user clicks the share icon,
+          * selects a group to share with, and hits the "Update Groups" Button.
+          * To prevent the template engine from slowing page loading to a
+          * crawl, we no longer let it render this modal for every single 
+          * project. Instead, we have flask render the share with group modal,
+          * retrieve it through AJAX, then embed it into the page.
+          * Because we inject this modal into the DOM, we have to delegate
+          * button click handling to the parent element this modal is appended
+          * to.
+          */
+        $('body').delegate('#addProjectsToGroups', 'click', function () {
             var checked = [];
             var projId = $(this).attr('data-proj-id');
             $("#addProjToGroup-" + projId + " input[name='grpOptions[]']:checked").each(function () {

@@ -225,6 +225,27 @@ def create_project(project_name, user_id):
             return cursor.fetchone()[0]
 
 
+def get_project_by_id(pid):
+    """
+    Retrieves the project associated with the given project ID
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT  *
+            FROM    production.project
+            WHERE   pj_id = %s;
+            ''',
+                (pid,)
+        )
+
+        p = [Project(d) for d in dictify_cursor(cursor)]
+
+        if not p:
+            return None
+
+        return p[0]
+
 def get_all_projects(usr_id):
     """
     returns all projects associated with the given user ID

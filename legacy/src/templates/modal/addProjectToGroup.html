@@ -20,6 +20,7 @@
 
 
                                         <label for="addProjects{{ n.grp_id }}"
+                                        {#
                                                     {% for i in proj.group_id.split(',') %}
                                                         {% if n.grp_id|string() == i|string() %}
                                                             class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-on"
@@ -27,7 +28,7 @@
                                                             class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off"
                                                         {% endif %}
                                                     {%  endfor %}>
-                                            {{ n.grp_name }}
+                                        #}
                                         </label>
                                     <input
                                         type="checkbox"
@@ -39,6 +40,9 @@
                                                     {% endif %}
                                                 {% endfor %}
                                         value="{{ n.grp_id }}">
+                                    </td>
+                                    <td>
+                                        {{ n.grp_name }}
                                     </td>
                                 </tr>
                             {% endfor %}

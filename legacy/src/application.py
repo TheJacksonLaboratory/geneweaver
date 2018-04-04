@@ -3412,6 +3412,33 @@ def render_project_genesets():
                                  proj={'project_id': pid},
                                  species=species)
 
+@app.route('/get_project_groups_modal', methods=['GET'])
+def get_project_groups_modal():
+    """
+    Renders the shared project groups modal.
+    """
+
+    pid = flask.request.args['project']
+
+    return flask.render_template(
+        'modal/viewProjectGroups.html',
+        proj={'project_id': pid}
+    )
+
+@app.route('/get_add_project_group_modal', methods=['GET'])
+def get_add_project_group_modal():
+    """
+    Renders the add project to group modal.
+    """
+
+    pid = flask.request.args['project']
+    project = geneweaverdb.get_project_by_id(pid)
+
+    return flask.render_template(
+        'modal/addProjectToGroup.html',
+        proj=project
+    )
+
 
 @app.route('/getProjectGroups.json', methods=['GET'])
 def render_project_groups():
