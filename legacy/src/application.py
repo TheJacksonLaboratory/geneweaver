@@ -2294,6 +2294,7 @@ def get_geneset_genes():
     for gsv in gs.geneset_values:
         symbols.append(gsv.ode_ref)
 
+    print gsvs
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
         gene_id = gsvs[i].ode_gene_id
