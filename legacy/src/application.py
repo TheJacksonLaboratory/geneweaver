@@ -2128,7 +2128,8 @@ def create_geneset_meta():
 
 
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
-@login_required()
+@create_guest
+@login_required(allow_guests=True)
 def render_viewgeneset(gs_id):
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
     return render_viewgeneset_main(gs_id, curation_assignment=assignment)
@@ -2463,7 +2464,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
-@login_required()
+@login_required(allow_guests=True)
 def render_viewgenesetoverlap(gs_ids):
     """
     Renders the view geneset overlap page.
@@ -2920,7 +2921,7 @@ def decimal_default(obj):
 
 
 @app.route('/viewSimilarGenesets/<int:gs_id>/<int:grp_by>')
-@login_required()
+@login_required(allow_guests=True)
 def render_sim_genesets(gs_id, grp_by):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
@@ -3161,7 +3162,7 @@ def render_view_same_publications(gs_id):
 
 
 @app.route('/emphasis', methods=['GET', 'POST'])
-@login_required()
+@login_required(allow_guests=True)
 def render_emphasis():
     '''
     Emphasis_AddGene
