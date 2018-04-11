@@ -153,7 +153,7 @@
             class: 'closedstar'
         });
 
-        if (!rowData.star)
+        if (!rowData.star || rowData.star === 'f')
             closedStar.css('display', 'none');
         else
             openStar.css('display', 'none');
@@ -708,7 +708,7 @@
 
             $.ajax({
                 type: "GET",
-                url: "../updateStaredProject",
+                url: "/updateStaredProject",
                 data: {"user_id": {{ g.user.user_id }}, "proj_id": pid},
                 success: function (data) {
 

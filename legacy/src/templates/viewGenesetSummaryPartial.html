@@ -237,6 +237,8 @@
 <script type="text/javascript">
 
     $(function() {
+        // The alist returned by the server should already be sorted
+        var splist = {{ species|tojson|safe }};
 
         makeSpeciesTags(splist);
     });

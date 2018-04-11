@@ -429,8 +429,6 @@ def get_user_projects():
                 'owner': p.owner
             })
 
-        print p.created
-        print type(p.created)
         return flask.jsonify(projects)
     else:
         return flask.jsonify([])
