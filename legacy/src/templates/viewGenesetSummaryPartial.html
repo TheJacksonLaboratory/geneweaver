@@ -61,7 +61,12 @@
         {% endif %}
     </td>
 
-    <td><span id="sp-tag-{{gs.geneset_id}}"></span>
+    <td>
+        {#
+        <span id="sp-tag-{{gs.geneset_id}}"></span>
+        #}
+        <span id="sp-tag-{{gs.geneset_id}}" class="sp-tag-{{gs.sp_id}}">
+        </span>
     </td>
 
     <td>
@@ -228,49 +233,12 @@
 
 </style>
 
+<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
 <script type="text/javascript">
 
-    // Dynamically generates a colored species tag using an sp_id/sp_name
-    // association list from the DB. The function normalizes sp_id just in
-    // case species have been removed and gaps exist between IDs. The original
-    // colors for GW's first six species are still used, the rest are based off
-    // ColorBrewer scale combinations.
-
     $(function() {
-        var gsid = {{gs.geneset_id}};
-        var spid = {{ gs.sp_id }};
-        // The alist returned by the server should already be sorted
-        var splist = {{ species|tojson|safe }};
-        var spname = '';
-        // Extra element padding since sp_ids are not zero indexed
-        var colors = ['', '#fae4db', '#f9fac5', '#b5faf5', '#fae3e9', '#f5fee1', '#f4dfff',
-                      '#78c679', '#41b6c4', '#7bccc4', '#8c96c6', '#fc8d59'];
-        var borders = ['', '#eeb44f', '#d7c000', '#44fcf7', '#fca5b7', '#8fcb0a', '#b4d1fb',
-                       '#41ab5d', '#1d91c0', '#4eb3d3', '#8c6bb1', '#ef6548'];
 
-        for (var i = 0; i < splist.length; i++) {
-           if (spid === splist[i][0]) {
-               spid = i;
-               spname = splist[i][1];
-               break;
-           }
-        }
-
-        // Elissa mentioned we shouldn't use common, pleb names for species
-        // (and that monkey isn't technically a species), so these are replaced
-        // with abbreviations.
-        spname = spname.split(' ');
-
-        // Mus musculus and Macaca mulatta have the same abbreviation
-        if (spname[1].slice(0, 3) == 'mul')
-            spname = spname[0][0].toUpperCase() + '.' + 'mul' + '.';
-        else
-            spname = spname[0][0].toUpperCase() + spname[1][0].toLowerCase() + '.';
-
-        var tag = '<span class="group_name" style="font: italic 10px/14px Georgia, serif; background-color:' + colors[spid] +
-                  '; border:1px solid ' + borders[spid] + '">' +
-                  spname + '</span>';
-        $('#sp-tag-' + gsid).html(tag);
+        makeSpeciesTags(splist);
     });
 
 

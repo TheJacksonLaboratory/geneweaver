@@ -102,6 +102,7 @@ var makeSpeciesTags = function(splist, fullName) {
         $('.sp-tag-' + spid).css('border', '1px solid');
         $('.sp-tag-' + spid).css('border-color', borders.shift());
         $('.sp-tag-' + spid).css('margin', '-5px 0 0 5px');
+        $('.sp-tag-' + spid).css('font', 'italic 10px/14px Georgia, serif');
         $('.sp-tag-' + spid).html(spname);
     }
 };

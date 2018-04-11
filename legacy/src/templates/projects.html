@@ -155,32 +155,6 @@
 
     $(document).ready(function () {
 
-        // gs_ids in the results that are checked and ready to add to a project
-        var gschecked = {};
-
-        // Called every time a checkbox is clicked and updates the list of
-        // checked search results.
-        //$('input[type=checkbox]').on('click', function(event) {
-        /*
-        $('body').delegate('input[type=checkbox]', 'click', function(event) {
-
-            // The element object this event is referring to
-            var box = event.target;
-            console.log(box);
-
-            // All search result checkboxes can be distinguished with this class
-            if (box.className == 'search-check') {
-
-                var idlen = 'gs-check-'.length;
-                var gsid = box.id.slice(idlen);
-
-                if (box.checked)
-                    gschecked[gsid] = gsid;
-                else
-                    delete gschecked[gsid];
-            }
-        });
-        */
         // The 'Add GeneSet(s) to Project' button
         // The 'add to selected projects' button in the modal above
         $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
@@ -325,27 +299,6 @@
             });
 
             openGSModal('#addToProjectModal', gsid)();
-            /*
-            // display error if no genesets are selected
-            if (gsname.length == 0) {
-
-				$(document).trigger("add-alerts", [{
-					'message': "No GeneSets were selected for combining into the same project.",
-					'priority': 'danger'
-				}]);
-            }
-
-            // send the list to the modal.
-            else{
-                var n = gsname.join(", ");
-                var i = gsid.join(",");
-
-                $("#myCombineGSLabel").html(n);
-                $("#myCombineGSValue").val(i);
-                $("#combineGenesets").modal('show');
-
-            }
-            */
         });
 
 
