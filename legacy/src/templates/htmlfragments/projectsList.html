@@ -452,7 +452,7 @@
           *     callback: must be the jquery child object for this row, see the
           *               span.toggler handler below
           */
-        var viewProjectGenesets = function(tr, callback) {
+        var viewProjectGenesets = function(tr, callback, noshow) {
 
             // Grabs the project ID which is attached to this row
             var pid = $(tr).attr('id');
@@ -464,7 +464,9 @@
                 // Change expansion icon to a minus symbol
                 //$('#proj-'+pid).toggleClass('minus');
 
-                if (callback)
+                if (callback && noshow)
+                    callback(setCache[pid]);
+                else
                     callback(setCache[pid]).show();
 
                 // This is the checkbox ID for the project
@@ -521,12 +523,45 @@
                     // Add this project's gene sets to the cache
                     setCache[pid] = genesetTable;
 
-                    if (callback)
+                    if (callback && noshow)
+                        callback(genesetTable);
+                    else
                         callback(genesetTable).show();
                 }
             });
         };
 
+        var checkboxCallback = function(tr) {
+
+            var pid = $(this).parents('tr').attr('id');
+            var allcheck = '#proj-' + pid + '-allcheck';
+            var gscheck = '.proj-' + pid + '-check';
+            console.log('checking big check');
+            // The checked check is reversed because by the time we query the
+            // checkbox, it's already marked as checked
+            if ($(allcheck).attr('checked')) {
+
+                console.log('not checked');
+                //console.log(projectTable.rows().nodes);
+                //console.log(projectTable.row($(this).parents('tr')));
+                //console.log(projectTable.row($(this).parents('tr')).nodes);
+                console.log(projectTable.row($(this).parents('tr')).child.isShown());
+                console.log(projectTable.row($(this).parents('tr')).child.show());
+                console.log(setCache);
+                $(gscheck).each(function (index) {
+                    console.log('checking ' + index);
+                    $(this).attr('checked', true);
+                });
+
+            } else {
+
+                console.log('checked');
+                $(gscheck).each(function (index) {
+                    console.log('checking ' + index);
+                    $(this).attr('checked', false);
+                });
+            }
+        };
         /**
           * Triggered when a user clicks a project's checkbox. This will
           * attempt to load all the gene sets associated with a project (if 
@@ -542,10 +577,15 @@
             var gscheck = '.proj-' + pid + '-check';
             var allcheck = '#proj-' + pid + '-allcheck';
 
+            console.log('checking');
             // If this project hasn't been loaded before, we call the function
             // to do so
             if (!(pid in setCache)) {
-                viewProjectGenesets($(this).parents('tr'), null);
+                console.log('have to load stuff');
+                viewProjectGenesets($(this).parents('tr'), checkboxCallback,
+                    true);
+                console.log('done loading');
+                return;
             }
 
             // The checked check is reversed because by the time we query the
@@ -553,11 +593,13 @@
             if ($(allcheck).attr('checked')) {
 
                 $(gscheck).each(function (index) {
+                    console.log('checking ' + index);
                     $(this).attr('checked', true);
                 });
 
             } else {
 
+                console.log('checked');
                 $(gscheck).each(function (index) {
                     $(this).attr('checked', false);
                 });
