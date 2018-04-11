@@ -58,6 +58,7 @@
 
             <p>
 
+            <div class="row" id="result"></div>
             <div class="alert alert-dismissible" data-alerts="alerts" 
                  data-titles="{'warning': '<em>Warning!</em>'}" 
                  data-ids="myid">
@@ -129,17 +130,22 @@
 
 {% if g.user is defined %}
 
-    {% include 'modal/deleteProject.html' %}
+{#
+    AddBlankProject is included in the addGenesetsToProjects_multiselect 
+    modal, so if we try to include it here for the New Project button, projects
+    will get added twice...
 
     {% include 'modal/addBlankProject.html' %}
-
+#}
+    {% include 'modal/deleteProject.html' %}
     {% include 'modal/combineGenesets.html' %}
-
-    {% include 'modal/addGenesetsToProjects.html' %}
+    {% include 'modal/addGenesetsToProjects_multiselect.html' %}
+    {% include 'modal/showGenericMessage.html' %}
 
 {% endif %}
 
-
+<!-- Script for adding geneset to selected projects-->
+<script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
 <script type="text/javascript">
 
     $(function () {
@@ -147,6 +153,9 @@
     });
 
     $(document).ready(function () {
+
+        // The 'add to selected projects' button in the modal above
+        $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../addGenesetsToProjects"));
 
         // Call New Blank Project
         $('#newProject').on('click', function () {
