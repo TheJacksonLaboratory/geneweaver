@@ -2708,8 +2708,8 @@ def render_viewgenesetoverlap(gs_ids):
         gs_map=gs_map,
         intersects=intersects,
         species=species,
-        venn=venn,
-        venn_text=venn_text,
+        venn=json.dumps(venn),
+        venn_text=json.dumps(venn_text),
         #emphgenes=emphgenes
     )
 
