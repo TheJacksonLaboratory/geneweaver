@@ -29,6 +29,7 @@ def createConfig():
         print >> fl, 'host = 127.0.0.1'
         print >> fl, 'results = '+rootpath+'website-py/results'
         print >> fl, 'secret = ' + os.urandom(32).encode('hex')
+        print >> fl, 'help_url = http://geneweaver.org/help'
         print >> fl, ''
         print >> fl, '[celery]'
         print >> fl, 'url = amqp://guest@localhost//'

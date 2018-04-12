@@ -71,6 +71,8 @@ admin = Admin(app, name='GeneWeaver', index_view=adminviews.AdminHome(
 
 admin.add_view(
     adminviews.Viewers(name='Users', endpoint='viewUsers', category='User Tools'))
+admin.add_view(
+    adminviews.Viewers(name='Recent Users', endpoint='viewRecentUsers', category='User Tools'))
 admin.add_view(adminviews.Viewers(
     name='Publications', endpoint='viewPublications', category='User Tools'))
 admin.add_view(adminviews.Viewers(
@@ -247,14 +249,19 @@ def _form_login():
         # TODO deal with login failure
         user = geneweaverdb.authenticate_user(
             form['usr_email'], form['usr_password'])
+
         if user is not None:
             flask.session['user_id'] = user.user_id
             remote_addr = flask.request.remote_addr
+
             if remote_addr:
                 flask.session['remote_addr'] = remote_addr
 
+            geneweaverdb.update_user_seen(user.user_id)
+
     flask.g.user = user
     return user
+
 
 
 def send_mail(to, subject, body):
@@ -314,6 +321,34 @@ def json_login():
         json_result['usr_email'] = user.email
 
     # return flask.jsonify(json_result)
+    return flask.redirect('/')
+
+@app.route('/login_as/<int:as_user_id>', methods=['GET'])
+def login_as(as_user_id):
+    #args = flask.request.args
+
+    #if 'user_id' not in args:
+    #    return flask.jsonify({'error': ''})
+    if not as_user_id:
+        return flask.jsonify({'error': ''})
+
+    if 'user' not in flask.g:
+        return flask.jsonify({'error': ''})
+
+    user = flask.g.user
+
+    if not user.is_admin:
+        return flask.jsonify({'error': ''})
+
+    as_user = geneweaverdb.get_user(as_user_id)
+
+    if not as_user:
+        return flask.jsonify({'error': ''})
+
+
+    flask.session['user_id'] = as_user.user_id
+    flask.g.user = as_user
+
     return flask.redirect('/')
 
 
@@ -2163,19 +2198,28 @@ def get_geneset_genes():
         columns = ['symbol', 'alt', '', 'value', 'priority']
         session['sort'] = columns[orderBy]
         session['dir'] = args['order[0][dir]']
+    else:
+        session['sort'] = ''
+        session['dir'] = 'ASC'
 
     if 'length' in args:
         session['length'] = args['length']
+    else:
+        session['length'] = 50
 
     if 'start' in args:
         start = args['start']
         session['start'] = start
+    else:
+        session['start'] = 0
 
     if 'search[value]' in args:
         session['search'] = args['search[value]']
+    else:
+        session['search'] = ''
 
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
-    gsvs = geneset.geneset_values
+    #gsvs = geneset.geneset_values
     # not sure why you have to give datatables both of these as the same value, but that's what it wants...
     gene_list = {'aaData': [], 'iTotalDisplayRecords': total_records, 'iTotalRecords': total_records}
 
@@ -2202,6 +2246,16 @@ def get_geneset_genes():
         alt_gene_id = session['extsrc']
 
     session['extsrc'] = genedict['Gene Symbol']
+
+    gsvs = geneweaverdb.get_geneset_values(
+        gs_id, 
+        alt_gene_id,
+        session['length'], 
+        session['start'], 
+        session['search'], 
+        session['sort'],
+        session['dir']
+    )
 
     ## Retrieves the set with symbol identifiers
     gs = geneweaverdb.get_geneset(gs_id, user_id)
@@ -2451,6 +2505,13 @@ def render_viewgenesetoverlap(gs_ids):
     gene_intersects = defaultdict(set)
     ## Maps gs_ids to geneset data
     gs_map = {}
+    ## Homology is only used if sets from multiple species are present
+    sp_ids = list(set(map(lambda g: g.sp_id, genesets)))
+
+    if len(sp_ids) > 1:
+        use_homology = True
+    else:
+        use_homology = False
 
     for gs in genesets:
         gs_map[gs.geneset_id] = gs
@@ -2468,17 +2529,18 @@ def render_viewgenesetoverlap(gs_ids):
             if gs_intersects[gs_id1][gs_id2] or gs_intersects[gs_id2][gs_id1]:
                 continue
 
-            ## get_intersect* returns a tuple with a list of gene symbols and
-            ## a list of homology ids
-            intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
+            if use_homology:
+                intersect = geneweaverdb.get_intersect_by_homology(gs_id1, gs_id2)
+            else:
+                intersect = geneweaverdb.get_geneset_intersect(gs_id1, gs_id2)
 
             gs_intersects[gs_id1][gs_id2] = intersect
             gs_intersects[gs_id2][gs_id1] = intersect
 
             ## Keep track of gene-genesets for sorting and ease of display
-            for gene in intersect[0]:
-                gene_intersects[gene].add(gs_id1)
-                gene_intersects[gene].add(gs_id2)
+            for i in intersect:
+                gene_intersects[i['gi_symbol']].add(gs_id1)
+                gene_intersects[i['gi_symbol']].add(gs_id2)
 
     intersects = []
 
@@ -2580,6 +2642,9 @@ def render_viewgenesetoverlap(gs_ids):
         r1=r1*scale
         r2=r2*scale
 
+        c1y += 30
+        c2y += 30
+
         return {'c1x':c1x,'c1y':c1y,'r1':r1, 'c2x':c2x,'c2y':c2y,'r2':r2, 'tx': tx, 'ty': ty}
 
 
@@ -2612,13 +2677,24 @@ def render_viewgenesetoverlap(gs_ids):
 
     ## Pairwise comparison so we provide additional data for the venn diagram
     if len(genesets) == 2:
-        venn = venn_circles(genesets[0].count, genesets[1].count, len(intersects), 300)
+        gslen1 = len(list(
+            geneweaverdb.get_geneset_values_simple(genesets[0].geneset_id)
+        ))
+        gslen2 = len(list(
+            geneweaverdb.get_geneset_values_simple(genesets[1].geneset_id)
+        ))
+        venn = venn_circles(
+            gslen1, 
+            gslen2, 
+            len(intersects), 
+            200
+        )
         venn_text = {'tx': venn['tx'], 'ty': venn['ty']}
         venn = [{'cx': venn['c1x'], 'cy': venn['c1y'], 'r': venn['r1']}, 
                 {'cx': venn['c2x'], 'cy': venn['c2y'], 'r': venn['r2']}];
 
-        left_count = genesets[0].count - len(intersects)
-        right_count = genesets[1].count - len(intersects)
+        left_count = gslen1 - len(intersects)
+        right_count = gslen2 - len(intersects)
 
         venn_text['text'] = '(%s (%s) %s)' % (left_count, len(intersects), right_count)
 
@@ -3809,11 +3885,32 @@ def update_alternate_gene_symbol():
         session['extsrc'] = 1
         alt_gene_id = session['extsrc']
 
+    if 'sort' not in session:
+        session['sort'] = ''
+    if 'dir' not in session:
+        session['dir'] = 'ASC'
+    if 'length' not in session:
+        session['length'] = 50
+    if 'start' not in session:
+        session['start'] = 0
+    if 'search' not in session:
+        session['search'] = ''
+
     ## Retrieves the geneset but using the new alternate symbol ID
     gs = geneweaverdb.get_geneset(gs_id, user_id)
+    gsvs = geneweaverdb.get_geneset_values(
+        gs.geneset_id, 
+        session['extsrc'], 
+        session['length'], 
+        session['start'],
+        session['search'], 
+        session['sort'],
+        session['dir']
+    )
     geneset_values = []
 
-    for gsv in gs.geneset_values:
+    #for gsv in gs.geneset_values:
+    for gsv in gsvs:
         geneset_values.append({'ode_gene_id': gsv.ode_gene_id,
                                'ode_ref_id': gsv.ode_ref,
                                'gdb_id': gsv.gdb_id,
@@ -3840,7 +3937,8 @@ def update_geneset_identifier():
 
 @app.route('/help/')
 def render_help():
-    return flask.render_template('help.html')
+    help_url = config.get('application', 'help_url')
+    return flask.render_template('help.html', help_url=help_url)
 
 
 @app.route('/about')
