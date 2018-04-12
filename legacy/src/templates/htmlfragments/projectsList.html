@@ -441,6 +441,69 @@
             }
         });
 
+        // We have to maintain a list of gene sets that are checked because we
+        // can no longer act (delete sets, add them to projects) on them when they
+        // are not displayed. DataTables removes sets from the DOM when we
+        // hide the sets associated with a project.
+        var checkedGenesets = {};
+
+        var parseGenesetID = function(gs) {
+
+            return gs.split('_').pop();
+        }
+
+        // Call modal to remove genesets from projects
+        $('#callRemoveGenesets').on('click', function () {
+
+            var gsids = Object.keys(checkedGenesets);
+
+            if (gsids.length == 0) {
+
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+
+                $(document).trigger("add-alerts", [{
+                    'message': "You must select at least one GeneSet.",
+                    'priority': 'danger'
+                }]);
+
+            } else {
+            
+                var p = gsids.join(",");
+
+                window.location.href = '../removegenesetsfromproject/' + p;
+            }
+        });
+
+        // Call modal for combine all gene sets
+        $('#callCombineGeneSets').on('click', function () {
+
+            var gsids = Object.keys(checkedGenesets);
+
+            openGSModal('#addToProjectModal', gsids)();
+        });
+
+        // Call function to export genesets as OmicsSoft
+        $('#callExportOmicsSoft').on('click', function () {
+
+            var gsids = Object.keys(checkedGenesets);
+
+            // display error if no genesets are selected
+            if (gsids.length == 0) {
+				$(document).trigger("add-alerts", [{
+					'message': "No GeneSets were selected for export.",
+					'priority': 'danger'
+				}]);
+
+            } else{
+
+                var i = gsids.join(",");
+                window.location = '/exportOmicsSoft/' + i;
+                $("#result").html('<div class="alert alert-success fade in"> ' +
+                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                        '</button>Downloaded GeneSet in OmicsSoft Format Completed</div>');
+            }
+        });
+
         /**
           * Called when a user wants to view the gene sets associated with a
           * project. Retrieves gene set metadata using an AJAX call and stores it
@@ -480,8 +543,24 @@
                 // under this particular project
                 if ($(allclass).attr('checked')) {
 
+
                     $(chkclass, setCache[pid]).each(function (index) {
+
+                        // Store the selected GSID so we can do stuff with it
+                        checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
                         $(this).attr('checked', true);
+                    });
+
+                } else { 
+
+
+                    $(chkclass, setCache[pid]).each(function (index) {
+
+                        // We no longer need this ID
+                        delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+
+                        $(this).attr('checked', false);
                     });
                 }
 
@@ -516,6 +595,9 @@
                     if ($(allclass).attr('checked')) {
 
                         $(chkclass, genesetTable).each(function (index) {
+
+                            checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
                             $(this).attr('checked', true);
                         });
                     }
@@ -536,32 +618,58 @@
             var pid = $(this).parents('tr').attr('id');
             var allcheck = '#proj-' + pid + '-allcheck';
             var gscheck = '.proj-' + pid + '-check';
-            console.log('checking big check');
+
             // The checked check is reversed because by the time we query the
             // checkbox, it's already marked as checked
             if ($(allcheck).attr('checked')) {
 
-                console.log('not checked');
-                //console.log(projectTable.rows().nodes);
-                //console.log(projectTable.row($(this).parents('tr')));
-                //console.log(projectTable.row($(this).parents('tr')).nodes);
-                console.log(projectTable.row($(this).parents('tr')).child.isShown());
-                console.log(projectTable.row($(this).parents('tr')).child.show());
-                console.log(setCache);
                 $(gscheck).each(function (index) {
-                    console.log('checking ' + index);
+
+                    checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
                     $(this).attr('checked', true);
                 });
 
             } else {
 
-                console.log('checked');
                 $(gscheck).each(function (index) {
-                    console.log('checking ' + index);
+
+                    delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+
                     $(this).attr('checked', false);
                 });
             }
         };
+
+        /**
+          * Called when a geneset checkbox is selected. We use this to add
+          * GSIDs to the checkedGenesets object so we can keep track of all the
+          * selected sets. This must be done because when gene set metadata is
+          * hidden by datatables, we can no longer find those objects via jquery 
+          * and we can't remove the sets or add them to projects.
+          */
+        $('#allProjects tbody').on('click', 'td input[type=checkbox]:checked', function() {
+            
+            // Only handle gene set checkboxes
+            if ($(this).attr('id').search('geneset') == -1)
+                return;
+
+            checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+        });
+
+        /**
+          * Called when a geneset checkbox is unselected. Removes the set from
+          * the checkedGenesets object.
+          */
+        $('#allProjects tbody').on('click', 'td input[type=checkbox]:not(:checked)', function() {
+
+            // Only handle gene set checkboxes
+            if ($(this).attr('id').search('geneset') == -1)
+                return;
+
+            delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+        });
+
         /**
           * Triggered when a user clicks a project's checkbox. This will
           * attempt to load all the gene sets associated with a project (if 
@@ -577,14 +685,10 @@
             var gscheck = '.proj-' + pid + '-check';
             var allcheck = '#proj-' + pid + '-allcheck';
 
-            console.log('checking');
             // If this project hasn't been loaded before, we call the function
             // to do so
             if (!(pid in setCache)) {
-                console.log('have to load stuff');
-                viewProjectGenesets($(this).parents('tr'), checkboxCallback,
-                    true);
-                console.log('done loading');
+                viewProjectGenesets($(this).parents('tr'), checkboxCallback, true);
                 return;
             }
 
@@ -593,14 +697,18 @@
             if ($(allcheck).attr('checked')) {
 
                 $(gscheck).each(function (index) {
-                    console.log('checking ' + index);
+
+                    checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
+
                     $(this).attr('checked', true);
                 });
 
             } else {
 
-                console.log('checked');
                 $(gscheck).each(function (index) {
+
+                    delete checkedGenesets[parseGenesetID($(this).attr('id'))];
+
                     $(this).attr('checked', false);
                 });
             }
