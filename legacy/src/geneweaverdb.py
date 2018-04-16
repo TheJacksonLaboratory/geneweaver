@@ -4081,7 +4081,9 @@ def get_geneset_values(
             LEFT OUTER JOIN homology AS h
             ON          gsv.ode_gene_id = h.ode_gene_id 
              
-            WHERE h.hom_source_name = 'Homologene'
+            WHERE h.hom_source_name = 'Homologene' OR
+                  -- In case the gene doesn't have any homologs
+                  h.hom_source_name IS NULL
             
             ORDER BY 
             ''' + sort + ' ' + direct +
