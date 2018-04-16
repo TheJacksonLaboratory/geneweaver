@@ -181,9 +181,6 @@
         <div class="panel-body" id="geneset_panel">
             {% for gs in genesets %}
                 <p>
-                    {% if gs.status == 'deleted' %}
-                        <span class="gs_deleted" style="vertical-align:middle">Deleted</span>
-                    {% endif %}
                     <a href="/curategeneset/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}</a>: {{ gs.name }}
                 </p>
                 <p style="padding-left: 10px">{{ gs.description }}</p>
