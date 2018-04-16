@@ -1132,6 +1132,13 @@ def render_pub_assignment(assignment_id):
                     curator = geneweaverdb.get_user(assignment.assignee)
                 group_name = geneweaverdb.get_group_name(assignment.group)
 
+                ## Remove sets that have been deleted by the curators or others
+                genesets = filter(lambda gs: gs.status != 'deleted', genesets)
+                other_genesets = filter(
+                    lambda gs: gs.status != 'deleted', other_genesets
+                )
+                        
+
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
                 curation_team_members = [geneweaverdb.get_user(uid) for uid in geneweaverdb.get_group_users(assignment.group)]

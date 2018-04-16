@@ -180,7 +180,9 @@
         </div>
         <div class="panel-body" id="geneset_panel">
             {% for gs in genesets %}
-                <p><a href="/curategeneset/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}</a>: {{ gs.name }}</p>
+                <p>
+                    <a href="/curategeneset/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}</a>: {{ gs.name }}
+                </p>
                 <p style="padding-left: 10px">{{ gs.description }}</p>
             {% endfor %}
         </div>
