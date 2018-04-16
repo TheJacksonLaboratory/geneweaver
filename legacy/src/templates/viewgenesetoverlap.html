@@ -188,11 +188,13 @@
         This is the area where the venn diagram is drawn. It is only shown for
         pairwise comparisons. 
     #}
+    {% if gs_map.keys() | length == 2 %}
     <div id="venn-header" class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
         <h3 class="panel-title">GeneSet Intersect</h3>
     </div>
 
     <div id="intersection"></div>
+    {% endif %}
             
     
 	{#
