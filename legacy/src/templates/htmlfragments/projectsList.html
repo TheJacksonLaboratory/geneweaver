@@ -696,7 +696,7 @@
             // checkbox, it's already marked as checked
             if ($(allcheck).attr('checked')) {
 
-                $(gscheck).each(function (index) {
+                $(gscheck, setCache[pid]).each(function (index) {
 
                     checkedGenesets[parseGenesetID($(this).attr('id'))] = 0;
 
@@ -705,7 +705,7 @@
 
             } else {
 
-                $(gscheck).each(function (index) {
+                $(gscheck, setCache[pid]).each(function (index) {
 
                     delete checkedGenesets[parseGenesetID($(this).attr('id'))];
 
