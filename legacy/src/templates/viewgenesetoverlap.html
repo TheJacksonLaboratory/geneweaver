@@ -188,12 +188,12 @@
         This is the area where the venn diagram is drawn. It is only shown for
         pairwise comparisons. 
     #}
-    {% if venn is defined and venn is not none %}
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">GeneSet Intersect</h3>
-        </div>
+    {% if gs_map.keys() | length == 2 %}
+    <div id="venn-header" class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">GeneSet Intersect</h3>
+    </div>
 
-        <div id="intersection"></div>
+    <div id="intersection"></div>
     {% endif %}
             
     
@@ -426,10 +426,19 @@
 
 <script type="text/javascript">
 
+$().ready(function() {
+
     var numIntersects = {{ intersects | length | safe }};
-    var vennData = {{ venn | safe }};
-    var vennText = {{ venn_text | safe }};
-    //var emphGenes = {{ emphgenes | safe }};
+    var vennData = JSON.parse({{ venn | safe | tojson }});
+    var vennText = JSON.parse({{ venn_text | safe | tojson }});
+
+    if (!vennData) {
+
+        $('#venn-header').remove();
+        $('#intersection').remove();
+
+        return;
+    }
 
     svg = d3.select('#intersection')
         .append('svg')
@@ -486,6 +495,7 @@
     $( "rExpand" ).click(function() {
       $( "genesetdetails" ).toggle();
     });
+});
 
 
 </script>
@@ -505,10 +515,11 @@
 
             event.preventDefault();
 
-            var separator = $(this).attr('id') == 'export-tabs' ? '%09' : ',';
-            var exports = '';
-            var exportURL = 'data:text/html, <body style="font:12px monospace;"><pre>' 
-            var gsElems = $('.gs-link').toArray();
+            var separator = $(this).attr('id') == 'export-tabs' ? '\t' : ',';
+            var exportURL = '';
+            
+            exportURL = separator === ',' ? 'data:text/csv;charset=utf-8,' :
+                                            'data:text/tsv;charset=utf-8,';
             var genesets = [];
             var comments = [
                 ';; A 0 in the GeneSet column indicates the gene is missing from that set',
@@ -516,16 +527,21 @@
                 ';; A 2 in the GeneSet column indicates a homologous gene (i.e. that row is a homology cluster)'
             ];
 
+            // Grabs/formats the GSID and name for each set in the overlap
             $('.gs-link').each(function() {
 
-                genesets.push($.trim($(this).text()));
+                var gsid = $(this).attr('href').split('/');
+                gsid = gsid[gsid.length - 1];
+
+                genesets.push('GS' + gsid + ': ' + $.trim($(this).text()));
             });
 
-            // Export format comments
-            exports += comments.join('%0A') + '%0A';
-            // Top row == column labels
-            exports += 'gene symbol' + separator + genesets.join(separator) + 
-                       '%0A';
+            var exports = comments.join('\n') + 
+                          '\n' + 
+                          'gene symbol' + 
+                          separator + 
+                          genesets.join(separator) + 
+                          '\n';
 
             $('.intersect-row').each(function() {
 
@@ -545,12 +561,19 @@
                 });
 
                 values = values.join(separator);
-                exports += symbol + separator + values + '%0A';
+                exports += symbol + separator + values + '\n';
             });
 
-            exportURL += exports;
+            exportURL += encodeURIComponent(exports);
 
-            window.open(exportURL);
+            var downLink = $('<a/>', {
+                id: 'overlap-download',
+                href: exportURL,
+                download: 'overlap.' + (separator === ',' ? 'csv' : 'tsv'),
+            }).appendTo('body');
+
+            downLink[0].click();
+            downLink.remove();
         });
     });
 </script>
