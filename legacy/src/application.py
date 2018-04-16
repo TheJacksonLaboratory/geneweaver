@@ -405,6 +405,33 @@ def render_analyze_shared():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze_shared.html', active_tools=active_tools, grp2proj=grp2proj)
 
+@app.route('/get_user_projects.json')
+@login_required(allow_guests=True)
+def get_user_projects():
+
+    if 'user' in flask.g:
+        projects = []
+
+        for p in flask.g.user.projects:
+            ## Format datetime object to string
+            if p.created:
+                p.created = p.created.strftime('%Y-%m-%d')
+
+            projects.append({
+                'name': p.name,
+                'project_id': p.project_id,
+                'group_id': p.group_id,
+                'created': p.created,
+                'notes': p.notes,
+                'star': p.star,
+                'count': p.count,
+                'group_name': p.group_name,
+                'owner': p.owner
+            })
+
+        return flask.jsonify(projects)
+    else:
+        return flask.jsonify([])
 
 @app.route('/projects')
 @login_required(allow_guests=True)
@@ -2265,6 +2292,7 @@ def get_geneset_genes():
     for gsv in gs.geneset_values:
         symbols.append(gsv.ode_ref)
 
+    print gsvs
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
         gene_id = gsvs[i].ode_gene_id
@@ -3364,11 +3392,9 @@ def render_search_json():
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
 
-
 @app.route('/projectGenesets.json', methods=['GET'])
 def render_project_genesets():
     uid = flask.session.get('user_id')
-    # Project (ID) that the user wants to view
     pid = flask.request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
 
@@ -3384,6 +3410,33 @@ def render_project_genesets():
                                  genesets=genesets,
                                  proj={'project_id': pid},
                                  species=species)
+
+@app.route('/get_project_groups_modal', methods=['GET'])
+def get_project_groups_modal():
+    """
+    Renders the shared project groups modal.
+    """
+
+    pid = flask.request.args['project']
+
+    return flask.render_template(
+        'modal/viewProjectGroups.html',
+        proj={'project_id': pid}
+    )
+
+@app.route('/get_add_project_group_modal', methods=['GET'])
+def get_add_project_group_modal():
+    """
+    Renders the add project to group modal.
+    """
+
+    pid = flask.request.args['project']
+    project = geneweaverdb.get_project_by_id(pid)
+
+    return flask.render_template(
+        'modal/addProjectToGroup.html',
+        proj=project
+    )
 
 
 @app.route('/getProjectGroups.json', methods=['GET'])
