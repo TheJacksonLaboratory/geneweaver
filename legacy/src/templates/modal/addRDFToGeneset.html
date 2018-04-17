@@ -1,0 +1,38 @@
+{# This modal allows you to add a blank Project #}
+
+<div class="modal fade" id="addRDFToGeneset">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="showRDFModal" name="showGenericModal" method="post" action="#" class="form-horizontal"
+                  novalidate="novalidate">
+                <div class="modal-header bg-green">
+                    <h3 class="modal-title" id="genericLabel" style="color:#f5f5f5; text-align:center;">
+                    </h3>
+                </div>
+                <div class="modal-body">
+                    <div class="form-class">
+                        <h4 id="genericMessage" style="text-align:center;">Add RDF Annotation</h4>
+                        <div class="input-group">
+                            <span class="input-group-addon" id="gsid">GeneSet: </span>
+                            <span class="input-group-addon" id="oid">Ontology ID:</span>
+                            <select hidden id="roSelect" class="form-control"><option></option></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-md btn-default" data-dismiss="modal" id="genericClose">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-md btn-warning" data-dismiss="modal" id="submit">
+                        Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Library for select2 search bar -->
+<script type="text/javascript" src="../../static/select2/4.0.5/select2.full.min.js"></script>
+<!-- Styling for select2 search bar -->
+<link rel="stylesheet" type="text/css" href="../../static/select2/4.0.5/select2.min.css"> </link>

@@ -5375,6 +5375,17 @@ def get_all_ontologies_by_geneset_and_db(gs_id, ontdb_id):
     ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return ontology
 
+def get_ontologies_by_ontdb_id(ontdb_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+                SELECT *
+                FROM extsrc.ontology
+                WHERE ontdb_id = %s
+            ''', (ontdb_id,)
+        )
+    ontologies = [{'id': row_dict['ont_id'], 'text': row_dict['ont_ref_id']} for row_dict in dictify_cursor(cursor)]
+    return ontologies
 
 def get_ontology_by_id(ont_id):
     with PooledCursor() as cursor:

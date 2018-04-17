@@ -517,6 +517,7 @@ def render_editgenesets(gs_id, curation_view=False):
     #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
     ont_dbs = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
+    ros = json.dumps(geneweaverdb.get_ontologies_by_ontdb_id(12))
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
@@ -541,7 +542,8 @@ def render_editgenesets(gs_id, curation_view=False):
         view=view, 
         ref_types=ref_types,
         ont_dbs=ont_dbs,
-        curation_view=curation_view
+        curation_view=curation_view,
+        relation_onts=ros
     )
 
 

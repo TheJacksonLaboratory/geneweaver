@@ -374,10 +374,15 @@
 
 {% endif %}
 
+{% include 'modal/addRDFToGeneset.html' %}
+
+<script type="text/javascript" src="/static/js/geneweaver/addRDFModal.js"></script>
+
 <script>
     $(function(){
 
         var gsID = {{ geneset.geneset_id | safe }};
+        var ros = {{ relation_onts | safe }};
 
         // DataTable initialization for the list of gene set annotations
         var table = $('#annotation-list').DataTable({
@@ -401,8 +406,9 @@
                 // remove a gene set annotation
                 'aTargets': [3],
                 'fnCreatedCell': function(nTd, _, oData, _, _) {
-                    var removeLink = 
-                        $('<a style="cursor:pointer">Remove</a>');
+                    var removeLink = $('<a style="cursor:pointer" class="pull-right">Remove</a>');
+                    var roLink = $('<a style="cursor:pointer; padding: 0 4px 0 0;">Add RDF Annotation</a>');
+                    console.log(oData);
 
                     // Removes the annotation and reloads the data
                     // table when a user clicks the 'Remove' link
@@ -428,6 +434,9 @@
 
                     });
 
+                    roLink.on('click', openRDFModal("#addRDFToGeneset", gsID, oData['ont_id'], ros));
+
+                    $(nTd).append(roLink);
                     $(nTd).append(removeLink);
                 }
             }]
