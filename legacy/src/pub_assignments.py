@@ -185,7 +185,7 @@ class PubAssignment(object):
                            (gs_id, self.id))
             cursor.connection.commit()
 
-    def create_geneset_stub(self, name, label, description, species_id):
+    def create_geneset_stub(self, name, label, description, species_id, group_id='-1'):
         """
         create a stub geneset for this publication.  a stub geneset is a record
         that only has the basic information filled out.  This will generate a new
@@ -217,7 +217,7 @@ class PubAssignment(object):
 
             # default geneset as 'Private'
             # group id -1 signifies private
-            gs_groups = '-1'
+            gs_groups = group_id
             # set initial curation level to 5 (private)
             cur_id = 5
 

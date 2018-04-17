@@ -64,6 +64,11 @@ def get_pubmed_info(pub_med_id):
             pubmed_info['pub_volume'] = None
         if 'pub_pages' not in pubmed_info:
             pubmed_info['pub_pages'] = None
+
+        ## This function should add the pubmed ID to the object as well,
+        ## otherwise the batch uploader may fail
+        pubmed_info['pub_pubmed'] = pub_med_id
+
         return pubmed_info
     else:
         raise Exception('unexpected response status code from pubmed service: {0}'.format(resp.status_code))

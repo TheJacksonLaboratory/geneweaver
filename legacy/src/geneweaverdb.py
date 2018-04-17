@@ -225,6 +225,27 @@ def create_project(project_name, user_id):
             return cursor.fetchone()[0]
 
 
+def get_project_by_id(pid):
+    """
+    Retrieves the project associated with the given project ID
+    """
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT  *
+            FROM    production.project
+            WHERE   pj_id = %s;
+            ''',
+                (pid,)
+        )
+
+        p = [Project(d) for d in dictify_cursor(cursor)]
+
+        if not p:
+            return None
+
+        return p[0]
+
 def get_all_projects(usr_id):
     """
     returns all projects associated with the given user ID
@@ -259,9 +280,9 @@ def get_all_projects(usr_id):
             ''',
                 {'usr_id': usr_id}
         )
-        list = [Project(d) for d in dictify_cursor(cursor)]
-        newlist = sorted(list, key=lambda x: x.name, reverse=False)
-        return newlist
+
+        return [Project(d) for d in dictify_cursor(cursor)]
+
 
 def get_shared_projects(usr_id):
     """
@@ -2879,6 +2900,48 @@ def authenticate_user(email, password):
             except:
                 return None
 
+def update_user_seen(usr_id):
+    """
+    Updates the usr_last_seen date for a given user.
+
+    arguments
+        usr_id: the user ID to update
+    """
+
+    if not usr_id:
+        return
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            UPDATE  usr
+            SET     usr_last_seen = NOW()
+            WHERE   usr_id = %s;
+            ''',
+                (usr_id,)
+        )
+
+def get_recent_users():
+    """
+    Retrieves the 100 most recent users.
+
+    arguments
+        usr_id: the user ID to update
+    """
+
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT   usr_id, usr_email, usr_last_seen
+            FROM     production.usr
+            WHERE    usr_last_seen IS NOT NULL AND
+                     is_guest = FALSE
+            ORDER BY usr_last_seen DESC
+            LIMIT    100;
+            '''
+        )
+
+    return dictify_cursor(cursor)
 
 ## There's a similarly titled get_result_by_runhash, but it's API function.
 def get_results_by_runhash(runhash):
@@ -4018,7 +4081,9 @@ def get_geneset_values(
             LEFT OUTER JOIN homology AS h
             ON          gsv.ode_gene_id = h.ode_gene_id 
              
-            WHERE h.hom_source_name = 'Homologene'
+            WHERE h.hom_source_name = 'Homologene' OR
+                  -- In case the gene doesn't have any homologs
+                  h.hom_source_name IS NULL
             
             ORDER BY 
             ''' + sort + ' ' + direct +
