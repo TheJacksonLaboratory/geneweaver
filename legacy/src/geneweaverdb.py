@@ -3678,6 +3678,34 @@ def get_genes_by_gs_id(geneset_id):
     return genes
 
 
+def transpose_genes_by_species(attr):
+    """
+    Return a list of genes based on a new ID and gbd_id
+    :param attr:
+    :return:
+    """
+    genes = json.loads(attr['genes'])
+    g = []
+    for i in genes:
+        g.append(str(i))
+    newSpecies = json.loads(attr['newSpecies'])
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT ode_ref_id FROM gene WHERE gene.ode_gene_id IN
+                            (SELECT distinct h2.ode_gene_id FROM homology h1
+                                NATURAL JOIN homology h2
+                                NATURAL JOIN gene
+                                WHERE h2.hom_source_name='Homologene'
+                                      AND h1.hom_source_id=h2.hom_source_id
+                                      AND ode_ref_id IN %(genelist)s)
+                            AND sp_id=%(newSpecies)s AND ode_pref='t' AND gdb_id=7;''', {'genelist': tuple(g), 'newSpecies': newSpecies})
+        res = cursor.fetchall()
+        transposedGenes = []
+        if res is not None:
+            for r in res:
+                transposedGenes.append(r[0])
+        return transposedGenes
+
+
 def get_omicssoft(gs_id):
     '''
     Return data from the omicssoft table if any exists
