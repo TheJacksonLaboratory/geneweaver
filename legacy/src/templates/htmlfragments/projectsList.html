@@ -452,6 +452,29 @@
             return gs.split('_').pop();
         }
 
+        /** Checks to see when the project added successfully alert fires
+          * then refreshes the data table with the newly added project.
+          */
+        var newProjectCallback = function(mutationList) {
+
+            for (var i = 0; i < mutationList.length; i++) {
+
+                var mutation = mutationList[i];
+                var node = $(mutation.target);
+
+                // gross
+                if (node.text().search('Project name added successfully') != -1)
+                    projectTable.ajax.reload();
+            }
+        };
+
+        var newProjectObserver = new MutationObserver(newProjectCallback);
+
+        newProjectObserver.observe(
+            document.getElementById('project-alert'),
+            {childList: true, subtree: true}
+        );
+
         // Call modal to remove genesets from projects
         $('#callRemoveGenesets').on('click', function () {
 
