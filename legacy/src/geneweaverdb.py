@@ -1386,6 +1386,27 @@ def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
 
+
+def add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            INSERT INTO geneset2ontology
+                (gs_id, g2o_ont_id, g2o_ro_ont_id)
+            VALUES
+                (%s, %s, %s);
+            ''', (gs_id, ont_id, ro_ont_id))
+        cursor.connection.commit()
+
+def update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+        UPDATE geneset2ontology
+        SET g2o_ro_ont_id = %s
+        WHERE gs_id = %s AND g2o_ont_id =%s
+        ''', (ro_ont_id, gs_id, ont_id))
+        cursor.connection.commit()
+
+
 def get_ontologies_by_refs(ont_ref_ids):
     """
     Returns ont_ids (if they exist) for each of the given ont_ref_ids.
@@ -5384,7 +5405,7 @@ def get_ontologies_by_ontdb_id(ontdb_id):
                 WHERE ontdb_id = %s
             ''', (ontdb_id,)
         )
-    ontologies = [{'id': row_dict['ont_id'], 'text': row_dict['ont_ref_id']} for row_dict in dictify_cursor(cursor)]
+    ontologies = [{'id': row_dict['ont_id'], 'text': row_dict['ont_name']} for row_dict in dictify_cursor(cursor)]
     return ontologies
 
 def get_ontology_by_id(ont_id):

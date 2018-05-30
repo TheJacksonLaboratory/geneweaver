@@ -546,6 +546,30 @@ def render_editgenesets(gs_id, curation_view=False):
         relation_onts=ros
     )
 
+@app.route('/addRelationsOntology', methods=['POST'])
+@login_required(json=True)
+def addRelationsOntology():
+    gs_id = request.form.get('gs_id')
+    ont_ids = request.form.get('ont_ids')
+    ro_ont_id = request.form.get('ro_ont_id')
+    for ont_id in ont_ids:
+        try:
+            geneweaverdb.add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+        except IntegrityError:
+            try:
+                geneweaverdb.update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+            except Error as e:
+                print 'RDF Update Error: ' + e
+
+    return flask.jsonify({'success': True})
+
+
+@app.route('/relationshipOntologies')
+def relationshipOntologies():
+    ros = geneweaverdb.get_ontologies_by_ontdb_id(12)
+    select2 = {"results": ros, "pagination": {"more": False}}
+    return flask.jsonify(select2)
+
 
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
 @login_required(json=True)
