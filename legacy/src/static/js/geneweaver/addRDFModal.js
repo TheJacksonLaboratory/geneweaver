@@ -18,11 +18,12 @@ $.getScript("/static/js/geneweaver/showErrorModal.js");
  * @param {String} url  The url to which the ajax call will be made
  * @param {Object} data The data which will be submitted via ajax
  */
-var submitGSModalAjax = function(url, data) {
+var submitModalAjax = function(url, data) {
     $.ajax({
-        type: "GET",
+        type: "POST",
         url: url,
         data: data,
+        traditional: true,
         success: function (data) {
             var v = JSON.parse(data);
             if (v["error"] != 'None') {
@@ -31,7 +32,6 @@ var submitGSModalAjax = function(url, data) {
                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                     '</button>' + v['error'] + '</div>');
             } else {
-                console.log('no error');
                 $("#result").html('<div class="alert alert-success fade in">' +
                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                     '</button>RDF Annotation Successfully Added.</div>');
@@ -53,27 +53,34 @@ var submitGSModalAjax = function(url, data) {
  * A function to open the RDF modal
  * @param modalID - the ID of the modal to open
  * @param gsid - the Geneset ID of the RDF Annotation
- * @param oid - the Ontology ID of the RDF Annotation
+ * @param oids - the Ontology ID of the RDF Annotation
  * @param relation_onts - An array of the relationship_ontologies
  * @param modalTitle - the title of the modal
  * @returns {Function} a function that can be attached to an .on('click', or the like
  */
-var openRDFModal = function(modalID, gsid, oid, relation_onts, modalTitle) {
+var openRDFModal = function(modalID, gsid, oids, relation_onts, modalTitle) {
     return function() {
+
+        if (!Array.isArray(oids)) { oids = [oids]; }
 
         // Update the modal title if specified
         if (typeof modalTitle !== 'undefined') { $(modalID).find('.modal-title').html(modalTitle); }
 
         // If no genesets selected, display geneneric error modal.
-        if (typeof gsid === 'undefined' || typeof oid === 'undefined') {
+        if (typeof gsid === 'undefined' || typeof oids === 'undefined') {
             showErrorModal('Something went wrong. Couldn\'t access Ontology ID, GeneSet ID or both.');
+        } else if (oids.length < 1) {
+            showErrorModal('Please select at least one Ontology to add an RO Term to.')
         } else {
-            $(modalID).find('#gsid').html('Geneset: GS'+gsid);
-            $(modalID).find('#oid').html('Ontology ID: GO:'+oid);
-            /*$('#roSelect').select2({
-                ajax: '/relationshipOntologies',
-                dataType: 'json'
-            });*/
+            var gs_id_el = $(modalID).find('#gsid'),
+                ont_ids_label = $(modalID).find('#addRDFOntologies-label'),
+                ont_ids_label_string = oids.join(', '),
+                rdf_message = $(modalID).find('addRDFMessage');
+            gs_id_el.html('Geneset: GS'+gsid);
+            gs_id_el.data('gs_id', gsid);
+            ont_ids_label.html(ont_ids_label_string);
+            ont_ids_label.data('ont_id', oids);
+            rdf_message.html('Annotation will be added to the following Ontologies for geneset with ID: '+gsid);
             $('#roSelect').select2({
                 data: relation_onts,
                 placeholder: 'Relationship Ontology',
@@ -91,24 +98,16 @@ var openRDFModal = function(modalID, gsid, oid, relation_onts, modalTitle) {
  * @param  {String} modalID     The ID of the modal to submit
  * @param  {String} url         The url to which the ajax call will be made
  */
-var submitGSModal = function(modalID, url) {
+var submitRDFModal = function(modalID, url) {
     return function() {
         //var selected = $(modalID+' select').val().map(Number);
-        var selected = $(modalID+' select').val();
+        var gs_id = $(modalID).find('#gsid').data('gs_id'),
+            ont_ids = $(modalID).find('#addRDFOntologies-label').data('ont_id'),
+            ro_ont_id = +$('#roSelect').val();
 
-        if (selected)
-            selected = selected.map(Number);
-
-        var option = JSON.stringify(selected);
-        var g = $(modalID+'Value').val();
-        var npn = null;
-
-        var newNameElement = $(modalID+'NewName');
-
-        if (newNameElement.length && newNameElement.val().length > 0) {
-            npn = $(modalID+'NewName').val();
-        }
-
+        var data = {'gs_id': gs_id, 'ont_ids': ont_ids, 'ro_ont_id': ro_ont_id};
+        submitModalAjax(url, data);
+        /*
         if ($.isEmptyObject(selected) && $.isEmptyObject(npn)){
             $("#result").html('<div class="alert alert-danger fade in"> ' +
                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
@@ -116,6 +115,7 @@ var submitGSModal = function(modalID, url) {
         } else {
             var data = {"npn": npn, "gs_id": g, "option": option};
             submitGSModalAjax(url, data);
-        }
+        }*/
     }
 };
+
