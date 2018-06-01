@@ -31,7 +31,9 @@
 
     th, td {
         text-align: center;
+        max-width: 33%;
     }
+
 
 </style>
 
@@ -54,13 +56,12 @@
         </div>
         <div class="col-xs-6 col-md-3">
             <button type="button" class="btn btn-block btn-warning"
-                onclick="newGeneSet()" id="addToNewGeneset"
+                {#  onclick="newGeneSet()" #} id="addToNewGeneset"
                     style="margin-bottom: 10px;">
                 <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
             </button>
         </div>
     </div>
-
 
     {# Relation type and Number of Genesets used Title #}
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
@@ -102,10 +103,47 @@
             </div>
         </div>
 
-        {# Display the results if there are any. #}
+    {# Display the results if there are any. #}
     {% else %}
 
-
+        {# Display a horizontal stacked graph if there is nore than one speces #}
+        {% if json_results.numSpecies > 1 %}
+            {# div for stacked graph #}
+            <br>
+            <div class="row">
+                <table class="table table-hover table-stripped">
+                    <tbody>
+                        <tr style="border-bottom: 2pt solid grey;">
+                            <th>&nbsp;</th>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.all_species_full[s] }}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;">Genes Specific to Species</td>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.bool_cluster[s]['unique'] | length}}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;">Genes In Common with at Least One Other Speceis</td>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.bool_cluster[s]['intersection'] | length}}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;">Total Number of Genes</td>
+                            {% for s in json_results.bool_cluster | sort %}
+                                <th>{{ json_results.bool_cluster[s]['species'] | length}}</th>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+                <h6 class="panel-title">&nbsp;</h6>
+            </div>
+        {% endif %}
 
         {% if json_results.type == 'Union' %}
             {% set i = 1 %}
@@ -210,7 +248,7 @@
                                     <span id="{{ gene[3] }}">
                                 <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                       data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                                <a href="/viewgenesetdetails/{{ gene[4] }}">
+                                <a href="/viewgenesetdetails/{{ gene[3] }}">
                                 <strong>GS{{ gene[3] }}</strong>
                                 </a>
                                     {% if not loop.last %},{% endif %}
@@ -224,7 +262,7 @@
                                 <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
                                        onchange="emphasize('{{ cluster[0] }}');"
                                        class="switch" data-size="mini"
-                                       style="padding: 0px; vertical-align: middle;">
+                                       style="padding: 0px; vertical-align: middle;" />
                             </td>
                             {# Checkbox #}
                             <td>
@@ -274,23 +312,25 @@
                 <div class="row">
                     <div class="alert bg-gray-light">
                         <h4>Quick Links to Results below...</h4>
-                        <ul class="fa-ul" style="list-style: disc outside none; margin-left: 0; padding-left: 1em;
+                        <ul class="fa-ul" style="margin-left: 5%; padding-left: 1em;
                         text-indent: -2em;">
-                        {% for gs_groups in results | sort %}
+                        {% for gs_groups in results | sort(reverse=True) %}
                             {% for g in results[gs_groups] %}
                                 {% if loop.last %}
                                     <li style="padding-left: 1em;"><i class="fa-li fa fa-check"></i>
                                         {% if json_results.type == 'Intersect' %}
-                                            <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set(s)
+                                            <strong>{{ loop.length }}</strong> Distinct Genes found in
                                             {% for gene in results[gs_groups][g] %}
-                                                <span id="{{ gene[3] }}">
-                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
-                                                        data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
-                                                        <strong>GS{{ gene[3] }} {{ gene[4] }}</strong>
-                                                        {% if not loop.last %},{% endif %}
-                                                    </span>
-                                                </span>
+{#                                                <span id="{{ gene[3] }}">#}
+{#                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"#}
+{#                                                        data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">#}
+{#                                                        <strong>GS{{ gene[3] }} {{ gene[4] }}</strong>#}
+
+                                                       {% if loop.last %}<strong>{{ loop.length }}</strong>{% endif %}
+{#                                                    </span>#}
+{#                                                </span>#}
                                             {% endfor %}
+                                            Gene Set(s)
                                         {% elif json_results.type == 'Except' %}
                                             <strong>{{ loop.length }}</strong> Distinct Genes found in Gene Set <strong>
                                             GS{{ results[gs_groups][g][0][3] }} {{ results[gs_groups][g][0][4] }}</strong>.
@@ -308,7 +348,7 @@
 
 
             {% set i = 1 %}
-            {% for gs_group in results | sort %}
+            {% for gs_group in results | sort(reverse = True) %}
                 <div class="row" id="{{ results[gs_group] }}">
                     <div class="col-md-2 pull-right" align="right" style="text-align:right">
                         <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
@@ -428,6 +468,12 @@
 
     $(document).ready(function () {
 
+        //update model
+        $('.dropdown-menu a').click(function(){
+            $('#selected').text($(this).text());
+            $('#selected').attr('data-value', $(this).closest('li').prop('id'));
+        });
+
         // open div for circle explanation
         $("#circles").on('click', function () {
             $("#circle-explanation").slideToggle();
@@ -508,15 +554,26 @@
         }
     }
 
+    $('#addToNewGeneset').on('click', function () {
+        $('#selectSpeciesForUpload').modal('show');
+    });
+
     /**
-      * Creates a new gene set from the bool alg. page. Determines the genes
+     * Need to get genes from the other species
+
+
+    /**
+      * Creates a ne gene set from the bool alg. page. Determines the genes
       * the user has selected then packages everything in a POST request to the
       * upload gene set page.
       */
     function newGeneSet() {
 
+        $('#selectSpeciesForUpload').hide();
+
         var checkedArray = [];
-        
+        var v = [];
+
         // Retrieves genes that have been check marked
         $("input:checkbox[name='gsoptions[]']:checked").each(function () {
             checkedArray.push($(this).val());
@@ -538,8 +595,13 @@
             // New gene set description
             var description = 'The Boolean Algebra tool was used to find ' +
                 'the ' + boolType + ' of ' + numGS + ' sets: ' + 
-                gsids.join(',');
+                gsids.join(', ');
             var genes = checkedArray;
+
+            // Species
+            var species = 'sp-' + $('#selected').attr('data-value');
+            var spid = $('#selected').attr('data-value');
+
 
             // Generates a hidden form that is used to submit data to the
             // upload page
@@ -558,6 +620,11 @@
                 value: name
             }));
             form.append($('<input>', {
+                type: 'hidden',
+                name: 'species',
+                value: species
+            }));
+            form.append($('<input>', {
                 type: 'hidden', 
                 name: 'description', 
                 value: description
@@ -568,8 +635,13 @@
                 value: genes
             }));
             form.append($('<input>', {
-                type: 'hidden', 
-                name: 'tool', 
+                type: 'hidden',
+                name: 'sp',
+                value: spid
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'tool',
                 value: 'boolean'
             }));
 
@@ -700,6 +772,9 @@
 
     }
 
+
 </script>
+
+{% include 'modal/selectSpeciesForUpload.html' %}
 
 {% include 'footer.html' %}
