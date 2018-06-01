@@ -19,26 +19,33 @@
                                     <td>
 
 
+                                        {#
                                         <label for="addProjects{{ n.grp_id }}"
-                                                    {% for i in proj.group_id.split(',') %}
-                                                        {% if n.grp_id|string() == i|string() %}
-                                                            class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-on"
-                                                        {% else %}
-                                                            class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off"
-                                                        {% endif %}
-                                                    {%  endfor %}>
-                                            {{ n.grp_name }}
+                                            {% for i in proj.group_id.split(',') %}
+                                                {% if n.grp_id|string() == i|string() %}
+                                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-on"
+                                                {% else %}
+                                                    class="ui-btn ui-corner-all ui-btn-icon-left ui-checkbox-off"
+                                                {% endif %}
+                                            {%  endfor %}>
                                         </label>
-                                    <input
-                                        type="checkbox"
-                                        name="grpOptions[]"
-                                        id="addProjects{{ n.grp_id }}"
-                                                {% for i in proj.group_id.split(',') %}
-                                                    {% if n.grp_id|string() == i|string() %}
-                                                        checked
-                                                    {% endif %}
-                                                {% endfor %}
-                                        value="{{ n.grp_id }}">
+                                        #}
+                                        <div class="row">
+                                            <div class="col-md-1" style="text-align:right">
+                                                <input
+                                                    type="checkbox"
+                                                    name="grpOptions[]"
+                                                    id="addProjects{{ n.grp_id }}"
+                                                            {% for i in proj.group_id.split(',') %}
+                                                                {% if n.grp_id|string() == i|string() %}
+                                                                    checked
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                    value="{{ n.grp_id }}">
+                                            </div>
+                                            <div class="col-md-11" style="text-align:left">
+                                                <span>{{ n.grp_name }}</span>
+                                            </div>
                                     </td>
                                 </tr>
                             {% endfor %}

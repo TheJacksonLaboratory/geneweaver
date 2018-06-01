@@ -444,15 +444,33 @@
 
         var json = JSON.parse(uploadData);
 
-        if (json.tool !== 'boolean')
+        if (json.tool !== 'boolean' && json.tool != 'abba')
             return;
 
+        var speciesID = json.species;
+        var spid = json.sp;
         var genes = json.genes.split(',');
+        var jsonGenes = JSON.stringify(genes);
         var geneText = '';
+        var v;
 
-        for (var i = 0; i < genes.length; i++) {
+        // Need to transpose all gene ids into a type compatible with geneset species
+        // that the user selected.
+        // Add some ajax that will query the DB and return IDs of the type needed
+            $.ajax({
+                type: "POST",
+                url: "../transposeGenesetIDs",
+                dataType: 'json',
+                async: false,
+                data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7 },
+                success: function (data) {
+                    v = data;
+                    }
+            });
 
-            geneText += genes[i];
+        for (var i = 0; i < v.length; i++) {
+
+            geneText += v[i];
             geneText += '\t';
             geneText += '1';
             geneText += '\n';
@@ -465,7 +483,8 @@
         // Binary score type
         $('#gs_threshold_type').val('3');
         // Gene identifier type
-        $('#gene_identifier').val('gene_7')
+        $('#gene_identifier').val('gene_7');
+        $('#' + speciesID).prop('selected',true);
     };
 
     /*

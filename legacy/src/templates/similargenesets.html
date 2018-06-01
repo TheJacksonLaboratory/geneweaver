@@ -217,7 +217,7 @@
         <!-- Show the Geneset List -->
         <div class="panel panel-default">
             <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-                <h3 class="panel-title">Top 250 Similar GeneSets
+                <h3 class="panel-title">Top 1000 Similar GeneSets
                     <span id="clickableFontAwesome" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span></h3>
             </div>
 
@@ -240,7 +240,23 @@
                                 <th>hidden_description</th>
                                 <th>&nbsp;</th>
                             </tr>
+                            <tr>
+                                <th></th>
+                                <th class="filterable"></th>
+                                <th class="filterable"></th>
+                                <th class="filterable"></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
                         </thead>
+                        <tfoot>
+
+                        </tfoot>
                         <tbody>
                         {% for i in simgs %}
                             <!--<a name="gsid{{ i.geneset_id }}"></a>-->
@@ -340,19 +356,7 @@
                         {% endfor %}
 
                         </tbody>
-                        <tfoot>
-                            <th></th>
-                            <th class="filterable"></th>
-                            <th class="filterable"></th>
-                            <th class="filterable"></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                        </tfoot>
+
                     </table>
                 </form>
             </div>
@@ -366,13 +370,13 @@
 
         {% if g.user is defined %}
 
-            {% include 'modal/addGenesetsToProjects.html' %}
+            {% include 'modal/addGenesetsToProjects_multiselect.html' %}
 
         {% endif %}
+        {% include 'modal/showGenericMessage.html' %}
 
-        {% include 'modal/addGenesetsToProjectsAlert.html' %}
 
-
+        <script type="text/javascript" src="/static/js/geneweaver/shareAddGenesetsModals.js"></script>
         <script type="text/javascript">
 
 
@@ -407,7 +411,7 @@
                     .selectAll('svg')
                     .append('svg')
                     .attr("width", w + 300)
-                    .attr("height", h)
+                    .attr("height", h);
 
             //Create the title for the legend
             var text = svg.append("text")
@@ -424,8 +428,8 @@
                             .attr("class", "legend")
                             .attr("height", 100)
                             .attr("width", 200)
-                            .attr('transform', 'translate(150,20)')
-                    ;
+                            .attr('transform', 'translate(150,20)');
+
             //Create colour squares
             legend.selectAll('rect')
                     .data(LegendOptions)
@@ -524,7 +528,7 @@
 
             function fnCreateSelect( aData )
             {
-                var r='<select><option value=""></option>', i, iLen=aData.length;
+                var r='<select><option value=".*" label="--filter--"></option>', i, iLen=aData.length;
                 for ( i=0 ; i<iLen ; i++ )
                 {
                     r += '<option value="'+aData[i]+'">'+aData[i]+'</option>';
@@ -552,6 +556,7 @@
                  * Initialse DataTables, with no sorting on the 'details' column
                  */
                 var oTable = $('#similarGenesets').dataTable( {
+                    "bSortCellsTop": true,
                     "aoColumnDefs": [
                         { "bSortable": false, "aTargets": [ 0 ] },
                         { "aTargets":[1], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
@@ -625,14 +630,14 @@
                         { "bSortable": false, "bVisible": false, "aTargets": [ 9 ] },
                         { "bSortable": false, "aTargets": [ 10 ] }
                     ],
-                    "aaSorting": [[1, 'asc']]
+                    "aaSorting": [[6, 'desc']]
                 });
 
                 /* Add a select menu for each element with class filterable */
                 $(".filterable").each( function ( i ) {
                     this.innerHTML = fnCreateSelect( oTable.fnGetColumnData(i+1) );
                     $('select', this).change( function () {
-                        oTable.fnFilter( $(this).val(), i+1 );
+                        oTable.fnFilter("^" + $(this).val() + "$", i+1, true, false );
                     } );
                 } );
 
@@ -668,57 +673,30 @@
                     window.open('../' + gs_id + '/' + rel, "_self");
                 });
 
-                $('#addToProject').on('click', function () {
-                    var gsid = [];
-                    var gs = [];
-                    jQuery("input[name='gsoptions[]']:checked").each(function () {
-                        var v = ($(this).val());
-                        gsid.push(v);
-                        gs.push('GS' + v);
-                    });
-                    if (gsid.length == 0) {
-                        $("#myAlert").modal('show');
-                    }
-                    else {
-                        var g = gs.join(", ");
-                        $("#myModalLabel").html(g);
-                        $("#myModalValue").val(g);
-                        $("#addToProjectModal").modal('show');
-                    }
+                // gs_ids in the results that are checked and ready to add to a project
+                var gschecked = {};
 
+                // Called every time a checkbox is clicked
+                $("input[name='gsoptions[]']").on('click', function(event) {
+
+                    // The element object this event is referring to
+                    var box = event.target;
+                    var gsid = ($(this).val());
+                    if (box.checked)
+                        gschecked[gsid] = gsid;
+                    else
+                        delete gschecked[gsid];
                 });
 
+                // The 'Add GeneSet(s) to Project' button
+                $('#addToProject').on('click', openGSModal('#addToProjectModal', gschecked, 'Add GeneSet to Project(s)'));
+
+                // The 'add to selected projects' button in the modal above
+                $('#addGenesetsToProjects').on('click', submitGSModal("#addToProjectModal", "../../addGenesetsToProjects"));
+
+                // The button for this is found on the addGenesetsToProjects modal
                 $('#addNewProject').on('click', function () {
-                    $('#reveal-if-active').html('<label for="newProjName"><h4>New Project Name: </h4></label>' +
-                    '<input type="text" id="newProjName" name="newProjName" class="form-control input-lg">')
-                });
-
-                $('#addGenesetsToProjects').on('click', function (e) {
-                    var checked = [];
-                    $("input[name='options[]']:checked").each(function () {
-                        checked.push(parseInt($(this).val()));
-                    });
-                    var option = JSON.stringify(checked);
-                    var g = $('#myModalValue').val();
-                    var npn = $('#newProjName').val();
-                    if ($.isEmptyObject(checked) && $.isEmptyObject(npn)) {
-                        $("#result").html('<div class="alert alert-danger fade in"> ' +
-                        '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                        '</button>No Projects Were Selected</div>');
-                    }
-                    else {
-                        $.ajax({
-                            type: "GET",
-                            url: "../addGenesetsToProjects",
-                            data: {"user_id": {{ user_id }}, "npn": npn, "gs_id": g, "option": option},
-                            success: function (data) {
-                                $("#result").html('<div class="alert alert-success fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Genesets Successfully Added to Selected Projects</div>');
-                                window.location.reload();
-                            }
-                        });
-                    }
+                    $('#reveal-if-active').toggle();
                 });
 
                 $('.run-similarity').on('click', function (e) {

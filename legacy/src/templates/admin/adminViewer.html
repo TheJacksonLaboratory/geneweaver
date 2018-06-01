@@ -12,10 +12,14 @@
 var editor;
     $(document).ready(function()  { 
 
- 	 var table = '{{table}}';
-	 var columns = {{jcolumns | safe}};
-	 var numCols = columns.length	
+     var is_login_as = {{is_login_as | safe | tojson}};
           
+    if (is_login_as.length === 0) {
+
+        var columns = {{jcolumns | safe}};
+        var numCols = columns.length	
+        var table = '{{table}}';
+
         var table = $('#adminViewer').dataTable( {
             "processing": true,
             "serverSide": true,
@@ -39,29 +43,58 @@ var editor;
 	    }   	    
         });
 
-	$('#adminViewer td').live('click', function() {
-    		
-		var data = {};
-		data['table'] = '{{table}}';
+        $('#adminViewer td').live('click', function() {
+                
+            var data = {};
+            data['table'] = '{{table}}';
 
-		j=0;
-    		$(this).parent().find("td").each(function() {
-	 	    var item = $(this).html();
-		    var key = columns[j]["name"];
-        	    data[key]= item;  
-		    j++;
-		});
-
-		 $.ajax({
-          	   type: "GET",
-           	   url: "../../admin/adminEdit",
-           	   data: data, 
-           	   success: function(data)
-           	   {
-			$("#maindiv").html(data);               	      
-           	   }
+            j=0;
+                $(this).parent().find("td").each(function() {
+                var item = $(this).html();
+                var key = columns[j]["name"];
+                    data[key]= item;  
+                j++;
             });
- 	});	
+
+             $.ajax({
+                   type: "GET",
+                   url: "../../admin/adminEdit",
+                   data: data, 
+                   success: function(data)
+                   {
+                $("#maindiv").html(data);               	      
+                   }
+                });
+        });	
+
+    } else {
+        var recentUsers = '{{recent_users | safe}}';
+        recentUsers = JSON.parse(recentUsers);
+
+        var table = $('#adminViewer').dataTable({
+            'iDisplayLength': 30,
+            'data': recentUsers,
+            'sort': false,
+            'columns': [
+                { data: 'usr_id' },
+                { data: 'usr_email' },
+                { data: 'usr_last_seen' },
+                { 
+                    data: 'usr_id',
+                    render: function(data, type, row) {
+
+                        return '<a href="/login_as/' + data + '">[login as]</a>';
+                    }
+                }
+            ],
+            'columnDefs': [
+                { data: 'usr_id', name: 'usr_id' },
+                { data: 'usr_email', name: 'usr_email' },
+                { data: 'usr_last_seen', name: 'usr_last_seen' }
+            ]
+        });   	    
+
+    }
 
 	String.prototype.capitalize = function() {
     	    return this.charAt(0).toUpperCase() + this.slice(1);
@@ -73,7 +106,29 @@ var editor;
 <h3 align=left>{{table.split(".")[1].replace("_"," ").capitalize()}}</h3>
 
 <div class="btn-group">
+    {% if is_login_as %}
+        
+    <script type="text/javascript">
+        function loginAs() {
+
+            var usr = $('#login-as-text').val();
+
+            $.ajax({
+                type: 'GET',
+                url: '/login_as/' + usr,
+                sucess: function() {
+                    window.location.href = '/';
+                }
+            });
+        }
+    </script>
+      <button type="button" onclick="loginAs()" class="btn btn-default">
+          Login As:
+      </button>
+      <input  type="text" id="login-as-text" placeholder="usr_id"/>
+    {% else %}
   <button type="button" onclick="window.location.href = '../../admin/{{route}}'" route class="btn btn-default">Add New {{table.split(".")[1].replace("_"," ").capitalize()}}</button>
+  {% endif %}
 </div>
 <p>
 

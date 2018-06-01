@@ -71,6 +71,8 @@ admin = Admin(app, name='GeneWeaver', index_view=adminviews.AdminHome(
 
 admin.add_view(
     adminviews.Viewers(name='Users', endpoint='viewUsers', category='User Tools'))
+admin.add_view(
+    adminviews.Viewers(name='Recent Users', endpoint='viewRecentUsers', category='User Tools'))
 admin.add_view(adminviews.Viewers(
     name='Publications', endpoint='viewPublications', category='User Tools'))
 admin.add_view(adminviews.Viewers(
@@ -247,14 +249,19 @@ def _form_login():
         # TODO deal with login failure
         user = geneweaverdb.authenticate_user(
             form['usr_email'], form['usr_password'])
+
         if user is not None:
             flask.session['user_id'] = user.user_id
             remote_addr = flask.request.remote_addr
+
             if remote_addr:
                 flask.session['remote_addr'] = remote_addr
 
+            geneweaverdb.update_user_seen(user.user_id)
+
     flask.g.user = user
     return user
+
 
 
 def send_mail(to, subject, body):
@@ -316,6 +323,34 @@ def json_login():
     # return flask.jsonify(json_result)
     return flask.redirect('/')
 
+@app.route('/login_as/<int:as_user_id>', methods=['GET'])
+def login_as(as_user_id):
+    #args = flask.request.args
+
+    #if 'user_id' not in args:
+    #    return flask.jsonify({'error': ''})
+    if not as_user_id:
+        return flask.jsonify({'error': ''})
+
+    if 'user' not in flask.g:
+        return flask.jsonify({'error': ''})
+
+    user = flask.g.user
+
+    if not user.is_admin:
+        return flask.jsonify({'error': ''})
+
+    as_user = geneweaverdb.get_user(as_user_id)
+
+    if not as_user:
+        return flask.jsonify({'error': ''})
+
+
+    flask.session['user_id'] = as_user.user_id
+    flask.g.user = as_user
+
+    return flask.redirect('/')
+
 
 @app.route('/analyze')
 @login_required(allow_guests=True)
@@ -370,6 +405,33 @@ def render_analyze_shared():
     active_tools = geneweaverdb.get_active_tools()
     return flask.render_template('analyze_shared.html', active_tools=active_tools, grp2proj=grp2proj)
 
+@app.route('/get_user_projects.json')
+@login_required(allow_guests=True)
+def get_user_projects():
+
+    if 'user' in flask.g:
+        projects = []
+
+        for p in flask.g.user.projects:
+            ## Format datetime object to string
+            if p.created:
+                p.created = p.created.strftime('%Y-%m-%d')
+
+            projects.append({
+                'name': p.name,
+                'project_id': p.project_id,
+                'group_id': p.group_id,
+                'created': p.created,
+                'notes': p.notes,
+                'star': p.star,
+                'count': p.count,
+                'group_name': p.group_name,
+                'owner': p.owner
+            })
+
+        return flask.jsonify(projects)
+    else:
+        return flask.jsonify([])
 
 @app.route('/projects')
 @login_required(allow_guests=True)
@@ -1070,6 +1132,13 @@ def render_pub_assignment(assignment_id):
                     curator = geneweaverdb.get_user(assignment.assignee)
                 group_name = geneweaverdb.get_group_name(assignment.group)
 
+                ## Remove sets that have been deleted by the curators or others
+                genesets = filter(lambda gs: gs.status != 'deleted', genesets)
+                other_genesets = filter(
+                    lambda gs: gs.status != 'deleted', other_genesets
+                )
+                        
+
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
                 curation_team_members = [geneweaverdb.get_user(uid) for uid in geneweaverdb.get_group_users(assignment.group)]
@@ -1123,7 +1192,8 @@ def create_geneset_stub():
         response = flask.jsonify(message='You do not have permissions to perform this action.')
         response.status_code = 403
     else:
-        gs_ids = [assignment.create_geneset_stub(stub['gs_name'], stub['gs_label'], stub['gs_description'], species_id) for stub in stubs]
+        group_id = assignment.group
+        gs_ids = [assignment.create_geneset_stub(stub['gs_name'], stub['gs_label'], stub['gs_description'], species_id, group_id) for stub in stubs]
         response = flask.jsonify(gs_ids=gs_ids)
 
     return response
@@ -2097,8 +2167,16 @@ def create_geneset_meta():
     return json.dumps(results)
 
 
+@app.route('/transposeGenesetIDs', methods=["POST"])
+@login_required(json=True)
+def transposeGSIDs():
+    results = geneweaverdb.transpose_genes_by_species(request.form)
+    return json.dumps(results)
+
+
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
-@login_required()
+@create_guest
+@login_required(allow_guests=True)
 def render_viewgeneset(gs_id):
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
     return render_viewgeneset_main(gs_id, curation_assignment=assignment)
@@ -2235,6 +2313,7 @@ def get_geneset_genes():
     for gsv in gs.geneset_values:
         symbols.append(gsv.ode_ref)
 
+    print gsvs
     #map each GenesetValue object's contents back onto a dictionary, turn geneset value (decimal) into string
     for i in range(len(gsvs)):
         gene_id = gsvs[i].ode_gene_id
@@ -2433,7 +2512,7 @@ def render_viewgeneset_main(gs_id, curation_view=None, curation_team=None, curat
     )
 
 @app.route('/viewgenesetoverlap/<list:gs_ids>', methods=['GET'])
-@login_required()
+@login_required(allow_guests=True)
 def render_viewgenesetoverlap(gs_ids):
     """
     Renders the view geneset overlap page.
@@ -2678,8 +2757,8 @@ def render_viewgenesetoverlap(gs_ids):
         gs_map=gs_map,
         intersects=intersects,
         species=species,
-        venn=venn,
-        venn_text=venn_text,
+        venn=json.dumps(venn),
+        venn_text=json.dumps(venn_text),
         #emphgenes=emphgenes
     )
 
@@ -2890,7 +2969,7 @@ def decimal_default(obj):
 
 
 @app.route('/viewSimilarGenesets/<int:gs_id>/<int:grp_by>')
-@login_required()
+@login_required(allow_guests=True)
 def render_sim_genesets(gs_id, grp_by):
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
@@ -3131,7 +3210,7 @@ def render_view_same_publications(gs_id):
 
 
 @app.route('/emphasis', methods=['GET', 'POST'])
-@login_required()
+@login_required(allow_guests=True)
 def render_emphasis():
     '''
     Emphasis_AddGene
@@ -3334,11 +3413,9 @@ def render_search_json():
 def render_search_suggestions():
     return flask.render_template('searchsuggestionterms.json')
 
-
 @app.route('/projectGenesets.json', methods=['GET'])
 def render_project_genesets():
     uid = flask.session.get('user_id')
-    # Project (ID) that the user wants to view
     pid = flask.request.args['project']
     genesets = geneweaverdb.get_genesets_for_project(pid, uid)
 
@@ -3354,6 +3431,33 @@ def render_project_genesets():
                                  genesets=genesets,
                                  proj={'project_id': pid},
                                  species=species)
+
+@app.route('/get_project_groups_modal', methods=['GET'])
+def get_project_groups_modal():
+    """
+    Renders the shared project groups modal.
+    """
+
+    pid = flask.request.args['project']
+
+    return flask.render_template(
+        'modal/viewProjectGroups.html',
+        proj={'project_id': pid}
+    )
+
+@app.route('/get_add_project_group_modal', methods=['GET'])
+def get_add_project_group_modal():
+    """
+    Renders the add project to group modal.
+    """
+
+    pid = flask.request.args['project']
+    project = geneweaverdb.get_project_by_id(pid)
+
+    return flask.render_template(
+        'modal/addProjectToGroup.html',
+        proj=project
+    )
 
 
 @app.route('/getProjectGroups.json', methods=['GET'])
