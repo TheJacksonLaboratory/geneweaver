@@ -170,7 +170,7 @@
                                 data-toggle="dropdown" aria-haspopup="true" 
                                 aria-expanded="false">
                             Download as...
-                            <span class="caret"></span>
+                            <span id="download-icon" class="caret"></span>
                         </button>
                         <ul class="dropdown-menu">
                             <li>
@@ -387,7 +387,27 @@ $(document).ready(function() {
 <!-- Script for the geneset table panel and all functionality and buttons that go along with it -->
 <script>
 
+    /**
+      * Updates the "Download as..." drop down icon to inform the user that
+      * their click and image download is being processed.
+      * Changes the caret to a spinning wheel when they select a download
+      * option. Changes back to the caret after the image is finished
+      * processing and ready for download.
+      */
+    var changeDownloadIcon = function() {
+
+        if ($('#download-icon').hasClass('caret'))
+            $('#download-icon').attr('class', 'fa fa-cog fa-spin');
+        else
+            $('#download-icon').attr('class', 'caret');
+    };
+
     $('.download-image').on('click', function(event) {
+
+        // Prevent the button from doing anything (i.e. reloading the page)
+        event.preventDefault();
+
+        changeDownloadIcon();
 
         var dlurl = '/downloadResult';
         // Removes 'dl-' from the id string
@@ -436,6 +456,8 @@ $(document).ready(function() {
             document.body.appendChild(a);
 
             a.click();
+
+            changeDownloadIcon();
         });
     });
 
