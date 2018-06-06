@@ -126,7 +126,7 @@
                             {% endfor %}
                         </tr>
                         <tr>
-                            <td style="text-align: right;">Genes In Common with at Least One Other Speceis</td>
+                            <td style="text-align: right;">Genes In Common with at Least One Other Species</td>
                             {% for s in json_results.bool_cluster | sort %}
                                 <th>{{ json_results.bool_cluster[s]['intersection'] | length}}</th>
                             {% endfor %}
