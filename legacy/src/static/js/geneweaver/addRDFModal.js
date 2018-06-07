@@ -25,8 +25,8 @@ var submitModalAjax = function(url, data) {
         data: data,
         traditional: true,
         success: function (data) {
-            var v = JSON.parse(data);
-            if (v["error"] != 'None') {
+            var v = data;
+            if (v["error"]) {
                 console.log("Error returned " + v['error']);
                 $("#result").html('<div class="alert alert-danger fade in">' +
                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
@@ -36,6 +36,11 @@ var submitModalAjax = function(url, data) {
                     '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
                     '</button>RDF Annotation Successfully Added.</div>');
             }
+            $('#annotation-list').DataTable().ajax.reload();
+            $("#tree").dynatree("getTree").reload();
+
+            checkedOnts = [];
+            disableActionButtons(true);
 
         },
         error: function (jqXHR, textStatus, errorThrown ) {
@@ -107,15 +112,6 @@ var submitRDFModal = function(modalID, url) {
 
         var data = {'gs_id': gs_id, 'ont_ids': ont_ids, 'ro_ont_id': ro_ont_id};
         submitModalAjax(url, data);
-        /*
-        if ($.isEmptyObject(selected) && $.isEmptyObject(npn)){
-            $("#result").html('<div class="alert alert-danger fade in"> ' +
-                    '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                    '</button>No Projects Were Selected</div>');
-        } else {
-            var data = {"npn": npn, "gs_id": g, "option": option};
-            submitGSModalAjax(url, data);
-        }*/
     }
 };
 
