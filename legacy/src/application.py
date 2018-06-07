@@ -548,18 +548,18 @@ def render_editgenesets(gs_id, curation_view=False):
 
 @app.route('/addRelationsOntology', methods=['POST'])
 @login_required(json=True)
-def addRelationsOntology():
+def add_relations_ontology():
     gs_id = request.form.get('gs_id')
-    ont_ids = request.form.get('ont_ids')
+    ont_ids = request.form.getlist('ont_ids')
     ro_ont_id = request.form.get('ro_ont_id')
     for ont_id in ont_ids:
         try:
             geneweaverdb.add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
-        except IntegrityError:
+        except IntegrityError as e:
             try:
                 geneweaverdb.update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
             except Error as e:
-                print 'RDF Update Error: ' + e
+                print 'RDF Update Error: ' + e.message
 
     return flask.jsonify({'success': True})
 
@@ -1307,6 +1307,12 @@ def get_ontology_terms(gsid):
     ontdbdict = {}
     ontret = []
 
+    for ont in onts:
+        if ont.ro_ont_id:
+            ont.ro_name = geneweaverdb.get_ontology_by_id(ont.ro_ont_id).name
+        else:
+            ont.ro_name = None
+
     ## Convert ontdb references to a dict so they're easier to lookup
     for ont in ontdb:
         ontdbdict[ont.ontologydb_id] = ont
@@ -1318,7 +1324,9 @@ def get_ontology_terms(gsid):
             'name': ont.name,
             'dbname': ontdbdict[ont.ontdb_id].name,
             'ontdb_id': ont.ontdb_id,
-            'ont_id': ont.ontology_id
+            'ont_id': ont.ontology_id,
+            'ro_name': ont.ro_name,
+            'ro_id': ont.ro_ont_id
         }
 
         ontret.append(o)
