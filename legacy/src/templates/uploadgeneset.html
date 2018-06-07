@@ -48,6 +48,26 @@
         display: block;
     }
 
+        .loader {
+        /* IE 8 */
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
+        /* IE 5-7 */
+        filter: alpha(opacity=70);
+        /* Netscape */
+        -moz-opacity: 0.7;
+        /* Safari 1.x */
+        -khtml-opacity: 0.7;
+        /* Good browsers */
+        opacity: 0.7;
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: url('../static/images/loading24.gif') 50% 50% no-repeat rgb(249,249,249);
+    }
+
 </style>
 
 
@@ -56,6 +76,8 @@
     {% include 'htmlfragments/permissionError.html' %}
 
 {% else %}
+
+    <div class="loader"></div>
 
     <div class="row" id="result"></div>
 
@@ -447,12 +469,39 @@
         if (json.tool !== 'boolean' && json.tool != 'abba')
             return;
 
+        var speciesID = json.species;
+        var spid = json.sp;
         var genes = json.genes.split(',');
+        var jsonGenes = JSON.stringify(genes);
         var geneText = '';
+        var v;
 
-        for (var i = 0; i < genes.length; i++) {
+        // Need to transpose all gene ids into a type compatible with geneset species
+        // that the user selected.
+        // Add some ajax that will query the DB and return IDs of the type needed
+        // Also, the gif only shows in firefox since we are using async false
 
-            geneText += genes[i];
+            $.ajax({
+                beforeSend: function() {
+                            $('.loader').show();
+                        },
+                type: "POST",
+                url: "../transposeGenesetIDs",
+                dataType: 'json',
+                async: false,
+                data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7 },
+                success: function (data) {
+                    $('.loader').hide();
+                    v = data;
+                    },
+                error: function() {
+                    $('.loader').hide();
+                }
+            });
+
+        for (var i = 0; i < v.length; i++) {
+
+            geneText += v[i];
             geneText += '\t';
             geneText += '1';
             geneText += '\n';
@@ -465,7 +514,8 @@
         // Binary score type
         $('#gs_threshold_type').val('3');
         // Gene identifier type
-        $('#gene_identifier').val('gene_7')
+        $('#gene_identifier').val('gene_7');
+        $('#' + speciesID).prop('selected',true);
     };
 
     /*

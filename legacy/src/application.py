@@ -2196,6 +2196,13 @@ def create_geneset_meta():
     return json.dumps(results)
 
 
+@app.route('/transposeGenesetIDs', methods=["POST"])
+@login_required(json=True)
+def transposeGSIDs():
+    results = geneweaverdb.transpose_genes_by_species(request.form)
+    return json.dumps(results)
+
+
 @app.route('/viewgenesetdetails/<int:gs_id>', methods=['GET', 'POST'])
 @create_guest
 @login_required(allow_guests=True)
