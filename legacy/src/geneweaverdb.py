@@ -1660,6 +1660,11 @@ def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
                   ont_id = %s
             ''', (gs_id, ont_id)
         )
+        cursor.execute('''
+            DELETE FROM production.geneset2ontology
+            WHERE gs_id = %s AND
+                  g2o_ont_id = %s
+        ''', (gs_id, ont_id))
         cursor.connection.commit()
         return
 
@@ -2868,7 +2873,7 @@ class Ontology:
         self.children = ont_dict['ont_children']
         self.parents = ont_dict['ont_parents']
         self.ontdb_id = ont_dict['ontdb_id']
-
+        self.ro_ont_id = ont_dict.get('ro_ont_id')
 
 class Ontologydb:
     def __init__(self, ontdb_dict):
@@ -5324,26 +5329,52 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
         if gso_ref_type == "All Reference Types":
             cursor.execute(
                     '''
-                    SELECT *
-                    FROM extsrc.ontology NATURAL JOIN odestatic.ontologydb
-                    WHERE ont_id in (
-                                      SELECT ont_id
-                                      FROM extsrc.geneset_ontology
-                                      WHERE gs_id = %s
-                                    )
+                    SELECT ont_id,
+                           ont_ref_id,
+                           ont_name,
+                           ont_description,
+                           ont_children,
+                           ont_parents,
+                           ont.ontdb_id,
+                           ontdb_name,
+                           ontdb_prefix,
+                           ontdb_ncbo_id,
+                           gs_id,
+                           g2o_ro_ont_id AS ro_ont_id
+                    FROM   extsrc.ontology AS ont
+                           JOIN odestatic.ontologydb AS db
+                             ON ont.ontdb_id = db.ontdb_id
+                           LEFT JOIN production.geneset2ontology AS g2o
+                             ON ont_id = g2o.g2o_ont_id
+                    WHERE  ont.ont_id IN (SELECT ont_id
+                                          FROM   extsrc.geneset_ontology
+                                          WHERE  gs_id = %s)
                     ORDER BY ont_id
                     ''', (gs_id,)
             )
         else:
             cursor.execute(
                     '''
-                    SELECT *
-                    FROM extsrc.ontology NATURAL JOIN odestatic.ontologydb
-                    WHERE ont_id in (
-                                      SELECT ont_id
-                                      FROM extsrc.geneset_ontology
-                                      WHERE gs_id = %s AND gso_ref_type = %s
-                                    )
+                    SELECT ont_id,
+                           ont_ref_id,
+                           ont_name,
+                           ont_description,
+                           ont_children,
+                           ont_parents,
+                           ont.ontdb_id,
+                           ontdb_name,
+                           ontdb_prefix,
+                           ontdb_ncbo_id,
+                           gs_id,
+                           g2o_ro_ont_id AS ro_ont_id
+                    FROM   extsrc.ontology AS ont
+                           JOIN odestatic.ontologydb AS db
+                             ON ont.ontdb_id = db.ontdb_id
+                           LEFT JOIN production.geneset2ontology AS g2o
+                             ON ont_id = g2o.g2o_ont_id
+                    WHERE  ont.ont_id IN (SELECT ont_id
+                                          FROM   extsrc.geneset_ontology
+                                          WHERE  gs_id = %s AND gso_ref_type = %s)
                     ORDER BY ont_id
                     ''', (gs_id, gso_ref_type,)
             )
