@@ -551,15 +551,16 @@ def render_editgenesets(gs_id, curation_view=False):
 def add_relations_ontology():
     gs_id = request.form.get('gs_id')
     ont_ids = request.form.getlist('ont_ids')
-    ro_ont_id = request.form.get('ro_ont_id')
+    ro_ont_ids = request.form.getlist('ro_ont_id')
     for ont_id in ont_ids:
-        try:
-            geneweaverdb.add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
-        except IntegrityError as e:
+        for ro_ont_id in ro_ont_ids:
             try:
-                geneweaverdb.update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
-            except Error as e:
-                print 'RDF Update Error: ' + e.message
+                geneweaverdb.add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+            except IntegrityError as e:
+                try:
+                    geneweaverdb.update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+                except Error as e:
+                    print 'RDF Update Error: ' + e.message
 
     return flask.jsonify({'success': True})
 

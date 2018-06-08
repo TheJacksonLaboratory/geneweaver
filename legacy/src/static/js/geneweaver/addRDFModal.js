@@ -108,7 +108,7 @@ var submitRDFModal = function(modalID, url) {
         //var selected = $(modalID+' select').val().map(Number);
         var gs_id = $(modalID).find('#gsid').data('gs_id'),
             ont_ids = $(modalID).find('#addRDFOntologies-label').data('ont_id'),
-            ro_ont_id = +$('#roSelect').val();
+            ro_ont_id = $('#roSelect').val();
 
         var data = {'gs_id': gs_id, 'ont_ids': ont_ids, 'ro_ont_id': ro_ont_id};
         submitModalAjax(url, data);
