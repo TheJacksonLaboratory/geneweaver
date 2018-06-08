@@ -410,16 +410,16 @@
         $('#remove-term').prop('disabled', newState);
     };
 
-    var updateCheckedOnts = function(ontid) {
-        var checkbox_el = $('#addRDF'+ontid),
-                idx = checkedOnts.indexOf(ontid);
+    var updateCheckedOnts = function(ont_id, ro_ont_id) {
+        var row_id = ont_id+'-'+ro_ont_id,
+                checkbox_el = $("#addRDF"+row_id),
+                idx = checkedOnts.indexOf(row_id);
         if (checkbox_el.attr('checked') && idx === -1) {
-            checkedOnts.push(ontid);
+            checkedOnts.push(row_id);
         }
         else {
             if (idx !== -1) { checkedOnts.splice(idx, 1) }
         }
-        console.log(checkedOnts.length);
         if (checkedOnts.length < 1) {
             disableActionButtons(true);
         } else {
@@ -427,8 +427,8 @@
         }
     };
 
-    var removeOntology = function(ont_id) {
-        console.log(ont_id);
+    var removeOntology = function(row_id) {
+        const [ont_id, ro_ont_id] = row_id.split('-');
         $.ajax({
             url: '/updateGenesetOntologyDB',
             type: 'GET',
@@ -436,22 +436,22 @@
                 key: ont_id,
                 flag: false,
                 universe: 'Manual Association',
-                gs_id: gsID
-            },
-            success: function() {
-                $('#annotation-list').DataTable()
-                        .ajax
-                        .reload();
-
-                $("#tree").dynatree("getTree").reload();
-                checkedOnts = [];
+                gs_id: gsID,
+                ro_ont_id: ro_ont_id
             }
         });
 
     };
 
     var removeSelectedOntologies = function() {
-        return function() { checkedOnts.forEach(function(i) { removeOntology(i); }); };
+        return function() {
+            checkedOnts.forEach(function(i) { removeOntology(i); });
+            setTimeout(function(){
+                $('#annotation-list').DataTable().ajax.reload();
+                $("#tree").dynatree("getTree").reload();
+                checkedOnts = [];
+            }, 500);
+        };
     };
 
     var openRemoveModal = function() {
@@ -505,9 +505,13 @@
                 // remove a gene set annotation
                 'aTargets': [0],
                 'fnCreatedCell': function(nTd, _, oData, _, _) {
-                    var roCheck = $('<div class="ui-checkbox"><input class="addGene" name="gsoptions[]" \
-                        id="addRDF' +  oData['ont_id'] + '" value="' +  oData['ont_id'] + '" \
-                        type="checkbox" onchange="updateCheckedOnts(' + oData['ont_id']+ ');"></div>');
+                    var roCheck = $('<div class="ui-checkbox">' +
+                            '<input class="addGene" name="gsoptions[]" ' +
+                            'id="addRDF' +  oData['ont_id'] + '-' + oData['ro_id'] + '" ' +
+                            'value="' +  oData['ont_id'] + '" ' +
+                            'type="checkbox"' +
+                            'onchange="updateCheckedOnts(' + oData['ont_id']+ ', ' + oData['ro_id'] + ');' +
+                            '"></div>');
                     $(nTd).append(roCheck);
                 }
             }]

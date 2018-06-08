@@ -1668,6 +1668,27 @@ def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
         cursor.connection.commit()
         return
 
+def remove_relation_ont(gs_id, ont_id, ro_ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            DELETE FROM production.geneset2ontology
+            WHERE gs_id = %s AND
+                  g2o_ont_id = %s AND
+                  g2o_ro_ont_id = %s
+        ''', (gs_id, ont_id, ro_ont_id))
+        cursor.connection.commit()
+        return
+
+def count_relation_ontologies(gs_id, ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT count(*) FROM production.geneset2ontology
+            WHERE gs_id = %s AND
+                  g2o_ont_id = %s
+        ''', (gs_id, ont_id))
+        result = cursor.fetchone()
+        return result[0]
+
 
 def delete_results_by_runhash(rargs):
     # ToDO: Remove results from RESULTS Dir

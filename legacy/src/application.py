@@ -1241,14 +1241,29 @@ def update_geneset_ontology_db():
     gs_id = request.args['gs_id']
     flag = request.args['flag']
     gso_ref_type = request.args['universe']
+    ro_ont_id = request.args.get('ro_ont_id')
+
 
     if (flag == "true"):
         geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
     else:
-        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
+        if ro_ont_id:
+            print "trying to remove ro"
+            remove_relation_ontology(ont_id, gs_id, ro_ont_id)
+        ro_count = geneweaverdb.count_relation_ontologies(gs_id, ont_id)
+        if ro_count < 1:
+            geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
 
     return json.dumps(True)
 
+def remove_relation_ontology(ont_id, gs_id, ro_ont_id):
+    try:
+        geneweaverdb.remove_relation_ont(gs_id, ont_id, ro_ont_id)
+        result = {'success': True}
+    except Error:
+        result = {'success': False}
+
+    return result
 
 @app.route('/rerun_annotator.json', methods=['POST'])
 @login_required(json=True)

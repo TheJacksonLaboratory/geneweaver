@@ -67,6 +67,9 @@ var openRDFModal = function(modalID, gsid, oids, relation_onts, modalTitle) {
     return function() {
 
         if (!Array.isArray(oids)) { oids = [oids]; }
+        oids = oids.map(function(e) {
+           return e.split('-')[0]
+        });
 
         // Update the modal title if specified
         if (typeof modalTitle !== 'undefined') { $(modalID).find('.modal-title').html(modalTitle); }
