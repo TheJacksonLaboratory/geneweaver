@@ -6,8 +6,12 @@ import geneweaverdb as gwdb
 import sys
 import itertools
 import toolcommon as tc
+import config
+
 TOOL_CLASSNAME = 'DBSCAN'
 dbscan_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
+RESULTS_PATH = config.get('application', 'results')
+
 
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
                        '#D93459', '#5E228B', '#698FC6']
@@ -314,9 +318,15 @@ def view_result(task_id):
         # for gene in gene_info:
         #     sys.stderr.write("["+gene+"][gene_rank] = "+str(gene_info[gene]['gene_rank'])+"\n")
 
+        # Open files and pass via template
+        f = open(RESULTS_PATH + '/' + task_id + '.json', 'r')
+        json_results = f.readline()
+        f.close()
+
         return flask.render_template(
             'tool/DBSCAN_result.html',
             data=data, genes=genes, ran=test['ran'],
+            json_results=json.loads(json_results),
             async_result=json.loads(async_result.result), gene_info=gene_info,
             emphgeneids=emphgeneids, colors=HOMOLOGY_BOX_COLORS, tt=SPECIES_NAMES,
             placeholder_homology=placeholder_homology,

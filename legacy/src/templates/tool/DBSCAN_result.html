@@ -204,7 +204,8 @@ td, th {
                 </div>
                 <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
                     {% if g.user is defined %}
-                        <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+                        <button type="button" class="btn btn-block btn-warning" id="addToNewGeneset"
+                            style="margin-bottom: 10px;">
                             <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
                         </button>
                     {% endif %}
@@ -215,6 +216,21 @@ td, th {
         {% for cluster in async_result.resClusters %}
 
             <div class="panel-title" style="padding-top: 10px;"> Cluster {{ loop.index0 }} </div>
+
+            <!-- Select all box -->
+            <div class="panel-title">Cluster {{ loop.index0 }}</div>
+                <div class="row" id="{{ loop.index0 }}">
+                    <div class="col-md-2 pull-right" align="right" style="text-align:right">
+                        <div class="ui-checkbox group-checkbox" id="group-{{ loop.index0 }}-allcheck"
+                             style="padding:0; border:0; margin:0">
+                            <label for="group-{{ loop.index0 }}" style="padding:0 0 0 40px; margin:0">
+                                Select Cluster
+                                <input type="checkbox" name="group-{{ loop.index0 }}"/>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
             <table class="table table-hover" style="border-collapse: collapse;">
                 <tbody>
                 <tr>
@@ -301,17 +317,31 @@ td, th {
                     </div>
                     <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
                         {% if g.user is defined %}
-                        <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
-                            <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
-                        </button>
+                            <button type="button" class="btn btn-block btn-warning" id="addToNewGeneset"
+                            style="margin-bottom: 10px;">
+                                <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                            </button>
                         {% endif %}
                     </div>
             </div>
 
         {%  for cluster in async_result.resClusters %}
 
-            <div class="panel-title">Cluster {{ loop.index0 }}</div>
-            <div class="row">
+            <!-- Select all box -->
+            <div class="panel-title">Cluster {{ loop.index0 + 1 }}</div>
+                <div class="row" id="{{ loop.index0 }}">
+                    <div class="col-md-2 pull-right" align="right" style="text-align:right">
+                        <div class="ui-checkbox group-checkbox" id="group-{{ loop.index0 }}-allcheck"
+                             style="padding:0; border:0; margin:0">
+                            <label for="group-{{ loop.index0 }}" style="padding:0 0 0 40px; margin:0">
+                                Select Cluster
+                                <input type="checkbox" name="group-{{ loop.index0 }}"/>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="row" id="group-{{ loop.index0 }}">
                 <table class="table table-hover">
                     <tbody>
                     <tr>
@@ -447,12 +477,175 @@ td, th {
     </div>
 {% endif %}
 
-
 <div id="target"></div>
 
 
 {#Script for adding genes to geneset?#}
 <script type="text/javascript">
+
+    $(document).ready(function () {
+        /**
+         * Need a section to update the bootstrap model
+         **/
+        $('.dropdown-menu a').click(function(){
+            $('#selected').text($(this).text());
+            $('#selected').attr('data-value', $(this).closest('li').prop('id'));
+        });
+
+
+        /**
+         * This code should populate all checkboxes below the select all checkbos.
+         * It is based on the code found in the BooleanAlgebra tool.
+         */
+        $('.group-checkbox').on('click', function (event) {
+
+            // Grabs the group ID for this checkbox. Format: group-#-checkbox
+            var groupId = $(this).attr('id').split('-')[1];
+            var groupCheck = $(this).find('input[type=checkbox]');
+            // Id for checkbox grouping
+            var groupCheckboxes = '#group-' + groupId;
+            var checks = $(groupCheckboxes).find('input[type=checkbox]');
+            // Even when we mark the checkbox as checked the stupid UI doesn't
+            // get updated because of these weird ui button things
+            var btns = $(groupCheckboxes).find('.ui-btn');
+
+            // Opposite because by the time this code executes, the box is
+            // already checked
+            if (!groupCheck.attr('checked')) {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', false);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-on');
+                    $(this).addClass('ui-checkbox-off');
+                });
+
+            } else {
+
+                checks.each(function (index) {
+                    $(this).attr('checked', true);
+                });
+
+                btns.each(function (index) {
+                    $(this).removeClass('ui-checkbox-off');
+                    $(this).addClass('ui-checkbox-on');
+                });
+            }
+        });
+        /**
+         * Ever since we added the select all checkbox, we now have to hook
+         * into these stupid ui-checkbox clicks otherwise the actual checkbox
+         * which lies underneath all the ui crap doesn't get (de)selected.
+         */
+        $('.ui-checkbox').on('click', function (event) {
+
+            var check = $(this).find('input[type=checkbox]');
+
+            if (check.attr('checked'))
+                check.attr('checked', false);
+            else
+                check.attr('checked', true);
+        });
+    });
+
+    // Bring up a modal for selecting a species for the new geneset
+    $('#addToNewGeneset').on('click', function () {
+        $('#selectSpeciesForUpload').modal('show');
+    });
+
+      /**
+      * Creates a ne gene set from the dbscan page. Determines the genes
+      * the user has selected then packages everything in a POST request to the
+      * upload gene set page.
+      */
+    function newGeneSet() {
+
+        $('#selectSpeciesForUpload').hide();
+
+        var checkedArray = [];
+        var v = [];
+
+        // Retrieves genes that have been check marked
+        $("input:checkbox[name='gsoptions[]']:checked").each(function () {
+            checkedArray.push($(this).val());
+        });
+        if (typeof checkedArray != "undefined" &&
+            checkedArray != null &&
+            checkedArray.length > 0) {
+
+            // get cluster data
+            //var clusters = {# {{ async_result.resClusters }} #};
+            var numClusters = {{ async_result.resClusters | length }};
+            var numGsids = {{ async_result.gs_ids | length }};
+
+            var as = {{ json_results | tojson | safe }};
+            var gsids = as['gs_ids'];
+            alert(gsids);
+
+            //var gsids = {{ async_result.gs_ids|join(',')|string }};
+
+            // new geneset metadata
+            var name = 'DBScan result of ' + numGsids + ' GeneSets.';
+            var description = 'The DBScan tool was used to find ' + numClusters + ' Cluster from ' +
+                    numGsids + ' GeneSets: ' + gsids.join(', ');
+
+            var genes = checkedArray;
+
+
+
+            // Species
+            var species = 'sp-' + $('#selected').attr('data-value');
+            var spid = $('#selected').attr('data-value');
+
+
+            // Generates a hidden form that is used to submit data to the
+            // upload page
+            var form = $('<form></form>', {
+                id: 'uploadform',
+                name: 'uploadform',
+                method: 'post',
+                action: '/uploadgeneset',
+                target: '_blank',
+                type: 'hidden'
+            });
+
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'name',
+                value: name
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'species',
+                value: species
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'description',
+                value: description
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'genes',
+                value: genes
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'sp',
+                value: spid
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'tool',
+                value: 'boolean'
+            }));
+
+            form.appendTo('body').submit();
+        }
+    }
+
     $("[name='g_id[]']").bootstrapSwitch();
     $('#clickableHomology').popover({
                 title: 'Homology Mapping', content: 'The colored boxes represent gene homology mappings to other species ' +
@@ -480,6 +673,7 @@ td, th {
             }
         }
 
+    /**
     $('#addNewGeneset').on('click', function () {
 	//function blah() {
 
@@ -518,6 +712,7 @@ td, th {
 			window.alert("No genes selected.")
 		}
 	});
+	**/
 </script>
 
 <script src="/static/tools/DBSCAN.js" charset="utf-8"></script>
@@ -532,5 +727,7 @@ td, th {
     {% endif %}
 
 </script>
+
+{% include 'modal/selectSpeciesForUpload.html' %}
 
 {% include 'footer.html' %}
