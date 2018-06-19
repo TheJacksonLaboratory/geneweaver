@@ -220,6 +220,7 @@ def create_new_geneset_for_user(args, user_id):
     gene_data = ''.join([i if ord(i) < 128 else ' ' for i in gene_data.strip('\r')])
     ## This count may not reflect the true number of genes
     gs_count = len(gene_data.split('\n'))
+    missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
 
     try:
@@ -291,7 +292,20 @@ def create_new_geneset_for_user(args, user_id):
     #
     # batch.db.commit()
 
-    return {'error': 'None', 'gs_id': gs_id}
+    missing_genes = []
+
+    for gl in gene_data.split('\n'):
+        g = gl.split('\t')
+
+        if g:
+            missing_genes.append(g[0])
+
+    ## Last check for missing gene identifiers to inform the user of them
+    missing_genes = geneweaverdb.get_missing_ref_ids(
+        missing_genes, formData['sp_id'][0], gene_identifier
+    )
+
+    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
 
 
 def process_gene_list(gene_list):

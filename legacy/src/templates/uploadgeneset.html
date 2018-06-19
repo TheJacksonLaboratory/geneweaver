@@ -744,6 +744,16 @@
                             }
                         ]);
                     }
+
+                    if (v['missing'].length > 0) {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [{
+                            'message': 'The following gene identifiers are ' +
+                                       'not present in GeneWeaver: ' + 
+                                       v['missing'].join(', '),
+                            'priority': 'warn'
+                        }]);
+                    }
                     },
                 error: function(){
                     // Hides confirmation after any kind of result (success or
