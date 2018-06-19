@@ -1,5 +1,5 @@
 import re
-from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name, get_user_id_by_apikey
+from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name, get_user_id_by_apikey, get_missing_ref_ids
 from urlparse import parse_qs, urlparse
 from flask import session
 import annotator as ann
@@ -297,12 +297,12 @@ def create_new_geneset_for_user(args, user_id):
     for gl in gene_data.split('\n'):
         g = gl.split('\t')
 
-        if g:
+        if g and g[0]:
             missing_genes.append(g[0])
 
     ## Last check for missing gene identifiers to inform the user of them
-    missing_genes = geneweaverdb.get_missing_ref_ids(
-        missing_genes, formData['sp_id'][0], gene_identifier
+    missing_genes = get_missing_ref_ids(
+        missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
     )
 
     return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}

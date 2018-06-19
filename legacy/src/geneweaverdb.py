@@ -4726,12 +4726,13 @@ def get_missing_ref_ids(refs, sp_id, gdb_id):
             '''
             SELECT      user_gene.ref
             FROM        (SELECT UNNEST(%s) AS ref) user_gene
-            LEFT JOIN   (SELECT ode_ref_id AS ref
+            LEFT JOIN   (SELECT ode_gene_id, ode_ref_id AS ref
                          FROM   extsrc.gene
                          WHERE  sp_id = %s AND
                                 gdb_id = %s
             ) gene
-            USING       (ref);
+            ON          LOWER(user_gene.ref) = LOWER(gene.ref)
+            WHERE       gene.ode_gene_id IS NULL;
             ''', (refs, sp_id, gdb_id)
         )
 
