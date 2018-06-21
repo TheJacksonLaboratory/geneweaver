@@ -704,7 +704,7 @@ def geneset_ready_for_review():
 @app.route("/mark_geneset_reviewed.json", methods=['POST'])
 @login_required(json=True)
 def mark_geneset_reviewed():
-    user_id = flask.session['user_id']
+    user = flask.g.user
 
     notes = bleach.clean(request.form.get('note', ''), strip=True)
     gs_id = request.form.get('gs_id', type=int)
@@ -713,10 +713,10 @@ def mark_geneset_reviewed():
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
 
     if assignment:
-        if user_id == assignment.reviewer:
+        if user.user_id == assignment.reviewer:
             if review_ok:
                 tier = request.form.get('tier', type=int)
-                assignment.review_passed(notes, tier)
+                assignment.review_passed(notes, tier, user)
             else:
                 assignment.review_failed(notes)
             response = flask.jsonify(success=True)
@@ -1867,7 +1867,7 @@ def update_genesets_groups():
             return json.dumps({'error': 'None'})
 
         else:
-            errors = ','.join(map(lambda s: 'GS' + s, errors))
+            errors = ', '.join(map(lambda s: 'GS' + s, errors))
 
             return json.dumps({
                 'error': ('The GeneSet(s) %s are private (Tier V) and can '
@@ -2184,6 +2184,7 @@ def render_curategeneset(gs_id):
     curation_view = None
     curation_team_members = None
     curator_info = None
+    user = flask.g.user
 
     def user_is_curation_leader():
         owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
@@ -2191,6 +2192,10 @@ def render_curategeneset(gs_id):
             return True
 
     if assignment:
+        if request.args.get('reset_assignment_state') and (user.is_curator or user.is_admin):
+            assignment.assign_curator(assignment.curator, user.user_id)
+            assignment.set_curation_state('Ready for review')
+            curation_view = 'reviewer'
 
         #figure out the proper view depending on the state and your role(s)
         if assignment.state == curation_assignments.CurationAssignment.UNASSIGNED and user_is_curation_leader():

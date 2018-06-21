@@ -94,7 +94,22 @@ class CurationAssignment(object):
         except KeyError:
             return "Unknown"
 
-    def assign_curator(self, curator_id, reviewer_id, notes):
+    @staticmethod
+    def string_to_status(string):
+        s = string.lower()
+        state_dict = {
+            "unassigned": 1,
+            "assigned": 2,
+            "ready for review": 3,
+            "reviewed": 4
+        }
+
+        try:
+            return state_dict[s]
+        except KeyError:
+            raise ValueError("String status must be one of: 'Unassigned', 'Assigned', 'Ready for review', 'Reviewed'")
+
+    def assign_curator(self, curator_id, reviewer_id, notes=''):
         """
         :param curator_id: id of user assigned as curator
         :param reviewer_id: id of user assigned as a reviewer
@@ -145,7 +160,7 @@ class CurationAssignment(object):
         message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
         notifications.send_usr_notification(self.reviewer, subject, message)
 
-    def review_passed(self, notes, tier):
+    def review_passed(self, notes, tier, submitter):
         """
         :param geneset_id: geneset being curated
         :param notes: message that will be sent to the assigned curator
@@ -171,8 +186,19 @@ class CurationAssignment(object):
 
         # Send notification to curator
         subject = 'Geneset Curation Review PASSED'
-        message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
+        geneset_url = get_geneset_url(self.gs_id)
+        geneset_name = get_geneset_name(self.gs_id)
+        message = geneset_url + ': <i>' + geneset_name + '</i><br>' + notes
         notifications.send_usr_notification(self.curator, subject, message)
+
+        if not (submitter.is_admin or submitter.is_curator):
+            users = geneweaverdb.get_all_curators_admins()
+
+            geneset_url = get_geneset_url(self.gs_id, 'reset_assignment_state=True')
+            message = geneset_url + ': <i>' + geneset_name + '</i><br>' + notes
+            subject = 'Tier IV Geneset Needs Additional Review by Geneweaver Curator/Admin'
+            for user in users:
+                notifications.send_usr_notification(user.user_id, subject, message)
 
     def review_failed(self, notes):
         """
@@ -198,15 +224,30 @@ class CurationAssignment(object):
         message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
         notifications.send_usr_notification(self.curator, subject, message)
 
+    def set_curation_state(self, state_string):
+        state = self.string_to_status(state_string)
 
-def get_geneset_url(geneset_id):
+        with geneweaverdb.PooledCursor() as cursor:
+            cursor.execute(
+                "UPDATE production.curation_assignments SET curation_state=%s, updated=now() WHERE gs_id=%s",
+                (state, self.gs_id))
+            cursor.connection.commit()
+
+        self.state = state
+
+
+
+def get_geneset_url(geneset_id, query=None):
     """
     :param geneset_id: geneset submitted for curation
+    :param query optional query string to add to url link, automatically add ?
     :rtype: str
     """
-    #return flask.url_for('render_curategeneset', gs_id=geneset_id)
-    #return '<a href="https://www.google.com/"> CLICK </a>'
-    return '<a href="{url_prefix}/curategeneset/' + str(geneset_id) + '"> GS' + str(geneset_id) + '</a>'
+    gs_id_str = str(geneset_id)
+    u = '<a href="{url_prefix}/curategeneset/' + gs_id_str
+    u = u + '?' + query if query else u
+    u += '"> GS' + gs_id_str + '</a>'
+    return u
 
 
 def get_geneset_name(geneset_id):
