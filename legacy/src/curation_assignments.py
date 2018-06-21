@@ -195,7 +195,8 @@ class CurationAssignment(object):
             users = geneweaverdb.get_all_curators_admins()
 
             geneset_url = get_geneset_url(self.gs_id, 'reset_assignment_state=True')
-            message = geneset_url + ': <i>' + geneset_name + '</i><br>' + notes
+            message = geneset_url + ': <i>' + geneset_name + '</i><br>'
+            message += 'Clicking this link will set the curation state to \'Ready for review\' and will set you as the reviewer'
             subject = 'Tier IV Geneset Needs Additional Review by Geneweaver Curator/Admin'
             for user in users:
                 notifications.send_usr_notification(user.user_id, subject, message)
