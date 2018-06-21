@@ -272,9 +272,11 @@
             </div>
         </div>
 
+        <br>
+
         {# Elissa will probably want these buttons moved #}
-        <div class="row pull-right">
-            <div class="col-md-4">
+        <div class="row">
+            <div class="col-md-2 col-md-offset-6">
                 <button type="submit" class="btn btn-block btn-warning"
                         id="run-annotator">
                     <i id="annotator-icon" class="fa fa-play"></i>
@@ -284,7 +286,7 @@
                 </button>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <button type="submit" class="btn btn-block btn-warning"
                         id="save-updates">
                     <i class="fa fa-save "></i>
@@ -292,7 +294,7 @@
                 </button>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <button type="submit" class="btn btn-block btn-warning"
                         id="edit-genes">
                     <i class="fa fa-fast-forward "></i> Edit Genes
@@ -301,7 +303,6 @@
 
         </div>
 
-        <br>
         <br>
 
         {# Annotation Information #}
@@ -315,6 +316,25 @@
             </h2>
         </div>
 
+        <br>
+
+        <div class="row">
+            <div class="col-md-2 col-md-offset-8">
+                <button type="button" class="btn btn-block btn-warning" id="add-rdf" disabled>
+                    <i class="fa fa-plus" aria-hidden="true"></i> Add RO Term
+                </button>
+            </div>
+
+            <div class="col-md-2">
+                <button type="button" class="btn btn-block btn-warning" id="remove-term" disabled>
+                    <i class="fa fa-times" aria-hidden="true"></i> Remove Term(s)
+                </button>
+            </div>
+
+        </div>
+
+        <br>
+
         <div style="margin-left: 1em;">
             <br />
 
@@ -327,10 +347,12 @@
             <table class="table table-hover" id="annotation-list">
                 <thead>
                     <tr class="header">
+                        <th></th>
                         <th>Ontology Term</th>
-                        <th>Ontology ID</th>
-                        <th>Association Source</th>
-                        <th>Action</th>
+                        <th>Term ID</th>
+                        <th>Annotation</th>
+                        <th>Relationship Type</th>
+                        <th>Relationship ID</th>
                     </tr>
                 </thead>
                 <tbody style="font-size:13px">
@@ -374,10 +396,90 @@
 
 {% endif %}
 
+{% include 'modal/addRDFToGeneset.html' %}
+{% include 'modal/showGenericMessage.html' %}
+
+<script type="text/javascript" src="/static/js/geneweaver/addRDFModal.js"></script>
+<script type="text/javascript" src="/static/js/geneweaver/showErrorModal.js"></script>
+
 <script>
-    $(function(){
+    var checkedOnts = [];
+
+    var disableActionButtons = function(newState) {
+        $('#add-rdf').prop('disabled', newState);
+        $('#remove-term').prop('disabled', newState);
+    };
+
+    var updateCheckedOnts = function(ont_id, ro_ont_id) {
+        var row_id = ont_id+'-'+ro_ont_id,
+                checkbox_el = $("#addRDF"+row_id),
+                idx = checkedOnts.indexOf(row_id);
+        if (checkbox_el.attr('checked') && idx === -1) {
+            checkedOnts.push(row_id);
+        }
+        else {
+            if (idx !== -1) { checkedOnts.splice(idx, 1) }
+        }
+        if (checkedOnts.length < 1) {
+            disableActionButtons(true);
+        } else {
+            disableActionButtons(false);
+        }
+    };
+
+    var removeOntology = function(row_id) {
+        const [ont_id, ro_ont_id] = row_id.split('-');
+        $.ajax({
+            url: '/updateGenesetOntologyDB',
+            type: 'GET',
+            data: {
+                key: ont_id,
+                flag: false,
+                universe: 'Manual Association',
+                gs_id: gsID,
+                ro_ont_id: ro_ont_id
+            }
+        });
+
+    };
+
+    var removeSelectedOntologies = function() {
+        return function() {
+            checkedOnts.forEach(function(i) { removeOntology(i); });
+            setTimeout(function(){
+                $('#annotation-list').DataTable().ajax.reload();
+                $("#tree").dynatree("getTree").reload();
+                checkedOnts = [];
+            }, 500);
+        };
+    };
+
+    var openRemoveModal = function() {
+        return function() {
+            if (checkedOnts.length > 0) {
+                var genericModal = $('#showGenericModal'),
+                    modalFooter = genericModal.find('.modal-footer');
+                var deleteButton = `<button type="submit" class="btn btn-md btn-warning" data-dismiss="modal" id="submitRemoveTerms">
+                       Remove
+                    </button>`;
+                genericModal.find('.modal-title').html('Remove Ontology Terms');
+                genericModal.find('#genericMessage').html('Are you sure you want to remove these terms?');
+                if (modalFooter.find('#submitRemoveTerms').length < 1) {
+                    modalFooter.append(deleteButton);
+                    modalFooter.find('#submitRemoveTerms').on('click', removeSelectedOntologies());
+                }
+                genericModal.modal('show');
+            } else {
+                showErrorModal('Please select at least one Ontology to delete');
+            }
+        }
+    };
+
+    $(document).ready(function(){
+
 
         var gsID = {{ geneset.geneset_id | safe }};
+        var ros = {{ relation_onts | safe }};
 
         // DataTable initialization for the list of gene set annotations
         var table = $('#annotation-list').DataTable({
@@ -391,47 +493,35 @@
                 data: {gsid: gsID}
             },
             'columns': [
+                {data: null, defaultContent: ''},
                 {data: 'name'},
                 {data: 'reference_id'},
                 {data: 'ref_type'},
-                {data: null, defaultContent: ''}
+                {data: 'ro_name'},
+                {data: 'ro_id'}
             ],
             'aoColumnDefs': [{
                 // The last column is a link that allows users to
                 // remove a gene set annotation
-                'aTargets': [3],
+                'aTargets': [0],
                 'fnCreatedCell': function(nTd, _, oData, _, _) {
-                    var removeLink = 
-                        $('<a style="cursor:pointer">Remove</a>');
-
-                    // Removes the annotation and reloads the data
-                    // table when a user clicks the 'Remove' link
-                    removeLink.on('click', function() {
-
-                        $.ajax({
-                            url: '/updateGenesetOntologyDB',
-                            type: 'GET',
-                            data: {
-                                key: oData.ont_id,
-                                flag: false,
-                                universe: 'Manual Association',
-                                gs_id: gsID
-                            },
-                            success: function() {
-                                $('#annotation-list').DataTable()
-                                    .ajax
-                                    .reload();
-
-                                $("#tree").dynatree("getTree").reload();
-                            }
-                        });
-
-                    });
-
-                    $(nTd).append(removeLink);
+                    var roCheck = $('<div class="ui-checkbox">' +
+                            '<input class="addGene" name="gsoptions[]" ' +
+                            'id="addRDF' +  oData['ont_id'] + '-' + oData['ro_id'] + '" ' +
+                            'value="' +  oData['ont_id'] + '" ' +
+                            'type="checkbox"' +
+                            'onchange="updateCheckedOnts(' + oData['ont_id']+ ', ' + oData['ro_id'] + ');' +
+                            '"></div>');
+                    $(nTd).append(roCheck);
                 }
             }]
         });
+
+
+
+        $('#add-rdf').on('click', openRDFModal('#addRDFToGeneset', gsID, checkedOnts, ros));
+        $('#remove-term').on('click', openRemoveModal());
+
 
         // Change the way the autocomplete menu is rendered
         $.widget('ui.autocomplete', $.ui.autocomplete, {
@@ -499,6 +589,8 @@
             });
         });
     });
+
+    $('#submitRDF').on('click', submitRDFModal("#addRDFToGeneset", '/addRelationsOntology'));
 </script>
 
 <script>

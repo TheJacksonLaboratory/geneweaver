@@ -517,6 +517,7 @@ def render_editgenesets(gs_id, curation_view=False):
     #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
     ont_dbs = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
+    ros = json.dumps(geneweaverdb.get_ontologies_by_ontdb_id(12))
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
@@ -541,8 +542,34 @@ def render_editgenesets(gs_id, curation_view=False):
         view=view, 
         ref_types=ref_types,
         ont_dbs=ont_dbs,
-        curation_view=curation_view
+        curation_view=curation_view,
+        relation_onts=ros
     )
+
+@app.route('/addRelationsOntology', methods=['POST'])
+@login_required(json=True)
+def add_relations_ontology():
+    gs_id = request.form.get('gs_id')
+    ont_ids = request.form.getlist('ont_ids')
+    ro_ont_ids = request.form.getlist('ro_ont_id')
+    for ont_id in ont_ids:
+        for ro_ont_id in ro_ont_ids:
+            try:
+                geneweaverdb.add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+            except IntegrityError as e:
+                try:
+                    geneweaverdb.update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+                except Error as e:
+                    print 'RDF Update Error: ' + e.message
+
+    return flask.jsonify({'success': True})
+
+
+@app.route('/relationshipOntologies')
+def relationshipOntologies():
+    ros = geneweaverdb.get_ontologies_by_ontdb_id(12)
+    select2 = {"results": ros, "pagination": {"more": False}}
+    return flask.jsonify(select2)
 
 
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
@@ -1214,14 +1241,29 @@ def update_geneset_ontology_db():
     gs_id = request.args['gs_id']
     flag = request.args['flag']
     gso_ref_type = request.args['universe']
+    ro_ont_id = request.args.get('ro_ont_id')
+
 
     if (flag == "true"):
         geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
     else:
-        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
+        if ro_ont_id:
+            print "trying to remove ro"
+            remove_relation_ontology(ont_id, gs_id, ro_ont_id)
+        ro_count = geneweaverdb.count_relation_ontologies(gs_id, ont_id)
+        if ro_count < 1:
+            geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
 
     return json.dumps(True)
 
+def remove_relation_ontology(ont_id, gs_id, ro_ont_id):
+    try:
+        geneweaverdb.remove_relation_ont(gs_id, ont_id, ro_ont_id)
+        result = {'success': True}
+    except Error:
+        result = {'success': False}
+
+    return result
 
 @app.route('/rerun_annotator.json', methods=['POST'])
 @login_required(json=True)
@@ -1281,6 +1323,12 @@ def get_ontology_terms(gsid):
     ontdbdict = {}
     ontret = []
 
+    for ont in onts:
+        if ont.ro_ont_id:
+            ont.ro_name = geneweaverdb.get_ontology_by_id(ont.ro_ont_id).name
+        else:
+            ont.ro_name = None
+
     ## Convert ontdb references to a dict so they're easier to lookup
     for ont in ontdb:
         ontdbdict[ont.ontologydb_id] = ont
@@ -1292,7 +1340,9 @@ def get_ontology_terms(gsid):
             'name': ont.name,
             'dbname': ontdbdict[ont.ontdb_id].name,
             'ontdb_id': ont.ontdb_id,
-            'ont_id': ont.ontology_id
+            'ont_id': ont.ontology_id,
+            'ro_name': ont.ro_name,
+            'ro_id': ont.ro_ont_id
         }
 
         ontret.append(o)
