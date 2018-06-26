@@ -312,6 +312,18 @@
                                     {% if i.attribution == 2 %}
                                         CTD
                                     {% endif %}
+                                    {% if i.attribution == 3 %}
+                                        NIF
+                                    {% endif %}
+                                    {% if i.attribution == 4 %}
+                                        ABA
+                                    {% endif %}
+                                    {% if i.attribution == 5 %}
+                                        ABA
+                                    {% endif %}
+                                    {% if i.attribution == 6 %}
+                                        GWAS
+                                    {% endif %}
                                     {% if i.attribution == 7 %}
                                         DRG
                                     {% endif %}
@@ -320,6 +332,24 @@
                                     {% endif %}
                                     {% if i.attribution == 9 %}
                                         MP
+                                    {% endif %}
+                                    {% if i.attribution == 10 %}
+                                        HP
+                                    {% endif %}
+                                    {% if i.attribution == 11 %}
+                                        MESH
+                                    {% endif %}
+                                    {% if i.attribution == 12 %}
+                                        KEGG
+                                    {% endif %}
+                                    {% if i.attribution == 13 %}
+                                        MSigDB
+                                    {% endif %}
+                                    {% if i.attribution == 14 %}
+                                        PC
+                                    {% endif %}
+                                    {% if i.attribution == 15 %}
+                                        OMIM
                                     {% endif %}
                                 </td>
                                 <!-- Show the geneset size -->
@@ -609,6 +639,9 @@
                         { "aTargets":[3], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
                             $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
                             switch(sData) {
+                                case 'NIF':
+                                    $(nTd).find("span").addClass('nif');
+                                    break;
                                 case 'CTD':
                                     $(nTd).find("span").addClass('ctd');
                                     break;
@@ -620,6 +653,30 @@
                                     break;
                                 case 'MP':
                                     $(nTd).find("span").addClass('mp');
+                                    break;
+                                case 'GWAS':
+                                    $(nTd).find("span").addClass('gwas');
+                                    break;
+                                case 'ABA':
+                                    $(nTd).find("span").addClass('aba');
+                                    break;
+                                case 'KEGG':
+                                    $(nTd).find("span").addClass('kegg');
+                                    break;
+                                case 'HP':
+                                    $(nTd).find("span").addClass('hp');
+                                    break;
+                                case 'MESH':
+                                    $(nTd).find("span").addClass('mesh');
+                                    break;
+                                case 'MSIGDB':
+                                    $(nTd).find("span").addClass('msigdb');
+                                    break;
+                                case 'PC':
+                                    $(nTd).find("span").addClass('pc');
+                                    break;
+                                case 'OMIM':
+                                    $(nTd).find("span").addClass('omim');
                                     break;
                                 default:
                                     break;
