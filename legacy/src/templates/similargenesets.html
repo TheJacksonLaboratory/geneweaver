@@ -639,6 +639,9 @@
                         { "aTargets":[3], fnCreatedCell: function(nTd, sData, oData, iRow, iCol){
                             $(nTd).html($.trim($(nTd).html()).replace( /(.+)/g, '<span>$1</span>'));
                             switch(sData) {
+                                case 'NIF':
+                                    $(nTd).find("span").addClass('nif');
+                                    break;
                                 case 'CTD':
                                     $(nTd).find("span").addClass('ctd');
                                     break;
@@ -650,6 +653,9 @@
                                     break;
                                 case 'MP':
                                     $(nTd).find("span").addClass('mp');
+                                    break;
+                                case 'GWAS':
+                                    $(nTd).find("span").addClass('gwas');
                                     break;
                                 case 'ABA':
                                     $(nTd).find("span").addClass('aba');
