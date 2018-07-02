@@ -295,7 +295,13 @@
 
 {% include 'footer.html' %}
 
-<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+<!-- Library for select2 search bar -->
+<script type="text/javascript" src="../static/select2/4.0.5/select2.full.min.js"></script>
+<!-- Styling for select2 search bar -->
+<link rel="stylesheet" type="text/css" href="../static/select2/4.0.5/select2.min.css"> </link>
+
+<script type="text/javascript" src="../static/js/geneweaver/tags.js"></script>
+<script type="text/javascript" src="../static/js/geneweaver/selected.js"></script>
 <script type="text/javascript">
 
     $(function () {
@@ -305,7 +311,7 @@
 	// Updates selected geneset and project counts and displays them to the
 	// user. The counts are stored as static variable within a closure.
     // Project count displays are currently disabled.
-	// 
+	//
 	// :type gscount: int
 	// :arg gscount: the number of genesets to add to the count
 	//
@@ -331,8 +337,13 @@
 
 				return '(' + gsCount + ' genesets are selected)';
 			});
-		}
+		};
+
+
 	})();
+
+
+
 
     $(document).ready(function () {
 
@@ -357,7 +368,7 @@
 		{% else %}
 			var species = [];
 		{% endif %}
-		 
+
 
 		// Changes caret position when tool options are expanded.
 		$('.tool-link').on('click', function(event) {
@@ -389,41 +400,43 @@
 			if ($(pbid).children().length === 0) {
 
 				var data = {'project': pid};
-
-				$.get(url, data).done(function (data) {
-					$(pbid).append(data);
-
+                $.get(url, data).done(function (data) {
+                    $(pbid).append(data);
+                    selected.add(check);
 					$(chkclass).each(function (index) {
 						$(this).attr('checked', true);
-
 						updateCount(1, 0);
+                        selected.add($(this));
 					});
 				});
 
 			} else {
 
 				if ($(allcheck).attr('checked')) {
-					
-					$(chkclass).each(function (index) {
-                        if ($(this).attr('checked'))
-                            updateCount(-1, 0);
+                    selected.remove(check);
 
+					$(chkclass).each(function (index) {
+                        if ($(this).attr('checked')) {
+                            updateCount(-1, 0);
+                            selected.remove($(this));
+                        }
 						$(this).attr('checked', false);
 					});
 
 				} else {
-
+                    selected.add(check);
 					$(chkclass).each(function (index) {
-                        if (!$(this).attr('checked'))
+                        if (!$(this).attr('checked')) {
                             updateCount(1, 0);
-
+                            selected.add($(this));
+                        }
 						$(this).attr('checked', true);
 					});
 				}
 			}
 		});
 
-		// Updates individual geneset counts. Since the geneset list is 
+		// Updates individual geneset counts. Since the geneset list is
 		// injected into the dom, we register the click handler on a static
 		// element that exists prior to injection, and then filter the child
 		// elements that call the event.
@@ -433,7 +446,7 @@
 			var projCheck = $(this).attr('class');
 			var checkIndex = projCheck.search('-check');
 			projCheck = projCheck.slice(0, checkIndex);
-			projCheck += '-allcheck'
+			projCheck += '-allcheck';
 
 			event.stopPropagation();
 
@@ -441,13 +454,16 @@
 			// indetereminate visual state. :(
 			$('#' + projCheck).prop('indeterminate', true);
 
-			// Backwards because by the time we check to see if the box is 
-			// (un)checked, it's already the opposite. Web dev is pants on 
+			// Backwards because by the time we check to see if the box is
+			// (un)checked, it's already the opposite. Web dev is pants on
 			// head retarded sometimes.
-			if ($(this).attr('checked'))
-				updateCount(1, 0);
-			else
-				updateCount(-1, 0);
+			if ($(this).attr('checked')) {
+                updateCount(1, 0);
+                selected.add($(this))
+            } else {
+                updateCount(-1, 0);
+                selected.remove($(this));
+            }
 		});
 
         // Project genesets are only loaded when necessary (i.e. when a user
@@ -508,6 +524,6 @@
             'the appropriate options.'
         });
     });
-    
+
 
 </script>
