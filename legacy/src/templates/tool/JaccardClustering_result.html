@@ -253,7 +253,6 @@
                     .drawLegend();
             });
 
-
         $("select#visualizationType").change(function(event){
 
             d3.select('#d3-visual').selectAll('*').remove();
@@ -344,40 +343,32 @@
         // This actually changes the image the user is seeing, but they
         // shouldn't be able to notice.
         d3.select('svg')
-                .insert('rect', 'g')
-                .attr('width', '100%')
-                .attr('height', '100%')
-                .attr('fill', 'white');
+            .insert('rect', 'g')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('fill', 'white');
 
-        var html = d3.select("svg")
-                .attr("version", 1.1)
-                .attr("xmlns", "http://www.w3.org/2000/svg")
-                .node().parentNode.innerHTML;
+        var html = d3.select("#d3-visual > svg")
+            .attr("version", 1.1)
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .node().parentNode.innerHTML;
+
+        {% if runhash %}
+            var runhash = '{{runhash | safe}}';
+        {% else %}
+            var runhash = '{{async_result.parameters.output_prefix}}';
+        {% endif %}
 
         $.ajax({
             type: 'POST',
             url: dlurl,
-            data: {svg: html, filetype: filetype},
+            data: {svg: html, filetype: filetype, runhash: runhash},
             success: function(result, status) {
 
-                if (filetype == 'png')
-                    var png = 'data:image/png;base64,' + result;
-
-                else if (filetype == 'pdf')
-                    var png = 'data:application/pdf;base64,' + result;
-
-                else
-                    var png = 'data:xml/svg;base64,' + result;
-
-                var a = document.createElement("a");
-                a.download = 'result.' + filetype;
-                a.href = png;
-
-                document.body.appendChild(a);
-
-                a.click();
-
                 changeDownloadIcon();
+
+                let win = window.open(location.origin + '/' + result, '_blank');
+                win.focus();
             },
             error: function(xml, status, error) {
                 changeDownloadIcon();

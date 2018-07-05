@@ -518,30 +518,22 @@
                var oldver = '';
             }
 
+            {% if runhash %}
+                var runhash = '{{runhash | safe}}';
+            {% else %}
+                var runhash = '{{async_result.parameters.output_prefix}}';
+            {% endif %}
+
             $.ajax({
                 type: 'POST',
                 url: dlurl,
-                data: {svg: html, filetype: filetype, version: oldver},
+                data: {svg: html, filetype: filetype, version: oldver, runhash: runhash},
                 success: function(result, status) {
 
-                    if (filetype == 'png')
-                        var png = 'data:image/png;base64,' + result;
-
-                    else if (filetype == 'pdf')
-                        var png = 'data:application/pdf;base64,' + result;
-
-                    else
-                        var png = 'data:xml/svg;base64,' + result;
-
-                    var a = document.createElement("a");
-                    a.download = 'result.' + filetype;
-                    a.href = png;
-
-                    document.body.appendChild(a);
-
-                    a.click();
-
                     changeDownloadIcon();
+
+                    let win = window.open(location.origin + '/' + result, '_blank');
+                    win.focus();
                 },
                 error: function(xml, status, error) {
                     console.log(status);

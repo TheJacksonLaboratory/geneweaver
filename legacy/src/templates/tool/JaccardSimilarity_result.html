@@ -438,26 +438,18 @@ $(document).ready(function() {
         html = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" height="1090" width="890">' +
                html + '</svg>'
 
-        $.post(dlurl, {svg: html, filetype: filetype}).done(function (data) {
+        {% if runhash %}
+            var runhash = '{{runhash | safe}}';
+        {% else %}
+            var runhash = '{{async_result.parameters.output_prefix}}';
+        {% endif %}
 
-            if (filetype == 'png')
-                var png = 'data:image/png;base64,' + data;
-
-            else if (filetype == 'pdf')
-                var png = 'data:application/pdf;base64,' + data;
-
-            else
-                var png = 'data:xml/svg;base64,' + data;
-
-            var a = document.createElement("a");
-            a.download = 'result.' + filetype;
-            a.href = png;
-
-            document.body.appendChild(a);
-
-            a.click();
+        $.post(dlurl, {svg: html, filetype: filetype, runhash: runhash}).done(function (data) {
 
             changeDownloadIcon();
+
+            let win = window.open(location.origin + '/' + data, '_blank');
+            win.focus();
         });
     });
 

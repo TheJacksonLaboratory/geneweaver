@@ -2092,16 +2092,30 @@ def download_result():
 
     form = flask.request.form
     filetype = form['filetype'].lower().strip()
+    runhash = form['runhash'].strip()
     svg = StringIO(form['svg'].strip())
     results = config.get('application', 'results')
     imgstream = StringIO()
-    dpi = 400
+    dpi = 400 if filetype != 'svg' else 25
+
+    ## Some tools like HiSim graph write their own SVG file out to the results
+    ## and we don't want to overwrite this so we add the -s postfix to the
+    ## runhash.
+    if filetype == 'svg':
+        runhash = '%s-s' % runhash
+
+    img_file = '%s.%s' % (runhash, filetype)
+    img_abs = os.path.join(results, img_file)
+    img_rel = os.path.join('results', img_file)
 
     if filetype == 'svg':
-        return svg.getvalue().encode('base64')
+        with open(img_abs, 'w') as fl:
+            print >> fl, svg.getvalue()
+
+            return img_rel
 
     ## The user wants the classic HiSim image
-    if 'version' in form and form['version']:
+    elif 'version' in form and form['version']:
         classicpath = os.path.join(results, form['version'])
         ## For some reason the DPI for this image needs to be low otherwise it
         ## takes forever to render (and may cause ImageMagick to crash). It's 
@@ -2112,10 +2126,10 @@ def download_result():
         img = Image(file=svg, format='svg', resolution=dpi)
 
     img.format = filetype
-    img.save(file=imgstream)
+    img.save(filename=img_abs)
     img.close()
 
-    return imgstream.getvalue().encode('base64')
+    return img_rel
 
 
 @app.route('/viewStoredResults', methods=['GET'])
