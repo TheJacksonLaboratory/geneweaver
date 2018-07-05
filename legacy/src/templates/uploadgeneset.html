@@ -48,7 +48,7 @@
         display: block;
     }
 
-        .loader {
+    .loader {
         /* IE 8 */
         -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
         /* IE 5-7 */
@@ -77,7 +77,7 @@
 
 {% else %}
 
-    <div class="loader"></div>
+    <div class="loader" style="display:none"></div>
 
     <div class="row" id="result"></div>
 
@@ -134,7 +134,7 @@
                     GeneSet Figure Label <strong>*</strong>:
                 </div>
                 <div class="col-md-8">
-                    <input id="genesetLabel" type="text" name="gs_abbreviation" size="50"
+                    <input id="genesetLabel" type="text" name="gs_abbreviation" size="25"
                            style="color: #808080;" onmouseover="formFocus(this)" onmouseout="noFormFocus(this)"
                            required>
                 </div>
@@ -169,47 +169,6 @@
             </div>
 
         </div>
-
-
-        {# Permissions #}
-        <div class="panel-heading panel-underline">
-            <h2 class="panel-title">
-                Access Permissions
-            </h2>
-        </div>
-
-        <div style="margin-left: 1em;">
-            <br>
-            <br>
-            <div class="row">
-                <div class="col-md-2">
-                    Access Restrictions <span id="accessRestrictions" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span> <strong>*</strong>:
-                </div>
-                <div class="col-xs-6 col-sm-4">
-
-                    <select id="permissions" name="permissions" class="form-control" required>
-                        <option value="private" selected>Private</option>
-                        <option value="public">Public</option>
-                    </select>
-
-                </div>
-            </div>
-            <br>
-            <div class="row">
-                <div class="col-md-2">
-                    Group(s):
-                </div>
-                <div class="col-xs-6 col-sm-4">
-                    <select class="form-control" id="select_groups" name="select_groups" multiple>
-                        {% for group in myGroups %}
-                            <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-        <br>
-
 
         {# Reference Information #}
         <div class="panel-heading panel-underline">
@@ -310,8 +269,47 @@
 
         <br>
 
+        {# Permissions #}
+        <div class="panel-heading panel-underline">
+            <h2 class="panel-title">
+                Access Permissions
+            </h2>
+        </div>
+
+        <div style="margin-left: 1em;">
+            <br>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Access Restrictions <span id="accessRestrictions" tabindex="0" data-trigger="focus"><i class="fa fa-info-circle"></i></span> <strong>*</strong>:
+                </div>
+                <div class="col-xs-6 col-sm-4">
+
+                    <select id="permissions" name="permissions" class="form-control" required>
+                        <option value="private" selected>Private</option>
+                        <option value="public">Public</option>
+                    </select>
+
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-2">
+                    Group(s):
+                </div>
+                <div class="col-xs-6 col-sm-4">
+                    <select class="form-control" id="select_groups" name="select_groups" multiple>
+                        {% for group in myGroups %}
+                            <option value="{{ group.grp_id }}">{{ group.grp_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <br>
+
         {# Annotation Information #}
-		{#
+        {#
         <div class="panel-heading panel-underline">
             <h2 class="panel-title">
                 Annotation Information
@@ -394,7 +392,7 @@
                 </div>
                 <div id="paste_uploader" class="col-md-4" style="display: block">
                     <span id="clickableUpload" onclick="toggle_pasting()"><strong> Switch to File Upload <i class="fa fa-upload"></i>
-                        </strong></span>
+                    </strong></span>
                     <br>
                     {% if genes %}
                         <textarea id="file_text" rows="15" cols="40" name="file_text" style="color: #808080;"
@@ -410,7 +408,7 @@
                 <div id="file_uploader" class="col-md-8" style="display: none">
                     <span id="clickableManual" onclick="toggle_pasting()">
                         <strong>
-                            Switch to Manual Upload 
+                            Switch to Manual Upload
                             <i class="fa fa-keyboard-o"></i>
                         </strong>
                     </span>
@@ -422,7 +420,7 @@
                         <input id="file_data" type="file" name="selected_file" disabled required accept="text/plain"/>
                         <input id="fileContents" name="fileContents" type="hidden" />
                     </span>
-                    <span id="fileDisplayArea" style="color:#337700; 
+                    <span id="fileDisplayArea" style="color:#337700;
                           vertical-align:middle; padding:10px 0 0 10px;">
                     </span>
                 </div>
@@ -436,9 +434,9 @@
 
         <div class="panel-heading">
             <div class="pull-right">
-				{# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
-				<input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
-					   value="Review GeneSet Upload &raquo;"/>
+                {# &raquo; used to be &#xf04e; but it requres the .fa class which messes up the button style #}
+                <input id="upload-geneset-button" name="uploadButton" class="btn btn-warning btn-file " type="submit"
+                       value="Review GeneSet Upload &raquo;"/>
             </div>
         </div>
 
@@ -453,10 +451,10 @@
     // this script was added to auto-populate the form from Boolean Algebra to make a new geneset
 
     /**
-      * Auto-populates the upload form with geneset title, description, and
-      * gene list data. This occurs only when creating a new gene set from 
-      * the boolean algebra page. 
-      */
+     * Auto-populates the upload form with geneset title, description, and
+     * gene list data. This occurs only when creating a new gene set from
+     * the boolean algebra page.
+     */
     var autoPopulateFromBoolean = function() {
 
         var uploadData = '{{tool_data | safe}}';
@@ -481,23 +479,23 @@
         // Add some ajax that will query the DB and return IDs of the type needed
         // Also, the gif only shows in firefox since we are using async false
 
-            $.ajax({
-                beforeSend: function() {
-                            $('.loader').show();
-                        },
-                type: "POST",
-                url: "../transposeGenesetIDs",
-                dataType: 'json',
-                async: false,
-                data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7 },
-                success: function (data) {
-                    $('.loader').hide();
-                    v = data;
-                    },
-                error: function() {
-                    $('.loader').hide();
-                }
-            });
+        $.ajax({
+            beforeSend: function() {
+                $('.loader').show();
+            },
+            type: "POST",
+            url: "../transposeGenesetIDs",
+            dataType: 'json',
+            async: false,
+            data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7 },
+            success: function (data) {
+                $('.loader').hide();
+                v = data;
+            },
+            error: function() {
+                $('.loader').hide();
+            }
+        });
 
         for (var i = 0; i < v.length; i++) {
 
@@ -521,7 +519,7 @@
     /*
      * Auto-populates the upload form with geneset title, description, species,
      * gene identifier, and gene list data.
-     * This is done using the 'add genes to geneset' function on the view geneset 
+     * This is done using the 'add genes to geneset' function on the view geneset
      * page. If any required values are missing, auto-population doesn't occur.
      */
     var autoPopulateForm = function() {
@@ -547,19 +545,19 @@
             uploadData.shift();
 
             var title       = uploadData.shift(),
-                description = uploadData.shift(),
-                species     = 0,
-                geneType    = 0,
-                genes       = '';
+                    description = uploadData.shift(),
+                    species     = 0,
+                    geneType    = 0,
+                    genes       = '';
 
-        // New set from the view geneset page
+            // New set from the view geneset page
         } else {
 
             var title       = uploadData.shift(),
-                description = uploadData.shift(),
-                species     = uploadData.shift(),
-                geneType    = uploadData.shift(),
-                genes       = '';
+                    description = uploadData.shift(),
+                    species     = uploadData.shift(),
+                    geneType    = uploadData.shift(),
+                    genes       = '';
         }
 
         for (var i = 0; i < uploadData.length; i += 2) {
@@ -612,59 +610,59 @@
         });
 
         /**
-          * Executed when the user clicks the "select tab-delimited plain text
-          * file" button. This function reads the file in, appends the contents
-          * to a hidden input element, and informs the user that the file has
-          * been loaded.
-          */
+         * Executed when the user clicks the "select tab-delimited plain text
+         * file" button. This function reads the file in, appends the contents
+         * to a hidden input element, and informs the user that the file has
+         * been loaded.
+         */
         $('#file_data').on('change', function(e) {
 
             var fileDisplayArea = $('#fileDisplayArea');
-			var file = this.files[0];
-			var textType = /text.*/;
+            var file = this.files[0];
+            var textType = /text.*/;
 
-			if (file.type.match(textType)) {
-				var reader = new FileReader();
+            if (file.type.match(textType)) {
+                var reader = new FileReader();
 
-				reader.onload = function(e) {
+                reader.onload = function(e) {
 
                     var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
 
-					fileDisplayArea.text(
-                        "Loaded '" + file.name + "' (" + size + ")"
+                    fileDisplayArea.text(
+                            "Loaded '" + file.name + "' (" + size + ")"
                     );
                     $('#fileContents').val(reader.result);
-				};
+                };
 
-				reader.readAsText(file);
-			} else {
-				fileDisplayArea.innerText = "File not supported!";
-			}
-		});
+                reader.readAsText(file);
+            } else {
+                fileDisplayArea.innerText = "File not supported!";
+            }
+        });
 
         $('#file_text').keyup(function(e) {
             var tval = $('#file_text').val(),
-                tlength = tval.split("\n").length;
-                warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
-                           '<a href=/batchupload> Batch Upload Page </a>.';
+                    tlength = tval.split("\n").length;
+            warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
+                    '<a href=/batchupload> Batch Upload Page </a>.';
             if (tlength >= 5000){
                 $(document).trigger("clear-alerts");
                 $(document).trigger("set-alert-id-genelist", [{
-                            'message': warnMesg,
-                            'priority': 'warning',
-                            'fade': 0
-                        }]);
+                    'message': warnMesg,
+                    'priority': 'warning',
+                    'fade': 0
+                }]);
             } else {
                 $(document).trigger("clear-alerts");
             }
         });
 
         /**
-          * Function used to submit the contents of the gene set upload form to
-          * the server. Checks to see whether the user used the text box or
-          * file upload forms and adds this content accordingly. Submits the
-          * AJAX upload request and informs the user of failure or success.
-          */
+         * Function used to submit the contents of the gene set upload form to
+         * the server. Checks to see whether the user used the text box or
+         * file upload forms and adds this content accordingly. Submits the
+         * AJAX upload request and informs the user of failure or success.
+         */
         $('#upload-geneset-form').submit(function (event) {
 
             event.preventDefault();
@@ -678,7 +676,7 @@
 
             var permissions = $('#permissions')
 
-            // If disabled due to selected groups, the permissions field will 
+            // If disabled due to selected groups, the permissions field will
             // not be submitted with form
             if (permissions.prop('disabled'))
                 permissions.prop("disabled", false).button("refresh");
@@ -745,7 +743,6 @@
                             }
                         ]);
                     }
-
                     if (v['missing'].length > 0) {
                         $('html, body').animate({ scrollTop: 0 }, 'slow');
                         $(document).trigger("add-alerts", [{
@@ -755,7 +752,7 @@
                             'priority': 'warning'
                         }]);
                     }
-                    },
+                },
                 error: function(){
                     // Hides confirmation after any kind of result (success or
                     // error) is returned.

@@ -41,7 +41,7 @@ from tools import similargenesetsblueprint
 import sphinxapi
 import search
 import math
-# import cairosvg
+from wand.image import Image
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
@@ -517,6 +517,7 @@ def render_editgenesets(gs_id, curation_view=False):
     #onts = geneweaverdb.get_all_ontologies_by_geneset(gs_id, "All Reference Types")
     ont_dbs = geneweaverdb.get_all_ontologydb()
     ref_types = geneweaverdb.get_all_gso_ref_type()
+    ros = json.dumps(geneweaverdb.get_ontologies_by_ontdb_id(12))
 
     user_info = geneweaverdb.get_user(user_id)
     if user_id != 0:
@@ -541,8 +542,34 @@ def render_editgenesets(gs_id, curation_view=False):
         view=view, 
         ref_types=ref_types,
         ont_dbs=ont_dbs,
-        curation_view=curation_view
+        curation_view=curation_view,
+        relation_onts=ros
     )
+
+@app.route('/addRelationsOntology', methods=['POST'])
+@login_required(json=True)
+def add_relations_ontology():
+    gs_id = request.form.get('gs_id')
+    ont_ids = request.form.getlist('ont_ids')
+    ro_ont_ids = request.form.getlist('ro_ont_id')
+    for ont_id in ont_ids:
+        for ro_ont_id in ro_ont_ids:
+            try:
+                geneweaverdb.add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+            except IntegrityError as e:
+                try:
+                    geneweaverdb.update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id)
+                except Error as e:
+                    print 'RDF Update Error: ' + e.message
+
+    return flask.jsonify({'success': True})
+
+
+@app.route('/relationshipOntologies')
+def relationshipOntologies():
+    ros = geneweaverdb.get_ontologies_by_ontdb_id(12)
+    select2 = {"results": ros, "pagination": {"more": False}}
+    return flask.jsonify(select2)
 
 
 @app.route('/assign_genesets_to_curation_group.json', methods=['POST'])
@@ -1214,14 +1241,29 @@ def update_geneset_ontology_db():
     gs_id = request.args['gs_id']
     flag = request.args['flag']
     gso_ref_type = request.args['universe']
+    ro_ont_id = request.args.get('ro_ont_id')
+
 
     if (flag == "true"):
         geneweaverdb.add_ont_to_geneset(gs_id, ont_id, gso_ref_type)
     else:
-        geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
+        if ro_ont_id:
+            print "trying to remove ro"
+            remove_relation_ontology(ont_id, gs_id, ro_ont_id)
+        ro_count = geneweaverdb.count_relation_ontologies(gs_id, ont_id)
+        if ro_count < 1:
+            geneweaverdb.remove_ont_from_geneset(gs_id, ont_id, gso_ref_type)
 
     return json.dumps(True)
 
+def remove_relation_ontology(ont_id, gs_id, ro_ont_id):
+    try:
+        geneweaverdb.remove_relation_ont(gs_id, ont_id, ro_ont_id)
+        result = {'success': True}
+    except Error:
+        result = {'success': False}
+
+    return result
 
 @app.route('/rerun_annotator.json', methods=['POST'])
 @login_required(json=True)
@@ -1281,6 +1323,12 @@ def get_ontology_terms(gsid):
     ontdbdict = {}
     ontret = []
 
+    for ont in onts:
+        if ont.ro_ont_id:
+            ont.ro_name = geneweaverdb.get_ontology_by_id(ont.ro_ont_id).name
+        else:
+            ont.ro_name = None
+
     ## Convert ontdb references to a dict so they're easier to lookup
     for ont in ontdb:
         ontdbdict[ont.ontologydb_id] = ont
@@ -1292,7 +1340,9 @@ def get_ontology_terms(gsid):
             'name': ont.name,
             'dbname': ontdbdict[ont.ontdb_id].name,
             'ontdb_id': ont.ontdb_id,
-            'ont_id': ont.ontology_id
+            'ont_id': ont.ontology_id,
+            'ro_name': ont.ro_name,
+            'ro_id': ont.ro_ont_id
         }
 
         ontret.append(o)
@@ -2022,45 +2072,64 @@ def render_forgotpass():
 def download_result():
     """
     Used when a user requests to download a hi-res result image. The SVG data
-    is posted to the server, upscaled, converted to a PNG, and sent back to the
-    user.
+    is posted to the server, upscaled, converted to a PNG or other image format, 
+    and sent back to the user.
 
-    :ret str: base64 encoded image
+    args
+        request.form['svg']:        String containing the SVG XML that will be
+                                    converted into another image format
+        request.form['filetype']:   The filetype extension (e.g. PNG, PDF) for
+                                    the final image
+        request.form['version']:    A filepath to a classic (GW1) version of
+                                    the visualization. Only set when the user 
+                                    requests the classic version otherwise this 
+                                    is always null. Currently only used for the
+                                    HiSim graph tool.
+        
+    returns
+        the rendered image as a Base64 encoded blob
     """
 
     form = flask.request.form
-    svg = form['svg'].strip()
     filetype = form['filetype'].lower().strip()
-    svgout = StringIO()
-    imgout = StringIO()
-    resultpath = config.get('application', 'results')
-    dpi = 600
+    runhash = form['runhash'].strip()
+    svg = StringIO(form['svg'].strip())
+    results = config.get('application', 'results')
+    imgstream = StringIO()
+    dpi = 400 if filetype != 'svg' else 25
 
-    if 'oldver' in form:
-        with open(os.path.join(resultpath, form['oldver']), 'r') as fl:
-            svg = fl.read()
+    ## Some tools like HiSim graph write their own SVG file out to the results
+    ## and we don't want to overwrite this so we add the -s postfix to the
+    ## runhash.
+    if filetype == 'svg':
+        runhash = '%s-s' % runhash
 
-        dpi = 300
+    img_file = '%s.%s' % (runhash, filetype)
+    img_abs = os.path.join(results, img_file)
+    img_rel = os.path.join('results', img_file)
 
-    ## This is incredibly stupid, but must be done. cairosvg (for some
-    ## awful, unknown reason) will not scale any SVG produced by d3. So
-    ## we convert our d3js produced SVG to an SVG...then convert to PNG
-    ## with a reasonably high DPI.
-    ## Also, if any fonts are rendering incorrectly, it's because cairosvg
-    ## doesn't parse CSS attributes correctly and you need to append each
-    ## font attribute to the text element itself.
-    cairosvg.svg2svg(bytestring=svg, write_to=svgout)
+    if filetype == 'svg':
+        with open(img_abs, 'w') as fl:
+            print >> fl, svg.getvalue()
 
-    if filetype == 'pdf':
-        cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
+            return img_rel
 
-    elif filetype == 'png':
-        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
+    ## The user wants the classic HiSim image
+    elif 'version' in form and form['version']:
+        classicpath = os.path.join(results, form['version'])
+        ## For some reason the DPI for this image needs to be low otherwise it
+        ## takes forever to render (and may cause ImageMagick to crash). It's 
+        ## also very clear even at low DPI.
+        img = Image(filename=classicpath, format='svg', resolution=150)
 
     else:
-        imgout = svgout
+        img = Image(file=svg, format='svg', resolution=dpi)
 
-    return imgout.getvalue().encode('base64')
+    img.format = filetype
+    img.save(filename=img_abs)
+    img.close()
+
+    return img_rel
 
 
 @app.route('/viewStoredResults', methods=['GET'])

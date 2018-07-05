@@ -1386,6 +1386,27 @@ def add_ont_to_geneset(gs_id, ont_id, gso_ref_type):
             ''', (gs_id, ont_id, gso_ref_type))
         cursor.connection.commit()
 
+
+def add_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            INSERT INTO geneset2ontology
+                (gs_id, g2o_ont_id, g2o_ro_ont_id)
+            VALUES
+                (%s, %s, %s);
+            ''', (gs_id, ont_id, ro_ont_id))
+        cursor.connection.commit()
+
+def update_ro_ont_to_geneset(gs_id, ont_id, ro_ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+        UPDATE geneset2ontology
+        SET g2o_ro_ont_id = %s
+        WHERE gs_id = %s AND g2o_ont_id =%s
+        ''', (ro_ont_id, gs_id, ont_id))
+        cursor.connection.commit()
+
+
 def get_ontologies_by_refs(ont_ref_ids):
     """
     Returns ont_ids (if they exist) for each of the given ont_ref_ids.
@@ -1639,8 +1660,34 @@ def remove_ont_from_geneset(gs_id, ont_id, gso_ref_type):
                   ont_id = %s
             ''', (gs_id, ont_id)
         )
+        cursor.execute('''
+            DELETE FROM production.geneset2ontology
+            WHERE gs_id = %s AND
+                  g2o_ont_id = %s
+        ''', (gs_id, ont_id))
         cursor.connection.commit()
         return
+
+def remove_relation_ont(gs_id, ont_id, ro_ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            DELETE FROM production.geneset2ontology
+            WHERE gs_id = %s AND
+                  g2o_ont_id = %s AND
+                  g2o_ro_ont_id = %s
+        ''', (gs_id, ont_id, ro_ont_id))
+        cursor.connection.commit()
+        return
+
+def count_relation_ontologies(gs_id, ont_id):
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT count(*) FROM production.geneset2ontology
+            WHERE gs_id = %s AND
+                  g2o_ont_id = %s
+        ''', (gs_id, ont_id))
+        result = cursor.fetchone()
+        return result[0]
 
 
 def delete_results_by_runhash(rargs):
@@ -2847,7 +2894,7 @@ class Ontology:
         self.children = ont_dict['ont_children']
         self.parents = ont_dict['ont_parents']
         self.ontdb_id = ont_dict['ontdb_id']
-
+        self.ro_ont_id = ont_dict.get('ro_ont_id')
 
 class Ontologydb:
     def __init__(self, ontdb_dict):
@@ -5360,26 +5407,52 @@ def get_all_ontologies_by_geneset(gs_id, gso_ref_type):
         if gso_ref_type == "All Reference Types":
             cursor.execute(
                     '''
-                    SELECT *
-                    FROM extsrc.ontology NATURAL JOIN odestatic.ontologydb
-                    WHERE ont_id in (
-                                      SELECT ont_id
-                                      FROM extsrc.geneset_ontology
-                                      WHERE gs_id = %s
-                                    )
+                    SELECT ont_id,
+                           ont_ref_id,
+                           ont_name,
+                           ont_description,
+                           ont_children,
+                           ont_parents,
+                           ont.ontdb_id,
+                           ontdb_name,
+                           ontdb_prefix,
+                           ontdb_ncbo_id,
+                           gs_id,
+                           g2o_ro_ont_id AS ro_ont_id
+                    FROM   extsrc.ontology AS ont
+                           JOIN odestatic.ontologydb AS db
+                             ON ont.ontdb_id = db.ontdb_id
+                           LEFT JOIN production.geneset2ontology AS g2o
+                             ON ont_id = g2o.g2o_ont_id
+                    WHERE  ont.ont_id IN (SELECT ont_id
+                                          FROM   extsrc.geneset_ontology
+                                          WHERE  gs_id = %s)
                     ORDER BY ont_id
                     ''', (gs_id,)
             )
         else:
             cursor.execute(
                     '''
-                    SELECT *
-                    FROM extsrc.ontology NATURAL JOIN odestatic.ontologydb
-                    WHERE ont_id in (
-                                      SELECT ont_id
-                                      FROM extsrc.geneset_ontology
-                                      WHERE gs_id = %s AND gso_ref_type = %s
-                                    )
+                    SELECT ont_id,
+                           ont_ref_id,
+                           ont_name,
+                           ont_description,
+                           ont_children,
+                           ont_parents,
+                           ont.ontdb_id,
+                           ontdb_name,
+                           ontdb_prefix,
+                           ontdb_ncbo_id,
+                           gs_id,
+                           g2o_ro_ont_id AS ro_ont_id
+                    FROM   extsrc.ontology AS ont
+                           JOIN odestatic.ontologydb AS db
+                             ON ont.ontdb_id = db.ontdb_id
+                           LEFT JOIN production.geneset2ontology AS g2o
+                             ON ont_id = g2o.g2o_ont_id
+                    WHERE  ont.ont_id IN (SELECT ont_id
+                                          FROM   extsrc.geneset_ontology
+                                          WHERE  gs_id = %s AND gso_ref_type = %s)
                     ORDER BY ont_id
                     ''', (gs_id, gso_ref_type,)
             )
@@ -5432,6 +5505,17 @@ def get_all_ontologies_by_geneset_and_db(gs_id, ontdb_id):
     ontology = [Ontology(row_dict) for row_dict in dictify_cursor(cursor)]
     return ontology
 
+def get_ontologies_by_ontdb_id(ontdb_id):
+    with PooledCursor() as cursor:
+        cursor.execute(
+            '''
+                SELECT *
+                FROM extsrc.ontology
+                WHERE ontdb_id = %s
+            ''', (ontdb_id,)
+        )
+    ontologies = [{'id': row_dict['ont_id'], 'text': row_dict['ont_name']} for row_dict in dictify_cursor(cursor)]
+    return ontologies
 
 def get_ontology_by_id(ont_id):
     with PooledCursor() as cursor:
