@@ -17,7 +17,7 @@ RedHat/Fedora/CentOS:
 	
 Debian/Ubuntu:
 
-	$ sudo apt-get install libboost-all-dev libcairo2 libcairo2-dev git graphviz libffi6 libffi-dev libpqxx-4.0 libpqxx-dev postgresql postgresql-server-dev-9.5 python2.7 rabbitmq-server sphinxsearch
+	$ sudo apt-get install libboost-all-dev libcairo2 libcairo2-dev git graphviz libffi6 libffi-dev libpqxx-4.0 libpqxx-dev postgresql postgresql-server-dev-9.5 python2.7 rabbitmq-server sphinxsearch imagemagick libmagickcore-dev libmagickwand-dev
 
 Ensure that the following applications meet these version requirements:
 
