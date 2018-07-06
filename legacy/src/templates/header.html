@@ -232,9 +232,9 @@ messages = array of messages
                 <a href="/search"><span class="fa fa-search fa-lg"></span></a>
             </li>
             <li class="dropdown">
-                <a href="/mygenesets" class="dropdown-toggle" data-hover="dropdown">Manage GeneSets <span
+                <a href="/mygenesets" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown">Manage GeneSets <span
                         class="caret"></span></a>
-                <ul class="dropdown-menu" role="menu">
+                <ul class="dropdown-menu">
                     <li><a href="{{ url_for('render_projects')|safe }}">Manage Projects</a></li>
                     <li><a href="/mygenesets">View My GeneSets</a></li>
                     <li><a href="/search">Search GeneSets</a></li>
@@ -243,17 +243,18 @@ messages = array of messages
                 </ul>
             </li>
             <li class="dropdown">
-                <a href="/groupTasks" class="dropdown-toggle" data-hover="dropdown">Curation <span
+                <a href="/groupTasks" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown">Curation <span
                         class="caret"></span></a>
-                <ul class="dropdown-menu" role="menu">
+                <ul class="dropdown-menu">
                     <li><a href="/groupTasks">Manage Curation Tasks</a></li>
                     <li><a href="/publication_assignment">Search/Assign Publications</a></li>
                 </ul>
             </li>
             <li class="dropdown">
-                <a href="{{ url_for('render_analyze')|safe }}" class="dropdown-toggle" data-hover="dropdown">Analyze
+                <a href="{{ url_for('render_analyze')|safe }}"
+                    class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown">Analyze
                     GeneSets<span class="caret"></span></a>
-                <ul class="dropdown-menu" role="menu">
+                <ul class="dropdown-menu">
                     <li><a href="{{ url_for('render_analyze')|safe }}">Analyze GeneSets</a></li>
                     <li><a href="{{ url_for('render_user_results')|safe}}">View Results</a></li>
                     <li><a href="{{ url_for('render_emphasis')|safe }}">Emphasize Genes</a></li>
@@ -363,7 +364,9 @@ messages = array of messages
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/mcustom-scrollbar/jquery.mCustomScrollbar.concat.min.js') }}"></script>
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/mmenu/js/jquery.mmenu.min.all.js') }}"></script>
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/nprogress/nprogress.js') }}"></script>
+{#
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/charts-sparkline/sparkline.min.js') }}"></script>
+#}
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/breakpoints/breakpoints.js') }}"></script>
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/numerator/jquery-numerator.js') }}"></script>
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-progressbar/bootstrap-progressbar.js') }}"></script>
@@ -381,6 +384,13 @@ messages = array of messages
 
 <!-- DYNATREE SCRIPT -->
 <script src="{{ url_for('static', filename='js/dynatree-1.2.8/src/jquery.dynatree.js') }}"></script>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".dropdown-toggle").dropdown();
+        $(".dropdown-toggle").dropdownHover();
+    });
+</script>
 
 <div class="container">
     <noscript>
