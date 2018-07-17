@@ -1617,6 +1617,7 @@ def add_geneset_group(gs_id, grp_id):
                SET gs_groups = %s
                WHERE gs_id = %s;''', (groups, gs_id)
         )
+        cursor.connection.commit()
 
 
 def update_project_groups(proj_id, groups, user_id):
@@ -2670,6 +2671,17 @@ def get_curation_group():
     # groups named GeneWeaverCuration. We should throw an exception if
     # len(groups) > 1
     return None if len(groups) == 0 else groups[0]
+
+
+def get_all_curators_admins():
+    """
+
+    :return: List of Users that are GW Admins or Curators
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM production.usr WHERE usr_admin > 0;''')
+        users = [User(row) for row in dictify_cursor(cursor)]
+    return users
 
 
 class Groups:
