@@ -54,9 +54,9 @@ var selected = function(){
             s = el_name.split('_');
         if (s[0] == 'project') {
             console.log(el.data('project-name'));
-            selected.projects.add(s[1], el.data('project-name'))
+            selected.projects.add(el_name, el.data('project-name'))
         } else if (s[0] === 'geneset') {
-            selected.genesets.add(s[1], 'GS'+s[1])
+            selected.genesets.add(el_name, 'GS'+s[1])
         }
     }
     function remove(el){
@@ -100,14 +100,24 @@ var selected = function(){
     }();
 
     function _safeAdd(arr, id, name){
-        arr.push({'id': id, 'text': name});
-        updateWatchers()
+        var exists = false;
+        for(var i = 0; i < arr.length; i++) {
+            if (arr[i].id == id) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            arr.push({'id': id, 'text': name});
+            updateWatchers()
+        }
     }
 
     function _safeRemove(arr, id){
         for (var i = arr.length; i--;) {
             if (arr[i].id === id) {
                 arr.splice(i, 1);
+                break;
             }
         }
         updateWatchers();
