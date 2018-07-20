@@ -7,9 +7,6 @@ import toolcommon as tc
 import sys
 import os
 
-from decimal import Decimal
-from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
-
 TOOL_CLASSNAME = 'MSET'
 mset_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
 HOMOLOGY_BOX_COLORS = ['#58D87E', '#588C7E', '#F2E394', '#1F77B4', '#F2AE72', '#F2AF28', 'empty', '#D96459',
@@ -29,37 +26,19 @@ def run_tool():
     # TODO need to check for read permissions on genesets
 
     form = flask.request.form
-
-    # sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
-    # sys.stderr.write(str(form['MSET_Background'])+"\n")
-    # sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
-
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
+    selected_top_genes = form.getlist('MSET_TopGenes')
     selected_project_ids = tc.selected_project_ids(form)
-    #species_params = form['MSET_Species']
     sp_params = gwdb.get_parameters_for_tool('MSET_Species')
     sp_params = sp_params[0][0]
-    species_checked = flask.request.form.getlist('MSET_Species')
+    species_checked = form.getlist('MSET_Species')
 
-    #sys.stderr.write("######### I'M WRITING THINGS!!!!!#############\n")
-    #sys.stderr.write(str(form['MSET_Background']))
-    #sys.stderr.write(str(form)+'\n\n')
-    #sys.stderr.write(str(species_params)+'\n')
-    #sys.stderr.write(str(species_checked) + '\n')
-    #sys.stderr.write(str(sp_params) +'\n')
-    #sys.stderr.write(str(selected_project_ids)+"\n")
-    # sys.stderr.write(str(selected_geneset_ids) + "\n")
-    #sys.stderr.write("########## I'M DONE WRITING THINGS!!!!!############\n")
     # Used only when rerunning the tool from the results page
     if 'genesets' in form:
         add_genesets = form['genesets'].split(' ')
         edited_add_genesets = [gs[2:] for gs in add_genesets]
         selected_geneset_ids = selected_geneset_ids + edited_add_genesets
-
-    if len(selected_project_ids) != 2:
-        flask.flash("Warning: You need only 2 projects!")
-        return flask.redirect('analyze')
 
     BGFILE_DIR = "/srv/geneweaver/tools/TOOLBOX/mset/backgroundFiles/" + form["MSET_Background"]
 
@@ -67,93 +46,49 @@ def run_tool():
     for sp_name in species_checked:
         bgFile = BGFILE_DIR + str(sp_name) + 'BG.txt'
         bgFile = bgFile.replace(" ", "")
-        sys.stderr.write(str(bgFile) + '\n')
         size_of_files += os.stat(bgFile).st_size
 
     if(size_of_files == 0):
-        flask.flash("Warning: The background and species combination you have chosen is empty!\nPlease choose a different combination.")
+        flask.flash("Warning: The background and species combination you have chosen is empty!\n"
+                    "Please choose a different combination.")
         return flask.redirect('analyze')
-
-    sp_params_array = eval(str(sp_params))
-    #for name in sp_params_array:
-    #    sys.stderr.write(str(name) + '\n')
-
-    for name in species_checked:
-        sys.stderr.write(str(name) + '\n')
-
-    #if species_checked[0] == sp_params_array[0]:
-        #sys.stderr.write("success?")
-    #else:
-        #sys.stderr.write("Checked: " + str(species_checked[0]) + " Against: " + str(sp_params_array[0]) + '\n')
 
     if not species_checked:
         flask.flash("Warning: You need at least 1 species selected!")
         return flask.redirect('analyze')
 
-    topgenes = form['MSET_TopGenes']
-    intgenes = form['MSET_InterestGenes']
-    tgId = -1
-    intId = -1
-
-    for pj_id in selected_project_ids:
-        names = gwdb.get_pjname_by_pj_id(pj_id)
-        pjName = ""
-        for name in names:
-            pjName = str(name[0])
-            # sys.stderr.write(str(name[0]))
-            # if background == str(row[names):
-              #  sys.stderr.write("We found the background!\n")
-            if topgenes == pjName:
-                tgId = pj_id
-            if intgenes == pjName:
-                intId = pj_id
-
-    if tgId < 0:
-        flask.flash("Warning: The top genes name you entered does not match any project selected!")
-        return flask.redirect('analyze')
-    if intId < 0:
-        flask.flash("Warning: The interest genes name you entered does not match any project selected!")
+    if not selected_geneset_ids:
+        flask.flash("Warning: No gene sets selected. Please select at least two gene sets.")
         return flask.redirect('analyze')
 
-    # if len(selected_project_ids) < 3:
-    #    flask.flash("Warning: You must select at least 3 projects!")
-    #    return flask.redirect('analyze')
+    if not selected_top_genes:
+        flask.flash("Warning: No top genes selected. Please select at least one set of top genes.")
+        return flask.redirect('analyze')
 
-    # info dictionary
-    # gs_dict_bg = {}
-    # gs_dict_tp = {}
-    gs_dict = {}
-
-    # retrieve gene symbols for bg, tg, & other stuff
-    # gene_symbols_bg = {}
-    # gene_symbols_tp = {}
-    gene_symbols = {}
-
-    for pj_id in selected_project_ids:
-        raw = gwdb.get_genesymbols_by_pj_id(pj_id)
-        symbol_list = []
-
-        for sym in raw:
-            #sys.stderr.write(str(sym) + '\n')
-            symbol_list.append(sym[0])
-
-        # if pj_id == bgId:
-          #  gene_symbols_bg[pj_id] = symbol_list
-        # elif pj_id == tgId:
-          #  gene_symbols_tg[pj_id]
-        gene_symbols[pj_id] = symbol_list
-
-        # sys.stderr.write(str(pj_id) + "\n")
-
-    # for sym in gene_symbols[bgId]:
-      #  sys.stderr.write(str(sym) + "\n")
-
+    gs_dict = {
+        'interest_genes': list(set([
+            sym[0]
+            for query in (
+                gwdb.get_genesymbols_by_gs_id(gs)
+                for gs in selected_geneset_ids
+            )
+            for sym in query
+            ])),
+        'top_genes': list(set([
+            sym[0]
+            for query in (
+                gwdb.get_genesymbols_by_gs_id(s[1]) if s[0] == 'geneset'
+                else gwdb.get_genesymbols_by_pj_id(s[1])
+                for s in (i.split('_') for i in selected_top_genes)
+             )
+            for sym in query
+            ]))
+    }
 
     # retrieve gs names and abbreviations
     gene_set_names = {}
     gene_set_abbreviations = {}
     species_info = {}
-    species_map = {}
 
     for pj_id in selected_project_ids:
         raw = gwdb.get_gsinfo_by_pj_id(pj_id)
@@ -161,30 +96,15 @@ def run_tool():
         gene_set_abbreviations[pj_id] = raw[0][1]
         species_info[pj_id] = gwdb.get_species_name_by_sp_id(raw[0][2])
 
-    gs_dict["gene_symbols"] = gene_symbols
-    #gs_dict["gene_set_names"] = gene_set_names
-    #gs_dict["gene_set_abbr"] = gene_set_abbreviations
-    #gs_dict["species_info"] = species_info
-    #gs_dict["species_map"] = species_map
     gs_dict["project_ids"] = selected_project_ids
-    gs_dict["tgId"] = tgId
-    gs_dict["intId"] = intId
     gs_dict["sp_params"] = species_checked
 
     sys.stderr.write("\n*****************\nFinished with main blueprint code part\n")
 
-    #sys.stderr.write(str(gs_result) + '\n')
-    ##gs_dict["geneset"] = geneset
-
-    #gs_dict["results"] = gs_result
-
-    # gather the params into a dictionary
     bg_str = 'Background'
     sp_str = 'Species'
     samp_str = 'NumberofSamples'
     params = {bg_str: None, samp_str: None, sp_str: None}
-    # samples_str = 'MSET_NumberOfSamples'
-    # samples = 0
     for tool_param in gwdb.get_tool_params(TOOL_CLASSNAME, True):
         params[tool_param.name] = form[tool_param.name]
         if tool_param.name.endswith('_' + bg_str):
@@ -194,36 +114,15 @@ def run_tool():
         elif tool_param.name.endswith('_' + samp_str):
             params[samp_str] = form[tool_param.name]
 
-    #sys.stderr.write(str(form['MSET_NumberofSamples']) + "\n")
-    #sys.stderr.write(str(samples[samples_str]) + "\n")
-    # not sure if I need this
-    #for project_id in gs_dict["gene_symbols"]:
-    #    species = gs_dict["species_info"][project_id]
-    #    for pj_id in gs_dict["gene_symbols"][project_id]:
-    #        if pj_id not in gs_dict["species_map"]:
-    #            gs_dict["species_map"][pj_id] = species
-
     # TODO include logic for "use emphasis" (see prepareRun2(...) in Analyze.php)
-
-    # insert result for this run
-    user_id = None
 
     if 'user_id' in flask.session:
         user_id = flask.session['user_id']
         gs_dict["user_id"] = user_id
-
     else:
         flask.flash('Please log in to run the tool')
-
         return flask.redirect('analyze')
 
-    # Gather emphasis gene ids and put them in paramters
-    # emphgeneids = []
-    # user_id = flask.session['user_id']
-    # emphgenes = gwdb.get_gene_and_species_info_by_user(user_id)
-    # for row in emphgenes:
-    #    emphgeneids.append(str(row['ode_gene_id']))
-    # params['EmphasisGenes'] = emphgeneids
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     desc = '{} on {} GeneSets'.format(tool.name, len(selected_geneset_ids))
@@ -251,6 +150,8 @@ def run_tool():
         response = flask.make_response(tc.render_tool_pending(async_result, tool))
     except Exception as e:
         sys.stderr.write(str(e))
+        raise
+
     response.status_code = 303
     response.headers['location'] = new_location
 
@@ -365,7 +266,7 @@ def view_result(task_id):
                 #sys.stderr.write(str(geneset[0]) + '\n')
                 #sys.stderr.write(str(geneset.geneset_values[0].source_list[0]) + '\n')
         except Exception as e:
-            sys.stderr.write(e.message() + '\n')
+            sys.stderr.write(e.message + '\n')
             ignore = 1
 
 
