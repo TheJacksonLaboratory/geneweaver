@@ -1,28 +1,97 @@
 {# This modal allows you to add the identifier and value #}
+<style type="text/css">
+        .btn-file {
+        position: relative;
+        overflow: hidden;
+    }
+        .btn-file input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        font-size: 100px;
+        text-align: right;
+        filter: alpha(opacity=0);
+        opacity: 0;
+        outline: none;
+        background: white;
+        cursor: inherit;
+        display: block;
+    }
+
+</style>
 
 <div class="modal fade" id="addGenesetGene">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="addGenesetGeneValue" name="addGenesetGeneValue" method="post" action="#" class="form-horizontal"
+            <form id="addGenesetGeneValueForm" name="addGenesetGeneValue" method="post" action="#" class="form-horizontal"
                   autocomplete="on">
                 <div class="modal-header bg-green">
                     <h3 class="modal-title" id="newLabel" style="color: #f5f5f5">Add New Identifier and Value</h3>
                 </div>
                 <div class="modal-body">
-                    <div class="form-class">
-                        <label for="gene-refid"><h4>New Identifier:</h4></label>
-                        <input class="form-control input-lg" name="gene-newid" id="gene-newid" type="text" value=""/>
-                        <label for="gene-value"><h4>New Value:</h4></label>
-                        <input class="form-control input-lg" name="gene-newvalue" id="gene-newvalue" type="text" value=""/>
-                        <input id="gene-newgsid" type="hidden" name="gene-newgsid" value=""/>
+
+                    <!-- Nav tabs -->
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li role="presentation" class="active"><a href="#copy_paste" aria-controls="copy_paste" role="tab" data-toggle="tab">Copy/Paste</a></li>
+                        <li role="presentation"><a href="#file_upload" aria-controls="file_upload" role="tab" data-toggle="tab">File Upload</a></li>
+                        <li role="presentation"><a href="#single_gene" aria-controls="single_gene" role="tab" data-toggle="tab">Single Gene</a></li>
+                    </ul>
+
+                    <!-- Tab panes -->
+                    <div class="tab-content">
+                        <div role="tabpanel" class="tab-pane active" id="copy_paste">
+                            <div id="paste_uploader" class="form-class">
+                                <textarea id="file_text" rows="15" cols="40" name="file_text"
+                                          style="color: #808080;" placeholder="gene1[tab]value[newline]"
+                                          required></textarea>
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane" id="file_upload">
+                            <div id="file_uploader" class="form-class">
+                                <div class="row">
+                                    <span class="btn btn-warning btn-file">Select Tab-Delimited Plain Text File...
+                                        <input id="file_data" type="file" name="selected_file" accept="text/plain"/>
+                                    </span>
+                                </div>
+                                <div class="row">
+                                    <input id="fileContents" name="fileContents" type="hidden" />
+                                </div>
+                                <div class="row">
+                                    <span id="fileDisplayArea"
+                                          style="color:#337700; vertical-align:middle; padding:10px 0 0 10px;">
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane" id="single_gene">
+                            <div class="form-class">
+                                <label for="gene-refid"><h4>New Identifier:</h4></label>
+                                <input class="form-control input-lg" name="gene-newid"
+                                       id="gene-newid" type="text" value=""/>
+                                <label for="gene-value"><h4>New Value:</h4></label>
+                                <input class="form-control input-lg" name="gene-newvalue"
+                                       id="gene-newvalue" type="text" value=""/>
+
+                            </div>
+                        </div>
                     </div>
+
+                    <input id="add-genes-gsid" type="hidden" name="add-genes-gsid" value=""/>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal" id="processAddGenesetGene">Submit</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal"
+                            id="processAddGenesetGene">Submit</button>
                 </div>
+
             </form>
-        </div>
+
     </div>
+
+    </div>
+
 </div>
 
