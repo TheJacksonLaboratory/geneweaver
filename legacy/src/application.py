@@ -3910,6 +3910,7 @@ def remove_non_ascii(text):
 def split_lines_and_tabs(to_split=''):
     return (re.split(r'\t+', row) for row in iter(to_split.splitlines())) if to_split else ()
 
+
 @app.route('/addGenesetGene', methods=['GET'])
 @login_required(json=True)
 def add_geneset_gene():
