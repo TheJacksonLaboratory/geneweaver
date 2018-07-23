@@ -16,7 +16,12 @@
                     <div class="form-group" >
                         <label for="userSelection"><h4>Select User: </h4></label>
                         {% for user in curation_team %}
-                            <label for="{{ user.user_id }}_radio" class="ui-btn ui-corner-all ui-btn-icon-right" id="label_{{ user.user_id }}">{{ user.first_name }} {{ user.last_name }}</label>
+                            {% if session['user_id'] == user.user_id %}
+                                {% set show_me = '(me)' %}
+                            {% else %}
+                                {% set show_me = '' %}
+                            {% endif %}
+                            <label for="{{ user.user_id }}_radio" class="ui-btn ui-corner-all ui-btn-icon-right" id="label_{{ user.user_id }}">{{ user.first_name }} {{ user.last_name }} {{ show_me }}</label>
                             <input class="form-control" type="radio" name="curator" value="{{ user.user_id }}" id="{{ user.user_id }}_radio">
                         {% endfor %}
                     </div>
