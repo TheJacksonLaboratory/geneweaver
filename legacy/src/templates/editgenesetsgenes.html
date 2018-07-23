@@ -470,7 +470,10 @@
                 error: function (data) {
                     $("#result").html('<div class="alert alert-danger fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>An error occured while adding your genes.</div>');
+                            '</button>An error occured while adding your genes. <br> This often happens with ' +
+                            'very large genesets (more than 1000 genes). To upload a very large geneset it is ' +
+                            'recommended that you use the <a href=/batchupload> Batch Upload Page </a> or that you ' +
+                            'try splitting the upload into smaller pieces.</div>');
                 },
                 complete: function() {
                     single_id.val('');
