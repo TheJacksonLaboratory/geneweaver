@@ -279,6 +279,31 @@
     var groupCurators;
     var group_owner;
     $(document).ready(function () {
+
+        function ls_available() {
+
+            // first check to make sure that localStorage is available
+            if (typeof localStorage !== 'undefined') {
+                try {
+                    localStorage.setItem('feature_test', 'yes');
+                    if (localStorage.getItem('feature_test') === 'yes') {
+                        localStorage.removeItem('feature_test');
+                        // localStorage is OK
+                        return true
+                    } else {
+                        // localStorage is disabled
+                        return false
+                    }
+                } catch(e) {
+                    // localStorage is disabled
+                    return false
+                }
+            } else {
+                // localStorage is not available
+                return false
+            }
+        }
+
         group_id = '{{ group.grp_id }}';
         groupCurators = '{{ groupCurators }}';
         group_owner = '{{ group_owner }}';
@@ -286,6 +311,13 @@
         $('#group_id').val(group_id);
         $('#group_name').text(group_name);
         setPrivacyDisplay('{{ group.private }}');
+
+        // show the last-selected group
+        if ( ls_available() ) {
+            if ( localStorage['last_group_id'] !== undefined && localStorage['last_group_id'] !== group_id ) {
+                window.location.href = '../groupTasks/' + localStorage['last_group_id'];
+            }
+        }
 
         var user_id = '{{user_id}}';
         var columns = {{columns | safe}};
@@ -453,6 +485,9 @@
         $('.clickable_viewGroupTasks').on('click', function () {
             group_id = ($(this).attr("data-grp"));
             window.location.href = '../groupTasks/' + group_id;
+            // use localStorage to store the group_id, then we can use that as
+            // the 'default' selection whenever the page is reloaded
+            localStorage['last_group_id'] = group_id;
         });
 
         $('.filter').on('click', function () {
