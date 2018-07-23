@@ -3903,15 +3903,51 @@ def edit_geneset_id_value():
     return json.dumps(results)
 
 
+def remove_non_ascii(text):
+    return ''.join([i if ord(i) < 128 else ' ' for i in text.strip('\r')]) if text else None
+
+
+def split_lines_and_tabs(to_split=''):
+    return (re.split(r'\t+', row) for row in iter(to_split.splitlines())) if to_split else ()
+
 @app.route('/addGenesetGene', methods=['GET'])
 @login_required(json=True)
 def add_geneset_gene():
-    try:
-        float(str(request.args['value']))
-    except ValueError:
-        results = {'error': 'The value you entered (' + str(request.args['value']) + ') must be a number'}
-        return json.dumps(results)
-    results = geneweaverdb.add_geneset_gene_to_temp(request.args)
+
+    # Shorthand function reference
+    add_gene_to_geneset = geneweaverdb.add_geneset_gene_to_temp
+
+    # Generic Info
+    user_id = flask.g.user.user_id
+    gs_id = request.args['gsid']
+
+    # Copy / Paste
+    copy_paste = remove_non_ascii(request.args.get('text_data'))
+
+    # File Upload
+    file_upload = remove_non_ascii(request.args.get('file_contents'))
+
+    # Add Single Gene
+    single_value = request.args.get('single_value')
+    single_id = request.args.get('single_id')
+    add_single_gene = len(single_value) > 0 and len(single_id) > 0
+
+    results = {
+        'copy_paste': [add_gene_to_geneset(gs_id, user_id, split[0], split[1])
+                       for split in split_lines_and_tabs(copy_paste)
+                       if split[0] and split[1]
+                       ],
+        'file_upload': [add_gene_to_geneset(gs_id, user_id, split[0], split[1])
+                        for split in split_lines_and_tabs(file_upload)
+                        if split[0] and split[1]
+                        ],
+        'single': add_gene_to_geneset(gs_id, user_id, single_id, single_value) if add_single_gene else None
+    }
+
+    # Combined Errors
+    results['errors'] = [item for item in
+                         results['copy_paste'] + results['file_upload'] + [results['single']]
+                         if item and item.get('error')]
     return json.dumps(results)
 
 
