@@ -35,6 +35,9 @@ messages = array of messages
     <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-switch/bootstrap-switch.css') }}"
           rel="stylesheet">
     <link href="{{ url_for('static', filename='css/jquery-ui-1.8.7.custom.css') }}" rel="stylesheet">
+
+    <!-- Styling for select2 search bar -->
+    <link rel="stylesheet" type="text/css" href="../static/select2/4.0.5/select2.min.css">
 {#
     <link href="{{ url_for('static', filename='pixit/admin/assets/plugins/bootstrap-slider/bootstrap-slider.css') }}"
           rel="stylesheet">
@@ -51,6 +54,7 @@ messages = array of messages
     <!-- END  MANDATORY STYLE -->
 
     <link href="{{ url_for('static', filename='css/search.css') }}" rel="stylesheet">
+    {# TODO remove the jquery import and move the following scripts to the end, below where jquery 1.12 is imported #}
     <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/ode.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/geneweaver.js') }}"></script>
@@ -355,6 +359,9 @@ messages = array of messages
 -->
 <script src="{{ url_for('static', filename='js/jquery-1.12.4.min.js') }}"></script>
 
+<!-- Library for select2 search bar -->
+<script src="{{ url_for('static', filename='select2/4.0.5/select2.full.min.js') }}"></script>
+
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-migrate-1.2.1.js') }}"></script>
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-ui/jquery-ui-1.10.4.min.js') }}"></script>
 <script src="{{ url_for('static', filename='pixit/admin/assets/plugins/jquery-mobile/jquery.mobile-1.4.2.js') }}"></script>
@@ -389,6 +396,7 @@ messages = array of messages
     $(document).ready(function() {
         $(".dropdown-toggle").dropdown();
         $(".dropdown-toggle").dropdownHover();
+        $('.select2-active').select2();
     });
 </script>
 
