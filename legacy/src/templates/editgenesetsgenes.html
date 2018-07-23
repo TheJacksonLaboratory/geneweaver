@@ -431,25 +431,24 @@
         $('#processAddGenesetGene').on('click', function (e) {
             var gsid = $("#add-genes-gsid").val();
 
-            var single_id = $("#gene-newid").val();
-            var single_value = $("#gene-newvalue").val();
+            var single_id = $("#gene-newid");
+            var single_value = $("#gene-newvalue");
 
-            var file_data = $('#fileContents').val();
-            var text_data = $("#file_text").val();
+            var file_data = $('#fileContents');
+            var text_data = $("#file_text");
 
             $.ajax({
                 type: "GET",
                 url: "/addGenesetGene",
                 data: {
                     "gsid": gsid,
-                    "single_id": single_id,
-                    "single_value": single_value,
-                    "text_data": text_data,
-                    "file_contents": file_data
+                    "single_id": single_id.val(),
+                    "single_value": single_value.val(),
+                    "text_data": text_data.val(),
+                    "file_contents": file_data.val()
                 },
                 success: function (data) {
                     var v = JSON.parse(data);
-                    console.log(v['errors']);
                     if (v["errors"].length === 0) {
                         $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
                         $("#result").html('<div class="alert alert-success fade in"> ' +
@@ -462,7 +461,6 @@
                                 '<button type="button" class="close" data-dismiss="alert"' +
                                 'aria-hidden="true">x</button> There were some problems with the upload: <br><br>';
                         v["errors"].forEach(function(item) {
-                            console.log(item['error']);
                             error_html += item["error"] + '<br>';
                         });
                         error_html += '</div>';
@@ -475,7 +473,11 @@
                             '</button>An error occured while adding your genes.</div>');
                 },
                 complete: function() {
-                    console.log('complete');
+                    single_id.val('');
+                    single_value.val('');
+                    text_data.val('');
+                    file_data.val('');
+                    $('#fileDisplayArea').text('');
                 }
             });
         });
