@@ -1166,11 +1166,16 @@ def update_geneset_values(gs_id):
         return
 
 
-def add_geneset_gene_to_temp(rargs):
-    gs_id = rargs.get('gsid', type=int)
-    gene_id = rargs.get('id', type=str)
-    value = rargs.get('value', type=float)
-    user_id = flask.session['user_id']
+def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value):
+    try:
+        float(str(value))
+    except ValueError:
+        return {'error': 'The value you entered (' +
+                            str(value) +
+                            ') for gene ID: ' +
+                            str(gene_id) +
+                            'must be a number'}
+
     if (get_user(user_id).is_admin != 'False' or
                 get_user(user_id).is_curator != 'False') or user_can_edit(user_id,
                                                                           gs_id):
@@ -1179,18 +1184,18 @@ def add_geneset_gene_to_temp(rargs):
             cursor.execute('''SELECT g.ode_gene_id FROM gene g, geneset gs WHERE gs.gs_id=%s AND gs.sp_id=g.sp_id AND
 							  g.ode_ref_id=%s''', (gs_id, gene_id,))
             if cursor.rowcount == 0:
-                return {'error': 'Identifier Not Found'}
+                return {'error': 'Identifier Not Found for ID: {}, Value: {}'.format(gene_id, value)}
             else:
                 ode_gene_id = cursor.fetchone()[0]
             ##Check to see if the src_id already exists
             cursor.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id=%s''', (gs_id, gene_id,))
             if cursor.rowcount != 0:
-                return {'error': 'The Source Identifier already exists for this geneset'}
+                return {'error': 'The Source Identifier ({}) already exists for this geneset'.format(gene_id)}
             ##Insert into temp table
             cursor.execute('''INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id)
 							  VALUES (%s, %s, %s, %s)''', (gs_id, ode_gene_id, value, gene_id,))
             cursor.connection.commit()
-            return {'error': 'None'}
+            return {'success': True}
 
 
 def cancel_geneset_edit_by_id(rargs):
