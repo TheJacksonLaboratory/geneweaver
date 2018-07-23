@@ -658,21 +658,6 @@
         });
 
     });
-
-    //toggles between the file or paste uploaders and toggle's enable/disable on inputs
-    function toggle_pasting() {
-
-        $("#file_uploader").toggle();
-        $("#paste_uploader").toggle();
-
-        $('#file_text').prop('disabled', function () {
-            return !$(this).prop('disabled')
-        });
-        $('#file_data').prop('disabled', function () {
-            return !$(this).prop('disabled')
-        })
-    }
-
 </script>
 
 {#  Otherwise the species modals will starting complaining and throw exceptions  #}
