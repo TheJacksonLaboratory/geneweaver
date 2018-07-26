@@ -314,8 +314,8 @@
 
         // show the last-selected group
         if ( ls_available() ) {
-            if ( localStorage['last_group_id'] !== undefined && localStorage['last_group_id'] !== group_id ) {
-                window.location.href = '../groupTasks/' + localStorage['last_group_id'];
+            if ( localStorage.getItem('last_group_id') !== null && localStorage.getItem('last_group_id') !== group_id ) {
+                window.location.href = '../groupTasks/' + localStorage.getItem('last_group_id');
             }
         }
 
@@ -487,7 +487,7 @@
             window.location.href = '../groupTasks/' + group_id;
             // use localStorage to store the group_id, then we can use that as
             // the 'default' selection whenever the page is reloaded
-            localStorage['last_group_id'] = group_id;
+            localStorage.setItem('last_group_id', group_id);
         });
 
         $('.filter').on('click', function () {
