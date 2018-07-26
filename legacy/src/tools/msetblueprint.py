@@ -6,6 +6,7 @@ import geneweaverdb as gwdb
 import toolcommon as tc
 import sys
 import os
+from itertools import chain
 
 TOOL_CLASSNAME = 'MSET'
 mset_blueprint = flask.Blueprint(TOOL_CLASSNAME, __name__)
@@ -28,10 +29,9 @@ def run_tool():
     form = flask.request.form
     # pull out the selected geneset IDs
     selected_geneset_ids = tc.selected_geneset_ids(form)
-    selected_top_genes = form.getlist('MSET_TopGenes')
+    # Top genes are in the form <item-type>_<item-id>: eg. geneset_1234, we'll need them seperated later
+    selected_top_genes = [{'type': i[0], 'id': i[1]} for i in (s.split('_') for s in form.getlist('MSET_TopGenes'))]
     selected_project_ids = tc.selected_project_ids(form)
-    sp_params = gwdb.get_parameters_for_tool('MSET_Species')
-    sp_params = sp_params[0][0]
     species_checked = form.getlist('MSET_Species')
 
     # Used only when rerunning the tool from the results page
@@ -48,7 +48,7 @@ def run_tool():
         bgFile = bgFile.replace(" ", "")
         size_of_files += os.stat(bgFile).st_size
 
-    if(size_of_files == 0):
+    if size_of_files == 0:
         flask.flash("Warning: The background and species combination you have chosen is empty!\n"
                     "Please choose a different combination.")
         return flask.redirect('analyze')
@@ -66,23 +66,22 @@ def run_tool():
         return flask.redirect('analyze')
 
     gs_dict = {
-        'interest_genes': list(set([
-            sym[0]
-            for query in (
-                gwdb.get_genesymbols_by_gs_id(gs)
-                for gs in selected_geneset_ids
+        'interest_genes': list(set(
+            # Symbols are packed in tuples. from_iterable() reduces an iterable of iterables to a single iterable
+            symbol[0] for symbol in chain.from_iterable(
+                gwdb.get_genesymbols_by_gs_id(gs_id) for gs_id in selected_geneset_ids
             )
-            for sym in query
-            ])),
-        'top_genes': list(set([
-            sym[0]
-            for query in (
-                gwdb.get_genesymbols_by_gs_id(s[1]) if s[0] == 'geneset'
-                else gwdb.get_genesymbols_by_pj_id(s[1])
-                for s in (i.split('_') for i in selected_top_genes)
-             )
-            for sym in query
-            ]))
+        )),
+        'top_genes': list(set(
+            # Symbols are packed in tuples. from_iterable() reduces an iterable of iterables to a single iterable
+            symbol[0] for symbol in chain.from_iterable(
+                # Selected top genes is a collection of geneset and project ids so we need to check type
+                gwdb.get_genesymbols_by_gs_id(item['id']) if item['type'] == 'geneset' else
+                # If it's not a geneset, query by project
+                gwdb.get_genesymbols_by_pj_id(item['id'])
+                for item in selected_top_genes
+            )
+        ))
     }
 
     # retrieve gs names and abbreviations
