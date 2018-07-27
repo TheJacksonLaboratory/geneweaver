@@ -183,7 +183,8 @@
                 <p>
                     <a href="/curategeneset/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}</a>: {{ gs.name }}
                 </p>
-                <p style="padding-left: 10px">{{ gs.description }}</p>
+                <p style="padding-left: 10px"><strong>Description:</strong> {{ gs.description }}</p>
+                <p style="padding-left: 10px"><strong>Curation Status:</strong> {{ assignment.state_as_string }}</p>
             {% endfor %}
         </div>
         <div class="panel-heading"
