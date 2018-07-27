@@ -191,7 +191,7 @@
                                 <label hidden id="group_public" class="label label-info">Public</label>
                                 <div class="btn-toolbar" role="toolbar">
                                     {% if group_owner == true %}
-                                        <span type="button" class="btn btn-primary pull-right" id="assignCurator">
+                                        <span type="button" class="btn btn-primary pull-right assignCurator">
                                             <i class="fa fa-user pull-right"></i>Assign Curator
                                         </span>
                                     {% endif %}
@@ -237,6 +237,17 @@
                             </table>
 
                         </div>
+                        <div class="form-group">
+                                &nbsp;
+                                <div class="btn-default" role="toolbar">
+                                    {% if group_owner == true %}
+                                        <span type="button" class="btn btn-primary pull-right assignCurator">
+                                            <i class="fa fa-user pull-right"></i>Assign Curator
+                                        </span>
+                                    {% endif %}
+                                </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -559,7 +570,7 @@
             // it takes the selected genesets updates the modal window with those
             // selections and displays it.  It also makes sure the group selection
             // is cleared on the modal.
-            $('#assignCurator').on('click', function () {
+            $('.assignCurator').on('click', function () {
                 var aselectedTrs = TableTools.fnGetInstance('groupTasksViewer').fnGetSelectedData();
                 if (aselectedTrs == 0) {
                     // let the user know they need to select at least on geneset
