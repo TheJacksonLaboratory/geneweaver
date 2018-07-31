@@ -4,6 +4,7 @@ import json
 import string
 import random
 from psycopg2 import Error
+from psycopg2.extras import execute_values
 from psycopg2.pool import ThreadedConnectionPool
 from tools import toolcommon as tc
 import os
@@ -1165,6 +1166,61 @@ def update_geneset_values(gs_id):
         cursor.connection.commit()
         return
 
+
+def geneset_gene_identifiers(gs_id, gene_ids, missing=False):
+    """ This function checks to see which Gene IDS are valid for a certain geneset.
+    Setting missing=True will return those IDs which don't exist rather than those IDs which do.
+
+    :param gs_id: The ID of the geneset to check against
+    :param gene_ids: A list of gene identifiers to check
+    :param missing: Whether you want to return missing ids, or existing ids
+    :return: Returns [(Gene ID, ODE Gene ID)...]
+    """
+
+    query = '''SELECT t1.v, t2.ode_gene_id
+            FROM (VALUES %s) t1(v)
+            LEFT JOIN (
+              SELECT * FROM extsrc.gene g, production.geneset gs
+              WHERE gs.gs_id={} AND gs.sp_id=g.sp_id
+            ) AS t2
+            ON t1.v = t2.ode_ref_id
+            WHERE t2.ode_ref_id IS
+            '''.format(gs_id)
+    query += "NULL" if missing else "NOT NULL"
+
+    with PooledCursor() as c:
+        execute_values(c, query, gene_ids, "(%s)", 5*10**4)
+        return c.fetchall()
+
+
+def existing_identifiers_for_geneset(gs_id, gene_ids):
+    """ This function checks which Gene IDs already exist in a genest. This is useful to know when adding new IDs
+    without updating the values of existing IDs.
+
+    :param gs_id: The Geneset ID to check
+    :param gene_ids: A list of Gene IDs to check existence for
+    :return: List of Tuples: Those gene_ids which already exist on the geneset ID=gs_id
+    """
+    with PooledCursor() as c:
+        c.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id IN %s''', (gs_id, gene_ids))
+        return c.fetchall()
+
+
+def add_geneset_genes_to_temp(geneset_row_list):
+    """ This function inserts rows into the temp_geneset_value table using execute_values().
+
+    :param geneset_row_list: [(gs_id, ode_gene_id, src_value, src_id)...] The rows to be inserted
+    :return:
+    """
+    with PooledCursor() as c:
+        try:
+            execute_values(c, ''' INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) VALUES %s''',
+                           geneset_row_list)
+            c.connection.commit()
+            result = {'success': "{} Genes succesfully inserted".format(len(geneset_row_list))}
+        except Error as e:
+            result = {'error': e}
+        return result
 
 def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value):
     try:
