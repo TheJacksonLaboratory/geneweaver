@@ -49,6 +49,7 @@ class CurationAssignment(object):
     ASSIGNED = 2
     READY_FOR_REVIEW = 3
     REVIEWED = 4
+    APPROVED = 5
 
     def __init__(self, row_dict):
         self.state = row_dict['curation_state']
@@ -79,8 +80,7 @@ class CurationAssignment(object):
                 self.reviewer_tiers = [(4, "IV"), (5, "V")]
 
 
-    @staticmethod
-    def status_to_string(status):
+    def status_to_string(self):
 
         state_dict = {
             CurationAssignment.UNASSIGNED:  "Unassigned",
@@ -90,7 +90,7 @@ class CurationAssignment(object):
         }
 
         try:
-            return state_dict[status]
+            return state_dict[self.state]
         except KeyError:
             return "Unknown"
 
