@@ -149,7 +149,7 @@ def run_tool():
         response = flask.make_response(tc.render_tool_pending(async_result, tool))
     except Exception as e:
         sys.stderr.write(str(e))
-        raise
+        raise Exception('Problem generating flask response')
 
     response.status_code = 303
     response.headers['location'] = new_location
