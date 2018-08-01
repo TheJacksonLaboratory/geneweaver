@@ -3,7 +3,9 @@ from hashlib import md5
 import json
 import string
 import random
+import psycopg2
 from psycopg2 import Error
+from psycopg2.extras import execute_values
 from psycopg2.pool import ThreadedConnectionPool
 from tools import toolcommon as tc
 import os
@@ -1166,11 +1168,75 @@ def update_geneset_values(gs_id):
         return
 
 
-def add_geneset_gene_to_temp(rargs):
-    gs_id = rargs.get('gsid', type=int)
-    gene_id = rargs.get('id', type=str)
-    value = rargs.get('value', type=float)
-    user_id = flask.session['user_id']
+def geneset_gene_identifiers(gs_id, gene_ids):
+    """ This function matches gene identifiers to ode_gene_ids. Gene identifies without an ode_gene_id aren't valid.
+
+    :param gs_id: The ID of the geneset to check against
+    :param gene_ids: A list of gene identifiers to check
+    :return: Returns [(Gene ID, ODE Gene ID)...]
+    """
+
+    query = '''SELECT t1.v, t2.ode_gene_id
+            FROM (VALUES %s) t1(v)
+            LEFT JOIN (
+              SELECT * FROM extsrc.gene g, production.geneset gs
+              WHERE gs.gs_id={} AND gs.sp_id=g.sp_id
+            ) AS t2
+            ON t1.v = t2.ode_ref_id
+            '''.format(gs_id)
+
+    with PooledCursor() as c:
+        execute_values(c, query, gene_ids, "(%s)", 5*10**4)
+        return c.fetchall()
+
+
+def existing_identifiers_for_geneset(gs_id, gene_ids):
+    """ This function checks which Gene IDs already exist in a genest. This is useful to know when adding new IDs
+    without updating the values of existing IDs.
+
+    :param gs_id: The Geneset ID to check
+    :param gene_ids: A list of Gene IDs to check existence for
+    :return: List of Tuples: Those gene_ids which already exist on the geneset ID=gs_id
+    """
+    with PooledCursor() as c:
+        c.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id IN %s''', (gs_id, gene_ids))
+        return c.fetchall()
+
+
+def add_geneset_genes_to_temp(gs_id, geneset_row_list):
+    """ This function inserts rows into the temp_geneset_value table using execute_values().
+
+    :param geneset_row_list: [(gs_id, ode_gene_id, src_value, src_id)...] The rows to be inserted
+    :return:
+    """
+    results = []
+    errors = []
+    with PooledCursor(rollback_on_exception=True) as c:
+        try:
+            execute_values(c, ''' INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) VALUES %s''',
+                           geneset_row_list)
+            c.connection.commit()
+            results.append({'success': 'Genes succesfully uploaded. Please check the results,'
+                                       ' then click \'Save Updates\' to persist your changes.'})
+        except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
+            errors.append({'error': 'There was a problem connecting to the database. Please try again later'})
+        except (psycopg2.DataError, psycopg2.ProgrammingError):
+            errors.append({'error': 'Check your upload data for typos or errors and try again.'})
+        except psycopg2.Error:
+            errors.append({'error': 'If the problem persists please contact Geneweaver support.'})
+
+    return results, errors
+
+def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value):
+    try:
+        float(str(value))
+    except ValueError:
+        return {'error': 'The value you entered (' +
+                            str(value) +
+                            ') for gene ID: ' +
+                            str(gene_id) +
+                            'must be a number'}
+
     if (get_user(user_id).is_admin != 'False' or
                 get_user(user_id).is_curator != 'False') or user_can_edit(user_id,
                                                                           gs_id):
@@ -1179,18 +1245,18 @@ def add_geneset_gene_to_temp(rargs):
             cursor.execute('''SELECT g.ode_gene_id FROM gene g, geneset gs WHERE gs.gs_id=%s AND gs.sp_id=g.sp_id AND
 							  g.ode_ref_id=%s''', (gs_id, gene_id,))
             if cursor.rowcount == 0:
-                return {'error': 'Identifier Not Found'}
+                return {'error': 'Identifier Not Found for ID: {}, Value: {}'.format(gene_id, value)}
             else:
                 ode_gene_id = cursor.fetchone()[0]
             ##Check to see if the src_id already exists
             cursor.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id=%s''', (gs_id, gene_id,))
             if cursor.rowcount != 0:
-                return {'error': 'The Source Identifier already exists for this geneset'}
+                return {'error': 'The Source Identifier ({}) already exists for this geneset'.format(gene_id)}
             ##Insert into temp table
             cursor.execute('''INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id)
 							  VALUES (%s, %s, %s, %s)''', (gs_id, ode_gene_id, value, gene_id,))
             cursor.connection.commit()
-            return {'error': 'None'}
+            return {'success': True}
 
 
 def cancel_geneset_edit_by_id(rargs):
