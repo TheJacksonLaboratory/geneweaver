@@ -3930,20 +3930,22 @@ def add_geneset_gene():
     # Add Single Gene
     single_value = input_data.get('single_value')
     single_id = input_data.get('single_id')
-    add_single_gene = len(single_value) > 0 and len(single_id) > 0
-    if add_single_gene:
+    if single_id and single_value:
         gene_dict[single_id] = {'id': single_id, 'value': single_value}
 
-    new_gene_identifiers = [(gene_dict[gene]['id'],) for gene in gene_dict]
-    actual_ids = geneweaverdb.geneset_gene_identifiers(gs_id, new_gene_identifiers)
-    for gene in actual_ids:
-        gene_dict[gene[0]]['ode_gene_id'] = gene[1]
+    # We can't add genes we don't have an ode_gene_id for
+    missing = []
+    gene_ids = geneweaverdb.geneset_gene_identifiers(gs_id, [(gene_dict[gene]['id'],) for gene in gene_dict])
+    for gene in gene_ids:
+        if gene[1]:
+            gene_dict[gene[0]]['ode_gene_id'] = gene[1]
+        else:
+            missing.append(gene[0])
+            del gene_dict[gene[0]]
 
-    missing_ids = geneweaverdb.geneset_gene_identifiers(gs_id, new_gene_identifiers, missing=True)
-
-    existing = geneweaverdb.existing_identifiers_for_geneset(gs_id, tuple(gene[0] for gene in actual_ids))
-
-    for gene in missing_ids + existing:
+    # We don't want to overwrite genes that are already on the geneset
+    existing = geneweaverdb.existing_identifiers_for_geneset(gs_id, tuple(gene_dict[gene]['id'] for gene in gene_dict))
+    for gene in existing:
         del gene_dict[gene[0]]
 
     row_list = [(gs_id, gene_dict[gene]['ode_gene_id'], gene_dict[gene]['value'], gene_dict[gene]['id'])
@@ -3951,7 +3953,7 @@ def add_geneset_gene():
 
     results = geneweaverdb.add_geneset_genes_to_temp(row_list)
 
-    errors = [{'error': 'Identifier Not Found for ID: {}'.format(gene[0])} for gene in missing_ids]
+    errors = [{'error': 'Identifier Not Found for ID: {}'.format(gene)} for gene in missing]
     errors += [{'error': 'The Source ID \'{}\', already exists for this geneset'.format(gene[0])} for gene in existing]
 
     return json.dumps({'results': results, 'errors': errors})

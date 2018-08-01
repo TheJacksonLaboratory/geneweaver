@@ -1167,7 +1167,7 @@ def update_geneset_values(gs_id):
         return
 
 
-def geneset_gene_identifiers(gs_id, gene_ids, missing=False):
+def geneset_gene_identifiers(gs_id, gene_ids):
     """ This function checks to see which Gene IDS are valid for a certain geneset.
     Setting missing=True will return those IDs which don't exist rather than those IDs which do.
 
@@ -1184,9 +1184,7 @@ def geneset_gene_identifiers(gs_id, gene_ids, missing=False):
               WHERE gs.gs_id={} AND gs.sp_id=g.sp_id
             ) AS t2
             ON t1.v = t2.ode_ref_id
-            WHERE t2.ode_ref_id IS
             '''.format(gs_id)
-    query += "NULL" if missing else "NOT NULL"
 
     with PooledCursor() as c:
         execute_values(c, query, gene_ids, "(%s)", 5*10**4)
@@ -1212,7 +1210,7 @@ def add_geneset_genes_to_temp(geneset_row_list):
     :param geneset_row_list: [(gs_id, ode_gene_id, src_value, src_id)...] The rows to be inserted
     :return:
     """
-    with PooledCursor() as c:
+    with PooledCursor(rollback_on_exception=True) as c:
         try:
             execute_values(c, ''' INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) VALUES %s''',
                            geneset_row_list)
