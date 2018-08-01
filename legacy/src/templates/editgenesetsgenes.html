@@ -287,7 +287,7 @@
         <br>
 
         <button type="button" class="btn btn-block btn-warning" id="addGenesetGeneValue">
-            <i class="fa fa-plus pull-left"></i> Add Gene
+            <i class="fa fa-plus pull-left"></i> Add Genes
         </button>
         <button type="button" class="btn btn-block btn-warning" id="saveGenesetGenes">
             <i class="fa fa-save pull-left"></i> Save Updates
@@ -337,6 +337,37 @@
     
     $(document).ready(function () {
 
+        /**
+         * Executed when the user clicks the "select tab-delimited plain text
+         * file" button. This function reads the file in, appends the contents
+         * to a hidden input element, and informs the user that the file has
+         * been loaded.
+         */
+        $('#file_data').on('change', function(e) {
+
+            var fileDisplayArea = $('#fileDisplayArea');
+            var file = this.files[0];
+            var textType = /text.*/;
+
+            if (file.type.match(textType)) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+
+                    var size = parseFloat(file.size / 1024).toFixed(2) + ' KB';
+
+                    fileDisplayArea.text(
+                            "Loaded '" + file.name + "' (" + size + ")"
+                    );
+                    $('#fileContents').val(reader.result);
+                };
+
+                reader.readAsText(file);
+            } else {
+                fileDisplayArea.innerText = "File not supported!";
+            }
+        });
+
         //triggered when modal is about to be shown
         $('#deleteGenesetValueByID').on('shown.bs.modal', function (e) {
             var geneID = $(e.relatedTarget).data('gene-id');
@@ -360,7 +391,7 @@
 
         $('#addGenesetGene').on('shown.bs.modal', function (e) {
             var gsid = {{ geneset.geneset_id }}
-            $(e.currentTarget).find('input[name=gene-newgsid]').val(gsid);
+            $(e.currentTarget).find('input[name=add-genes-gsid]').val(gsid);
         });
 
         $('#processDeleteGenesetValueByID').on('click', function (e) {
@@ -398,31 +429,76 @@
         });
 
         $('#processAddGenesetGene').on('click', function (e) {
-            var id = $("#gene-newid").val();
-            var gsid = $("#gene-newgsid").val();
-            var value = $("#gene-newvalue").val();
+            var gsid = $("#add-genes-gsid").val();
+
+            var single_id = $("#gene-newid");
+            var single_value = $("#gene-newvalue");
+
+            var file_data = $('#fileContents');
+            var text_data = $("#file_text");
+
             $.ajax({
-                type: "GET",
+                type: "POST",
                 url: "/addGenesetGene",
-                data: {"gsid": gsid, "id": id, "value": value},
+                data: {
+                    "gsid": gsid,
+                    "single_id": single_id.val(),
+                    "single_value": single_value.val(),
+                    "text_data": text_data.val(),
+                    "file_contents": file_data.val()
+                },
                 success: function (data) {
-                    var v = JSON.parse(data);
-                    if (v["error"] == 'None') {
+                    var v = JSON.parse(data),
+                        num_errors = v["errors"].length,
+                        num_warnings = v["warnings"].length,
+                        results_selector = $("#result");
+                    if (num_errors === 0 && num_warnings === 0) {
                         $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
-                        $("#result").html('<div class="alert alert-success fade in"> ' +
+                        results_selector.html('<div class="alert alert-success fade in"> ' +
                                 '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>Gene Identifier and Value successfully added</div>');
+                                '</button>All gene identifier(s) and value(s) successfully added</div>');
+                    }
+                    else if (num_errors === 0 && num_warnings > 0) {
+                        $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        results_selector.append('<div class="alert alert-success fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>Partially uploaded your geneset. See warnings for details.</div>');
                     }
                     else {
-                        $("#result").html('<div class="alert alert-danger fade in"> ' +
-                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>An ERROR occured. ' + v["error"] + '</div>');
+                        $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        var error_html = '<div class="alert alert-danger fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert"' +
+                                'aria-hidden="true">x</button>We were unable to upload your genes: <br><br>';
+                        v["errors"].forEach(function(item) {
+                            error_html += item["error"] + '<br>';
+                        });
+                        error_html += '</div>';
+                        results_selector.append(error_html);
                     }
+                    if (num_warnings > 0){
+                        var warning_html = '<div class="alert alert-warning fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert"' +
+                                'aria-hidden="true">x</button>The gene upload generated the following warnings: <br><br>';
+                        v["warnings"].forEach(function(item) {
+                            warning_html += item["warning"] + '<br>';
+                        });
+                        warning_html += '</div>';
+                        results_selector.append(warning_html);
+                    }
+
                 },
                 error: function (data) {
                     $("#result").html('<div class="alert alert-danger fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>An Error occured while adding you identifier and value.</div>');
+                            '</button>An error occured while adding your genes. <br>' +
+                            'Please check your gene data and try again. <div>');
+                },
+                complete: function() {
+                    single_id.val('');
+                    single_value.val('');
+                    text_data.val('');
+                    file_data.val('');
+                    $('#fileDisplayArea').text('');
                 }
             });
         });
@@ -603,8 +679,6 @@
         });
 
     });
-
-
 </script>
 
 {#  Otherwise the species modals will starting complaining and throw exceptions  #}

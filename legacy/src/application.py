@@ -3909,16 +3909,76 @@ def edit_geneset_id_value():
     return json.dumps(results)
 
 
-@app.route('/addGenesetGene', methods=['GET'])
+def remove_non_ascii(text):
+    return ''.join([i if ord(i) < 128 else ' ' for i in text.strip('\r')]) if text else None
+
+
+def split_lines_and_tabs(to_split=''):
+    return (re.split(r'\t+', row) for row in iter(to_split.splitlines())) if to_split else ()
+
+
+@app.route('/addGenesetGene', methods=['GET', 'POST'])
 @login_required(json=True)
 def add_geneset_gene():
-    try:
-        float(str(request.args['value']))
-    except ValueError:
-        results = {'error': 'The value you entered (' + str(request.args['value']) + ') must be a number'}
-        return json.dumps(results)
-    results = geneweaverdb.add_geneset_gene_to_temp(request.args)
-    return json.dumps(results)
+
+    # Data from GET / POST
+    input_data = request.args if request.args else request.form
+
+    # Generic Info
+    user = flask.g.user
+    gs_id = input_data['gsid']
+    results = []
+    warnings = []
+    errors = []
+
+    # Copy/Paste and File Upload
+    new_genes = input_data.get('text_data') + os.linesep + input_data.get('file_contents')
+    new_genes = split_lines_and_tabs(remove_non_ascii(new_genes))
+    gene_dict = {split[0]: {'id': split[0], 'value': split[1]} for split in new_genes if len(split) > 1}
+
+    # Add Single Gene
+    single_value = input_data.get('single_value')
+    single_id = input_data.get('single_id')
+    if single_id and single_value:
+        gene_dict[single_id] = {'id': single_id, 'value': single_value}
+
+    if not geneweaverdb.user_can_edit(user.user_id, gs_id) and not (user.is_admin or user.is_curator):
+        errors.append({'error': 'You don\'t have permission to modify this geneset'})
+    if len(gene_dict) < 1:
+        errors.append({'error': 'No genes to upload'})
+    else:
+        # We can't add genes we don't have an ode_gene_id for
+        missing = []
+        gene_ids = geneweaverdb.geneset_gene_identifiers(gs_id, [(gene_dict[gene]['id'],) for gene in gene_dict])
+        for gene in gene_ids:
+            if gene[1]:
+                gene_dict[gene[0]]['ode_gene_id'] = gene[1]
+            else:
+                missing.append(gene[0])
+                del gene_dict[gene[0]]
+
+        warnings += [{'warning': 'Identifier Not Found for ID: {}'.format(gene)} for gene in missing]
+
+        # We don't want to overwrite genes that are already on the geneset
+        if len(gene_dict) < 1:
+            errors.append({'error': 'No valid genes to upload'})
+        else:
+            existing = geneweaverdb.existing_identifiers_for_geneset(gs_id, tuple(gene_dict[gene]['id'] for gene in gene_dict))
+            for gene in existing:
+                del gene_dict[gene[0]]
+
+            warnings += [{'warning': 'The Source ID \'{}\', already exists for this geneset'.format(gene[0])} for gene in existing]
+
+            row_list = [(gs_id, gene_dict[gene]['ode_gene_id'], gene_dict[gene]['value'], gene_dict[gene]['id'])
+                        for gene in gene_dict]
+            if row_list:
+                db_results, db_errors = geneweaverdb.add_geneset_genes_to_temp(gs_id, row_list)
+                results += db_results
+                errors += db_errors
+            else:
+                errors.append({'error': 'All genes currently exist in this geneset.'})
+
+    return json.dumps({'results': results, 'errors': errors, 'warnings': warnings})
 
 
 @app.route('/cancelEditByID', methods=['GET'])
