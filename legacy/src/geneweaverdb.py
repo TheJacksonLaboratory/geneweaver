@@ -3,6 +3,7 @@ from hashlib import md5
 import json
 import string
 import random
+import psycopg2
 from psycopg2 import Error
 from psycopg2.extras import execute_values
 from psycopg2.pool import ThreadedConnectionPool
@@ -1168,12 +1169,10 @@ def update_geneset_values(gs_id):
 
 
 def geneset_gene_identifiers(gs_id, gene_ids):
-    """ This function checks to see which Gene IDS are valid for a certain geneset.
-    Setting missing=True will return those IDs which don't exist rather than those IDs which do.
+    """ This function matches gene identifiers to ode_gene_ids. Gene identifies without an ode_gene_id aren't valid.
 
     :param gs_id: The ID of the geneset to check against
     :param gene_ids: A list of gene identifiers to check
-    :param missing: Whether you want to return missing ids, or existing ids
     :return: Returns [(Gene ID, ODE Gene ID)...]
     """
 
@@ -1216,8 +1215,13 @@ def add_geneset_genes_to_temp(geneset_row_list):
                            geneset_row_list)
             c.connection.commit()
             result = {'success': "{} Genes succesfully inserted".format(len(geneset_row_list))}
-        except Error as e:
-            result = {'error': e}
+        except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
+            result = {'error': 'There was a problem connecting to the database. Please try again later'}
+        except (psycopg2.DataError, psycopg2.ProgrammingError):
+            result = {'error': 'We were unable to upload your geneset. Check your upload data for typos and try again.'}
+        except psycopg2.Error:
+            result = {'error': 'We were unable to upload your geneset. If the problem persists please contact '
+                               'Geneweaver support.'}
         return result
 
 def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value):
