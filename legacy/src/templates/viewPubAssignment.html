@@ -181,6 +181,7 @@
         <div class="panel-body" id="geneset_panel">
             {% for gs in genesets %}
                 <p>
+                    <span id="curation-status" class="status-{{ assignment_map[gs.geneset_id].state }}">{{ assignment_map[gs.geneset_id].status_to_string() }}</span>
                     <a href="/curategeneset/{{ gs.geneset_id }}">GS{{ gs.geneset_id }}</a>: {{ gs.name }}
                 </p>
                 <p style="padding-left: 10px">{{ gs.description }}</p>

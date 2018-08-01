@@ -1119,7 +1119,8 @@ def pub_assignment_rejection():
 def render_pub_assignment(assignment_id):
     publication = None
     view = None
-    assignment = None
+    pub_assignment = None
+    geneset_assignmnet_map = {}
     curator = None
     curation_team_members = None
     species = None
@@ -1129,55 +1130,60 @@ def render_pub_assignment(assignment_id):
 
     if 'user_id' in flask.session:
         uid = flask.session['user_id']
-        assignment = pub_assignments.get_publication_assignment(assignment_id)
-        if assignment:
-            publication = geneweaverdb.get_publication(assignment.pub_id)
+        pub_assignment = pub_assignments.get_publication_assignment(assignment_id)
+        if pub_assignment:
+            publication = geneweaverdb.get_publication(pub_assignment.pub_id)
 
-            if uid == assignment.assignee and uid == assignment.assigner:
-                if assignment.state == assignment.ASSIGNED:
+            if uid == pub_assignment.assignee and uid == pub_assignment.assigner:
+                if pub_assignment.state == pub_assignment.ASSIGNED:
                     view = 'assignee'
                     species = geneweaverdb.get_all_species()
                 else:
                     view = 'assigner'
-            elif uid == assignment.assignee:
+            elif uid == pub_assignment.assignee:
                 view = 'assignee'
                 species = geneweaverdb.get_all_species()
-            elif uid == assignment.assigner:
+            elif uid == pub_assignment.assigner:
                 view = 'assigner'
-            elif assignment.group in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
+            elif pub_assignment.group in [g['grp_id'] for g in geneweaverdb.get_all_owned_groups(uid)]:
                 view = 'group_admin'
-            elif uid in [u['usr_id'] for u in geneweaverdb.get_group_members(assignment.group)]:
+            elif uid in [u['usr_id'] for u in geneweaverdb.get_group_members(pub_assignment.group)]:
                 view = 'group_member'
             else:
                 view = 'no_access'
 
             if view != 'no_access':
-                genesets = assignment.get_genesets()
-                genesets_for_pub = geneweaverdb.get_genesets_for_publication(assignment.pub_id, uid)
+                genesets = pub_assignment.get_genesets()
+                genesets_for_pub = geneweaverdb.get_genesets_for_publication(pub_assignment.pub_id, uid)
                 other_genesets = [gs for gs in genesets_for_pub if gs.geneset_id not in [gs.geneset_id for gs in genesets]]
-                if assignment.state !=assignment.UNASSIGNED:
-                    curator = geneweaverdb.get_user(assignment.assignee)
-                group_name = geneweaverdb.get_group_name(assignment.group)
+                if pub_assignment.state !=pub_assignment.UNASSIGNED:
+                    curator = geneweaverdb.get_user(pub_assignment.assignee)
+                group_name = geneweaverdb.get_group_name(pub_assignment.group)
 
                 ## Remove sets that have been deleted by the curators or others
                 genesets = filter(lambda gs: gs.status != 'deleted', genesets)
                 other_genesets = filter(
                     lambda gs: gs.status != 'deleted', other_genesets
                 )
-                        
+
+                # create a dictionary that maps each gene set to a curation assignment if there is one
+                all_genesets = genesets + other_genesets
+                for gs in all_genesets:
+                    geneset_assignmnet_map[gs.geneset_id] = curation_assignments.get_geneset_curation_assignment(gs.geneset_id)
 
             if view == 'assigner' or view == 'group_admin':
                 # needed for rendering the assignment dialog
-                curation_team_members = [geneweaverdb.get_user(uid) for uid in geneweaverdb.get_group_users(assignment.group)]
+                curation_team_members = [geneweaverdb.get_user(uid) for uid in geneweaverdb.get_group_users(pub_assignment.group)]
         else:
             # publication assignment not found
             flask.abort(404)
 
     return flask.render_template('viewPubAssignment.html', pub=publication,
-                                 view=view, assignment=assignment,
+                                 view=view, assignment=pub_assignment,
                                  curator=curator, group_name=group_name, species=species,
                                  curation_team=curation_team_members,
-                                 genesets=genesets, other_genesets=other_genesets)
+                                 genesets=genesets, other_genesets=other_genesets,
+                                 assignment_map=geneset_assignmnet_map)
 
 
 @app.route('/save_pub_note.json', methods=['POST'])

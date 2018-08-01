@@ -428,16 +428,16 @@
                         // and caching (probably done through another function)
                         switch (status) {
                             case 1:
-                                $(nTd).append('Unassigned');
+                                $(nTd).append('<span class="status-1">Unassigned</span>');
                                 break;
                             case 2:
-                                $(nTd).append('Assigned');
+                                $(nTd).append('<span class="status-2">Assigned</span>');
                                 break;
                             case 3:
-                                $(nTd).append('Ready for team review');
+                                $(nTd).append('<span class="status-3">Ready for review</span>');
                                 break;
                             case 4:
-                                $(nTd).append('Reviewed');
+                                $(nTd).append('<span class="status-4">Reviewed</span>');
                                 break;
                         }
                     }
