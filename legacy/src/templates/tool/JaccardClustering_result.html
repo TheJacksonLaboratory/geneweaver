@@ -56,6 +56,20 @@
 	<h1>{{ title }}</h1>
 </div>
 
+{# Displayed when the image download AJAX code encounters an error #}
+<div id="img-alert" class="alert alert-danger fade in" style="display:none">
+    <button id="img-close" type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <strong>
+        The following error was encountered while rendering and retrieving 
+        your image:
+        <span id="img-error"></span>.
+        If this continues, please contact a GeneWeaver admin or submit an issue
+        to the issue tracker.
+    </strong>
+</div>
+
 <div id="ui-container">
     <form id="todo-id" class="form-horizontal" role="form" method="post">
         <div class="row">
@@ -116,7 +130,7 @@
                                     data-toggle="dropdown" aria-haspopup="true" 
                                     aria-expanded="false">
 								Download as...
-								<span class="caret"></span>
+                                <span id="download-icon" class="caret"></span>
 							</button>
 							<ul class="dropdown-menu">
 								<li><a class="download-image" id="dl-pdf" href="">PDF</a></li>
@@ -212,6 +226,21 @@
 		var jsonPath = '{{ cluster_data | safe }}';
         var jsonData = null;
 
+        /**
+          * Updates the "Download as..." drop down icon to inform the user that
+          * their click and image download is being processed.
+          * Changes the caret to a spinning wheel when they select a download
+          * option. Changes back to the caret after the image is finished
+          * processing and ready for download.
+          */
+        var changeDownloadIcon = function() {
+
+            if ($('#download-icon').hasClass('caret'))
+                $('#download-icon').attr('class', 'fa fa-cog fa-spin');
+            else
+                $('#download-icon').attr('class', 'caret');
+        };
+
         //$(document).ready(visualize(jsonPath));
         $(document).ready(function() {
 
@@ -223,7 +252,6 @@
                     .draw()
                     .drawLegend();
             });
-
 
         $("select#visualizationType").change(function(event){
 
@@ -302,6 +330,11 @@
 
     $('.download-image').on('click', function(event) {
 
+        // Prevent the button from doing anything (i.e. reloading the page)
+        event.preventDefault();
+
+        changeDownloadIcon();
+
         var dlurl = '/downloadResult';
         // Removes 'dl-' from the id string
         var filetype = event.target.id.slice(3);
@@ -310,34 +343,39 @@
         // This actually changes the image the user is seeing, but they
         // shouldn't be able to notice.
         d3.select('svg')
-                .insert('rect', 'g')
-                .attr('width', '100%')
-                .attr('height', '100%')
-                .attr('fill', 'white');
+            .insert('rect', 'g')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('fill', 'white');
 
-        var html = d3.select("svg")
-                .attr("version", 1.1)
-                .attr("xmlns", "http://www.w3.org/2000/svg")
-                .node().parentNode.innerHTML;
+        var html = d3.select("#d3-visual > svg")
+            .attr("version", 1.1)
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .node().parentNode.innerHTML;
 
-        $.post(dlurl, {svg: html, filetype: filetype}).done(function(data) {
+        {% if runhash %}
+            var runhash = '{{runhash | safe}}';
+        {% else %}
+            var runhash = '{{async_result.parameters.output_prefix}}';
+        {% endif %}
 
-            if (filetype == 'png')
-                var png = 'data:image/png;base64,' + data;
+        $.ajax({
+            type: 'POST',
+            url: dlurl,
+            data: {svg: html, filetype: filetype, runhash: runhash},
+            success: function(result, status) {
 
-            else if (filetype == 'pdf')
-                var png = 'data:application/pdf;base64,' + data;
+                changeDownloadIcon();
 
-            else
-                var png = 'data:xml/svg;base64,' + data;
+                let win = window.open(location.origin + '/' + result, '_blank');
+                win.focus();
+            },
+            error: function(xml, status, error) {
+                changeDownloadIcon();
 
-            var a = document.createElement("a");
-            a.download = 'result.' + filetype;
-            a.href = png;
-
-            document.body.appendChild(a);
-
-            a.click();
+                $('#img-error').text(error);
+                $('#img-alert').show();
+            }
         });
     });
 

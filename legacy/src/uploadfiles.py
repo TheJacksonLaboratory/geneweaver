@@ -1,5 +1,5 @@
 import re
-from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name, get_user_id_by_apikey
+from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name, get_user_id_by_apikey, get_missing_ref_ids
 from urlparse import parse_qs, urlparse
 from flask import session
 import annotator as ann
@@ -220,6 +220,7 @@ def create_new_geneset_for_user(args, user_id):
     gene_data = ''.join([i if ord(i) < 128 else ' ' for i in gene_data.strip('\r')])
     ## This count may not reflect the true number of genes
     gs_count = len(gene_data.split('\n'))
+    missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
 
     try:
@@ -291,7 +292,20 @@ def create_new_geneset_for_user(args, user_id):
     #
     # batch.db.commit()
 
-    return {'error': 'None', 'gs_id': gs_id}
+    missing_genes = []
+
+    for gl in gene_data.split('\n'):
+        g = gl.split('\t')
+
+        if g and g[0]:
+            missing_genes.append(g[0])
+
+    ## Last check for missing gene identifiers to inform the user of them
+    missing_genes = get_missing_ref_ids(
+        missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
+    )
+
+    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
 
 
 def process_gene_list(gene_list):

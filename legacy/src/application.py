@@ -41,7 +41,7 @@ from tools import similargenesetsblueprint
 import sphinxapi
 import search
 import math
-# import cairosvg
+from wand.image import Image
 from cStringIO import StringIO
 from werkzeug.routing import BaseConverter
 import bleach
@@ -731,7 +731,7 @@ def geneset_ready_for_review():
 @app.route("/mark_geneset_reviewed.json", methods=['POST'])
 @login_required(json=True)
 def mark_geneset_reviewed():
-    user_id = flask.session['user_id']
+    user = flask.g.user
 
     notes = bleach.clean(request.form.get('note', ''), strip=True)
     gs_id = request.form.get('gs_id', type=int)
@@ -740,10 +740,10 @@ def mark_geneset_reviewed():
     assignment = curation_assignments.get_geneset_curation_assignment(gs_id)
 
     if assignment:
-        if user_id == assignment.reviewer:
+        if user.user_id == assignment.reviewer:
             if review_ok:
                 tier = request.form.get('tier', type=int)
-                assignment.review_passed(notes, tier)
+                assignment.review_passed(notes, tier, user)
             else:
                 assignment.review_failed(notes)
             response = flask.jsonify(success=True)
@@ -1917,7 +1917,7 @@ def update_genesets_groups():
             return json.dumps({'error': 'None'})
 
         else:
-            errors = ','.join(map(lambda s: 'GS' + s, errors))
+            errors = ', '.join(map(lambda s: 'GS' + s, errors))
 
             return json.dumps({
                 'error': ('The GeneSet(s) %s are private (Tier V) and can '
@@ -2072,45 +2072,64 @@ def render_forgotpass():
 def download_result():
     """
     Used when a user requests to download a hi-res result image. The SVG data
-    is posted to the server, upscaled, converted to a PNG, and sent back to the
-    user.
+    is posted to the server, upscaled, converted to a PNG or other image format, 
+    and sent back to the user.
 
-    :ret str: base64 encoded image
+    args
+        request.form['svg']:        String containing the SVG XML that will be
+                                    converted into another image format
+        request.form['filetype']:   The filetype extension (e.g. PNG, PDF) for
+                                    the final image
+        request.form['version']:    A filepath to a classic (GW1) version of
+                                    the visualization. Only set when the user 
+                                    requests the classic version otherwise this 
+                                    is always null. Currently only used for the
+                                    HiSim graph tool.
+        
+    returns
+        the rendered image as a Base64 encoded blob
     """
 
     form = flask.request.form
-    svg = form['svg'].strip()
     filetype = form['filetype'].lower().strip()
-    svgout = StringIO()
-    imgout = StringIO()
-    resultpath = config.get('application', 'results')
-    dpi = 600
+    runhash = form['runhash'].strip()
+    svg = StringIO(form['svg'].strip())
+    results = config.get('application', 'results')
+    imgstream = StringIO()
+    dpi = 400 if filetype != 'svg' else 25
 
-    if 'oldver' in form:
-        with open(os.path.join(resultpath, form['oldver']), 'r') as fl:
-            svg = fl.read()
+    ## Some tools like HiSim graph write their own SVG file out to the results
+    ## and we don't want to overwrite this so we add the -s postfix to the
+    ## runhash.
+    if filetype == 'svg':
+        runhash = '%s-s' % runhash
 
-        dpi = 300
+    img_file = '%s.%s' % (runhash, filetype)
+    img_abs = os.path.join(results, img_file)
+    img_rel = os.path.join('results', img_file)
 
-    ## This is incredibly stupid, but must be done. cairosvg (for some
-    ## awful, unknown reason) will not scale any SVG produced by d3. So
-    ## we convert our d3js produced SVG to an SVG...then convert to PNG
-    ## with a reasonably high DPI.
-    ## Also, if any fonts are rendering incorrectly, it's because cairosvg
-    ## doesn't parse CSS attributes correctly and you need to append each
-    ## font attribute to the text element itself.
-    cairosvg.svg2svg(bytestring=svg, write_to=svgout)
+    if filetype == 'svg':
+        with open(img_abs, 'w') as fl:
+            print >> fl, svg.getvalue()
 
-    if filetype == 'pdf':
-        cairosvg.svg2pdf(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
+            return img_rel
 
-    elif filetype == 'png':
-        cairosvg.svg2png(bytestring=svgout.getvalue(), write_to=imgout, dpi=dpi)
+    ## The user wants the classic HiSim image
+    elif 'version' in form and form['version']:
+        classicpath = os.path.join(results, form['version'])
+        ## For some reason the DPI for this image needs to be low otherwise it
+        ## takes forever to render (and may cause ImageMagick to crash). It's 
+        ## also very clear even at low DPI.
+        img = Image(filename=classicpath, format='svg', resolution=150)
 
     else:
-        imgout = svgout
+        img = Image(file=svg, format='svg', resolution=dpi)
 
-    return imgout.getvalue().encode('base64')
+    img.format = filetype
+    img.save(filename=img_abs)
+    img.close()
+
+    return img_rel
 
 
 @app.route('/viewStoredResults', methods=['GET'])
@@ -2234,6 +2253,7 @@ def render_curategeneset(gs_id):
     curation_view = None
     curation_team_members = None
     curator_info = None
+    user = flask.g.user
 
     def user_is_curation_leader():
         owned_groups = geneweaverdb.get_all_owned_groups(flask.session['user_id'])
@@ -2241,6 +2261,10 @@ def render_curategeneset(gs_id):
             return True
 
     if assignment:
+        if request.args.get('reset_assignment_state') and (user.is_curator or user.is_admin):
+            assignment.assign_curator(assignment.curator, user.user_id)
+            assignment.set_curation_state('Ready for review')
+            curation_view = 'reviewer'
 
         #figure out the proper view depending on the state and your role(s)
         if assignment.state == curation_assignments.CurationAssignment.UNASSIGNED and user_is_curation_leader():

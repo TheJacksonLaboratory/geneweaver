@@ -1617,6 +1617,7 @@ def add_geneset_group(gs_id, grp_id):
                SET gs_groups = %s
                WHERE gs_id = %s;''', (groups, gs_id)
         )
+        cursor.connection.commit()
 
 
 def update_project_groups(proj_id, groups, user_id):
@@ -2670,6 +2671,17 @@ def get_curation_group():
     # groups named GeneWeaverCuration. We should throw an exception if
     # len(groups) > 1
     return None if len(groups) == 0 else groups[0]
+
+
+def get_all_curators_admins():
+    """
+
+    :return: List of Users that are GW Admins or Curators
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT * FROM production.usr WHERE usr_admin > 0;''')
+        users = [User(row) for row in dictify_cursor(cursor)]
+    return users
 
 
 class Groups:
@@ -4755,6 +4767,35 @@ def insert_omicssoft_metadata(gs_id, project, source, tag, otype):
         )
 
         cursor.connection.commit()
+
+def get_missing_ref_ids(refs, sp_id, gdb_id):
+    """
+    Given a list of gene reference IDs, returns a list of genes that are not
+    present in the DB.
+
+    arguments
+        refs:   list of gene references
+        sp_id:  species ID
+        gdb_id: gene type ID
+    """
+
+    with PooledCursor() as cursor:
+
+        cursor.execute(
+            '''
+            SELECT      user_gene.ref
+            FROM        (SELECT UNNEST(%s) AS ref) user_gene
+            LEFT JOIN   (SELECT ode_gene_id, ode_ref_id AS ref
+                         FROM   extsrc.gene
+                         WHERE  sp_id = %s AND
+                                gdb_id = %s
+            ) gene
+            ON          LOWER(user_gene.ref) = LOWER(gene.ref)
+            WHERE       gene.ode_gene_id IS NULL;
+            ''', (refs, sp_id, gdb_id)
+        )
+
+        return map(lambda t: t[0], cursor.fetchall())
 
 ## These functions below were added for the new batch parser. If some variant
 ## of them already exists elsewhere in this file (I looked and couldn't find 

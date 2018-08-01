@@ -85,7 +85,7 @@
         <h2 class="panel-title"><strong>Upload GeneSet</strong></h2>
     </div>
 
-    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="10000"></div>
+    <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="myid" data-fade="0"></div>
 
 
     <div class="row">
@@ -337,7 +337,7 @@
             </h2>
         </div>
 
-        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="genelist" data-fade="10000"></div>
+        <div data-alerts="alerts" data-titles="{'warning': '<em>Warning!</em>'}" data-ids="genelist" data-fade="0"></div>
 
         <div style="margin-left: 1em;">
             <br>
@@ -577,6 +577,7 @@
 
     $(document).ready(function () {
 
+        $('.loader').hide();
         autoPopulateForm();
         autoPopulateFromBoolean();
 
@@ -741,6 +742,15 @@
                                 'priority': 'danger'
                             }
                         ]);
+                    }
+                    if (v['missing'].length > 0) {
+                        $('html, body').animate({ scrollTop: 0 }, 'slow');
+                        $(document).trigger("add-alerts", [{
+                            'message': 'The following gene identifiers are ' +
+                                       'not present in GeneWeaver: ' + 
+                                       v['missing'].join(', '),
+                            'priority': 'warning'
+                        }]);
                     }
                 },
                 error: function(){
