@@ -1203,26 +1203,29 @@ def existing_identifiers_for_geneset(gs_id, gene_ids):
         return c.fetchall()
 
 
-def add_geneset_genes_to_temp(geneset_row_list):
+def add_geneset_genes_to_temp(gs_id, geneset_row_list):
     """ This function inserts rows into the temp_geneset_value table using execute_values().
 
     :param geneset_row_list: [(gs_id, ode_gene_id, src_value, src_id)...] The rows to be inserted
     :return:
     """
+    results = []
+    errors = []
     with PooledCursor(rollback_on_exception=True) as c:
         try:
             execute_values(c, ''' INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) VALUES %s''',
                            geneset_row_list)
             c.connection.commit()
-            result = {'success': "{} Genes succesfully inserted".format(len(geneset_row_list))}
+            results.append({'success': 'Genes succesfully uploaded. Please check the results,'
+                                       ' then click \'Save Updates\' to persist your changes.'})
         except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
-            result = {'error': 'There was a problem connecting to the database. Please try again later'}
+            errors.append({'error': 'There was a problem connecting to the database. Please try again later'})
         except (psycopg2.DataError, psycopg2.ProgrammingError):
-            result = {'error': 'We were unable to upload your geneset. Check your upload data for typos and try again.'}
+            errors.append({'error': 'Check your upload data for typos or errors and try again.'})
         except psycopg2.Error:
-            result = {'error': 'We were unable to upload your geneset. If the problem persists please contact '
-                               'Geneweaver support.'}
-        return result
+            errors.append({'error': 'If the problem persists please contact Geneweaver support.'})
+
+    return results, errors
 
 def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value):
     try:

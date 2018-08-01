@@ -448,32 +448,51 @@
                     "file_contents": file_data.val()
                 },
                 success: function (data) {
-                    var v = JSON.parse(data);
-                    if (v["errors"].length === 0) {
+                    var v = JSON.parse(data),
+                        num_errors = v["errors"].length,
+                        num_warnings = v["warnings"].length,
+                        results_selector = $("#result");
+                    console.log(v['warnings']);
+                    if (num_errors === 0 && num_warnings === 0) {
                         $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
-                        $("#result").html('<div class="alert alert-success fade in"> ' +
+                        results_selector.html('<div class="alert alert-success fade in"> ' +
                                 '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                                '</button>All Gene Identifier(s) and Value(s) successfully added</div>');
+                                '</button>All gene identifier(s) and value(s) successfully added</div>');
+                    }
+                    else if (num_errors === 0 && num_warnings > 0) {
+                        $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
+                        results_selector.append('<div class="alert alert-success fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
+                                '</button>Partially uploaded your geneset. See warnings for details.</div>');
                     }
                     else {
                         $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
                         var error_html = '<div class="alert alert-danger fade in"> ' +
                                 '<button type="button" class="close" data-dismiss="alert"' +
-                                'aria-hidden="true">x</button> There were some problems with the upload: <br><br>';
+                                'aria-hidden="true">x</button>We were unable to upload your genes: <br><br>';
                         v["errors"].forEach(function(item) {
                             error_html += item["error"] + '<br>';
                         });
                         error_html += '</div>';
-                        $("#result").html(error_html);
+                        results_selector.append(error_html);
                     }
+                    if (num_warnings > 0){
+                        var warning_html = '<div class="alert alert-warning fade in"> ' +
+                                '<button type="button" class="close" data-dismiss="alert"' +
+                                'aria-hidden="true">x</button>The gene upload generated the following warnings: <br><br>';
+                        v["warnings"].forEach(function(item) {
+                            warning_html += item["warning"] + '<br>';
+                        });
+                        warning_html += '</div>';
+                        results_selector.append(warning_html);
+                    }
+
                 },
                 error: function (data) {
                     $("#result").html('<div class="alert alert-danger fade in"> ' +
                             '<button type="button" class="close" data-dismiss="alert" aria-hidden="true">x' +
-                            '</button>An error occured while adding your genes. <br> This often happens with ' +
-                            'very large genesets (more than 1000 genes). To upload a very large geneset it is ' +
-                            'recommended that you use the <a href=/batchupload> Batch Upload Page </a> or that you ' +
-                            'try splitting the upload into smaller pieces.</div>');
+                            '</button>An error occured while adding your genes. <br>' +
+                            'Please check your gene data and try again. <div>');
                 },
                 complete: function() {
                     single_id.val('');

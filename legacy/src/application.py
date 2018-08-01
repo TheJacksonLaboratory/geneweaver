@@ -3919,8 +3919,11 @@ def add_geneset_gene():
     input_data = request.args if request.args else request.form
 
     # Generic Info
-    user_id = flask.g.user.user_id
+    user = flask.g.user
     gs_id = input_data['gsid']
+    results = []
+    warnings = []
+    errors = []
 
     # Copy/Paste and File Upload
     new_genes = input_data.get('text_data') + os.linesep + input_data.get('file_contents')
@@ -3933,30 +3936,43 @@ def add_geneset_gene():
     if single_id and single_value:
         gene_dict[single_id] = {'id': single_id, 'value': single_value}
 
-    # We can't add genes we don't have an ode_gene_id for
-    missing = []
-    gene_ids = geneweaverdb.geneset_gene_identifiers(gs_id, [(gene_dict[gene]['id'],) for gene in gene_dict])
-    for gene in gene_ids:
-        if gene[1]:
-            gene_dict[gene[0]]['ode_gene_id'] = gene[1]
+    if not geneweaverdb.user_can_edit(user.user_id, gs_id) and not (user.is_admin or user.is_curator):
+        errors.append({'error': 'You don\'t have permission to modify this geneset'})
+    if len(gene_dict) < 1:
+        errors.append({'error': 'No genes to upload'})
+    else:
+        # We can't add genes we don't have an ode_gene_id for
+        missing = []
+        gene_ids = geneweaverdb.geneset_gene_identifiers(gs_id, [(gene_dict[gene]['id'],) for gene in gene_dict])
+        for gene in gene_ids:
+            if gene[1]:
+                gene_dict[gene[0]]['ode_gene_id'] = gene[1]
+            else:
+                missing.append(gene[0])
+                del gene_dict[gene[0]]
+
+        warnings += [{'warning': 'Identifier Not Found for ID: {}'.format(gene)} for gene in missing]
+
+        # We don't want to overwrite genes that are already on the geneset
+        if len(gene_dict) < 1:
+            errors.append({'error': 'No valid genes to upload'})
         else:
-            missing.append(gene[0])
-            del gene_dict[gene[0]]
+            existing = geneweaverdb.existing_identifiers_for_geneset(gs_id, tuple(gene_dict[gene]['id'] for gene in gene_dict))
+            for gene in existing:
+                del gene_dict[gene[0]]
 
-    # We don't want to overwrite genes that are already on the geneset
-    existing = geneweaverdb.existing_identifiers_for_geneset(gs_id, tuple(gene_dict[gene]['id'] for gene in gene_dict))
-    for gene in existing:
-        del gene_dict[gene[0]]
+            warnings += [{'warning': 'The Source ID \'{}\', already exists for this geneset'.format(gene[0])} for gene in existing]
 
-    row_list = [(gs_id, gene_dict[gene]['ode_gene_id'], gene_dict[gene]['value'], gene_dict[gene]['id'])
-                for gene in gene_dict]
+            row_list = [(gs_id, gene_dict[gene]['ode_gene_id'], gene_dict[gene]['value'], gene_dict[gene]['id'])
+                        for gene in gene_dict]
+            if row_list:
+                db_results, db_errors = geneweaverdb.add_geneset_genes_to_temp(gs_id, row_list)
+                results += db_results
+                errors += db_errors
+            else:
+                errors.append({'error': 'All genes currently exist in this geneset.'})
 
-    results = geneweaverdb.add_geneset_genes_to_temp(row_list)
-
-    errors = [{'error': 'Identifier Not Found for ID: {}'.format(gene)} for gene in missing]
-    errors += [{'error': 'The Source ID \'{}\', already exists for this geneset'.format(gene[0])} for gene in existing]
-
-    return json.dumps({'results': results, 'errors': errors})
+    return json.dumps({'results': results, 'errors': errors, 'warnings': warnings})
 
 
 @app.route('/cancelEditByID', methods=['GET'])
