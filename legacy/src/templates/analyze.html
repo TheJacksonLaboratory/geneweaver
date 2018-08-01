@@ -295,160 +295,171 @@
 
 {% include 'footer.html' %}
 
-<script type="text/javascript" src="/static/js/geneweaver/tags.js"></script>
+<script type="text/javascript" src="../static/js/geneweaver/tags.js"></script>
+<script type="text/javascript" src="../static/js/geneweaver/selected.js"></script>
 <script type="text/javascript">
 
     $(function () {
         $("[data-toggle='tooltip']").tooltip();
     });
 
-	// Updates selected geneset and project counts and displays them to the
-	// user. The counts are stored as static variable within a closure.
+    // Updates selected geneset and project counts and displays them to the
+    // user. The counts are stored as static variable within a closure.
     // Project count displays are currently disabled.
-	// 
-	// :type gscount: int
-	// :arg gscount: the number of genesets to add to the count
-	//
-	// :type pjcount: int
-	// :arg pjcount: the numebr of projects to add to the count
-	//
-	var updateCount = (function() {
+    //
+    // :type gscount: int
+    // :arg gscount: the number of genesets to add to the count
+    //
+    // :type pjcount: int
+    // :arg pjcount: the numebr of projects to add to the count
+    //
+    var updateCount = (function() {
 
-		var gsCount = 0;
-		var pjCount = 0;
+        var gsCount = 0;
+        var pjCount = 0;
 
-		return function(gscount, pjcount) {
+        return function(gscount, pjcount) {
 
-			gsCount += gscount;
-			pjCount += pjcount;
+            gsCount += gscount;
+            pjCount += pjcount;
 
-			$('#geneset-count').html(function() {
-				if (gsCount === 0)
-					return '';
+            $('#geneset-count').html(function() {
+                if (gsCount === 0)
+                    return '';
 
-				if (gsCount === 1)
-					return '(' + gsCount + ' geneset is selected)';
+                if (gsCount === 1)
+                    return '(' + gsCount + ' geneset is selected)';
 
-				return '(' + gsCount + ' genesets are selected)';
-			});
-		}
-	})();
+                return '(' + gsCount + ' genesets are selected)';
+            });
+        };
+
+
+    })();
+
+
+
 
     $(document).ready(function () {
 
         var url = '/projectGenesets.json';
 
-		/**
-		  * Although attribution and species tags are part of the
-		  * viewGenesetSummaryPartial template, we generate the tags out here in
-		  * in the wrapper section otherwise this bit of javascript will be
-		  * injected into every single search result (50 per page).
-		  */
-		{% if attribs %}
-			makeAttributionTags({{ attribs | tojson | safe }});
-		{% else %}
-			makeAttributionTags();
-		{% endif %}
+        /**
+         * Although attribution and species tags are part of the
+         * viewGenesetSummaryPartial template, we generate the tags out here in
+         * in the wrapper section otherwise this bit of javascript will be
+         * injected into every single search result (50 per page).
+         */
+        {% if attribs %}
+            makeAttributionTags({{ attribs | tojson | safe }});
+        {% else %}
+            makeAttributionTags();
+        {% endif %}
 
-		// Species tags are generated each time a project is expanded since we
-		// use lazy loading.
-		{% if species %}
-			var species = {{ species | tojson | safe }};
-		{% else %}
-			var species = [];
-		{% endif %}
-		 
+        // Species tags are generated each time a project is expanded since we
+        // use lazy loading.
+        {% if species %}
+            var species = {{ species | tojson | safe }};
+        {% else %}
+            var species = [];
+        {% endif %}
 
-		// Changes caret position when tool options are expanded.
-		$('.tool-link').on('click', function(event) {
 
-			var caret = $(this).children('.fa-caret-left');
-			var allCarets = $('.fa-caret-left');
+        // Changes caret position when tool options are expanded.
+        $('.tool-link').on('click', function(event) {
 
-			if (!$(this).children('.fa-rotate-270').length) {
+            var caret = $(this).children('.fa-caret-left');
+            var allCarets = $('.fa-caret-left');
 
-				allCarets.attr('class', 'fa fa-caret-left');
-				caret.attr('class', 'fa fa-caret-left fa-rotate-270');
+            if (!$(this).children('.fa-rotate-270').length) {
 
-			} else {
-				allCarets.attr('class', 'fa fa-caret-left');
-			}
-		});
+                allCarets.attr('class', 'fa fa-caret-left');
+                caret.attr('class', 'fa fa-caret-left fa-rotate-270');
 
-		// TODO: this should be refactored
-		// All selector checkbox
-		$('.proj-checkbox').on('click', function(event) {
+            } else {
+                allCarets.attr('class', 'fa fa-caret-left');
+            }
+        });
 
-			var check = $(this).find('input[type=checkbox]');
-			var allcheck = '#' + check.attr('id');
-			var pid = allcheck.split('-')[1];
+        // TODO: this should be refactored
+        // All selector checkbox
+        $('.proj-checkbox').on('click', function(event) {
+
+            var check = $(this).find('input[type=checkbox]');
+            var allcheck = '#' + check.attr('id');
+            var pid = allcheck.split('-')[1];
             var pbid = '#project-body-' + pid;
-			var chkclass = '.proj-' + pid + '-check';
+            var chkclass = '.proj-' + pid + '-check';
 
             // Check to see if we haven't made an AJAX call for this project
-			if ($(pbid).children().length === 0) {
+            if ($(pbid).children().length === 0) {
 
-				var data = {'project': pid};
+                var data = {'project': pid};
+                $.get(url, data).done(function (data) {
+                    $(pbid).append(data);
+                    selected.add(check);
+                    $(chkclass).each(function (index) {
+                        $(this).attr('checked', true);
+                        updateCount(1, 0);
+                        selected.add($(this));
+                    });
+                });
 
-				$.get(url, data).done(function (data) {
-					$(pbid).append(data);
+            } else {
 
-					$(chkclass).each(function (index) {
-						$(this).attr('checked', true);
+                if ($(allcheck).attr('checked')) {
+                    selected.remove(check);
 
-						updateCount(1, 0);
-					});
-				});
-
-			} else {
-
-				if ($(allcheck).attr('checked')) {
-					
-					$(chkclass).each(function (index) {
-                        if ($(this).attr('checked'))
+                    $(chkclass).each(function (index) {
+                        if ($(this).attr('checked')) {
                             updateCount(-1, 0);
+                            selected.remove($(this));
+                        }
+                        $(this).attr('checked', false);
+                    });
 
-						$(this).attr('checked', false);
-					});
-
-				} else {
-
-					$(chkclass).each(function (index) {
-                        if (!$(this).attr('checked'))
+                } else {
+                    selected.add(check);
+                    $(chkclass).each(function (index) {
+                        if (!$(this).attr('checked')) {
                             updateCount(1, 0);
+                            selected.add($(this));
+                        }
+                        $(this).attr('checked', true);
+                    });
+                }
+            }
+        });
 
-						$(this).attr('checked', true);
-					});
-				}
-			}
-		});
+        // Updates individual geneset counts. Since the geneset list is
+        // injected into the dom, we register the click handler on a static
+        // element that exists prior to injection, and then filter the child
+        // elements that call the event.
+        //
+        $('.table').on('click', 'input[type=checkbox]', function(event) {
 
-		// Updates individual geneset counts. Since the geneset list is 
-		// injected into the dom, we register the click handler on a static
-		// element that exists prior to injection, and then filter the child
-		// elements that call the event.
-		//
-		$('.table').on('click', 'input[type=checkbox]', function(event) {
+            var projCheck = $(this).attr('class');
+            var checkIndex = projCheck.search('-check');
+            projCheck = projCheck.slice(0, checkIndex);
+            projCheck += '-allcheck';
 
-			var projCheck = $(this).attr('class');
-			var checkIndex = projCheck.search('-check');
-			projCheck = projCheck.slice(0, checkIndex);
-			projCheck += '-allcheck'
+            event.stopPropagation();
 
-			event.stopPropagation();
+            // TODO: Looks like our fancy checkboxes don't support the
+            // indetereminate visual state. :(
+            $('#' + projCheck).prop('indeterminate', true);
 
-			// TODO: Looks like our fancy checkboxes don't support the
-			// indetereminate visual state. :(
-			$('#' + projCheck).prop('indeterminate', true);
-
-			// Backwards because by the time we check to see if the box is 
-			// (un)checked, it's already the opposite. Web dev is pants on 
-			// head retarded sometimes.
-			if ($(this).attr('checked'))
-				updateCount(1, 0);
-			else
-				updateCount(-1, 0);
-		});
+            // Backwards because by the time we check to see if the box is
+            // (un)checked, it's already the opposite. Web dev is pants on
+            // head retarded sometimes.
+            if ($(this).attr('checked')) {
+                updateCount(1, 0);
+                selected.add($(this))
+            } else {
+                updateCount(-1, 0);
+                selected.remove($(this));
+            }
+        });
 
         // Project genesets are only loaded when necessary (i.e. when a user
         // clicks on the project link.
@@ -463,12 +474,12 @@
             // Check to see if we've already made an AJAX call for this project
             if ($(pbid).children().length !== 0) {
                 $(".gsid" + pid).toggle();
-                    //select the parent and find the span so you can
-                    //toggle the "plus" class
-                    $('#proj-' + pid).parent().find("span").toggleClass("plus");
-                    //toggle the minus class
-                    $('#proj-' + pid).toggleClass("plus");
-                    $('#proj-' + pid).toggleClass("minus");
+                //select the parent and find the span so you can
+                //toggle the "plus" class
+                $('#proj-' + pid).parent().find("span").toggleClass("plus");
+                //toggle the minus class
+                $('#proj-' + pid).toggleClass("plus");
+                $('#proj-' + pid).toggleClass("minus");
                 return;
             }
 
@@ -495,9 +506,9 @@
                     });
                 }
 
-				// Generate these tags once we actually have loaded data
-				// TODO: this could be improved by caching
-				makeSpeciesTags(species);
+                // Generate these tags once we actually have loaded data
+                // TODO: this could be improved by caching
+                makeSpeciesTags(species);
             });
         });
 
@@ -508,6 +519,6 @@
             'the appropriate options.'
         });
     });
-    
+
 
 </script>
