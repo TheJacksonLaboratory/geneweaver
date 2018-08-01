@@ -1331,9 +1331,12 @@ def get_ontology_terms(gsid):
 
     for ont in onts:
         if ont.ro_ont_id:
-            ont.ro_name = geneweaverdb.get_ontology_by_id(ont.ro_ont_id).name
+            ro = geneweaverdb.get_ontology_by_id(ont.ro_ont_id)
+            ont.ro_name = ro.name
+            ont.ro_ont_ref_id = ro.reference_id
         else:
-            ont.ro_name = None
+            ont.ro_name = ''
+            ont.ro_ont_ref_id = ''
 
     ## Convert ontdb references to a dict so they're easier to lookup
     for ont in ontdb:
@@ -1348,7 +1351,8 @@ def get_ontology_terms(gsid):
             'ontdb_id': ont.ontdb_id,
             'ont_id': ont.ontology_id,
             'ro_name': ont.ro_name,
-            'ro_id': ont.ro_ont_id
+            'ro_id': ont.ro_ont_id,
+            'ro_ref_id': ont.ro_ont_ref_id
         }
 
         ontret.append(o)
