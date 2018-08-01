@@ -452,7 +452,6 @@
                         num_errors = v["errors"].length,
                         num_warnings = v["warnings"].length,
                         results_selector = $("#result");
-                    console.log(v['warnings']);
                     if (num_errors === 0 && num_warnings === 0) {
                         $('#allgenesetgenes').load(location.href + " #allgenesetgenes>*", "");
                         results_selector.html('<div class="alert alert-success fade in"> ' +
