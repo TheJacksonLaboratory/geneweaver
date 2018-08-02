@@ -69,12 +69,16 @@
                     if (!val['read']) {
                         subjectClass = " subject-unread";
                     }
-
-
                     var html = "<div>\n" +
-                                    "<div><span class=\"subject " + subjectClass + "\">" + val['subject'] + "</span><span class=\"time-sent\">" + val['time_sent'] + "</span></div>\n" +
-                                    "<p class=\"message\">" + val['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + "</p>\n" +
-                                    "<hr></div>\n";
+                            "<div><span class=\"subject " + subjectClass + "\">" + val['subject'] +
+                            "</span><span class=\"time-sent\">" + val['time_sent'] +
+                            "<button type=\"button\" class=\"btn btn-link\" onclick=\"console.log( " +
+                            val['notification_id'] + ")\">" +
+                            "<i class=\"fa fa-times\" aria-hidden=\"true\"></i></button>" +
+                            "</span>" +
+                            "</div>\n" +
+                            "<p class=\"message\">" + val['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + "</p>\n" +
+                            "<hr></div>\n";
                     $("#notifications").append(html);
                 });
                 update_notification_badge();

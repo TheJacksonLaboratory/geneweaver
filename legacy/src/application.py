@@ -4360,6 +4360,14 @@ def get_notifications_json():
     return json.dumps({'notifications': notes, 'has_more': has_more})
 
 
+@app.route('/dismiss_notification')
+@login_required(json=True)
+def dismiss_notification():
+    if 'note_id' in request.args:
+        note_id = request.args['note_id']
+        notifications.dismiss_notification(note_id)
+
+
 @app.route('/unread_notification_count.json')
 @login_required(json=True)
 def get_unread_notification_count_json():
