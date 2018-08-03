@@ -4365,7 +4365,11 @@ def get_notifications_json():
 def dismiss_notification():
     if 'note_id' in request.args:
         note_id = request.args['note_id']
-        notifications.dismiss_notification(note_id)
+        result = notifications.dismiss_notification(note_id)
+    else:
+        result = {'error': 'Notification ID wasn\'t included in request.'}
+
+    return json.dumps(result)
 
 
 @app.route('/unread_notification_count.json')

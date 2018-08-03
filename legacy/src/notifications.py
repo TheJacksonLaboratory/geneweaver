@@ -179,11 +179,11 @@ def dismiss_notification(note_id):
             cursor.execute("UPDATE production.notifications "
                            "SET dismissed = True "
                            "WHERE notification_id = %s", (note_id,))
-            cursor.commit()
+            cursor.connection.commit()
             cursor.execute("SELECT dismissed "
                            "FROM production.notifications "
                            "WHERE notification_id = %s", (note_id, ))
-            result = cursor.fetchone()[0]
+            result = {'dismissed': cursor.fetchone()[0], 'error': False}
             print(result)
         except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
             result = {'error': 'There was a problem connecting to the database. Please try again later'}
@@ -204,7 +204,7 @@ def delete_notification(note_id):
 def get_notifications(usr_id, offset=0, limit=None):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute("SELECT * FROM production.notifications "
-                       "WHERE usr_id = %s AND dismissed = false "
+                       "WHERE usr_id = %s AND dismissed = FALSE "
                        "ORDER BY time_sent DESC "
                        "OFFSET %s LIMIT %s", (usr_id, offset, limit))
 
