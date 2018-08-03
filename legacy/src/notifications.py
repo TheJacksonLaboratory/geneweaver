@@ -174,17 +174,13 @@ def mark_notifications_read(*ids):
 
 
 def dismiss_notification(note_id):
-    with geneweaverdb.PooledCursor() as cursor:
+    with geneweaverdb.PooledCursor(rollback_on_exception=True) as cursor:
         try:
             cursor.execute("UPDATE production.notifications "
                            "SET dismissed = True "
                            "WHERE notification_id = %s", (note_id,))
             cursor.connection.commit()
-            cursor.execute("SELECT dismissed "
-                           "FROM production.notifications "
-                           "WHERE notification_id = %s", (note_id, ))
-            result = {'dismissed': cursor.fetchone()[0], 'error': False}
-            print(result)
+            result = {'error': False}
         except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
             result = {'error': 'There was a problem connecting to the database. Please try again later'}
         except (psycopg2.DataError, psycopg2.ProgrammingError):
