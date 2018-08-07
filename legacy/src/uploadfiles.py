@@ -7,8 +7,6 @@ import json
 import psycopg2
 import requests
 import tools.toolcommon as tc
-from tools.celeryapp import celery
-import notifications
 
 __author__ = 'baker'
 
@@ -430,7 +428,13 @@ def create_new_large_geneset_for_user(args, user_id):
         ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
                                pubDict['pub_abstract'], ncbo=ncbo,
                                monarch=monarch)
-    ##
+
+    tc.celery_app.send_task('tools.LargeGenesetUpload.LargeGenesetUpload',
+                            kwargs={
+                                'gs_id': gs_id,
+                                'user_id': user_id
+                            })
+
     ## Doesn't do error checking or ensuring the number of genes added matches
     ## the current gs_count
     # vals = batch.buGenesetValues(gs)
@@ -451,27 +455,6 @@ def create_new_large_geneset_for_user(args, user_id):
     )
 
     return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
-
-@celery.tesk
-def process_large_geneset(gs_id, user_id):
-    with PooledCursor() as cursor:
-        cursor.execute("SELECT production.reparse_geneset_file(%s)", gs_id)
-        cursor.execute("SELECT production.process_thresholds(%s)", gs_id)
-        cursor.connection.commit()
-
-    # Some genesets contain no genes. We need to remove those genesets
-    with PooledCursor() as cursor:
-        cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s''', (gs_id,))
-        if cursor.fetchone()[0] < 1:
-            cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
-            cursor.connection.commit()
-            deletion_message = 'GeneSet upload with id {} has been deleted. '.format(gs_id)
-            deletion_message += 'No Genes in the GeneSet could be uploaded. Please try again and check that the ' \
-                                'Identifier and Species, and that your genes exist and are valid.'
-            notifications.send_usr_notification(user_id, 'Upload Deleted', deletion_message)
-        else:
-            cursor.execute("UPDATE production.geneset SET gs_status='normal' WHERE gs_id = %s", gs_id)
-            cursor.connection.commit()
 
 
 def process_gene_list(gene_list):
