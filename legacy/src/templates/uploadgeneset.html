@@ -643,8 +643,10 @@
         $('#file_text').keyup(function(e) {
             var tval = $('#file_text').val(),
                     tlength = tval.split("\n").length;
-            warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
-                    '<a href=/batchupload> Batch Upload Page </a>.';
+            warnMesg = 'Genesets larger than 5000 genes will be uploaded asynchronously. ' +
+                    'Do to the nature of how we process these sets, we cannot provide immediate feedback ' +
+                    'for common errors. Please take extra care to ensure that you\'ve entered all required ' +
+                    'information correctly.';
             if (tlength >= 5000){
                 $(document).trigger("clear-alerts");
                 $(document).trigger("set-alert-id-genelist", [{
