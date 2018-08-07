@@ -412,8 +412,8 @@
 
     var updateCheckedOnts = function(ont_id, ro_ont_id) {
         var row_id = ont_id+'-'+ro_ont_id,
-                checkbox_el = $("#addRDF"+row_id),
-                idx = checkedOnts.indexOf(row_id);
+            checkbox_el = $("#addRDF"+row_id),
+            idx = checkedOnts.indexOf(row_id);
         if (checkbox_el.attr('checked') && idx === -1) {
             checkedOnts.push(row_id);
         }
@@ -498,11 +498,10 @@
                 {data: 'reference_id'},
                 {data: 'ref_type'},
                 {data: 'ro_name'},
-                {data: 'ro_id'}
+                {data: 'ro_ref_id'},
+                {data: 'ro_id', visible: false}
             ],
             'aoColumnDefs': [{
-                // The last column is a link that allows users to
-                // remove a gene set annotation
                 'aTargets': [0],
                 'fnCreatedCell': function(nTd, _, oData, _, _) {
                     var roCheck = $('<div class="ui-checkbox">' +
