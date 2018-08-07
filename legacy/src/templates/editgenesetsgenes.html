@@ -83,6 +83,15 @@
 
 	{% endif %}
 
+    {% if geneset.status == 'delayed:processing'%}
+        <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+                &times;
+            </button>
+            This GeneSet is still processing. Please be patient while we finish things up.
+        </div>
+    {% endif %}
+
     <div class="loader"></div>
 
     <div class="panel panel-default panel-heading bg-gray-light">
