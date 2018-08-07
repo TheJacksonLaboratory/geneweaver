@@ -689,9 +689,16 @@
             // geneset. Otherwise they might click the submit button 10 times.
             $('#confirmUpload').modal('show');
 
+            var tval = $('#file_text').val(),
+                tlength = tval.split("\n").length,
+                new_gs_url = "../createtempgeneset_original";
+            if (tlength > 5000) {
+                new_gs_url = "../createtempgeneset_large";
+            }
+
             $.ajax({
                 type: "POST",
-                url: "../createtempgeneset_original",
+                url: new_gs_url,
                 data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
                 success: function (data) {
                     // Hides confirmation after any kind of result (success or
