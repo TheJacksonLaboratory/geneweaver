@@ -2241,6 +2241,18 @@ def create_geneset_meta():
     return json.dumps(results)
 
 
+@app.route('/createtempgeneset_large', methods=["POST"])
+@login_required(json=True)
+def create_large_geneset():
+    user = flask.g.user
+    if int(request.form['sp_id']) == 0:
+        return json.dumps({'error': 'You must select a species.'})
+    if str(request.form['gdb_id']) == '0':
+        return json.dumps({'error': 'You must select an identifier.'})
+    results = uploadfiles.create_new_large_geneset_for_user(request.form, user.user_id)
+    return json.dumps(results)
+
+
 @app.route('/transposeGenesetIDs', methods=["POST"])
 @login_required(json=True)
 def transposeGSIDs():
