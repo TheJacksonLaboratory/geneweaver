@@ -64,6 +64,8 @@ class CurationAssignment(object):
         self._reviewer = None
         self.reviewer = row_dict['reviewer']
         self._pub_assignment = None
+        self._reviewer_user = None
+        self._curator_user = None
 
 
     @property
@@ -81,17 +83,37 @@ class CurationAssignment(object):
                 self.reviewer_tiers = [(4, "IV"), (5, "V")]
 
     @property
+    def reviewer_user(self):
+        if not self._reviewer_user:
+            self._reviewer_user = geneweaverdb.get_user(self.reviewer)
+        return self._reviewer_user
+
+    @property
+    def curator_user(self):
+        if not self._curator_user:
+            self._curator_user = geneweaverdb.get_user(self.curator)
+        return self._curator_user
+
+    @property
     def pub_assignment(self):
         if not self._pub_assignment:
             self._pub_assignment = pub_assignments.get_pub_assignment_from_geneset_id(self.gs_id)
         return self._pub_assignment
 
-    def generic_message(self, previous_state=None):
+    def generic_message(self, previous_state=None, include_reviewer=False):
         message = get_geneset_url(self.gs_id) + ' : <i>' + get_geneset_name(self.gs_id) + '</i><br>'
         message += "from Publication Assignment: " + self.pub_assignment.get_url()
         message += ': <i>' + self.pub_assignment.publication.title + '</i><br>'
         message +=  self.notes + '<br>' if self.notes else ''
-        message += 'Previously state was "{}"'.format(previous_state) if previous_state else ''
+        message += 'Previously state was "{}."<br>'.format(previous_state) if previous_state else ''
+        if include_reviewer and self.reviewer_user:
+            message += 'Reviewer: {} {}, {} <br>'.format(self.reviewer_user.first_name,
+                                                             self.reviewer_user.last_name,
+                                                             self.reviewer_user.email)
+        if include_reviewer and self.curator_user:
+            message += 'Curator: {} {}, {} <br>'.format(self.reviewer_user.first_name,
+                                                             self.reviewer_user.last_name,
+                                                             self.reviewer_user.email)
         return message
 
     def status_to_string(self):
@@ -149,7 +171,7 @@ class CurationAssignment(object):
 
         # Send notification to curator
         subject = 'Geneset Curation Assigned To You'
-        message = self.generic_message(previous_state=previous_state)
+        message = self.generic_message(previous_state=previous_state, include_reviewer=True)
         notifications.send_usr_notification(curator_id, subject, message)
 
     def submit_for_review(self, notes):
@@ -208,7 +230,7 @@ class CurationAssignment(object):
         geneset_url = get_geneset_url(self.gs_id)
         geneset_name = get_geneset_name(self.gs_id)
         message = geneset_url + ': <i>' + geneset_name + '</i><br>' + notes
-        message = self.generic_message(previous_state=previous_state)
+        message = self.generic_message(previous_state=previous_state, include_reviewer=True)
         notifications.send_usr_notification(self.curator, subject, message)
 
         if not (submitter.is_admin or submitter.is_curator):
@@ -244,7 +266,7 @@ class CurationAssignment(object):
         # Send notification to curator
         subject = 'Geneset Curation Review FAILED'
         message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
-        message = self.generic_message(previous_state=previous_state)
+        message = self.generic_message(previous_state=previous_state, include_reviewer=True)
         notifications.send_usr_notification(self.curator, subject, message)
 
     def set_curation_state(self, state_string):
