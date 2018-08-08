@@ -1,5 +1,5 @@
 import re
-from geneweaverdb import PooledCursor, get_geneset, get_user, get_species_id_by_name, dictify_cursor, get_gdb_id_by_name, get_user_id_by_apikey, get_missing_ref_ids
+import geneweaverdb as db
 from urlparse import parse_qs, urlparse
 from flask import session
 import annotator as ann
@@ -21,7 +21,7 @@ def create_temp_geneset():
     :return: 'True' or 'False'
     '''
     try:
-        with PooledCursor() as cursor:
+        with db.PooledCursor() as cursor:
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_value (gs_id bigint, ode_gene_id bigint,
                               src_value numeric, src_id varchar)''')
             cursor.execute('''CREATE TABLE IF NOT EXISTS production.temp_geneset_meta (gs_id bigint, sp_id int, gdb_id int)''')
@@ -53,7 +53,7 @@ def insertPublication(pubDict):
     pmid = False
     # Get pub_id from publication if a pmid exists
     if pubDict['pub_pubmed'] != '':
-        with PooledCursor() as cursor:
+        with db.PooledCursor() as cursor:
             cursor.execute('''SELECT pub_id FROM publication WHERE pub_pubmed=%s''', (pubDict['pub_pubmed'],))
             pub_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
             if pub_id is not None:
@@ -63,7 +63,7 @@ def insertPublication(pubDict):
                 pmid = True
     # Insert new values otherwise and return id to pub_id
     if pmid or pubDict['pub_pubmed'] == '':
-        with PooledCursor() as cursor:
+        with db.PooledCursor() as cursor:
             cursor.execute('''INSERT INTO publication (pub_authors, pub_title, pub_abstract, pub_journal, pub_volume,
                               pub_pages, pub_month, pub_year, pub_pubmed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                               RETURNING pub_id''',
@@ -77,7 +77,7 @@ def insertPublication(pubDict):
 
 
 def insert_new_contents_to_file(contents):
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''INSERT INTO file (file_contents, file_comments, file_created) VALUES (%s, %s, now())
                           RETURNING file_id''', (contents, 'uploaded from website',))
         file_id = cursor.fetchone()[0]
@@ -166,7 +166,7 @@ def create_new_geneset_for_user(args, user_id):
 
     # The old geneset loader is commented out, followed by the new geneset insert
     # try:
-    #     with PooledCursor() as cursor:
+    #     with db.PooledCursor() as cursor:
     #         cursor.execute('''INSERT INTO production.geneset (usr_id, file_id, gs_name, gs_abbreviation, pub_id, cur_id,
     #                           gs_description, sp_id, gs_count, gs_groups, gs_gene_id_type, gs_created, gs_status)
     #                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s) RETURNING gs_id''',
@@ -224,7 +224,7 @@ def create_new_geneset_for_user(args, user_id):
     gene_data = process_gene_list(gene_data)
 
     try:
-        with PooledCursor() as cursor:
+        with db.PooledCursor() as cursor:
             cursor.execute('''SELECT production.create_geneset2(%s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s)''', (int(user_id),
                                          int(cur_id),
@@ -256,7 +256,7 @@ def create_new_geneset_for_user(args, user_id):
         return {'error': e}
 
     # Some genesets contain no genes. We need to remove those genesets
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''SELECT count(*) FROM extsrc.geneset_value WHERE gs_id=%s''', (gs_id,))
         if cursor.fetchone()[0] < 1:
             cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
@@ -268,7 +268,7 @@ def create_new_geneset_for_user(args, user_id):
 
 
     # need to get user's preference for annotation tool
-    user = get_user(user_id)
+    user = db.get_user(user_id)
     user_prefs = json.loads(user.prefs)
 
     # get the user's annotator preference.  if there isn't one in their user
@@ -281,7 +281,7 @@ def create_new_geneset_for_user(args, user_id):
     elif annotator == 'monarch':
         ncbo = False
 
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
                                pubDict['pub_abstract'], ncbo=ncbo,
                                monarch=monarch)
@@ -301,7 +301,7 @@ def create_new_geneset_for_user(args, user_id):
             missing_genes.append(g[0])
 
     ## Last check for missing gene identifiers to inform the user of them
-    missing_genes = get_missing_ref_ids(
+    missing_genes = db.get_missing_ref_ids(
         missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
     )
 
@@ -334,13 +334,13 @@ def create_temp_geneset_from_value(gsid):
     :return: null
     '''
     create_temp_geneset()
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''SELECT gs_id FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
         is_geneset_value = cursor.rowcount
         cursor.execute('''SELECT gs_id FROM temp_geneset_meta WHERE gs_id=%s''', (gsid,))
         is_geneset_meta = cursor.rowcount
         if is_geneset_value == 0 and is_geneset_meta == 0:
-            with PooledCursor() as cursor:
+            with db.PooledCursor() as cursor:
                 cursor.execute('''DELETE FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
                 cursor.execute('''INSERT INTO temp_geneset_value (SELECT gs_id, ode_gene_id, gsv_value_list[1], gsv_source_list[1]
                                 FROM geneset_value WHERE gs_id=%s)''', (gsid,))
@@ -354,14 +354,14 @@ def get_file_contents_by_gsid(gsid):
     :param gsid:
     :return:
     '''
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
             cursor.execute('''SELECT file.file_contents FROM file, geneset WHERE file.file_id=geneset.file_id AND
                               geneset.gs_id=%s''', (gsid,))
             results = cursor.fetchone()
     if results[0] is None:
         return 0
     else:
-        with PooledCursor() as cursor:
+        with db.PooledCursor() as cursor:
             cursor.execute('''SELECT f.file_contents, g.sp_id, g.gs_gene_id_type FROM file f, geneset g WHERE g.gs_id=%s
                               AND g.file_id=f.file_id''', (gsid,))
             results = cursor.fetchall()
@@ -382,7 +382,7 @@ def get_unmapped_ids(gs_id, geneset, sp_id, gdb_id):
     # genes vs probe ids
     if gdb_id < 0:
         for i in geneset.geneset_values:
-            with PooledCursor() as cursor:
+            with db.PooledCursor() as cursor:
                 cursor.execute('''SELECT ode_ref_id FROM extsrc.gene WHERE ode_gene_id=%s AND sp_id=%s AND gdb_id=-%s''',
                                (i.ode_gene_id, sp_id, gdb_id,))
                 results = cursor.fetchall()
@@ -399,7 +399,7 @@ def get_temp_geneset_gsid(gsid):
     :param gsid:
     :return:
     '''
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''SELECT sp_id, gdb_id FROM temp_geneset_meta WHERE gs_id=%s''', (gsid,))
         if cursor.rowcount != 0:
             results = cursor.fetchall()
@@ -421,12 +421,12 @@ def update_species_by_gsid(rargs):
     user_id = rargs['user_id']
     gs_id = rargs['gs_id']
     altSpecies = rargs['altSpecies']
-    u = get_user(user_id)
-    g = get_geneset(gs_id, user_id, temp=None)
+    u = db.get_user(user_id)
+    g = db.get_geneset(gs_id, user_id, temp=None)
     if u.is_admin or u.is_curator or g:
         create_temp_geneset()
-        with PooledCursor() as cursor:
-            sp_id = get_species_id_by_name(altSpecies)
+        with db.PooledCursor() as cursor:
+            sp_id = db.get_species_id_by_name(altSpecies)
             cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
                               temp_geneset_meta WHERE gs_id=%s)''', (gs_id, gs_id,))
             cursor.execute('''UPDATE temp_geneset_meta SET sp_id=%s WHERE gs_id=%s''', (sp_id, gs_id,))
@@ -449,12 +449,12 @@ def update_identifier_by_gsid(rargs):
     user_id = rargs['user_id']
     gs_id = rargs['gs_id']
     altId = rargs['altId']
-    u = get_user(user_id)
-    g = get_geneset(gs_id, user_id, temp=None)
+    u = db.get_user(user_id)
+    g = db.get_geneset(gs_id, user_id, temp=None)
     if u.is_admin or u.is_curator or g:
         create_temp_geneset()
-        with PooledCursor() as cursor:
-            gdb_id = get_gdb_id_by_name(altId)
+        with db.PooledCursor() as cursor:
+            gdb_id = db.get_gdb_id_by_name(altId)
             cursor.execute('''SELECT sp_id FROM temp_geneset_meta WHERE gs_id=%s''', (gs_id,))
             sp_id = cursor.fetchone()[0] if cursor.rowcount != 0 else None
             cursor.execute('''INSERT INTO temp_geneset_meta (gs_id) SELECT %s WHERE NOT EXISTS (SELECT gs_id FROM
@@ -522,13 +522,13 @@ def reparse_file_contents_simple(gs_id, species=None, gdb=None):
                             if gene != '' and isinstance(v, float) and gene is not None:
                                 gene = str(gene.strip('\n\r '))
                                 g = gene.lower()
-                                with PooledCursor() as cursor:
+                                with db.PooledCursor() as cursor:
                                     cursor.execute('SELECT ode_gene_id FROM gene WHERE LOWER(ode_ref_id) LIKE LOWER(%s) '
                                                    'AND sp_id=%s AND gdb_id=%s', (g, species, gdb,))
                                     s = cursor.fetchall()
                                 if len(s) != 0:
                                     for i in s:
-                                        with PooledCursor() as cursor:
+                                        with db.PooledCursor() as cursor:
                                             cursor.execute('''INSERT INTO production.temp_geneset_value
                                                               VALUES (%s, %s, %s, %s)''', (gs_id, i[0], v, gene,))
                                             cursor.connection.commit()
@@ -537,7 +537,7 @@ def reparse_file_contents_simple(gs_id, species=None, gdb=None):
 
 def make_file_content_string_from_temp_geneset(gsid):
     contents = ''
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''SELECT src_id, src_value FROM temp_geneset_value WHERE gs_id=%s''', (gsid,))
         results = cursor.fetchall()
         for i in results:
@@ -546,7 +546,7 @@ def make_file_content_string_from_temp_geneset(gsid):
 
 
 def write_file_contents_to_file(gsid, contents):
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''UPDATE file SET file_contents=%s FROM geneset
                           WHERE geneset.gs_id=%s AND geneset.file_id=file.file_id''', (contents, gsid,))
         cursor.connection.commit()
@@ -554,7 +554,7 @@ def write_file_contents_to_file(gsid, contents):
 
 
 def update_geneset_species(gsid):
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM (SELECT sp_id FROM geneset WHERE gs_id=%s UNION
                           SELECT sp_id FROM temp_geneset_meta WHERE gs_id=%s) as a''', (gsid, gsid,))
         if cursor.rowcount != 1:
@@ -566,7 +566,7 @@ def update_geneset_species(gsid):
 
 
 def update_geneset_identifier(gsid):
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         cursor.execute('''SELECT * FROM (SELECT gs_gene_id_type FROM geneset WHERE gs_id=%s UNION
                           SELECT gdb_id FROM temp_geneset_meta WHERE gs_id=%s) as a''', (gsid, gsid,))
         if cursor.rowcount != 1:
@@ -583,7 +583,7 @@ def insert_into_geneset_value_by_gsid(gsid):
     :param gsid:
     :return: 'True' or error msg
     '''
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         ## get the latest count of genes from the temp table for updating main table at end of process
         cursor.execute('''select count(*) from production.temp_geneset_value where gs_id = %s;''' % (gsid,))
         gs_count = cursor.fetchone()[0]
@@ -591,7 +591,7 @@ def insert_into_geneset_value_by_gsid(gsid):
         g = cursor.fetchone()
         if g is not None:
             if int(g[0]) == int(gsid):
-                with PooledCursor() as cursor:
+                with db.PooledCursor() as cursor:
                     cursor.execute('''DELETE FROM extsrc.geneset_value WHERE gs_id=%s;''' % (gsid,))
                     cursor.execute('''INSERT INTO extsrc.geneset_value (gs_id, ode_gene_id, gsv_value, gsv_hits, gsv_source_list,
                                      gsv_value_list, gsv_in_threshold, gsv_date)
@@ -646,7 +646,7 @@ def post_geneset_by_user(apikey, data):
     formData.append("file_text=" + file_text)
 
     args = {'formData': '&'.join(formData)}
-    user_id = get_user_id_by_apikey(apikey)
+    user_id = db.get_user_id_by_apikey(apikey)
     return create_new_geneset_for_user(args, user_id)
 
 
