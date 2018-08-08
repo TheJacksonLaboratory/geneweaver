@@ -64,6 +64,10 @@ class PubAssignment(object):
         except KeyError:
             return "Unknown"
 
+    @property
+    def publication(self):
+        return geneweaverdb.get_publication(self.pub_id)
+
     def assign_to_curator(self, assignee_id, assigner_id, notes):
         """
         :param pub_assignment_id: id of assignment record
@@ -72,6 +76,9 @@ class PubAssignment(object):
         :param note: message that will be sent to the assignee
         :return:
         """
+
+        previous_state = self.state
+
         state = self.ASSIGNED
 
         with geneweaverdb.PooledCursor() as cursor:
@@ -239,13 +246,12 @@ class PubAssignment(object):
                 cursor.connection.commit()
 
             if geneset_id:
+                self.__insert_gs_to_pub(geneset_id)
                 curation_assignments.submit_geneset_for_curation(geneset_id,
                                                                  self.group,
                                                                  "", False)
                 assignment = curation_assignments.get_geneset_curation_assignment(geneset_id)
                 assignment.assign_curator(self.assignee, self.assigner, "")
-
-                self.__insert_gs_to_pub(geneset_id)
 
                 # run the annotator for the geneset (on geneset description and the
                 # publication
@@ -318,7 +324,11 @@ def get_publication_assignment_by_pub_id(pub_id, group_id):
         return PubAssignment(assignments[0]) if len(assignments) == 1 else None
 
 
+def get_pub_assignment_from_geneset_id(geneset_id):
+    print(geneset_id)
+    with geneweaverdb.PooledCursor() as cursor:
+        cursor.execute("SELECT pub_assign_id FROM production.gs_to_pub_assignment WHERE gs_id = %s", (geneset_id,))
+        pub_id = cursor.fetchone()[0]
 
-
-
+    return get_publication_assignment(pub_id)
 

@@ -39,6 +39,7 @@ from __future__ import print_function
 import geneweaverdb
 import notifications
 import psycopg2
+import pub_assignments
 
 __CORE_CURATION_GROUP = None
 
@@ -61,8 +62,8 @@ class CurationAssignment(object):
         self.updated = row_dict['updated']
         self.reviewer_tiers = None
         self._reviewer = None
-
         self.reviewer = row_dict['reviewer']
+        self._pub_assignment = None
 
 
     @property
@@ -79,6 +80,19 @@ class CurationAssignment(object):
             else:
                 self.reviewer_tiers = [(4, "IV"), (5, "V")]
 
+    @property
+    def pub_assignment(self):
+        if not self._pub_assignment:
+            self._pub_assignment = pub_assignments.get_pub_assignment_from_geneset_id(self.gs_id)
+        return self._pub_assignment
+
+    def generic_message(self, previous_state=None):
+        message = get_geneset_url(self.gs_id) + ' : <i>' + get_geneset_name(self.gs_id) + '</i><br>'
+        message += "from Publication Assignment: " + self.pub_assignment.get_url()
+        message += ': <i>' + self.pub_assignment.publication.title + '</i><br>'
+        message +=  self.notes + '<br>' if self.notes else ''
+        message += 'Previously state was "{}"'.format(previous_state) if previous_state else ''
+        return message
 
     def status_to_string(self):
 
@@ -117,6 +131,8 @@ class CurationAssignment(object):
         :return:
         """
 
+        previous_state = self.status_to_string()
+
         state = CurationAssignment.ASSIGNED
 
         with geneweaverdb.PooledCursor() as cursor:
@@ -133,7 +149,7 @@ class CurationAssignment(object):
 
         # Send notification to curator
         subject = 'Geneset Curation Assigned To You'
-        message = get_geneset_url(self.gs_id) + ' : <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(curator_id, subject, message)
 
     def submit_for_review(self, notes):
@@ -142,6 +158,7 @@ class CurationAssignment(object):
         :return:
         """
 
+        previous_state = self.status_to_string()
         assert self.state == CurationAssignment.ASSIGNED
 
         curation_state = CurationAssignment.READY_FOR_REVIEW
@@ -158,6 +175,7 @@ class CurationAssignment(object):
         # Send notification to reviewer
         subject = 'Geneset Curation Ready For Review'
         message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(self.reviewer, subject, message)
 
     def review_passed(self, notes, tier, submitter):
@@ -168,6 +186,7 @@ class CurationAssignment(object):
         :return:
         """
 
+        previous_state = self.status_to_string()
         assert self.state == CurationAssignment.READY_FOR_REVIEW
 
         curation_state = CurationAssignment.REVIEWED
@@ -189,6 +208,7 @@ class CurationAssignment(object):
         geneset_url = get_geneset_url(self.gs_id)
         geneset_name = get_geneset_name(self.gs_id)
         message = geneset_url + ': <i>' + geneset_name + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(self.curator, subject, message)
 
         if not (submitter.is_admin or submitter.is_curator):
@@ -207,6 +227,7 @@ class CurationAssignment(object):
         :return:
         """
 
+        previous_state = self.status_to_string()
         assert self.state == CurationAssignment.READY_FOR_REVIEW
 
         curation_state = CurationAssignment.ASSIGNED
@@ -223,6 +244,7 @@ class CurationAssignment(object):
         # Send notification to curator
         subject = 'Geneset Curation Review FAILED'
         message = get_geneset_url(self.gs_id) + ': <i>' + get_geneset_name(self.gs_id) + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(self.curator, subject, message)
 
     def set_curation_state(self, state_string):
