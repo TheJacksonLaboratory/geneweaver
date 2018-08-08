@@ -49,6 +49,9 @@ class PubAssignment(object):
         self.group = row_dict['curation_group']
         self.created = row_dict['created']
         self.updated = row_dict['updated']
+        self._publication = None
+        self._assignee_user = None
+        self._assigner_user = None
 
     @property
     def state_as_string(self):
@@ -66,7 +69,35 @@ class PubAssignment(object):
 
     @property
     def publication(self):
-        return geneweaverdb.get_publication(self.pub_id)
+        if not self._publication:
+            self._publication = geneweaverdb.get_publication(self.pub_id)
+        return self._publication
+
+    @property
+    def assignee_user(self):
+        if not self._assignee_user:
+            self._assignee_user = geneweaverdb.get_user(self.assignee)
+        return self._assignee_user
+
+    @property
+    def assigner_user(self):
+        if not self._assigner_user:
+            self._assigner_user = geneweaverdb.get_user(self.assigner)
+        return self._assigner_user
+
+    def generic_message(self, previous_state):
+        message = "View Assignment: " + self.get_url() + ' <i>' + self.publication.title + '</i><br>'
+        message +=  self.notes + '<br>' if self.notes else ''
+        message += 'Previously state was "{}."<br>'.format(previous_state) if previous_state else ''
+        if self.assignee_user:
+            message += 'Assigned to: {} {}, {} <br>'.format(self.assignee_user.first_name,
+                                                             self.assignee_user.last_name,
+                                                             self.assignee_user.email)
+        if self.assigner_user:
+            message += 'Assigned by: {} {}, {} <br>'.format(self.assigner_user.first_name,
+                                                             self.assigner_user.last_name,
+                                                             self.assigner_user.email)
+        return message
 
     def assign_to_curator(self, assignee_id, assigner_id, notes):
         """
@@ -77,7 +108,7 @@ class PubAssignment(object):
         :return:
         """
 
-        previous_state = self.state
+        previous_state = self.state_as_string
 
         state = self.ASSIGNED
 
@@ -91,6 +122,7 @@ class PubAssignment(object):
         # Send notification to curator
         subject = "Publication Assigned To You For Review"
         message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(assignee_id, subject, message)
 
         self.notes = notes
@@ -99,6 +131,7 @@ class PubAssignment(object):
         self.state = state
 
     def mark_as_complete(self, notes):
+        previous_state = self.state_as_string
         state = self.READY_FOR_REVIEW
 
         with geneweaverdb.PooledCursor() as cursor:
@@ -111,6 +144,7 @@ class PubAssignment(object):
         # Send notification to assigner
         subject = 'Publication Assignment Complete'
         message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(assignee_id, subject, message)
         self.notes = notes
         self.state = state
@@ -122,6 +156,8 @@ class PubAssignment(object):
         :return:
         """
 
+
+        previous_state = self.state_as_string
         state = PubAssignment.REVIEWED
 
         with geneweaverdb.PooledCursor() as cursor:
@@ -134,6 +170,7 @@ class PubAssignment(object):
         # Send notification to curator
         subject = 'Publication Assignment Accepted'
         message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(assignee_id, subject, message)
 
         self.state = state
@@ -144,6 +181,7 @@ class PubAssignment(object):
         :return:
         """
 
+        previous_state = self.state_as_string
         state = PubAssignment.ASSIGNED
 
         with geneweaverdb.PooledCursor() as cursor:
@@ -156,6 +194,7 @@ class PubAssignment(object):
         # Send notification to curator
         subject = 'Publication Assignment Rejected'
         message = "View Assignment: <i>" + self.get_url() + '</i><br>' + notes
+        message = self.generic_message(previous_state=previous_state)
         notifications.send_usr_notification(assignee_id, subject, message)
 
         self.state = state
@@ -301,8 +340,12 @@ def queue_publication(pub_id, group_id, note):
         assignment_id = cursor.fetchone()[0]
 
         # send notification to the group admins
+        publication = geneweaverdb.get_publication(pub_id)
+        group = geneweaverdb.get_group_by_id(group_id)
         subject = 'Publication Queued for Review'
-        message = 'View Assignment: <i>' + get_pub_assignment_url(assignment_id) + '</i><br>' + note
+        message = 'View Assignment: ' + get_pub_assignment_url(assignment_id) +  ' <i>' + publication.title + '</i><br>'
+        message += 'Group: {}. <br>'.format(group.grp_name) if group else ''
+        message += 'Notes: {}. <br>'.format(note) if note else ''
         notifications.send_group_admin_notification(group_id, subject, message)
 
 
