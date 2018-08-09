@@ -359,6 +359,10 @@ def create_new_large_geneset_for_user(args, user_id):
     else:
         gene_data = []
 
+    # look for a blank line at end of file data, remove last element if a match is made
+    #if re.match(r'^\s*$', gs_data[-1]):
+    #    gs_data = gs_data[:len(gs_data) - 1]
+    #gs_count = len(gs_data)
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
     gs_threshold_type = formData['gs_threshold_type'][0]
     gs_threshold = str('0.5')
@@ -371,6 +375,7 @@ def create_new_large_geneset_for_user(args, user_id):
     gene_data = ''.join([i if ord(i) < 128 else ' ' for i in gene_data.strip('\r')])
     ## This count may not reflect the true number of genes
     gs_count = len(gene_data.split('\n'))
+    missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
 
     try:
@@ -394,11 +399,13 @@ def create_new_large_geneset_for_user(args, user_id):
                                          str(gene_data)
                                          ))
             gs_id = cursor.fetchone()[0]
+            cursor.connection.commit()
             print 'gs_id inserted as: ' + str(gs_id)
 
             # update geneset to add pub_id
             if pub_id is not None:
                 cursor.execute('''UPDATE geneset SET pub_id=%s WHERE gs_id=%s''', (pub_id, gs_id,))
+                cursor.connection.commit()
 
     except psycopg2.Error as e:
         return {'error': e}
@@ -427,6 +434,12 @@ def create_new_large_geneset_for_user(args, user_id):
                                 'gs_id': gs_id,
                                 'user_id': user_id
                             })
+
+    ## Doesn't do error checking or ensuring the number of genes added matches
+    ## the current gs_count
+    # vals = batch.buGenesetValues(gs)
+    #
+    # batch.db.commit()
 
     missing_genes = []
 
