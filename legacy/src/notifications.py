@@ -4,6 +4,7 @@ from __future__ import print_function
 import json
 import smtplib
 import sys
+import psycopg2
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import request
@@ -172,6 +173,23 @@ def mark_notifications_read(*ids):
         cursor.connection.commit()
 
 
+def dismiss_notification(note_id):
+    with geneweaverdb.PooledCursor(rollback_on_exception=True) as cursor:
+        try:
+            cursor.execute("UPDATE production.notifications "
+                           "SET dismissed = True "
+                           "WHERE notification_id = %s", (note_id,))
+            cursor.connection.commit()
+            result = {'error': False}
+        except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
+            result = {'error': 'There was a problem connecting to the database. Please try again later'}
+        except (psycopg2.DataError, psycopg2.ProgrammingError):
+            result = {'error': 'It looks like we\'ve messed up. Please contact geneweaver support'}
+        except psycopg2.Error:
+            result = {'error': 'Something went wrong. If the problem persists please contact Geneweaver support.'}
+        return result
+
+
 def delete_notification(note_id):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute("DELETE FROM production.notifications "
@@ -182,7 +200,8 @@ def delete_notification(note_id):
 def get_notifications(usr_id, offset=0, limit=None):
     with geneweaverdb.PooledCursor() as cursor:
         cursor.execute("SELECT * FROM production.notifications "
-                       "WHERE usr_id = %s ORDER BY time_sent DESC "
+                       "WHERE usr_id = %s AND dismissed = FALSE "
+                       "ORDER BY time_sent DESC "
                        "OFFSET %s LIMIT %s", (usr_id, offset, limit))
 
         # notifications may include a format placeholder for an url_prefix

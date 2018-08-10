@@ -59,7 +59,6 @@
 
         function load_messages() {
             $.getJSON( "/notifications.json?start=" + startIndex + "&limit=" + messageLimit, function( data ) {
-                console.log("in load_messages");
                 if (!data['has_more']) {
                     $('#loadMessages').prop("disabled", true);
                     $('#btn_text').text("No more notifications")
@@ -69,17 +68,52 @@
                     if (!val['read']) {
                         subjectClass = " subject-unread";
                     }
-
-
-                    var html = "<div>\n" +
-                                    "<div><span class=\"subject " + subjectClass + "\">" + val['subject'] + "</span><span class=\"time-sent\">" + val['time_sent'] + "</span></div>\n" +
-                                    "<p class=\"message\">" + val['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + "</p>\n" +
-                                    "<hr></div>\n";
+                    var html = "<div id=\"notification-" + val['notification_id'] + "\">\n" +
+                            "<div><span class=\"subject " + subjectClass + "\">" + val['subject'] +
+                            "</span><span class=\"time-sent\">" + val['time_sent'] +
+                            "<button type=\"button\" class=\"btn btn-link\" " +
+                            "onclick=\"dismiss_notification(" + val['notification_id'] + ")\">" +
+                            "<i class=\"fa fa-times\" aria-hidden=\"true\"></i></button>" +
+                            "</span>" +
+                            "</div>\n" +
+                            "<p class=\"message\">" + val['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + "</p>\n" +
+                            "<hr></div>\n";
                     $("#notifications").append(html);
                 });
                 update_notification_badge();
             });
             startIndex += messageLimit;
+        }
+
+        function show_error_message(message) {
+            $('html, body').animate({ scrollTop: 0 }, 'slow');
+            $(document).trigger("add-alerts", [
+                {
+                    'message': "There was a problem dismissing the notification. " + message,
+                    'priority': 'danger'
+                }
+            ]);
+        }
+
+        function dismiss_notification(notification_id) {
+            $.ajax({
+                type: "GET",
+                url: "/dismiss_notification",
+                data: {'note_id': notification_id},
+                success: function(result) {
+                    result = JSON.parse(result);
+                    if (result['error']) {
+                        show_error_message(result['error'])
+                    } else {
+                        $("#notification-"+notification_id).remove();
+                    }
+                },
+                error: function() {
+                    show_error_message("We couldn't contact the server, or it didn't respond with useful information." +
+                            " This will likely go away if you try again later, but please contact geneweaver support " +
+                            "if it persists.")
+                }
+            })
         }
 
         $(document).ready(function () {
@@ -91,7 +125,6 @@
                 load_messages();
             });
 
-            console.log("loading messages");
             load_messages();
 
         });
