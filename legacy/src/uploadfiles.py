@@ -226,7 +226,7 @@ def create_new_geneset_for_user(args, user_id):
 
     try:
         with PooledCursor() as cursor:
-            cursor.execute('''SELECT production.create_geneset3(%s, %s, %s, %s, %s, %s, %s, %s, %s,
+            cursor.execute('''SELECT production.create_geneset2(%s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s)''', (int(user_id),
                                          int(cur_id),
                                          int(formData['sp_id'][0]),
