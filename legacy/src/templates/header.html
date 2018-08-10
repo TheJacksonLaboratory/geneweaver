@@ -294,7 +294,7 @@ messages = array of messages
                     {% endif %}
                     <!-- Not logged in user -->
                     {% if not g.user or g.user.is_guest %}
-                        <li {% if g.user %} style="display: none"{% endif %}>
+                        <li>
                             <a href="/login">
                                 <i class="fa fa-sign-in"></i> Sign In
                             </a>
