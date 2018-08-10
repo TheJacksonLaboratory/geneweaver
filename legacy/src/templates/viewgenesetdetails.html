@@ -90,6 +90,15 @@
         </div>
     {% endif %}
 
+    {% if 'delayed:processing' in geneset.status %}
+        <div id="deprecated-message" class="alert alert-danger fade in" style="text-align:center">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="false">
+                &times;
+            </button>
+            This GeneSet is still processing. Please be patient while we finish things up.
+        </div>
+    {% endif %}
+
     <div class="panel panel-default">
         {% include 'htmlfragments/curIDBoxes.html' %}
 

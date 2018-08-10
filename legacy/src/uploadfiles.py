@@ -6,6 +6,7 @@ import annotator as ann
 import json
 import psycopg2
 import requests
+import tools.toolcommon as tc
 
 __author__ = 'baker'
 
@@ -302,6 +303,154 @@ def create_new_geneset_for_user(args, user_id):
 
     ## Last check for missing gene identifiers to inform the user of them
     missing_genes = db.get_missing_ref_ids(
+        missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
+    )
+
+    return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
+
+def create_new_large_geneset_for_user(args, user_id):
+    '''
+    This function creates new geneset metadata with new data, including publication, and file data
+    It also puts the gs_status='delayed', which can be updated later.
+    :param args: this contains meta data and file_data
+    :return: a results dictionary where {'error': 'None'} is success. Also, return gs_id to be used to make temp file
+    '''
+    urlString = '/?' + args['formData']
+    formData = parse_qs(urlparse(urlString).query, keep_blank_values=True)
+
+    ##Create publication dictionary
+    ## Insert into publication and return id
+    pubDict = {}
+    pubDict["pub_year"] = formData['pub_year'][0]
+    pubDict["pub_title"] = formData['pub_title'][0]
+    pubDict["pub_pages"] = formData['pub_pages'][0]
+    pubDict["pub_authors"] = formData['pub_authors'][0]
+    pubDict["pub_volume"] = formData['pub_volume'][0]
+    pubDict["pub_abstract"] = formData['pub_abstract'][0]
+    pubDict["pub_pubmed"] = formData['pub_pubmed'][0]
+    pubDict["pub_month"] = formData['pub_month'][0]
+    pubDict["pub_journal"] = formData['pub_journal'][0]
+
+    # Test to see if all values in publication are null
+    if all(v == '' for v in pubDict.values()) is True:
+        pub_id = None
+    else:
+        pub_id = insertPublication(pubDict)
+
+    ## Set permissions and cur id
+    permissions = formData['permissions'][0]
+    if permissions == 'private':
+        cur_id = 5
+        gs_groups = '-1'
+    else:
+        cur_id = 4
+        gs_groups = '0'
+    ## If any groups were sent, replace gs_groups, with the list of groups
+    if 'select_groups' in formData:
+        cur_id = 5
+        gs_groups = ", ".join(formData['select_groups'])
+
+    ## If the user is using the file option for the upload, then file_text
+    ## won't exist. It is replaced by file_data in the passed arguments.
+    if 'file_text' in formData:
+        gene_data = formData['file_text'][0]
+    elif 'fileData' in args:
+        gene_data = args['fileData']
+    else:
+        gene_data = []
+
+    # look for a blank line at end of file data, remove last element if a match is made
+    #if re.match(r'^\s*$', gs_data[-1]):
+    #    gs_data = gs_data[:len(gs_data) - 1]
+    #gs_count = len(gs_data)
+    gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
+    gs_threshold_type = formData['gs_threshold_type'][0]
+    gs_threshold = str('0.5')
+    gs_status = 'delayed:processing'
+    gs_uri = str('')
+    gs_attribution = 1
+
+    # This line removes non-ascii characters which seem to break the process_gene_list function
+    #ascii_gene_list = ''.join([i if ord(i) < 128 else ' ' for i in formData['file_text'][0].strip('\r')])
+    gene_data = ''.join([i if ord(i) < 128 else ' ' for i in gene_data.strip('\r')])
+    ## This count may not reflect the true number of genes
+    gs_count = len(gene_data.split('\n'))
+    missing_genes = gene_data
+    gene_data = process_gene_list(gene_data)
+
+    try:
+        with PooledCursor() as cursor:
+            cursor.execute('''SELECT production.create_geneset_for_queue(%s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s)''', (int(user_id),
+                                         int(cur_id),
+                                         int(formData['sp_id'][0]),
+                                         int(gs_threshold_type),
+                                         str(gs_threshold),
+                                         str(gs_groups),
+                                         str(gs_status),
+                                         int(gs_count),
+                                         str(gs_uri),
+                                         int(gene_identifier),
+                                         str(formData['gs_name'][0]),
+                                         str(formData['gs_abbreviation'][0]),
+                                         str(formData['gs_description'][0]),
+                                         #int(gs_attribution),
+                                         None,
+                                         str(gene_data)
+                                         ))
+            gs_id = cursor.fetchone()[0]
+            cursor.connection.commit()
+            print 'gs_id inserted as: ' + str(gs_id)
+
+            # update geneset to add pub_id
+            if pub_id is not None:
+                cursor.execute('''UPDATE geneset SET pub_id=%s WHERE gs_id=%s''', (pub_id, gs_id,))
+                cursor.connection.commit()
+
+    except psycopg2.Error as e:
+        return {'error': e}
+
+    # need to get user's preference for annotation tool
+    user = get_user(user_id)
+    user_prefs = json.loads(user.prefs)
+
+    # get the user's annotator preference.  if there isn't one in their user
+    # preferences, default to the monarch annotator
+    annotator = user_prefs.get('annotator', 'monarch')
+    ncbo = True
+    monarch = True
+    if annotator == 'ncbo':
+        monarch = False
+    elif annotator == 'monarch':
+        ncbo = False
+
+    with PooledCursor() as cursor:
+        ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
+                               pubDict['pub_abstract'], ncbo=ncbo,
+                               monarch=monarch)
+
+    tc.celery_app.send_task('tools.LargeGenesetUpload.LargeGenesetUpload',
+                            kwargs={
+                                'gs_id': gs_id,
+                                'user_id': user_id
+                            })
+
+    ## Doesn't do error checking or ensuring the number of genes added matches
+    ## the current gs_count
+    # vals = batch.buGenesetValues(gs)
+    #
+    # batch.db.commit()
+
+    missing_genes = []
+
+    for gl in gene_data.split('\n'):
+        g = gl.split('\t')
+
+        if g and g[0]:
+            missing_genes.append(g[0])
+
+    ## Last check for missing gene identifiers to inform the user of them
+    missing_genes = get_missing_ref_ids(
         missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
     )
 

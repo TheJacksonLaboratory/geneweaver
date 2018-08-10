@@ -643,8 +643,10 @@
         $('#file_text').keyup(function(e) {
             var tval = $('#file_text').val(),
                     tlength = tval.split("\n").length;
-            warnMesg = 'Genesets larger than 5000 genes can be more reliably and efficiently uploaded on the ' +
-                    '<a href=/batchupload> Batch Upload Page </a>.';
+            warnMesg = 'Genesets larger than 5000 genes will be uploaded asynchronously. ' +
+                    'Due to the nature of how we process these sets, we cannot provide immediate feedback ' +
+                    'for common errors. Please take extra care to ensure that you\'ve entered all required ' +
+                    'information correctly.';
             if (tlength >= 5000){
                 $(document).trigger("clear-alerts");
                 $(document).trigger("set-alert-id-genelist", [{
@@ -689,9 +691,16 @@
             // geneset. Otherwise they might click the submit button 10 times.
             $('#confirmUpload').modal('show');
 
+            var tval = $('#file_text').val(),
+                tlength = tval.split("\n").length,
+                new_gs_url = "../createtempgeneset_original";
+            if (tlength > 5000) {
+                new_gs_url = "../createtempgeneset_large";
+            }
+
             $.ajax({
                 type: "POST",
-                url: "../createtempgeneset_original",
+                url: new_gs_url,
                 data: {"formData": d, "fileData": fileData, "sp_id": sp_id, "gdb_id": gdb_id },
                 success: function (data) {
                     // Hides confirmation after any kind of result (success or

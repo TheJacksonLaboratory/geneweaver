@@ -1812,7 +1812,7 @@ def get_server_side_genesets(rargs):
 					to_char(gs_created, '%s'), to_char(gs_updated, '%s'), curation_group, grp_name FROM geneset GS
 					LEFT OUTER JOIN curation_assignments CA ON CA.gs_id = GS.gs_id
 					LEFT OUTER JOIN grp G ON G.grp_id = CA.curation_group
-					WHERE gs_status NOT LIKE 'de%%' AND usr_id=%s""" % \
+					WHERE gs_status NOT LIKE 'dep%%' AND gs_status != 'deleted' AND usr_id=%s""" % \
                     ('YYYY-MM-DD', 'YYYY-MM-DD', user_id,)
     source_columns = ['cast(sp_id as text)', 'cast(cur_id as text)', 'cast(gs_attribution as text)',
                       'cast(gs_count as text)',
@@ -1865,7 +1865,9 @@ def get_server_side_genesets(rargs):
         sEcho = rargs.get('sEcho', type=int)
 
         # Count of all values in table
-        cursor.execute("SELECT COUNT(*) FROM geneset WHERE gs_status NOT LIKE 'de%%' AND usr_id = %d" % user_id)
+        cursor.execute("SELECT COUNT(*) FROM geneset "
+                       "WHERE gs_status NOT LIKE 'dep%%' AND gs_status != 'deleted' "
+                       "AND usr_id = %d" % user_id)
         iTotalRecords = cursor.fetchone()[0]
 
         # Count of all values that satisfy WHERE clause
