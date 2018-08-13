@@ -318,15 +318,28 @@
         group_id = '{{ group.grp_id }}';
         groupCurators = '{{ groupCurators }}';
         group_owner = '{{ group_owner }}';
-        var group_name = '{{  group.grp_name }}';
+        let group_name = '{{  group.grp_name }}';
         $('#group_id').val(group_id);
         $('#group_name').text(group_name);
         setPrivacyDisplay('{{ group.private }}');
 
-        // show the last-selected group
+        // show the last-selected group for this user
         if ( ls_available() ) {
-            if ( localStorage.getItem('last_group_id') !== null && localStorage.getItem('last_group_id') !== group_id ) {
-                window.location.href = '../groupTasks/' + localStorage.getItem('last_group_id');
+            let last_group_map = JSON.parse(localStorage.getItem('last_group_for_user'));
+            let users_id = $('#user_id').val();
+            if ( last_group_map === null ) {
+                last_group_map = {};
+                last_group_map[users_id] = group_id;
+                localStorage.setItem('last_group_for_user', JSON.stringify(last_group_map));
+            } else {
+                if ( users_id in last_group_map ) {
+                    if ( last_group_map[users_id] !== group_id ) {
+                        window.location.href = '../groupTasks/' + last_group_map[users_id]
+                    }
+                } else {
+                    last_group_map[users_id] = group_id;
+                    localStorage.setItem('last_group_for_user', JSON.stringify(last_group_map));
+                }
             }
         }
 
@@ -494,11 +507,19 @@
         // When a new group is selected in the side bar, this will reload
         // the main panel to reflect the new group
         $('.clickable_viewGroupTasks').on('click', function () {
-            group_id = ($(this).attr("data-grp"));
+            let group_id = ($(this).attr("data-grp"));
+            let user_id = $('#user_id').val();
             window.location.href = '../groupTasks/' + group_id;
             // use localStorage to store the group_id, then we can use that as
             // the 'default' selection whenever the page is reloaded
-            localStorage.setItem('last_group_id', group_id);
+            let last_group = JSON.parse(localStorage.getItem('last_group_for_user'));
+            if ( last_group === null ) {
+                localStorage.setItem('last_group_for_user', JSON.stringify({user_id: group_id}));
+            } else {
+                last_group[user_id] = group_id;
+                localStorage.setItem('last_group_for_user', JSON.stringify(last_group));
+            }
+
         });
 
         $('.filter').on('click', function () {
