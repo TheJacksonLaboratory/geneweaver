@@ -280,6 +280,9 @@
 
             $('#assignCurator').on('click', function () {
 
+                // when we show the modal window, we don't want a curator selected.
+                $('#selectCurator').val("").trigger('change.select2');
+
                 // submit button will be disabled until the user selects a group radio button
                 $('#assignToCurator').prop("disabled", true).button("refresh");
                 $('#assignPubToCuratorModal').modal('show');
