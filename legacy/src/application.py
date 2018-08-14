@@ -938,7 +938,7 @@ def assign_publication_to_group():
             if publication_assignment and publication_assignment.state != publication_assignment.REVIEWED:
                 # is it already an active task for this group?
                 response = flask.jsonify(message="Publication is already assigned to this group.")
-                response.status_code = 412
+                response.status_code = 422
 
             else:
                 # everything is good,  do the assignment
