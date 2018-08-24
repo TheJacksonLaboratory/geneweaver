@@ -532,10 +532,23 @@
 
                 $.post("{{ url_for('create_geneset_stub') }}", params, function (data) {
 
-                    var html = "";
+                    let html = "";
 
                     for (var i = 0; i < data.gs_ids.length; i++) {
-                        html = html + '<p><a href="/curategeneset/' + data.gs_ids[i] +'">GS' + data.gs_ids[i] + '</a>: ' + stubs[i].gs_name + '</p><p style="padding-left: 10px">' + stubs[i].gs_description + '</p>'
+
+                        let gs_id = data.gs_ids[i];
+                        let status_id = data.assignment_map[gs_id].status_id;
+                        let status_name = data.assignment_map[gs_id].status_name;
+
+                        html = [
+                            html,
+                            '<p>',
+                                '<span id="curation-status" class="status-' + status_id + '">' + status_name + '</span>',
+                                '<a href="/curategeneset/' + gs_id + '">GS' + gs_id + '</a>: ' + stubs[i].gs_name,
+                            '</p>',
+                            '<p style="padding-left: 10px">' + stubs[i].gs_description + '</p>'
+                            ].join('');
+
                     }
 
                     $('#stub_' + stub_index).html(html);

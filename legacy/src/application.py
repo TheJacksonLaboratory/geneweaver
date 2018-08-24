@@ -1218,6 +1218,7 @@ def create_geneset_stub():
     stubs = json.loads(request.form.get('stubs'))
     pub_assign_id = request.form.get('pub_assign_id', type=int)
     species_id = request.form.get('species_id', type=int)
+    geneset_assignment_map = {}
 
     assignment = pub_assignments.get_publication_assignment(pub_assign_id)
 
@@ -1227,7 +1228,10 @@ def create_geneset_stub():
     else:
         group_id = assignment.group
         gs_ids = [assignment.create_geneset_stub(stub['gs_name'], stub['gs_label'], stub['gs_description'], species_id, group_id) for stub in stubs]
-        response = flask.jsonify(gs_ids=gs_ids)
+        for gs in gs_ids:
+            assignment = curation_assignments.get_geneset_curation_assignment(gs)
+            geneset_assignment_map[gs] = {"status_id": assignment.state, "status_name": assignment.status_to_string()}
+        response = flask.jsonify(gs_ids=gs_ids, assignment_map=geneset_assignment_map)
 
     return response
 
