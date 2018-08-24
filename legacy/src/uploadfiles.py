@@ -379,7 +379,7 @@ def create_new_large_geneset_for_user(args, user_id):
     gene_data = process_gene_list(gene_data)
 
     try:
-        with PooledCursor() as cursor:
+        with db.PooledCursor() as cursor:
             cursor.execute('''SELECT production.create_geneset_for_queue(%s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s)''', (int(user_id),
                                          int(cur_id),
@@ -411,7 +411,7 @@ def create_new_large_geneset_for_user(args, user_id):
         return {'error': e}
 
     # need to get user's preference for annotation tool
-    user = get_user(user_id)
+    user = db.get_user(user_id)
     user_prefs = json.loads(user.prefs)
 
     # get the user's annotator preference.  if there isn't one in their user
@@ -424,7 +424,7 @@ def create_new_large_geneset_for_user(args, user_id):
     elif annotator == 'monarch':
         ncbo = False
 
-    with PooledCursor() as cursor:
+    with db.PooledCursor() as cursor:
         ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
                                pubDict['pub_abstract'], ncbo=ncbo,
                                monarch=monarch)
@@ -450,7 +450,7 @@ def create_new_large_geneset_for_user(args, user_id):
             missing_genes.append(g[0])
 
     ## Last check for missing gene identifiers to inform the user of them
-    missing_genes = get_missing_ref_ids(
+    missing_genes = db.get_missing_ref_ids(
         missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
     )
 
