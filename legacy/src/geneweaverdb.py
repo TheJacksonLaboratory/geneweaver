@@ -1227,7 +1227,8 @@ def add_geneset_genes_to_temp(gs_id, geneset_row_list):
 
     return results, errors
 
-def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value):
+
+def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value, overwrite=False):
     try:
         float(str(value))
     except ValueError:
@@ -1248,10 +1249,13 @@ def add_geneset_gene_to_temp(gs_id, user_id, gene_id, value):
                 return {'error': 'Identifier Not Found for ID: {}, Value: {}'.format(gene_id, value)}
             else:
                 ode_gene_id = cursor.fetchone()[0]
-            ##Check to see if the src_id already exists
-            cursor.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id=%s''', (gs_id, gene_id,))
-            if cursor.rowcount != 0:
-                return {'error': 'The Source Identifier ({}) already exists for this geneset'.format(gene_id)}
+
+            if not overwrite:
+                ##Check to see if the src_id already exists
+                cursor.execute('''SELECT src_id FROM temp_geneset_value WHERE gs_id=%s AND src_id=%s''', (gs_id, gene_id,))
+                if cursor.rowcount != 0:
+                    return {'error': 'The Source Identifier ({}) already exists for this geneset'.format(gene_id)}
+
             ##Insert into temp table
             cursor.execute('''INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id)
 							  VALUES (%s, %s, %s, %s)''', (gs_id, ode_gene_id, value, gene_id,))
