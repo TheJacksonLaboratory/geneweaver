@@ -445,6 +445,7 @@
 
             var file_data = $('#fileContents');
             var text_data = $("#file_text");
+            var overwrite = $("#upload-overwrite");
 
             $.ajax({
                 type: "POST",
@@ -454,7 +455,8 @@
                     "single_id": single_id.val(),
                     "single_value": single_value.val(),
                     "text_data": text_data.val(),
-                    "file_contents": file_data.val()
+                    "file_contents": file_data.val(),
+                    "overwrite": overwrite.is(":checked")
                 },
                 success: function (data) {
                     var v = JSON.parse(data),

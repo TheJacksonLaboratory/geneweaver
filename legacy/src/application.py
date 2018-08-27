@@ -3979,15 +3979,25 @@ def add_geneset_gene():
 
         warnings += [{'warning': 'Identifier Not Found for ID: {}'.format(gene)} for gene in missing]
 
-        # We don't want to overwrite genes that are already on the geneset
+        # We will overwrite genes only if the user explicitly says to do it
+        overwrite = input_data.get('overwrite', False) == 'true'
+
         if len(gene_dict) < 1:
             errors.append({'error': 'No valid genes to upload'})
         else:
-            existing = geneweaverdb.existing_identifiers_for_geneset(gs_id, tuple(gene_dict[gene]['id'] for gene in gene_dict))
-            for gene in existing:
-                del gene_dict[gene[0]]
+            existing = geneweaverdb.existing_identifiers_for_geneset(gs_id,
+                                                                     tuple(gene_dict[gene]['id'] for gene in gene_dict))
+            # elements can be duplicated in this list, so let's turn it into a set
+            existing = sorted(set([gene[0] for gene in existing]))
 
-            warnings += [{'warning': 'The Source ID \'{}\', already exists for this geneset'.format(gene[0])} for gene in existing]
+            if overwrite:
+                warnings += [{'warning': 'The value for \'{}\', has been overwritten in this geneset'.format(gene)} for gene in existing]
+
+            else:
+                for gene in existing:
+                    del gene_dict[gene]
+
+                warnings += [{'warning': 'The Source ID \'{}\', already exists for this geneset'.format(gene)} for gene in existing]
 
             row_list = [(gs_id, gene_dict[gene]['ode_gene_id'], gene_dict[gene]['value'], gene_dict[gene]['id'])
                         for gene in gene_dict]

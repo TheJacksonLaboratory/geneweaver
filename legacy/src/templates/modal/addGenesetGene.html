@@ -59,8 +59,13 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal"
+                    <div class="pull-left align-top">
+                        <label for="upload-overwrite" data-toggle="tooltip" data-placement="top"
+                               title="When checked, the values for genes already in the system will be overwritten. This can't be undone!">Overwrite existing gene values</label>
+                        <input type="checkbox" id="upload-overwrite">
+                    </div>
+                    <button type="button" class="btn btn-default" style="margin-top: 10px" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning" style="margin-top: 10px" data-dismiss="modal"
                             id="processAddGenesetGene">Submit</button>
                 </div>
 
