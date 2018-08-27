@@ -1079,7 +1079,7 @@ def close_pub_assignment():
             response = flask.jsonify(message='The assignment must first be made ready for review.')
             response.status_code = 403
         else:
-            # check to make sure that all attached geneset assignments are all approved
+            # check to make sure that all attached geneset assignments are approved
             all_approved = True
             for gs in geneweaverdb.get_genesets_for_publication(assignment.pub_id, user_id):
                 gs_state = curation_assignments.get_geneset_curation_assignment(gs.geneset_id).state
