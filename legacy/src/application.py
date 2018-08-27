@@ -1076,11 +1076,27 @@ def close_pub_assignment():
             response = flask.jsonify(message='You do not have permissions to perform this action.')
             response.status_code = 403
         elif assignment.state != assignment.READY_FOR_REVIEW:
-            response = flask.jsonify(message='Invalid state.')
+            response = flask.jsonify(message='The assignment must first be made ready for review.')
             response.status_code = 403
         else:
-            assignment.review_accepted(notes)
-            response = flask.jsonify(success=True)
+            # check to make sure that all attached geneset assignments are approved
+            all_approved = True
+            for gs in geneweaverdb.get_genesets_for_publication(assignment.pub_id, user_id):
+                gs_state = curation_assignments.get_geneset_curation_assignment(gs.geneset_id).state
+                if gs_state < curation_assignments.CurationAssignment.REVIEWED:
+                    all_approved = False
+                    # if even one fails the test then we can jump out of the loop
+                    break
+
+            if all_approved:
+                assignment.review_accepted(notes)
+                response = flask.jsonify(success=True)
+            else:
+                response = flask.jsonify(
+                    message='Any associated geneset curation tasks must first be reviewed and approved.'
+                )
+                response.status_code = 403
+
     else:
         response = flask.jsonify(message='Publication Assignment Not Found.')
         response.status_code = 404
