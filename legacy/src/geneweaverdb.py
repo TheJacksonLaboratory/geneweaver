@@ -1896,7 +1896,8 @@ def get_server_side_grouptasks(rargs):
                 'aaData': []
                 }
     if group_id:
-        select_columns = ['full_name', 'task_id', 'task', 'task_type', 'updated', 'task_status', 'reviewer']
+        select_columns = ['full_name', 'task_id', 'task', 'task_type', 'updated', 'task_status', 'reviewer', 'pubmedid',
+                          'geneset_count']
         # The GeneSet half of the query
         select_clause = """
           SELECT uc.usr_last_name || ', ' || uc.usr_first_name AS full_name,
