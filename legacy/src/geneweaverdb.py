@@ -2030,17 +2030,25 @@ def get_server_side_grouptasks(rargs):
                         order_clause,
                         limit_clause]) + ';'
 
+        total_count = ' '.join(['SELECT COUNT(*) as TotalCount FROM (',
+                                select_clause,
+                                from_where,
+                                search_where_clause,
+                                " UNION ",
+                                union_select,
+                                union_where,
+                                union_where_clause,
+                                group_by,
+                                order_clause,
+                                ') total;'])
+
+
         with PooledCursor() as cursor:
             cursor.execute(sql)
             things = cursor.fetchall()
 
-            # Count of all values in table
-            count_query = ' '.join(["SELECT COUNT(1)", from_where]) + ';'
-            cursor.execute(count_query)
+            cursor.execute(total_count)
             iTotalRecords = cursor.fetchone()[0]
-            count_query = ' '.join(["SELECT COUNT(1)", union_where]) + ';'
-            cursor.execute(count_query)
-            iTotalRecords += cursor.fetchone()[0]
 
             # Count of all values that satisfy WHERE clause
             iTotalDisplayRecords = iTotalRecords
