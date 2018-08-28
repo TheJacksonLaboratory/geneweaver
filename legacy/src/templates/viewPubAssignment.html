@@ -246,7 +246,7 @@
                     }
                 }
 
-                fields_to_validate = original_fields;
+                fields_to_validate = original_fields.slice();
 
                 $('#stubSubmit').attr('disabled', true).button('refresh');
 
@@ -550,6 +550,7 @@
                             ].join('');
 
                     }
+                    reset_stub_modal();
 
                     $('#stub_' + stub_index).html(html);
                 }, 'json').fail(handlePostJsonError);
