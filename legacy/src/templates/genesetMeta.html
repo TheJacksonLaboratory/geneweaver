@@ -186,7 +186,7 @@
                                     ont.reference_id }}"
                                     class="ontology-linkout"
                                     target="_blank"
-                                    style="text-decoration:underline; color:#000">
+                                    style="text-decoration:underline; color:#000; display: inline-block;">
                                 <span style="color:#000;">
                                     ({{ ont.reference_id }})
                                 </span>
@@ -196,6 +196,12 @@
                                     ({{ ont.reference_id }})
                                 </span>
                             {% endif %}
+                            {% if ont.ro_name %}
+                                <span>
+                                   [{{ ont.ro_name }}]
+                                </span>
+                            {%  endif %}
+
                         </div>
                     {% endfor %}
                 {% else %}
