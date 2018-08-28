@@ -12,7 +12,7 @@ def login_required(json=False, allow_guests=False):
     """
     def decorator(f):
         def wrapped(*args, **kwargs):
-            if flask.g.user is None or (not allow_guests and flask.g.user.is_guest):
+            if flask.g.get('user') is None or (not allow_guests and flask.g.user.is_guest):
                 if json:
                     return flask.jsonify({"error": "You must be signed in to perform this action"})
                 else:
@@ -48,7 +48,7 @@ def create_guest(f):
 
     @wraps(f)
     def decorated(*args, **kwargs):
-        if flask.g.user is None:
+        if flask.g.get('user') is None:
             user = geneweaverdb.new_guest()
             if user is not None:
                 flask.g.user = user
