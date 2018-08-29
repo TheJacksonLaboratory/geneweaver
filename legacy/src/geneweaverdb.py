@@ -1219,19 +1219,28 @@ def add_geneset_genes_to_temp(gs_id, geneset_row_list):
                 # the temp_geneset_value table does not have any constraints on it, which means that
                 # there can be multiple gene rows within a given geneset. Therefore, we have to update
                 # all rows if they exist, otherwise do the insert.
-                q = """
-                    WITH upsert AS (
-                         UPDATE production.temp_geneset_value 
-                         SET gs_id='{gs_id}', ode_gene_id={ode_id}, src_value='{src_value}', src_id='{src_id}'
-                         WHERE gs_id='{gs_id}' AND ode_gene_id={ode_id}
-                         RETURNING *
-                    )
-                    INSERT INTO production.temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) 
-                    SELECT '{gs_id}', {ode_id}, '{src_value}', '{src_id}'
-                    WHERE NOT EXISTS (SELECT * FROM upsert)
-                """.format(**{'gs_id': row[0], 'ode_id': row[1], 'src_value': row[2], 'src_id': row[3]})
+                try:
+                    q = """
+                        WITH upsert AS (
+                             UPDATE production.temp_geneset_value 
+                             SET gs_id='{gs_id}', ode_gene_id={ode_id}, src_value='{src_value}', src_id='{src_id}'
+                             WHERE gs_id='{gs_id}' AND ode_gene_id={ode_id}
+                             RETURNING *
+                        )
+                        INSERT INTO production.temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) 
+                        SELECT '{gs_id}', {ode_id}, '{src_value}', '{src_id}'
+                        WHERE NOT EXISTS (SELECT * FROM upsert)
+                    """.format(**{'gs_id': row[0], 'ode_id': row[1], 'src_value': row[2], 'src_id': row[3]})
 
-                c.execute(q)
+                    c.execute(q)
+
+                except IndexError:
+                    try:
+                        # is just the value missing?
+                        gene = row[-1]
+                    except IndexError:
+                        gene = 'your data'
+                    errors.append({'error': 'There seems to be a problem with {0}. Are they tab delimited with gene names and values?'.format(gene)})
 
             c.connection.commit()
 
@@ -1243,8 +1252,6 @@ def add_geneset_genes_to_temp(gs_id, geneset_row_list):
             errors.append({'error': 'Check your upload data for typos or errors and try again.'})
         except psycopg2.Error:
             errors.append({'error': 'If the problem persists please contact Geneweaver support.'})
-        except IndexError:
-            errors.append({'error': 'There seems to be a problem with your data. Are they tab delimited with gene names and values?'})
 
     return results, errors
 
