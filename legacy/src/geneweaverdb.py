@@ -1212,10 +1212,29 @@ def add_geneset_genes_to_temp(gs_id, geneset_row_list):
     results = []
     errors = []
     with PooledCursor(rollback_on_exception=True) as c:
+
         try:
-            execute_values(c, ''' INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) VALUES %s''',
-                           geneset_row_list)
+
+            for row in geneset_row_list:
+                # the temp_geneset_value table does not have any constraints on it, which means that
+                # there can be multiple gene rows within a given geneset. Therefore, we have to update
+                # all rows if they exist, otherwise do the insert.
+                q = """
+                    WITH upsert AS (
+                         UPDATE production.temp_geneset_value 
+                         SET gs_id='{gs_id}', ode_gene_id={ode_id}, src_value='{src_value}', src_id='{src_id}'
+                         WHERE gs_id='{gs_id}' AND ode_gene_id={ode_id}
+                         RETURNING *
+                    )
+                    INSERT INTO production.temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) 
+                    SELECT '{gs_id}', {ode_id}, '{src_value}', '{src_id}'
+                    WHERE NOT EXISTS (SELECT * FROM upsert)
+                """.format(**{'gs_id': row[0], 'ode_id': row[1], 'src_value': row[2], 'src_id': row[3]})
+
+                c.execute(q)
+
             c.connection.commit()
+
             results.append({'success': 'Genes succesfully uploaded. Please check the results,'
                                        ' then click \'Save Updates\' to persist your changes.'})
         except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
