@@ -1243,6 +1243,8 @@ def add_geneset_genes_to_temp(gs_id, geneset_row_list):
             errors.append({'error': 'Check your upload data for typos or errors and try again.'})
         except psycopg2.Error:
             errors.append({'error': 'If the problem persists please contact Geneweaver support.'})
+        except IndexError:
+            errors.append({'error': 'There seems to be a problem with your data. Are they tab delimited with gene names and values?'})
 
     return results, errors
 
