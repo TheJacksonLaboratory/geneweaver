@@ -262,9 +262,10 @@ def create_new_geneset_for_user(args, user_id):
         if cursor.fetchone()[0] < 1:
             cursor.execute('''UPDATE geneset SET gs_status='deleted' WHERE gs_id=%s''', (gs_id,))
             cursor.connection.commit()
-            error_string = ('No Genes in your GeneSet could be uploaded. '
-                            'Please check the Identifier type and Species, '
-                            ' and that your genes exist and are valid.')
+            error_string = (
+                'No genes in your GeneSet could be uploaded. '
+                'Please double check the gene identifier type and species.'
+                'Also ensure that your submitted genes are valid identifiers.')
             return{'error': error_string}
 
 
