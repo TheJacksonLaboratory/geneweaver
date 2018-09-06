@@ -417,8 +417,6 @@
 
                 $.post("{{ url_for('mark_pub_assignment_as_complete') }}", params, function (data) {
 
-                    debugger;
-
                     if ( data.success === true ) {
                         $('#markAsComplete').html('<i class="fa fa-check pull-left"></i>Pending Review');
                         $('#markAsComplete').prop('disabled', true).button('refresh');
