@@ -159,16 +159,25 @@
                             {% endif %}
 
                         {% elif view == 'assignee' %}
-                            <button type="button"
-                                    class="btn btn-block btn-primary"
-                                    id="newGeneset">
-                                <i class="fa fa-plus pull-left"></i> Create New Geneset
-                            </button>
-                            <button type="button"
-                                    class="btn btn-block btn-primary"
-                                    id="markAsComplete">
-                                Mark as Complete
-                            </button>
+                            {% if assignment.state == assignment.ASSIGNED %}
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="newGeneset">
+                                    <i class="fa fa-plus pull-left"></i> Create New Geneset
+                                </button>
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="markAsComplete">
+                                    Mark as Complete
+                                </button>
+                            {% elif assignment.state == assignment.READY_FOR_REVIEW %}
+                                <button type="button"
+                                        class="btn btn-block btn-primary"
+                                        id="markAsComplete"
+                                        disabled="true">
+                                    <i class="fa fa-check pull-left"></i>Pending Review
+                                </button>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -407,9 +416,14 @@
                 };
 
                 $.post("{{ url_for('mark_pub_assignment_as_complete') }}", params, function (data) {
-                    $('#newGeneset').remove();
 
-                    $('#state').html('Under Review');
+                    if ( data.success === true ) {
+                        $('#markAsComplete').html('<i class="fa fa-check pull-left"></i>Pending Review');
+                        $('#markAsComplete').prop('disabled', true).button('refresh');
+                        $('#notes').prop('readonly', true);
+                        $('#newGeneset').remove();
+                        $('#state').html('Under Review');
+                    }
                 }, 'json').fail(handlePostJsonError);
             });
 
