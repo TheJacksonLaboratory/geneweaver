@@ -955,16 +955,20 @@ def get_gene_id_types(sp_id=0):
 
 
 def get_ode_ref_id(value, sp_id):
+    """
+    We have set a limit of 100 on the results returned because this is for an auto complete box. Too many results
+    just slow things down and aren't helpful. Also, strings are matched from the beginning.
+    """
     value = value.lower()
     ids = []
     with PooledCursor() as cursor:
         if sp_id == 'None':
             cursor.execute(
-                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' ''' % (value,)
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%s%%' ORDER BY ode_ref_id LIMIT 100''' % (value,)
             )
         else:
             cursor.execute(
-                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' AND sp_id=%s''' % (value, sp_id,)
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%s%%' AND sp_id=%s ORDER BY ode_ref_id LIMIT 100''' % (value, sp_id,)
             )
     results = cursor.fetchall()
     for res in results:
