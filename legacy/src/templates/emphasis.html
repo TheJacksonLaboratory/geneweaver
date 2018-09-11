@@ -155,8 +155,7 @@
     function typeAhead(value) {
         var checkVal = value.toLowerCase();
         if (checkVal !== "mg" && checkVal !== "mgi" && checkVal !== "mgi:" && checkVal.length > 1) {
-
-            console.log(checkVal);
+            
             $.ajax({
                 url: "/get_gene_ref_ID.json",
                 data: {
