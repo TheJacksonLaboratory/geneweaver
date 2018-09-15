@@ -1836,6 +1836,12 @@ def update_threshold_values(rargs):
         with PooledCursor() as cursor:
             cursor.execute('''UPDATE geneset SET gs_threshold_type=5, gs_threshold=%s WHERE gs_id=%s''',
                            (minmax, gs_id,))
+            # need to also update the geneset_value table to set gsv_in_threshold == true for values between min & max
+            # It's easier here to set them all to f and then update the ones you want to t
+            cursor.execute('''UPDATE extsrc.geneset_value SET gsv_in_threshold='f' WHERE gs_id=%s''', (gs_id,))
+            cursor.execute('''UPDATE extsrc.geneset_value SET gsv_in_threshold='t' 
+                                WHERE gsv_value>=%s AND gsv_value<=%s AND gs_id=%s''',
+                           (float(min), float(max), gs_id,))
             cursor.connection.commit()
             return {'error': 'None'}
 
