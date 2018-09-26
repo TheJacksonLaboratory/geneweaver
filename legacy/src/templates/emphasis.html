@@ -141,25 +141,43 @@
         'page or from the View Gene Set page.'
     });
 
+    /**
+     * A simple function that prevents the exectution of a callback function until the timer has run down
+     */
+    var delay = (function(){
+        var timer = 0;
+        return function(callback, ms){
+            clearTimeout (timer);
+            timer = setTimeout(callback, ms);
+        };
+    })();
 
-    // autocomplete genes
+    function typeAhead(value) {
+        var checkVal = value.toLowerCase();
+        if (checkVal !== "mg" && checkVal !== "mgi" && checkVal !== "mgi:" && checkVal.length > 1) {
+            
+            $.ajax({
+                url: "/get_gene_ref_ID.json",
+                data: {
+                  'search': value,
+                    'sp_id': 'None'
+                },
+                dataType: 'json',
+                success: function (data) {
+                    var list = data.list;
+                    $('#gene-newid').autocomplete({
+                        source: list
+                    });
+                }
+            });
+        }
+    }
+
     $('#gene-newid').on('keyup', function(){
-        var value = $(this).val();
-        $.ajax({
-            url: "/get_gene_ref_ID.json",
-            data: {
-              'search': value,
-                'sp_id': 'None'
-            },
-            dataType: 'json',
-            success: function (data) {
-                var list = data.list;
-                $('#gene-newid').autocomplete({
-                    source: list,
-                    minLength: 2
-                });
-            }
-        });
+        delay(function(){
+            let value = $('#gene-newid').val();
+            typeAhead( value );
+        }, 250);
     });
 
 </script>

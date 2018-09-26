@@ -955,16 +955,20 @@ def get_gene_id_types(sp_id=0):
 
 
 def get_ode_ref_id(value, sp_id):
+    """
+    We have set a limit of 100 on the results returned because this is for an auto complete box. Too many results
+    just slow things down and aren't helpful. Also, strings are matched from the beginning.
+    """
     value = value.lower()
     ids = []
     with PooledCursor() as cursor:
         if sp_id == 'None':
             cursor.execute(
-                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' ''' % (value,)
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%s%%' ORDER BY ode_ref_id LIMIT 100''' % (value,)
             )
         else:
             cursor.execute(
-                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%%%s%%' AND sp_id=%s''' % (value, sp_id,)
+                '''SELECT ode_ref_id FROM gene WHERE lower(ode_ref_id) LIKE '%s%%' AND sp_id=%s ORDER BY ode_ref_id LIMIT 100''' % (value, sp_id,)
             )
     results = cursor.fetchall()
     for res in results:
@@ -1212,10 +1216,38 @@ def add_geneset_genes_to_temp(gs_id, geneset_row_list):
     results = []
     errors = []
     with PooledCursor(rollback_on_exception=True) as c:
+
         try:
-            execute_values(c, ''' INSERT INTO temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) VALUES %s''',
-                           geneset_row_list)
+
+            for row in geneset_row_list:
+                # the temp_geneset_value table does not have any constraints on it, which means that
+                # there can be multiple gene rows within a given geneset. Therefore, we have to update
+                # all rows if they exist, otherwise do the insert.
+                try:
+                    q = """
+                        WITH upsert AS (
+                             UPDATE production.temp_geneset_value 
+                             SET gs_id='{gs_id}', ode_gene_id={ode_id}, src_value='{src_value}', src_id='{src_id}'
+                             WHERE gs_id='{gs_id}' AND ode_gene_id={ode_id}
+                             RETURNING *
+                        )
+                        INSERT INTO production.temp_geneset_value (gs_id, ode_gene_id, src_value, src_id) 
+                        SELECT '{gs_id}', {ode_id}, '{src_value}', '{src_id}'
+                        WHERE NOT EXISTS (SELECT * FROM upsert)
+                    """.format(**{'gs_id': row[0], 'ode_id': row[1], 'src_value': row[2], 'src_id': row[3]})
+
+                    c.execute(q)
+
+                except IndexError:
+                    try:
+                        # is just the value missing?
+                        gene = row[-1]
+                    except IndexError:
+                        gene = 'your data'
+                    errors.append({'error': 'There seems to be a problem with {0}. Are they tab delimited with gene names and values?'.format(gene)})
+
             c.connection.commit()
+
             results.append({'success': 'Genes succesfully uploaded. Please check the results,'
                                        ' then click \'Save Updates\' to persist your changes.'})
         except (psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError):
