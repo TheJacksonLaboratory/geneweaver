@@ -264,8 +264,11 @@ def create_new_geneset_for_user(args, user_id):
             cursor.connection.commit()
             error_string = (
                 'No genes in your GeneSet could be uploaded. '
-                'Please double check the gene identifier type and species.'
-                'Also ensure that your submitted genes are valid identifiers.')
+                'This may have occurred because none of the genes you '
+                'submitted were valid identifiers or the incorrect species '
+                'and gene identifier type were selected. Please double check '
+                'your inputs and try again.'
+            )
             return{'error': error_string}
 
 
