@@ -347,8 +347,8 @@
         var columns = {{columns | safe}};
         var headerCols = {{headerCols | safe}};
 
-        var table = $('#groupTasksViewer').dataTable({
-            "dom": '<"clear">f<"input-lg"l><"clear">rtip<"col-lg-12 col-md-6"T>',
+        var dtable = $('#groupTasksViewer').DataTable({
+            "dom": '<"clear">f<"input-lg"l><"clear">tip<"col-lg-12 col-md-6"T>',
             "iDisplayLength": 10,
             "bLengthChange": true,
             "tableTools": {
@@ -368,17 +368,7 @@
                     });
                 }
             },
-            "columns": [
-                { "name": "full_name" },
-                { "name": "task_id" },
-                { "name": "task" },
-                { "name": "task_type" },
-                { "name": "updated" },
-                { "name": "task_status" },
-                { "name": "reviewer" },
-                { "name": "pubmedid"},
-                { "name": "geneset_count" }
-            ],
+            "columns": columns,
             "aoColumnDefs": [
 
                 {
@@ -493,6 +483,99 @@
 
         });
 
+        function buttonOn(whichButton) {
+            if ($(whichButton).hasClass('btn-default')) {
+                $(whichButton).removeClass('btn-default');
+                $(whichButton).addClass('btn-info');
+            }
+        }
+
+        function buttonOff(whichButton) {
+            if ($(whichButton).hasClass('btn-info')){
+                $(whichButton).removeClass('btn-info');
+                $(whichButton).addClass('btn-default');
+            }
+        }
+
+        var fdx = 1;
+        $('#groupTasksViewer tfoot th').each( function () {
+            let title = $(this).text();
+            // for each column, get the index value for the column's name in the headerCols array
+            let lower_headers = headerCols.map( item => item.toLowerCase() );
+            let ndx = lower_headers.indexOf(title.toLowerCase());
+            // with the index number, get the name from the columns index, and insert that as the name attribute
+            // in a new input field. The placeholder example values are tailored for each column
+            let col_name = columns[ndx].name;
+            fdx += 1;
+
+            switch (col_name) {
+                case 'full_name':
+                    $(this).html( '<input type="text" name="'+col_name+'" placeholder="e.g., John Doe" />' );
+                    break;
+                case 'task':
+                    $(this).html( '<input type="text" name="'+col_name+'" placeholder="e.g., 1234567" />' );
+                    break;
+                case 'task_type':
+                    $(this).html( '<input type="text" name="'+col_name+'" placeholder="geneset/publication" />' );
+                    break;
+                case 'updated':
+                    $(this).html( '<input type="text" name="'+col_name+'" placeholder=">= 2001-01-01" />' );
+                    break;
+                case 'reviewer':
+                    $(this).html( '<input type="text" name="'+col_name+'" placeholder="e.g., Jane Doe" />' );
+                    break;
+                case 'pubmedid':
+                    $(this).html( '<input type="text" name="'+col_name+'" placeholder="e.g., 1234567" />' );
+                    break;
+
+            }
+        });
+
+        // set up an event listener on each of the newly minted input fields (above) that will initiate
+        // a call to get filtered data from the server
+        let col_arr = Array(dtable.columns());
+        col_arr.forEach(function (element, index) {
+            $('input', element.footer()).on('keyup change', function () {
+                // we use the name attribute from the input field as the prefix for the query to the server
+                const prefix = this.name;
+
+                // first clear all the other footer input fields
+                $('#groupTasksViewer tfoot th input').each( function () {
+                    if ( this.name !== prefix ) {
+                        this.value = '';
+                    }
+                });
+
+                // and reset the button states
+                buttonOn("#filter-all");
+                buttonOff("#filter-assigned");
+                buttonOff("#filter-unassigned");
+                buttonOff("#filter-ready");
+                buttonOff("#filter-reviewed");
+
+                if ( 'updated' === prefix ) {
+                    // this regex checks the string formatting for a SQL-date-based query
+                    // with optional comparison operators
+                    var rgx = /^\s*(<|>|=|<=|>=)?\s*(\d{4}-\d{2}-\d{2})\s*$/;
+                    if ( null !== rgx.exec(this.value.trim() )) {
+                        // only execute the search if the full string matches the regex for this field
+                        // if the value is blank, don't send the prefix
+                        dtable
+                            .search( this.value ? prefix + '=' + this.value : this.value )
+                            .draw();
+                    }
+                } else {
+                    // execute the endpoint query on any change in value for the non-date fields
+                    // if the value is blank, don't send the prefix
+                    dtable
+                        .search( this.value ? prefix + '=' + this.value : this.value )
+                        .draw();
+                }
+            });
+        });
+
+
+
         // When a group is selected, this will set the associated private/public display value
         function setPrivacyDisplay(private) {
             if (private === 'True') {
@@ -567,23 +650,13 @@
                     buttonOff("#filter-ready");
                     break;
             }
+            // first clear all the other footer input fields
+            $('#groupTasksViewer tfoot th input').each( function () {
+                this.value = '';
+            });
             var table = $('#groupTasksViewer').DataTable();
             table.search( status ).draw();
         });
-
-        function buttonOn(whichButton) {
-            if ($(whichButton).hasClass('btn-default')) {
-                $(whichButton).removeClass('btn-default');
-                $(whichButton).addClass('btn-info');
-            }
-        }
-
-        function buttonOff(whichButton) {
-            if ($(whichButton).hasClass('btn-info')){
-                $(whichButton).removeClass('btn-info');
-                $(whichButton).addClass('btn-default');
-            }
-        }
 
         {% if group_owner == true %}
 

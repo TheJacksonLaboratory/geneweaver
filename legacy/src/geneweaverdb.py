@@ -16,6 +16,7 @@ import notifications
 from curation_assignments import CurationAssignment
 import pubmedsvc
 import annotator as ann
+import re
 
 app = flask.Flask(__name__)
 
@@ -2027,30 +2028,67 @@ def get_server_side_grouptasks(rargs):
 
         # Searching
         search_value = rargs.get('search[value]')
-        search_clauses = []
-        union_clauses = []
-        if search_value.startswith('status='):
-            search_value = search_value[7:]
-            search_clause = '''%s = '%s' ''' % (search_columns[4], search_value)
-            union_clause = '''%s = '%s' ''' % (union_columns[4], search_value)
-        elif search_value:
-            search_clauses = ['''%s LIKE '%%%s%%' ''' % (search_columns[i], search_value) for i in range(len(search_columns))]
-            union_clauses = ['''%s LIKE '%%%s%%' ''' % (union_columns[i], search_value) for i in range(len(union_columns))]
+        search_clause = ''
+        union_clause = ''
+        cte_clause = ''
+        try:
+            search_field, search_value = search_value.split('=', 1)
+        except ValueError:
+            search_field = ''
+        if 'status' == search_field:
+            search_clause = "{0} = '{1}' ".format(search_columns[4], search_value)
+            union_clause = "{0} = '{1}' ".format(union_columns[4], search_value)
+        elif 'full_name' == search_field:
+            search_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
+                              format(search_columns[i], search_value) for i in range(0, 2)]
+            union_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
+                             format(union_columns[i], search_value) for i in range(0, 2)]
             search_clause = 'OR '.join(search_clauses)
             union_clause = 'OR '.join(union_clauses)
-        else:
-            search_clause = ''
-            union_clause = ''
+        elif 'task' == search_field:
+            # TODO account for the 'GS' that gets appended in the query (CTE?)
+            cte_clause = "LOWER(task) LIKE LOWER('%{0}%') ".format(search_value)
+        elif 'task_type' == search_field:
+            # The task_type field is assigned within each separate SELECT in the UNION.
+            # Therefore, we can't have a filter for this in either of the WHERE clauses.
+            # Instead, lets wrap the whole finished query in a common table expression (CTE)
+            # and apply another WHERE clause to that.
+            cte_clause = "LOWER(task_type) LIKE LOWER('%{0}%') ".format(search_value)
+        elif 'updated' == search_field:
+            # this regex extracts the operator and the date out of the search value
+            operator, date_value = re.match(r'^(<|>|=|<=|>=)?\s*(\d{4}-\d{2}-\d{2})', search_value).groups()
+            if not operator:
+                operator = '='
+            cte_clause = "updated {1} '{2}' ".format(search_columns[3], operator, date_value)
+        elif 'reviewer' == search_field:
+            search_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
+                              format(search_columns[i], search_value) for i in range(5, 7)]
+            union_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
+                             format(union_columns[i], search_value) for i in range(5, 7)]
+            search_clause = 'OR '.join(search_clauses)
+            union_clause = 'OR '.join(union_clauses)
+        elif 'pubmedid' == search_field:
+            cte_clause = "pubmedid LIKE LOWER('%{0}%') ".format(search_value)
+
+        # this last one accommodates the search box above the table
+        elif search_value:
+            search_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
+                              format(search_columns[i], search_value) for i in range(len(search_columns))]
+            union_clauses = ["LOWER({0}) LIKE LOWER('%{1}%') ".
+                                 format(union_columns[i], search_value) for i in range(len(union_columns))]
+            search_clause = 'OR '.join(search_clauses)
+            union_clause = 'OR '.join(union_clauses)
+
+        search_where_clause = ''
+        union_where_clause = ''
 
         if search_clause:
             search_where_clause = ' AND (%s' % search_clause
             search_where_clause += ') '
+
+        if union_clause:
             union_where_clause = ' AND (%s' % union_clause
             union_where_clause += ') '
-
-        else:
-            search_where_clause = ''
-            union_where_clause = ''
 
         # Sorting
         sorting_col = select_columns[rargs.get('order[0][column]', type=int)]
@@ -2069,43 +2107,32 @@ def get_server_side_grouptasks(rargs):
                         union_where,
                         union_where_clause,
                         group_by,
-                        order_clause,
-                        limit_clause]) + ';'
+                        order_clause])
 
-        total_count = ' '.join(['SELECT COUNT(*) as TotalCount FROM (',
-                                select_clause,
-                                from_where,
-                                search_where_clause,
-                                " UNION ",
-                                union_select,
-                                union_where,
-                                union_where_clause,
-                                group_by,
-                                order_clause,
-                                ') total;'])
+        # for the task and task_type filters, we have to wrap the SQL query in a common table expression
+        if cte_clause:
+
+            sql = "WITH chunk as (" + sql + ") SELECT * FROM chunk WHERE " + cte_clause
 
 
         with PooledCursor() as cursor:
+            cursor.execute(' '.join([sql, limit_clause]))
+            limited = cursor.fetchall()
+
             cursor.execute(sql)
-            things = cursor.fetchall()
+            iTotalDisplayRecords = cursor.rowcount
 
-            cursor.execute(total_count)
-            iTotalRecords = cursor.fetchone()[0]
-
-            # Count of all values that satisfy WHERE clause
-            iTotalDisplayRecords = iTotalRecords
-            if search_where_clause:
-                sql = ' '.join([select_clause, from_where, search_where_clause]) + ';'
+            # Count of all records in the unfiltered set
+            iTotalRecords = iTotalDisplayRecords
+            if search_where_clause or cte_clause:
+                sql = ' '.join([select_clause, from_where, "UNION", union_select, union_where, group_by]) + ';'
                 cursor.execute(sql)
-                iTotalDisplayRecords = cursor.rowcount
-                sql = ' '.join([union_select, union_where, union_where_clause, group_by]) + ';'
-                cursor.execute(sql)
-                iTotalDisplayRecords += cursor.rowcount
+                iTotalRecords = cursor.rowcount
 
             response = {'sEcho': sEcho,
                         'iTotalRecords': iTotalRecords,
                         'iTotalDisplayRecords': iTotalDisplayRecords,
-                        'aaData': things
+                        'aaData': limited
                         }
 
     return response
