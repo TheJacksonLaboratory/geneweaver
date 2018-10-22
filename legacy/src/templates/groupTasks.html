@@ -368,6 +368,21 @@
                     });
                 }
             },
+            "drawCallback": function(settings) {
+                // add an event listener on each of the table data values that extracts
+                // the text from the inner html element
+                $('#groupTasksViewer > tbody > tr > td').click( function(e) {
+                    if (e.metaKey) {
+                        let clickedText = $(this).text();
+                        let clickedCol = dtable.cell( this ).index().column;
+                        console.log(clickedText);
+                        console.log(clickedCol);
+                        if ( $.inArray(clickedCol, Array(2, 3, 4, 7)) >= 0 ) {
+                            $(dtable.column(clickedCol).footer()).find('input').val(clickedText).trigger('change');
+                        }
+                    }
+                });
+            },
             "columns": columns,
             "aoColumnDefs": [
 
