@@ -375,8 +375,7 @@
                     if (e.metaKey) {
                         let clickedText = $(this).text();
                         let clickedCol = dtable.cell( this ).index().column;
-                        console.log(clickedText);
-                        console.log(clickedCol);
+                        // only allow this function on a selection of the columns
                         if ( $.inArray(clickedCol, Array(2, 3, 4, 7)) >= 0 ) {
                             $(dtable.column(clickedCol).footer()).find('input').val(clickedText).trigger('change');
                         }
