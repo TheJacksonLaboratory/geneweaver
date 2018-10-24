@@ -87,11 +87,13 @@
 }
 
 .bar {
-  fill: steelblue;
+    fill: green;
+    opacity: 0.2;
 }
 
 .bar:hover {
-  fill: green;
+    fill: green;
+    opacity: 1.0;
 }
 
 .bar > text{
@@ -100,10 +102,6 @@
 
 .bar:hover > text{
     stroke: black;
-}
-
-body {
-    font: 10px sans-serif;
 }
 
 .top-buffer { margin-top:20px; }
@@ -183,121 +181,52 @@ body {
         {{ runhash }} </h1>
 </div>
 
-<script>
-    var line=true;
-    var graph=true;
-    var smooth=true;
-    var showHideBox=function(){
-        graphBar(graph,line,smooth);
-    };
-</script>
-<!--note to future developers: this was done as a group project in undergrad, where we are not taught website development
-therefore everything here is a kludge. the intention of the table is to be the same type of checkboxes
-as on the previous page, but to get it to work, things that experienced web developer would scoff at have been done.
-
-the checkboxes are supposed to toggle which graphs show up
-fix the code to be maintainable and consistent with the rest of the website code if you can-->
-</table>
-<table>
-    <tbody><tr>
-        <td>
-            <div class="ui-checkbox">
-
-<div class="ui-checkbox"><label for="lineGraphCheckbox" class="ui-btn ui-corner-all ui-checkbox-on ui-btn-inherit ui-btn-icon-left"></label>
-    <input type="checkbox" onclick="line=this.checked; showHideBox()" id="lineGraphCheckbox" checked="true"></div>
-
-            </div>
-        </td>
-        <td>
-            <strong>Best Fit Line</strong>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <div class="ui-checkbox">
-
-
-<div class="ui-checkbox"><label for="barGraphCheckbox" class="ui-btn ui-corner-all ui-checkbox-on ui-btn-inherit ui-btn-icon-left"></label>
-    <input type="checkbox" onclick="graph=this.checked; showHideBox()" id="barGraphCheckbox" checked="true"></div>
-            </div>
-        </td>
-        <td>
-            <strong>Histogram Boxes</strong>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <div class="ui-checkbox">
-
-
-<div class="ui-checkbox"><label for="smoothGraphCheckbox" class="ui-btn ui-corner-all ui-checkbox-on ui-btn-inherit ui-btn-icon-left"></label>
-    <input type="checkbox" onclick="smooth=this.checked; showHideBox()"
-    id="smoothGraphCheckbox" checked="true"></div>
-            </div>
-        </td>
-        <td>
-            <strong>Interpolate Best Fit Line</strong>
-        </td>
-    </tr>
-</tbody></table>
-
 <div id="graphDiv">
-    <table><tr
-                    onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group');
-                    $('#barGraphButton')[0].setAttribute('class','btn-group');"
-            ><td>
-                <svg id="sizeCircle" width="300" height="500" ></svg>
+    <table>
+        <tr onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group'); $('#barGraphButton')[0].setAttribute('class','btn-group');">
+            <td id="circleContainer">
+                <svg id="circleSVG" width="300" height="500"></svg>
+                <div class="circleLegend"></div>
             </td>
             <td style="padding-left:50px">
                 <svg id="barGraph" width="660" height="500"></svg>
-            </td></tr>
-    
-            <tr>
-                <td style="text-align: center">
-                    <div class="btn-group"
-                        onmouseover="this.setAttribute('class','btn-group open');"
-                        id="sizeGraphButton"
-                    >
-                        <button type="button" class="btn btn-primary 
-                            dropdown-toggle" data-toggle="dropdown" 
-                            aria-haspopup="true" aria-expanded="false"
-                        >
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align: center">
+                <div class="btn-group"
+                     onmouseover="this.setAttribute('class','btn-group open');"
+                     id="sizeGraphButton">
+                    <button type="button" data-toggle="dropdown"
+                            class="btn btn-primary dropdown-toggle"
+                            aria-haspopup="true" aria-expanded="false">
+                        Download as...
+                        <span class="caret"></span>
+                    </button>
+                    <script> var sizeGraph = $('#circleSVG')[0] </script>
+                    <ul class="dropdown-menu" onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group');">
+                        <li onclick="download(sizeGraph,null,true);">
+                            <a class="download-image" id="dl-png">PNG</a>
+                        </li>
+                        <li onclick="download(sizeGraph,null,false);">
+                            <a class="download-image" id="dl-svg" >SVG</a>
+                        </li>
+                    </ul>
+                </div>
+            </td>
+            <td style="text-align: center">
+                <div style="padding-left:60px">
+                    <div class="btn-group" id="barGraphButton"
+                         onmouseover="this.setAttribute('class','btn-group open');">
+                        <button type="button" data-toggle="dropdown"
+                                class="btn btn-primary dropdown-toggle"
+                                aria-haspopup="true" aria-expanded="false">
                             Download as...
                             <span class="caret"></span>
                         </button>
-                        <script>
-                            var sizeGraph=$('#sizeCircle')[0];
-                        </script>
+                        <script> var barGraph=$('#barGraph')[0]; </script>
                         <ul class="dropdown-menu"
-                            onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group');"
-                        >
-                            <li onclick="download(sizeGraph,null,true);">
-                                <a class="download-image" id="dl-png">PNG</a></li>
-                            <li onclick="download(sizeGraph,null,false);">
-                                <a class="download-image" id="dl-svg" >SVG</a>
-                            </li>
-                        </ul>
-                    </div>
-                </td>
-                <td style="text-align: center">
-                    <div style="padding-left:60px">
-                    <div class="btn-group" 
-                        onmouseover="this.setAttribute('class','btn-group open');"
-                        id="barGraphButton"
-                    >
-                        <button type="button" class="btn btn-primary
-                            dropdown-toggle" data-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false"
-                        >
-                            Download as...
-                            <span class="caret"></span>
-                        </button>
-                        <script>
-                            var barGraph=$('#barGraph')[0];
-                        </script>
-                        <ul class="dropdown-menu"
-                            onmouseout="$('#barGraphButton')[0].setAttribute('class','btn-group');"
-                        >
+                            onmouseout="$('#barGraphButton')[0].setAttribute('class','btn-group');">
                             <li onclick="download(barGraph,null,true);">
                                 <a class="download-image" id="dl-png2">PNG</a></li>
                             <li onclick="download(barGraph,null,false);">
@@ -305,537 +234,651 @@ fix the code to be maintainable and consistent with the rest of the website code
                             </li>
                         </ul>
                     </div>
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" style="padding-top: -20px">
-                    <hr/>
-                </td>
-            </tr>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="padding-top: -20px">
+                <hr/>
+            </td>
+        </tr>
     </table>
 </div>
-<script src="/static/d3/d3.js" charset="utf-8"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script>
 <script>
-    var baseSize=1;
-    var radius=baseSize*Math.pow(
-        {{async_result.datafile['data'][0]['interestToBackgroundSizeRatio']}},
-        .5
-    );
-    var baseFromCorner=1-radius;//baseSize/3;
-    var circleGraph=d3.select("#sizeCircle")
-        .style("display","block")
-        .style("margin","auto")
-        .attr("viewBox","-1 -1 2 2");
+var width = 300,
+    height = 500,
+    first = true,
+    colors = d3.scaleOrdinal(d3.schemeCategory10),
+    margin = {top: 50, right: 20, bottom: 70, left: 40};
 
-    circleGraph.append("circle")
-        .attr("r",baseSize)
-        .attr("fill","steelblue");
+var container = d3.select("#circleSVG")
+    .attr("width", width)
+    .attr("height", height);
 
-    circleGraph.append("circle")
-        .attr("cy",baseFromCorner)
-        .attr("r",radius)
-        .attr("fill","blue")
-        .attr("transform","rotate(30)");
+drawCircles();
+circleTitleLegend(container, margin);
 
-    circleGraph.append("text")
-        .style("font-size",".136px")
-        .attr("dx","-7em")
-        .attr("dy","-10.12em")
+function circleTitleLegend(container, margins) {
+    // Add the title
+    container.append("g")
+        .append("text")
+        .attr("x", 0)
+        .attr("y", margins.top / 2)
+        .style("text-anchor", "start")
+        .style("alignment-baseline", "middle")
+        .style("font-size", "20")
         .text("Size Comparison");
 
-    var legend=circleGraph.append("g")
-        .style("stroke-width",".01px");
+    // Create the legend
+    var legend = container.append("g")
+        .style("display", "block")
+        .style("margin", "auto")
+        .style("stroke-width", ".01px")
+        .attr("transform", "translate(0, 400)");
 
+    // Universe
     legend.append("rect")
-	    .attr("x", "-1px")
-	    .attr("y", "1.21px")
-	    .attr("width", "1")
-	    .attr("height", ".14")
-        .style("fill","blue")
-        .style("stroke-width","1px")
+        .attr("y", "-30")
+        .attr("width", "300")
+        .attr("height", "25")
+        .style("fill", colors(0))
+        .style("stroke-width", "1px")
+        .style("fill-opacity", 0.2);
+
     legend.append("text")
-	    .attr("dy", "13.1em")
-	    .attr("dx", "-6.5em")
-        .style("stroke","white")
-            .style("stroke-width","0.001px")
-            .style("fill","white")
-        .style("font-size",".1px")
-        .text("Interest");
+        .attr("y", "-10")
+        .attr("x", "10")
+        .text("Background Universe ({{ universe_size }} genes)");
 
-
+    // Group 1
     legend.append("rect")
-	    .attr("y", "1.21px")
-	    .attr("width", "1")
-	    .attr("height", ".14")
-        .style("fill","steelblue")
-        .style("stroke-width","1px")
+        .attr("y", "0")
+        .attr("width", "300")
+        .attr("height", "25")
+        .style("fill", colors(1))
+        .style("stroke-width", "1px")
+        .style("fill-opacity", 0.2);
+
     legend.append("text")
-	    .attr("dy", "13.1em")
-	    .attr("dx", "2em")
-        .style("stroke","white")
-            .style("stroke-width","0.001px")
-            .style("fill","white")
-        .style("font-size",".1px")
-        .text("Background");
+        .attr("y", "20")
+        .attr("x", "10")
+        .text("GS:{{ group_1_gsid }} ({{ group_1_in_universe }} genes)");
+
+    // Group 2
+    legend.append("rect")
+        .attr("y", "30")
+        .attr("width", "300")
+        .attr("height", "25")
+        .style("fill", colors(2))
+        .style("stroke-width", "1px")
+        .style("fill-opacity", 0.2);
+
+    legend.append("text")
+        .attr("y", "50")
+        .attr("x", "10")
+        .text("GS:{{ group_2_gsid }} ({{ group_2_in_universe }} genes)");
+}
+
+
+/**
+ * Draw the circles representing the size and intersect of the two groups used to run MSET
+ */
+function drawCircles() {
+
+    var group1 = {{ group_1_in_universe }},
+        group2 = {{ group_2_in_universe }},
+        universe_size = {{ universe_size }},
+        intersection = {{ selected_intersect_size }};
+
+    intersection = intersection * Math.min(group1, group2) / 100;
+
+    var init_dim = geometry(group1, group2, intersection),
+        // scale = Math.min(width / (init_dim.r1 + init_dim.r2 + init_dim.d),
+        //     height / Math.max(2 * init_dim.r1, 2 * init_dim.r2))
+        scale = 150 / Math.sqrt( universe_size / Math.PI);
+
+
+    var circles = [
+        {
+            r: 150,
+            cx: width/2
+        },
+        {
+            r: init_dim.r1 * scale,
+            cx: (width - (init_dim.r1 + init_dim.d + init_dim.r2) * scale) / 2
+        },
+        {
+            r: init_dim.r2 * scale,
+            cx: (width - (init_dim.r1 + init_dim.d + init_dim.r2) * scale) / 2 + init_dim.d * scale
+        }];
+
+    var selection = container.selectAll("circle").data(circles);
+    if (first) {
+        selection = selection.enter().append("circle");
+        first = false;
+    }
+
+    selection
+        .attr("cx", function (d) { return d.cx; })
+        .attr("cy", height * 2 / 5)
+        .attr("r", function (d) { return d.r; })
+        .style("fill", function(d, i) { return colors(i); })
+        .style("fill-opacity", 0.2);
+
+}
+
+/**
+ * Determine the radius of circles representing each group and the distance between them to accurately display
+ * the intersection size of the two groups.
+ *
+ * @param {number} group1 The size of the first group
+ * @param {number} group2 The size of the second group
+ * @param {number} intersection The size of the intersection between each group
+ *
+ * @returns {object}    radius of first, radius of second, distance between them
+ */
+function geometry (group1, group2, intersection) {
+    var r1, r2, d;
+
+    r1 = Math.sqrt(group1 / Math.PI);
+    r2 = Math.sqrt(group2 / Math.PI);
+
+    var gamma_alpha = function(x) { return Math.asin(Math.sqrt(r1 * Math.sin(x) / r2)); };
+    var aux_alpha = function (x) {
+        var gamma = gamma_alpha(x);
+        return intersection -
+            r1*r1*(x - Math.sin(x)*Math.cos(x)) -
+            r2*r2*(gamma - Math.sin(gamma)*Math.cos(gamma));
+    };
+
+    var test = 0.01,
+        best = group1 + group2 + intersection,
+        best2 = best,
+        x0,
+        x1,
+        alpha;
+
+    while (test < Math.PI) {
+        var p = Math.abs(aux_alpha(test));
+        if (p < best2) {
+            if (p < best) {
+                x1 = x0;
+                x0 = test;
+                best2 = best;
+                best = p;
+            }
+            else {
+                x1 = test;
+                best2 = p;
+            }
+        }
+        test = test + 0.01;
+    }
+
+    try {
+        alpha = brents(aux_alpha, x0, x1);
+    } catch (e) {
+        if (e === "Roots not bracketed") {
+            alpha = secant(aux_alpha, x0, x1);
+        }
+    }
+
+    var gamma = gamma_alpha(alpha);
+    d = r1 * Math.cos(alpha) + r2 * Math.cos(gamma);
+
+    return {r1: r1, r2: r2, d: d};
+}
+
+/**
+ * Brent's Root Finding Algorithm.
+ *
+ * This is a Javascipt implementation of Brent's method, a root-finding algorithm that combines the bisection method,
+ * the secant method and inverse quadratic interpolation.
+ *
+ * @link http://mathworld.wolfram.com/BrentsMethod.html
+ *
+ * @param {function}    f           The function whose roots to find
+ * @param {number}      x0          Initial x0
+ * @param {number}      x1          Initial x1
+ * @param {number}      max_iter    The max iterations to try
+ * @param {number}      tol         The acceptable tolerance
+ *
+ * @returns {number}    The root
+ */
+function brents(f, x0, x1, max_iter, tol) {
+    if (!max_iter) max_iter = 50;
+    if (!tol) tol = 0.00005;
+
+    var fx0 = f(x0),
+        fx1 = f(x1);
+
+    if ((fx0 * fx1) <= 0) throw "Roots not bracketed";
+
+    if (Math.abs(fx0) < Math.abs(fx1)) {
+        [x0, x1] = [x1, x0];
+        [fx0, fx1] = [fx1, fx0];
+    }
+
+    var x2 = x0,
+        fx2 = fx0,
+        steps_taken = 0,
+        mflag = true,
+        brents_new,
+        fnew,
+        d;
+
+    while (steps_taken < max_iter && Math.abs(x1 - x0) > tol) {
+        fx0 = f(x0);
+        fx1 = f(x1);
+        fx2 = f(x2);
+
+        if (fx0 !== fx2 && fx1 !== fx2) {
+            var L0 = (x0 * fx1 * fx2) / ((fx0 - fx1) * (fx0 - fx2)),
+                L1 = (x1 * fx0 * fx2) / ((fx1 - fx0) * (fx1 - fx2)),
+                L2 = (x2 * fx1 * fx0) / ((fx2 - fx0) * (fx2 - fx1));
+            brents_new = L0 + L1 + L2;
+        } else {
+            brents_new = x1 - ( (fx1 * (x1-x0)) - (fx1 - fx0) );
+        }
+
+        if ((brents_new < ((3 * x0 + x1) / 4)) ||
+            (mflag === true && (Math.abs(brents_new - x1) >= Math.abs(x1 - x2) / 2)) ||
+            (mflag === false && (d) && (Math.abs(brents_new - x1) >= Math.abs(x2 - d) / 2)) ||
+            (mflag === true && (Math.abs(x1 - x2) < tol)) ||
+            (mflag === false && (d) && (Math.abs(x2 - d) < tol))) {
+            brents_new = (x0 + x1) / 2;
+            mflag = true;
+        } else {
+            mflag = false;
+        }
+        fnew = f(brents_new);
+        d = x2;
+        x2 = x1;
+        if ( fx0 * fnew  < 0 ) {
+            x1 =brents_new;
+        } else {
+            x0 = brents_new;
+        }
+
+        if (Math.abs(fx0) < Math.abs(fx1)) {
+            [x0, x1] = [x1, x0];
+        }
+
+        steps_taken += 1;
+    }
+    return x1
+}
+
+/**
+ * Secant root finding algorithm.
+ *
+ * @link http://mathworld.wolfram.com/SecantMethod.html
+ *
+ * @param {function}    f           The function whose roots to find
+ * @param {number}      x0          Initial x0
+ * @param {number}      x1          Initial x1
+ * @param {number}      max_iter    The max iterations to try
+ * @param {number}      tol         The acceptable tolerance
+ *
+ * @returns {number}    The root
+ */
+function secant(f, x0, x1, max_iter, tol) {
+    if (!max_iter) max_iter = 10000;
+    if (!tol) tol = 0.000001;
+    var f_x0 = f(x0),
+        f_x1 = f(x1),
+        iteration_counter = 0,
+        denominator,
+        x;
+    while(Math.abs(f_x1) > tol && iteration_counter < max_iter) {
+        try {
+            denominator = (f_x1 - f_x0) / (x1 - x0);
+            x = x1 - f_x1 / denominator;
+        } catch (e) {
+            throw "Divide by zero error"
+        }
+        x0 = x1;
+        x1 = x;
+        f_x0 = f_x1;
+        f_x1 = f(x1);
+        iteration_counter += 1;
+    }
+    return x
+}
 </script>
+
+<style>
+    .d3-tip {
+        line-height: 1;
+        font-weight: bold;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+    }
+
+    /* Creates a small triangle extender for the tooltip */
+    .d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 10px;
+        width: 100%;
+        line-height: 1;
+        color: rgba(0, 0, 0, 0.8);
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+    }
+
+    /* Style northward tooltips differently */
+    .d3-tip.n:after {
+        margin: -1px 0 0 0;
+        top: 100%;
+        left: 0;
+    }
+</style>
 <script>//frequency graph
+/**
+ *
+ *
+ * @param size
+ * @param break_size
+ * @returns {*}
+ */
+function numBins(size, break_size) {
+    var val = 1;
+    for (var i = break_size; i > 1; i--) {
+        if (size % i === 0) {
+            val = i;
+            break
+        }
+    }
+    if (val < 4) {
+        val = -1
+    }
+    return val
+}
 
+/**
+ * Bin data 
+ *
+ * @param data The data to bin
+ * @param num_bins The number of bins to create
+ * @returns {*}
+ */
+function binData(data, num_bins) {
+    var chunk_size = data.length / num_bins;
+    return data
+            .map(function (item, index) {
+                return index % chunk_size === 0 ? data.slice(index, index + chunk_size) : null;
+            })
+            .filter(function (item) {
+                return item;
+            })
+            .map(function (item) {
+                var keys = item.map(function (i) {
+                        return i.name
+                    }),
+                    min_key = Math.min.apply(null, keys),
+                    max_key = Math.max.apply(null, keys),
+                    red = item.reduce(function (p, c) {
+                        return p + c.value
+                    }, 0);
+                return {name: min_key + " - " + max_key, value: red};
+            });
+}
 
-var data = d3.range({{ async_result.datafile['data'][0]['densityPointCount']}}).map(function(i) {
+var margin = ({top: 50, right: 20, bottom: 30, left: 60}),
+    num_trials = {{ num_trials }},
+    width = 640,
+    height = 425,
+    overflow_amount = 32,
+    binned = false,
+    pre_data = ({{ density_data | safe }}),
+    data = pre_data.map(function (d) {
+        return {name: d.intersectSize, value: Math.round(d.frequency * num_trials)}
+    });
 
-    var value={intersectSize: i , frequency: {{ async_result.datafile['data'][0]['density'] }}[i] };
+// Bin data
+if (data.length > overflow_amount) {
+    var num_bins = numBins(data.length, overflow_amount);
+    if (num_bins > 2) {
+        data = binData(data, num_bins);
+        binned = true;
+    }
+}
 
-    console.log(value);
-    return value;
-});
+data.x = "Intersection Size";
+data.y = "Frequency";
 
-var margin = {top: 100, right: 20, bottom: 70, left: 40},
-    width = +d3.select("#barGraph").attr("width") - margin.left - margin.right,
-    height = +d3.select("#barGraph").attr("height") - margin.top - margin.bottom;
+var x = d3.scaleBand()
+    .domain(data.map(function (d) {
+        return d.name
+    }))
+    .range([margin.left, width - margin.right])
+    .padding(0.1);
 
-var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+var y = d3.scaleLinear()
+    .domain([0, d3.max(data, function(d) {return d.value})]).nice()
+    .range([height - margin.bottom, margin.top]);
 
-var y = d3.scale.linear().range([height, 0]);
+var xAxis = function(g) {
+    var ret = g.attr("transform", "translate(0,"+(height - margin.bottom)+")")
+        .attr('id', 'xaxis')
+        .call(d3.axisBottom(x)
+            .tickSizeOuter(0));
 
-var xAxis = d3.svg.axis()
-    .scale(x)
-    .orient("bottom")
-    .ticks(10);
-
-var yAxis = d3.svg.axis()
-    .scale(y)
-    .orient("left")
-    .ticks(10,"%");
-
-
-  x.domain(data.map(function(d) { return d.intersectSize; }));
-  y.domain([0, d3.max(data, function(d) { return d.frequency; })]);
-
-var svg=d3.select("#barGraph").attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
-
-var graphBar=function(drawBars,drawLine,smooth){
-
-    svg.selectAll("*").remove();
-    svg.append("text")
-        .attr("dy","-3em")
-        .style("text-anchor","start")
-        .style("alignment-baseline","middle")
-        .style("font-size","20")
-        .text("Frequency Graph");
-
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis)
-    .selectAll("text")
-      .style("text-anchor", "end")
-      .attr("dx", ".2em")
-      .attr("dy", ".7em")
-
-  svg.append("g")
-      .attr("class", "y axis")
-      .call(yAxis)
-    .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 6)
-      .attr("dy", ".71em")
-      .style("text-anchor", "end")
-      .text("frequency");
-
-  if(drawBars){
-      var bars=svg.selectAll(".bar")
-          .data(data)
-        .enter().append("g")
-          .attr("class", "bar");
-
-    bars.append("rect")
-          .attr("x", function(d) { return x(d.intersectSize); })
-          .attr("width", x.rangeBand())
-          .attr("y", function(d) { return y(d.frequency); })
-          .attr("height", function(d) { return height - y(d.frequency); });
-    bars.append("text").text(function(d){return ""+d.frequency})
-      .attr("x", function(d) { return x(d.intersectSize); })
-      .attr("y", function(d) { return y(d.frequency); })
-      .attr("dx", ".5em")
-      .attr("dy", "-1em")
-
-  }
-
-
-  var line=d3.svg.line()
-      .x(function(d){ return x(d.intersectSize)+(x.rangeBand()/2);})
-      .y(function(d){ return y(d.frequency);})
-  if(smooth){
-    line.interpolate("basis")
-  }
-  if(drawLine){
-    svg.append("g").append("path")
-        .attr("d",line(data))
-        .style("fill","none")
-        .style("stroke","black")
-        .style("stroke-width","4-px");
-  }
-
+    if(binned) {
+        ret.selectAll("text")
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-65)");
+    }
+    ret = ret.call(function(g) {
+        g.append("text")
+            .attr("x", width / 2 + margin.left)
+            .attr("y", function() { return ((binned) ? 85 : 50 )})
+            .attr("fill", "#000")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "end")
+            .attr("class", "tick")
+            .text(data.x)
+    });
+    return ret
 };
-graphBar(true,true,true);
+
+var yAxis = function(g) {
+    return g.attr("transform", "translate("+margin.left+",0)")
+        .call(d3.axisLeft(y))
+        .call(function(g) { return g.select(".domain").remove() })
+        .call(function(g) { return g.select(".tick:last-of-type text").clone()
+            .attr("x", 4)
+            .attr("text-anchor", "start")
+            .attr("font-weight", "bold")
+            .text(data.y)
+        })
+};
+
+var svg = d3.select("#barGraph");
+
+var title = svg
+    .append("g")
+    .append("text")
+    .attr("x", margin.left)
+    .attr("y", margin.top / 2)
+    .style("text-anchor","start")
+    .style("alignment-baseline","middle")
+    .style("font-size","20")
+    .text("Simulated Intersect Sizes");
+
+var tip = d3.tip()
+    .attr('class', 'd3-tip')
+    .offset([-10, 0])
+    .html(function (d) {
+        var tip_html = "<strong>Size:</strong> <span>" + d.name + "</span>";
+        tip_html += "<br><strong>Frequency:</strong> <span>" + Math.round(d.value) + "</span>";
+        return tip_html
+    });
+
+svg.call(tip);
+
+var bar = svg.append("g")
+    .attr("fill", "PowderBlue")
+    .selectAll("rect")
+    .data(data)
+    .enter().append("rect")
+    .attr("class", "bar")
+    .attr("x", function(d) {return x(d.name)})
+    .attr("y", function(d) {return y(d.value)})
+    .attr("width", x.bandwidth())
+    .attr("height", function(d) { return y(0) - y(d.value)})
+    .on('mouseover', tip.show)
+    .on('mouseout', tip.hide);
+
+svg.append("g")
+    .call(xAxis);
+
+svg.append("g")
+    .call(yAxis);
+
+if (data.length > overflow_amount) {
+    d3.select('#xaxis')
+        .selectAll('.tick text')
+        .attr("class", function(d,i){
+            if(i%(Math.round(data.length/10)) !== 0 || i > data.length - 6){
+                if (i !== data.length - 1) d3.select(this).remove();
+            }
+        });
+}
+
+var line = d3.line()
+        .x(function(d){ return x(d.name)+(x.bandwidth()/2);})
+        .y(function(d){ return y(d.value);});
+
+line.curve(d3.curveBasis);
+
+svg.append("g").append("path")
+    .attr("d",line(data))
+    .style("fill","none")
+    .style("stroke","black")
+    .style("stroke-width","4-px");
 
 </script>
 
 
-<p style="font-size: 16px">p-value: {{ async_result.datafile['data'][0]['pValue'] }}<br/>
-{{ async_result.datafile['data'][0]['numSamples'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} generated from background<br/>
-{{ async_result.datafile['data'][0]['intersectGreaterCount'] }} simulated results of length {{ async_result.datafile['data'][0]['sampleLength'] }} contained at least as many matches to database as the actual expression results.<br/>
-{{ async_result.datafile['data'][0]['inTopAndIntersectCount'] }} matches to
-database found in microarray results</p>
-
+<p style="font-size: 16px">p-value: {{ p_value }}<br/>
+{{ num_trials }} simulated results generated from universe of size {{ universe_size }}<br/>
+{{ trials_gt_int }} simulated results contained at least as many matches to database as the actual expression results ({{ selected_intersect_size }}).<br/>
+{% if geneset | length > 0 %}
 <div class="panel panel-default">
-        <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
-            <h3 class="panel-title">Gene in both Top Genes and Set of Interest </h3>
-        </div>
-        <div class="panel-body" style="padding-top:10px;">
-
-            <div class="row">
-                <div class="col-xs-12 col-md-9">
-                    <div class="row">
-                    </div>
-                </div>
-                <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
-					<button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
-						<i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
-					</button>
-                </div>
-            </div>
-
-        {% if ignore == 0 %}
-            <div class="row" >
-                <!-- TODO make the table sortable, show more gene details -->
-                <table class="table table-hover">
-                    <tbody>
-                    <tr>
-                        <th>Default</th>
-                        <th>
-                            <span class="dropdown">
-
-								<span id="clickableGeneSymbol"
-									  data-toggle="dropdown"
-									  aria-haspopup="true"
-									  aria-expanded="true">
-
-									<span id="altSymbolHeader">
-										Entrez
-									</span>
-									<i id="type-loading" class="fa fa-caret-down"></i>
-
-								</span>
-
-								{#
-									TODO: Should be rewritten to dynamically
-									load gene types from the DB
-								#}
-								<ul class="dropdown-menu"
-									aria-labelledby="clickableGeneSymbol">
-									<li class="gene-type" rel="0"><a tabindex="0" class="" style="">
-										<span class="text">Gene Symbol</span>
-									</a></li>
-									<li class="gene-type" rel="1"><a tabindex="0" class="" style="">
-										<span class="text">Entrez</span>
-									</a></li>
-									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
-										<span class="text">Ensembl Gene</span>
-									</a></li>
-									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
-										<span class="text">UniGene</span>
-									</a></li>
-									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
-										<span class="text">MGI</span>
-									</a></li>
-									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
-										<span class="text">FlyBase</span>
-									</a></li>
-									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
-										<span class="text">WormBase</span>
-									</a></li>
-									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
-										<span class="text">RGD</span>
-									</a></li>
-									<li class="gene-type" rel="2" class="selected"><a tabindex="0" class="" style="">
-										<span class="text">ZFIN</span>
-									</a></li>
-								</ul>
-							</span>
-                        </th>
-                        <th>
-                            Homology
-                            <span id="clickableHomology" tabindex="0" data-trigger="focus">
-                                <i class="fa fa-info-circle"></i>
-                            </span>
-                        </th>
-                        <th>Score</th>
-                        <th>Priority
-                            <span id="clickablePriority" data-trigger="focus" tabindex="0">
-                                <i class="fa fa-info-circle"></i>
-                            </span>
-                        </th>
-                        <th>LinkOuts</th>
-                        <th>Emphasis</th>
-                        <th>&nbsp;</th>
-                    </tr>
-
-                     {% for geneset_value in geneset.geneset_values %}
-                            <tr class="gene-list-row">
-                                <td id="defaultSymbol">
-                                    <strong>
-                                        <a href="/search/?searchbar={{ geneset_value.source_list[0] }}&pagination_page=1&searchGenes=yes">
-                                            {{ geneset_value.source_list[0] }}
-                                        </a>
-                                    </strong>
-                                </td>
-                                <td id="altSymbol" class="gene-symbol" ode-gene-id="{{ geneset_value.ode_gene_id }}">
-                                    {# If the alternate ID type the user selected doesn't match the one belonging
-                                       to the geneset_value, it means no alternate type exists for that gene and a
-                                       default was used instead. #}
-                                    {% if geneset_value.gdb_id == alt_gdb_id %}
-                                            <strong>
-                                                {{ geneset_value.ode_ref }}
-                                            </strong>
-                                    {% else %}
-                                        <strong>
-                                            None
-                                        </strong>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {# Make boxes for homology blocks #}
-                                    {# see application.py for the list of species and colors #}
-                                    {% for i in range(1,12) %}
-                                        {# skip elements that are empty #}
-                                        {% if tt[(i-1)] != 'empty' %}
-                                            <span data-placement="top" data-toggle="tooltip" data-rel="tooltip" data-original-title="{{ tt[(i-1)] }}"
-                                                  title="{{ tt[(i-1)] }}">
-                                            {% set exists = ['1'] %}
-                                            {% for h in geneset_value.hom|sort %}
-                                                {% if h == i %}
-                                                    <div class="geneBox" style="background-color: {{ colors[(i-1)] }};"></div>
-                                                    {% if exists.append('1') %}{% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                            {% if exists|length == 1 %}
-                                                <div class="geneBox"></div>
-                                            {% endif %}
-                                            </span>
-                                        {% endif %}
-                                    {% endfor %}
-                                </td>
-                                <td class="gene-value">
-                                    <strong>
-                                        {{ '%0.4f' % geneset_value.value|float }}
-                                    </strong>
-                                </td>
-                                <td>
-                                    <div class="progress">
-                                        <div class="progress-bar progress-bar-success progress-bar-striped"
-                                             data-aria-valuetransitiongoal="{{ '%.0f' % geneset_value.gene_rank|float }}"
-                                             aria-valuenow="{{ '%.0f' % geneset_value.gene_rank|float }}"
-                                             style="width: {{ '%.0f' % geneset_value.gene_rank|float }}%;">
-                                            {{ '%.0f' % geneset_value.gene_rank|float }}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <!-- TODO Insert outside links here -->
-                                    {% set gene=geneset_value.source_list[0] %}
-                                    {% include 'linkouts.html' %}
-                                </td>
-
-                                <td nowrap>
-                                    <input type="checkbox" name="g_id[]" id="{{ geneset_value.ode_gene_id }}"
-                                           onchange="emphasize('{{ geneset_value.ode_gene_id }}');"
-                                           class="switch" data-size="mini"
-                                           style="padding: 0px; vertical-align: middle;">
-
-                                </td>
-                                <td>
-                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                        <label for="addGeneset{{ geneset_value.source_list[0] }}"
-                                               style="margin: -6px; padding-right: 0;">
-                                            <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ geneset_value.source_list[0] }}"
-                                                   value="{{ geneset_value.source_list[0] }}"/>
-                                        </label>
-                                    </div>
-                                </td>
-                            </tr>
-
-                    {% endfor %}
-                	</tbody>
-            	</table>
-        	</div>
-            {% else %}
-
-                            <div class="row">
-                <!-- TODO make the table sortable, show more gene details -->
-                <table class="table table-hover">
-                    <tbody>
-                    <tr>
-                        <th>Default</th>
-                        <th>LinkOuts</th>
-                        <th>Emphasis</th>
-                        <th>&nbsp;</th>
-                    </tr>
-
-                     {% for geneset_value in geneset %}
-                            <tr class="gene-list-row">
-                                <td id="defaultSymbol">
-                                    <strong>
-                                        <a href="/search/?searchbar={{ geneset_value[0] }}&pagination_page=1&searchGenes=yes">
-                                            {{ geneset_value[0] }}
-                                        </a>
-                                    </strong>
-                                </td>
-                                <td class="gene-value">
-                                    <strong>
-                                        {{ '%0.4f' % 1|float }}
-                                    </strong>
-                                </td>
-                                <td>
-                                    <!-- TODO Insert outside links here -->
-                                    {% set gene=geneset_value[0] %}
-                                    {% include 'linkouts.html' %}
-                                </td>
-                                <td>
-                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                        <label for="addGeneset{{ geneset_value[0] }}"
-                                               style="margin: -6px; padding-right: 0;">
-                                            <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ geneset_value[0] }}"
-                                                   value="{{ geneset_value[0] }}"/>
-                                        </label>
-                                    </div>
-                                </td>
-                            </tr>
-
-                    {% endfor %}
-                	</tbody>
-            	</table>
-        	</div>
-
-            {% endif %}
-    	</div>
-	</div>
-
-<script src="/static/d3/d3.min.js" charset="utf-8"></script>
-
-<form id="todo-id" class="form-horizontal" role="form" method="post">
-    <div class="panel panel-info" >
-        <div  style="border-radius:4px;">
-				<div class="panel-title" style="width:100%;">
-					Tool Options
-				</div>
-        </div>
-            <div class="panel-body" style="font-size:13px;border-radius:5px; border:1px solid #006400">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label style="width:50%;">
-                            MSET Top Genes:
-                        </label>
-                        <input type=text class="form-control" name='MSET_TopGenes' style="width:25%; " />
-                    </div>
-                    <div class="col-md-4">
-                        <label style="width:50%;">
-                            MSET Interest Genes:
-                        </label>
-                        <input type=text class="form-control" name='MSET_InterestGenes' style="width:25%; " />
-                    </div>
-                </div>
-                <div class="row top-buffer">
-                    <div class="col-md-4">
-                        {{ macros.tool_param_select(tool.params['MSET_Background']) }}
-                    </div>
-                    <div class="col-md-4">
-                        {{ macros.tool_param_select(tool.params['MSET_NumberofSamples']) }}
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        {{ macros.tool_param_checkbox_mset(tool.params['MSET_Species']) }}
-                    </div>
-                    <div class="col-md-4">
-                        <label style="width:50%;">
-                            Projects:
-                        </label>
-                        <div id="geneset-count" class="h5"></div>
-                            <!-- TODO make the table sortable, show more gene details -->
-                            <!--Tried to deal with users that had large project files by using a scroll for overflow, but it did not work-->
-                            <table class="table table-hover" style="overflow-y:scroll; height: 20px" id="allGenesets" cellpadding="0" cellspacing="0">
-                                <tbody>
-
-                                {% for proj in g.user.projects %}
-                                    <tr>
-                                        {# checkbox #}
-                                        <td width="18">
-                                            <div class="ui-checkbox proj-checkbox">
-                                                <label for="proj-{{ proj.project_id }}-allcheck">
-                                                    <input type="checkbox" data-project="{{ proj.project_id }}"
-                                                           data-project-name="{{ proj.name }}"
-                                                           name="project_{{ proj.project_id }}"
-                                                           id="proj-{{ proj.project_id }}-allcheck"/>
-                                                </label>
-                                            </div>
-                                        </td>
-                                        {# Project Name #}
-                                        <td>
-                                            <span data-prod="{{proj.project_id }}" class="toggler" style="cursor:pointer;">
-                                                <strong>{{ proj.name }}</strong>
-                                                {% if proj.star == 't' %}
-                                                    <span class="closedstar"></span>
-                                                {% endif %}
-                                            </span>
-                                        </td>
-
-                                    </tr>
-
-                                    <tr class="gsid{{ proj.project_id }}" id="genesets-{{ proj.project_id }}"
-                                        style="display: none;">
-                                        <td colspan="9">
-                                            <table id="project-body-{{ proj.project_id }}"
-                                                   class="table table-hover">
-                                            </table>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        <input type="hidden" name="genesets" value="{{ async_result.gs_ids|join(' ') }}"/>
-                    </div>
-                    <div class="col-md-8">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4">
-                        <button class="btn btn-primary"
-                                type='submit'
-                                value='run'
-                                onclick='this.form.action="{{ url_for('MSET.run_tool') }}";'>
-                            Re-Run Tool
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
+        <h3 class="panel-title">Gene in both Top Genes and Set of Interest </h3>
     </div>
-</form>
+    <div class="panel-body" style="padding-top:10px;">
 
+        <div class="row">
+            <div class="col-xs-6 col-md-7">
+                <div class="row">
+                </div>
+            </div>
+            <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
+                <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
+                    <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                </button>
+            </div>
+            <div class="col-xs-6 col-md-2">
+                <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
+                     style="padding:0; border:0; margin:0">
+                    <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
+                        Select All
+                        <input type="checkbox"
+                               name="group-{{ i }}"
+                        />
+                    </label>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <table class="table table-hover" id="intersect-table">
+                <tbody>
+                <tr>
+                    <th>Default</th>
+                    <th>LinkOuts</th>
+                    <th>Emphasis</th>
+                    <th>&nbsp;</th>
+                </tr>
+
+                {% for geneset_value in geneset %}
+                    <tr class="gene-list-row">
+                        <td id="defaultSymbol">
+                            <strong>
+                                <a href="/search/?searchbar={{ geneset_value[1] }}&pagination_page=1&searchGenes=yes">
+                                    {{ geneset_value[1] }}
+                                </a>
+                            </strong>
+                        </td>
+                        <td class="gene-value">
+                            <strong>
+                                {{ '%0.4f' % 1|float }}
+                            </strong>
+                        </td>
+                        <td>
+                            <!-- TODO Insert outside links here -->
+                            {% set gene=geneset_value[0] %}
+                            {% include 'linkouts.html' %}
+                        </td>
+                        <td>
+                            <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                <label for="addGeneset{{ geneset_value[0] }}"
+                                       style="margin: -6px; padding-right: 0;">
+                                    <input type="checkbox" name="gsoptions[]"
+                                           id="addGeneset{{ geneset_value[0] }}"
+                                           value="{{ geneset_value[0] }}"/>
+                                </label>
+                            </div>
+                        </td>
+                    </tr>
+
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <script type="text/javascript">
+
+        $('.group-checkbox').on('click', function () {
+
+            var table = $('#intersect-table'),
+                select_all = $(this).find('input[type=checkbox]'),
+                checks = table.find('input[type=checkbox]'),
+                btns = table.find('.ui-btn');
+
+            if (select_all.attr('checked')) {
+                checks.each(function () {
+                    $(this).attr('checked', false);
+                });
+                btns.each(function () {
+                    $(this).removeClass('ui-checkbox-on');
+                    $(this).addClass('ui-checkbox-off');
+                });
+            } else {
+                checks.each(function () {
+                    $(this).attr('checked', true);
+                });
+                btns.each(function () {
+                    $(this).removeClass('ui-checkbox-off');
+                    $(this).addClass('ui-checkbox-on');
+                });
+            }
+        });
 
     	$('#addNewGeneset').on('click', function () {
 
@@ -845,30 +888,57 @@ database found in microarray results</p>
 			checkedArray.push($(this).val());
 		});
 
-		if(typeof checkedArray != "undefined" && checkedArray != null && checkedArray.length > 0) {
+		if(typeof checkedArray !== "undefined" &&
+            checkedArray != null &&
+            checkedArray.length > 0) {
 
-			{# Assign the needed async_results variables #}
-			var numGS = 0;
-			// Genesets with newlines cause js to shit the bed and get stuck
-			// in an infinite loading loop. Any variable replaced by jinja
-			// should be safe'd and trimmed.
-			var getStr = 'Genes dervied from the MSET Enrichment Test';
-			getStr += '?' + getStr;
+		    var name = 'Genes dervied from the MSET Enrichment Test';
+		    var description = 'Genes dervied from the MSET Enrichment Test';
+		    var genes = checkedArray;
+		    console.log(genes);
+            // Generates a hidden form that is used to submit data to the
+            // upload page
+            var form = $('<form></form>', {
+                id: 'uploadform',
+                name: 'uploadform',
+                method: 'post',
+                action: '/uploadgeneset',
+                target: '_blank',
+                type: 'hidden'
+            });
 
-			// add in all the checked boxes gene names
-			checkedArray.forEach(function (entry) {
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'name',
+                value: name
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'species',
+                value: '{{ species }}'
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'description',
+                value: description
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'genes',
+                value: genes
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'sp',
+                value: {{ sp_id |safe }}
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'tool',
+                value: 'mset'
+            }));
 
-				getStr += "?";
-				getStr += entry;
-				getStr += "?";
-				getStr += '1';
-
-			});
-
-			// Load the new page with the extra url bit
-			setTimeout(function(){
-                window.location = "/uploadgeneset/" + getStr;
-			}, 1000);
+            form.appendTo('body').submit();
 		}
 		else{
 			window.alert("No genes selected.")
