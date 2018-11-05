@@ -24,7 +24,7 @@ BACKGROUND_NAMES = ["CTD", "NIF", "ABA", "GWAS", "DRG", "GO", "MP", "HP", "MESH"
 
 
 @mset_blueprint.route('/MSET.html', methods=['POST'])
-def run_tool_web():
+def run_tool():
 
     user = flask.g.user
     if not user:
@@ -34,12 +34,12 @@ def run_tool_web():
     form = flask.request.form
     number_of_samples = form.get('MSET_NumberofSamples', 1000)
     selected_geneset_ids = tc.selected_geneset_ids(form)
-    group_1_gsid = selected_geneset_ids[0]
-    group_2_gsid = selected_geneset_ids[1]
 
-    # Make sure we have enough genesets
-    if not selected_geneset_ids or len(selected_geneset_ids) < 2:
-        flask.flash("Error: Please select at least two gene sets to run MSET.")
+    try:
+        group_1_gsid = selected_geneset_ids[0]
+        group_2_gsid = selected_geneset_ids[1]
+    except IndexError:
+        flask.flash("Error: Please select two distinct gene sets.")
         return flask.redirect('analyze')
 
     # Make sure we don't have too many genesets
@@ -49,7 +49,7 @@ def run_tool_web():
 
     # Try running the MSET tool with the args provided
     try:
-        async_result, task_id, tool = run_tool(group_1_gsid, group_2_gsid, number_of_samples, user.user_id)
+        async_result, task_id, tool = run_tool_exec(group_1_gsid, group_2_gsid, number_of_samples, user.user_id)
     except ValueError as e:
         flask.flash(e.message)
         return flask.redirect('analyze')
@@ -75,7 +75,7 @@ def run_tool_api(apikey, num_samples, geneset_1, geneset_2):
 
     # Try running the MSET tool with the args provided
     try:
-        async_result, task_id, tool = run_tool(geneset_1, geneset_2, num_samples, user_id)
+        async_result, task_id, tool = run_tool_exec(geneset_1, geneset_2, num_samples, user_id)
     except ValueError as e:
         flask.flash(e.message)
         return flask.redirect('analyze')
@@ -83,7 +83,7 @@ def run_tool_api(apikey, num_samples, geneset_1, geneset_2):
     return task_id
 
 
-def run_tool(gs_1, gs_2, num_samples, user_id):
+def run_tool_exec(gs_1, gs_2, num_samples, user_id):
     species = gwdb.get_all_species()
     selected_geneset_ids = [gs_1, gs_2]
     group_1_gsid = gs_1
@@ -128,7 +128,8 @@ def run_tool(gs_1, gs_2, num_samples, user_id):
     task_id = str(uuid.uuid4())
     tool = gwdb.get_tool(TOOL_CLASSNAME)
     # Create a good description of the tool run
-    desc = '{} ({}) on GeneSets {} and {}'.format(tool.name, num_samples, group_1.name, group_2.name)
+    desc = '{} ({}) '.format(tool.name, num_samples)
+    desc += 'on GeneSets {} and {}'.format('GS:{}'.format(group_1.geneset_id), 'GS:{}'.format(group_2.geneset_id))
 
     params = {'MSET_NumberofSamples': num_samples,
               'user_id': user_id}

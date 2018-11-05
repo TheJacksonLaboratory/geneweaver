@@ -780,24 +780,13 @@ svg.append("g").append("path")
     <div class="panel-body" style="padding-top:10px;">
 
         <div class="row">
-            <div class="col-xs-6 col-md-7">
-                <div class="row">
-                </div>
-            </div>
-            <div class="col-xs-6 col-md-3" style="margin:0; padding:0;">
+            <div class="col-xs-12 col-md-5" style="margin:0; padding:0;">
                 <button type="button" class="btn btn-block btn-warning" id="addNewGeneset" style="margin-bottom: 10px;">
-                    <i class="fa fa-list-ul pull-left"></i> Add Genes to GeneSet
+                    <i class="fa fa-list-ul pull-left"></i> Create Geneset from MSET Intersection
                 </button>
             </div>
-            <div class="col-xs-6 col-md-2">
-                <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
-                     style="padding:0; border:0; margin:0">
-                    <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                        Select All
-                        <input type="checkbox"
-                               name="group-{{ i }}"
-                        />
-                    </label>
+            <div class="col-xs-6 col-md-7">
+                <div class="row">
                 </div>
             </div>
         </div>
@@ -808,9 +797,9 @@ svg.append("g").append("path")
                 <tbody>
                 <tr>
                     <th>Default</th>
-                    <th>LinkOuts</th>
-                    <th>Emphasis</th>
-                    <th>&nbsp;</th>
+                    <th>Value</th>
+                    <th>Linkouts</th>
+                    <th></th>
                 </tr>
 
                 {% for geneset_value in geneset %}
@@ -833,7 +822,7 @@ svg.append("g").append("path")
                             {% include 'linkouts.html' %}
                         </td>
                         <td>
-                            <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                            <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0; display: none;">
                                 <label for="addGeneset{{ geneset_value[0] }}"
                                        style="margin: -6px; padding-right: 0;">
                                     <input type="checkbox" name="gsoptions[]"
@@ -883,7 +872,7 @@ svg.append("g").append("path")
     	$('#addNewGeneset').on('click', function () {
 
 		var checkedArray = [];
-		$("input:checkbox[name='gsoptions[]']:checked").each(function(){
+		$("input:checkbox[name='gsoptions[]']").each(function(){
 			//console.log($(this));
 			checkedArray.push($(this).val());
 		});
