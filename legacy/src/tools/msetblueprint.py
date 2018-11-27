@@ -34,6 +34,10 @@ def run_tool():
     form = flask.request.form
     number_of_samples = form.get('MSET_NumberofSamples', 1000)
     selected_geneset_ids = tc.selected_geneset_ids(form)
+    alt_genesets = form.get('genesets')
+    if alt_genesets:
+        alt_genesets = alt_genesets.split(' ')
+        selected_geneset_ids = alt_genesets if len(alt_genesets) == 2 else selected_geneset_ids
 
     try:
         group_1_gsid = selected_geneset_ids[0]
@@ -68,7 +72,7 @@ def run_tool():
     return response
 
 
-@mset_blueprint.route('/api/tool/MSET.html', methods=['GET'])
+@mset_blueprint.route('/api/tool/run-MSET.html', methods=['GET'])
 def run_tool_api(apikey, num_samples, geneset_1, geneset_2):
 
     user_id = gwdb.get_user_id_by_apikey(apikey)
@@ -160,8 +164,6 @@ def view_result(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
     tool = gwdb.get_tool(TOOL_CLASSNAME)
-    print async_result.state
-
     user = flask.g.user
     if not user:
         flask.flash('Please log in to view your results')
@@ -219,6 +221,7 @@ def view_result(task_id):
         colors=HOMOLOGY_BOX_COLORS,
         species_names=SPECIES_NAMES,
         async_result=json.dumps(async_result),
+        runhash=task_id,
         **results
     )
 

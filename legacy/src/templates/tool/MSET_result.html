@@ -177,8 +177,22 @@
 </style>
 
 <div class="page-header">
-    <h1>{{ title }}
-        {{ runhash }} </h1>
+    <h1>{{ title }}</h1>
+    <h4>{{ runhash }}</h4>
+</div>
+
+<div class="page-header">
+    <p style="font-size: 16px">
+        GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }} share <b>{{ selected_intersect_size }}</b> genes and reside in a
+        universe containing {{ universe_size }} genes. <br/>
+        MSET performed <b>{{ num_trials }}</b> trials and created two simulated gene sets per trial, one each for
+        GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }}.<br/><br/>
+        <b>{{ trials_gt_int }}</b> trials contained simulated gene sets that shared at least as many genes as are shared
+        by GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }} ({{ selected_intersect_size }}).<br/>
+        MSET returned p-value: <b>{{ p_value }}</b>.<br/><br/>
+        There is a {{ p_value }} probability that the genes shared by GS:{{ group_1_gsid }} and GS:{{ group_2_gsid }}
+        occurred due to randomness.
+    </p>
 </div>
 
 <div id="graphDiv">
@@ -205,7 +219,8 @@
                     </button>
                     <script> var sizeGraph = $('#circleSVG')[0] </script>
                     <ul class="dropdown-menu" onmouseout="$('#sizeGraphButton')[0].setAttribute('class','btn-group');">
-                        <li onclick="download(sizeGraph,null,true);">
+                        <!--TODO: Fix PNG download-->
+                        <li onclick="download(sizeGraph,null,true);" class='disabled'>
                             <a class="download-image" id="dl-png">PNG</a>
                         </li>
                         <li onclick="download(sizeGraph,null,false);">
@@ -227,7 +242,8 @@
                         <script> var barGraph=$('#barGraph')[0]; </script>
                         <ul class="dropdown-menu"
                             onmouseout="$('#barGraphButton')[0].setAttribute('class','btn-group');">
-                            <li onclick="download(barGraph,null,true);">
+                            <!--TODO: Fix PNG download-->
+                            <li onclick="download(barGraph,null,true);" class='disabled'>
                                 <a class="download-image" id="dl-png2">PNG</a></li>
                             <li onclick="download(barGraph,null,false);">
                                 <a class="download-image" id="dl-svg2" >SVG</a>
@@ -244,6 +260,7 @@
         </tr>
     </table>
 </div>
+
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.9.1/d3-tip.js"></script>
 <script>
@@ -252,6 +269,7 @@ var width = 300,
     first = true,
     colors = d3.scaleOrdinal(d3.schemeCategory10),
     margin = {top: 50, right: 20, bottom: 70, left: 40};
+
 
 var container = d3.select("#circleSVG")
     .attr("width", width)
@@ -365,7 +383,7 @@ function drawCircles() {
         .attr("cy", height * 2 / 5)
         .attr("r", function (d) { return d.r; })
         .style("fill", function(d, i) { return colors(i); })
-        .style("fill-opacity", 0.2);
+        .style("fill-opacity", 0.25);
 
 }
 
@@ -578,6 +596,16 @@ function secant(f, x0, x1, max_iter, tol) {
         top: 100%;
         left: 0;
     }
+
+    .comparisonline {
+        stroke: #006400;
+        stroke-width: 2px;
+        stroke-dasharray: 8 4;
+    }
+
+    .comparisonlinetext {
+        fill: #006400;
+    }
 </style>
 <script>//frequency graph
 /**
@@ -685,7 +713,14 @@ var xAxis = function(g) {
             .attr("font-weight", "bold")
             .attr("text-anchor", "end")
             .attr("class", "tick")
-            .text(data.x)
+            .text(data.x);
+        g.append('text')
+            .attr('x', x({{ selected_intersect_size }}) + (x.bandwidth() / 2))
+            .attr('y', function() { return ((binned) ? 85 : 50 )})
+            .attr('dy', '1em')
+            .attr('text-anchor', 'middle')
+            .text('Observed')
+            .attr('class', 'comparisonlinetext');
     });
     return ret
 };
@@ -766,12 +801,22 @@ svg.append("g").append("path")
     .style("stroke","black")
     .style("stroke-width","4-px");
 
+svg.append('line')
+    .attr('x1', x({{ selected_intersect_size }}) + (x.bandwidth()/2))
+    .attr('x2', x({{ selected_intersect_size }}) + (x.bandwidth()/2))
+    .attr('y1', y(0))
+    .attr('y2', y(d3.max(data, function(d) {return d.value})))
+    .attr('class', 'comparisonline');
+
+svg.append('text')
+    .attr('x', x({{ selected_intersect_size }}) + (x.bandwidth()/2))
+    .attr('y', y(-10))
+    .attr('dy', '1em')
+    .attr('text-anchor', 'middle')
+    .text('Observed')
+    .attr('class', 'comparisonlinetext');
 </script>
 
-
-<p style="font-size: 16px">p-value: {{ p_value }}<br/>
-{{ num_trials }} simulated results generated from universe of size {{ universe_size }}<br/>
-{{ trials_gt_int }} simulated results contained at least as many matches to database as the actual expression results ({{ selected_intersect_size }}).<br/>
 {% if geneset | length > 0 %}
 <div class="panel panel-default">
     <div class="panel-heading" style="border-bottom-width: thick; border-bottom-color: #006400;">
