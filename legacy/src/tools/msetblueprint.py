@@ -32,7 +32,7 @@ def run_tool():
         return flask.redirect('analyze')
 
     form = flask.request.form
-    number_of_samples = form.get('MSET_NumberofSamples', 1000)
+    number_of_trials = form.get('MSET_NumberofTrials', 5000)
     selected_geneset_ids = tc.selected_geneset_ids(form)
     alt_genesets = form.get('genesets')
     if alt_genesets:
@@ -53,7 +53,7 @@ def run_tool():
 
     # Try running the MSET tool with the args provided
     try:
-        async_result, task_id, tool = run_tool_exec(group_1_gsid, group_2_gsid, number_of_samples, user.user_id)
+        async_result, task_id, tool = run_tool_exec(group_1_gsid, group_2_gsid, number_of_trials, user.user_id)
     except ValueError as e:
         flask.flash(e.message)
         return flask.redirect('analyze')
