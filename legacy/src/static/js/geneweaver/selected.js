@@ -22,11 +22,11 @@ var selected = function(){
         return [
             {
                 'text': 'Projects',
-                'children': projects.select2
+                'children': projects.selected
             },
             {
                 'text': 'Genesets',
-                'children': genesets.select2
+                'children': genesets.selected
             }
         ];
     }
@@ -77,10 +77,14 @@ var selected = function(){
         function remove(project_id){
             _safeRemove(selected, project_id)
         }
+        function s2data() {
+            return selected;
+        }
         return {
             add:add,
             remove:remove,
-            select2: sProj
+            selected: selected,
+            select2: s2data
         }
     }();
 
@@ -92,10 +96,14 @@ var selected = function(){
         function remove(gs_id){
             _safeRemove(selected, gs_id)
         }
+        function s2data(){
+            return selected;
+        }
         return {
             add:add,
             remove:remove,
-            select2: selected
+            selected: selected,
+            select2: s2data
         }
     }();
 
