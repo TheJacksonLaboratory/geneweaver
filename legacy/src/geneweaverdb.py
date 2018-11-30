@@ -834,7 +834,7 @@ def get_all_species():
     returns an ordered mapping from species ID to species name for all available species
     """
     with PooledCursor() as cursor:
-        cursor.execute('''SELECT sp_id, sp_name FROM species ORDER BY sp_id;''')
+        cursor.execute('''SELECT sp_id, sp_name FROM species WHERE sp_name != '' ORDER BY sp_id;''')
         return OrderedDict(cursor)
 
 
@@ -947,11 +947,15 @@ def resolve_feature_ids(sp_id, ref_ids):
         return list(dictify_cursor(cursor))
 
 def get_gene_id_types(sp_id=0):
+    """ Get all the Gene ID types from the database
+
+    :param sp_id: Limit to additional species other than mouse
+    :return: list of dictify_cursor results
+    """
     with PooledCursor() as cursor:
         cursor.execute(
-                '''SELECT * FROM genedb WHERE %(sp_id)s=0 OR sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
+                '''SELECT * FROM genedb WHERE sp_id=0 OR sp_id=%(sp_id)s ORDER BY gdb_id;''',
                 {'sp_id': sp_id})
-
         return list(dictify_cursor(cursor))
 
 

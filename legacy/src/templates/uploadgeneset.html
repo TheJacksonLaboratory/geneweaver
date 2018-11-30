@@ -147,7 +147,7 @@
                 </div>
                 <div class="col-xs-6 col-sm-4">
                     <select id="gs_threshold_type" class="form-control" name="gs_threshold_type" required>
-                        <option selected="selected" id="" label="default" value="" style="font-weight:bold;"></option>
+                        <option disabled selected value> -- select score type -- </option>
                         <option id="gs-tt-pvalue" label="p-value" value="1" style="font-weight:bold;">P-Value</option>
                         <option id="gs-tt-qvalue" label="qvalue" value="2" style="font-weight:bold;">Q-Value</option>
                         <option id="gs-tt-binary" label="binary" value="3" style="font-weight:bold;">Binary</option>
@@ -349,6 +349,7 @@
                     <!-- species and gene identifiers dropdowns are listed as required
                     but for some reason the js form validation isn't occurring for these dropdowns -->
                     <select class="form-control" name="sp_id" required>
+                        <option disabled selected value> -- select species -- </option>
                         {% for spec in all_species %}
                             <option id="sp-{{spec}}"
                                     label="{{ all_species[spec] }}"
@@ -368,7 +369,7 @@
                 </div>
                 <div class="col-xs-6 col-sm-4">
                     <select id="gene_identifier" name="gene_identifier" class="form-control" required>
-                        <option value="0"></option>
+                        <option disabled selected value> -- select identifier -- </option>>
                         {% for id in gidts %}
                             {% if id[0] != "MicroArrays" %}
                                 <option label="{{ id[1] }}" value="{{ id[0] }}">{{ id[1] }}</option>
