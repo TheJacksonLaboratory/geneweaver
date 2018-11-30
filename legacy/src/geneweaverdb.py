@@ -3315,31 +3315,6 @@ def update_notification_pref(user_id, state):
 
     return {'error': 'unable to update user notification email preference'}
 
-def get_genes_for_mset(tg_id, int_id):
-    """
-    Gets the Geneset if either the geneset is publicly visible or the user
-    has permission to view it.
-    :param geneset_id:	the geneset ID
-    :param user_id:		the user ID that needs permission
-    :return:			the Geneset corresponding to the given ID if the
-                        user has read permission, None otherwise
-    """
-
-    with PooledCursor() as cursor:
-        cursor.execute(
-                '''
-            SELECT usr_id, pj_name, pj_notes, pj_created, pj_id, %(int_id)s AS int_id
-            FROM project
-            WHERE project.pj_id=%(tg_id)s;
-            ''',
-                {
-                    'tg_id': tg_id,
-                    'int_id': int_id
-                }
-        )
-        genesets = [MSETGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
-
-        return genesets[0] if len(genesets) == 1 else None
 
 def update_annotation_pref(user_id, annotator):
     if annotator not in ann.ANNOTATORS:
@@ -3423,6 +3398,8 @@ def get_geneset(geneset_id, user_id=None, temp=None):
         elif temp == 'temp':
             # genesets = [Geneset(row_dict) for row_dict in dictify_cursor(cursor)]
             genesets = [TempGeneset(row_dict) for row_dict in dictify_cursor(cursor)]
+        else:
+            genesets =[]
         return genesets[0] if len(genesets) == 1 else None
 
 
@@ -3895,13 +3872,27 @@ class GenesetValue:
         self.value_list = gsv_dict['gsv_value_list']
         self.is_in_threshold = gsv_dict['gsv_in_threshold']
         self.date = gsv_dict['gsv_date']
-        #self.hom = list(set(gsv_dict['hom']))  # had to remove duplicates from list
         self.hom_id = gsv_dict['hom_id']
-        self.hom = get_species_homologs(self.hom_id)
         self.gene_rank = ((float(gsv_dict['gene_rank']) / 0.15) * 100)
         #self.ode_ref = gsv_dict['ode_ref']
         self.ode_ref = gsv_dict['ode_ref_id']
         self.gdb_id = gsv_dict['gdb_id']
+
+        hom = gsv_dict.get('hom')
+        # Semi-private
+        self._hom = list(set(hom)) if hom else []
+
+    @property
+    def hom(self):
+        if not self._hom:
+            self._hom = get_species_homologs(self.hom_id) if self.hom_id else []
+        return self._hom
+
+    def __getitem__(self, index):
+        if index > len(self.source_list) - 1:
+            return self.source_list[0]
+        else:
+            return self.source_list[index]
 
 
 class TempGenesetValue:
@@ -4144,6 +4135,77 @@ def get_geneset_values_for_mset_small(pj_tg_id, pj_int_id):
 						WHERE pj_id = %s))''', (pj_tg_id, pj_int_id))
 
         return cursor.fetchall()
+
+
+def geneset_intersection_values_for_mset(gs_a, gs_b):
+    """
+    This geneset value query has been augmented to return a list of sp_ids that can be used
+    on the geneset information page.
+    Also, augmented to add a session call for sorting
+    :param geneset_id:
+    :returns to geneset class.
+    """
+    s = ' ORDER BY gsv.gs_id ASC'
+
+    if 'sort' in session:
+        d = session['dir']
+        if session['sort'] == 'value':
+            s = ' ORDER BY gsv.gsv_value ' + d
+        elif session['sort'] == 'priority':
+            s = ' ORDER BY gi.gene_rank ' + d
+        elif session['sort'] == 'symbol':
+            s = ' ORDER BY gsv.gsv_source_list ' + d
+        elif session['sort'] == 'alt':
+            s = ' ORDER BY g.ode_ref_id ' + d
+
+    ode_ref = '1'
+    if 'extsrc' in session:
+        ode_ref = session['extsrc']
+
+    with PooledCursor() as cursor:
+        cursor.execute('''
+            SELECT DISTINCT gsv.gs_id, gsv.ode_gene_id, gsv.gsv_value, gsv.gsv_hits,
+                            gsv.gsv_source_list, gsv.gsv_value_list, gsv.gsv_in_threshold,
+                            gsv.gsv_date, h.hom_id, gi.gene_rank, g.ode_ref_id, g.gdb_id
+            FROM geneset_value AS gsv
+
+            INNER JOIN homology AS h
+            ON gsv.ode_gene_id = h.ode_gene_id
+            
+            INNER JOIN gene_info AS gi
+            ON gsv.ode_gene_id = gi.ode_gene_id
+            
+            INNER JOIN gene AS g
+            ON gsv.ode_gene_id = g.ode_gene_id
+            WHERE gsv.gs_id = %s
+            AND
+            gsv.ode_gene_id IN
+            (
+             SELECT DISTINCT ode_gene_id
+             FROM geneset_value
+             WHERE gs_id = %s
+             INTERSECT
+             SELECT DISTINCT ode_gene_id
+             FROM geneset_value
+             WHERE gs_id = %s
+            )
+            AND
+             -- This checks to see if the alternate symbol the user wants to view actually exists
+             -- for the given gene. If it doesn't, a default gene symbol is returned. If null was
+             -- returned then there would be missing genes on the view geneset page.
+             g.gdb_id = (SELECT COALESCE (
+                 (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = %s LIMIT 1),
+                 (SELECT gdb_id FROM gene AS g2 WHERE g2.ode_gene_id = gsv.ode_gene_id AND g2.gdb_id = 7 LIMIT 1)))
+             AND
+             -- When viewing symbols, always pick the preferred gene symbol
+             CASE WHEN g.gdb_id = 7
+             THEN g.ode_pref = 't'
+             ELSE true
+             END''' + s, (gs_a, gs_b, gs_a, ode_ref))
+
+        return [GenesetValue(gsv_dict) for gsv_dict in dictify_cursor(cursor)]
+
+
 
 def get_genecount_in_geneset(geneset_id):
     """

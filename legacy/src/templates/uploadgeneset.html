@@ -465,8 +465,9 @@
 
         var json = JSON.parse(uploadData);
 
-        if (json.tool !== 'boolean' && json.tool != 'abba')
+        if (!$.inArray(json.tool, ['boolean', 'abba', 'mset'])) {
             return;
+        }
 
         var speciesID = json.species;
         var spid = json.sp;
@@ -479,24 +480,27 @@
         // that the user selected.
         // Add some ajax that will query the DB and return IDs of the type needed
         // Also, the gif only shows in firefox since we are using async false
-
-        $.ajax({
-            beforeSend: function() {
-                $('.loader').show();
-            },
-            type: "POST",
-            url: "../transposeGenesetIDs",
-            dataType: 'json',
-            async: false,
-            data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7 },
-            success: function (data) {
-                $('.loader').hide();
-                v = data;
-            },
-            error: function() {
-                $('.loader').hide();
-            }
-        });
+        if (json.tool !== 'mset') {
+            $.ajax({
+                beforeSend: function () {
+                    $('.loader').show();
+                },
+                type: "POST",
+                url: "../transposeGenesetIDs",
+                dataType: 'json',
+                async: false,
+                data: {"genes": jsonGenes, "newSpecies": spid, "gdb_id": 7},
+                success: function (data) {
+                    $('.loader').hide();
+                    v = data;
+                },
+                error: function () {
+                    $('.loader').hide();
+                }
+            });
+        } else {
+            v = genes;
+        }
 
         for (var i = 0; i < v.length; i++) {
 

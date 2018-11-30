@@ -2249,17 +2249,22 @@ def viewStoredResults_by_runhash():
 @app.route('/reruntool.json', methods=['POST', 'GET'])
 def rerun_tool():
     args = flask.request.args
-    user_id = args['user_id']
     results = geneweaverdb.get_results_by_runhash(args['runHash'])
     data = json.loads(results['res_data'])
     tool = results['res_tool']
-    params = data['parameters']
+
+    try:
+        params = data['parameters']
+    except KeyError:
+        params = {}
 
     ## inconsistent naming conventions
     if data.get('gs_ids', None) and data['gs_ids']:
         gs_ids = data['gs_ids']
     elif data.get('genesets', None) and data['genesets']:
         gs_ids = data['genesets']
+    elif params.get('gs_dict'):
+        gs_ids = [params['gs_dict']['group_1_gsid'], params['gs_dict']['group_2_gsid']]
     else:
         gs_ids = []
 
