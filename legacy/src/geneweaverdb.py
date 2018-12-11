@@ -2659,14 +2659,19 @@ def tools():
 # Not tested fucntion, query tested; returns usr id of usr it was inserted for
 def create_usr2gene(user_id, ode_gene_id):
     with PooledCursor() as cursor:
-        cursor.execute(
-                '''
-            INSERT INTO extsrc.usr2gene (usr_id, ode_gene_id)
-            VALUES (%s, %s)
-            ''',
-                (user_id, ode_gene_id,)
-        )
-        cursor.connection.commit()
+        try:
+            cursor.execute(
+                    '''
+                INSERT INTO extsrc.usr2gene (usr_id, ode_gene_id)
+                VALUES (%s, %s)
+                ''',
+                    (user_id, ode_gene_id,)
+            )
+            cursor.connection.commit()
+        # If the gene already exists, this function has done all it needs to
+        except psycopg2.IntegrityError:
+            pass
+
         # return the primary ID for the insert that we just performed
 
 
