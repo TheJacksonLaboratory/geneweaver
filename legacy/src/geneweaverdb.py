@@ -1348,6 +1348,7 @@ def update_geneset(usr_id, form):
     pub_year = form.get('pub_year', '').strip()
     pub_pubmed = form.get('pub_pubmed', '').strip()
     pub_id = form.get('pub_id', '').strip()
+    private_public = form.get('permissions', 'private').strip()
 
     ## Should have already been checked but does't hurt to do it again I guess
     if ((get_user(usr_id).is_admin == False and\
@@ -1444,14 +1445,23 @@ def update_geneset(usr_id, form):
 
                 pub_id = cursor.fetchone()[0]
 
+    # Apply private/public logic to tier 4 and 5 Gene Sets
+    current_version = get_geneset(gs_id, usr_id)
+    if current_version.cur_id == 5 and private_public == 'public':
+        cur_id = 4
+    elif current_version == 4 and private_public == 'private':
+        cur_id = 5
+    else:
+        cur_id = current_version.cur_id
+
     # update geneset with changes
     with PooledCursor() as cursor:
         sql = cursor.mogrify('''
             UPDATE geneset 
             SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
-                gs_description = (%s), gs_threshold_type = (%s)
+                gs_description = (%s), gs_threshold_type = (%s), cur_id = (%s)
 			WHERE gs_id = %s;
-            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, gs_id,)
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, cur_id, gs_id)
         )
 
         cursor.execute(sql)
