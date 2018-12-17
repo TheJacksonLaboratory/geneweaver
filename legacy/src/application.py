@@ -4222,6 +4222,11 @@ def render_about():
     return flask.render_template('about.html')
 
 
+@app.route('/data')
+def render_data():
+    return flask.render_template('data.html')
+
+
 @app.route('/funding')
 def render_funding():
     return flask.render_template('funding.html')

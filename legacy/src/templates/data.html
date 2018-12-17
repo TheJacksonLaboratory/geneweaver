@@ -1,0 +1,103 @@
+{% include 'header.html' %}
+
+<style>
+
+    .page-header {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .page-header2 {
+        border-bottom-width: thick;
+        border-bottom-color: #006400;
+    }
+
+    .panel .panel-heading {
+        background-color: #F0F0F0;
+        color: #F0F0F0;
+        border: #006400;
+    }
+
+    .row {
+        border: none;
+    }
+</style>
+
+
+<br>
+<div class="panel panel-default panel-heading bg-gray-light">
+    <h3 class="panel-title"><strong>Data</strong></h3>
+</div>
+
+<div class="panel panel-default">
+    <div class="row">
+        <div class="panel-body">
+            <p>
+                This page lists all current GeneWeaver species, gene identifier sources, and
+                microarray platforms. We cannot include certain identifiers such as RefSeq or
+                GenBank due to scalabilty concerns. For example: Entrez Nucleotide (which
+                includes RefSeq and GenBank) has over 400x more identifiers than Entrez Gene
+                for Mouse. If we included these identifiers, uploads and other gene queries
+                would take much longer to complete, resulting in a painful user experience.
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="panel-body">
+            <div class="panel panel-primary">
+                <div class="page-header">
+                    <h2>New Species</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                    <p>
+                        If you would like to request a
+                        new species, please email
+                        <a href="mailto:erich.baker@gmail.com?Subject=New%20Species%20Request" target="_top">
+                            geneweaver@gmail.com</a>, and include
+                        the NCBI Taxonomy ID (<a
+                        href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Root">found
+                        here</a>). Please make sure that the Taxid you select has directly linked
+                        Entrez Gene records. This information is found in the the table below.
+                        For example, <i>Saccharomyces cerevisiae</i> (<a
+                        href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=4932">Taxid
+                        4932</a>) has no direct Gene links, but <i>S. cerevisiae S288c</i> (<a
+                        href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=559292">Taxid
+                        559292</a>) has over 6,000.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="panel-body">
+            <div class="panel panel-primary">
+                <div class="page-header">
+                    <h2>New Species</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                    <p>
+                        If you would like to request a
+                        new microarray platform, please <a
+                        href="http://www.ncbi.nlm.nih.gov/geo/query/browse.cgi?mode=findplatform">find
+                        the GEO Platform number</a> and make sure the data table includes gene
+                        identifiers (preferably Entrez Gene IDs, or Ensembl Gene IDs). For example, <a
+                        href="http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GPL2700">GPL2700</a>
+                        (Sentrix® HumanRef-8 BeadChip) does not include any supported gene identifiers,
+                        so we cannot read it at this time.
+                    </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+
+{% include 'footer.html' %}
