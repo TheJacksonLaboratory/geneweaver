@@ -887,11 +887,7 @@ def get_all_gene_resources():
     """
     with PooledCursor() as cursor:
         cursor.execute('''
-        SELECT gdb.gdb_name, sp.sp_name, g.ode_date, count(distinct g.ode_ref_id) 
-            FROM gene g 
-                INNER JOIN genedb gdb on g.gdb_id=gdb.gdb_id
-                INNER JOIN species sp on sp.sp_id=g.sp_id
-                GROUP BY gdb.gdb_id, sp.sp_id, g.ode_date;
+        SELECT * FROM gene_resources;
         ''')
         return list(dictify_cursor(cursor))
 
