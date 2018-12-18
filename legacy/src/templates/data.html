@@ -37,61 +37,128 @@
                 microarray platforms. We cannot include certain identifiers such as RefSeq or
                 GenBank due to scalabilty concerns. For example: Entrez Nucleotide (which
                 includes RefSeq and GenBank) has over 400x more identifiers than Entrez Gene
-                for Mouse. If we included these identifiers, uploads and other gene queries
-                would take much longer to complete, resulting in a painful user experience.
+                for Mouse. A list of partner Data Sources can be found <a href="/datasources">here</a>.
             </p>
         </div>
     </div>
 
     <div class="row">
         <div class="panel-body">
-            <div class="panel panel-primary">
-                <div class="page-header">
-                    <h2>New Species</h2>
+            <div class="page-header">
+                <h2>Species</h2>
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                <p>
+                    If you would like to request a
+                    new species, please email
+                    <a href="mailto:geneweaver.web@gmail.com?Subject=New%20Species%20Request" target="_top">
+                        geneweaver.web@gmail.com</a>, and include
+                    the NCBI Taxonomy ID (<a
+                    href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Root">found
+                    here</a>). Please make sure that the Taxid you select has directly linked
+                    Entrez Gene records. This information is found in the the table below.
+                    For example, <i>Saccharomyces cerevisiae</i> (<a
+                    href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=4932">Taxid
+                    4932</a>) has no direct Gene links, but <i>S. cerevisiae S288c</i> (<a
+                    href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=559292">Taxid
+                    559292</a>) has over 6,000.
+                    </p>
                 </div>
-                <div class="panel-body">
-                    <div class="row">
-                    <p>
-                        If you would like to request a
-                        new species, please email
-                        <a href="mailto:erich.baker@gmail.com?Subject=New%20Species%20Request" target="_top">
-                            geneweaver@gmail.com</a>, and include
-                        the NCBI Taxonomy ID (<a
-                        href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Root">found
-                        here</a>). Please make sure that the Taxid you select has directly linked
-                        Entrez Gene records. This information is found in the the table below.
-                        For example, <i>Saccharomyces cerevisiae</i> (<a
-                        href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=4932">Taxid
-                        4932</a>) has no direct Gene links, but <i>S. cerevisiae S288c</i> (<a
-                        href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=559292">Taxid
-                        559292</a>) has over 6,000.
-                        </p>
-                    </div>
+
+                 <table class="table table-striped">
+                    <tr><th>Species Name</th><th>TaxID</th><th>Date</th></tr>
+                     {% for s in sp %}
+                         <tr><td>{{ s.sp_name }}</td>
+                             <td><a href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id={{ s.sp_taxid }}">
+                         {{ s.sp_taxid }}</a></td>
+{#                             <td>{{ s.sp_date }}</td>#}
+                            <td>2018-08-12</td>
+                         </tr>
+                     {% endfor %}
+                 </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="panel-body">
+            <div class="page-header">
+                <h2>Probe Sets</h2>
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                <p>
+                    If you would like to request a
+                    new microarray platform, please <a
+                    href="http://www.ncbi.nlm.nih.gov/geo/query/browse.cgi?mode=findplatform">find
+                    the GEO Platform number</a> and make sure the data table includes gene
+                    identifiers (preferably Entrez Gene IDs, or Ensembl Gene IDs). For example, <a
+                    href="http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GPL2700">GPL2700</a>
+                    (Sentrix® HumanRef-8 BeadChip) does not include any supported gene identifiers,
+                    so we cannot read it at this time. Please email
+                    <a href="mailto:geneweaver.web@gmail.com?Subject=New%20Species%20Request" target="_top">
+                        geneweaver.web@gmail.com</a> with any questions.
+                </p>
                 </div>
+                <table class="table table-striped">
+                    <tr><th>GEO Platform</th><th>Name</th><th>Last Update</th><th>Probe ID Count</th><th>(Mapped to)</th><th>Gene Count</th></tr>
+                     {% for p in pl %}
+                         <tr>
+                             <td><a href="http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={{ p.pf_gpl_id }}">{{ p.pf_gpl_id }}</a></td>
+                             <td>{{ p.pf_name }}</td>
+                             <td>{{ p.pf_date|string }}</td>
+                             <td>{{ p.probe_count }}</td>
+                             <td>{{ p.probemap_count }}</td>
+                             <td>{{ p.gene_count }}</td>
+                         </tr>
+                     {% endfor %}
+                 </table>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row">
+        <div class="panel-body">
+            <div class="page-header">
+                <h2>Ontologies</h2>
+            </div>
+            <div class="panel-body">
+
+                <table class="table table-striped">
+                    <tr><th>Ontology Name</th><th>Last Update</th><th>Term Count</th></tr>
+                     {% for o in ont %}
+                         <tr>
+                             <td>{{ o.ontdb_name }}</td>
+                             <td>{{ o.ontdb_date }}</td>
+                             <td>{{ o.ontdb_count }}</td>
+                         </tr>
+                     {% endfor %}
+                 </table>
             </div>
         </div>
     </div>
 
     <div class="row">
         <div class="panel-body">
-            <div class="panel panel-primary">
-                <div class="page-header">
-                    <h2>New Species</h2>
-                </div>
-                <div class="panel-body">
-                    <div class="row">
-                    <p>
-                        If you would like to request a
-                        new microarray platform, please <a
-                        href="http://www.ncbi.nlm.nih.gov/geo/query/browse.cgi?mode=findplatform">find
-                        the GEO Platform number</a> and make sure the data table includes gene
-                        identifiers (preferably Entrez Gene IDs, or Ensembl Gene IDs). For example, <a
-                        href="http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GPL2700">GPL2700</a>
-                        (Sentrix® HumanRef-8 BeadChip) does not include any supported gene identifiers,
-                        so we cannot read it at this time.
-                    </p>
-                    </div>
-                </div>
+            <div class="page-header">
+                <h2>Gene Databases</h2>
+            </div>
+            <div class="panel-body">
+
+                <table class="table table-striped">
+                    <tr><th>Database Name</th><th>Species</th><th>Last Update</th><th>Genes per Species</th></tr>
+                     {% for g in gene %}
+                         <tr>
+                             <td>{{ g.gdb_name }}</td>
+                             <td>{{ g.sp_name }}</td>
+                             <td>{{ g.ode_date }}</td>
+                             <td>{{ g.count }}</td>
+                         </tr>
+                     {% endfor %}
+                 </table>
             </div>
         </div>
     </div>

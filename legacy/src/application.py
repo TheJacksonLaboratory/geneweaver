@@ -4222,9 +4222,19 @@ def render_about():
     return flask.render_template('about.html')
 
 
+def nested_dict():
+    import collections
+    return collections.defaultdict(nested_dict)
+
+
 @app.route('/data')
 def render_data():
-    return flask.render_template('data.html')
+    species_info = geneweaverdb.get_all_species_resources()
+    platform_info = geneweaverdb.get_all_platform_resources()
+    ontology_info = geneweaverdb.get_all_ontology_resources()
+    gene_info = geneweaverdb.get_all_gene_resources()
+    return flask.render_template('data.html', sp=species_info, pl=platform_info, ont=ontology_info,
+                                 gene=gene_info)
 
 
 @app.route('/funding')

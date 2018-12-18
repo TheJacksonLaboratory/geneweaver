@@ -838,6 +838,64 @@ def get_all_species():
         return OrderedDict(cursor)
 
 
+def get_all_species_resources():
+    """
+    returns an ordered mapping from species ID to species name for all available species
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT sp_name, sp_taxid, sp_date FROM species WHERE sp_name != '' ORDER BY sp_id;''')
+        return list(dictify_cursor(cursor))
+
+
+def get_all_platform_resources():
+    """
+    returns all platform information needed for the resources page
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''
+        SELECT *,x.probe_count,x.gene_count FROM platform, 
+            (SELECT pf_id,count(probe.prb_id) as probe_count,
+            count(distinct probe2gene.prb_id) as probemap_count, 
+            count(distinct ode_gene_id) as gene_count 
+                FROM probe left outer join probe2gene 
+                    ON (probe.prb_id=probe2gene.prb_id) GROUP BY pf_id) x 
+                    WHERE x.pf_id=platform.pf_id 
+                    --AND pf_gpl_id IS NOT NULL 
+                    ORDER BY CAST(SUBSTR(pf_gpl_id,4) AS INTEGER);
+
+        ''')
+        return list(dictify_cursor(cursor))
+
+
+def get_all_ontology_resources():
+    """
+    returns all platform information needed for the resources page
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''
+        SELECT *,x.count as ontdb_count FROM ontologydb, 
+            (SELECT ontdb_id,count(ont_id) FROM ontology 
+            GROUP BY ontdb_id) x 
+            WHERE x.ontdb_id=ontologydb.ontdb_id ORDER BY ontdb_name;
+        ''')
+        return list(dictify_cursor(cursor))
+
+
+def get_all_gene_resources():
+    """
+    returns a join of all gene information
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''
+        SELECT gdb.gdb_name, sp.sp_name, g.ode_date, count(distinct g.ode_ref_id) 
+            FROM gene g 
+                INNER JOIN genedb gdb on g.gdb_id=gdb.gdb_id
+                INNER JOIN species sp on sp.sp_id=g.sp_id
+                GROUP BY gdb.gdb_id, sp.sp_id, g.ode_date;
+        ''')
+        return list(dictify_cursor(cursor))
+
+
 def get_all_publications(gs_id):
     """
     :param gs_id:
