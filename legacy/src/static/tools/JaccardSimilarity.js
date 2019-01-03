@@ -58,19 +58,29 @@ var jaccardSimilarity = function() {
         var regex = new RegExp([
             /[P|p]/,    // P or p
             /\s+/,      // >= 1 spaces
-            /=/,        // Equals sign
+            /[=|<|>]/,  // Equals, gt, or lt sign
             /\s+/,      // >= 1 spaces
-            // >= 1 digits or >=1 digits, a period then >= 1 digits
-            /(\d+\.*\d+|\d+)/
+            // capture 1e-1, 0.001, and 1 style p-values
+            /(\d\.\d+e-\d+|\d+\.*\d+|\d+)/
         ].map(function(r) { return r.source; }).join(''));
 
         var match = regex.exec(str);
 
+        // Match is an array that contains the original string as the first item, and potential match in the second
         if (!match || match.length < 2)
             return 1.0;
 
-        return parseFloat(match[1]);
-    }
+        var pval = match[1];
+
+        // Very small p values use e notation, we need to parse it so the slider works for these values
+        if (pval.indexOf('e') !== -1) {
+            var val_pow = pval.split('e');
+            pval = +val_pow[0] * Math.pow(10, +val_pow[1]);
+            pval = pval.toString()
+        }
+
+        return parseFloat(pval);
+    };
 
     /**
       * Organizes the list of venn diagrams returned by the tool into a series
@@ -152,7 +162,7 @@ var jaccardSimilarity = function() {
         for (var i = 0; i < data.venn_diagrams.length; i++) {
             var venn = data.venn_diagrams[i];
 
-            var c1x = venn['c1x'] + (venn.column * diagramPadding);
+            var c1x = venn['c1x'] + (venn.column * diagramPadding),
                 c2x = venn['c2x'] + (venn.column * diagramPadding),
                 c1y = venn['c1y'] + (venn.row * diagramPadding),
                 c2y = venn['c2y'] + (venn.row * diagramPadding),
@@ -173,14 +183,24 @@ var jaccardSimilarity = function() {
             var c3x = c1x - r1;
             // Each venn object has an array of text objects with (usually)
             // three elements
+            var yShift;
             for (var j = 0; j < venn.text.length; j++) {
 
                 if (j === 0)
-                    var yShift = -30;
+                    yShift = -30;
                 else if (j === 1)
-                    var yShift = 30;
+                    yShift = 30;
                 else
-                    var yShift = 45;
+                    yShift = 45;
+
+
+                // P values below 0.002 should display as "p < 0.002"
+                if (venn.pvalue < 0.002) {
+                    if (venn.text[j].text.indexOf('p') !== -1) {
+                        venn.text[j].text = 'p < 0.002';
+                    }
+                }
+
 
                 var text = {
                     //x: p2x,
@@ -220,7 +240,7 @@ var jaccardSimilarity = function() {
                 text: gsTable[i].text,
                 isColumn: false,
                 isRow: true
-            }
+            };
 
             vennLabels.push(columnText);
             vennLabels.push(rowText);
