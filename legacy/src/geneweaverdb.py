@@ -1503,21 +1503,25 @@ def update_geneset(usr_id, form):
     current_version = get_geneset(gs_id, usr_id)
     if current_version.cur_id == 5 and private_public == 'public':
         cur_id = 4
-    elif current_version == 4 and private_public == 'private':
+        # gs_groups is a comma seperated string in the database, so here we need to use a string
+        gs_groups = '0'
+    elif current_version.cur_id == 4 and private_public == 'private':
         cur_id = 5
+        # gs_groups is a comma seperated string in the database, so here we need to use a string
+        gs_groups = '-1'
     else:
         cur_id = current_version.cur_id
+        gs_groups = current_version.group_ids
 
     # update geneset with changes
     with PooledCursor() as cursor:
         sql = cursor.mogrify('''
             UPDATE geneset 
             SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
-                gs_description = (%s), gs_threshold_type = (%s), cur_id = (%s)
-			WHERE gs_id = %s;
-            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, cur_id, gs_id)
-        )
-
+                gs_description = (%s), gs_threshold_type = (%s), cur_id = (%s), gs_groups = (%s)
+            WHERE gs_id = %s;
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, cur_id, gs_id, gs_groups)
+                             )
         cursor.execute(sql)
         cursor.connection.commit()
 
