@@ -1445,9 +1445,11 @@ def update_geneset(usr_id, form):
     current_version = get_geneset(gs_id, usr_id)
     if current_version.cur_id == 5 and private_public == 'public':
         cur_id = 4
+        # gs_groups is a comma seperated string in the database, so here we need to use a string
         gs_groups = '0'
     elif current_version.cur_id == 4 and private_public == 'private':
         cur_id = 5
+        # gs_groups is a comma seperated string in the database, so here we need to use a string
         gs_groups = '-1'
     else:
         cur_id = current_version.cur_id
