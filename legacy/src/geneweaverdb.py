@@ -1520,7 +1520,7 @@ def update_geneset(usr_id, form):
             SET pub_id = %s, gs_name = (%s), gs_abbreviation = (%s), 
                 gs_description = (%s), gs_threshold_type = (%s), cur_id = (%s), gs_groups = (%s)
             WHERE gs_id = %s;
-            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, cur_id, gs_id, gs_groups)
+            ''', (pub_id, gs_name, gs_abbreviation, gs_description, gs_threshold_type, cur_id, gs_groups, gs_id)
                              )
         cursor.execute(sql)
         cursor.connection.commit()
