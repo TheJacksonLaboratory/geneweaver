@@ -598,6 +598,44 @@ var jaccardSimilarityMatrix = function() {
         table = null;
 
     /** private **/
+    /**
+      * Uses a regex to parse a string containing a p-value. The p-value string
+      * is in a format returned by the jaccard tool (e.g. p = 0.01).
+      *
+      * arguments
+      *     str: a string containing a p-value in the form 'p = 0.1'
+      *
+      * returns
+      *     a float of the parsed p-value. Returns 1 if nothing could be parsed.
+      */
+    var parsePValue = function(str) {
+
+        var regex = new RegExp([
+            /[P|p]/,    // P or p
+            /\s+/,      // >= 1 spaces
+            /[=|<|>]/,  // Equals, gt, or lt sign
+            /\s+/,      // >= 1 spaces
+            // capture 1e-1, 0.001, and 1 style p-values
+            /(\d\.\d+e-\d+|\d+\.*\d+|\d+)/
+        ].map(function(r) { return r.source; }).join(''));
+
+        var match = regex.exec(str);
+
+        // Match is an array that contains the original string as the first item, and potential match in the second
+        if (!match || match.length < 2)
+            return 1.0;
+
+        var pval = match[1];
+
+        // Very small p values use e notation, we need to parse it so the slider works for these values
+        if (pval.indexOf('e') !== -1) {
+            var val_pow = pval.split('e');
+            pval = +val_pow[0] * Math.pow(10, +val_pow[1]);
+            pval = pval.toString()
+        }
+
+        return parseFloat(pval);
+    };
 
     /**
       * Generates the table header HTML for the similarity matrix.
@@ -651,6 +689,13 @@ var jaccardSimilarityMatrix = function() {
 
             var dataRow = data.geneset_table[i];
             var row = table.append('tr');
+            // P values less than 0.002 should list as "p < 0.002"
+            for (var j=0; j < dataRow.entries.length; j++) {
+                var pval = parsePValue(dataRow.entries[j].pval);
+                if (pval < 0.002) {
+                    dataRow.entries[j].pval = "p < 0.002";
+                }
+            }
 
             // Left side geneset IDs and names
             var rowElem = row.append('td')
