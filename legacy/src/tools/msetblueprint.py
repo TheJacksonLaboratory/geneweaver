@@ -193,7 +193,7 @@ def view_result(task_id):
     ## MSET Results
     mset_output = async_result.get("mset_data")
     if not mset_output:
-        flask.flash('An unkown error occurred, result data not available. Please contact a GeneWeaver admin or rerun your results.')
+        flask.flash('An error occurred with the request, and your results are not available. Please contact a GeneWeaver administrator for help or try again.')
         print flask.request.referrer
         return flask.redirect(flask.request.referrer)
 
