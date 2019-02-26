@@ -670,8 +670,8 @@ var margin = ({top: 50, right: 20, bottom: 30, left: 60}),
     });
 
 // Bin data
+var num_bins = numBins(data.length, overflow_amount);
 if (data.length > overflow_amount) {
-    var num_bins = numBins(data.length, overflow_amount);
     if (num_bins > 2) {
         data = binData(data, num_bins);
         binned = true;
@@ -801,9 +801,12 @@ svg.append("g").append("path")
     .style("stroke","black")
     .style("stroke-width","4-px");
 
+var selected_intersect_size = {{ selected_intersect_size }},
+    corrected_x_int = Math.round(selected_intersect_size * (num_bins / pre_data.length));
+
 svg.append('line')
-    .attr('x1', x({{ selected_intersect_size }}) + (x.bandwidth()/2))
-    .attr('x2', x({{ selected_intersect_size }}) + (x.bandwidth()/2))
+    .attr('x1', x(corrected_x_int) + (x.bandwidth()/2))
+    .attr('x2', x(corrected_x_int) + (x.bandwidth()/2))
     .attr('y1', y(0) + 50)
     .attr('y2', y(d3.max(data, function(d) {return d.value})))
     .attr('class', 'comparisonline');
@@ -910,7 +913,6 @@ svg.append('line')
 
 		var checkedArray = [];
 		$("input:checkbox[name='gsoptions[]']").each(function(){
-			//console.log($(this));
 			checkedArray.push($(this).val());
 		});
 
@@ -921,7 +923,6 @@ svg.append('line')
 		    var name = 'Genes dervied from the MSET Enrichment Test';
 		    var description = 'Genes dervied from the MSET Enrichment Test';
 		    var genes = checkedArray;
-		    console.log(genes);
             // Generates a hidden form that is used to submit data to the
             // upload page
             var form = $('<form></form>', {
