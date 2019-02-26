@@ -312,6 +312,24 @@
 			Try re-running the result.
 		</div>
 
+        {# This existing error class is different then other jquery error classes that I have used. It is legacy
+            but I am keeping it until I can refactor all of the code.#}
+        {% with errors = get_flashed_messages() %}
+            {% if errors %}
+                {%- for msg in errors %}
+                    <div class="alert alert-danger fade in" style="text-align:center">
+                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                            x
+                        </button>
+                        <strong>
+                            {{ msg }}
+                        </strong>
+                    </div>
+                {% endfor -%}
+            {% endif %}
+        {% endwith %}
+
+
 		<p>
 
 		<div class="panel panel-default panel-heading bg-gray-light">
