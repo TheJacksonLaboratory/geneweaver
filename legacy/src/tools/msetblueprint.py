@@ -185,7 +185,9 @@ def view_result(task_id):
 
     ## MSET Histogram
     if async_result.get("mset_hist"):
-        density_data = [{'intersectSize': int(k), 'frequency': float(v)} for (k, v) in async_result.get("mset_hist").iteritems()]
+        hist_data = async_result.get("mset_hist")
+        hist_amounts = [int(k) for k in hist_data.keys()]
+        density_data = [{'intersectSize': k, 'frequency': float(hist_data.get(str(k), 0))} for k in xrange(min(hist_amounts), max(hist_amounts)+1)]
         density_data.sort(key=lambda elem: elem['intersectSize'])
         results['density_data'] = density_data
         del async_result['mset_hist']
