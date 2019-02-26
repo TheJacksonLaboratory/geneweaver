@@ -96,6 +96,10 @@ def run_tool_exec(gs_1, gs_2, num_samples, user_id):
     group_1 = gwdb.get_geneset(group_1_gsid)
     group_2 = gwdb.get_geneset(group_2_gsid)
 
+    # We can't use deleted genesets
+    if group_1 is None or group_2 is None:
+        raise ValueError("Error: MSET cannot be performed on deleted genesets.")
+
     # Genesets can't use microarray identifiers
     if group_1.gene_id_type > 0 or group_2.gene_id_type > 0:
         raise ValueError("Warning: MSET cannot currently utilize microarray gene identifiers. Please select a different geneset.")
