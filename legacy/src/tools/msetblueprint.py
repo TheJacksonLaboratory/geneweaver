@@ -183,21 +183,26 @@ def view_result(task_id):
 
     results = {'error': None, 'message': None}
 
+    # Return if results not available
+    mset_output = async_result.get("mset_data")
+    if not mset_output:
+        flask.flash('An error occurred with the request, and your results are not available. '
+                    'Please contact a GeneWeaver administrator for help or try again.')
+        rurl = flask.request.referrer if 'MSET-result' not in flask.request.referrer else '/analyze'
+        return flask.redirect(rurl)
+
     ## MSET Histogram
     if async_result.get("mset_hist"):
         hist_data = async_result.get("mset_hist")
         hist_amounts = [int(k) for k in hist_data.keys()]
-        density_data = [{'intersectSize': k, 'frequency': float(hist_data.get(str(k), 0))} for k in xrange(min(hist_amounts), max(hist_amounts)+1)]
+        max_val = max([max(hist_amounts), int(mset_output["List 1/2 Intersect"])])
+        density_data = [{'intersectSize': k, 'frequency': float(hist_data.get(str(k), 0))}
+                        for k in xrange(min(hist_amounts), max_val+1)]
         density_data.sort(key=lambda elem: elem['intersectSize'])
         results['density_data'] = density_data
         del async_result['mset_hist']
 
     ## MSET Results
-    mset_output = async_result.get("mset_data")
-    if not mset_output:
-        flask.flash('An error occurred with the request, and your results are not available. Please contact a GeneWeaver administrator for help or try again.')
-        return flask.redirect(flask.request.referrer)
-
     group_1_gsid = async_result["parameters"]["gs_dict"].get("group_1_gsid")
     group_2_gsid = async_result["parameters"]["gs_dict"].get("group_2_gsid")
     mset_results = {
