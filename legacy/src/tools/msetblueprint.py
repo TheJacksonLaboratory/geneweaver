@@ -191,7 +191,12 @@ def view_result(task_id):
         del async_result['mset_hist']
 
     ## MSET Results
-    mset_output = async_result["mset_data"]
+    mset_output = async_result.get("mset_data")
+    if not mset_output:
+        flask.flash('An unkown error occurred, result data not available. Please contact a GeneWeaver admin or rerun your results.')
+        print flask.request.referrer
+        return flask.redirect(flask.request.referrer)
+
     group_1_gsid = async_result["parameters"]["gs_dict"].get("group_1_gsid")
     group_2_gsid = async_result["parameters"]["gs_dict"].get("group_2_gsid")
     mset_results = {
@@ -229,7 +234,6 @@ def view_result(task_id):
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
-
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
