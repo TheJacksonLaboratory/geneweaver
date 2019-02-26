@@ -194,7 +194,6 @@ def view_result(task_id):
     mset_output = async_result.get("mset_data")
     if not mset_output:
         flask.flash('An error occurred with the request, and your results are not available. Please contact a GeneWeaver administrator for help or try again.')
-        print flask.request.referrer
         return flask.redirect(flask.request.referrer)
 
     group_1_gsid = async_result["parameters"]["gs_dict"].get("group_1_gsid")
