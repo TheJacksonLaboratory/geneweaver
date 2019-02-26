@@ -93,8 +93,8 @@ def run_tool_exec(gs_1, gs_2, num_samples, user_id):
     group_1_gsid = gs_1
     group_2_gsid = gs_2
 
-    group_1 = gwdb.get_geneset(group_1_gsid)
-    group_2 = gwdb.get_geneset(group_2_gsid)
+    group_1 = gwdb.get_geneset(group_1_gsid, user_id)
+    group_2 = gwdb.get_geneset(group_2_gsid, user_id)
 
     # We can't use deleted genesets
     if group_1 is None or group_2 is None:
