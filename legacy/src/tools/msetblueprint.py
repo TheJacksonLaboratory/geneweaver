@@ -98,7 +98,7 @@ def run_tool_exec(gs_1, gs_2, num_samples, user_id):
 
     # We can't use deleted genesets
     if group_1 is None or group_2 is None:
-        raise ValueError("Error: MSET cannot be performed on deleted genesets.")
+        raise ValueError("Error: Problem accessing one or both of the selected genesets")
 
     # Genesets can't use microarray identifiers
     if group_1.gene_id_type > 0 or group_2.gene_id_type > 0:
@@ -191,7 +191,7 @@ def view_result(task_id):
     mset_output = async_result.get("mset_data")
     if not mset_output:
         flask.flash('An error occurred with the request, and your results are not available. '
-                    'Please contact a GeneWeaver administrator for help or try again.')
+                    'Please contact a GeneWeaver administrator for help or try again. {}'.format(async_result.get('error', [])))
         rurl = flask.request.referrer if 'MSET-result' not in flask.request.referrer else '/analyze'
         return flask.redirect(rurl)
 
@@ -199,9 +199,10 @@ def view_result(task_id):
     if async_result.get("mset_hist"):
         hist_data = async_result.get("mset_hist")
         hist_amounts = [int(k) for k in hist_data.keys()]
+        min_val = min([min(hist_amounts), int(mset_output["List 1/2 Intersect"])])
         max_val = max([max(hist_amounts), int(mset_output["List 1/2 Intersect"])])
         density_data = [{'intersectSize': k, 'frequency': float(hist_data.get(str(k), 0))}
-                        for k in xrange(min(hist_amounts), max_val+1)]
+                        for k in xrange(min_val, max_val+2)]
         density_data.sort(key=lambda elem: elem['intersectSize'])
         results['density_data'] = density_data
         del async_result['mset_hist']
@@ -244,9 +245,29 @@ def view_result(task_id):
 def status_json(task_id):
     # TODO need to check for read permissions on task
     async_result = tc.celery_app.AsyncResult(task_id)
+    if async_result.state == states.PENDING:
+        ## We haven't given the tool enough time to setup
+        if not async_result.info:
+            progress = None
+            percent = None
+        else:
+            progress = async_result.info['message']
+            percent = async_result.info['percent']
+
+    elif async_result.state == states.FAILURE:
+        progress = 'Failed'
+        percent = ''
+
+    else:
+        progress = 'Done'
+        percent = ''
+
+
     return flask.jsonify({
         'isReady': async_result.state in states.READY_STATES,
         'state': async_result.state,
+        'progress': progress,
+        'percent': percent
     })
 
 
