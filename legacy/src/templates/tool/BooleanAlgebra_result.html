@@ -34,6 +34,25 @@
         max-width: 33%;
     }
 
+  .row {
+    position: relative;
+  }
+
+  .bottom-align-text {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+
+  h2::before { 
+    display: block; 
+    content: " "; 
+    margin-top: -65px; 
+    height: 65px; 
+    visibility: hidden; 
+    pointer-events: none;
+  }
+
 
 </style>
 
