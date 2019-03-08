@@ -465,7 +465,7 @@
 
         var json = JSON.parse(uploadData);
 
-        if (!$.inArray(json.tool, ['boolean', 'abba', 'mset'])) {
+        if (!($.inArray(json.tool, ['boolean', 'abba', 'mset']) > -1)) {
             return;
         }
 
