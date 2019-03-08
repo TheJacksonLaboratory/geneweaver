@@ -623,8 +623,8 @@ function numBins(size, break_size) {
             break
         }
     }
-    if (val < 4) {
-        val = -1
+    if (val < 6) {
+        val = size
     }
     return val
 }
@@ -672,7 +672,7 @@ var margin = ({top: 50, right: 20, bottom: 30, left: 60}),
 // Bin data
 var num_bins = numBins(data.length, overflow_amount);
 if (data.length > overflow_amount) {
-    if (num_bins > 2) {
+    if (num_bins > 2 && num_bins < data.length) {
         data = binData(data, num_bins);
         binned = true;
     }
