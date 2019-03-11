@@ -34,6 +34,25 @@
         max-width: 33%;
     }
 
+  .row {
+    position: relative;
+  }
+
+  .bottom-align-text {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+
+  h2::before { 
+    display: block; 
+    content: " "; 
+    margin-top: -65px; 
+    height: 65px; 
+    visibility: hidden; 
+    pointer-events: none;
+  }
+
 
 </style>
 
@@ -353,8 +372,15 @@
 
             {% set i = 1 %}
             {% for gs_group in results | sort(reverse = True) %}
-                <div class="row" id="{{ results[gs_group] }}">
-                    <div class="col-md-2 pull-right" align="right" style="text-align:right">
+                <div class="row">
+		{% if json_results.type == 'Except' %}
+		    <div class="col-md-6">
+			{% set gs_id = results[gs_group].values()[0][0][3] %}
+			{% set gs_name = results[gs_group].values()[0][0][4] %}
+			<h2 id="{{ results[gs_group] }}">Distinct Genes in <b>GS{{ gs_id }}</b>: {{ gs_name }}</h2>
+		    </div>
+		{% endif %}
+                    <div class="col-md-2 pull-right bottom-align-text" align="right" style="text-align:right">
                         <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
                              style="padding:0; border:0; margin:0">
                             <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
