@@ -93,16 +93,13 @@
     </div>
 </div>
 
-<script type="text/javascript" src="https://jira.jax.org/s/20f93745609ec1a6994fc92ecc8ffdc4-T/-cbxnms/711002/784c14ac53ce895296ac9155605aeeff/2.0.31/_/download/batch/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector.js?locale=en-US&collectorId=2233f647"></script>
+    <script type="text/javascript">
 
-    <script type="text/javascript">window.ATL_JQ_PAGE_PROPS =  {
-	"triggerFunction": function(showCollectorDialog) {
-		//Requires that jQuery is available!
-		jQuery("#report-bug").click(function(e) {
+        jQuery("#report-bug").click(function(e) {
 			e.preventDefault();
-			showCollectorDialog();
+			$("#submitBugReportModal").modal('show');
 		});
-	}};</script>
+    </script>
 
 
 </body>

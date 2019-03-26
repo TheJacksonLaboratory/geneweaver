@@ -47,6 +47,7 @@ from werkzeug.routing import BaseConverter
 import bleach
 from psycopg2 import Error
 from psycopg2 import IntegrityError
+import report_bug
 
 from decorators import login_required, create_guest, restrict_to_current_user
 
@@ -4505,6 +4506,19 @@ def message_all_json():
         response.status_code = 401
 
     return response
+
+
+@app.route('/report_bug.json', methods=['POST'])
+@login_required(allow_guests=True)
+def report_bug_to_jira():
+
+    results = report_bug.to_jira(
+        description=request.values['description'],
+        fullname=request.values['fullname'],
+        email=request.values['email']
+    )
+
+    return json.dumps(results)
 
 
 # ********************************************
