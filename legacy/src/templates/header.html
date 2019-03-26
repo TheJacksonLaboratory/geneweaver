@@ -417,6 +417,7 @@ messages = array of messages
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">x</button>
         </div>
     </noscript>
+    {% include 'modal/submitBugReport.html' %}
     {% if g.user and g.user.is_guest %}
         <div class="alert alert-danger" role="alert">
             <i class="fa fa-hourglass-half fa-2x" aria-hidden="true"></i>
