@@ -367,7 +367,7 @@
                 <script type="text/javascript">console.log('{{json_results.type}}')</script>
                 {% for gs_group in results | sort(reverse = True) %}
                     <div class="row">
-gi                        {% if json_results.type == 'Except' %}
+                        {% if json_results.type == 'Except' %}
                             <div class="col-md-6">
                                 {% set gs_id = results[gs_group].values()[0][0][3] %}
                                 {% set gs_name = results[gs_group].values()[0][0][4] %}
