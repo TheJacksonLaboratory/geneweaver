@@ -344,14 +344,7 @@
                                         {% if json_results.type == 'Intersect' %}
                                             <strong>{{ loop.length }}</strong> Distinct Genes found in
                                             {% for gene in results[gs_groups][g] %}
-{#                                                <span id="{{ gene[3] }}">#}
-{#                                                    <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"#}
-{#                                                        data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">#}
-{#                                                        <strong>GS{{ gene[3] }} {{ gene[4] }}</strong>#}
-
-                                                       {% if loop.last %}<strong>{{ loop.length }}</strong>{% endif %}
-{#                                                    </span>#}
-{#                                                </span>#}
+                                                {% if loop.last %}<strong>{{ loop.length }}</strong>{% endif %}
                                             {% endfor %}
                                             Gene Set(s)
                                         {% elif json_results.type == 'Except' %}
@@ -370,114 +363,129 @@
             {% endif %}
 
 
-            {% set i = 1 %}
-            {% for gs_group in results | sort(reverse = True) %}
-                <div class="row">
-		{% if json_results.type == 'Except' %}
-		    <div class="col-md-6">
-			{% set gs_id = results[gs_group].values()[0][0][3] %}
-			{% set gs_name = results[gs_group].values()[0][0][4] %}
-			<h2 id="{{ results[gs_group] }}">Distinct Genes in <b>GS{{ gs_id }}</b>: {{ gs_name }}</h2>
-		    </div>
-		{% endif %}
-                    <div class="col-md-2 pull-right bottom-align-text" align="right" style="text-align:right">
-                        <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
-                             style="padding:0; border:0; margin:0">
-                            <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
-                                Select Set
-                                <input type="checkbox" name="group-{{ i }}"/>
-                            </label>
+                {% set i = 1 %}
+                <script type="text/javascript">console.log('{{json_results.type}}')</script>
+                {% for gs_group in results | sort(reverse = True) %}
+                    <div class="row">
+                        {% if json_results.type == 'Except' %}
+                            <div class="col-md-6">
+                                {% set gs_id = results[gs_group].values()[0][0][3] %}
+                                {% set gs_name = results[gs_group].values()[0][0][4] %}
+                                <h2 id="{{ results[gs_group] }}">Distinct Genes in <b>GS{{ gs_id }}</b>: {{ gs_name }}
+                                </h2>
+                            </div>
+                        {% elif json_results.type == 'Intersect' %}
+                            <div class="col-md-6">
+                            <h2 id="{{ results[gs_group] }}">
+                            {% for g in results[gs_group] %}
+                                {% if loop.last %}
+                                    {{ loop.length }} Distinct Genes found in
+                                    {% for gene in results[gs_group][g] %}
+                                        {% if loop.last %}{{ loop.length }}{% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            Gene Set(s)</h2>
+                            </div>
+                        {% endif %}
+                  <div class="col-md-2 pull-right bottom-align-text" align="right" style="text-align:right">
+                            <div class="ui-checkbox group-checkbox" id="group-{{ i }}-allcheck"
+                                 style="padding:0; border:0; margin:0">
+                                <label for="group-{{ i }}" style="padding:0 0 0 40px; margin:0">
+                                    Select Set
+                                    <input type="checkbox" name="group-{{ i }}"/>
+                                </label>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {#
+                    {#
                 <div class="row" id="group-{{ json_results.numGS }}">
                     #}
-                <div class="row" id="group-{{ i }}">
-                    <table class="table table-hover">
-                        <tbody>
-                        <tr>
-                            <th>Genes</th>
-                            {#                <th>Species</th>#}
-                            <th>Homology</th>
-                            <th>In GeneSets</th>
-                            <th>Emphasis</th>
-                            <th></th>
-                        </tr>
-                        {% for g in results[gs_group] %}
-
-                            {% set cluster = results[gs_group][g] %}
+                    <div class="row" id="group-{{ i }}">
+                        <table class="table table-hover">
+                            <tbody>
                             <tr>
+                                <th>Genes</th>
+                                {#                <th>Species</th>#}
+                                <th>Homology</th>
+                                <th>In GeneSets</th>
+                                <th>Emphasis</th>
+                                <th></th>
+                            </tr>
+                            {% for g in results[gs_group] %}
 
-                                <td style="text-align: left; width: 30%;">
-                                    {% for gene in cluster %}
-                                        {% if previous != gene[2]|string + gene[1] %}
-                                            {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
-                                            <span style="margin-left: 5px;">
+                                {% set cluster = results[gs_group][g] %}
+                                <tr>
+
+                                    <td style="text-align: left; width: 30%;">
+                                        {% for gene in cluster %}
+                                            {% if previous != gene[2]|string + gene[1] %}
+                                                {% if not loop.first %}<i class="fa fa-arrows-h"></i>{% endif %}
+                                                <span style="margin-left: 5px;">
                                                 <span class="group_name" style="font: italic 10px/14px Georgia, serif;
                                                         background-color: {{ json_results.bg[(gene[2]|int-1)] }};
                                                         border:1px solid {{ json_results.borders[(gene[2]|int-1)] }}">
                                                     {{ json_results.all_species[gene[2]|string] }}.
                                                 </span>
                                             </span>
-                                            <strong>
-                                                <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
-                                            </strong>
+                                                <strong>
+                                                    <a href="/search/?searchbar={{ gene[1] }}&pagination_page=1&searchGenes=yes">{{ gene[1] }}</a>
+                                                </strong>
+                                            {% endif %}
+                                            {% set previous = gene[2]|string + gene[1] %}
+                                        {% endfor %}
+
+                                    </td>
+
+
+                                    {# homoology #}
+                                    <td style="width: 10%;">
+                                        {% if cluster | length == 1 %}
+                                            <span class="label label-default">No Mapping</span>
+                                        {% else %}
+                                            <span class="label label-info">Homologene</span>
                                         {% endif %}
-                                        {% set previous = gene[2]|string + gene[1] %}
-                                    {% endfor %}
+                                    </td>
 
-                                </td>
-
-
-                                {# homoology #}
-                                <td style="width: 10%;">
-                                    {% if cluster | length == 1 %}
-                                        <span class="label label-default">No Mapping</span>
-                                    {% else %}
-                                        <span class="label label-info">Homologene</span>
-                                    {% endif %}
-                                </td>
-
-                                {# In Gene Sets #}
-                                <td>
-                                    {% for gene in cluster %}
-                                        <span id="{{ gene[3] }}">
+                                    {# In Gene Sets #}
+                                    <td>
+                                        {% for gene in cluster %}
+                                            <span id="{{ gene[3] }}">
                                             <span data-placement="top" data-toggle="tooltip" data-rel="tooltip"
                                                   data-original-title="{{ gene[4] }}" title="{{ gene[4] }}">
                                             <a href="/viewgenesetdetails/{{ gene[3] }}"><strong>GS{{ gene[3] }}</strong>
                                             </a>
-                                            {% if not loop.last %},{% endif %}
+                                                {% if not loop.last %},{% endif %}
                                             </span>
                                         </span>
-                                    {% endfor %}
-                                </td>
-                                {# Emphasize #}
-                                <td nowrap>
-                                    <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
-                                           onchange="emphasize('{{ cluster[0] }}');"
-                                           class="switch" data-size="mini"
-                                           style="padding: 0px; vertical-align: middle;">
-                                </td>
-                                {# Checkbox #}
-                                <td>
-                                    <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
-                                        <label for="addGeneset"
-                                               style="margin: -6px; padding-right: 0;">
-                                            <input type="checkbox" name="gsoptions[]"
-                                                   id="addGeneset{{ cluster[0][1] | string}}"
-                                                   value="{{ cluster[0][1] | string }}"/>
-                                        </label>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% set i = i + 1 %}
-            {% endfor %}
+                                        {% endfor %}
+                                    </td>
+                                    {# Emphasize #}
+                                    <td nowrap>
+                                        <input type="checkbox" name="g_id[]" id="{{ cluster[0] }}"
+                                               onchange="emphasize('{{ cluster[0] }}');"
+                                               class="switch" data-size="mini"
+                                               style="padding: 0px; vertical-align: middle;">
+                                    </td>
+                                    {# Checkbox #}
+                                    <td>
+                                        <div class="ui-checkbox" style="padding: 0; border: 0; margin: 0;">
+                                            <label for="addGeneset"
+                                                   style="margin: -6px; padding-right: 0;">
+                                                <input type="checkbox" name="gsoptions[]"
+                                                       id="addGeneset{{ cluster[0][1] | string }}"
+                                                       value="{{ cluster[0][1] | string }}"/>
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% set i = i + 1 %}
+                {% endfor %}
         {% endif %}
         {% endif %}
 
