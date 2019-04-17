@@ -3072,6 +3072,49 @@ def group_id_in_groups(id, groups):
             included = True
     return included
 
+
+def jaccard(a, b):
+    """
+    stupid easy jaccard with no pair-wise deletion
+    but maybe not needed because mapping to hom_id?
+    This is something that we need to verify.
+    :param a: gs_id of geneset that is the seed of the search
+    :param b: gs_id of geneset for comparison
+    :return: non-normalized jaccard
+    """
+    c = list(set(a).intersection(b))
+    return float(len(c)) / (len(a) + len(b) - len(c))
+
+
+def calculate_jaccard(gs_id, genesets):
+    """
+    get hom ids from gs_id and each geneset.
+    :param gs_id: gs_id of geneset that is the seed of the search
+    :param genesets: list of gs_ids that contain hom_ids from a
+    :return: a dictionary of gs_id => jaccard value
+    """
+    jaccards = {}
+    gs1 = geneweaverdb.get_geneset_hom_ids(gs_id)
+    for g in genesets:
+        gs2 = geneweaverdb.get_geneset_hom_ids(g)
+        jaccards[g] = jaccard(gs1, gs2)
+    return jaccards
+
+
+def dynamic_jaccard(gs_id):
+    """
+    This function takes a gs_id and maps it against the hom2geneset table to dynamically create and
+    add rows to the geneset_jaccard table
+    :param gs_id:
+    :return: 1 if True
+    """
+    hom_ids = geneweaverdb.get_geneset_hom_ids(gs_id)
+    genesets = geneweaverdb.get_genesets_by_hom_id(hom_ids)
+    results = calculate_jaccard(gs_id, genesets)
+    if geneweaverdb.insert_into_geneset_jaccard(results, gs_id):
+        return 1
+
+
 def top_twenty_simgenesets(simgs):
     """
     iterates through all results and picks the top twenty genesets that do not have > 0.95 jac overlap

@@ -3792,6 +3792,61 @@ def get_genesets_by_user_id(user_id):
         return genesets if len(genesets) > 0 else None
 
 
+def get_geneset_hom_ids(gs_id):
+    """
+    Gets all hom_ids that are associated with a gs_id
+    :param gs_id:
+    :return:
+    """
+    with PooledCursor() as cursor:
+        cursor.execute('''SELECT DISTINCT hom_id FROM extsrc.homology h INNER JOIN extsrc.geneset_value gsv 
+                ON h.ode_gene_id=gsv.ode_gene_id INNER JOIN production.geneset g ON gsv.gs_id=g.gs_id 
+                WHERE gs_status not like 'de%%' AND g.gs_id=%s''', (gs_id,))
+        return [r[0] for r in cursor.fetchall()]
+
+
+def get_genesets_by_hom_id(hom_ids):
+    """
+    Find which genesets are associated with which arrays. postgres does not have an any to
+    any array comparision so I have to loop :(
+    :param hom_ids:
+    :return: list of genesets
+    """
+    with PooledCursor() as cursor:
+        geneset_list = []
+        for h in hom_ids:
+            cursor.execute('SELECT geneset_array FROM extsrc.hom2geneset WHERE hom_id=%s', (h,))
+            geneset_list.append(cursor.fetchone()[0])
+        list(set(geneset_list[0]))
+    return geneset_list[0]
+
+
+def insert_into_geneset_jaccard(jaccards, gs_id):
+    """
+    First deletes existing geneset jac_values from geneset_jaccard where gs_id is true.
+    Then insert new values into the table such that gs_id_left < gs_id_right
+    :param jaccards: dictionary of jaccard values per gs_id: gs_id => jaccard value
+    :param gs_id: gs_id of interest
+    :return: 1
+    """
+    # delete items from geneset_jaccard
+    with PooledCursor() as cursor:
+        cursor.execute('''DELETE FROM geneset_jaccard WHERE gs_id_left=%s OR gs_id_right=%s''', (gs_id, gs_id,))
+        cursor.connection.commit()
+        # insert gs_ids left and right
+        for key, value in jaccards.items():
+            if gs_id > key:
+                gs_left = key
+                gs_right = gs_id
+            else:
+                gs_left = gs_id
+                gs_right = key
+            cursor.execute('''INSERT INTO geneset_jaccard (gs_id_left, gs_id_right, jac_value) VALUES (%s, %s, %s)''',
+                        (gs_left, gs_right, value, ))
+        cursor.connection.commit()
+    return 1
+
+
 def get_all_parents_for_ontology(ont_id):
     """
     Gets all parent ontology for a given ontology
