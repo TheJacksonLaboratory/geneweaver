@@ -3109,10 +3109,13 @@ def dynamic_jaccard(gs_id):
     :return: 1 if True
     """
     hom_ids = geneweaverdb.get_geneset_hom_ids(gs_id)
-    genesets = geneweaverdb.get_genesets_by_hom_id(hom_ids)
-    results = calculate_jaccard(gs_id, genesets)
-    if geneweaverdb.insert_into_geneset_jaccard(results, gs_id):
-        return 1
+    if hom_ids == 0:
+        return 0
+    else:
+        genesets = geneweaverdb.get_genesets_by_hom_id(hom_ids)
+        results = calculate_jaccard(gs_id, genesets)
+        if geneweaverdb.insert_into_geneset_jaccard(results, gs_id):
+            return 1
 
 
 def top_twenty_simgenesets(simgs):
@@ -3151,6 +3154,11 @@ def render_sim_genesets(gs_id, grp_by):
         user_id = flask.session['user_id']
     else:
         user_id = 0
+    # Call function to dynamically calculate jaccard values -- added to the geneset_value table
+    if dynamic_jaccard(gs_id) == 0:
+        sim_status = 0
+    else:
+        sim_status = 1
     # Get GeneSet Info for the MetaData
     geneset = geneweaverdb.get_geneset(gs_id, user_id)
     # Returns a subClass of geneset that includes jac values
@@ -3208,18 +3216,22 @@ def render_sim_genesets(gs_id, grp_by):
     for sp_id, sp_name in geneweaverdb.get_all_species().items():
         species.append([sp_id, sp_name])
 
-    ## Checks to see if the jaccard cache has been built for this set, if not
-    ## allows the user to calculate jaccard coefficients for the gene set
-    set_info = geneweaverdb.get_geneset_info(gs_id)
-    sim_status = 0
-
-    ## The cache has never been built
-    if set_info and not set_info.jac_started:
-        sim_status = 1
-
-    ## The cache is currently building
-    elif set_info and set_info.jac_started and not set_info.jac_completed:
-        sim_status = 2
+    # #################################################################################
+    # This is deprecated. The dynamic jaccard does not make use of this information
+    # We will pass the sim_status to the template to indicate if there are results
+    #
+    # Checks to see if the jaccard cache has been built for this set, if not
+    # allows the user to calculate jaccard coefficients for the gene set
+    # set_info = geneweaverdb.get_geneset_info(gs_id)
+    # sim_status = 0
+    #
+    # The cache has never been built
+    # if set_info and not set_info.jac_started:
+    #     sim_status = 1
+    #
+    # The cache is currently building
+    # elif set_info and set_info.jac_started and not set_info.jac_completed:
+    #     sim_status = 2
 
     return flask.render_template(
         'similargenesets.html',
