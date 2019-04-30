@@ -86,6 +86,26 @@ def insert_new_contents_to_file(contents):
         print 'New File_id: ' + str(file_id)
         return file_id
 
+
+def insert_into_hom2geneset_by_gsid(gs_id):
+    """
+    This function takes a gs_id and appends the associated genes onto arrays in the hom2geneset files
+    :param gs_id:
+    :return: 1 on success.
+    """
+    with db.PooledCursor() as cursor:
+        cursor.execute('''SELECT hom_id FROM homology h INNER JOIN geneset_value gv ON h.ode_gene_id=gv.ode_gene_id 
+                        WHERE gv.gs_id=%s''', (gs_id,))
+        if cursor.rowcount != 0:
+            for r in cursor.fetchall():
+                cursor.execute('''UPDATE hom2geneset SET geneset_array = geneset_array || %s::bigint 
+                                WHERE hom_id = %s''', (gs_id, r[0], ))
+            cursor.connection.commit()
+        else:
+            return 0
+    return 1
+
+
 # TODO: why is this extra function needed?
 def create_new_geneset(args):
     user_id = session['user_id']
@@ -290,9 +310,9 @@ def create_new_geneset_for_user(args, user_id):
         ann.insert_annotations(cursor, gs_id, formData['gs_description'][0],
                                pubDict['pub_abstract'], ncbo=ncbo,
                                monarch=monarch)
-    ##
-    ## Doesn't do error checking or ensuring the number of genes added matches
-    ## the current gs_count
+    #
+    # Doesn't do error checking or ensuring the number of genes added matches
+    # the current gs_count
     # vals = batch.buGenesetValues(gs)
     #
     # batch.db.commit()
@@ -305,10 +325,13 @@ def create_new_geneset_for_user(args, user_id):
         if g and g[0]:
             missing_genes.append(g[0])
 
-    ## Last check for missing gene identifiers to inform the user of them
+    # Last check for missing gene identifiers to inform the user of them
     missing_genes = db.get_missing_ref_ids(
         missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
     )
+
+    # insert genes associated with geneset into the hom2geneset table
+    insert_into_hom2geneset_by_gsid(gs_id)
 
     return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
 
@@ -354,8 +377,8 @@ def create_new_large_geneset_for_user(args, user_id):
         cur_id = 5
         gs_groups = ", ".join(formData['select_groups'])
 
-    ## If the user is using the file option for the upload, then file_text
-    ## won't exist. It is replaced by file_data in the passed arguments.
+    # If the user is using the file option for the upload, then file_text
+    # won't exist. It is replaced by file_data in the passed arguments.
     if 'file_text' in formData:
         gene_data = formData['file_text'][0]
     elif 'fileData' in args:
@@ -364,9 +387,9 @@ def create_new_large_geneset_for_user(args, user_id):
         gene_data = []
 
     # look for a blank line at end of file data, remove last element if a match is made
-    #if re.match(r'^\s*$', gs_data[-1]):
+    # if re.match(r'^\s*$', gs_data[-1]):
     #    gs_data = gs_data[:len(gs_data) - 1]
-    #gs_count = len(gs_data)
+    # gs_count = len(gs_data)
     gene_identifier = get_identifier_from_form(formData['gene_identifier'][0])
     gs_threshold_type = formData['gs_threshold_type'][0]
     gs_threshold = str('0.5')
@@ -375,9 +398,9 @@ def create_new_large_geneset_for_user(args, user_id):
     gs_attribution = 1
 
     # This line removes non-ascii characters which seem to break the process_gene_list function
-    #ascii_gene_list = ''.join([i if ord(i) < 128 else ' ' for i in formData['file_text'][0].strip('\r')])
+    # ascii_gene_list = ''.join([i if ord(i) < 128 else ' ' for i in formData['file_text'][0].strip('\r')])
     gene_data = ''.join([i if ord(i) < 128 else ' ' for i in gene_data.strip('\r')])
-    ## This count may not reflect the true number of genes
+    # This count may not reflect the true number of genes
     gs_count = len(gene_data.split('\n'))
     missing_genes = gene_data
     gene_data = process_gene_list(gene_data)
@@ -439,8 +462,8 @@ def create_new_large_geneset_for_user(args, user_id):
                                 'user_id': user_id
                             })
 
-    ## Doesn't do error checking or ensuring the number of genes added matches
-    ## the current gs_count
+    # Doesn't do error checking or ensuring the number of genes added matches
+    # the current gs_count
     # vals = batch.buGenesetValues(gs)
     #
     # batch.db.commit()
@@ -453,10 +476,13 @@ def create_new_large_geneset_for_user(args, user_id):
         if g and g[0]:
             missing_genes.append(g[0])
 
-    ## Last check for missing gene identifiers to inform the user of them
+    # Last check for missing gene identifiers to inform the user of them
     missing_genes = db.get_missing_ref_ids(
         missing_genes, formData['sp_id'][0], abs(int(gene_identifier))
     )
+
+    # insert genes associated with geneset into the hom2geneset table
+    insert_into_hom2geneset_by_gsid(gs_id)
 
     return {'error': 'None', 'gs_id': gs_id, 'missing': missing_genes}
 
