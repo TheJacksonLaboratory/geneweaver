@@ -3802,7 +3802,10 @@ def get_geneset_hom_ids(gs_id):
         cursor.execute('''SELECT DISTINCT hom_id FROM extsrc.homology h INNER JOIN extsrc.geneset_value gsv 
                 ON h.ode_gene_id=gsv.ode_gene_id INNER JOIN production.geneset g ON gsv.gs_id=g.gs_id 
                 WHERE gs_status not like 'de%%' AND g.gs_id=%s''', (gs_id,))
-        return [r[0] for r in cursor.fetchall()]
+        if cursor.rowcount == 0:
+            return 0
+        else:
+            return [r[0] for r in cursor.fetchall()]
 
 
 def get_genesets_by_hom_id(hom_ids):
